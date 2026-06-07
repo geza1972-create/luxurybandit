@@ -1,10 +1,12 @@
 "use client";
 
-import { Brush, Check, Copy, Download, Eraser, Eye, EyeOff, Highlighter, ImagePlus, ListChecks, Loader2, MousePointer2, Sparkles, RotateCcw, RotateCw, Trash2, ZoomIn, ZoomOut } from "lucide-react";
+import { getClientAccountId, getWorkspaceStorageKey } from "@/lib/client-account";
+import { Brush, Check, Copy, Crop, Download, Eraser, Eye, EyeOff, Highlighter, ImagePlus, ListChecks, Loader2, MousePointer2, Sparkles, RotateCcw, RotateCw, Trash2, ZoomIn, ZoomOut } from "lucide-react";
 import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type ImageEditorProps = {
   viewName: string;
+  onContinueToFashionCreator?: () => void;
 };
 
 type EditorState = {
@@ -21,6 +23,15 @@ type CutoutHistoryItem = {
   prompt: string;
 };
 
+type GalleryImageItem = {
+  id: string;
+  type: "upload" | "cutout" | "shop-image" | "model-image";
+  path: string;
+  url: string;
+  createdAt: string;
+  name: string;
+};
+
 type CreditStatus = {
   accountId: string;
   credits: number;
@@ -29,15 +40,21 @@ type CreditStatus = {
     "detect-products": number;
     "retouch-cutout": number;
     "rebuild-product": number;
+    "fashion-model": number;
+    "fashion-model-selected": number;
   };
 };
 
 const STORAGE_PREFIX = "shopcut-ai-view";
 const HISTORY_STORAGE_PREFIX = "shopcut-ai-history";
+const DETECTED_PRODUCTS_STORAGE_KEY = "shopcut-ai-latest-detected-products";
+const PRODUCT_ASSETS_STORAGE_KEY = "shopcut-ai-product-assets";
+const getProductAssetsStorageKey = () => getWorkspaceStorageKey(PRODUCT_ASSETS_STORAGE_KEY);
 const CANVAS_SIZE = 820;
 const MAX_CANVAS_EDGE = 1600;
 const MAX_HISTORY_ITEMS = 4;
-const MAX_STORED_CUTOUT_EDGE = 1100;
+const MAX_STORED_CUTOUT_EDGE = 600;
+const MAX_GENERATED_OUTPUT_EDGE = 1024;
 
 type EditorSize = {
   width: number;
@@ -60,8 +77,8 @@ const backgroundOptions = [
   {
     label: "Light gradient",
     value: "light-gradient",
-    swatch: "linear-gradient(180deg, #f7f7f5 0%, #e4e4e1 58%, #bdbdb7 100%)",
-    prompt: "light gray vertical studio gradient background, bright at the top and softly darker gray at the bottom"
+    swatch: "linear-gradient(180deg, #f1f1f1 0%, #e8e8e8 48%, #d3d3d3 100%)",
+    prompt: "subtle light gray vertical studio gradient background, very light gray at the top and softly darker light gray at the bottom"
   },
   {
     label: "Dark gradient",
@@ -75,6 +92,7 @@ type BackgroundValue = (typeof backgroundOptions)[number]["value"];
 type ToolMode = "keep" | "erase";
 type ProductView = "front" | "side" | "back";
 type AiRetouchMode = "preserve" | "rebuild";
+type AiRetouchProvider = "fashn" | "openai";
 type DetectedProduct = {
   id: string;
   label: string;
@@ -83,7 +101,38 @@ type DetectedProduct = {
   shape?: string;
   details?: string;
   description?: string;
+  bbox?: number[];
   selected: boolean;
+};
+
+type ProductAssetBodyZone = "upper_body" | "lower_body" | "shoes" | "accessory" | "full_body";
+type StoredProductAsset = {
+  id: string;
+  name: string;
+  bodyZone: ProductAssetBodyZone;
+  imageDataUrl: string;
+  description: string;
+  color?: string;
+  createdAt: string;
+  productGroupId?: string;
+  productGroupTitle?: string;
+  viewType?: "front" | "back";
+  displayOrder?: number;
+  sourceImageId?: string;
+  sourceImageUrl?: string;
+  cutoutImageUrl?: string;
+  retouchedImageUrl?: string;
+};
+
+type GalleryUploadResponse = {
+  images?: unknown[];
+  image?: GalleryImageItem | null;
+  path?: string;
+};
+
+type ImportedPageImage = {
+  sourceUrl: string;
+  dataUrl: string;
 };
 
 const productViewOptions = [
@@ -147,14 +196,40 @@ const aiRetouchModes = [
   {
     label: "Preserve Cutout",
     value: "preserve",
-    description: "Default. Minimal retouch, no rebuild, stays close to the uploaded cutout."
+    description: "Default. Keeps the prepared asset close to the extracted cutout."
   },
   {
-    label: "Rebuild Product",
+    label: "Rebuild Apparel",
     value: "rebuild",
-    description: "Experimental. Stronger AI reconstruction and may change the product."
+    description: "Experimental. Stronger AI reconstruction and may change the apparel."
   }
 ] as const;
+
+const aiRetouchProviders = [
+  {
+    label: "FASHN",
+    value: "fashn",
+    description: "Try this for apparel extraction. Uses the cleaned cutout as garment reference."
+  },
+  {
+    label: "OpenAI",
+    value: "openai",
+    description: "Try this as an additional preparation test with the same cutout and prompt."
+  }
+] as const;
+
+const editorGalleryGroups = [
+  { title: "Uploads", types: ["upload"] as const, empty: "No Uploads yet." },
+  { title: "Apparel", types: ["shop-image", "cutout"] as const, empty: "No Apparel assets yet." },
+  { title: "Your Designs", types: ["model-image"] as const, empty: "No Fashion Creator designs yet." }
+];
+
+const galleryImageLabel = (type: GalleryImageItem["type"]) => {
+  if (type === "upload") return "Upload";
+  if (type === "cutout") return "Cutout";
+  if (type === "model-image") return "Design";
+  return "Apparel";
+};
 
 const sameViewPromptText =
   "preserve the exact visible product viewpoint from the input image. If the input shows the back, output the back. If it shows the side, output the side. Never rotate the product to another side";
@@ -174,16 +249,119 @@ const shortProductPieceText = (product: DetectedProduct) => {
   return [color, shapeIsShort ? shape : "", product.label].filter(Boolean).join(" ");
 };
 
-const getClientAccountId = () => {
-  const key = "shopcut-client-account-id";
-  const existing = window.localStorage.getItem(key);
-  if (existing) return existing;
-  const nextId = `demo-${crypto.randomUUID()}`;
-  window.localStorage.setItem(key, nextId);
-  return nextId;
+const inferProductAssetBodyZone = (name: string): ProductAssetBodyZone => {
+  const text = name.toLowerCase();
+  if (/\b(shoe|sneaker|boot|heel|sandal)\b/.test(text)) return "shoes";
+  if (/\b(pant|jean|short|skirt|legging|trouser|panty|brief|thong|bottom)\b/.test(text)) return "lower_body";
+  if (/\b(dress|bodysuit|jumpsuit|set|outfit)\b/.test(text)) return "full_body";
+  if (/\b(glasses|sunglasses|earring|jewelry|necklace|ring|watch|bag|hat|belt|scarf|accessory)\b/.test(text)) return "accessory";
+  return "upper_body";
 };
 
-export function ImageEditor({ viewName }: ImageEditorProps) {
+const isLikelyLingerieProducts = (products: DetectedProduct[]) => {
+  const text = products
+    .map((product) => [product.label, product.material, product.shape, product.details, product.description].filter(Boolean).join(" "))
+    .join(" ")
+    .toLowerCase();
+  return /\b(lingerie|bra|bralette|panty|panties|thong|g-string|string|corset|bodysuit|garter|garter belt|stocking|stockings|suspender|suspender belt|lace underwear|underwear|briefs|bikini bottom)\b/.test(text);
+};
+
+const urlToDataUrl = async (url: string) => {
+  if (url.startsWith("data:image/")) return url;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Gallery image could not be loaded.");
+  const blob = await response.blob();
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Gallery image could not be read."));
+    reader.readAsDataURL(blob);
+  });
+};
+
+const dataUrlToBlob = (dataUrl: string) => {
+  const [header, payload] = dataUrl.split(",");
+  const mimeType = header.match(/data:(.*?)(;base64)?$/)?.[1] ?? "image/png";
+  if (header.includes(";base64")) {
+    const byteCharacters = window.atob(payload);
+    const byteNumbers = Array.from(byteCharacters, (character) => character.charCodeAt(0));
+    return new Blob([new Uint8Array(byteNumbers)], { type: mimeType });
+  }
+  return new Blob([decodeURIComponent(payload)], { type: mimeType });
+};
+
+const cropProductFromSource = async (sourceDataUrl: string, bbox?: number[], maxEdge = 520) => {
+  if (!bbox || bbox.length !== 4) return null;
+  const [x, y, width, height] = bbox;
+  if (width <= 0 || height <= 0) return null;
+
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Product crop image could not be loaded."));
+    img.src = sourceDataUrl;
+  });
+
+  const sourceWidth = image.naturalWidth || image.width;
+  const sourceHeight = image.naturalHeight || image.height;
+  const scaleX = sourceWidth / 1000;
+  const scaleY = sourceHeight / 1000;
+  const padding = Math.max(width, height) * 0.08;
+  const sourceX = Math.max(0, Math.round((x - padding) * scaleX));
+  const sourceY = Math.max(0, Math.round((y - padding) * scaleY));
+  const cropWidth = Math.min(sourceWidth - sourceX, Math.round((width + padding * 2) * scaleX));
+  const cropHeight = Math.min(sourceHeight - sourceY, Math.round((height + padding * 2) * scaleY));
+  if (cropWidth <= 0 || cropHeight <= 0) return null;
+
+  const output = document.createElement("canvas");
+  const longestEdge = Math.max(cropWidth, cropHeight);
+  const scale = longestEdge > maxEdge ? maxEdge / longestEdge : 1;
+  output.width = Math.max(1, Math.round(cropWidth * scale));
+  output.height = Math.max(1, Math.round(cropHeight * scale));
+  const ctx = output.getContext("2d");
+  if (!ctx) return null;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, output.width, output.height);
+  ctx.drawImage(image, sourceX, sourceY, cropWidth, cropHeight, 0, 0, output.width, output.height);
+  return output.toDataURL("image/png");
+};
+
+const splitImageIntoFrontBackViews = async (sourceDataUrl: string) => {
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Multi-view image could not be loaded."));
+    img.src = sourceDataUrl;
+  });
+
+  const sourceWidth = image.naturalWidth || image.width;
+  const sourceHeight = image.naturalHeight || image.height;
+  const halfWidth = Math.floor(sourceWidth / 2);
+  if (halfWidth <= 0 || sourceHeight <= 0) {
+    throw new Error("Multi-view image is too small to split.");
+  }
+
+  const cropHalf = (sourceX: number, width: number) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = sourceHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Multi-view crop could not be created.");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, sourceX, 0, width, sourceHeight, 0, 0, width, sourceHeight);
+    return canvas.toDataURL("image/png");
+  };
+
+  return {
+    front: cropHalf(0, halfWidth),
+    back: cropHalf(halfWidth, sourceWidth - halfWidth)
+  };
+};
+
+export function ImageEditor({ viewName, onContinueToFashionCreator }: ImageEditorProps) {
   const fabricCanvasElementRef = useRef<HTMLCanvasElement | null>(null);
   const fabricCanvasRef = useRef<any>(null);
   const fabricModuleRef = useRef<any>(null);
@@ -192,6 +370,7 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
   const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const editorSurfaceRef = useRef<HTMLDivElement | null>(null);
   const stepOneRef = useRef<HTMLDivElement | null>(null);
+  const extractionResultsRef = useRef<HTMLDivElement | null>(null);
   const maskBufferRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const historyRef = useRef<ImageData[]>([]);
@@ -206,7 +385,8 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
   const [canRedo, setCanRedo] = useState(false);
   const [editorSize, setEditorSize] = useState<EditorSize>({ width: CANVAS_SIZE, height: CANVAS_SIZE });
   const [toolMode, setToolMode] = useState<ToolMode>("keep");
-  const [background, setBackground] = useState<BackgroundValue>("light-gradient");
+  const [isPrecisionMode] = useState(true);
+  const [background, setBackground] = useState<BackgroundValue>("white");
   const [productView, setProductView] = useState<ProductView | null>(null);
   const [cutoutPreview, setCutoutPreview] = useState<string | null>(null);
   const [cutoutHistory, setCutoutHistory] = useState<CutoutHistoryItem[]>([]);
@@ -214,17 +394,33 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
   const [aiPrompt, setAiPrompt] = useState("");
   const [customShopPrompt, setCustomShopPrompt] = useState("");
   const [isShopPromptEdited, setIsShopPromptEdited] = useState(false);
+  const [isShopPromptOpen, setIsShopPromptOpen] = useState(false);
   const [criticalProductNote, setCriticalProductNote] = useState<string>(criticalRulePresets[0].value);
   const [aiRetouchMode, setAiRetouchMode] = useState<AiRetouchMode>("preserve");
+  const [aiRetouchProvider, setAiRetouchProvider] = useState<AiRetouchProvider>("fashn");
   const [shopImage, setShopImage] = useState<string | null>(null);
   const [imageDialog, setImageDialog] = useState<{ title: string; src: string; checkerboard?: boolean } | null>(null);
+  const [isSourceGalleryOpen, setIsSourceGalleryOpen] = useState(false);
+  const [sourceGalleryImages, setSourceGalleryImages] = useState<GalleryImageItem[]>([]);
+  const [isLoadingSourceGallery, setIsLoadingSourceGallery] = useState(false);
+  const [websiteImportUrl, setWebsiteImportUrl] = useState("");
+  const [importedPageImages, setImportedPageImages] = useState<ImportedPageImage[]>([]);
+  const [isImportingWebsiteImages, setIsImportingWebsiteImages] = useState(false);
+  const [isBatchProcessing, setIsBatchProcessing] = useState(false);
+  const [batchProgress, setBatchProgress] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationSeconds, setGenerationSeconds] = useState(0);
   const [isDetectingProducts, setIsDetectingProducts] = useState(false);
   const [detectedProducts, setDetectedProducts] = useState<DetectedProduct[]>([]);
-  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [isDetectedProductsOpen, setIsDetectedProductsOpen] = useState(false);
+  const [cutoutError, setCutoutError] = useState<string | null>(null);
+  const [retouchError, setRetouchError] = useState<string | null>(null);
+  const [assetSaveMessage, setAssetSaveMessage] = useState<string | null>(null);
   const [brushCursor, setBrushCursor] = useState({ x: 0, y: 0, size: brushSize, visible: false });
   const [showSelectionOverlay, setShowSelectionOverlay] = useState(true);
+  const [splitFrontBackMode, setSplitFrontBackMode] = useState(false);
+  const [isProcessingMultiView, setIsProcessingMultiView] = useState(false);
+  const [multiViewMessage, setMultiViewMessage] = useState<string | null>(null);
   const [clientAccountId, setClientAccountId] = useState<string | null>(null);
   const [creditStatus, setCreditStatus] = useState<CreditStatus | null>(null);
   const imageDataUrlRef = useRef<string | null>(null);
@@ -235,18 +431,47 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
   const historyStorageKey = `${HISTORY_STORAGE_PREFIX}-${viewName.toLowerCase()}`;
 
   useEffect(() => {
-    const accountId = getClientAccountId();
-    setClientAccountId(accountId);
+    const syncAccount = () => {
+      const accountId = getClientAccountId();
+      setClientAccountId(accountId);
 
-    void fetch("/api/account/credits", {
-      headers: {
-        "x-shopcut-account-id": accountId
-      }
-    })
-      .then((response) => response.json())
-      .then((payload: CreditStatus) => setCreditStatus(payload))
-      .catch(() => setCreditStatus(null));
+      void fetch("/api/account/credits", {
+        headers: {
+          "x-shopcut-account-id": accountId
+        }
+      })
+        .then((response) => response.json())
+        .then((payload: CreditStatus) => setCreditStatus(payload))
+        .catch(() => setCreditStatus(null));
+    };
+
+    syncAccount();
+    window.addEventListener("luxurybandit-auth-updated", syncAccount);
+    return () => window.removeEventListener("luxurybandit-auth-updated", syncAccount);
   }, []);
+
+  const saveGalleryImage = useCallback(
+    async (type: "upload" | "cutout" | "shop-image" | "model-image", image: string) => {
+      if (!clientAccountId) return;
+
+      try {
+        const response = await fetch("/api/gallery", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-shopcut-account-id": clientAccountId
+          },
+          body: JSON.stringify({ type, image })
+        });
+        const payload = await readJsonResponse<{ images?: unknown[] }>(response);
+        if (!response.ok || !payload.images) throw new Error(payload.error ?? "Image could not be saved to gallery.");
+        window.dispatchEvent(new Event("shopcut-gallery-updated"));
+      } catch (error) {
+        console.warn(error instanceof Error ? error.message : "Image could not be saved to gallery.");
+      }
+    },
+    [clientAccountId]
+  );
 
   const canvasToLimitedPngDataUrl = (canvas: HTMLCanvasElement, maxEdge = MAX_STORED_CUTOUT_EDGE) => {
     const longestEdge = Math.max(canvas.width, canvas.height);
@@ -263,6 +488,37 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
     ctx.drawImage(canvas, 0, 0, output.width, output.height);
     return output.toDataURL("image/png");
   };
+
+  const resizeImageDataUrl = (dataUrl: string, maxEdge = MAX_GENERATED_OUTPUT_EDGE) =>
+    new Promise<string>((resolve) => {
+      const image = new Image();
+      image.onload = () => {
+        const width = image.naturalWidth || image.width;
+        const height = image.naturalHeight || image.height;
+        const longestEdge = Math.max(width, height);
+        if (!width || !height || longestEdge <= maxEdge) {
+          resolve(dataUrl);
+          return;
+        }
+
+        const scale = maxEdge / longestEdge;
+        const output = document.createElement("canvas");
+        output.width = Math.max(1, Math.round(width * scale));
+        output.height = Math.max(1, Math.round(height * scale));
+        const ctx = output.getContext("2d");
+        if (!ctx) {
+          resolve(dataUrl);
+          return;
+        }
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(image, 0, 0, output.width, output.height);
+        resolve(output.toDataURL("image/png"));
+      };
+      image.onerror = () => resolve(dataUrl);
+      image.src = dataUrl;
+    });
 
   const persistHistory = (items: CutoutHistoryItem[]) => {
     const limitedItems = items.slice(0, MAX_HISTORY_ITEMS);
@@ -387,7 +643,7 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
   }, [getBaseCanvas, getMaskCanvas]);
 
   const getAiReferenceCanvas = useCallback(() => {
-    const cutoutCanvas = getCutoutCanvas();
+    const cutoutCanvas = hasSelectionRef.current ? getBaseCanvas() : getCutoutCanvas();
     const output = document.createElement("canvas");
     output.width = cutoutCanvas.width;
     output.height = cutoutCanvas.height;
@@ -396,7 +652,37 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
 
     ctx.drawImage(cutoutCanvas, 0, 0);
     return output;
-  }, [getCutoutCanvas]);
+  }, [getBaseCanvas, getCutoutCanvas]);
+
+  const getFocusReferenceCanvas = useCallback(() => {
+    const baseCanvas = getBaseCanvas();
+    const output = document.createElement("canvas");
+    output.width = baseCanvas.width;
+    output.height = baseCanvas.height;
+    const ctx = output.getContext("2d");
+    if (!ctx) return output;
+
+    ctx.drawImage(baseCanvas, 0, 0);
+    if (hasSelectionRef.current) {
+      ctx.save();
+      const focusMask = document.createElement("canvas");
+      focusMask.width = baseCanvas.width;
+      focusMask.height = baseCanvas.height;
+      const focusCtx = focusMask.getContext("2d");
+      if (focusCtx) {
+        focusCtx.drawImage(getMaskCanvas(), 0, 0);
+        focusCtx.globalCompositeOperation = "source-in";
+        focusCtx.fillStyle = "#2457d6";
+        focusCtx.fillRect(0, 0, focusMask.width, focusMask.height);
+      }
+      ctx.globalAlpha = 0.48;
+      ctx.fillStyle = "#2457d6";
+      ctx.globalCompositeOperation = "source-over";
+      ctx.drawImage(focusMask, 0, 0);
+      ctx.restore();
+    }
+    return output;
+  }, [getBaseCanvas, getMaskCanvas]);
 
   const saveState = useCallback(() => {
     const maskCanvas = getMaskCanvas();
@@ -610,11 +896,25 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
     const reader = new FileReader();
     reader.onload = () => {
       const result = String(reader.result);
-      imageDataUrlRef.current = result;
-      setImageDataUrl(result);
-      loadImage(result);
+      applySourceImage(result);
+      void saveGalleryImage("upload", result);
     };
     reader.readAsDataURL(file);
+  };
+
+  const applySourceImage = (dataUrl: string) => {
+    imageDataUrlRef.current = dataUrl;
+    setImageDataUrl(dataUrl);
+    setProductView(null);
+    setDetectedProducts([]);
+    setAssetSaveMessage(null);
+    setCutoutPreview(null);
+    setActiveHistoryId(null);
+    setAiPrompt("");
+    setShopImage(null);
+    setCutoutError(null);
+    setRetouchError(null);
+    loadImage(dataUrl);
   };
 
   const clearGeneratedOutputs = () => {
@@ -622,7 +922,9 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
     setActiveHistoryId(null);
     setAiPrompt("");
     setShopImage(null);
-    setGenerationError(null);
+    setCutoutError(null);
+    setRetouchError(null);
+    setMultiViewMessage(null);
   };
 
   const handleDeleteUpload = () => {
@@ -659,7 +961,8 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
     setActiveHistoryId(item.id);
     setAiPrompt(item.prompt);
     setShopImage(null);
-    setGenerationError(null);
+    setCutoutError(null);
+    setRetouchError(null);
     loadImage(item.imageDataUrl, item.maskDataUrl);
     window.setTimeout(() => {
       stepOneRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -680,8 +983,8 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
 
   const handleDeleteHistoryItem = (id: string) => {
     const nextHistory = cutoutHistory.filter((item) => item.id !== id);
-    const storedHistory = persistHistory(nextHistory);
-    setCutoutHistory(storedHistory);
+    persistHistory(nextHistory);
+    setCutoutHistory(nextHistory);
     if (activeHistoryId === id) {
       setActiveHistoryId(null);
       clearGeneratedOutputs();
@@ -821,9 +1124,145 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
     ].join("\n");
   };
 
+  async function saveMultiViewProductGroup(
+    groupId: string,
+    views: Array<{
+      viewType: "front" | "back";
+      displayOrder: number;
+      sourceDataUrl: string;
+      shopImageDataUrl: string;
+      products: DetectedProduct[];
+    }>
+  ) {
+    const createdAt = new Date().toISOString();
+    const groupTitle =
+      views
+        .flatMap((view) => view.products.map(shortProductPieceText))
+        .filter(Boolean)[0] || "front and back apparel";
+
+    const newAssets = await Promise.all(views.map(async (view) => {
+      const productText = view.products.map(shortProductPieceText).filter(Boolean).join(", ") || "apparel";
+      const compactShopImage = await resizeImageDataUrl(view.shopImageDataUrl, 520);
+      let assetImageUrl = compactShopImage;
+      let assetImageId = `local-${Date.now()}-${view.viewType}`;
+
+      try {
+        const uploadedImage = await uploadGalleryImageAndReturnUrl("shop-image", compactShopImage);
+        if (uploadedImage?.url) {
+          assetImageUrl = uploadedImage.url;
+          assetImageId = uploadedImage.id;
+        }
+      } catch {
+        // Keep local fallback when Supabase is temporarily unavailable.
+      }
+
+      return {
+        id: `${assetImageId}-${groupId}-${view.viewType}`,
+        name: `${view.viewType === "front" ? "Front" : "Back"} view: ${productText}`,
+        bodyZone: inferProductAssetBodyZone(productText),
+        imageDataUrl: assetImageUrl,
+        description: `${view.viewType} view. ${view.products.map(productPromptText).filter(Boolean).join(", ") || productText}`,
+        color: view.products.find((product) => product.color)?.color,
+        createdAt,
+        productGroupId: groupId,
+        productGroupTitle: groupTitle,
+        viewType: view.viewType,
+        displayOrder: view.displayOrder,
+        sourceImageId: groupId,
+        sourceImageUrl: view.sourceDataUrl,
+        retouchedImageUrl: assetImageUrl
+      } satisfies StoredProductAsset;
+    }));
+
+    const productAssetsStorageKey = getProductAssetsStorageKey();
+    const storedAssets = window.localStorage.getItem(productAssetsStorageKey);
+    const existingAssets = storedAssets ? JSON.parse(storedAssets) as StoredProductAsset[] : [];
+    const validExistingAssets = Array.isArray(existingAssets)
+      ? existingAssets.filter((asset) => asset?.id && asset?.imageDataUrl)
+      : [];
+    const nextAssets = [...newAssets, ...validExistingAssets].slice(0, 80);
+    window.localStorage.setItem(productAssetsStorageKey, JSON.stringify(nextAssets));
+    window.dispatchEvent(new Event("shopcut-gallery-updated"));
+    return newAssets.length;
+  }
+
+  async function handleCreateMultiViewAssets() {
+    if (!imageDataUrl || isProcessingMultiView || isDetectingProducts || isGenerating) return;
+
+    setIsProcessingMultiView(true);
+    setMultiViewMessage(null);
+    setCutoutError(null);
+    setRetouchError(null);
+    setAssetSaveMessage(null);
+
+    try {
+      const splitViews = await splitImageIntoFrontBackViews(imageDataUrl);
+      const groupId = `product-group-${Date.now()}-${crypto.randomUUID()}`;
+      const results: Array<{
+        viewType: "front" | "back";
+        displayOrder: number;
+        sourceDataUrl: string;
+        shopImageDataUrl: string;
+        products: DetectedProduct[];
+      }> = [];
+      const failures: string[] = [];
+
+      for (const view of [
+        { viewType: "front" as const, label: "Front", displayOrder: 1, dataUrl: splitViews.front },
+        { viewType: "back" as const, label: "Back", displayOrder: 2, dataUrl: splitViews.back }
+      ]) {
+        try {
+          setMultiViewMessage(`Processing ${view.label} view...`);
+          const detected = await detectProductsFromDataUrl(view.dataUrl);
+          const products = detected.products.length
+            ? detected.products
+            : [{
+                id: `${view.viewType}-apparel`,
+                label: "apparel",
+                selected: true
+              } satisfies DetectedProduct];
+          const shopImageDataUrl = await createDesignReadyFromImportedImage(view.dataUrl, products, view.viewType);
+          results.push({
+            viewType: view.viewType,
+            displayOrder: view.displayOrder,
+            sourceDataUrl: view.dataUrl,
+            shopImageDataUrl,
+            products
+          });
+        } catch {
+          failures.push(`${view.label} view failed`);
+        }
+      }
+
+      if (results.length === 0) {
+        throw new Error(failures.join(". ") || "Front and Back views failed.");
+      }
+
+      const savedCount = await saveMultiViewProductGroup(groupId, results);
+      setMultiViewMessage(`${savedCount} product views created: ${results.map((result) => result.viewType === "front" ? "Front" : "Back").join(" and ")}.`);
+      setShopImage(results[0]?.shopImageDataUrl ?? null);
+      setProductView("front");
+      setDetectedProducts(results[0]?.products ?? []);
+      setAssetSaveMessage("Front and Back views are saved as one linked product group in My Apparel.");
+      setRetouchError(failures.length > 0 ? failures.join(". ") : null);
+      window.setTimeout(() => {
+        extractionResultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+    } catch (error) {
+      setMultiViewMessage(null);
+      setCutoutError(error instanceof Error ? error.message : "Multi-view apparel could not be created.");
+    } finally {
+      setIsProcessingMultiView(false);
+    }
+  }
+
   const handleCreateCutoutPreview = () => {
     if (!imageDataUrl) return;
-    const cutoutCanvas = getCutoutCanvas();
+    if (splitFrontBackMode) {
+      void handleCreateMultiViewAssets();
+      return;
+    }
+    const cutoutCanvas = hasSelectionRef.current ? getBaseCanvas() : getCutoutCanvas();
     const selectedProductText = detectedProducts
       .filter((product) => product.selected)
       .map(productPromptText)
@@ -884,23 +1323,29 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
         prompt
       };
       const nextHistory = [historyItem, ...cutoutHistory.filter((item) => item.cutoutDataUrl !== cutoutDataUrl)].slice(0, MAX_HISTORY_ITEMS);
-      const storedHistory = persistHistory(nextHistory);
+      persistHistory(nextHistory);
       setCutoutPreview(cutoutDataUrl);
       setActiveHistoryId(historyItem.id);
       setAiPrompt(prompt);
-      setCutoutHistory(storedHistory);
-      setGenerationError(storedHistory.length < nextHistory.length ? "Browser storage was full, so ShopCut kept fewer PNG history items." : null);
+      setCutoutHistory(nextHistory);
+      setCutoutError(null);
+      setRetouchError(null);
+      void saveGalleryImage("cutout", cutoutDataUrl);
+      window.setTimeout(() => {
+        extractionResultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+      void handleDetectProducts(true);
     } catch (error) {
-      setGenerationError(error instanceof Error ? error.message : "Das Cutout konnte nicht erstellt werden.");
+      setCutoutError(error instanceof Error ? error.message : "Das Cutout konnte nicht erstellt werden.");
     }
   };
 
-  const handleDetectProducts = async () => {
-    if (!imageDataUrl || isDetectingProducts) return;
-    const cutoutCanvas = getCutoutCanvas();
+  const handleDetectProducts = async (force = false) => {
+    if ((!cutoutPreview && !force) || isDetectingProducts) return;
+    const cutoutCanvas = hasSelectionRef.current ? getFocusReferenceCanvas() : getCutoutCanvas();
 
     setIsDetectingProducts(true);
-    setGenerationError(null);
+    setRetouchError(null);
 
     try {
       const blob = await new Promise<Blob | null>((resolve) => cutoutCanvas.toBlob(resolve, "image/png"));
@@ -915,11 +1360,11 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
         headers: clientAccountId ? { "x-shopcut-account-id": clientAccountId } : undefined
       });
 
-      const payload = (await response.json()) as {
-        products?: Array<string | { label?: string; color?: string; material?: string; shape?: string; details?: string; description?: string }>;
+      const payload = await readJsonResponse<{
+        products?: Array<string | { label?: string; color?: string; material?: string; shape?: string; details?: string; description?: string; bbox?: number[] }>;
+        viewType?: ProductView | null;
         credits?: CreditStatus;
-        error?: string;
-      };
+      }>(response);
       if (payload.credits) setCreditStatus(payload.credits);
       if (!response.ok || !payload.products) {
         throw new Error(payload.error ?? "Produkte konnten nicht erkannt werden.");
@@ -933,6 +1378,9 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
         const shape = typeof product === "string" ? "" : product.shape?.trim().toLowerCase() ?? "";
         const details = typeof product === "string" ? "" : product.details?.trim().toLowerCase() ?? "";
         const description = typeof product === "string" ? "" : product.description?.trim().toLowerCase() ?? "";
+        const bbox = typeof product === "string" || !Array.isArray(product.bbox)
+          ? undefined
+          : product.bbox.map((value) => Number(value)).filter((value) => Number.isFinite(value)).slice(0, 4);
 
         return {
           id: `${index}-${normalizedLabel.replace(/[^a-z0-9]+/g, "-")}`,
@@ -942,12 +1390,24 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
           shape,
           details,
           description,
+          bbox: bbox?.length === 4 ? bbox : undefined,
           selected: true
         };
       }).filter((product) => product.label);
       setDetectedProducts(products);
+      setAiRetouchProvider(isLikelyLingerieProducts(products) ? "fashn" : "openai");
+      setIsShopPromptEdited(false);
+      setIsDetectedProductsOpen(false);
+      try {
+        window.localStorage.setItem(DETECTED_PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+      } catch {
+        window.localStorage.removeItem(DETECTED_PRODUCTS_STORAGE_KEY);
+      }
+      if (payload.viewType === "front" || payload.viewType === "side" || payload.viewType === "back") {
+        setProductView(payload.viewType);
+      }
     } catch (error) {
-      setGenerationError(error instanceof Error ? error.message : "Produkte konnten nicht erkannt werden.");
+      setRetouchError(error instanceof Error ? error.message : "Produkte konnten nicht erkannt werden.");
     } finally {
       setIsDetectingProducts(false);
     }
@@ -966,6 +1426,93 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
     setDetectedProducts((products) =>
       products.map((product) => (product.id === id ? { ...product, [field]: value } : product))
     );
+  };
+
+  const handleSaveSelectedProductsAsAssets = async () => {
+    const assetSourceImage = shopImage;
+    if (!assetSourceImage) {
+      setRetouchError("Create a Design Ready image first. Fashion Creator assets are saved from the final prepared apparel image.");
+      return;
+    }
+
+    const selectedProducts = detectedProducts.filter((product) => product.selected);
+    if (selectedProducts.length === 0) {
+      setRetouchError("Select at least one detected apparel piece before saving it for Fashion Creator.");
+      return;
+    }
+
+    try {
+      const compactAssetImage = await resizeImageDataUrl(assetSourceImage, 520);
+      let assetImageUrl = compactAssetImage;
+      let assetImageId = `local-${Date.now()}`;
+
+      if (clientAccountId) {
+        const response = await fetch("/api/gallery", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-shopcut-account-id": clientAccountId
+          },
+          body: JSON.stringify({ type: "shop-image", image: compactAssetImage })
+        });
+        const payload = await readJsonResponse<GalleryUploadResponse>(response);
+        if (!response.ok || !payload.image?.url) {
+          throw new Error(payload.error ?? "Apparel asset image could not be saved to Supabase.");
+        }
+        assetImageUrl = payload.image.url;
+        assetImageId = payload.image.id;
+      }
+
+      const productAssetsStorageKey = getProductAssetsStorageKey();
+      const storedAssets = window.localStorage.getItem(productAssetsStorageKey);
+      const existingAssets = storedAssets ? JSON.parse(storedAssets) as StoredProductAsset[] : [];
+      const validExistingAssets = Array.isArray(existingAssets)
+        ? existingAssets.filter((asset) => asset?.id && asset?.imageDataUrl && !asset.imageDataUrl.startsWith("data:image/"))
+        : [];
+      const selectedProductsForAssets = selectedProducts;
+      const createdAt = new Date().toISOString();
+      const productGroupId = `apparel-group-${Date.now()}-${crypto.randomUUID()}`;
+      const productGroupTitle =
+        selectedProductsForAssets
+          .map((product) => shortProductPieceText(product) || product.label)
+          .filter(Boolean)
+          .slice(0, 3)
+          .join(", ") || "Design Ready apparel";
+      const newAssets = selectedProductsForAssets.map((product, index) => {
+        const name = shortProductPieceText(product) || product.label || "apparel asset";
+        return {
+          id: `${assetImageId}-${product.id}`,
+          name,
+          bodyZone: inferProductAssetBodyZone(name),
+          imageDataUrl: assetImageUrl,
+          description: productPromptText(product),
+          color: product.color,
+          createdAt,
+          productGroupId,
+          productGroupTitle,
+          displayOrder: index + 1,
+          sourceImageId: assetImageId,
+          retouchedImageUrl: assetImageUrl
+        } satisfies StoredProductAsset;
+      });
+
+      const nextAssets = [...newAssets, ...validExistingAssets].slice(0, 24);
+      try {
+        window.localStorage.setItem(productAssetsStorageKey, JSON.stringify(nextAssets));
+      } catch {
+        window.localStorage.removeItem(productAssetsStorageKey);
+        Object.keys(window.localStorage)
+          .filter((key) => key.startsWith(HISTORY_STORAGE_PREFIX))
+          .forEach((key) => window.localStorage.removeItem(key));
+        window.localStorage.setItem(productAssetsStorageKey, JSON.stringify(newAssets));
+      }
+      window.dispatchEvent(new Event("shopcut-gallery-updated"));
+      setAssetSaveMessage(`${newAssets.length} Fashion Creator asset${newAssets.length === 1 ? "" : "s"} saved under this Design Ready image. You can now build a look in Fashion Creator.`);
+      setRetouchError(null);
+    } catch {
+      setAssetSaveMessage(null);
+      setRetouchError("Apparel assets could not be saved. Browser storage may be full.");
+    }
   };
 
   const handleDownloadGenerated = () => {
@@ -988,14 +1535,14 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
     if (!cutoutPreview) return;
     const imageWindow = window.open();
     if (!imageWindow) {
-      setGenerationError("Das PNG konnte nicht in einem neuen Tab geöffnet werden.");
+      setCutoutError("Das PNG konnte nicht in einem neuen Tab geöffnet werden.");
       return;
     }
 
     imageWindow.document.write(`
       <html>
         <head>
-          <title>ShopCut cutout PNG</title>
+          <title>LuxuryBandit cutout PNG</title>
           <style>
             body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f4f1ea; }
             img { max-width: 95vw; max-height: 95vh; object-fit: contain; background-image:
@@ -1008,18 +1555,387 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
             }
           </style>
         </head>
-        <body><img alt="ShopCut cutout PNG" src="${cutoutPreview}" /></body>
+        <body><img alt="LuxuryBandit cutout PNG" src="${cutoutPreview}" /></body>
       </html>
     `);
     imageWindow.document.close();
   };
 
-  const dataUrlToBlob = (dataUrl: string) => {
-    const [header, base64] = dataUrl.split(",");
-    const mimeType = header.match(/data:(.*);base64/)?.[1] ?? "image/png";
-    const byteCharacters = window.atob(base64);
-    const byteNumbers = Array.from(byteCharacters, (character) => character.charCodeAt(0));
-    return new Blob([new Uint8Array(byteNumbers)], { type: mimeType });
+  const handleCropShopImage = async () => {
+    if (!shopImage) return;
+    setRetouchError(null);
+
+    try {
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const nextImage = new Image();
+        nextImage.onload = () => resolve(nextImage);
+        nextImage.onerror = () => reject(new Error("Design Ready apparel image could not be loaded."));
+        nextImage.src = shopImage;
+      });
+
+      const source = document.createElement("canvas");
+      source.width = image.naturalWidth || image.width;
+      source.height = image.naturalHeight || image.height;
+      const sourceCtx = source.getContext("2d");
+      if (!sourceCtx) throw new Error("Crop tool could not prepare the image.");
+      sourceCtx.drawImage(image, 0, 0);
+
+      const { width, height } = source;
+      const pixels = sourceCtx.getImageData(0, 0, width, height);
+      const sample = (x: number, y: number) => {
+        const index = (Math.max(0, Math.min(height - 1, y)) * width + Math.max(0, Math.min(width - 1, x))) * 4;
+        return [pixels.data[index], pixels.data[index + 1], pixels.data[index + 2]];
+      };
+      const colorDistance = (a: number[], b: number[]) =>
+        Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
+      const luminanceOf = (color: number[]) => color[0] * 0.299 + color[1] * 0.587 + color[2] * 0.114;
+      const sampleRowBackground = (y: number) => {
+        const left = sample(Math.round(width * 0.035), y);
+        const right = sample(Math.round(width * 0.965), y);
+        return [
+          Math.round((left[0] + right[0]) / 2),
+          Math.round((left[1] + right[1]) / 2),
+          Math.round((left[2] + right[2]) / 2)
+        ];
+      };
+
+      let minX = width;
+      let minY = height;
+      let maxX = 0;
+      let maxY = 0;
+
+      for (let y = 0; y < height; y += 2) {
+        for (let x = 0; x < width; x += 2) {
+          const index = (y * width + x) * 4;
+          const alpha = pixels.data[index + 3];
+          if (alpha < 20) continue;
+
+          const color = [pixels.data[index], pixels.data[index + 1], pixels.data[index + 2]];
+          const rowBackground = sampleRowBackground(y);
+          const luminance = luminanceOf(color);
+          const backgroundLuminance = luminanceOf(rowBackground);
+          const saturation = Math.max(color[0], color[1], color[2]) - Math.min(color[0], color[1], color[2]);
+          const differsFromBackground = colorDistance(color, rowBackground) > 58;
+          const muchDarkerThanBackground = backgroundLuminance - luminance > 58;
+          const likelyProductPixel = differsFromBackground && (muchDarkerThanBackground || saturation > 24 || luminance < 95);
+
+          if (likelyProductPixel) {
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+          }
+        }
+      }
+
+      if (maxX <= minX || maxY <= minY) {
+        throw new Error("Crop tool could not find the apparel edges. Try a clearer prepared result first.");
+      }
+
+      const productWidth = maxX - minX;
+      const productHeight = maxY - minY;
+      const padding = Math.round(Math.max(productWidth, productHeight) * 0.18);
+      minX = Math.max(0, minX - padding);
+      minY = Math.max(0, minY - padding);
+      maxX = Math.min(width, maxX + padding);
+      maxY = Math.min(height, maxY + padding);
+
+      const cropWidth = maxX - minX;
+      const cropHeight = maxY - minY;
+      const squareSize = Math.min(width, height, Math.max(cropWidth, cropHeight));
+      const centerX = minX + cropWidth / 2;
+      const centerY = minY + cropHeight / 2;
+      const sourceX = Math.max(0, Math.min(width - squareSize, Math.round(centerX - squareSize / 2)));
+      const sourceY = Math.max(0, Math.min(height - squareSize, Math.round(centerY - squareSize / 2)));
+
+      const output = document.createElement("canvas");
+      output.width = MAX_GENERATED_OUTPUT_EDGE;
+      output.height = MAX_GENERATED_OUTPUT_EDGE;
+      const outputCtx = output.getContext("2d");
+      if (!outputCtx) throw new Error("Crop tool could not create the cropped image.");
+      outputCtx.imageSmoothingEnabled = true;
+      outputCtx.imageSmoothingQuality = "high";
+      outputCtx.drawImage(source, sourceX, sourceY, squareSize, squareSize, 0, 0, output.width, output.height);
+
+      const croppedImage = output.toDataURL("image/png");
+      setShopImage(croppedImage);
+      void saveGalleryImage("shop-image", croppedImage);
+    } catch (error) {
+      setRetouchError(error instanceof Error ? error.message : "Crop tool could not fit the apparel.");
+    }
+  };
+
+  const readJsonResponse = async <T,>(response: Response): Promise<T & { error?: string }> => {
+    const text = await response.text();
+    if (!text) {
+      return { error: `Server returned an empty response (${response.status}). Please try again.` } as T & { error?: string };
+    }
+
+    try {
+      return JSON.parse(text) as T & { error?: string };
+    } catch {
+      return { error: text.slice(0, 500) || "Server returned an invalid response. Please try again." } as T & { error?: string };
+    }
+  };
+
+  const loadSourceGallery = async () => {
+    if (!clientAccountId) return;
+    setIsLoadingSourceGallery(true);
+    setCutoutError(null);
+
+    try {
+      const response = await fetch("/api/gallery", {
+        headers: {
+          "x-shopcut-account-id": clientAccountId
+        }
+      });
+      const payload = await readJsonResponse<{ images?: GalleryImageItem[] }>(response);
+      if (!response.ok || !payload.images) throw new Error(payload.error ?? "Gallery could not be loaded.");
+      setSourceGalleryImages(payload.images);
+      setIsSourceGalleryOpen(true);
+    } catch (error) {
+      setCutoutError(error instanceof Error ? error.message : "Gallery could not be loaded.");
+    } finally {
+      setIsLoadingSourceGallery(false);
+    }
+  };
+
+  const handleSelectSourceGalleryImage = async (item: GalleryImageItem) => {
+    setIsLoadingSourceGallery(true);
+    setCutoutError(null);
+    setRetouchError(null);
+
+    try {
+      const dataUrl = await urlToDataUrl(item.url);
+      applySourceImage(dataUrl);
+      setIsSourceGalleryOpen(false);
+    } catch (error) {
+      setCutoutError(error instanceof Error ? error.message : "Gallery image could not be loaded.");
+    } finally {
+      setIsLoadingSourceGallery(false);
+    }
+  };
+
+  const uploadGalleryImageAndReturnUrl = async (type: "upload" | "cutout" | "shop-image" | "model-image", image: string) => {
+    if (!clientAccountId) return null;
+    const response = await fetch("/api/gallery", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-shopcut-account-id": clientAccountId
+      },
+      body: JSON.stringify({ type, image })
+    });
+    const payload = await readJsonResponse<GalleryUploadResponse>(response);
+    if (!response.ok || !payload.image?.url) throw new Error(payload.error ?? "Image could not be saved to gallery.");
+    window.dispatchEvent(new Event("shopcut-gallery-updated"));
+    return payload.image;
+  };
+
+  const detectProductsFromDataUrl = async (dataUrl: string) => {
+    const formData = new FormData();
+    formData.append("image", dataUrlToBlob(dataUrl), "luxurybandit-imported-source.png");
+    const response = await fetch("/api/detect-products", {
+      method: "POST",
+      body: formData,
+      headers: clientAccountId ? { "x-shopcut-account-id": clientAccountId } : undefined
+    });
+    const payload = await readJsonResponse<{
+      products?: Array<string | { label?: string; color?: string; material?: string; shape?: string; details?: string; description?: string; bbox?: number[] }>;
+      viewType?: ProductView | null;
+      credits?: CreditStatus;
+    }>(response);
+    if (payload.credits) setCreditStatus(payload.credits);
+    if (!response.ok || !payload.products) throw new Error(payload.error ?? "Apparel could not be detected.");
+
+    const products = payload.products.map((product, index) => {
+      const label = typeof product === "string" ? product : product.label ?? "";
+      const normalizedLabel = label.trim().toLowerCase();
+      const color = typeof product === "string" ? "" : product.color?.trim().toLowerCase() ?? "";
+      const material = typeof product === "string" ? "" : product.material?.trim().toLowerCase() ?? "";
+      const shape = typeof product === "string" ? "" : product.shape?.trim().toLowerCase() ?? "";
+      const details = typeof product === "string" ? "" : product.details?.trim().toLowerCase() ?? "";
+      const description = typeof product === "string" ? "" : product.description?.trim().toLowerCase() ?? "";
+      const bbox = typeof product === "string" || !Array.isArray(product.bbox)
+        ? undefined
+        : product.bbox.map((value) => Number(value)).filter((value) => Number.isFinite(value)).slice(0, 4);
+
+      return {
+        id: `${index}-${normalizedLabel.replace(/[^a-z0-9]+/g, "-")}`,
+        label: normalizedLabel,
+        color,
+        material,
+        shape,
+        details,
+        description,
+        bbox: bbox?.length === 4 ? bbox : undefined,
+        selected: true
+      };
+    }).filter((product) => product.label);
+
+    return { products, viewType: payload.viewType ?? null };
+  };
+
+  const buildBatchImportPrompt = (products: DetectedProduct[], viewType: ProductView | null) => {
+    const productText = products.map(shortProductPieceText).filter(Boolean).join(", ") || "visible apparel";
+    const selectedBackground = backgroundOptions.find((option) => option.value === background)?.prompt ?? backgroundOptions[0].prompt;
+    const viewInstruction = viewType
+      ? `${viewType} view. Preserve this exact visible product viewpoint.`
+      : sameViewPromptText;
+
+    return [
+      "Create a clean ecommerce apparel image from this source photo.",
+      "Use the image as the main source of truth.",
+      "Extract the visible selected apparel only.",
+      "Remove person, body, skin, hair, background, scene, shadows, and props unless they are part of the apparel.",
+      `Selected apparel pieces: ${productText}.`,
+      `View: ${viewInstruction}`,
+      `Background: ${selectedBackground}. Square 1:1 ecommerce image.`,
+      "Preserve exact garment design, colors, prints, logos, seams, straps, hardware, fabric types, shape, and proportions.",
+      "Do not invent new apparel pieces. Do not add accessories that are not visible in the source.",
+      "Center the complete apparel with comfortable margins."
+    ].join("\n");
+  };
+
+  const createDesignReadyFromImportedImage = async (dataUrl: string, products: DetectedProduct[], viewType: ProductView | null) => {
+    const prompt = buildBatchImportPrompt(products, viewType);
+    const useFashnRetouch = isLikelyLingerieProducts(products);
+    const formData = new FormData();
+    formData.append("image", dataUrlToBlob(dataUrl), "luxurybandit-imported-apparel.png");
+    formData.append("prompt", prompt);
+    formData.append("mode", useFashnRetouch ? "retouch-cutout" : "preserve");
+    formData.append("background", background);
+    formData.append("square", "true");
+    formData.append("width", "1024");
+    formData.append("height", "1024");
+    formData.append("productDescription", products.map(shortProductPieceText).filter(Boolean).join(", "));
+    formData.append("viewMode", viewType ?? "auto");
+
+    const response = await fetch(useFashnRetouch ? "/api/generate-fashn" : "/api/generate-product", {
+      method: "POST",
+      body: formData,
+      headers: clientAccountId ? { "x-shopcut-account-id": clientAccountId } : undefined
+    });
+    const payload = await readJsonResponse<{ image?: string; credits?: CreditStatus }>(response);
+    if (payload.credits) setCreditStatus(payload.credits);
+    if (!response.ok || !payload.image) {
+      throw new Error(payload.error ?? `${useFashnRetouch ? "FASHN" : "OpenAI"} could not create the apparel image.`);
+    }
+
+    return await resizeImageDataUrl(payload.image);
+  };
+
+  const saveImportedProductAssets = async (shopImageDataUrl: string, products: DetectedProduct[], sourceDataUrl?: string) => {
+    const compactShopImage = await resizeImageDataUrl(shopImageDataUrl, 420);
+    let assetImageUrl = compactShopImage;
+    let assetImageId = `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+    try {
+      const uploadedImage = await uploadGalleryImageAndReturnUrl("shop-image", compactShopImage);
+      if (uploadedImage?.url) {
+        assetImageUrl = uploadedImage.url;
+        assetImageId = uploadedImage.id;
+      }
+    } catch {
+      // Keep local fallback when Supabase is temporarily unavailable.
+    }
+
+    const createdAt = new Date().toISOString();
+    const productGroupId = `apparel-group-${Date.now()}-${crypto.randomUUID()}`;
+    const productGroupTitle =
+      products
+        .map((product) => shortProductPieceText(product) || product.label)
+        .filter(Boolean)
+        .slice(0, 3)
+        .join(", ") || "Imported apparel";
+
+    const newAssets = products.map((product, index) => {
+      const name = shortProductPieceText(product) || product.label || "apparel asset";
+      return {
+        id: `${assetImageId}-${product.id}`,
+        name,
+        bodyZone: inferProductAssetBodyZone(name),
+        imageDataUrl: assetImageUrl,
+        description: productPromptText(product),
+        color: product.color,
+        createdAt,
+        productGroupId,
+        productGroupTitle,
+        displayOrder: index + 1,
+        sourceImageId: assetImageId,
+        retouchedImageUrl: assetImageUrl
+      } satisfies StoredProductAsset;
+    });
+
+    const productAssetsStorageKey = getProductAssetsStorageKey();
+    const storedAssets = window.localStorage.getItem(productAssetsStorageKey);
+    const existingAssets = storedAssets ? JSON.parse(storedAssets) as StoredProductAsset[] : [];
+    const validExistingAssets = Array.isArray(existingAssets)
+      ? existingAssets.filter((asset) => asset?.id && asset?.imageDataUrl)
+      : [];
+    const nextAssets = [...newAssets, ...validExistingAssets].slice(0, 80);
+    window.localStorage.setItem(productAssetsStorageKey, JSON.stringify(nextAssets));
+    window.dispatchEvent(new Event("shopcut-gallery-updated"));
+    return newAssets.length;
+  };
+
+  const handleImportWebsiteImages = async () => {
+    setIsImportingWebsiteImages(true);
+    setBatchProgress("");
+    setCutoutError(null);
+    setRetouchError(null);
+
+    try {
+      const response = await fetch("/api/import-page-images", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ url: websiteImportUrl })
+      });
+      const payload = await readJsonResponse<{ images?: ImportedPageImage[] }>(response);
+      if (!response.ok || !payload.images) throw new Error(payload.error ?? "Website images could not be imported.");
+      setImportedPageImages(payload.images);
+      setBatchProgress(`${payload.images.length} images found. Ready to process all.`);
+    } catch (error) {
+      setCutoutError(error instanceof Error ? error.message : "Website images could not be imported.");
+    } finally {
+      setIsImportingWebsiteImages(false);
+    }
+  };
+
+  const handleBatchProcessImportedImages = async () => {
+    if (importedPageImages.length === 0 || isBatchProcessing) return;
+    setIsBatchProcessing(true);
+    setCutoutError(null);
+    setRetouchError(null);
+    setAssetSaveMessage(null);
+
+    let savedAssetCount = 0;
+    try {
+      for (const [index, image] of importedPageImages.entries()) {
+        setBatchProgress(`Processing image ${index + 1}/${importedPageImages.length}: saving source...`);
+        await saveGalleryImage("upload", image.dataUrl);
+
+        setBatchProgress(`Processing image ${index + 1}/${importedPageImages.length}: detecting apparel...`);
+        const detected = await detectProductsFromDataUrl(image.dataUrl);
+        if (detected.products.length === 0) continue;
+
+        setBatchProgress(`Processing image ${index + 1}/${importedPageImages.length}: creating Design Ready apparel...`);
+        const designReadyImage = await createDesignReadyFromImportedImage(image.dataUrl, detected.products, detected.viewType);
+
+        setBatchProgress(`Processing image ${index + 1}/${importedPageImages.length}: saving apparel assets...`);
+        savedAssetCount += await saveImportedProductAssets(designReadyImage, detected.products, image.dataUrl);
+      }
+
+      setBatchProgress(`Done. ${savedAssetCount} Apparel asset${savedAssetCount === 1 ? "" : "s"} saved in My Apparel.`);
+      setImportedPageImages([]);
+      window.dispatchEvent(new Event("shopcut-gallery-updated"));
+    } catch (error) {
+      setRetouchError(error instanceof Error ? error.message : "Batch import could not be completed.");
+    } finally {
+      setIsBatchProcessing(false);
+    }
   };
 
   const canvasToPngBlob = (canvas: HTMLCanvasElement) =>
@@ -1040,7 +1956,7 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
         .join(", ");
 
       if (enforceProductSelection && detectedProducts.length > 0 && !selectedProductText) {
-        throw new Error("Please select at least one product piece before creating the shop image.");
+        throw new Error("Please select at least one apparel piece before creating the shop image.");
       }
 
       if (aiRetouchMode === "rebuild") {
@@ -1109,66 +2025,136 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
 
   const handleGenerateShopImage = async () => {
     if (!cutoutPreview || !aiPrompt.trim() || isGenerating) return;
-    const actionCost = aiRetouchMode === "rebuild" ? 2 : 1;
-    if (creditStatus && creditStatus.credits < actionCost) {
-      setGenerationError(`Not enough credits. This action needs ${actionCost} credit${actionCost === 1 ? "" : "s"}.`);
-      return;
-    }
     if (!productView) {
-      setGenerationError("Please select Front, Side, or Back before creating the shop image.");
+      setRetouchError("Please select Front, Side, or Back before creating the shop image.");
       return;
     }
 
     setIsGenerating(true);
     setGenerationSeconds(0);
-    setGenerationError(null);
+    setRetouchError(null);
 
     try {
       const generatedPromptForValidation = buildShopImagePrompt(true);
       const shopPrompt = (isShopPromptEdited ? customShopPrompt : generatedPromptForValidation).trim();
       if (!shopPrompt) throw new Error("Prompt is empty. Please create or write a prompt before generating.");
+      const useFashnRetouch = aiRetouchProvider === "fashn" && aiRetouchMode === "preserve";
 
       const formData = new FormData();
       formData.append("image", await canvasToPngBlob(getAiReferenceCanvas()), `shopcut-${viewName.toLowerCase()}-ai-reference.png`);
       formData.append("prompt", shopPrompt);
-      formData.append("mode", aiRetouchMode);
+      formData.append("mode", useFashnRetouch ? "retouch-cutout" : aiRetouchMode);
       formData.append("background", background);
       formData.append("square", "true");
       formData.append("width", "1024");
       formData.append("height", "1024");
 
-      const response = await fetch("/api/generate-product", {
+      const response = await fetch(useFashnRetouch ? "/api/generate-fashn" : "/api/generate-product", {
         method: "POST",
         body: formData,
         headers: clientAccountId ? { "x-shopcut-account-id": clientAccountId } : undefined
       });
 
-      const payload = (await response.json()) as { image?: string; credits?: CreditStatus; error?: string };
+      const payload = await readJsonResponse<{ image?: string; credits?: CreditStatus }>(response);
       if (payload.credits) setCreditStatus(payload.credits);
       if (!response.ok || !payload.image) {
-        throw new Error(payload.error ?? "OpenAI konnte das Shop-Bild nicht erstellen.");
+        throw new Error(payload.error ?? `${useFashnRetouch ? "FASHN" : "OpenAI"} konnte das Shop-Bild nicht erstellen.`);
       }
 
-      setShopImage(payload.image);
+      const resizedShopImage = await resizeImageDataUrl(payload.image);
+      setShopImage(resizedShopImage);
+      void saveGalleryImage("shop-image", resizedShopImage);
     } catch (error) {
-      setGenerationError(error instanceof Error ? error.message : "OpenAI konnte das Shop-Bild nicht erstellen.");
+      setRetouchError(error instanceof Error ? error.message : "Das Shop-Bild konnte nicht erstellt werden.");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const retouchCreditCost = aiRetouchMode === "rebuild" ? 2 : 1;
-  const hasEnoughCredits = !creditStatus || creditStatus.credits >= retouchCreditCost;
+  const activeRetouchProviderLabel = aiRetouchProvider === "fashn" && aiRetouchMode === "preserve" ? "FASHN" : "OpenAI";
 
   return (
     <div className="grid gap-4">
       <div ref={stepOneRef} className="flex flex-col gap-3 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
         <div>
           <div className="text-3xl font-black uppercase tracking-normal text-cobalt md:text-4xl">Step 1/1</div>
-          <h2 className="mt-1 text-xl font-black text-ink">Upload and mark the product</h2>
-          <p className="mt-1 text-sm text-ink/60">Upload a real source photo, mark the product pieces blue, then click Create PNG + prompt to save this version in Step 2.</p>
+          <h2 className="mt-1 text-xl font-black text-ink">Upload and create apparel PNG</h2>
+          <p className="mt-1 text-sm text-ink/60">Upload a real source photo, mark important details if needed, then click Detect apparel.</p>
           <p className="mt-2 rounded-md border border-cobalt/20 bg-cobalt/10 p-3 text-sm font-bold leading-6 text-ink">
-            The more accurately you mark the garment, the more accurate the final result will be.
+            Use the Focus brush for logos, earrings, prints, hardware, or tiny details AI must preserve. The blue mark is only an instruction, not an apparel color.
+          </p>
+          <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-md border border-black/10 bg-panel p-3">
+            <input
+              type="checkbox"
+              checked={splitFrontBackMode}
+              onChange={(event) => setSplitFrontBackMode(event.target.checked)}
+              className="mt-1 h-5 w-5 accent-cobalt"
+            />
+            <span>
+              <span className="block text-sm font-black text-ink">Split into Front + Back views</span>
+              <span className="mt-1 block text-xs font-semibold leading-5 text-ink/55">
+                MVP mode: left half becomes Front, right half becomes Back. Both views are saved as one linked apparel product.
+              </span>
+            </span>
+          </label>
+        </div>
+        <div className="grid gap-3 rounded-md border border-black/10 bg-panel p-3">
+          <div>
+            <div className="text-sm font-black text-ink">Import apparel from a website</div>
+            <p className="mt-1 text-xs font-bold leading-5 text-ink/55">
+              Paste a product page or gallery URL. LuxuryBandit finds up to 10 images and can automatically turn all of them into My Apparel assets.
+            </p>
+          </div>
+          <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto]">
+            <input
+              type="url"
+              value={websiteImportUrl}
+              onChange={(event) => setWebsiteImportUrl(event.target.value)}
+              placeholder="https://example.com/product-page"
+              className="h-11 rounded-md border border-black/10 bg-white px-3 text-sm font-bold text-ink outline-none focus:border-cobalt"
+            />
+            <button
+              type="button"
+              onClick={() => void handleImportWebsiteImages()}
+              disabled={isImportingWebsiteImages || isBatchProcessing || !websiteImportUrl.trim()}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-black/10 bg-white px-4 text-sm font-black text-ink disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {isImportingWebsiteImages ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <ImagePlus aria-hidden="true" className="h-4 w-4" />}
+              Find images
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleBatchProcessImportedImages()}
+              disabled={isBatchProcessing || importedPageImages.length === 0}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-cobalt px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {isBatchProcessing ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <Sparkles aria-hidden="true" className="h-4 w-4" />}
+              Process all images
+            </button>
+          </div>
+          {batchProgress && (
+            <p className="rounded-md border border-cobalt/20 bg-white p-3 text-sm font-black leading-6 text-cobalt">
+              {batchProgress}
+            </p>
+          )}
+          {importedPageImages.length > 0 && (
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+              {importedPageImages.map((image, index) => (
+                <button
+                  key={`${image.sourceUrl}-${index}`}
+                  type="button"
+                  onClick={() => applySourceImage(image.dataUrl)}
+                  className="overflow-hidden rounded-md border border-black/10 bg-white p-1 text-left focus:outline-none focus:ring-2 focus:ring-cobalt"
+                  title="Load this image into the editor"
+                >
+                  <img src={image.dataUrl} alt={`Imported website image ${index + 1}`} className="aspect-square w-full rounded object-cover" />
+                  <span className="mt-1 block truncate px-1 text-[11px] font-black text-ink/55">Image {index + 1}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="text-xs font-bold leading-5 text-ink/45">
+            Batch processing starts multiple AI jobs. Use it for speed; use the Focus brush only when a logo, jewelry, or tiny detail must be preserved more precisely.
           </p>
         </div>
         <div className="flex w-full flex-wrap items-center justify-end gap-2">
@@ -1181,6 +2167,16 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
           >
             <ImagePlus aria-hidden="true" className="h-4 w-4" />
             Upload
+          </button>
+          <button
+            type="button"
+            onClick={() => void loadSourceGallery()}
+            disabled={isLoadingSourceGallery}
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold text-ink disabled:cursor-not-allowed disabled:opacity-45"
+            title="Choose image from gallery"
+          >
+            {isLoadingSourceGallery ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <ImagePlus aria-hidden="true" className="h-4 w-4" />}
+            Gallery
           </button>
           <button
             type="button"
@@ -1231,8 +2227,24 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
       </div>
 
       <div className="grid gap-4">
-        <div className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 shadow-soft sm:grid-cols-[48px_minmax(0,1fr)]">
-          <div className="flex gap-2 sm:flex-col">
+        <div className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
+          <div className="grid gap-3 rounded-md border border-black/10 bg-panel p-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 text-sm font-black text-ink">
+                  <Brush aria-hidden="true" className="h-4 w-4 text-cobalt" />
+                  Focus brush
+                </div>
+                <p className="mt-1 text-xs font-semibold leading-5 text-ink/60">
+                  Always available. Paint over logos, earrings, prints, hardware, or small details that AI should recognize and preserve more precisely.
+                </p>
+              </div>
+              <div className="inline-flex h-9 items-center justify-center rounded-md bg-ink px-3 text-xs font-black text-white">
+                Focus marking on
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 rounded-md border border-black/10 bg-panel p-2 sm:flex-nowrap">
             <button
               type="button"
               onClick={() => setToolMode("keep")}
@@ -1330,15 +2342,33 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
             className="checkerboard relative h-full w-full overflow-hidden rounded-md"
           >
             {!imageDataUrl && (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute inset-0 z-10 grid place-items-center text-center"
-              >
-                <span className="max-w-64 rounded-md bg-white/90 px-5 py-4 text-sm font-bold text-ink shadow-soft">
-                  Upload a real source photo: model wearing the product or product on body
-                </span>
-              </button>
+              <div className="absolute inset-0 z-10 grid place-items-center px-5 text-center">
+                <div className="grid max-w-md gap-3 rounded-md bg-white/95 px-5 py-5 shadow-soft">
+                  <div className="text-base font-black text-ink">Start with an apparel photo</div>
+                  <p className="text-sm font-semibold leading-6 text-ink/60">
+                    Upload a real source photo or choose an existing image from your gallery.
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-cobalt px-4 text-sm font-black text-white"
+                    >
+                      <ImagePlus aria-hidden="true" className="h-4 w-4" />
+                      Upload photo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void loadSourceGallery()}
+                      disabled={isLoadingSourceGallery}
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-black/10 bg-panel px-4 text-sm font-black text-ink disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      {isLoadingSourceGallery ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <ImagePlus aria-hidden="true" className="h-4 w-4" />}
+                      Choose from gallery
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
             {imageDataUrl && (
               <button
@@ -1364,7 +2394,7 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
                 ref={maskCanvasRef}
                 width={editorSize.width}
                 height={editorSize.height}
-                className={`absolute inset-0 h-full w-full touch-none cursor-none ${showSelectionOverlay ? "" : "opacity-0"}`}
+                className={`absolute inset-0 h-full w-full touch-none ${isPrecisionMode ? "cursor-none" : "pointer-events-none"} ${showSelectionOverlay ? "" : "opacity-0"}`}
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
@@ -1374,7 +2404,7 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
                 onPointerOut={() => setBrushCursor((cursor) => ({ ...cursor, visible: false }))}
               />
             </div>
-            {brushCursor.visible && imageDataUrl && (
+            {isPrecisionMode && brushCursor.visible && imageDataUrl && (
               <div
                 aria-hidden="true"
                 className={`pointer-events-none absolute rounded-full ${
@@ -1395,237 +2425,76 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
           <button
             type="button"
             onClick={handleCreateCutoutPreview}
-            disabled={!imageDataUrl}
+            disabled={!imageDataUrl || isDetectingProducts || isProcessingMultiView}
             className="col-span-full mt-3 inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 rounded-md bg-coral px-4 text-base font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <MousePointer2 aria-hidden="true" className="h-4 w-4" />
-            Create PNG + prompt
+            {isDetectingProducts || isProcessingMultiView ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <ListChecks aria-hidden="true" className="h-4 w-4" />}
+            {splitFrontBackMode ? "Create Front + Back apparel views" : "Detect apparel"}
           </button>
+          {multiViewMessage && (
+            <p className="rounded-md border border-cobalt/20 bg-cobalt/10 p-3 text-sm font-black leading-6 text-cobalt">
+              {multiViewMessage}
+            </p>
+          )}
         </div>
 
       </div>
 
-      <div className="grid gap-4 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
-        <aside>
-          <div className="text-3xl font-black uppercase tracking-normal text-cobalt md:text-4xl">Step 2/2</div>
-          <div className="mt-1 flex items-center gap-2 text-sm font-black text-ink">
-            <MousePointer2 aria-hidden="true" className="h-4 w-4 text-cobalt" />
-            PNG history
-          </div>
-          {generationError && <p className="mt-3 text-sm font-semibold text-coral">{generationError}</p>}
-        </aside>
-
+      {(cutoutPreview || shopImage || multiViewMessage) && (
+      <div ref={extractionResultsRef} className="grid gap-4 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
         <div className="grid gap-4">
-          <p className="rounded-md border border-black/10 bg-panel p-3 text-sm font-semibold leading-6 text-ink/65">
-            Saved PNG versions appear here after you click Create PNG + prompt in Step 1. Click any saved image to load it back into Step 1 and continue editing.
-          </p>
-          <div className="checkerboard min-h-72 overflow-hidden rounded-md border border-black/10">
-          {cutoutPreview ? (
-            <div className="grid gap-3 bg-white p-3">
-              <div className="relative">
-                <img src={cutoutPreview} alt={`${viewName} cutout preview`} className="mx-auto max-h-[720px] w-auto max-w-full object-contain" />
-                <button
-                  type="button"
-                  onClick={handleDeleteCutout}
-                  className="absolute right-2 top-2 inline-flex h-10 items-center gap-2 rounded-md bg-red-600 px-3 text-sm font-black text-white shadow-soft hover:bg-red-700"
-                  title="Delete PNG preview"
-                >
-                  <Trash2 aria-hidden="true" className="h-4 w-4" />
-                  Delete
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={handleDownloadGenerated}
-                  className="inline-flex h-10 w-fit items-center gap-2 rounded-md bg-ink px-3 text-sm font-bold text-white"
-                >
-                  <Download aria-hidden="true" className="h-4 w-4" />
-                  Download cutout PNG
-                </button>
-                <button
-                  type="button"
-                  onClick={handleOpenCutout}
-                  className="inline-flex h-10 w-fit items-center gap-2 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold text-ink"
-                >
-                  Open PNG
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="grid min-h-72 place-items-center px-5 text-center text-sm font-bold text-ink/55">
-              Create a transparent PNG preview from the current product selection.
-            </div>
-          )}
-          </div>
+          {cutoutError && <p className="rounded-md border border-coral/25 bg-coral/10 p-3 text-sm font-bold leading-6 text-coral">{cutoutError}</p>}
           <div className="rounded-md border border-black/10 bg-white p-3">
-            <div className="text-xs font-bold uppercase tracking-[0.15em] text-ink/55">PNG history</div>
-            {cutoutHistory.length > 0 ? (
-              <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
-                {cutoutHistory.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`group rounded-md border p-2 ${
-                      activeHistoryId === item.id ? "border-cobalt bg-cobalt/10 ring-2 ring-cobalt/25" : "border-black/10 bg-panel"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleRestoreHistoryItem(item)}
-                      className="relative block w-full overflow-hidden rounded-md border border-black/10 bg-white"
-                      title="Click to continue editing this cutout"
-                    >
-                      {activeHistoryId === item.id && (
-                        <span className="absolute left-2 top-2 z-10 rounded-md bg-cobalt px-2 py-1 text-xs font-black text-white">
-                          Active
-                        </span>
-                      )}
-                      <img src={item.cutoutDataUrl} alt="Saved PNG cutout" className="aspect-square w-full object-contain" />
-                    </button>
-                    <div className="mt-2 flex items-center justify-between gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleRestoreHistoryItem(item)}
-                        className="text-xs font-black text-cobalt"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteHistoryItem(item.id)}
-                        className="text-xs font-black text-red-600"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-2 rounded-md border border-black/10 bg-panel p-3 text-sm font-bold text-ink/55">
-                No saved PNGs yet. Use Create PNG + prompt in Step 1 to save a version here.
-              </p>
-            )}
-          </div>
-          <div className="rounded-md border border-black/10 bg-white p-3">
-            <div className="text-3xl font-black uppercase tracking-normal text-cobalt md:text-4xl">Step 3/3</div>
-            <div className="mt-1 text-sm font-black text-ink">Clean ecommerce retouch</div>
+            <div className="text-3xl font-black uppercase tracking-normal text-cobalt md:text-4xl">Step 2/2</div>
+            <div className="mt-1 text-sm font-black text-ink">Apparel extraction</div>
             <p className="mt-2 text-sm font-semibold leading-6 text-ink/65">
-              This step retouches the transparent cutout only: it removes remaining model/person traces, repairs tiny missing edges, keeps the exact visible product, applies the selected background color, and creates a square shop-ready image.
+              This step extracts the visible apparel, removes remaining model/person traces, keeps the apparel structure, applies the selected background, and prepares a square Design Ready image.
             </p>
             <div className="mt-3 grid gap-2 rounded-md border border-cobalt/20 bg-cobalt/10 p-3 text-sm font-bold leading-6 text-ink">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span>ShopCut credits</span>
+                <span>Provider credits</span>
                 <span className="rounded-md bg-white px-2 py-1 text-cobalt">
-                  {creditStatus ? `${creditStatus.credits} left` : "Loading..."}
+                  Test mode
                 </span>
               </div>
               <p className="text-xs font-semibold leading-5 text-ink/60">
-                Free demo credits apply across all tools. Preserve Cutout costs 1 credit, Rebuild Product costs 2 credits. Product detection is currently free.
+                LuxuryBandit does not block this MVP locally. The selected provider can still use your connected API account credits.
               </p>
             </div>
             <div className="mt-3 block text-xs font-bold uppercase tracking-[0.15em] text-ink/55">
-              Product
+              Apparel
             </div>
             <button
               type="button"
-              onClick={handleDetectProducts}
-              disabled={!imageDataUrl || isDetectingProducts}
+              onClick={() => void handleDetectProducts()}
+              disabled={!cutoutPreview || isDetectingProducts}
               className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-cobalt px-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
-              title="AI product detection uses OpenAI API credits"
+              title={cutoutPreview ? "AI apparel detection uses OpenAI API credits" : "Create PNG + prompt first"}
             >
               {isDetectingProducts ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <ListChecks aria-hidden="true" className="h-4 w-4" />}
-              AI detect products
+              Detect apparel again
             </button>
-            <p className="mt-2 text-xs font-semibold leading-5 text-ink/55">
-              Optional AI step. Product detection is currently free in this MVP.
-            </p>
-            {detectedProducts.length > 0 && (
-              <div className="mt-2 grid gap-3 rounded-md border border-black/10 bg-panel p-2">
-                {detectedProducts.map((product) => (
-                  <div key={product.id} className="grid gap-2 rounded-md border border-black/10 bg-white p-3">
-                    <label className="flex min-h-8 items-start gap-2 text-sm font-bold text-ink">
-                      <input
-                        type="checkbox"
-                        checked={product.selected}
-                        onChange={() => toggleDetectedProduct(product.id)}
-                        className="mt-1 h-4 w-4 accent-coral"
-                      />
-                      <span className="grid gap-0.5">
-                        <span>{productPromptText(product)}</span>
-                        <span className="text-xs font-semibold leading-5 text-ink/55">
-                          Edit the detected product details before sending them to AI.
-                        </span>
-                      </span>
-                    </label>
-                    <div className="grid gap-2 md:grid-cols-2">
-                      {[
-                        ["label", "Product", "panty"],
-                        ["color", "Color", "black"],
-                        ["material", "Material", "opaque black fabric"],
-                        ["description", "Full description", "black opaque tanga panty with cut-outs"]
-                      ].map(([field, label, placeholder]) => (
-                        <label key={field} className={field === "description" ? "grid gap-1 md:col-span-2" : "grid gap-1"}>
-                          <span className="text-xs font-black uppercase tracking-[0.12em] text-ink/45">{label}</span>
-                          <input
-                            value={String(product[field as keyof DetectedProduct] ?? "")}
-                            onChange={(event) => updateDetectedProduct(product.id, field as keyof Pick<DetectedProduct, "label" | "color" | "material" | "shape" | "details" | "description">, event.target.value)}
-                            placeholder={placeholder}
-                            className="h-10 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold text-ink outline-none focus:border-cobalt"
-                          />
-                        </label>
-                      ))}
-                      <div className="grid gap-2 md:col-span-2">
-                        <span className="text-xs font-black uppercase tracking-[0.12em] text-ink/45">Shape / cut</span>
-                        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-                          {shapeOptions.map((option) => {
-                            const isCustom = option.value === "custom";
-                            const isSelected = isCustom
-                              ? Boolean(product.shape && !shapeOptions.some((shape) => shape.value === product.shape && shape.value !== "custom"))
-                              : product.shape === option.value;
-                            return (
-                              <label
-                                key={option.value}
-                                className={`flex min-h-10 cursor-pointer items-center gap-2 rounded-md border px-3 text-xs font-black ${
-                                  isSelected ? "border-coral bg-coral/10 text-ink" : "border-black/10 bg-panel text-ink/70"
-                                }`}
-                              >
-                                <input
-                                  type="radio"
-                                  name={`shape-${product.id}`}
-                                  checked={isSelected}
-                                  onChange={() => updateDetectedProduct(product.id, "shape", isCustom ? "" : option.value)}
-                                  className="h-4 w-4 accent-coral"
-                                />
-                                {option.label}
-                              </label>
-                            );
-                          })}
-                        </div>
-                        <input
-                          value={product.shape ?? ""}
-                          onChange={(event) => updateDetectedProduct(product.id, "shape", event.target.value)}
-                          placeholder="custom shape, e.g. asymmetric cut-out tanga with narrow side straps"
-                          className="h-10 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold text-ink outline-none focus:border-cobalt"
-                        />
-                      </div>
-                      <label className="grid gap-1 md:col-span-2">
-                        <span className="text-xs font-black uppercase tracking-[0.12em] text-ink/45">Special details</span>
-                        <input
-                          value={product.details ?? ""}
-                          onChange={(event) => updateDetectedProduct(product.id, "details", event.target.value)}
-                          placeholder="side cut-outs, high-leg openings, asymmetric edge, lace border"
-                          className="h-10 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold text-ink outline-none focus:border-cobalt"
-                        />
-                      </label>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            {!cutoutPreview ? (
+              <p className="mt-2 rounded-md border border-coral/25 bg-coral/10 p-3 text-sm font-bold leading-6 text-coral">
+                Missing apparel reference. First upload an image in Step 1 and click Detect apparel.
+              </p>
+            ) : (
+              <p className="mt-2 text-xs font-semibold leading-5 text-ink/55">
+                Optional AI step. Apparel detection is currently free in this MVP.
+              </p>
             )}
+            {detectedProducts.length === 0 ? (
+              <p className="mt-3 rounded-md border border-black/10 bg-panel p-3 text-sm font-bold leading-6 text-ink/65">
+                Run AI detect apparel first. Apparel view, background, critical note, prompt, and preparation controls appear after the apparel checklist is created.
+              </p>
+            ) : (
+            <>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <div>
-                <div className="text-xs font-bold uppercase tracking-[0.15em] text-ink/55">Select Product View <span className="text-coral">*</span></div>
+              <div className="rounded-md border border-black/10 bg-panel p-3">
+                <div className="text-sm font-black text-ink">Select Apparel View</div>
+                <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">
+                  LuxuryBandit tries to select this automatically after apparel detection. You can change it before generating.
+                </p>
                 <div className="mt-2 grid grid-cols-3 gap-2">
                   {productViewOptions.map((option) => (
                     <button
@@ -1642,7 +2511,7 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
                 </div>
                 {!productView && <p className="mt-2 text-base font-black text-red-600">Required before generating.</p>}
               </div>
-              <div>
+              <div className="rounded-md border border-black/10 bg-panel p-3">
                 <div className="text-xs font-bold uppercase tracking-[0.15em] text-ink/55">Select Background</div>
                 <div className="mt-2 grid grid-cols-2 gap-3">
                   {backgroundOptions.map((option) => (
@@ -1673,9 +2542,9 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
             </div>
             <div className="mt-4 grid gap-2 rounded-md border border-black/10 bg-panel p-3">
               <div>
-                <div className="text-xs font-bold uppercase tracking-[0.15em] text-ink/55">Critical product note</div>
+                <div className="text-xs font-bold uppercase tracking-[0.15em] text-ink/55">Critical apparel note</div>
                 <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">
-                  Use this for one important retouch rule. Keep it short so the image cutout stays the source of truth.
+                  Use this for one important extraction rule. Keep it short so the image cutout stays the source of truth.
                 </p>
               </div>
               <div className="grid gap-2 md:grid-cols-2">
@@ -1702,14 +2571,14 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
                   setIsShopPromptEdited(false);
                 }}
                 className="min-h-24 w-full resize-y rounded-md border border-black/10 bg-white p-3 text-sm font-semibold leading-6 text-ink outline-none focus:border-cobalt"
-                placeholder="One critical rule for this product"
+                placeholder="One critical rule for this apparel"
               />
             </div>
             <div className="mt-4 grid gap-2 rounded-md border border-black/10 bg-panel p-3">
               <div>
-                <div className="text-xs font-bold uppercase tracking-[0.15em] text-ink/55">Final AI mode</div>
+                <div className="text-xs font-bold uppercase tracking-[0.15em] text-ink/55">Preparation mode</div>
                 <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">
-                  Preserve Cutout is the default retouch mode. Rebuild Product is experimental and may change the product.
+                  Preserve Cutout is the default extraction mode. Rebuild Apparel is experimental and may change the apparel.
                 </p>
               </div>
               <div className="grid gap-2 md:grid-cols-2">
@@ -1733,25 +2602,170 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
                 ))}
               </div>
             </div>
-            <div className="mb-2 mt-5 text-sm font-black text-ink">Retouch product cutout</div>
-            <div className="mb-3 grid gap-3 rounded-md border border-black/10 bg-panel p-3 md:grid-cols-[180px_minmax(0,1fr)] md:items-center">
-              <img src="/shopcut-logo.svg" alt="ShopCut AI product extracted logo" className="mx-auto aspect-[2/1] w-full rounded-md border border-black/10 bg-white object-cover" />
+            <div className="mt-4 grid gap-2 rounded-md border border-black/10 bg-panel p-3">
               <div>
-                <div className="text-lg font-black text-ink">Model removed. Product extracted.</div>
+                <div className="text-xs font-bold uppercase tracking-[0.15em] text-ink/55">Preparation provider</div>
+                <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">
+                  Preserve Cutout can be prepared with FASHN or OpenAI. Rebuild Apparel still uses OpenAI.
+                </p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">
+                  After apparel detection, LuxuryBandit auto-selects FASHN for lingerie-style apparel and OpenAI for regular clothing. You can still change it manually.
+                </p>
+              </div>
+              <div className="grid gap-2 md:grid-cols-2">
+                {aiRetouchProviders.map((provider) => {
+                  const selected = aiRetouchProvider === provider.value;
+                  const disabled = provider.value === "fashn" && aiRetouchMode === "rebuild";
+                  return (
+                    <button
+                      key={provider.value}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => setAiRetouchProvider(provider.value)}
+                      className={`min-h-20 rounded-md border p-3 text-left disabled:cursor-not-allowed disabled:opacity-45 ${
+                        selected && !disabled ? "border-ink bg-ink text-white" : "border-black/10 bg-white text-ink"
+                      }`}
+                    >
+                      <span className="block text-sm font-black">{provider.label}</span>
+                      <span className={`mt-1 block text-xs font-semibold leading-5 ${selected && !disabled ? "text-white/70" : "text-ink/55"}`}>
+                        {disabled ? "Only available for Preserve Cutout extraction." : provider.description}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="mb-2 mt-5 text-sm font-black text-ink">Prepare apparel for Fashion Creator</div>
+            <div className="mb-3 grid gap-3 rounded-md border border-black/10 bg-panel p-3 md:grid-cols-[180px_minmax(0,1fr)] md:items-center">
+              <img src="/shopcut-logo.svg" alt="LuxuryBandit apparel extracted logo" className="mx-auto aspect-[2/1] w-full rounded-md border border-black/10 bg-white object-cover" />
+              <div>
+                <div className="text-lg font-black text-ink">Model removed. Apparel extracted.</div>
                 <p className="mt-1 text-sm font-semibold leading-6 text-ink/60">
-                  {isGenerating ? "ShopCut AI is retouching the product cutout now." : "Retouch the selected cutout into a clean ecommerce image."}
+                  {isGenerating ? "LuxuryBandit is preparing the apparel now." : "Extract and prepare the selected apparel for Fashion Creator."}
                 </p>
               </div>
             </div>
+            {detectedProducts.length > 0 && (
+              <div className="mb-3 rounded-md border border-black/10 bg-panel p-3">
+                <button
+                  type="button"
+                  onClick={() => setIsDetectedProductsOpen((open) => !open)}
+                  className="flex w-full items-center justify-between gap-3 text-left"
+                >
+                  <span>
+                    <span className="block text-3xl font-black uppercase tracking-normal text-cobalt md:text-4xl">
+                      {detectedProducts.length} Apparel item{detectedProducts.length === 1 ? "" : "s"} identified
+                    </span>
+                    <span className="mt-1 block text-xs font-semibold leading-5 text-ink/55">
+                      {detectedProducts.filter((product) => product.selected).length} selected for the final image. Open details to edit names, colors, shapes, and materials.
+                    </span>
+                  </span>
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-black/10 bg-white text-lg font-black text-ink">
+                    {isDetectedProductsOpen ? "⌃" : "⌄"}
+                  </span>
+                </button>
+                {isDetectedProductsOpen && (
+                  <div className="mt-3 grid gap-3">
+                    {detectedProducts.map((product) => (
+                      <div key={product.id} className="grid gap-2 rounded-md border border-black/10 bg-white p-3">
+                        <label className="flex min-h-8 items-start gap-2 text-sm font-bold text-ink">
+                          <input
+                            type="checkbox"
+                            checked={product.selected}
+                            onChange={() => toggleDetectedProduct(product.id)}
+                            className="mt-1 h-4 w-4 accent-coral"
+                          />
+                          <span className="grid gap-0.5">
+                            <span>{productPromptText(product)}</span>
+                            <span className="text-xs font-semibold leading-5 text-ink/55">
+                              Edit the detected apparel details before sending them to AI.
+                            </span>
+                          </span>
+                        </label>
+                        <div className="grid gap-2 md:grid-cols-2">
+                          {[
+                            ["label", "Name", "panty"],
+                            ["color", "Color", "black"],
+                            ["material", "Material", "opaque black fabric"],
+                            ["description", "Full description", "black opaque tanga panty with cut-outs"]
+                          ].map(([field, label, placeholder]) => (
+                            <label key={field} className={field === "description" ? "grid gap-1 md:col-span-2" : "grid gap-1"}>
+                              <span className="text-xs font-black uppercase tracking-[0.12em] text-ink/45">{label}</span>
+                              <input
+                                value={String(product[field as keyof DetectedProduct] ?? "")}
+                                onChange={(event) => updateDetectedProduct(product.id, field as keyof Pick<DetectedProduct, "label" | "color" | "material" | "shape" | "details" | "description">, event.target.value)}
+                                placeholder={placeholder}
+                                className="h-10 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold text-ink outline-none focus:border-cobalt"
+                              />
+                            </label>
+                          ))}
+                          <div className="grid gap-2 md:col-span-2">
+                            <span className="text-xs font-black uppercase tracking-[0.12em] text-ink/45">Shape / cut</span>
+                            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                              {shapeOptions.map((option) => {
+                                const isCustom = option.value === "custom";
+                                const isSelected = isCustom
+                                  ? Boolean(product.shape && !shapeOptions.some((shape) => shape.value === product.shape && shape.value !== "custom"))
+                                  : product.shape === option.value;
+                                return (
+                                  <label
+                                    key={option.value}
+                                    className={`flex min-h-10 cursor-pointer items-center gap-2 rounded-md border px-3 text-xs font-black ${
+                                      isSelected ? "border-coral bg-coral/10 text-ink" : "border-black/10 bg-panel text-ink/70"
+                                    }`}
+                                  >
+                                    <input
+                                      type="radio"
+                                      name={`shape-${product.id}`}
+                                      checked={isSelected}
+                                      onChange={() => updateDetectedProduct(product.id, "shape", isCustom ? "" : option.value)}
+                                      className="h-4 w-4 accent-coral"
+                                    />
+                                    {option.label}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                            <input
+                              value={product.shape ?? ""}
+                              onChange={(event) => updateDetectedProduct(product.id, "shape", event.target.value)}
+                              placeholder="custom shape, e.g. asymmetric cut-out tanga with narrow side straps"
+                              className="h-10 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold text-ink outline-none focus:border-cobalt"
+                            />
+                          </div>
+                          <label className="grid gap-1 md:col-span-2">
+                            <span className="text-xs font-black uppercase tracking-[0.12em] text-ink/45">Special details</span>
+                            <input
+                              value={product.details ?? ""}
+                              onChange={(event) => updateDetectedProduct(product.id, "details", event.target.value)}
+                              placeholder="side cut-outs, high-leg openings, asymmetric edge, lace border"
+                              className="h-10 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold text-ink outline-none focus:border-cobalt"
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="mb-3 grid gap-2 rounded-md border border-black/10 bg-panel p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <div className="text-sm font-black text-ink">Prompt sent to AI</div>
                   <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">
-                    This text changes with product checkboxes, product view, and background color. You can edit it before generating.
+                    This text changes with apparel checkboxes, apparel view, and background color. You can edit it before generating.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsShopPromptOpen((open) => !open)}
+                    className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-ink px-3 text-xs font-black text-white"
+                  >
+                    {isShopPromptOpen ? <EyeOff aria-hidden="true" className="h-4 w-4" /> : <Eye aria-hidden="true" className="h-4 w-4" />}
+                    {isShopPromptOpen ? "Hide prompt" : "Show prompt"}
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -1772,15 +2786,21 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
                   </button>
                 </div>
               </div>
-              <textarea
-                value={customShopPrompt}
-                onChange={(event) => {
-                  setCustomShopPrompt(event.target.value);
-                  setIsShopPromptEdited(true);
-                }}
-                className="min-h-72 w-full resize-y rounded-md border border-black/10 bg-white p-3 font-mono text-xs font-semibold leading-5 text-ink outline-none focus:border-cobalt"
-                spellCheck={false}
-              />
+              {isShopPromptOpen ? (
+                <textarea
+                  value={customShopPrompt}
+                  onChange={(event) => {
+                    setCustomShopPrompt(event.target.value);
+                    setIsShopPromptEdited(true);
+                  }}
+                  className="min-h-72 w-full resize-y rounded-md border border-black/10 bg-white p-3 font-mono text-xs font-semibold leading-5 text-ink outline-none focus:border-cobalt"
+                  spellCheck={false}
+                />
+              ) : (
+                <p className="rounded-md border border-black/10 bg-white p-3 text-sm font-bold leading-6 text-ink/55">
+                  Prompt is hidden. Open it only if you want to review or edit the exact text sent to AI.
+                </p>
+              )}
               {isShopPromptEdited && (
                 <p className="text-xs font-bold text-coral">
                   Custom prompt is active. Reset prompt to rebuild it from the current selections.
@@ -1790,23 +2810,18 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
             <button
               type="button"
               onClick={handleGenerateShopImage}
-              disabled={!cutoutPreview || !aiPrompt.trim() || !productView || !hasEnoughCredits || isGenerating}
+              disabled={!cutoutPreview || !aiPrompt.trim() || !productView || isGenerating}
               className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-cobalt px-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
             >
               {isGenerating ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <Sparkles aria-hidden="true" className="h-4 w-4" />}
-              Retouch product cutout ({retouchCreditCost} credit{retouchCreditCost === 1 ? "" : "s"})
+              Create Design Ready apparel
             </button>
-            {!hasEnoughCredits && (
-              <p className="mt-3 rounded-md border border-coral/25 bg-coral/10 p-3 text-sm font-bold leading-6 text-coral">
-                Not enough credits. This action needs {retouchCreditCost} credit{retouchCreditCost === 1 ? "" : "s"}.
-              </p>
-            )}
             {isGenerating && (
               <div className="mt-3 grid gap-3 rounded-md border border-cobalt/20 bg-cobalt/10 p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-sm font-black text-ink">
                     <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin text-cobalt" />
-                    Retouching with OpenAI
+                    Preparing with {activeRetouchProviderLabel}
                   </div>
                   <div className="text-sm font-black text-cobalt">
                     {generationSeconds < 60
@@ -1821,16 +2836,18 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
                   />
                 </div>
                 <p className="text-xs font-semibold leading-5 text-ink/65">
-                  Please wait. This usually takes around 20-90 seconds. The page is still working even if the image takes a moment.
+                  Please wait. This can take up to 3 minutes. The page is still working even if the image takes a moment.
                 </p>
               </div>
             )}
-            {(!cutoutPreview || !aiPrompt.trim() || !productView) && (
+            {!splitFrontBackMode && (!cutoutPreview || !aiPrompt.trim() || !productView) && (
               <p className="mt-3 rounded-md border border-black/10 bg-panel p-3 text-sm font-bold leading-6 text-ink/65">
-                Button is disabled because Step 2 is not completed yet or Product View is not selected. First create the PNG + prompt in Step 2, then choose Front, Side, or Back.
+                Button is disabled because apparel detection is not completed yet or Apparel View is not selected. First detect apparel, then choose Front, Side, or Back.
               </p>
             )}
-            {generationError && <p className="mt-3 rounded-md border border-coral/25 bg-coral/10 p-3 text-sm font-bold leading-6 text-coral">{generationError}</p>}
+            </>
+            )}
+            {retouchError && <p className="mt-3 rounded-md border border-coral/25 bg-coral/10 p-3 text-sm font-bold leading-6 text-coral">{retouchError}</p>}
             {shopImage ? (
               <div className="mt-3 grid gap-3">
                 <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-3 sm:grid-cols-[150px_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -1850,15 +2867,15 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
                         </div>
                       )}
                     </button>
-                    <div className="mt-2 text-sm font-black text-ink">Retouched image</div>
+                    <div className="mt-2 text-sm font-black text-ink">Transparent cutout</div>
                     <button
                       type="button"
-                      onClick={() => cutoutPreview && setImageDialog({ title: "Retouched image", src: cutoutPreview, checkerboard: true })}
+                      onClick={() => cutoutPreview && setImageDialog({ title: "Transparent cutout", src: cutoutPreview, checkerboard: true })}
                       className="checkerboard overflow-hidden rounded-md border border-black/10 text-left focus:outline-none focus:ring-2 focus:ring-cobalt"
                       title="Open large preview"
                     >
                       {cutoutPreview ? (
-                        <img src={cutoutPreview} alt={`${viewName} Step 2 retouched cutout`} className="aspect-square w-full object-contain" />
+                        <img src={cutoutPreview} alt={`${viewName} Step 2 transparent cutout`} className="aspect-square w-full object-contain" />
                       ) : (
                         <div className="grid aspect-square w-full place-items-center px-3 text-center text-xs font-bold text-ink/55">
                           Step 2 image appears here.
@@ -1874,10 +2891,10 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
                     </button>
                   </div>
                   <div className="grid gap-2">
-                    <div className="text-sm font-black text-ink">AI retouch</div>
+                    <div className="text-sm font-black text-ink">Design Ready apparel</div>
                     <button
                       type="button"
-                      onClick={() => setImageDialog({ title: "AI retouch", src: shopImage })}
+                      onClick={() => setImageDialog({ title: "Design Ready apparel", src: shopImage })}
                       className="overflow-hidden rounded-md border border-black/10 bg-panel text-left focus:outline-none focus:ring-2 focus:ring-cobalt"
                       title="Open large preview"
                     >
@@ -1885,30 +2902,156 @@ export function ImageEditor({ viewName }: ImageEditorProps) {
                     </button>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const link = document.createElement("a");
-                    link.download = `shopcut-${viewName.toLowerCase()}-shop-square.png`;
-                    link.href = shopImage;
-                    document.body.appendChild(link);
-                    link.click();
-                    link.remove();
-                  }}
-                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-ink px-3 text-sm font-black text-white"
-                >
-                  <Download aria-hidden="true" className="h-4 w-4" />
-                  Download final shop PNG
-                </button>
+                <div className="grid gap-2 md:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleCropShopImage()}
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-cobalt px-3 text-sm font-black text-white"
+                  >
+                    <Crop aria-hidden="true" className="h-4 w-4" />
+                    Fit apparel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const link = document.createElement("a");
+                      link.download = `shopcut-${viewName.toLowerCase()}-shop-square.png`;
+                      link.href = shopImage;
+                      document.body.appendChild(link);
+                      link.click();
+                      link.remove();
+                    }}
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-ink px-3 text-sm font-black text-white"
+                  >
+                    <Download aria-hidden="true" className="h-4 w-4" />
+                    Download Design Ready PNG
+                  </button>
+                </div>
+                {detectedProducts.length > 0 && (
+                  <div className="grid gap-2 rounded-md border border-cobalt/20 bg-cobalt/10 p-3">
+                    <p className="text-xs font-semibold leading-5 text-ink/65">
+                      Save the selected detected apparel from this Design Ready image to My Apparel for Fashion Creator.
+                      If several pieces are selected, they are saved as separate checklist items under this same image.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleSaveSelectedProductsAsAssets}
+                      disabled={detectedProducts.filter((product) => product.selected).length === 0}
+                      className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-cobalt px-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Check aria-hidden="true" className="h-4 w-4" />
+                      Save selected as Fashion Creator assets
+                    </button>
+                    {assetSaveMessage && (
+                      <p className="rounded-md border border-cobalt/20 bg-white p-3 text-sm font-black leading-6 text-cobalt">
+                        {assetSaveMessage}
+                      </p>
+                    )}
+                    {assetSaveMessage && onContinueToFashionCreator && (
+                      <button
+                        type="button"
+                        onClick={onContinueToFashionCreator}
+                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-ink px-3 text-sm font-black text-white"
+                      >
+                        <Sparkles aria-hidden="true" className="h-4 w-4" />
+                        Continue in Fashion Creator
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="mt-3 grid aspect-square w-full place-items-center rounded-md border border-black/10 bg-panel px-5 text-center text-sm font-bold text-ink/55">
-                Square ecommerce output appears here.
+                Design Ready apparel appears here.
               </div>
             )}
           </div>
         </div>
       </div>
+      )}
+      {isSourceGalleryOpen && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Choose image from gallery"
+          onClick={() => setIsSourceGalleryOpen(false)}
+        >
+          <div
+            className="grid max-h-[92vh] w-full max-w-5xl gap-4 overflow-hidden rounded-lg bg-white p-4 shadow-soft"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-lg font-black text-ink">Choose image from gallery</div>
+                <p className="mt-1 text-sm font-bold leading-6 text-ink/55">
+                  Select an existing image to load it into Step 1 instead of uploading a new file.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => void loadSourceGallery()}
+                  disabled={isLoadingSourceGallery}
+                  className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-black/10 bg-panel px-3 text-xs font-black text-ink disabled:opacity-45"
+                >
+                  {isLoadingSourceGallery ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
+                  Refresh
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsSourceGalleryOpen(false)}
+                  className="h-9 rounded-md bg-ink px-4 text-sm font-black text-white"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            <div className="grid max-h-[72vh] gap-4 overflow-auto pr-1">
+              {editorGalleryGroups.map((group) => {
+                const groupImages = sourceGalleryImages.filter((item) => group.types.some((type) => type === item.type));
+                return (
+                  <section key={group.title} className="rounded-md border border-black/10 bg-panel p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-black uppercase tracking-[0.14em] text-ink/60">{group.title}</h3>
+                      <span className="rounded-full bg-white px-2 py-1 text-xs font-black text-ink/50">{groupImages.length}</span>
+                    </div>
+                    {groupImages.length > 0 ? (
+                      <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                        {groupImages.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => void handleSelectSourceGalleryImage(item)}
+                            disabled={isLoadingSourceGallery}
+                            className={`rounded-md border border-black/10 bg-white p-2 text-left focus:outline-none focus:ring-2 focus:ring-cobalt disabled:cursor-wait disabled:opacity-60 ${
+                              item.type === "cutout" ? "checkerboard" : ""
+                            }`}
+                            title="Use this image in Step 1"
+                          >
+                            <span className="block overflow-hidden rounded-md border border-black/10 bg-white">
+                              <img
+                                src={item.url}
+                                alt={`Saved ${galleryImageLabel(item.type)}`}
+                                className="aspect-square w-full object-contain"
+                              />
+                            </span>
+                            <span className="mt-2 block truncate text-xs font-black text-ink">
+                              {galleryImageLabel(item.type)}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-3 rounded-md border border-black/10 bg-white p-3 text-sm font-bold text-ink/45">{group.empty}</p>
+                    )}
+                  </section>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
       {imageDialog && (
         <div
           className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"

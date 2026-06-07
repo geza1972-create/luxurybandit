@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { completeReservation, getAccountId, refundReservation, reserveCredits } from "@/lib/billing";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const backgroundLabels = {
   white: "pure white studio background",
   "light-gray": "light gray ecommerce studio background",
-  "light-gradient": "light gray vertical studio gradient background, bright at the top and softly darker gray at the bottom",
+  "light-gradient": "subtle light gray vertical studio gradient background, very light gray at the top and softly darker light gray at the bottom",
   "dark-gradient": "dark charcoal vertical studio gradient background, softer gray at the top and deep black at the bottom"
 } as const;
 
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const image = formData.get("image");
   const promptOverride = String(formData.get("prompt") ?? "").trim();
-  const backgroundValue = String(formData.get("background") ?? "light-gradient") as BackgroundKey;
+  const backgroundValue = String(formData.get("background") ?? "white") as BackgroundKey;
   const productDescription = String(formData.get("productDescription") ?? "lingerie product set").trim();
   const viewMode = String(formData.get("viewMode") ?? "auto") as ViewMode;
   const mode = String(formData.get("mode") ?? "preserve");
@@ -54,7 +54,8 @@ export async function POST(request: Request) {
   }
 
   const accountId = getAccountId(request);
-  const reservation = reserveCredits(accountId, mode === "rebuild" ? "rebuild-product" : "retouch-cutout");
+  const creditAction = mode === "fashion-model" ? "fashion-model" : mode === "rebuild" ? "rebuild-product" : "retouch-cutout";
+  const reservation = reserveCredits(accountId, creditAction);
   if (!reservation.ok) {
     return NextResponse.json(
       {
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
   }
 
   const prompt = promptOverride || (() => {
-    const requestedBackground = backgroundLabels[backgroundValue] ?? backgroundLabels["light-gradient"];
+    const requestedBackground = backgroundLabels[backgroundValue] ?? backgroundLabels.white;
     const requestedProduct = productDescription.slice(0, 180) || "the complete selected lingerie product or product set";
     const requestedView = viewInstructions[viewMode] ?? viewInstructions.auto;
     return [
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
   const bytes = Buffer.from(await image.arrayBuffer());
   const mimeType = image.type || "image/png";
   const dataUrl = `data:${mimeType};base64,${bytes.toString("base64")}`;
-  const taskName = mode === "rebuild" ? "Rebuild product cutout" : "Retouch existing cutout";
+  const taskName = mode === "fashion-model" ? "Create ghost mannequin product preview" : mode === "rebuild" ? "Rebuild product cutout" : "Retouch existing cutout";
 
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
@@ -118,23 +119,40 @@ export async function POST(request: Request) {
           type: "image_generation",
           action: "edit",
           size: squareOutput ? "1024x1024" : imageSize(width, height),
-          quality: "high",
+          quality: "low",
           output_format: "png"
         }
       ]
     })
   });
 
-  const payload = await response.json();
+  const responseText = await response.text();
+  let payload: any = null;
+  try {
+    payload = responseText ? JSON.parse(responseText) : null;
+  } catch {
+    payload = null;
+  }
 
   if (!response.ok) {
     const credits = refundReservation(accountId, reservation.reservationId);
     return NextResponse.json(
       {
-        error: payload?.error?.message ?? "OpenAI konnte das Produktbild nicht erstellen.",
+        error: payload?.error?.message ?? responseText?.slice(0, 500) ?? "OpenAI konnte das Produktbild nicht erstellen.",
         credits
       },
       { status: response.status }
+    );
+  }
+
+  if (!payload) {
+    const credits = refundReservation(accountId, reservation.reservationId);
+    return NextResponse.json(
+      {
+        error: "OpenAI returned an empty response. Please try again.",
+        credits
+      },
+      { status: 502 }
     );
   }
 

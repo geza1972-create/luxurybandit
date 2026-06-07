@@ -1,4 +1,4 @@
-export type CreditAction = "detect-products" | "retouch-cutout" | "rebuild-product";
+export type CreditAction = "detect-products" | "retouch-cutout" | "rebuild-product" | "fashion-model" | "fashion-model-selected";
 
 type UsageItem = {
   id: string;
@@ -14,12 +14,15 @@ type AccountLedger = {
   usage: UsageItem[];
 };
 
-const DEFAULT_FREE_CREDITS = Number(process.env.FREE_IMAGE_CREDITS ?? 5);
+const INTERNAL_CREDIT_GATE_ENABLED = process.env.SHOPCUT_ENABLE_INTERNAL_CREDITS === "true";
+const DEFAULT_FREE_CREDITS = Number(process.env.FREE_IMAGE_CREDITS ?? (INTERNAL_CREDIT_GATE_ENABLED ? 5 : 9999));
 
 const actionCosts: Record<CreditAction, number> = {
   "detect-products": 0,
   "retouch-cutout": 1,
-  "rebuild-product": 2
+  "rebuild-product": 2,
+  "fashion-model": 1,
+  "fashion-model-selected": 2
 };
 
 const globalForBilling = globalThis as typeof globalThis & {
@@ -35,7 +38,13 @@ export function getAccountId(request: Request) {
 
 function getLedger(accountId: string) {
   const existing = ledgers.get(accountId);
-  if (existing) return existing;
+  if (existing) {
+    if (!INTERNAL_CREDIT_GATE_ENABLED && existing.credits < DEFAULT_FREE_CREDITS) {
+      existing.credits = DEFAULT_FREE_CREDITS;
+      existing.freeCredits = DEFAULT_FREE_CREDITS;
+    }
+    return existing;
+  }
 
   const ledger: AccountLedger = {
     credits: DEFAULT_FREE_CREDITS,
@@ -61,7 +70,7 @@ export function reserveCredits(accountId: string, action: CreditAction) {
   const ledger = getLedger(accountId);
   const credits = actionCosts[action];
 
-  if (ledger.credits < credits) {
+  if (INTERNAL_CREDIT_GATE_ENABLED && ledger.credits < credits) {
     return {
       ok: false as const,
       error: `Not enough credits. This action costs ${credits} credit${credits === 1 ? "" : "s"}.`,
@@ -77,7 +86,9 @@ export function reserveCredits(accountId: string, action: CreditAction) {
     status: "reserved"
   };
 
-  ledger.credits -= credits;
+  if (INTERNAL_CREDIT_GATE_ENABLED) {
+    ledger.credits -= credits;
+  }
   ledger.usage.unshift(usageItem);
 
   return {
