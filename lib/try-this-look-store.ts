@@ -91,7 +91,12 @@ const DEFAULT_LOOK: TryThisLookLook = {
 
 function getSupabaseConfig() {
   const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/^["']|["']$/g, "");
-  const url = rawUrl ? (rawUrl.startsWith("http://") || rawUrl.startsWith("https://") ? rawUrl : `https://${rawUrl}`).replace(/\/$/, "") : "";
+  const url = rawUrl
+    ? (rawUrl.startsWith("http://") || rawUrl.startsWith("https://") ? rawUrl : `https://${rawUrl}`)
+        .replace(/\/rest\/v1\/?$/i, "")
+        .replace(/\/storage\/v1\/?$/i, "")
+        .replace(/\/$/, "")
+    : "";
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceRoleKey) {
