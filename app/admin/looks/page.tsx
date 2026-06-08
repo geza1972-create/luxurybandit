@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ImagePlus, Loader2, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import { Check, ImagePlus, Loader2, Pencil, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 
 type Look = {
@@ -13,6 +13,8 @@ type Look = {
   whatsappNumber?: string;
   availableSizes?: string[];
   price?: string;
+  salePrice?: string;
+  discountLabel?: string;
   productNote?: string;
   createdAt: string;
   imageUrl: string;
@@ -108,7 +110,17 @@ export default function AdminLooksPage() {
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [availableSizes, setAvailableSizes] = useState("");
   const [price, setPrice] = useState("");
+  const [salePrice, setSalePrice] = useState("");
+  const [discountLabel, setDiscountLabel] = useState("");
   const [productNote, setProductNote] = useState("");
+  const [editingLookId, setEditingLookId] = useState<string | null>(null);
+  const [editLookName, setEditLookName] = useState("");
+  const [editCampaignName, setEditCampaignName] = useState("");
+  const [editAvailableSizes, setEditAvailableSizes] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const [editSalePrice, setEditSalePrice] = useState("");
+  const [editDiscountLabel, setEditDiscountLabel] = useState("");
+  const [editProductNote, setEditProductNote] = useState("");
   const [publicTryOnUrl, setPublicTryOnUrl] = useState("");
   const [newFrontLookImage, setNewFrontLookImage] = useState<string | null>(null);
   const [newBackLookImage, setNewBackLookImage] = useState<string | null>(null);
@@ -246,6 +258,8 @@ export default function AdminLooksPage() {
           .map((size) => size.trim())
           .filter(Boolean),
         price: price.trim(),
+        salePrice: salePrice.trim(),
+        discountLabel: discountLabel.trim(),
         productNote: productNote.trim(),
         frontImage: newFrontLookImage,
         backImage: newBackLookImage,
@@ -263,6 +277,8 @@ export default function AdminLooksPage() {
       setCampaignName("");
       setAvailableSizes("");
       setPrice("");
+      setSalePrice("");
+      setDiscountLabel("");
       setProductNote("");
       setShowAdvancedViews(false);
       setMessage("New look is now active.");
@@ -371,6 +387,63 @@ export default function AdminLooksPage() {
     }
   };
 
+  const startEditingLook = (look: Look) => {
+    setEditingLookId(look.id);
+    setEditLookName(look.name);
+    setEditCampaignName(look.campaignName ?? "");
+    setEditAvailableSizes((look.availableSizes ?? []).join(", "));
+    setEditPrice(look.price ?? "");
+    setEditSalePrice(look.salePrice ?? "");
+    setEditDiscountLabel(look.discountLabel ?? "");
+    setEditProductNote(look.productNote ?? "");
+    setMessage(null);
+    setError(null);
+    window.setTimeout(() => document.getElementById("look-history")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  };
+
+  const cancelEditingLook = () => {
+    setEditingLookId(null);
+    setEditLookName("");
+    setEditCampaignName("");
+    setEditAvailableSizes("");
+    setEditPrice("");
+    setEditSalePrice("");
+    setEditDiscountLabel("");
+    setEditProductNote("");
+  };
+
+  const saveEditedLook = async (look: Look) => {
+    setIsSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      await callAdminAction({
+        action: "update-look",
+        id: look.id,
+        name: editLookName.trim() || look.name,
+        campaignName: editCampaignName.trim(),
+        storeName: look.storeName ?? storeName.trim(),
+        storeSlug: look.storeSlug ?? storeSlug.trim(),
+        storeAddress: look.storeAddress ?? storeAddress.trim(),
+        whatsappNumber: look.whatsappNumber ?? whatsappNumber.trim(),
+        availableSizes: editAvailableSizes
+          .split(/[,\n]/)
+          .map((size) => size.trim())
+          .filter(Boolean),
+        price: editPrice.trim(),
+        salePrice: editSalePrice.trim(),
+        discountLabel: editDiscountLabel.trim(),
+        productNote: editProductNote.trim()
+      });
+      cancelEditingLook();
+      setMessage("Look updated.");
+    } catch (editError) {
+      setError(editError instanceof Error ? editError.message : "Look could not be updated.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const deleteGeneration = async (generation: Generation) => {
     const confirmed = window.confirm("Delete this generated image?");
     if (!confirmed) return;
@@ -443,13 +516,6 @@ export default function AdminLooksPage() {
     });
   };
   const activeLookPublicUrl = selectedStoreSlug ? `${publicTryOnUrl}?store=${selectedStoreSlug}` : activeLook?.storeSlug ? `${publicTryOnUrl}?store=${activeLook.storeSlug}` : publicTryOnUrl;
-  const broadcastText = activeLook
-    ? [
-        `${activeLook.storeName ?? "LuxuryBandit"} just received ${activeLook.name}.`,
-        "Try it on yourself with LuxuryBandit:",
-        activeLookPublicUrl
-      ].join("\n")
-    : "";
   const isAdminAccessBlocked = error === "Admin access required." && !data.events;
 
   if (isAdminAccessBlocked) {
@@ -501,7 +567,7 @@ export default function AdminLooksPage() {
           </p>
         </header>
 
-        <section className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
+        <section id="look-history" className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
           <div className="text-lg font-black">Admin access</div>
           <div className="grid gap-2 md:grid-cols-[1fr_auto]">
             <input
@@ -599,93 +665,34 @@ export default function AdminLooksPage() {
           </div>
         </section>
 
-        <section className="grid gap-4 rounded-lg border border-black/10 bg-white p-4 shadow-soft lg:grid-cols-[360px_1fr]">
-          <div className="grid gap-3">
-            <div className="text-xs font-black uppercase tracking-[0.16em] text-ink/45">Active looks</div>
-            {visibleActiveLooks.length > 1 && (
-              <div className="grid gap-3">
-                {visibleActiveLooks.map((look) => (
-                  <article key={look.id} className="grid gap-2 rounded-md border border-cobalt/20 bg-cobalt/10 p-3">
-                    <img src={look.frontImageUrl ?? look.imageUrl} alt={look.name} className="aspect-square w-full rounded-md border border-black/10 bg-white object-contain" />
-                    <div className="text-lg font-black">{look.name}</div>
-                    <div className="text-xs font-black uppercase tracking-[0.12em] text-cobalt">{look.campaignName ?? "No campaign"}</div>
-                    {look.price && <div className="text-sm font-black text-cobalt">{look.price}</div>}
-                  </article>
-                ))}
-              </div>
-            )}
-            {visibleActiveLooks.length <= 1 && activeLook?.imageUrl && !activeLook?.backImageUrl && (
-              <img src={activeLook.imageUrl} alt={activeLook.name} className="aspect-square w-full rounded-md border border-black/10 object-contain" />
-            )}
-            {visibleActiveLooks.length <= 1 && activeLook?.backImageUrl && (
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <div className="mb-1 text-xs font-black uppercase tracking-[0.12em] text-ink/45">Front</div>
-                  <img src={activeLook.frontImageUrl ?? activeLook.imageUrl} alt={`${activeLook.name} front`} className="aspect-square w-full rounded-md border border-black/10 object-contain" />
-                </div>
-                <div>
-                  <div className="mb-1 text-xs font-black uppercase tracking-[0.12em] text-ink/45">Back</div>
-                  <img src={activeLook.backImageUrl} alt={`${activeLook.name} back`} className="aspect-square w-full rounded-md border border-black/10 object-contain" />
-                </div>
-              </div>
-            )}
-            <div>
-              <div className="text-2xl font-black">
-                {visibleActiveLooks.length > 1 ? `${visibleActiveLooks.length} active looks` : activeLook?.name ?? "No active look for this store"}
-              </div>
-              <div className="mt-1 text-sm font-bold text-ink/50">
-                {visibleActiveLooks.length > 1 ? "Shown as active in this admin collection" : activeLook?.campaignName ?? "No campaign name"}
-              </div>
-              {activeLook?.storeName && <div className="mt-2 text-sm font-black text-ink">{activeLook.storeName}</div>}
-              {activeLook?.storeAddress && <div className="mt-1 text-sm font-bold text-ink/55">{activeLook.storeAddress}</div>}
-              {activeLook?.whatsappNumber && <div className="mt-1 text-sm font-bold text-ink/55">WhatsApp: {activeLook.whatsappNumber}</div>}
-              {activeLook?.price && <div className="mt-1 text-sm font-black text-cobalt">{activeLook.price}</div>}
-              {(activeLook?.availableSizes ?? []).length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {(activeLook?.availableSizes ?? []).map((size) => (
-                    <span key={size} className="rounded-full bg-panel px-3 py-1 text-xs font-black text-ink/70">
-                      {size}
+        <section className="grid gap-4 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-cobalt/20 bg-cobalt/5 p-3">
+            <div className="grid gap-2">
+              <div className="text-xs font-black uppercase tracking-[0.16em] text-cobalt">Active looks</div>
+              <div className="flex flex-wrap gap-2">
+                {visibleActiveLooks.length ? (
+                  visibleActiveLooks.map((look) => (
+                    <span key={look.id} className="rounded-md bg-white px-3 py-2 text-xs font-black text-ink shadow-soft">
+                      {look.name}
                     </span>
-                  ))}
-                </div>
-              )}
-              {(activeLook?.galleryImageUrls ?? []).length > 0 && (
-                <div className="mt-3 grid grid-cols-4 gap-2">
-                  {(activeLook?.galleryImageUrls ?? []).slice(0, 4).map((image, index) => (
-                    <img
-                      key={`${image}-${index}`}
-                      src={image}
-                      alt={`Active product gallery image ${index + 1}`}
-                      className="aspect-square rounded-md border border-black/10 bg-white object-cover object-top"
-                    />
-                  ))}
-                </div>
-              )}
-              {activeLook && (
-                <div className="mt-2 inline-flex rounded-full bg-cobalt/10 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-cobalt">
-                  {visibleActiveLooks.length > 1 ? "Multiple active" : "Active"}
-                </div>
-              )}
+                  ))
+                ) : (
+                  <span className="text-sm font-bold text-ink/50">No active looks yet.</span>
+                )}
+              </div>
             </div>
-            <a href={selectedStoreSlug ? `/try-this-look?store=${selectedStoreSlug}` : "/try-this-look"} className="inline-flex h-12 items-center justify-center rounded-md bg-cobalt px-4 text-sm font-black text-white">
-              Open user page
-            </a>
-            <button
-              type="button"
-              onClick={() => void copyText(activeLookPublicUrl, "Public try-on link copied.")}
-              className="inline-flex h-12 items-center justify-center rounded-md border border-black/10 bg-panel px-4 text-sm font-black text-ink"
-            >
-              Copy public try-on link
-            </button>
-            {activeLook && (
+            <div className="flex flex-wrap gap-2">
+              <a href={selectedStoreSlug ? `/try-this-look?store=${selectedStoreSlug}` : "/try-this-look"} className="inline-flex h-10 items-center justify-center rounded-md bg-cobalt px-3 text-xs font-black text-white">
+                Open user page
+              </a>
               <button
                 type="button"
-                onClick={() => void copyText(broadcastText, "WhatsApp broadcast text copied.")}
-                className="inline-flex h-12 items-center justify-center rounded-md border border-cobalt/20 bg-cobalt/10 px-4 text-sm font-black text-cobalt"
+                onClick={() => void copyText(activeLookPublicUrl, "Public try-on link copied.")}
+                className="inline-flex h-10 items-center justify-center rounded-md border border-black/10 bg-white px-3 text-xs font-black text-ink"
               >
-                Copy WhatsApp broadcast text
+                Copy link
               </button>
-            )}
+            </div>
           </div>
 
           <div className="grid content-start gap-3">
@@ -839,7 +846,19 @@ export default function AdminLooksPage() {
             <input
               value={price}
               onChange={(event) => setPrice(event.target.value)}
-              placeholder="Price optional, e.g. 129 EUR"
+              placeholder="Regular price optional, e.g. 189 EUR"
+              className="h-12 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt"
+            />
+            <input
+              value={salePrice}
+              onChange={(event) => setSalePrice(event.target.value)}
+              placeholder="Action price optional, e.g. 129 EUR"
+              className="h-12 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt"
+            />
+            <input
+              value={discountLabel}
+              onChange={(event) => setDiscountLabel(event.target.value)}
+              placeholder="Discount badge optional, e.g. -30%"
               className="h-12 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt"
             />
             <textarea
@@ -879,6 +898,7 @@ export default function AdminLooksPage() {
               )}
               {looksForSelectedStore.map((look) => {
                 const active = activeLookIds.has(look.id);
+                const isEditing = editingLookId === look.id;
                 return (
                   <article key={look.id} className={`grid gap-2 rounded-md border p-3 ${active ? "border-cobalt bg-cobalt/10" : "border-black/10 bg-panel"}`}>
                     <div className={`grid gap-1 ${look.backImageUrl ? "grid-cols-2" : ""}`}>
@@ -893,17 +913,102 @@ export default function AdminLooksPage() {
                         {(look.galleryImageUrls ?? []).length} gallery images
                       </div>
                     )}
-                    <div className="font-black">{look.name}</div>
-                    <div className="text-xs font-black uppercase tracking-[0.12em] text-cobalt/70">
-                      {look.campaignName ?? "No campaign"}
-                    </div>
+                    {isEditing ? (
+                      <div className="grid gap-2 rounded-md border border-black/10 bg-white p-2">
+                        <input
+                          value={editLookName}
+                          onChange={(event) => setEditLookName(event.target.value)}
+                          placeholder="Look name"
+                          className="h-10 rounded-md border border-black/10 bg-panel px-2 text-xs font-bold outline-none focus:border-cobalt"
+                        />
+                        <input
+                          value={editCampaignName}
+                          onChange={(event) => setEditCampaignName(event.target.value)}
+                          placeholder="Campaign name"
+                          className="h-10 rounded-md border border-black/10 bg-panel px-2 text-xs font-bold outline-none focus:border-cobalt"
+                        />
+                        <input
+                          value={editAvailableSizes}
+                          onChange={(event) => setEditAvailableSizes(event.target.value)}
+                          placeholder="Sizes, e.g. XS, S, M"
+                          className="h-10 rounded-md border border-black/10 bg-panel px-2 text-xs font-bold outline-none focus:border-cobalt"
+                        />
+                        <input
+                          value={editPrice}
+                          onChange={(event) => setEditPrice(event.target.value)}
+                          placeholder="Regular price, e.g. 189 EUR"
+                          className="h-10 rounded-md border border-black/10 bg-panel px-2 text-xs font-bold outline-none focus:border-cobalt"
+                        />
+                        <input
+                          value={editSalePrice}
+                          onChange={(event) => setEditSalePrice(event.target.value)}
+                          placeholder="Action price, e.g. 129 EUR"
+                          className="h-10 rounded-md border border-black/10 bg-panel px-2 text-xs font-bold outline-none focus:border-cobalt"
+                        />
+                        <input
+                          value={editDiscountLabel}
+                          onChange={(event) => setEditDiscountLabel(event.target.value)}
+                          placeholder="Discount badge, e.g. -30%"
+                          className="h-10 rounded-md border border-black/10 bg-panel px-2 text-xs font-bold outline-none focus:border-cobalt"
+                        />
+                        <textarea
+                          value={editProductNote}
+                          onChange={(event) => setEditProductNote(event.target.value)}
+                          placeholder="Product note"
+                          className="min-h-20 rounded-md border border-black/10 bg-panel p-2 text-xs font-bold outline-none focus:border-cobalt"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            disabled={isSaving}
+                            onClick={() => void saveEditedLook(look)}
+                            className="inline-flex h-10 items-center justify-center rounded-md bg-cobalt px-3 text-xs font-black text-white disabled:cursor-wait disabled:opacity-50"
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isSaving}
+                            onClick={cancelEditingLook}
+                            className="inline-flex h-10 items-center justify-center rounded-md border border-black/10 bg-panel px-3 text-xs font-black text-ink disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="font-black">{look.name}</div>
+                        <div className="text-xs font-black uppercase tracking-[0.12em] text-cobalt/70">
+                          {look.campaignName ?? "No campaign"}
+                        </div>
+                      </>
+                    )}
                     {look.storeName && <div className="text-xs font-black text-ink/60">{look.storeName}</div>}
                     {look.storeSlug && <div className="text-xs font-bold text-cobalt">/try-this-look?store={look.storeSlug}</div>}
                     {look.storeAddress && <div className="text-xs font-bold text-ink/45">{look.storeAddress}</div>}
                     {(look.availableSizes ?? []).length > 0 && (
                       <div className="text-xs font-bold text-ink/45">Sizes: {(look.availableSizes ?? []).join(", ")}</div>
                     )}
+                    {(look.salePrice || look.price || look.discountLabel) && (
+                      <div className="flex flex-wrap gap-2 text-xs font-black">
+                        {look.discountLabel && <span className="rounded-md bg-coral px-2 py-1 text-white">{look.discountLabel}</span>}
+                        {look.salePrice && <span className="rounded-md bg-cobalt px-2 py-1 text-white">{look.salePrice}</span>}
+                        {look.price && <span className="rounded-md bg-white px-2 py-1 text-ink/45 line-through">{look.price}</span>}
+                      </div>
+                    )}
                     <div className="text-xs font-bold text-ink/45">{new Date(look.createdAt).toLocaleString()}</div>
+                    {!isEditing && (
+                      <button
+                        type="button"
+                        disabled={isSaving}
+                        onClick={() => startEditingLook(look)}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-black/10 bg-white px-3 text-xs font-black text-ink disabled:cursor-wait disabled:opacity-50"
+                      >
+                        <Pencil aria-hidden="true" className="h-4 w-4" />
+                        Edit
+                      </button>
+                    )}
                     <button
                       type="button"
                       disabled={active || isSaving}

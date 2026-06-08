@@ -20,6 +20,8 @@ type Look = {
   storeSlug?: string;
   storeAddress?: string;
   price?: string;
+  salePrice?: string;
+  discountLabel?: string;
   productNote?: string;
   imageUrl: string;
   frontImageUrl?: string;
@@ -46,6 +48,8 @@ const readJsonResponse = async <T,>(response: Response): Promise<T & { error?: s
 
 const uniqueImages = (look: Look) =>
   [look.frontImageUrl ?? look.imageUrl, look.backImageUrl, ...(look.galleryImageUrls ?? [])].filter(Boolean).slice(0, 4) as string[];
+
+const normalizeSlug = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
 
 export default function StoresPage() {
   const [data, setData] = useState<StoresPayload>({});
@@ -158,7 +162,12 @@ export default function StoresPage() {
                               <div key={look.id} className="flex items-center justify-between gap-3 rounded-md border border-black/10 bg-panel p-3">
                                 <div>
                                   <div className="text-sm font-black text-ink">{look.name}</div>
-                                  <div className="text-xs font-bold text-ink/45">{look.price || look.campaignName || "New arrival"}</div>
+                                  <div className="flex flex-wrap items-center gap-2 text-xs font-black">
+                                    {look.discountLabel && <span className="rounded-md bg-coral px-2 py-1 text-white">{look.discountLabel}</span>}
+                                    {look.salePrice && <span className="text-cobalt">{look.salePrice}</span>}
+                                    {look.price && <span className={look.salePrice ? "text-ink/35 line-through" : "text-ink/45"}>{look.price}</span>}
+                                    {!look.salePrice && !look.price && !look.discountLabel && <span className="text-ink/45">{look.campaignName || "New arrival"}</span>}
+                                  </div>
                                 </div>
                                 <Sparkles aria-hidden="true" className="h-4 w-4 shrink-0 text-cobalt" />
                               </div>
@@ -166,10 +175,10 @@ export default function StoresPage() {
                           </div>
                         </div>
                         <Link
-                          href={`/try-this-look?store=${store.slug}`}
+                          href={`/store/${store.slug}/${normalizeSlug(heroLook.name) || heroLook.id}`}
                           className="inline-flex h-14 items-center justify-center gap-2 rounded-md bg-cobalt px-5 text-base font-black text-white"
                         >
-                          Try it on you
+                          View offers
                           <ArrowRight aria-hidden="true" className="h-5 w-5" />
                         </Link>
                       </div>

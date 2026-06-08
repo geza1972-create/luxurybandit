@@ -16,8 +16,13 @@ function isAdmin(request: Request) {
   return request.headers.get("x-try-look-admin-pin") === configuredPin;
 }
 
-function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, preferredStoreSlug = "") {
+function normalizeSlug(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, preferredStoreSlug = "", preferredLookSlug = "") {
   const normalizedSlug = preferredStoreSlug.trim().toLowerCase();
+  const normalizedLookSlug = normalizeSlug(preferredLookSlug);
   const globalActiveLook = getActiveTryThisLook(state);
   const globalActiveLooks = getActiveTryThisLooks(state);
   const storeLooks = normalizedSlug
@@ -27,9 +32,12 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
   const storeActiveLooks = normalizedSlug
     ? storeLooks.filter((look) => activeIds.has(look.id))
     : [];
+  const preferredLook = normalizedLookSlug
+    ? (normalizedSlug ? storeLooks : state.looks).find((look) => look.id === preferredLookSlug || normalizeSlug(look.name) === normalizedLookSlug)
+    : undefined;
   const activeLook = normalizedSlug
-    ? storeActiveLooks[0] ?? storeLooks[0] ?? globalActiveLook
-    : globalActiveLook;
+    ? preferredLook ?? storeActiveLooks[0] ?? storeLooks[0] ?? globalActiveLook
+    : preferredLook ?? globalActiveLook;
   const activeLooks = normalizedSlug
     ? storeActiveLooks.length ? storeActiveLooks : activeLook ? [activeLook] : []
     : globalActiveLooks;
@@ -45,6 +53,8 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
       whatsappNumber: look.whatsappNumber,
       availableSizes: look.availableSizes,
       price: look.price,
+      salePrice: look.salePrice,
+      discountLabel: look.discountLabel,
       productNote: look.productNote,
       createdAt: look.createdAt,
       imageUrl: look.imageUrl,
@@ -65,6 +75,8 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
       whatsappNumber: look.whatsappNumber,
       availableSizes: look.availableSizes,
       price: look.price,
+      salePrice: look.salePrice,
+      discountLabel: look.discountLabel,
       productNote: look.productNote,
       createdAt: look.createdAt,
       imageUrl: look.imageUrl,
@@ -81,14 +93,15 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const storeSlug = url.searchParams.get("store") ?? "";
+    const lookSlug = url.searchParams.get("look") ?? "";
     const wantsAdminData = url.searchParams.get("admin") === "1";
     const state = await readTryThisLookState();
     if (wantsAdminData && !isAdmin(request)) {
       return NextResponse.json({ error: "Admin access required." }, { status: 401 });
     }
-    if (!wantsAdminData) return NextResponse.json(publicState(state, storeSlug));
+    if (!wantsAdminData) return NextResponse.json(publicState(state, storeSlug, lookSlug));
     return NextResponse.json({
-      ...publicState(state, storeSlug),
+      ...publicState(state, storeSlug, lookSlug),
       events: state.events,
       leads: state.leads,
       generations: state.generations
@@ -114,6 +127,8 @@ export async function POST(request: Request) {
       whatsappNumber?: string;
       availableSizes?: string[];
       price?: string;
+      salePrice?: string;
+      discountLabel?: string;
       productNote?: string;
       image?: string;
       frontImage?: string;
@@ -243,6 +258,8 @@ export async function POST(request: Request) {
       const storeAddress = String(payload.storeAddress ?? "").trim();
       const whatsappNumber = String(payload.whatsappNumber ?? "").trim();
       const price = String(payload.price ?? "").trim();
+      const salePrice = String(payload.salePrice ?? "").trim();
+      const discountLabel = String(payload.discountLabel ?? "").trim();
       const productNote = String(payload.productNote ?? "").trim();
       const availableSizes = Array.isArray(payload.availableSizes)
         ? payload.availableSizes.map((size) => String(size).trim()).filter(Boolean)
@@ -280,6 +297,8 @@ export async function POST(request: Request) {
         whatsappNumber: whatsappNumber || undefined,
         availableSizes: availableSizes.length ? availableSizes : undefined,
         price: price || undefined,
+        salePrice: salePrice || undefined,
+        discountLabel: discountLabel || undefined,
         productNote: productNote || undefined,
         imagePath: frontImagePath,
         frontImagePath,
@@ -347,6 +366,66 @@ export async function POST(request: Request) {
           whatsappNumber: whatsappNumber || undefined
         };
       });
+
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json({
+        ...publicState(updatedState),
+        events: updatedState.events,
+        leads: updatedState.leads,
+        generations: updatedState.generations
+      });
+    }
+
+    if (payload.action === "update-look") {
+      const lookId = String(payload.id ?? "");
+      const existingLook = state.looks.find((look) => look.id === lookId);
+      if (!existingLook) {
+        return NextResponse.json({ error: "Look was not found." }, { status: 404 });
+      }
+
+      const name = String(payload.name ?? "").trim() || existingLook.name;
+      const campaignName = String(payload.campaignName ?? "").trim();
+      const storeName = String(payload.storeName ?? "").trim();
+      const storeSlug = String(payload.storeSlug ?? "").trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+      const storeAddress = String(payload.storeAddress ?? "").trim();
+      const whatsappNumber = String(payload.whatsappNumber ?? "").trim();
+      const price = String(payload.price ?? "").trim();
+      const salePrice = String(payload.salePrice ?? "").trim();
+      const discountLabel = String(payload.discountLabel ?? "").trim();
+      const productNote = String(payload.productNote ?? "").trim();
+      const availableSizes = Array.isArray(payload.availableSizes)
+        ? payload.availableSizes.map((size) => String(size).trim()).filter(Boolean)
+        : [];
+
+      state.looks = state.looks.map((look) => {
+        if (look.id !== lookId) return look;
+        return {
+          ...look,
+          name,
+          campaignName: campaignName || undefined,
+          storeName: storeName || undefined,
+          storeSlug: storeSlug || undefined,
+          storeAddress: storeAddress || undefined,
+          whatsappNumber: whatsappNumber || undefined,
+          availableSizes: availableSizes.length ? availableSizes : undefined,
+          price: price || undefined,
+          salePrice: salePrice || undefined,
+          discountLabel: discountLabel || undefined,
+          productNote: productNote || undefined
+        };
+      });
+
+      if (storeSlug && storeName) {
+        const store = {
+          id: `store-${storeSlug}`,
+          name: storeName,
+          slug: storeSlug,
+          address: storeAddress || undefined,
+          whatsappNumber: whatsappNumber || undefined,
+          createdAt: state.stores?.find((item) => item.slug === storeSlug)?.createdAt ?? now
+        };
+        state.stores = [store, ...(state.stores ?? []).filter((item) => item.slug !== storeSlug)];
+      }
 
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json({

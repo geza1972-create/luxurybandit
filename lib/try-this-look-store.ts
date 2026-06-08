@@ -8,6 +8,8 @@ export type TryThisLookLook = {
   whatsappNumber?: string;
   availableSizes?: string[];
   price?: string;
+  salePrice?: string;
+  discountLabel?: string;
   productNote?: string;
   createdAt: string;
   imagePath?: string;

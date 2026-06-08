@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const arrivalsHosts = new Set(["luxurybandi.com", "www.luxurybandi.com"]);
+const arrivalsHosts = new Set(["luxurybandit.com", "www.luxurybandit.com", "luxurybandi.com", "www.luxurybandi.com"]);
 
 export function middleware(request: NextRequest) {
   const host = request.headers.get("host")?.split(":")[0]?.toLowerCase() ?? "";

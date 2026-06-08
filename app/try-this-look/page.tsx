@@ -14,6 +14,8 @@ type TryLook = {
   whatsappNumber?: string;
   availableSizes?: string[];
   price?: string;
+  salePrice?: string;
+  discountLabel?: string;
   productNote?: string;
   imageUrl: string;
   frontImageUrl?: string;
@@ -226,12 +228,19 @@ export default function TryThisLookPage() {
     setVisitorId(storedVisitorId);
     setCurrentUrl(window.location.href);
     const params = new URLSearchParams(window.location.search);
+    const pathParts = window.location.pathname.split("/").filter(Boolean);
+    const cleanStoreSlug = pathParts[0] === "store" ? pathParts[1] ?? "" : "";
+    const cleanLookSlug = pathParts[0] === "store" ? pathParts[2] ?? "" : "";
     setUtmSource(params.get("utm_source") ?? "");
     setUtmCampaign(params.get("utm_campaign") ?? "");
     const loadActiveLook = async () => {
       try {
-        const storeSlug = params.get("store") ?? "";
-        const response = await fetch(`/api/try-this-look${storeSlug ? `?store=${encodeURIComponent(storeSlug)}` : ""}`);
+        const storeSlug = cleanStoreSlug || params.get("store") || "";
+        const lookSlug = cleanLookSlug || params.get("look") || "";
+        const query = new URLSearchParams();
+        if (storeSlug) query.set("store", storeSlug);
+        if (lookSlug) query.set("look", lookSlug);
+        const response = await fetch(`/api/try-this-look${query.toString() ? `?${query.toString()}` : ""}`);
         const payload = await readJsonResponse<{ activeLook?: TryLook }>(response);
         if (response.ok && payload.activeLook?.imageUrl) {
           setSelectedLook(payload.activeLook);
@@ -589,7 +598,9 @@ export default function TryThisLookPage() {
       `Size: ${selectedSize}.`,
       "I tried it on with LuxuryBandit."
     ];
-    if (selectedLook.price) lines.push(`Price: ${selectedLook.price}`);
+    if (selectedLook.salePrice) lines.push(`Action price: ${selectedLook.salePrice}`);
+    if (selectedLook.price) lines.push(`Regular price: ${selectedLook.price}`);
+    if (selectedLook.discountLabel) lines.push(`Deal: ${selectedLook.discountLabel}`);
     if (currentUrl) lines.push(`Try-on link: ${currentUrl}`);
     return `https://wa.me/${phone}?text=${encodeURIComponent(lines.join("\n"))}`;
   };
@@ -709,7 +720,9 @@ export default function TryThisLookPage() {
                 </p>
               )}
               <div className="flex flex-wrap gap-2">
-                {selectedLook.price && <span className="rounded-full bg-ink px-3 py-1 text-xs font-black text-white">{selectedLook.price}</span>}
+                {selectedLook.discountLabel && <span className="rounded-full bg-coral px-3 py-1 text-xs font-black text-white">{selectedLook.discountLabel}</span>}
+                {selectedLook.salePrice && <span className="rounded-full bg-ink px-3 py-1 text-xs font-black text-white">{selectedLook.salePrice}</span>}
+                {selectedLook.price && <span className={`rounded-full px-3 py-1 text-xs font-black ${selectedLook.salePrice ? "bg-panel text-ink/40 line-through" : "bg-ink text-white"}`}>{selectedLook.price}</span>}
                 {(selectedLook.availableSizes ?? []).map((size) => (
                   <span key={size} className="rounded-full bg-cobalt/10 px-3 py-1 text-xs font-black text-cobalt">
                     {size}

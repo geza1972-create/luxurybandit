@@ -30,11 +30,7 @@ export default function Home() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const host = window.location.hostname.toLowerCase();
-    const isMainLuxuryBandiHost =
-      host === "luxurybandit.com" ||
-      host === "www.luxurybandit.com";
-    setShowLanding(params.get("landing") === "1" || (isMainLuxuryBandiHost && params.get("app") !== "1"));
+    setShowLanding(params.get("landing") === "1");
     if (params.get("tool") === "fashion") setActiveTool("outfit");
     setWorkspace(getClientWorkspace());
 
