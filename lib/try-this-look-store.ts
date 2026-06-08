@@ -71,6 +71,7 @@ export type TryThisLookGeneration = {
 
 export type TryThisLookState = {
   activeLookId: string;
+  activeLookIds?: string[];
   stores?: TryThisLookStore[];
   looks: TryThisLookLook[];
   events: TryThisLookEvent[];
@@ -149,6 +150,7 @@ async function ensureBucket() {
 function defaultState(): TryThisLookState {
   return {
     activeLookId: DEFAULT_LOOK.id,
+    activeLookIds: [DEFAULT_LOOK.id],
     stores: [],
     looks: [DEFAULT_LOOK],
     events: [],
@@ -248,8 +250,13 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
 
   if (!state.looks?.length) return hydrateState(defaultState());
   const stores = state.stores?.length ? state.stores : storesFromLooks(state.looks);
+  const validLookIds = new Set(state.looks.map((look) => look.id));
+  const activeLookIds = (state.activeLookIds?.length ? state.activeLookIds : [state.activeLookId || state.looks[0].id])
+    .filter((id, index, ids) => validLookIds.has(id) && ids.indexOf(id) === index);
+  const normalizedActiveLookIds = activeLookIds.length ? activeLookIds : [state.looks[0].id];
   return hydrateState({
-    activeLookId: state.activeLookId || state.looks[0].id,
+    activeLookId: normalizedActiveLookIds[0],
+    activeLookIds: normalizedActiveLookIds,
     stores,
     looks: state.looks,
     events: state.events ?? [],
@@ -262,6 +269,7 @@ async function writeTryThisLookState(state: TryThisLookState) {
   await ensureBucket();
   const strippedState: TryThisLookState = {
     activeLookId: state.activeLookId,
+    activeLookIds: state.activeLookIds?.length ? state.activeLookIds : [state.activeLookId],
     stores: state.stores ?? [],
     looks: state.looks.map(({ imageUrl, frontImageUrl, backImageUrl, garmentFrontImageUrl, garmentBackImageUrl, galleryImageUrls, ...look }) => look),
     events: state.events.slice(0, 500),
@@ -346,5 +354,13 @@ export async function saveTryThisLookState(state: TryThisLookState) {
 }
 
 export function getActiveTryThisLook(state: TryThisLookState) {
-  return state.looks.find((look) => look.id === state.activeLookId) ?? state.looks[0] ?? DEFAULT_LOOK;
+  const activeLookId = state.activeLookIds?.[0] ?? state.activeLookId;
+  return state.looks.find((look) => look.id === activeLookId) ?? state.looks[0] ?? DEFAULT_LOOK;
+}
+
+export function getActiveTryThisLooks(state: TryThisLookState) {
+  const activeLookIds = state.activeLookIds?.length ? state.activeLookIds : [state.activeLookId];
+  const activeIds = new Set(activeLookIds);
+  const activeLooks = state.looks.filter((look) => activeIds.has(look.id));
+  return activeLooks.length ? activeLooks : [getActiveTryThisLook(state)];
 }

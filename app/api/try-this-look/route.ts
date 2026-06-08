@@ -1,6 +1,7 @@
 import {
   deleteTryThisLookImage,
   getActiveTryThisLook,
+  getActiveTryThisLooks,
   readTryThisLookState,
   saveTryThisLookState,
   uploadTryThisLookImage
@@ -18,14 +19,41 @@ function isAdmin(request: Request) {
 function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, preferredStoreSlug = "") {
   const normalizedSlug = preferredStoreSlug.trim().toLowerCase();
   const globalActiveLook = getActiveTryThisLook(state);
+  const globalActiveLooks = getActiveTryThisLooks(state);
   const storeLooks = normalizedSlug
     ? state.looks.filter((look) => look.storeSlug?.toLowerCase() === normalizedSlug)
     : [];
+  const activeIds = new Set(state.activeLookIds?.length ? state.activeLookIds : [state.activeLookId]);
+  const storeActiveLooks = normalizedSlug
+    ? storeLooks.filter((look) => activeIds.has(look.id))
+    : [];
   const activeLook = normalizedSlug
-    ? storeLooks.find((look) => look.id === state.activeLookId) ?? storeLooks[0] ?? globalActiveLook
+    ? storeActiveLooks[0] ?? storeLooks[0] ?? globalActiveLook
     : globalActiveLook;
+  const activeLooks = normalizedSlug
+    ? storeActiveLooks.length ? storeActiveLooks : activeLook ? [activeLook] : []
+    : globalActiveLooks;
   return {
     activeLook,
+    activeLooks: activeLooks.map((look) => ({
+      id: look.id,
+      name: look.name,
+      campaignName: look.campaignName,
+      storeName: look.storeName,
+      storeSlug: look.storeSlug,
+      storeAddress: look.storeAddress,
+      whatsappNumber: look.whatsappNumber,
+      availableSizes: look.availableSizes,
+      price: look.price,
+      productNote: look.productNote,
+      createdAt: look.createdAt,
+      imageUrl: look.imageUrl,
+      frontImageUrl: look.frontImageUrl,
+      backImageUrl: look.backImageUrl,
+      garmentFrontImageUrl: look.garmentFrontImageUrl,
+      garmentBackImageUrl: look.garmentBackImageUrl,
+      galleryImageUrls: look.galleryImageUrls
+    })),
     stores: state.stores ?? [],
     looks: state.looks.map((look) => ({
       id: look.id,
@@ -280,6 +308,7 @@ export async function POST(request: Request) {
       }
       state.looks.unshift(look);
       state.activeLookId = look.id;
+      state.activeLookIds = [look.id, ...(state.activeLookIds ?? []).filter((id) => id !== look.id)];
 
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json({
@@ -334,6 +363,24 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Look was not found." }, { status: 404 });
       }
       state.activeLookId = lookId;
+      state.activeLookIds = [lookId, ...(state.activeLookIds ?? []).filter((id) => id !== lookId)];
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json({
+        ...publicState(updatedState),
+        events: updatedState.events,
+        leads: updatedState.leads,
+        generations: updatedState.generations
+      });
+    }
+
+    if (payload.action === "unset-active") {
+      const lookId = String(payload.id ?? "");
+      if (!state.looks.some((look) => look.id === lookId)) {
+        return NextResponse.json({ error: "Look was not found." }, { status: 404 });
+      }
+      const nextActiveLookIds = (state.activeLookIds ?? [state.activeLookId]).filter((id) => id !== lookId);
+      state.activeLookIds = nextActiveLookIds.length ? nextActiveLookIds : [state.looks[0].id];
+      state.activeLookId = state.activeLookIds[0];
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json({
         ...publicState(updatedState),
@@ -356,9 +403,9 @@ export async function POST(request: Request) {
 
       state.looks = state.looks.filter((look) => look.id !== lookId);
 
-      if (state.activeLookId === lookId) {
-        state.activeLookId = state.looks[0].id;
-      }
+      state.activeLookIds = (state.activeLookIds ?? [state.activeLookId]).filter((id) => id !== lookId);
+      if (!state.activeLookIds.length) state.activeLookIds = [state.looks[0].id];
+      state.activeLookId = state.activeLookIds[0];
 
       const pathsToDelete = new Set([
         lookToDelete.imagePath,

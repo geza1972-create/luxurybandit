@@ -55,6 +55,7 @@ type Generation = {
 
 type AdminPayload = {
   activeLook?: Look;
+  activeLooks?: Look[];
   stores?: Store[];
   looks?: Look[];
   events?: Array<{ id: string; name: string; lookId: string; createdAt: string; selectedSize?: string; storeName?: string; lookName?: string }>;
@@ -331,9 +332,23 @@ export default function AdminLooksPage() {
     setMessage(null);
     try {
       await callAdminAction({ action: "set-active", id });
-      setMessage("Active look changed.");
+      setMessage("Look marked active.");
     } catch (activeError) {
-      setError(activeError instanceof Error ? activeError.message : "Active look could not be changed.");
+      setError(activeError instanceof Error ? activeError.message : "Look could not be marked active.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const unsetActiveLook = async (id: string) => {
+    setIsSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      await callAdminAction({ action: "unset-active", id });
+      setMessage("Look removed from active looks.");
+    } catch (activeError) {
+      setError(activeError instanceof Error ? activeError.message : "Look could not be removed from active looks.");
     } finally {
       setIsSaving(false);
     }
@@ -407,6 +422,12 @@ export default function AdminLooksPage() {
     ? looksForSelectedStore.find((look) => look.id === data.activeLook?.id) ?? looksForSelectedStore[0]
     : data.activeLook;
   const activeLook = selectedStoreActiveLook;
+  const activeLooks = (selectedStoreSlug
+    ? (data.activeLooks ?? []).filter((look) => look.storeSlug === selectedStoreSlug)
+    : data.activeLooks ?? []
+  );
+  const visibleActiveLooks = activeLooks.length ? activeLooks : activeLook ? [activeLook] : [];
+  const activeLookIds = new Set(visibleActiveLooks.map((look) => look.id));
   const contactForGeneration = (generation: Generation) => {
     const leads = data.leads ?? [];
     if (generation.visitorId) {
@@ -580,11 +601,23 @@ export default function AdminLooksPage() {
 
         <section className="grid gap-4 rounded-lg border border-black/10 bg-white p-4 shadow-soft lg:grid-cols-[360px_1fr]">
           <div className="grid gap-3">
-            <div className="text-xs font-black uppercase tracking-[0.16em] text-ink/45">Active look</div>
-            {activeLook?.imageUrl && !activeLook?.backImageUrl && (
+            <div className="text-xs font-black uppercase tracking-[0.16em] text-ink/45">Active looks</div>
+            {visibleActiveLooks.length > 1 && (
+              <div className="grid gap-3">
+                {visibleActiveLooks.map((look) => (
+                  <article key={look.id} className="grid gap-2 rounded-md border border-cobalt/20 bg-cobalt/10 p-3">
+                    <img src={look.frontImageUrl ?? look.imageUrl} alt={look.name} className="aspect-square w-full rounded-md border border-black/10 bg-white object-contain" />
+                    <div className="text-lg font-black">{look.name}</div>
+                    <div className="text-xs font-black uppercase tracking-[0.12em] text-cobalt">{look.campaignName ?? "No campaign"}</div>
+                    {look.price && <div className="text-sm font-black text-cobalt">{look.price}</div>}
+                  </article>
+                ))}
+              </div>
+            )}
+            {visibleActiveLooks.length <= 1 && activeLook?.imageUrl && !activeLook?.backImageUrl && (
               <img src={activeLook.imageUrl} alt={activeLook.name} className="aspect-square w-full rounded-md border border-black/10 object-contain" />
             )}
-            {activeLook?.backImageUrl && (
+            {visibleActiveLooks.length <= 1 && activeLook?.backImageUrl && (
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <div className="mb-1 text-xs font-black uppercase tracking-[0.12em] text-ink/45">Front</div>
@@ -597,9 +630,11 @@ export default function AdminLooksPage() {
               </div>
             )}
             <div>
-              <div className="text-2xl font-black">{activeLook?.name ?? "No active look for this store"}</div>
+              <div className="text-2xl font-black">
+                {visibleActiveLooks.length > 1 ? `${visibleActiveLooks.length} active looks` : activeLook?.name ?? "No active look for this store"}
+              </div>
               <div className="mt-1 text-sm font-bold text-ink/50">
-                {activeLook?.campaignName ?? "No campaign name"}
+                {visibleActiveLooks.length > 1 ? "Shown as active in this admin collection" : activeLook?.campaignName ?? "No campaign name"}
               </div>
               {activeLook?.storeName && <div className="mt-2 text-sm font-black text-ink">{activeLook.storeName}</div>}
               {activeLook?.storeAddress && <div className="mt-1 text-sm font-bold text-ink/55">{activeLook.storeAddress}</div>}
@@ -628,7 +663,7 @@ export default function AdminLooksPage() {
               )}
               {activeLook && (
                 <div className="mt-2 inline-flex rounded-full bg-cobalt/10 px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-cobalt">
-                  Active
+                  {visibleActiveLooks.length > 1 ? "Multiple active" : "Active"}
                 </div>
               )}
             </div>
@@ -843,7 +878,7 @@ export default function AdminLooksPage() {
                 </div>
               )}
               {looksForSelectedStore.map((look) => {
-                const active = look.id === activeLook?.id;
+                const active = activeLookIds.has(look.id);
                 return (
                   <article key={look.id} className={`grid gap-2 rounded-md border p-3 ${active ? "border-cobalt bg-cobalt/10" : "border-black/10 bg-panel"}`}>
                     <div className={`grid gap-1 ${look.backImageUrl ? "grid-cols-2" : ""}`}>
@@ -878,6 +913,16 @@ export default function AdminLooksPage() {
                       {active && <Check aria-hidden="true" className="h-4 w-4" />}
                       {active ? "Active" : "Make active"}
                     </button>
+                    {active && (
+                      <button
+                        type="button"
+                        disabled={isSaving}
+                        onClick={() => void unsetActiveLook(look.id)}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-black/10 bg-white px-3 text-xs font-black text-ink disabled:cursor-wait disabled:opacity-50"
+                      >
+                        Remove active
+                      </button>
+                    )}
                     <button
                       type="button"
                       disabled={isSaving || (data.looks ?? []).length <= 1}

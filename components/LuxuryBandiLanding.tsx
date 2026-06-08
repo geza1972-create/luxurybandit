@@ -1,68 +1,49 @@
 "use client";
 
-import { ArrowUpRight, Loader2, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ArrowUpRight, HeartHandshake, Instagram, Megaphone, MousePointerClick, Sparkles, Users } from "lucide-react";
 
-type GalleryImageItem = {
-  id: string;
-  type: "upload" | "cutout" | "shop-image" | "model-image";
-  path: string;
-  url: string;
-  createdAt: string;
-  name: string;
-};
-
-const LANDING_ACCOUNT_ID = process.env.NEXT_PUBLIC_SHOPCUT_ACCOUNT_ID || "luxurybandit";
-
-const readJsonResponse = async <T,>(response: Response): Promise<T & { error?: string }> => {
-  const text = await response.text();
-  if (!text) return { error: "No gallery response received." } as T & { error?: string };
-  try {
-    return JSON.parse(text) as T & { error?: string };
-  } catch {
-    return { error: text.slice(0, 500) || "Gallery response could not be read." } as T & { error?: string };
+const funnelSteps = [
+  {
+    title: "Social ad",
+    text: "The store promotes a new look on Instagram, Facebook, or TikTok."
+  },
+  {
+    title: "Try-on page",
+    text: "The customer clicks the link and lands on the store's private try-on page."
+  },
+  {
+    title: "Lead and follow-up",
+    text: "The store receives contact details, size interest, and WhatsApp intent."
   }
-};
+];
+
+const businessBenefits = [
+  {
+    icon: Megaphone,
+    title: "A real ad funnel",
+    text: "Every campaign gets a clear path from social post to measurable customer action."
+  },
+  {
+    icon: Users,
+    title: "Better customer data",
+    text: "Stores see who tried a look, what they liked, and where to follow up."
+  },
+  {
+    icon: HeartHandshake,
+    title: "Customer retention",
+    text: "After the first try-on, stores can send new arrivals and personal recommendations."
+  }
+];
+
+const customerActions = [
+  "Clicks the ad link",
+  "Chooses a look",
+  "Uploads a private photo",
+  "Generates the try-on",
+  "Contacts the store"
+];
 
 export function LuxuryBandiLanding() {
-  const [images, setImages] = useState<GalleryImageItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const loadImages = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetch("/api/gallery", {
-          headers: {
-            "x-shopcut-account-id": LANDING_ACCOUNT_ID
-          }
-        });
-        const payload = await readJsonResponse<{ images?: GalleryImageItem[] }>(response);
-        if (!response.ok || !payload.images) throw new Error(payload.error ?? "Gallery could not be loaded.");
-        if (mounted) setImages(payload.images);
-      } catch (loadError) {
-        if (mounted) setError(loadError instanceof Error ? loadError.message : "Gallery could not be loaded.");
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
-    };
-
-    void loadImages();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const showcaseImages = useMemo(() => {
-    const designs = images.filter((image) => image.type === "model-image");
-    const apparel = images.filter((image) => image.type === "shop-image");
-    return [...designs, ...apparel].slice(0, 18);
-  }, [images]);
-
   const appUrl =
     typeof window !== "undefined" && window.location.hostname.includes("localhost")
       ? "/?app=1"
@@ -70,106 +51,141 @@ export function LuxuryBandiLanding() {
 
   return (
     <main className="min-h-screen bg-[#f7f2ec] text-[#171310]">
-      <section className="mx-auto grid min-h-screen w-full max-w-[1600px] content-start gap-8 px-5 py-6 md:px-8">
+      <section className="mx-auto grid w-full max-w-[1400px] gap-8 px-5 py-6 md:px-8">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="grid h-12 w-12 place-items-center rounded-md bg-[#171310] text-base font-black text-white shadow-soft">
               LB
             </div>
             <div>
-              <div className="text-xl font-black tracking-normal">LuxuryBandit</div>
-              <div className="text-xs font-black uppercase tracking-[0.18em] text-black/45">AI Fashion Gallery</div>
+              <div className="text-xl font-black">LuxuryBandit</div>
+              <div className="text-xs font-black uppercase tracking-[0.18em] text-black/45">Try-on ad funnel</div>
             </div>
           </div>
-          <a
-            href={appUrl}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-cobalt px-4 text-sm font-black text-white"
-          >
-            Open Fashion Creator
-            <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
-          </a>
+          <div className="flex flex-wrap gap-2">
+            <a href="/stores" className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-cobalt px-4 text-sm font-black text-white">
+              View demo
+              <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
+            </a>
+            <a href={appUrl} className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-black/10 bg-white px-4 text-sm font-black">
+              Admin tool
+              <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
+            </a>
+          </div>
         </header>
 
-        <section className="grid gap-6 border-y border-black/10 py-8 md:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.55fr)] md:items-end">
+        <section className="grid gap-6 border-y border-black/10 py-9 lg:grid-cols-[1fr_420px] lg:items-end">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cobalt shadow-soft">
               <Sparkles aria-hidden="true" className="h-4 w-4" />
-              Fashion Creator by LuxuryBandit
+              For fashion stores and boutiques
             </div>
-            <h1 className="mt-5 max-w-5xl text-5xl font-black leading-[0.94] tracking-normal md:text-7xl">
-              AI fashion visuals from your own apparel.
+            <h1 className="mt-5 max-w-5xl text-5xl font-black leading-[0.95] md:text-7xl">
+              Turn social ads into customers who try on your looks.
             </h1>
             <p className="mt-5 max-w-3xl text-lg font-bold leading-8 text-black/58">
-              A visual gallery for bold ecommerce looks, apparel concepts, and AI-assisted fashion campaigns created with LuxuryBandit.
+              LuxuryBandit helps stores sell new arrivals through Instagram, Facebook, and TikTok. A customer sees an ad, clicks a try-on link, uploads a private photo, and contacts the store through WhatsApp or lead capture.
             </p>
           </div>
-          <div className="rounded-md border border-black/10 bg-white p-4 shadow-soft">
+
+          <div className="grid gap-3 rounded-md border border-black/10 bg-white p-4 shadow-soft">
             <div className="text-sm font-black uppercase tracking-[0.16em] text-black/45">How it works</div>
-            <div className="mt-4 grid gap-3">
-              {[
-                "Extract apparel from a real source photo.",
-                "Save clean Design Ready apparel assets.",
-                "Create new fashion visuals on a selected model."
-              ].map((text, index) => (
-                <div key={text} className="flex gap-3 rounded-md bg-[#f7f2ec] p-3">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-cobalt text-sm font-black text-white">
-                    {index + 1}
-                  </span>
-                  <span className="text-sm font-bold leading-6 text-black/62">{text}</span>
+            {funnelSteps.map((step, index) => (
+              <div key={step.title} className="flex gap-3 rounded-md bg-[#f7f2ec] p-3">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-cobalt text-sm font-black text-white">
+                  {index + 1}
+                </span>
+                <div>
+                  <div className="text-sm font-black">{step.title}</div>
+                  <div className="mt-1 text-sm font-bold leading-6 text-black/56">{step.text}</div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </section>
 
-        <section className="grid gap-4">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="text-2xl font-black md:text-3xl">Latest AI fashion images</h2>
-              <p className="mt-1 text-sm font-bold leading-6 text-black/50">
-                A simple public gallery for LuxuryBandit image experiments and fashion concepts.
-              </p>
-            </div>
-            <div className="rounded-full bg-white px-3 py-2 text-xs font-black text-black/45 shadow-soft">
-              {showcaseImages.length} images
-            </div>
+        <section className="grid gap-5 rounded-md border border-black/10 bg-white p-4 shadow-soft">
+          <div>
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-cobalt">Example customer journey</div>
+            <h2 className="mt-2 text-3xl font-black md:text-4xl">From Instagram post to store conversation.</h2>
           </div>
 
-          {isLoading ? (
-            <div className="grid min-h-72 place-items-center rounded-md border border-black/10 bg-white">
-              <div className="flex items-center gap-2 text-sm font-black text-black/50">
-                <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin text-cobalt" />
-                Loading gallery
+          <div className="grid gap-4 lg:grid-cols-[0.9fr_0.45fr_0.9fr]">
+            <article className="overflow-hidden rounded-md border border-black/10 bg-[#f7f2ec]">
+              <div className="flex items-center justify-between border-b border-black/10 bg-white p-3">
+                <div className="flex items-center gap-2">
+                  <span className="grid h-9 w-9 place-items-center rounded-md bg-[#171310] text-xs font-black text-white">LB</span>
+                  <div>
+                    <div className="text-sm font-black">luxuryboutique</div>
+                    <div className="text-xs font-bold text-black/45">Sponsored</div>
+                  </div>
+                </div>
+                <Instagram aria-hidden="true" className="h-5 w-5 text-cobalt" />
               </div>
-            </div>
-          ) : error ? (
-            <div className="rounded-md border border-coral/25 bg-coral/10 p-4 text-sm font-black leading-6 text-coral">
-              {error}
-            </div>
-          ) : showcaseImages.length > 0 ? (
-            <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
-              {showcaseImages.map((image, index) => (
-                <figure key={image.id} className="mb-4 break-inside-avoid overflow-hidden rounded-md border border-black/10 bg-white shadow-soft">
-                  <img
-                    src={image.url}
-                    alt={`LuxuryBandit AI fashion image ${index + 1}`}
-                    className="w-full object-cover"
-                    loading="lazy"
-                  />
-                </figure>
-              ))}
-            </div>
-          ) : (
-            <div className="grid min-h-72 place-items-center rounded-md border border-black/10 bg-white p-6 text-center">
-              <div>
-                <div className="text-lg font-black">No public images yet</div>
-                <p className="mt-2 max-w-md text-sm font-bold leading-6 text-black/50">
-                  Create Fashion Creator designs first. They will appear here once saved under the LuxuryBandit account.
+              <div className="grid gap-3 p-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <img src="/tryout-step-select.svg" alt="Social ad product preview" className="aspect-square rounded-md border border-black/10 bg-white object-cover" />
+                  <img src="/tryout-step-result.svg" alt="Social ad try-on preview" className="aspect-square rounded-md border border-black/10 bg-white object-cover" />
+                </div>
+                <div className="text-lg font-black">New arrivals just landed.</div>
+                <p className="text-sm font-bold leading-6 text-black/56">
+                  Try this look before you visit the boutique.
                 </p>
+                <div className="inline-flex items-center justify-center gap-2 rounded-md bg-cobalt px-3 py-3 text-sm font-black text-white">
+                  Try this look
+                  <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
+                </div>
               </div>
-            </div>
-          )}
+            </article>
+
+            <article className="grid content-center gap-3 rounded-md bg-[#171310] p-4 text-white">
+              <MousePointerClick aria-hidden="true" className="h-8 w-8 text-[#85a7ff]" />
+              <h3 className="text-2xl font-black">Click</h3>
+              <p className="text-sm font-bold leading-6 text-white/62">
+                The ad click becomes a measurable funnel visit.
+              </p>
+            </article>
+
+            <article className="overflow-hidden rounded-md border border-black/10 bg-[#f7f2ec]">
+              <div className="border-b border-black/10 bg-white p-3">
+                <div className="text-xs font-black uppercase tracking-[0.16em] text-cobalt">Store try-on page</div>
+                <h3 className="mt-1 text-xl font-black">Boutique new arrivals</h3>
+              </div>
+              <div className="grid gap-3 p-3">
+                <div className="grid grid-cols-[0.72fr_1fr] gap-3">
+                  <img src="/tryout-step-upload.svg" alt="Customer upload preview" className="aspect-square rounded-md border border-black/10 bg-white object-cover" />
+                  <div className="grid content-center gap-2">
+                    {customerActions.map((action, index) => (
+                      <div key={action} className="flex items-center gap-2 rounded-md bg-white p-2 text-xs font-black text-black/60">
+                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-cobalt text-[11px] text-white">
+                          {index + 1}
+                        </span>
+                        {action}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-md bg-white p-3 text-sm font-black text-black/60">
+                  Result: lead captured, WhatsApp intent tracked, follow-up ready.
+                </div>
+              </div>
+            </article>
+          </div>
         </section>
+
+        <section className="grid gap-4 md:grid-cols-3">
+          {businessBenefits.map((benefit) => {
+            const Icon = benefit.icon;
+            return (
+              <article key={benefit.title} className="grid gap-3 rounded-md border border-black/10 bg-white p-4 shadow-soft">
+                <Icon aria-hidden="true" className="h-5 w-5 text-cobalt" />
+                <h3 className="text-xl font-black">{benefit.title}</h3>
+                <p className="text-sm font-bold leading-6 text-black/56">{benefit.text}</p>
+              </article>
+            );
+          })}
+        </section>
+
       </section>
     </main>
   );
