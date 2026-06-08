@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 
 function isAdmin(request: Request) {
   const configuredPin = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim();
-  if (!configuredPin) return true;
+  if (!configuredPin) return process.env.NODE_ENV !== "production";
   return request.headers.get("x-try-look-admin-pin") === configuredPin;
 }
 
@@ -53,8 +53,12 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const storeSlug = url.searchParams.get("store") ?? "";
+    const wantsAdminData = url.searchParams.get("admin") === "1";
     const state = await readTryThisLookState();
-    if (!isAdmin(request)) return NextResponse.json(publicState(state, storeSlug));
+    if (wantsAdminData && !isAdmin(request)) {
+      return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+    }
+    if (!wantsAdminData) return NextResponse.json(publicState(state, storeSlug));
     return NextResponse.json({
       ...publicState(state, storeSlug),
       events: state.events,

@@ -126,7 +126,7 @@ export default function AdminLooksPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/try-this-look", {
+      const response = await fetch("/api/try-this-look?admin=1", {
         headers: adminPin ? { "x-try-look-admin-pin": adminPin } : {}
       });
       const payload = await readJsonResponse<AdminPayload>(response);
@@ -429,6 +429,45 @@ export default function AdminLooksPage() {
         activeLookPublicUrl
       ].join("\n")
     : "";
+  const isAdminAccessBlocked = error === "Admin access required." && !data.events;
+
+  if (isAdminAccessBlocked) {
+    return (
+      <main className="min-h-screen bg-[#fbfaf7] px-4 py-5 text-ink">
+        <section className="mx-auto grid w-full max-w-2xl gap-5">
+          <header className="grid gap-2">
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-cobalt">LuxuryBandit Admin</div>
+            <h1 className="text-5xl font-black leading-none text-ink">Try This Look</h1>
+            <p className="max-w-3xl text-sm font-bold leading-6 text-ink/60">
+              Enter the admin PIN to manage looks, leads, and generated images.
+            </p>
+          </header>
+
+          <section className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
+            <div className="text-lg font-black">Admin access</div>
+            <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+              <input
+                value={pin}
+                onChange={(event) => setPin(event.target.value)}
+                placeholder="Admin PIN"
+                className="h-12 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt"
+              />
+              <button type="button" onClick={savePin} className="h-12 rounded-md bg-ink px-5 text-sm font-black text-white">
+                Load admin
+              </button>
+            </div>
+            <p className="text-xs font-bold leading-5 text-ink/50">
+              Set <span className="font-black">TRY_THIS_LOOK_ADMIN_PIN</span> in Vercel to control who can enter.
+            </p>
+          </section>
+
+          <div className="rounded-md border border-coral/25 bg-coral/10 p-4 text-sm font-black text-coral">
+            Admin PIN required.
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#fbfaf7] px-4 py-5 text-ink">
