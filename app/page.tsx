@@ -33,9 +33,7 @@ export default function Home() {
     const host = window.location.hostname.toLowerCase();
     const isMainLuxuryBandiHost =
       host === "luxurybandit.com" ||
-      host === "www.luxurybandit.com" ||
-      host === "luxurybandi.com" ||
-      host === "www.luxurybandi.com";
+      host === "www.luxurybandit.com";
     setShowLanding(params.get("landing") === "1" || (isMainLuxuryBandiHost && params.get("app") !== "1"));
     if (params.get("tool") === "fashion") setActiveTool("outfit");
     setWorkspace(getClientWorkspace());
