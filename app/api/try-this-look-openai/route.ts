@@ -1,4 +1,5 @@
 import { completeReservation, getAccountId, refundReservation, reserveCredits } from "@/lib/billing";
+import { reserveAnonymousTryOnAttempt } from "@/lib/tryon-limit";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -32,6 +33,8 @@ export async function POST(request: Request) {
   const garmentImage = formData.get("image");
   const personImage = formData.get("modelImage");
   const prompt = String(formData.get("prompt") ?? "").trim();
+  const visitorId = String(formData.get("visitorId") ?? "").trim();
+  const lookId = String(formData.get("lookId") ?? "").trim();
   const requestedAspectRatio = String(formData.get("aspectRatio") ?? "").trim();
   const aspectRatio = supportedAspectRatios.has(requestedAspectRatio) ? requestedAspectRatio : "4:5";
 
@@ -39,15 +42,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Kein Look-Bild erhalten." }, { status: 400 });
   }
 
-  if (!(personImage instanceof File)) {
-    return NextResponse.json({ error: "Kein Personenfoto erhalten." }, { status: 400 });
-  }
-
   if (!prompt) {
     return NextResponse.json({ error: "Prompt is empty." }, { status: 400 });
   }
 
   const accountId = getAccountId(request);
+  const tryOnLimit = reserveAnonymousTryOnAttempt(accountId, visitorId, lookId);
+  if (!tryOnLimit.ok) {
+    return NextResponse.json({ error: tryOnLimit.error }, { status: 429 });
+  }
   const reservation = reserveCredits(accountId, "fashion-model-selected");
   if (!reservation.ok) {
     return NextResponse.json(
@@ -60,7 +63,38 @@ export async function POST(request: Request) {
   }
 
   const garmentDataUrl = await fileToDataUrl(garmentImage);
-  const personDataUrl = await fileToDataUrl(personImage);
+  const personDataUrl = personImage instanceof File ? await fileToDataUrl(personImage) : "";
+  const content = [
+    {
+      type: "input_text",
+      text: personDataUrl
+        ? [
+            "Task: Fashion try-on edit.",
+            "Use the uploaded person photo as the person source of truth.",
+            "Use the selected look image as the garment source of truth.",
+            prompt
+          ].join("\n\n")
+        : [
+            "Task: Fashion model campaign image.",
+            "No shopper photo was uploaded.",
+            "Use the selected look image as the complete outfit source of truth.",
+            "Create the look on a professional adult fashion model.",
+            prompt
+          ].join("\n\n")
+    },
+    ...(personDataUrl
+      ? [
+          {
+            type: "input_image",
+            image_url: personDataUrl
+          }
+        ]
+      : []),
+    {
+      type: "input_image",
+      image_url: garmentDataUrl
+    }
+  ];
 
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
@@ -73,25 +107,7 @@ export async function POST(request: Request) {
       input: [
         {
           role: "user",
-          content: [
-            {
-              type: "input_text",
-              text: [
-                "Task: Fashion try-on edit.",
-                "Use the uploaded person photo as the person source of truth.",
-                "Use the selected look image as the garment source of truth.",
-                prompt
-              ].join("\n\n")
-            },
-            {
-              type: "input_image",
-              image_url: personDataUrl
-            },
-            {
-              type: "input_image",
-              image_url: garmentDataUrl
-            }
-          ]
+          content
         }
       ],
       tools: [

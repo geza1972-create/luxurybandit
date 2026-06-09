@@ -1,4 +1,5 @@
 import { completeReservation, getAccountId, refundReservation, reserveCredits } from "@/lib/billing";
+import { reserveAnonymousTryOnAttempt } from "@/lib/tryon-limit";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -44,6 +45,8 @@ export async function POST(request: Request) {
   const modelImage = formData.get("modelImage");
   const prompt = String(formData.get("prompt") ?? "").trim();
   const mode = String(formData.get("mode") ?? "").trim();
+  const visitorId = String(formData.get("visitorId") ?? "").trim();
+  const lookId = String(formData.get("lookId") ?? "").trim();
   const requestedAspectRatio = String(formData.get("aspectRatio") ?? "").trim();
   const supportedAspectRatios = new Set(["1:1", "3:4", "4:5", "9:16"]);
   const aspectRatio = supportedAspectRatios.has(requestedAspectRatio) ? requestedAspectRatio : "1:1";
@@ -58,6 +61,12 @@ export async function POST(request: Request) {
 
   const hasSelectedModelImage = modelImage instanceof File;
   const accountId = getAccountId(request);
+  if (mode === "fashion-model") {
+    const tryOnLimit = reserveAnonymousTryOnAttempt(accountId, visitorId, lookId);
+    if (!tryOnLimit.ok) {
+      return NextResponse.json({ error: tryOnLimit.error }, { status: 429 });
+    }
+  }
   const creditAction = mode === "retouch-cutout"
     ? "retouch-cutout"
     : hasSelectedModelImage

@@ -55,6 +55,10 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
       price: look.price,
       salePrice: look.salePrice,
       discountLabel: look.discountLabel,
+      dealEndsAt: look.dealEndsAt,
+      inStock: look.inStock,
+      availabilityNote: look.availabilityNote,
+      deliveryTime: look.deliveryTime,
       productNote: look.productNote,
       createdAt: look.createdAt,
       imageUrl: look.imageUrl,
@@ -77,6 +81,10 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
       price: look.price,
       salePrice: look.salePrice,
       discountLabel: look.discountLabel,
+      dealEndsAt: look.dealEndsAt,
+      inStock: look.inStock,
+      availabilityNote: look.availabilityNote,
+      deliveryTime: look.deliveryTime,
       productNote: look.productNote,
       createdAt: look.createdAt,
       imageUrl: look.imageUrl,
@@ -129,6 +137,10 @@ export async function POST(request: Request) {
       price?: string;
       salePrice?: string;
       discountLabel?: string;
+      dealEndsAt?: string;
+      inStock?: boolean;
+      availabilityNote?: string;
+      deliveryTime?: string;
       productNote?: string;
       image?: string;
       frontImage?: string;
@@ -136,6 +148,7 @@ export async function POST(request: Request) {
       garmentFrontImage?: string;
       garmentBackImage?: string;
       galleryImages?: string[];
+      keepGalleryIndexes?: number[];
       lookId?: string;
       event?: string;
       email?: string;
@@ -146,6 +159,11 @@ export async function POST(request: Request) {
       campaignId?: string;
       lookName?: string;
       selectedSize?: string;
+      buyingPreference?: string;
+      leadSource?: string;
+      marketingConsent?: boolean;
+      uploadedPhoto?: string;
+      status?: string;
       utmSource?: string;
       utmCampaign?: string;
     };
@@ -185,7 +203,13 @@ export async function POST(request: Request) {
       const visitorId = String(payload.visitorId ?? "").trim();
       const customerName = String(payload.customerName ?? "").trim();
       const phone = String(payload.phone ?? "").trim();
-      if (!email && !instagram && !phone && !customerName) {
+      const selectedSize = String(payload.selectedSize ?? "").trim();
+      const buyingPreference = String(payload.buyingPreference ?? "").trim();
+      const leadSource = String(payload.leadSource ?? "").trim();
+      const uploadedPhotoPath = payload.uploadedPhoto?.startsWith("data:image/")
+        ? await uploadTryThisLookImage("uploads", payload.uploadedPhoto)
+        : undefined;
+      if (!email && !instagram && !phone && !customerName && !selectedSize && leadSource !== "whatsapp") {
         return NextResponse.json({ error: "Name, phone, email, or Instagram handle is required." }, { status: 400 });
       }
 
@@ -197,6 +221,12 @@ export async function POST(request: Request) {
         phone: phone || undefined,
         email: email || undefined,
         instagram: instagram || undefined,
+        selectedSize: selectedSize || undefined,
+        buyingPreference: buyingPreference === "delivery" ? "delivery" : buyingPreference === "pickup" ? "pickup" : undefined,
+        leadSource: leadSource || undefined,
+        marketingConsent: Boolean(payload.marketingConsent),
+        uploadedPhotoPath,
+        status: "new",
         createdAt: now
       });
 
@@ -209,12 +239,62 @@ export async function POST(request: Request) {
         campaignId: String(payload.campaignId ?? "").trim() || lookId,
         storeName: String(payload.storeName ?? "").trim() || activeLook.storeName,
         lookName: String(payload.lookName ?? "").trim() || activeLook.name,
+        selectedSize: selectedSize || undefined,
         utmSource: String(payload.utmSource ?? "").trim() || undefined,
         utmCampaign: String(payload.utmCampaign ?? "").trim() || undefined
       });
 
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json(publicState(updatedState));
+    }
+
+    if (payload.action === "update-lead-status") {
+      if (!isAdmin(request)) {
+        return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      }
+      const leadId = String(payload.id ?? "");
+      const status = String(payload.status ?? "");
+      if (!["new", "contacted", "closed"].includes(status)) {
+        return NextResponse.json({ error: "Lead status is invalid." }, { status: 400 });
+      }
+      if (!state.leads.some((lead) => lead.id === leadId)) {
+        return NextResponse.json({ error: "Lead was not found." }, { status: 404 });
+      }
+
+      state.leads = state.leads.map((lead) =>
+        lead.id === leadId ? { ...lead, status: status as "new" | "contacted" | "closed" } : lead
+      );
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json({
+        ...publicState(updatedState),
+        events: updatedState.events,
+        leads: updatedState.leads,
+        generations: updatedState.generations
+      });
+    }
+
+    if (payload.action === "delete-lead") {
+      if (!isAdmin(request)) {
+        return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      }
+      const leadId = String(payload.id ?? "");
+      const leadToDelete = state.leads.find((lead) => lead.id === leadId);
+      if (!leadToDelete) {
+        return NextResponse.json({ error: "Lead was not found." }, { status: 404 });
+      }
+
+      state.leads = state.leads.filter((lead) => lead.id !== leadId);
+      if (leadToDelete.uploadedPhotoPath) {
+        await deleteTryThisLookImage(leadToDelete.uploadedPhotoPath);
+      }
+
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json({
+        ...publicState(updatedState),
+        events: updatedState.events,
+        leads: updatedState.leads,
+        generations: updatedState.generations
+      });
     }
 
     if (payload.action === "generation") {
@@ -260,6 +340,10 @@ export async function POST(request: Request) {
       const price = String(payload.price ?? "").trim();
       const salePrice = String(payload.salePrice ?? "").trim();
       const discountLabel = String(payload.discountLabel ?? "").trim();
+      const dealEndsAt = String(payload.dealEndsAt ?? "").trim();
+      const inStock = payload.inStock === true;
+      const availabilityNote = String(payload.availabilityNote ?? "").trim();
+      const deliveryTime = String(payload.deliveryTime ?? "").trim();
       const productNote = String(payload.productNote ?? "").trim();
       const availableSizes = Array.isArray(payload.availableSizes)
         ? payload.availableSizes.map((size) => String(size).trim()).filter(Boolean)
@@ -299,6 +383,10 @@ export async function POST(request: Request) {
         price: price || undefined,
         salePrice: salePrice || undefined,
         discountLabel: discountLabel || undefined,
+        dealEndsAt: dealEndsAt || undefined,
+        inStock: inStock || undefined,
+        availabilityNote: availabilityNote || undefined,
+        deliveryTime: deliveryTime || undefined,
         productNote: productNote || undefined,
         imagePath: frontImagePath,
         frontImagePath,
@@ -376,6 +464,61 @@ export async function POST(request: Request) {
       });
     }
 
+    if (payload.action === "delete-store") {
+      const storeSlug = String(payload.storeSlug ?? "").trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+      if (!storeSlug) {
+        return NextResponse.json({ error: "Store slug is required." }, { status: 400 });
+      }
+
+      const storeLooks = state.looks.filter((look) => look.storeSlug === storeSlug);
+      if (!storeLooks.length && !(state.stores ?? []).some((store) => store.slug === storeSlug)) {
+        return NextResponse.json({ error: "Boutique was not found." }, { status: 404 });
+      }
+
+      const lookIds = new Set(storeLooks.map((look) => look.id));
+      const storeLeads = state.leads.filter((lead) => lookIds.has(lead.lookId));
+      const storeGenerations = state.generations.filter((generation) => lookIds.has(generation.lookId));
+
+      state.stores = (state.stores ?? []).filter((store) => store.slug !== storeSlug);
+      state.looks = state.looks.filter((look) => look.storeSlug !== storeSlug);
+      state.leads = state.leads.filter((lead) => !lookIds.has(lead.lookId));
+      state.generations = state.generations.filter((generation) => !lookIds.has(generation.lookId));
+      state.events = state.events.filter((event) => !lookIds.has(event.lookId));
+
+      const remainingLookIds = new Set(state.looks.map((look) => look.id));
+      const nextActiveLookIds = (state.activeLookIds ?? [state.activeLookId]).filter((id) => remainingLookIds.has(id));
+      const fallbackLookId = state.looks[0]?.id;
+      state.activeLookIds = nextActiveLookIds.length ? nextActiveLookIds : fallbackLookId ? [fallbackLookId] : [];
+      state.activeLookId = state.activeLookIds[0] ?? "";
+
+      const pathsToDelete = new Set<string>();
+      for (const look of storeLooks) {
+        [
+          look.imagePath,
+          look.frontImagePath,
+          look.backImagePath,
+          look.garmentFrontImagePath,
+          look.garmentBackImagePath,
+          ...(look.galleryImagePaths ?? [])
+        ].filter(Boolean).forEach((path) => pathsToDelete.add(String(path)));
+      }
+      for (const lead of storeLeads) {
+        if (lead.uploadedPhotoPath) pathsToDelete.add(String(lead.uploadedPhotoPath));
+      }
+      for (const generation of storeGenerations) {
+        if (generation.imagePath) pathsToDelete.add(String(generation.imagePath));
+      }
+      for (const path of pathsToDelete) await deleteTryThisLookImage(path);
+
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json({
+        ...publicState(updatedState),
+        events: updatedState.events,
+        leads: updatedState.leads,
+        generations: updatedState.generations
+      });
+    }
+
     if (payload.action === "update-look") {
       const lookId = String(payload.id ?? "");
       const existingLook = state.looks.find((look) => look.id === lookId);
@@ -392,10 +535,47 @@ export async function POST(request: Request) {
       const price = String(payload.price ?? "").trim();
       const salePrice = String(payload.salePrice ?? "").trim();
       const discountLabel = String(payload.discountLabel ?? "").trim();
+      const dealEndsAt = String(payload.dealEndsAt ?? "").trim();
+      const inStock = payload.inStock === true;
+      const availabilityNote = String(payload.availabilityNote ?? "").trim();
+      const deliveryTime = String(payload.deliveryTime ?? "").trim();
       const productNote = String(payload.productNote ?? "").trim();
       const availableSizes = Array.isArray(payload.availableSizes)
         ? payload.availableSizes.map((size) => String(size).trim()).filter(Boolean)
         : [];
+      const frontImagePath = payload.frontImage?.startsWith("data:image/")
+        ? await uploadTryThisLookImage("looks", payload.frontImage)
+        : undefined;
+      const backImagePath = payload.backImage?.startsWith("data:image/")
+        ? await uploadTryThisLookImage("looks", payload.backImage)
+        : undefined;
+      const garmentFrontImagePath = payload.garmentFrontImage?.startsWith("data:image/")
+        ? await uploadTryThisLookImage("looks", payload.garmentFrontImage)
+        : undefined;
+      const garmentBackImagePath = payload.garmentBackImage?.startsWith("data:image/")
+        ? await uploadTryThisLookImage("looks", payload.garmentBackImage)
+        : undefined;
+      const galleryImagePaths = Array.isArray(payload.galleryImages) && payload.galleryImages.length
+        ? await Promise.all(
+            payload.galleryImages
+              .filter((image) => typeof image === "string" && image.startsWith("data:image/"))
+              .slice(0, 12)
+              .map((image) => uploadTryThisLookImage("looks", image))
+          )
+        : undefined;
+      const keepGalleryIndexes = Array.isArray(payload.keepGalleryIndexes)
+        ? payload.keepGalleryIndexes
+            .map((value) => Number(value))
+            .filter((value) => Number.isInteger(value) && value >= 0)
+        : [];
+      const keptExistingGalleryPaths = keepGalleryIndexes.flatMap((index) =>
+        existingLook.galleryImagePaths?.[index] ? [existingLook.galleryImagePaths[index]] : []
+      );
+      const nextGalleryImagePaths = galleryImagePaths
+        ? [...keptExistingGalleryPaths, ...galleryImagePaths].slice(0, 12)
+        : payload.keepGalleryIndexes
+          ? keptExistingGalleryPaths.slice(0, 12)
+          : undefined;
 
       state.looks = state.looks.map((look) => {
         if (look.id !== lookId) return look;
@@ -411,7 +591,16 @@ export async function POST(request: Request) {
           price: price || undefined,
           salePrice: salePrice || undefined,
           discountLabel: discountLabel || undefined,
-          productNote: productNote || undefined
+          dealEndsAt: dealEndsAt || undefined,
+          inStock: inStock || undefined,
+          availabilityNote: availabilityNote || undefined,
+          deliveryTime: deliveryTime || undefined,
+          productNote: productNote || undefined,
+          ...(frontImagePath ? { imagePath: frontImagePath, frontImagePath } : {}),
+          ...(backImagePath ? { backImagePath } : {}),
+          ...(garmentFrontImagePath ? { garmentFrontImagePath } : {}),
+          ...(garmentBackImagePath ? { garmentBackImagePath } : {}),
+          ...(payload.keepGalleryIndexes || galleryImagePaths ? { galleryImagePaths: nextGalleryImagePaths } : {})
         };
       });
 

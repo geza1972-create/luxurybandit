@@ -10,6 +10,10 @@ export type TryThisLookLook = {
   price?: string;
   salePrice?: string;
   discountLabel?: string;
+  dealEndsAt?: string;
+  inStock?: boolean;
+  availabilityNote?: string;
+  deliveryTime?: string;
   productNote?: string;
   createdAt: string;
   imagePath?: string;
@@ -57,6 +61,13 @@ export type TryThisLookLead = {
   phone?: string;
   email?: string;
   instagram?: string;
+  selectedSize?: string;
+  buyingPreference?: "pickup" | "delivery";
+  leadSource?: string;
+  marketingConsent?: boolean;
+  uploadedPhotoPath?: string;
+  uploadedPhotoUrl?: string;
+  status?: "new" | "contacted" | "closed";
   createdAt: string;
 };
 
@@ -222,9 +233,17 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
     }))
   );
 
+  const leads = await Promise.all(
+    (state.leads ?? []).map(async (lead) => ({
+      ...lead,
+      uploadedPhotoUrl: lead.uploadedPhotoPath ? await getSignedUrl(lead.uploadedPhotoPath) : lead.uploadedPhotoUrl
+    }))
+  );
+
   return {
     ...state,
     looks,
+    leads,
     generations
   };
 }
@@ -275,7 +294,7 @@ async function writeTryThisLookState(state: TryThisLookState) {
     stores: state.stores ?? [],
     looks: state.looks.map(({ imageUrl, frontImageUrl, backImageUrl, garmentFrontImageUrl, garmentBackImageUrl, galleryImageUrls, ...look }) => look),
     events: state.events.slice(0, 500),
-    leads: state.leads.slice(0, 500),
+    leads: state.leads.map(({ uploadedPhotoUrl, ...lead }) => lead).slice(0, 500),
     generations: state.generations.map(({ imageUrl, ...generation }) => generation).slice(0, 200)
   };
 
@@ -308,7 +327,7 @@ function dataUrlToBytes(dataUrl: string) {
   };
 }
 
-export async function uploadTryThisLookImage(folder: "looks" | "generations", dataUrl: string) {
+export async function uploadTryThisLookImage(folder: "looks" | "generations" | "uploads", dataUrl: string) {
   await ensureBucket();
   const { bytes, extension, mimeType } = dataUrlToBytes(dataUrl);
   const path = `try-this-look/${folder}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
