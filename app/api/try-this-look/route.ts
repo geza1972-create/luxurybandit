@@ -20,6 +20,56 @@ function normalizeSlug(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
+function visibleImageUrls(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number]) {
+  const imagePairs = [
+    { key: look.frontImagePath ?? look.imagePath ?? look.frontImageUrl ?? look.imageUrl, url: look.frontImageUrl ?? look.imageUrl },
+    ...(look.galleryImagePaths ?? []).map((path, index) => ({
+      key: path,
+      url: look.galleryImageUrls?.[index]
+    })),
+    ...(look.galleryImageUrls ?? []).map((url) => ({
+      key: url,
+      url
+    }))
+  ];
+  const seen = new Set<string>();
+  return imagePairs.flatMap(({ key, url }) => {
+    if (!key || !url || seen.has(key)) return [];
+    seen.add(key);
+    return [url];
+  }).slice(0, 6);
+}
+
+function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number]) {
+  const galleryImageUrls = visibleImageUrls(look);
+  const primaryImageUrl = galleryImageUrls[0] ?? look.frontImageUrl ?? look.imageUrl;
+  return {
+    id: look.id,
+    name: look.name,
+    campaignName: look.campaignName,
+    storeName: look.storeName,
+    storeSlug: look.storeSlug,
+    storeAddress: look.storeAddress,
+    whatsappNumber: look.whatsappNumber,
+    availableSizes: look.availableSizes,
+    price: look.price,
+    salePrice: look.salePrice,
+    discountLabel: look.discountLabel,
+    dealEndsAt: look.dealEndsAt,
+    inStock: look.inStock,
+    availabilityNote: look.availabilityNote,
+    deliveryTime: look.deliveryTime,
+    productNote: look.productNote,
+    createdAt: look.createdAt,
+    imageUrl: primaryImageUrl,
+    frontImageUrl: primaryImageUrl,
+    backImageUrl: look.backImageUrl,
+    garmentFrontImageUrl: look.garmentFrontImageUrl,
+    garmentBackImageUrl: look.garmentBackImageUrl,
+    galleryImageUrls
+  };
+}
+
 function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, preferredStoreSlug = "", preferredLookSlug = "") {
   const normalizedSlug = preferredStoreSlug.trim().toLowerCase();
   const normalizedLookSlug = normalizeSlug(preferredLookSlug);
@@ -42,58 +92,10 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
     ? storeActiveLooks.length ? storeActiveLooks : activeLook ? [activeLook] : []
     : globalActiveLooks;
   return {
-    activeLook,
-    activeLooks: activeLooks.map((look) => ({
-      id: look.id,
-      name: look.name,
-      campaignName: look.campaignName,
-      storeName: look.storeName,
-      storeSlug: look.storeSlug,
-      storeAddress: look.storeAddress,
-      whatsappNumber: look.whatsappNumber,
-      availableSizes: look.availableSizes,
-      price: look.price,
-      salePrice: look.salePrice,
-      discountLabel: look.discountLabel,
-      dealEndsAt: look.dealEndsAt,
-      inStock: look.inStock,
-      availabilityNote: look.availabilityNote,
-      deliveryTime: look.deliveryTime,
-      productNote: look.productNote,
-      createdAt: look.createdAt,
-      imageUrl: look.imageUrl,
-      frontImageUrl: look.frontImageUrl,
-      backImageUrl: look.backImageUrl,
-      garmentFrontImageUrl: look.garmentFrontImageUrl,
-      garmentBackImageUrl: look.garmentBackImageUrl,
-      galleryImageUrls: look.galleryImageUrls
-    })),
+    activeLook: activeLook ? serializeLook(activeLook) : undefined,
+    activeLooks: activeLooks.map(serializeLook),
     stores: state.stores ?? [],
-    looks: state.looks.map((look) => ({
-      id: look.id,
-      name: look.name,
-      campaignName: look.campaignName,
-      storeName: look.storeName,
-      storeSlug: look.storeSlug,
-      storeAddress: look.storeAddress,
-      whatsappNumber: look.whatsappNumber,
-      availableSizes: look.availableSizes,
-      price: look.price,
-      salePrice: look.salePrice,
-      discountLabel: look.discountLabel,
-      dealEndsAt: look.dealEndsAt,
-      inStock: look.inStock,
-      availabilityNote: look.availabilityNote,
-      deliveryTime: look.deliveryTime,
-      productNote: look.productNote,
-      createdAt: look.createdAt,
-      imageUrl: look.imageUrl,
-      frontImageUrl: look.frontImageUrl,
-      backImageUrl: look.backImageUrl,
-      garmentFrontImageUrl: look.garmentFrontImageUrl,
-      garmentBackImageUrl: look.garmentBackImageUrl,
-      galleryImageUrls: look.galleryImageUrls
-    }))
+    looks: state.looks.map(serializeLook)
   };
 }
 
@@ -149,6 +151,7 @@ export async function POST(request: Request) {
       garmentBackImage?: string;
       galleryImages?: string[];
       keepGalleryIndexes?: number[];
+      keepGalleryImageUrls?: string[];
       lookId?: string;
       event?: string;
       email?: string;
@@ -543,9 +546,6 @@ export async function POST(request: Request) {
       const availableSizes = Array.isArray(payload.availableSizes)
         ? payload.availableSizes.map((size) => String(size).trim()).filter(Boolean)
         : [];
-      const frontImagePath = payload.frontImage?.startsWith("data:image/")
-        ? await uploadTryThisLookImage("looks", payload.frontImage)
-        : undefined;
       const backImagePath = payload.backImage?.startsWith("data:image/")
         ? await uploadTryThisLookImage("looks", payload.backImage)
         : undefined;
@@ -568,18 +568,50 @@ export async function POST(request: Request) {
             .map((value) => Number(value))
             .filter((value) => Number.isInteger(value) && value >= 0)
         : [];
-      const keptExistingGalleryPaths = keepGalleryIndexes.flatMap((index) =>
-        existingLook.galleryImagePaths?.[index] ? [existingLook.galleryImagePaths[index]] : []
-      );
+      const resolveExistingImagePath = (imageUrl: string) => {
+        if (imageUrl === existingLook.frontImageUrl || imageUrl === existingLook.imageUrl) {
+          return existingLook.frontImagePath ?? existingLook.imagePath;
+        }
+        const galleryIndex = existingLook.galleryImageUrls?.findIndex((url) => url === imageUrl) ?? -1;
+        return galleryIndex >= 0 ? existingLook.galleryImagePaths?.[galleryIndex] : undefined;
+      };
+      const keepGalleryImageUrls = Array.isArray(payload.keepGalleryImageUrls)
+        ? payload.keepGalleryImageUrls.filter((image): image is string => typeof image === "string" && !image.startsWith("data:image/"))
+        : null;
+      const keptExistingGalleryPaths = keepGalleryImageUrls
+        ? keepGalleryImageUrls.flatMap((image) => {
+            const path = resolveExistingImagePath(image);
+            return path ? [path] : [];
+          })
+        : keepGalleryIndexes.flatMap((index) =>
+            existingLook.galleryImagePaths?.[index] ? [existingLook.galleryImagePaths[index]] : []
+          );
       const nextGalleryImagePaths = galleryImagePaths
         ? [...keptExistingGalleryPaths, ...galleryImagePaths].slice(0, 12)
-        : payload.keepGalleryIndexes
+        : payload.keepGalleryIndexes || keepGalleryImageUrls
           ? keptExistingGalleryPaths.slice(0, 12)
           : undefined;
+      const frontImageValue = typeof payload.frontImage === "string" ? payload.frontImage : "";
+      const uploadedFrontImagePath = frontImageValue.startsWith("data:image/")
+        ? await uploadTryThisLookImage("looks", frontImageValue)
+        : undefined;
+      const matchingGalleryIndex = frontImageValue && !frontImageValue.startsWith("data:image/")
+        ? existingLook.galleryImageUrls?.findIndex((url) => url === frontImageValue) ?? -1
+        : -1;
+      const existingFrontImagePath =
+        frontImageValue && !frontImageValue.startsWith("data:image/")
+          ? frontImageValue === existingLook.frontImageUrl || frontImageValue === existingLook.imageUrl
+            ? existingLook.frontImagePath ?? existingLook.imagePath
+            : matchingGalleryIndex >= 0
+              ? existingLook.galleryImagePaths?.[matchingGalleryIndex]
+              : undefined
+          : undefined;
+      const nextFrontImagePath = uploadedFrontImagePath ?? existingFrontImagePath;
+      const shouldUpdateFrontImage = typeof payload.frontImage === "string";
 
       state.looks = state.looks.map((look) => {
         if (look.id !== lookId) return look;
-        return {
+        const nextLook = {
           ...look,
           name,
           campaignName: campaignName || undefined,
@@ -596,11 +628,20 @@ export async function POST(request: Request) {
           availabilityNote: availabilityNote || undefined,
           deliveryTime: deliveryTime || undefined,
           productNote: productNote || undefined,
-          ...(frontImagePath ? { imagePath: frontImagePath, frontImagePath } : {}),
           ...(backImagePath ? { backImagePath } : {}),
           ...(garmentFrontImagePath ? { garmentFrontImagePath } : {}),
           ...(garmentBackImagePath ? { garmentBackImagePath } : {}),
-          ...(payload.keepGalleryIndexes || galleryImagePaths ? { galleryImagePaths: nextGalleryImagePaths } : {})
+          ...(payload.keepGalleryIndexes || keepGalleryImageUrls || galleryImagePaths ? { galleryImagePaths: nextGalleryImagePaths } : {})
+        };
+        if (shouldUpdateFrontImage) {
+          if (nextFrontImagePath) {
+            return { ...nextLook, imagePath: nextFrontImagePath, frontImagePath: nextFrontImagePath };
+          }
+          const { imagePath, frontImagePath, ...withoutFrontImage } = nextLook;
+          return withoutFrontImage;
+        }
+        return {
+          ...nextLook
         };
       });
 

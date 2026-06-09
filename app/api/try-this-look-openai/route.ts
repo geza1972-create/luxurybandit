@@ -70,17 +70,25 @@ export async function POST(request: Request) {
       text: personDataUrl
         ? [
             "Task: Fashion try-on edit.",
-            "Use the uploaded person photo as the person source of truth.",
-            "Use the selected look image as the garment source of truth.",
+            "Image 1 is the selected product/garment reference and controls the garment, print, logo, color, silhouette, and front/back viewpoint.",
+            "Image 2 is the person/model reference. Use it only for person identity/body reference, not as the final pose or camera direction if it conflicts with Image 1 or the user instruction.",
+            "If Image 1 shows the back of the garment, the final result must show the model from behind/back wearing the garment. Do not invent a front view.",
+            "If the user asks for back/hinten/from behind/rear view, the final result must be a back view even when the model reference is front-facing.",
+            "Preserve visible garment details from Image 1. Do not replace them with details from Image 2.",
             prompt
           ].join("\n\n")
         : [
             "Task: Fashion model campaign image.",
             "No shopper photo was uploaded.",
-            "Use the selected look image as the complete outfit source of truth.",
+            "Use Image 1 as the complete outfit source of truth.",
+            "If Image 1 shows the back of the garment, show the generated model from behind/back wearing it. Do not invent a front view.",
             "Create the look on a professional adult fashion model.",
             prompt
           ].join("\n\n")
+    },
+    {
+      type: "input_image",
+      image_url: garmentDataUrl
     },
     ...(personDataUrl
       ? [
@@ -89,11 +97,7 @@ export async function POST(request: Request) {
             image_url: personDataUrl
           }
         ]
-      : []),
-    {
-      type: "input_image",
-      image_url: garmentDataUrl
-    }
+      : [])
   ];
 
   const response = await fetch("https://api.openai.com/v1/responses", {

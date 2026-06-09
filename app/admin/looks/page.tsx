@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ImagePlus, Loader2, Pencil, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ImagePlus, Loader2, Pencil, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { ChangeEvent, RefObject, useEffect, useRef, useState } from "react";
 
@@ -77,6 +77,14 @@ type AdminPayload = {
   error?: string;
 };
 
+const getVisibleLookImages = (look?: Pick<Look, "frontImageUrl" | "imageUrl" | "galleryImageUrls"> | null) => {
+  const images = [
+    look?.frontImageUrl ?? look?.imageUrl,
+    ...(look?.galleryImageUrls ?? [])
+  ].filter(Boolean) as string[];
+  return Array.from(new Set(images)).slice(0, 6);
+};
+
 const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
 const SUPPORTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const SUPPORTED_IMAGE_MESSAGE = "Unsupported image format. Please upload JPG, PNG, or WebP.";
@@ -104,6 +112,32 @@ const readJsonResponse = async <T,>(response: Response): Promise<T & { error?: s
     return { error: text.slice(0, 500) || "Server returned an invalid response." } as T & { error?: string };
   }
 };
+
+const dataUrlToBlob = (dataUrl: string) => {
+  const [header, base64] = dataUrl.split(",");
+  const mimeType = header.match(/data:(.*?);base64/)?.[1] ?? "image/png";
+  const binary = window.atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return new Blob([bytes], { type: mimeType });
+};
+
+const imageUrlToBlob = async (imageUrl: string) => {
+  if (imageUrl.startsWith("data:image/")) return dataUrlToBlob(imageUrl);
+  const response = await fetch(imageUrl);
+  if (!response.ok) throw new Error("Reference image could not be loaded.");
+  return response.blob();
+};
+
+const blobToDataUrl = (blob: Blob) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Image could not be prepared."));
+    reader.readAsDataURL(blob);
+  });
 
 const parsePriceNumber = (value: string) => {
   const normalized = value.replace(/[^\d,.-]/g, "").replace(",", ".");
@@ -142,13 +176,15 @@ type LookFormProps = {
   availabilityNote: string;
   deliveryTime: string;
   productNote: string;
-  showAdvancedViews: boolean;
   isSaving: boolean;
+  isGeneratingDescription?: boolean;
   onImageUpload: (event: ChangeEvent<HTMLInputElement>, view: "front" | "back" | "garment-front" | "garment-back") => void;
   onGalleryUpload: (event: ChangeEvent<HTMLInputElement>) => void;
   onClearGallery: () => void;
   onRemoveGalleryImage: (image: string) => void;
-  onToggleAdvancedViews: () => void;
+  onMoveGalleryImage: (index: number, direction: -1 | 1) => void;
+  onPreviewGalleryImage?: (image: string) => void;
+  onOpenAiTool?: () => void;
   onLookNameChange: (value: string) => void;
   onCampaignNameChange: (value: string) => void;
   onAvailableSizesChange: (value: string) => void;
@@ -160,6 +196,7 @@ type LookFormProps = {
   onAvailabilityNoteChange: (value: string) => void;
   onDeliveryTimeChange: (value: string) => void;
   onProductNoteChange: (value: string) => void;
+  onGenerateDescription?: () => void;
   onSubmit: () => void;
   onCancel?: () => void;
 };
@@ -188,13 +225,15 @@ function LookForm({
   availabilityNote,
   deliveryTime,
   productNote,
-  showAdvancedViews,
   isSaving,
+  isGeneratingDescription = false,
   onImageUpload,
   onGalleryUpload,
   onClearGallery,
   onRemoveGalleryImage,
-  onToggleAdvancedViews,
+  onMoveGalleryImage,
+  onPreviewGalleryImage,
+  onOpenAiTool,
   onLookNameChange,
   onCampaignNameChange,
   onAvailableSizesChange,
@@ -206,119 +245,26 @@ function LookForm({
   onAvailabilityNoteChange,
   onDeliveryTimeChange,
   onProductNoteChange,
+  onGenerateDescription,
   onSubmit,
   onCancel
 }: LookFormProps) {
   const isEdit = mode === "edit";
-  const displayFrontImage = frontImage ?? look?.frontImageUrl ?? look?.imageUrl ?? null;
-  const displayBackImage = backImage ?? look?.backImageUrl ?? null;
-  const displayGarmentFrontImage = garmentFrontImage ?? look?.garmentFrontImageUrl ?? null;
-  const displayGarmentBackImage = garmentBackImage ?? look?.garmentBackImageUrl ?? null;
-  const currentGalleryImages = look?.galleryImageUrls ?? [];
+  const currentGalleryImages = getVisibleLookImages(look);
   const galleryImagesToShow = galleryImages.length ? galleryImages : currentGalleryImages;
+  const showAiImageTile = isEdit && Boolean(onOpenAiTool) && galleryImagesToShow.length > 0 && galleryImagesToShow.length < 6;
 
   return (
     <div className="grid content-start gap-3">
       <input ref={frontFileInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => onImageUpload(event, "front")} />
-      <input ref={backFileInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => onImageUpload(event, "back")} />
-      <input ref={garmentFrontFileInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => onImageUpload(event, "garment-front")} />
-      <input ref={garmentBackFileInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => onImageUpload(event, "garment-back")} />
       <input ref={galleryFileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={onGalleryUpload} />
 
       <div className="rounded-md border border-cobalt/20 bg-cobalt/5 p-3 text-sm font-bold leading-6 text-ink/60">
-        {isEdit
-          ? "Replace only the images you want to change. Unchanged images stay saved."
-          : "For the Instagram test, upload one main campaign image and optional product gallery images. Customers can swipe through the gallery on mobile before they try the look."}
+        Upload up to 6 product photos. The first image is the main listing image. Move images left or right to change the order.
       </div>
 
       <div className="grid gap-3 rounded-md border border-black/10 bg-panel p-3">
-        <div className="text-xs font-black uppercase tracking-[0.14em] text-ink/45">Product images</div>
-        <div className="grid gap-3 md:grid-cols-2">
-          <button
-            type="button"
-            onClick={() => frontFileInputRef.current?.click()}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-cobalt/25 bg-cobalt/10 px-4 text-sm font-black text-cobalt"
-          >
-            <ImagePlus aria-hidden="true" className="h-4 w-4" />
-            {isEdit ? "Replace campaign image" : "Upload campaign image"}
-          </button>
-          <button
-            type="button"
-            onClick={() => garmentFrontFileInputRef.current?.click()}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-cobalt/25 bg-cobalt/10 px-4 text-sm font-black text-cobalt"
-          >
-            <ImagePlus aria-hidden="true" className="h-4 w-4" />
-            {isEdit ? "Replace clean garment reference" : "Upload clean garment reference"}
-          </button>
-        </div>
-        <button
-          type="button"
-          onClick={() => galleryFileInputRef.current?.click()}
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-black/10 bg-white px-4 text-sm font-black text-ink"
-        >
-          <ImagePlus aria-hidden="true" className="h-4 w-4" />
-          {isEdit ? "Replace gallery images" : "Upload product gallery images"}
-        </button>
-        <div className="rounded-md border border-black/10 bg-white p-3">
-          <button
-            type="button"
-            onClick={onToggleAdvancedViews}
-            className="flex w-full items-center justify-between text-left text-sm font-black text-ink"
-          >
-            <span>Advanced: front/back views</span>
-            <span>{showAdvancedViews ? "Hide" : "Show"}</span>
-          </button>
-          {showAdvancedViews && (
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => backFileInputRef.current?.click()}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-black/10 bg-panel px-4 text-sm font-black text-ink"
-              >
-                <ImagePlus aria-hidden="true" className="h-4 w-4" />
-                {isEdit ? "Replace back campaign image" : "Optional back campaign image"}
-              </button>
-              <button
-                type="button"
-                onClick={() => garmentBackFileInputRef.current?.click()}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-black/10 bg-panel px-4 text-sm font-black text-ink"
-              >
-                <ImagePlus aria-hidden="true" className="h-4 w-4" />
-                {isEdit ? "Replace back garment reference" : "Optional back garment reference"}
-              </button>
-            </div>
-          )}
-        </div>
-
-        {(displayFrontImage || displayBackImage || displayGarmentFrontImage || displayGarmentBackImage) && (
-          <div className="grid gap-3 md:grid-cols-2">
-            {displayFrontImage && (
-              <div>
-                <div className="mb-1 text-xs font-black uppercase tracking-[0.12em] text-cobalt">Campaign image</div>
-                <img src={displayFrontImage} alt="" className="aspect-square w-full rounded-md border border-black/10 bg-white object-contain" />
-              </div>
-            )}
-            {displayGarmentFrontImage && (
-              <div>
-                <div className="mb-1 text-xs font-black uppercase tracking-[0.12em] text-cobalt">Clean garment reference</div>
-                <img src={displayGarmentFrontImage} alt="" className="aspect-square w-full rounded-md border border-black/10 bg-white object-contain" />
-              </div>
-            )}
-            {displayBackImage && (
-              <div>
-                <div className="mb-1 text-xs font-black uppercase tracking-[0.12em] text-ink/45">Back campaign</div>
-                <img src={displayBackImage} alt="" className="aspect-square w-full rounded-md border border-black/10 bg-white object-contain" />
-              </div>
-            )}
-            {displayGarmentBackImage && (
-              <div>
-                <div className="mb-1 text-xs font-black uppercase tracking-[0.12em] text-ink/45">Back garment reference</div>
-                <img src={displayGarmentBackImage} alt="" className="aspect-square w-full rounded-md border border-black/10 bg-white object-contain" />
-              </div>
-            )}
-          </div>
-        )}
-
+        <div className="text-xs font-black uppercase tracking-[0.14em] text-ink/45">Product gallery</div>
         <div className="grid gap-2 rounded-md border border-black/10 bg-white p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -339,11 +285,23 @@ function LookForm({
               </button>
             )}
           </div>
-          {galleryImagesToShow.length > 0 ? (
+          {galleryImagesToShow.length > 0 || galleryImagesToShow.length < 6 || onOpenAiTool ? (
             <div className="grid grid-cols-3 gap-2 md:grid-cols-6">
-              {galleryImagesToShow.slice(0, 12).map((image, index) => (
-                <div key={`${image.slice(0, 24)}-${index}`} className="relative">
-                  <img src={image} alt="" className="aspect-square rounded border border-black/10 bg-panel object-cover object-top" />
+              {galleryImagesToShow.slice(0, 6).map((image, index) => (
+                <div key={`${image.slice(0, 24)}-${index}`} className="relative overflow-hidden rounded border border-black/10 bg-panel">
+                  <button
+                    type="button"
+                    onClick={() => onPreviewGalleryImage?.(image)}
+                    className="block w-full"
+                    aria-label={`Open gallery image ${index + 1}`}
+                  >
+                    <img src={image} alt="" className="aspect-square w-full rounded border border-black/10 bg-panel object-cover object-top" />
+                  </button>
+                  {index === 0 && (
+                    <div className="absolute left-1 top-1 rounded-full bg-cobalt px-2 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-white">
+                      Main
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={() => onRemoveGalleryImage(image)}
@@ -352,8 +310,54 @@ function LookForm({
                   >
                     ×
                   </button>
+                  <div className="absolute inset-x-1 bottom-1 grid grid-cols-2 gap-1">
+                    <button
+                      type="button"
+                      disabled={index === 0}
+                      onClick={() => onMoveGalleryImage(index, -1)}
+                      className="grid h-7 place-items-center rounded bg-white/90 text-ink shadow-soft disabled:opacity-35"
+                      aria-label={`Move gallery image ${index + 1} left`}
+                    >
+                      <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === galleryImagesToShow.length - 1}
+                      onClick={() => onMoveGalleryImage(index, 1)}
+                      className="grid h-7 place-items-center rounded bg-white/90 text-ink shadow-soft disabled:opacity-35"
+                      aria-label={`Move gallery image ${index + 1} right`}
+                    >
+                      <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))}
+              {galleryImagesToShow.length < 6 && (
+                <button
+                  type="button"
+                  onClick={() => galleryFileInputRef.current?.click()}
+                  className="grid aspect-square place-items-center rounded border border-dashed border-cobalt/35 bg-white p-2 text-center text-cobalt transition hover:bg-cobalt/10"
+                >
+                  <span className="grid gap-2">
+                    <ImagePlus aria-hidden="true" className="mx-auto h-6 w-6" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.1em]">Upload product gallery</span>
+                    <span className="text-[10px] font-bold leading-4 text-ink/50">Add photos</span>
+                  </span>
+                </button>
+              )}
+              {showAiImageTile && (
+                <button
+                  type="button"
+                  onClick={onOpenAiTool}
+                  className="grid aspect-square place-items-center rounded border border-dashed border-cobalt/45 bg-cobalt/10 p-2 text-center text-cobalt transition hover:bg-cobalt/15"
+                >
+                  <span className="grid gap-2">
+                    <Sparkles aria-hidden="true" className="mx-auto h-6 w-6" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.1em]">Luxury Bandit AI Image</span>
+                    <span className="text-[10px] font-bold leading-4 text-ink/50">Create from gallery</span>
+                  </span>
+                </button>
+              )}
             </div>
           ) : (
             <div className="rounded-md border border-dashed border-black/15 bg-panel p-3 text-xs font-bold text-ink/45">
@@ -428,12 +432,25 @@ function LookForm({
         placeholder="Delivery time in days, e.g. 3"
         className="h-12 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt"
       />
-      <textarea
-        value={productNote}
-        onChange={(event) => onProductNoteChange(event.target.value)}
-        placeholder="Product note optional, e.g. Limited drop, handmade, available this week."
-        className="min-h-24 rounded-md border border-black/10 bg-panel p-3 text-sm font-bold outline-none focus:border-cobalt"
-      />
+      <div className="grid gap-2">
+        {onGenerateDescription && (
+          <button
+            type="button"
+            onClick={onGenerateDescription}
+            disabled={isGeneratingDescription}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-cobalt/25 bg-cobalt/10 px-4 text-sm font-black text-cobalt disabled:cursor-wait disabled:opacity-60"
+          >
+            {isGeneratingDescription ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <Sparkles aria-hidden="true" className="h-4 w-4" />}
+            {isGeneratingDescription ? "Generating description..." : "Generate AI description"}
+          </button>
+        )}
+        <textarea
+          value={productNote}
+          onChange={(event) => onProductNoteChange(event.target.value)}
+          placeholder="Product note optional, e.g. Limited drop, handmade, available this week."
+          className="min-h-24 rounded-md border border-black/10 bg-panel p-3 text-sm font-bold outline-none focus:border-cobalt"
+        />
+      </div>
       <div className={onCancel ? "grid grid-cols-2 gap-2" : ""}>
         <button
           type="button"
@@ -470,6 +487,7 @@ export default function AdminLooksPage() {
   const editGarmentFrontFileInputRef = useRef<HTMLInputElement | null>(null);
   const editGarmentBackFileInputRef = useRef<HTMLInputElement | null>(null);
   const editGalleryFileInputRef = useRef<HTMLInputElement | null>(null);
+  const aiModelPhotoInputRef = useRef<HTMLInputElement | null>(null);
   const [pin, setPin] = useState("");
   const [selectedStoreSlug, setSelectedStoreSlug] = useState("");
   const [lookName, setLookName] = useState("");
@@ -515,9 +533,19 @@ export default function AdminLooksPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showCreateLook, setShowCreateLook] = useState(false);
-  const [showAdvancedViews, setShowAdvancedViews] = useState(false);
   const [selectedGeneration, setSelectedGeneration] = useState<Generation | null>(null);
   const [generationGalleryLookId, setGenerationGalleryLookId] = useState<string | null>(null);
+  const [previewGalleryImage, setPreviewGalleryImage] = useState<string | null>(null);
+  const [aiToolLookId, setAiToolLookId] = useState<string | null>(null);
+  const [aiReferenceImage, setAiReferenceImage] = useState("");
+  const [aiImagePrompt, setAiImagePrompt] = useState("");
+  const [aiModelMode, setAiModelMode] = useState<"ai-model" | "my-photo" | "gallery-photo">("ai-model");
+  const [aiModelReferenceImage, setAiModelReferenceImage] = useState("");
+  const [aiModelPhoto, setAiModelPhoto] = useState<string | null>(null);
+  const [isGeneratingAiImage, setIsGeneratingAiImage] = useState(false);
+  const [descriptionGenerationTarget, setDescriptionGenerationTarget] = useState<"create" | "edit" | null>(null);
+  const [aiGenerationStartedAt, setAiGenerationStartedAt] = useState<number | null>(null);
+  const [aiGenerationSeconds, setAiGenerationSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -565,12 +593,58 @@ export default function AdminLooksPage() {
     setEditDiscountLabel(calculateDiscountLabel(editPrice, editSalePrice));
   }, [editPrice, editSalePrice]);
 
+  useEffect(() => {
+    if (!isGeneratingAiImage || !aiGenerationStartedAt) {
+      setAiGenerationSeconds(0);
+      return;
+    }
+    const timer = window.setInterval(() => {
+      setAiGenerationSeconds(Math.floor((Date.now() - aiGenerationStartedAt) / 1000));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [aiGenerationStartedAt, isGeneratingAiImage]);
+
   const savePin = () => {
     window.localStorage.setItem(ADMIN_PIN_KEY, pin);
     void loadData(pin);
   };
 
   const normalizeSlug = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+
+  const generateProductDescription = async (mode: "create" | "edit") => {
+    const image = mode === "create"
+      ? newGalleryImages[0] ?? newFrontLookImage
+      : editGalleryImages[0] ?? editFrontLookImage;
+    const name = mode === "create" ? lookName : editLookName;
+    if (!image) {
+      setError("Upload at least one product photo first.");
+      return;
+    }
+
+    setDescriptionGenerationTarget(mode);
+    setError(null);
+    setMessage(null);
+    try {
+      const formData = new FormData();
+      formData.append("image", await imageUrlToBlob(image), "product.png");
+      formData.append("name", name);
+      const response = await fetch("/api/generate-product-description", {
+        method: "POST",
+        body: formData
+      });
+      const payload = await readJsonResponse<{ description?: string; error?: string }>(response);
+      if (!response.ok) throw new Error(payload.error ?? "AI description could not be created.");
+      const description = payload.description?.trim();
+      if (!description) throw new Error("AI description was empty.");
+      if (mode === "create") setProductNote(description);
+      else setEditProductNote(description);
+      setMessage("AI description added.");
+    } catch (descriptionError) {
+      setError(descriptionError instanceof Error ? descriptionError.message : "AI description could not be created.");
+    } finally {
+      setDescriptionGenerationTarget(null);
+    }
+  };
 
   const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>, view: "front" | "back" | "garment-front" | "garment-back") => {
     const file = event.target.files?.[0];
@@ -602,7 +676,11 @@ export default function AdminLooksPage() {
     try {
       files.forEach(validateImageFile);
       const dataUrls = await Promise.all(files.map(fileToDataUrl));
-      setNewGalleryImages((current) => [...current, ...dataUrls].slice(0, 12));
+      setNewGalleryImages((current) => {
+        const next = [...current, ...dataUrls].slice(0, 6);
+        setNewFrontLookImage(next[0] ?? null);
+        return next;
+      });
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : SUPPORTED_IMAGE_MESSAGE);
     } finally {
@@ -641,7 +719,11 @@ export default function AdminLooksPage() {
     try {
       files.forEach(validateImageFile);
       const dataUrls = await Promise.all(files.map(fileToDataUrl));
-      setEditGalleryImages((current) => [...current, ...dataUrls].slice(0, 12));
+      setEditGalleryImages((current) => {
+        const next = [...current, ...dataUrls].slice(0, 6);
+        setEditFrontLookImage(next[0] ?? null);
+        return next;
+      });
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : SUPPORTED_IMAGE_MESSAGE);
     } finally {
@@ -650,11 +732,43 @@ export default function AdminLooksPage() {
   };
 
   const removeCreateGalleryImage = (image: string) => {
-    setNewGalleryImages((current) => current.filter((item) => item !== image));
+    setNewGalleryImages((current) => {
+      const next = current.filter((item) => item !== image);
+      setNewFrontLookImage(next[0] ?? null);
+      return next;
+    });
   };
 
   const removeEditGalleryImage = (image: string) => {
-    setEditGalleryImages((current) => current.filter((item) => item !== image));
+    setEditGalleryImages((current) => {
+      const next = current.filter((item) => item !== image);
+      setEditFrontLookImage(next[0] ?? null);
+      return next;
+    });
+  };
+
+  const moveImageInList = (images: string[], index: number, direction: -1 | 1) => {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= images.length) return images;
+    const next = [...images];
+    [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+    return next;
+  };
+
+  const moveCreateGalleryImage = (index: number, direction: -1 | 1) => {
+    setNewGalleryImages((current) => {
+      const next = moveImageInList(current, index, direction);
+      setNewFrontLookImage(next[0] ?? null);
+      return next;
+    });
+  };
+
+  const moveEditGalleryImage = (index: number, direction: -1 | 1) => {
+    setEditGalleryImages((current) => {
+      const next = moveImageInList(current, index, direction);
+      setEditFrontLookImage(next[0] ?? null);
+      return next;
+    });
   };
 
   const callAdminAction = async (body: Record<string, unknown>) => {
@@ -673,8 +787,9 @@ export default function AdminLooksPage() {
   };
 
   const uploadLook = async () => {
-    if (!newFrontLookImage) {
-      setError("Upload a campaign image first.");
+    const mainListingImage = newGalleryImages[0] ?? newFrontLookImage;
+    if (!mainListingImage) {
+      setError("Upload at least one product photo first.");
       return;
     }
     if (!storeName.trim() || !storeSlug.trim()) {
@@ -706,7 +821,7 @@ export default function AdminLooksPage() {
         availabilityNote: availabilityNote.trim(),
         deliveryTime: deliveryTime.trim(),
         productNote: productNote.trim(),
-        frontImage: newFrontLookImage,
+        frontImage: mainListingImage,
         backImage: newBackLookImage,
         garmentFrontImage: newGarmentFrontImage,
         garmentBackImage: newGarmentBackImage,
@@ -729,7 +844,6 @@ export default function AdminLooksPage() {
       setAvailabilityNote("");
       setDeliveryTime("");
       setProductNote("");
-      setShowAdvancedViews(false);
       setMessage("New look is now active.");
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Look could not be saved.");
@@ -878,8 +992,9 @@ export default function AdminLooksPage() {
     setEditBackLookImage(null);
     setEditGarmentFrontImage(null);
     setEditGarmentBackImage(null);
+    const initialGalleryImages = getVisibleLookImages(look);
     setEditOriginalGalleryImages(look.galleryImageUrls ?? []);
-    setEditGalleryImages(look.galleryImageUrls ?? []);
+    setEditGalleryImages(initialGalleryImages);
     setMessage(null);
     setError(null);
   };
@@ -906,6 +1021,10 @@ export default function AdminLooksPage() {
   };
 
   const saveEditedLook = async (look: Look) => {
+    if (!editGalleryImages.length) {
+      setError("Keep at least one product photo in the gallery.");
+      return;
+    }
     setIsSaving(true);
     setError(null);
     setMessage(null);
@@ -935,11 +1054,12 @@ export default function AdminLooksPage() {
         availabilityNote: editAvailabilityNote.trim(),
         deliveryTime: editDeliveryTime.trim(),
         productNote: editProductNote.trim(),
-        frontImage: editFrontLookImage,
+        frontImage: editGalleryImages[0] ?? editFrontLookImage,
         backImage: editBackLookImage,
         garmentFrontImage: editGarmentFrontImage,
         garmentBackImage: editGarmentBackImage,
         galleryImages: editGalleryImages.filter((image) => image.startsWith("data:image/")),
+        keepGalleryImageUrls: editGalleryImages.filter((image) => !image.startsWith("data:image/")),
         keepGalleryIndexes
       });
       cancelEditingLook();
@@ -969,6 +1089,214 @@ export default function AdminLooksPage() {
       setError(deleteError instanceof Error ? deleteError.message : "Generated image could not be deleted.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const addImageDataUrlToProductGallery = async (look: Look, imageDataUrl: string) => {
+    const existingGalleryCount = editingLookId === look.id ? editGalleryImages.length : look.galleryImageUrls?.length ?? 0;
+    if (existingGalleryCount >= 6) {
+      setError("Product gallery already has 6 images. Remove one image first.");
+      return;
+    }
+
+    const updatedPayload = await callAdminAction({
+      action: "update-look",
+      id: look.id,
+      name: look.name,
+      campaignName: look.campaignName ?? "",
+      storeName: look.storeName ?? "",
+      storeSlug: look.storeSlug ?? "",
+      storeAddress: look.storeAddress ?? "",
+      whatsappNumber: look.whatsappNumber ?? "",
+      availableSizes: look.availableSizes ?? [],
+      price: look.price ?? "",
+      salePrice: look.salePrice ?? "",
+      discountLabel: look.discountLabel ?? "",
+      dealEndsAt: look.dealEndsAt ?? "",
+      inStock: Boolean(look.inStock),
+      availabilityNote: look.availabilityNote ?? "",
+      deliveryTime: look.deliveryTime ?? "",
+      productNote: look.productNote ?? "",
+      galleryImages: [imageDataUrl],
+      keepGalleryIndexes: (look.galleryImageUrls ?? []).map((_, index) => index)
+    });
+
+    if (editingLookId === look.id) {
+      const updatedLook = (updatedPayload.looks ?? []).find((item) => item.id === look.id);
+      const nextGalleryImages = updatedLook
+        ? getVisibleLookImages(updatedLook)
+        : [...editGalleryImages, imageDataUrl].slice(0, 6);
+      setEditOriginalGalleryImages(updatedLook?.galleryImageUrls ?? []);
+      setEditGalleryImages(nextGalleryImages);
+      setEditFrontLookImage(nextGalleryImages[0] ?? null);
+    }
+  };
+
+  const addGenerationToProductGallery = async (generation: Generation) => {
+    const look = (data.looks ?? []).find((item) => item.id === generation.lookId);
+    if (!look || !generation.imageUrl) {
+      setError("Generated image or listing was not found.");
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const generatedDataUrl = await blobToDataUrl(await imageUrlToBlob(generation.imageUrl));
+      await addImageDataUrlToProductGallery(look, generatedDataUrl);
+      setMessage("Generated image added to product gallery.");
+    } catch (addError) {
+      setError(addError instanceof Error ? addError.message : "Generated image could not be added to product gallery.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const getLookReferenceImages = (look: Look) => {
+    const productImages = look.galleryImageUrls?.length
+      ? look.galleryImageUrls
+      : [look.frontImageUrl ?? look.imageUrl].filter(Boolean) as string[];
+    const images = [
+      ...productImages,
+      look.garmentFrontImageUrl
+    ].filter(Boolean) as string[];
+    return Array.from(new Set(images)).slice(0, 6);
+  };
+
+  const openAiImageTool = (look: Look) => {
+    const images = getLookReferenceImages(look);
+    setAiToolLookId(look.id);
+    setAiReferenceImage(images[0] ?? "");
+    setAiImagePrompt("");
+    setAiModelMode("ai-model");
+    setAiModelReferenceImage(images[1] ?? images[0] ?? "");
+    setAiModelPhoto(null);
+    setMessage(null);
+    setError(null);
+  };
+
+  const closeAiImageTool = () => {
+    setAiToolLookId(null);
+    setAiReferenceImage("");
+    setAiImagePrompt("");
+    setAiModelMode("ai-model");
+    setAiModelReferenceImage("");
+    setAiModelPhoto(null);
+    setAiGenerationStartedAt(null);
+    setAiGenerationSeconds(0);
+  };
+
+  const handleAiModelPhotoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setError(null);
+    setMessage(null);
+    try {
+      validateImageFile(file);
+      setAiModelPhoto(await fileToDataUrl(file));
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : SUPPORTED_IMAGE_MESSAGE);
+      setAiModelPhoto(null);
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const createAiImageForLook = async () => {
+    const look = (data.looks ?? []).find((item) => item.id === aiToolLookId);
+    if (!look) {
+      setError("Choose a listing first.");
+      return;
+    }
+    if (!aiReferenceImage) {
+      setError("Choose one product photo as reference.");
+      return;
+    }
+    if (aiModelMode === "my-photo" && !aiModelPhoto) {
+      setError("Upload your model photo first, or choose AI model.");
+      return;
+    }
+    if (aiModelMode === "gallery-photo" && !aiModelReferenceImage) {
+      setError("Choose a gallery photo as model reference first, or choose AI model.");
+      return;
+    }
+
+    setIsGeneratingAiImage(true);
+    setAiGenerationStartedAt(Date.now());
+    setError(null);
+    setMessage("Creating AI image. This can take a moment.");
+
+    try {
+      const referenceBlob = await imageUrlToBlob(aiReferenceImage);
+      const formData = new FormData();
+      formData.append("image", referenceBlob, "listing-reference.png");
+      if (aiModelMode === "my-photo" && aiModelPhoto) {
+        formData.append("modelImage", dataUrlToBlob(aiModelPhoto), "model-photo.jpg");
+      }
+      if (aiModelMode === "gallery-photo" && aiModelReferenceImage) {
+        formData.append("modelImage", await imageUrlToBlob(aiModelReferenceImage), "gallery-model-photo.jpg");
+      }
+      formData.append("visitorId", `admin-${Date.now()}`);
+      formData.append("lookId", look.id);
+      formData.append("mode", "fashion-model");
+      formData.append("aspectRatio", "4:5");
+      formData.append(
+        "prompt",
+        [
+          aiModelMode === "my-photo"
+            ? "Create a realistic fashion try-on image using the uploaded person photo as the model source."
+            : aiModelMode === "gallery-photo"
+              ? "Create a realistic fashion image using the selected gallery photo with a person as the model source."
+              : "Create a realistic fashion campaign image on a professional adult AI model.",
+          aiModelMode === "gallery-photo"
+            ? "Image 2 is the model/person source. Use it for identity and body reference, but do not let it override the selected product reference view."
+            : "",
+          "Image 1 is the selected product photo and is the complete fashion source of truth.",
+          "The final image must follow the view direction of Image 1. If Image 1 shows the back of the garment, create a back view from behind. Do not turn it into a front view.",
+          "If the user asks for hinten, back, rear, or from behind, show the model from behind even when the model reference photo is front-facing.",
+          aiImagePrompt.trim() ? `User instruction: ${aiImagePrompt.trim()}` : "",
+          `Listing name: ${look.name}.`,
+          look.productNote ? `Product note: ${look.productNote}` : "",
+          "Preserve the garment type, color, print, logos, silhouette, length, and styling.",
+          "If the instruction asks for a T-shirt, show the entire T-shirt clearly from neckline to hem.",
+          "Keep the full front of the garment visible, including sleeves, collar, hem, and the complete print or motif.",
+          "Do not crop the garment at the chest, waist, or sides.",
+          "Use a product-listing composition where the buyer can inspect the whole item.",
+          "Do not add UI text, prices, badges, or screenshots.",
+          "Output a clean premium portrait image for a fashion listing."
+        ].filter(Boolean).join("\n")
+      );
+
+      const response = await fetch("/api/try-this-look-openai", {
+        method: "POST",
+        body: formData,
+        headers: {
+          "x-shopcut-account-id": "admin-internal"
+        }
+      });
+      const payload = await readJsonResponse<{ image?: string }>(response);
+      if (!response.ok || !payload.image) throw new Error(payload.error ?? "AI image could not be created.");
+
+      await callAdminAction({
+        action: "generation",
+        lookId: look.id,
+        image: payload.image,
+        visitorId: "admin-internal"
+      });
+      await addImageDataUrlToProductGallery(look, payload.image);
+      closeAiImageTool();
+      setMessage("AI image created and added to product gallery.");
+    } catch (generateError) {
+      const rawMessage = generateError instanceof Error ? generateError.message : "AI image could not be created.";
+      const friendlyMessage = /blocked|safety|moderation|policy|rejected/i.test(rawMessage)
+        ? "The provider blocked this image. Try another product photo, or choose a less revealing model photo."
+        : rawMessage;
+      setError(friendlyMessage);
+      setMessage(null);
+    } finally {
+      setIsGeneratingAiImage(false);
+      setAiGenerationStartedAt(null);
     }
   };
 
@@ -1114,9 +1442,9 @@ export default function AdminLooksPage() {
       <section className="mx-auto grid w-full max-w-6xl gap-5">
         <header className="grid gap-2">
           <div className="text-xs font-black uppercase tracking-[0.18em] text-cobalt">LuxuryBandit Admin</div>
-          <h1 className="text-5xl font-black leading-none text-ink">Looks</h1>
+            <h1 className="text-5xl font-black leading-none text-ink">Listings</h1>
           <p className="max-w-3xl text-sm font-bold leading-6 text-ink/60">
-            Manage one boutique, its offers, Instagram creatives, and incoming leads.
+            Manage one seller, their listings, Instagram creatives, and incoming buyer requests.
           </p>
           <Link href="/admin" className="inline-flex h-10 w-fit items-center justify-center rounded-md border border-black/10 bg-white px-4 text-xs font-black text-ink shadow-soft">
             Back to dashboard
@@ -1148,7 +1476,7 @@ export default function AdminLooksPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="text-xs font-black uppercase tracking-[0.16em] text-cobalt">Step 1</div>
-              <h2 className="mt-1 text-3xl font-black leading-none text-ink">Boutique</h2>
+              <h2 className="mt-1 text-3xl font-black leading-none text-ink">Seller</h2>
               <p className="mt-2 max-w-2xl text-sm font-bold leading-6 text-ink/55">
                 Choose the store you want to work on. Everything below is filtered to this boutique.
               </p>
@@ -1237,7 +1565,7 @@ export default function AdminLooksPage() {
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-cobalt/20 bg-cobalt/5 p-3">
             <div className="grid gap-2">
               <div className="text-xs font-black uppercase tracking-[0.16em] text-cobalt">Step 2</div>
-              <div className="text-xl font-black text-ink">Active offers</div>
+              <div className="text-xl font-black text-ink">Live listings</div>
               <div className="flex flex-wrap gap-2">
                 {visibleActiveLooks.length ? (
                   visibleActiveLooks.map((look) => (
@@ -1246,7 +1574,7 @@ export default function AdminLooksPage() {
                     </span>
                   ))
                 ) : (
-                  <span className="text-sm font-bold text-ink/50">No active looks yet.</span>
+                  <span className="text-sm font-bold text-ink/50">No live listings yet.</span>
                 )}
               </div>
             </div>
@@ -1274,7 +1602,7 @@ export default function AdminLooksPage() {
               <div>
                 <div className="text-xs font-black uppercase tracking-[0.16em] text-ink/45">Add new offer</div>
                 <div className="mt-1 text-sm font-bold text-ink/55">
-                  {selectedStore ? `Create a new look for ${selectedStore.name}.` : "Choose or save a store before uploading a look."}
+                  {selectedStore ? `Create a new listing for ${selectedStore.name}.` : "Choose or save a seller before uploading a listing."}
                 </div>
               </div>
               <button
@@ -1282,7 +1610,7 @@ export default function AdminLooksPage() {
                 onClick={() => setShowCreateLook((value) => !value)}
                 className="h-10 rounded-md bg-ink px-4 text-xs font-black text-white"
               >
-                {showCreateLook ? "Hide form" : "Add new look"}
+                {showCreateLook ? "Hide form" : "Add new listing"}
               </button>
             </div>
             {showCreateLook && (
@@ -1309,13 +1637,17 @@ export default function AdminLooksPage() {
                 availabilityNote={availabilityNote}
                 deliveryTime={deliveryTime}
                 productNote={productNote}
-                showAdvancedViews={showAdvancedViews}
                 isSaving={isSaving}
+                isGeneratingDescription={descriptionGenerationTarget === "create"}
                 onImageUpload={(event, view) => void handleImageUpload(event, view)}
                 onGalleryUpload={(event) => void handleGalleryUpload(event)}
-                onClearGallery={() => setNewGalleryImages([])}
+                onClearGallery={() => {
+                  setNewGalleryImages([]);
+                  setNewFrontLookImage(null);
+                }}
                 onRemoveGalleryImage={removeCreateGalleryImage}
-                onToggleAdvancedViews={() => setShowAdvancedViews((value) => !value)}
+                onMoveGalleryImage={moveCreateGalleryImage}
+                onPreviewGalleryImage={setPreviewGalleryImage}
                 onLookNameChange={setLookName}
                 onCampaignNameChange={setCampaignName}
                 onAvailableSizesChange={setAvailableSizes}
@@ -1327,6 +1659,7 @@ export default function AdminLooksPage() {
                 onAvailabilityNoteChange={setAvailabilityNote}
                 onDeliveryTimeChange={setDeliveryTime}
                 onProductNoteChange={setProductNote}
+                onGenerateDescription={() => void generateProductDescription("create")}
                 onSubmit={() => void uploadLook()}
               />
             )}
@@ -1337,7 +1670,7 @@ export default function AdminLooksPage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-xs font-black uppercase tracking-[0.16em] text-cobalt">Step 3</div>
-              <h2 className="mt-1 text-2xl font-black">Offers</h2>
+              <h2 className="mt-1 text-2xl font-black">Listings</h2>
             </div>
             <button type="button" onClick={() => void loadData()} className="inline-flex h-10 items-center gap-2 rounded-md bg-panel px-3 text-sm font-black">
               <RefreshCw aria-hidden="true" className="h-4 w-4" />
@@ -1350,7 +1683,7 @@ export default function AdminLooksPage() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {looksForSelectedStore.length === 0 && (
                 <div className="rounded-md border border-black/10 bg-panel p-4 text-sm font-bold text-ink/55 sm:col-span-2 lg:col-span-4">
-                  No looks for this store yet. Upload the first look for this boutique above.
+                  No listings for this seller yet. Upload the first listing above.
                 </div>
               )}
               {looksForSelectedStore.map((look) => {
@@ -1378,7 +1711,7 @@ export default function AdminLooksPage() {
                     {isEditing ? (
                       <div className="grid gap-3 rounded-md border border-black/10 bg-white p-3">
                         <div>
-                          <div className="text-xs font-black uppercase tracking-[0.16em] text-cobalt">Edit look</div>
+                          <div className="text-xs font-black uppercase tracking-[0.16em] text-cobalt">Edit listing</div>
                           <h3 className="mt-1 text-2xl font-black text-ink">{look.name}</h3>
                         </div>
                         <LookForm
@@ -1405,13 +1738,18 @@ export default function AdminLooksPage() {
                           availabilityNote={editAvailabilityNote}
                           deliveryTime={editDeliveryTime}
                           productNote={editProductNote}
-                          showAdvancedViews={showAdvancedViews}
                           isSaving={isSaving}
+                          isGeneratingDescription={descriptionGenerationTarget === "edit"}
                           onImageUpload={(event, view) => void handleEditImageUpload(event, view)}
                           onGalleryUpload={(event) => void handleEditGalleryUpload(event)}
-                          onClearGallery={() => setEditGalleryImages([])}
+                          onClearGallery={() => {
+                            setEditGalleryImages([]);
+                            setEditFrontLookImage(null);
+                          }}
                           onRemoveGalleryImage={removeEditGalleryImage}
-                          onToggleAdvancedViews={() => setShowAdvancedViews((value) => !value)}
+                          onMoveGalleryImage={moveEditGalleryImage}
+                          onPreviewGalleryImage={setPreviewGalleryImage}
+                          onOpenAiTool={() => openAiImageTool(look)}
                           onLookNameChange={setEditLookName}
                           onCampaignNameChange={setEditCampaignName}
                           onAvailableSizesChange={setEditAvailableSizes}
@@ -1423,6 +1761,7 @@ export default function AdminLooksPage() {
                           onAvailabilityNoteChange={setEditAvailabilityNote}
                           onDeliveryTimeChange={setEditDeliveryTime}
                           onProductNoteChange={setEditProductNote}
+                          onGenerateDescription={() => void generateProductDescription("edit")}
                           onSubmit={() => void saveEditedLook(look)}
                           onCancel={cancelEditingLook}
                         />
@@ -1432,7 +1771,7 @@ export default function AdminLooksPage() {
                           rel="noopener noreferrer"
                           className="inline-flex h-10 items-center justify-center rounded-md bg-ink px-3 text-xs font-black text-white"
                         >
-                          Create Instagram post
+                          Create listing slides
                         </a>
                       </div>
                     ) : (
@@ -1500,8 +1839,18 @@ export default function AdminLooksPage() {
                         rel="noopener noreferrer"
                         className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-cobalt px-3 text-xs font-black text-white"
                       >
-                        Create Instagram post
+                        Create listing slides
                       </a>
+                    )}
+                    {!isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => openAiImageTool(look)}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-cobalt/25 bg-white px-3 text-xs font-black text-cobalt"
+                      >
+                        <Sparkles aria-hidden="true" className="h-4 w-4" />
+                        Create AI image
+                      </button>
                     )}
                     <button
                       type="button"
@@ -1538,23 +1887,25 @@ export default function AdminLooksPage() {
           )}
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-3">
-          <div className="grid gap-2 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
+        <section className="grid gap-4">
+          <div className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
             <h2 className="text-2xl font-black">Funnel stats</h2>
             {funnelStats.some((item) => item.value > 0) ? (
-              funnelStats.map((item) => (
-                <div key={item.label} className="flex items-center justify-between border-b border-black/5 py-2 text-sm font-black">
-                  <span>{item.label}</span>
-                  <span className="text-cobalt">{item.value}</span>
-                </div>
-              ))
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                {funnelStats.map((item) => (
+                  <div key={item.label} className="rounded-md border border-black/10 bg-panel p-3">
+                    <div className="text-[11px] font-black uppercase tracking-[0.12em] text-ink/45">{item.label}</div>
+                    <div className="mt-2 text-2xl font-black text-cobalt">{item.value}</div>
+                  </div>
+                ))}
+              </div>
             ) : (
               <p className="text-sm font-bold text-ink/50">No events yet.</p>
             )}
           </div>
 
-          <div className="grid gap-2 rounded-lg border border-black/10 bg-white p-4 shadow-soft lg:col-span-2">
-            <h2 className="text-2xl font-black">Customer requests</h2>
+          <div className="grid gap-2 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
+            <h2 className="text-2xl font-black">Buyer requests</h2>
             {(data.leads ?? []).length ? (
               <div className="grid gap-2">
                 {(data.leads ?? []).map((lead) => (
@@ -1582,18 +1933,27 @@ export default function AdminLooksPage() {
                     )}
                     <div className="mt-1 text-xs text-ink/45">{new Date(lead.createdAt).toLocaleString()}</div>
                     <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto]">
-                      <div className="grid grid-cols-3 gap-2">
-                        {(["new", "contacted", "closed"] as const).map((status) => (
-                          <button
-                            key={status}
-                            type="button"
-                            disabled={isSaving || (lead.status ?? "new") === status}
-                            onClick={() => void updateLeadStatus(lead, status)}
-                            className="h-9 rounded-md border border-black/10 bg-white px-2 text-[11px] font-black capitalize text-ink disabled:bg-cobalt disabled:text-white"
-                          >
-                            {status}
-                          </button>
-                        ))}
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <label className="flex min-h-10 items-center gap-2 rounded-md border border-black/10 bg-white px-3 text-xs font-black text-ink">
+                          <input
+                            type="checkbox"
+                            checked={(lead.status ?? "new") === "contacted" || (lead.status ?? "new") === "closed"}
+                            disabled={isSaving || (lead.status ?? "new") === "closed"}
+                            onChange={(event) => void updateLeadStatus(lead, event.target.checked ? "contacted" : "new")}
+                            className="h-4 w-4 shrink-0 accent-cobalt"
+                          />
+                          Buyer contacted
+                        </label>
+                        <label className="flex min-h-10 items-center gap-2 rounded-md border border-black/10 bg-white px-3 text-xs font-black text-ink">
+                          <input
+                            type="checkbox"
+                            checked={(lead.status ?? "new") === "closed"}
+                            disabled={isSaving}
+                            onChange={(event) => void updateLeadStatus(lead, event.target.checked ? "closed" : "contacted")}
+                            className="h-4 w-4 shrink-0 accent-cobalt"
+                          />
+                          Request closed
+                        </label>
                       </div>
                       <button
                         type="button"
@@ -1617,12 +1977,217 @@ export default function AdminLooksPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm font-bold text-ink/50">No leads yet.</p>
+              <p className="text-sm font-bold text-ink/50">No buyer requests yet.</p>
             )}
           </div>
         </section>
 
       </section>
+      {aiToolLookId && (() => {
+        const look = (data.looks ?? []).find((item) => item.id === aiToolLookId);
+        const referenceImages = look ? getLookReferenceImages(look) : [];
+        return (
+          <div className="fixed inset-0 z-40 grid place-items-center bg-black/70 p-4" role="dialog" aria-modal="true">
+            <div className="grid max-h-[92vh] w-full max-w-3xl gap-4 overflow-auto rounded-lg bg-white p-4 shadow-soft">
+              <input ref={aiModelPhotoInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => void handleAiModelPhotoUpload(event)} />
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-xs font-black uppercase tracking-[0.16em] text-cobalt">Luxury Bandit AI Tool</div>
+                  <h2 className="mt-1 text-2xl font-black text-ink">Create AI product image</h2>
+                  <p className="mt-1 text-sm font-bold leading-6 text-ink/55">
+                    Choose a product reference, choose a model source, and generate a new image for this listing. Internal test uses OpenAI now; sellers will need credits later.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeAiImageTool}
+                  disabled={isGeneratingAiImage}
+                  className="h-11 rounded-md border border-black/10 bg-panel px-4 text-sm font-black text-ink disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              {look && (
+                <div className="rounded-md border border-black/10 bg-panel p-3 text-sm font-black text-ink">
+                  {look.storeName ? `${look.storeName} · ` : ""}{look.name}
+                </div>
+              )}
+
+              {isGeneratingAiImage && (
+                <div className="grid gap-3 rounded-md border border-cobalt/25 bg-cobalt/10 p-3">
+                  <div className="flex items-center gap-3">
+                    <Loader2 aria-hidden="true" className="h-5 w-5 animate-spin text-cobalt" />
+                    <div>
+                      <div className="text-sm font-black text-cobalt">AI image is being created</div>
+                      <div className="text-xs font-bold leading-5 text-ink/55">
+                        Please wait. This usually takes 30 to 90 seconds. Running for {aiGenerationSeconds}s.
+                      </div>
+                    </div>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-white">
+                    <div className="h-full w-1/2 animate-pulse rounded-full bg-cobalt" />
+                  </div>
+                  {aiReferenceImage && (
+                    <div className="grid grid-cols-[64px_1fr] items-center gap-3 rounded-md bg-white p-2">
+                      <div className="grid gap-1">
+                        <img src={aiReferenceImage} alt="" className="h-16 w-16 rounded border border-black/10 object-cover object-top" />
+                        {aiModelMode === "gallery-photo" && aiModelReferenceImage && (
+                          <img src={aiModelReferenceImage} alt="" className="h-16 w-16 rounded border border-cobalt/40 object-cover object-top" />
+                        )}
+                      </div>
+                      <div className="text-xs font-bold leading-5 text-ink/60">
+                        Product reference selected{aiModelMode === "gallery-photo" ? " and gallery model selected" : ""}. Result will be placed into the product gallery.
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="grid gap-2">
+                <div className="text-xs font-black uppercase tracking-[0.14em] text-ink/45">1. Product reference</div>
+                {referenceImages.length ? (
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                    {referenceImages.map((image, index) => (
+                      <button
+                        key={`${image.slice(0, 24)}-${index}`}
+                        type="button"
+                        onClick={() => setAiReferenceImage(image)}
+                        className={`overflow-hidden rounded-md border bg-panel p-1 ${aiReferenceImage === image ? "border-cobalt ring-2 ring-cobalt/25" : "border-black/10"}`}
+                      >
+                        <img src={image} alt="" className="aspect-square w-full rounded object-cover object-top" />
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-coral/20 bg-coral/10 p-3 text-sm font-black text-coral">
+                    This listing has no usable product photo yet.
+                  </div>
+                )}
+              </div>
+
+              <div className="grid gap-2">
+                <div className="text-xs font-black uppercase tracking-[0.14em] text-ink/45">2. Prompt</div>
+                <textarea
+                  value={aiImagePrompt}
+                  onChange={(event) => setAiImagePrompt(event.target.value)}
+                  placeholder="Optional: e.g. Make a black T-shirt with this motif. Show the whole shirt from collar to hem, full front visible."
+                  className="min-h-24 rounded-md border border-black/10 bg-panel p-3 text-sm font-bold leading-6 outline-none focus:border-cobalt"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <div className="text-xs font-black uppercase tracking-[0.14em] text-ink/45">3. Model</div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={() => setAiModelMode("ai-model")}
+                    className={`h-12 rounded-md border px-4 text-sm font-black ${aiModelMode === "ai-model" ? "border-cobalt bg-cobalt text-white" : "border-black/10 bg-panel text-ink"}`}
+                  >
+                    AI model
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAiModelMode("my-photo")}
+                    className={`h-12 rounded-md border px-4 text-sm font-black ${aiModelMode === "my-photo" ? "border-cobalt bg-cobalt text-white" : "border-black/10 bg-panel text-ink"}`}
+                  >
+                    My photo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAiModelMode("gallery-photo")}
+                    className={`h-12 rounded-md border px-4 text-sm font-black ${aiModelMode === "gallery-photo" ? "border-cobalt bg-cobalt text-white" : "border-black/10 bg-panel text-ink"}`}
+                  >
+                    Gallery photo
+                  </button>
+                </div>
+                {aiModelMode === "gallery-photo" && (
+                  <div className="grid gap-2 rounded-md border border-black/10 bg-panel p-3">
+                    <div className="text-xs font-black uppercase tracking-[0.12em] text-ink/45">
+                      Choose model image
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                      {referenceImages.map((image, index) => (
+                        <button
+                          key={`model-${image.slice(0, 24)}-${index}`}
+                          type="button"
+                          onClick={() => setAiModelReferenceImage(image)}
+                          className={`overflow-hidden rounded-md border bg-white p-1 ${aiModelReferenceImage === image ? "border-cobalt ring-2 ring-cobalt/25" : "border-black/10"}`}
+                        >
+                          <img src={image} alt="" className="aspect-square w-full rounded object-cover object-top" />
+                          <span className="mt-1 block text-[10px] font-black text-ink/50">Image {index + 1}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs font-bold leading-5 text-ink/50">
+                      Use this when one gallery image shows the person/model and another image shows the product or motif.
+                    </p>
+                  </div>
+                )}
+                {aiModelMode === "my-photo" && (
+                  <div className="grid gap-2 rounded-md border border-black/10 bg-panel p-3">
+                    <button
+                      type="button"
+                      onClick={() => aiModelPhotoInputRef.current?.click()}
+                      className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-ink px-4 text-sm font-black text-white"
+                    >
+                      <ImagePlus aria-hidden="true" className="h-4 w-4" />
+                      {aiModelPhoto ? "Change my photo" : "Upload my photo"}
+                    </button>
+                    {aiModelPhoto && (
+                      <img src={aiModelPhoto} alt="" className="max-h-64 w-full rounded-md border border-black/10 bg-white object-contain" />
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid gap-2 sm:grid-cols-[1fr_1fr]">
+                <button
+                  type="button"
+                  onClick={closeAiImageTool}
+                  disabled={isGeneratingAiImage}
+                  className="inline-flex h-12 items-center justify-center rounded-md border border-black/10 bg-panel px-4 text-sm font-black text-ink disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void createAiImageForLook()}
+                  disabled={isGeneratingAiImage || !referenceImages.length}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-cobalt px-4 text-sm font-black text-white disabled:cursor-wait disabled:opacity-50"
+                >
+                  {isGeneratingAiImage ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <Sparkles aria-hidden="true" className="h-4 w-4" />}
+                  {isGeneratingAiImage ? "Creating AI image..." : "Create AI image"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+      {previewGalleryImage && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4" role="dialog" aria-modal="true">
+          <div className="grid max-h-[92vh] w-full max-w-5xl gap-3 overflow-auto rounded-lg bg-white p-4 shadow-soft">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xl font-black text-ink">Product photo</div>
+              <button
+                type="button"
+                onClick={() => setPreviewGalleryImage(null)}
+                className="h-11 rounded-md border border-black/10 bg-panel px-4 text-sm font-black text-ink"
+              >
+                Close
+              </button>
+            </div>
+            <img src={previewGalleryImage} alt="Product photo large" className="max-h-[72vh] w-full rounded-md border border-black/10 bg-white object-contain" />
+            <button
+              type="button"
+              onClick={() => setPreviewGalleryImage(null)}
+              className="inline-flex h-12 items-center justify-center rounded-md bg-ink px-4 text-sm font-black text-white"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
       {generationGalleryLookId && (
         <div className="fixed inset-0 z-40 grid place-items-center bg-black/70 p-4" role="dialog" aria-modal="true">
           <div className="grid max-h-[92vh] w-full max-w-6xl gap-3 overflow-auto rounded-lg bg-white p-4 shadow-soft">
@@ -1670,6 +2235,15 @@ export default function AdminLooksPage() {
                       </div>
                       <button
                         type="button"
+                        onClick={() => void addGenerationToProductGallery(generation)}
+                        disabled={isSaving}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-cobalt px-3 text-xs font-black text-white disabled:cursor-wait disabled:opacity-50"
+                      >
+                        <ImagePlus aria-hidden="true" className="h-4 w-4" />
+                        Add to product gallery
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => void deleteGeneration(generation)}
                         disabled={isSaving}
                         className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-coral/30 bg-coral/10 px-3 text-xs font-black text-coral disabled:cursor-wait disabled:opacity-50"
@@ -1715,6 +2289,15 @@ export default function AdminLooksPage() {
                 );
               })()}
             </div>
+            <button
+              type="button"
+              onClick={() => void addGenerationToProductGallery(selectedGeneration)}
+              disabled={isSaving}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-cobalt px-4 text-sm font-black text-white disabled:cursor-wait disabled:opacity-50"
+            >
+              <ImagePlus aria-hidden="true" className="h-4 w-4" />
+              Add to product gallery
+            </button>
             <button
               type="button"
               onClick={() => void deleteGeneration(selectedGeneration)}
