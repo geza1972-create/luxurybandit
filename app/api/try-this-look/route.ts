@@ -233,11 +233,11 @@ export async function POST(request: Request) {
 
     if (payload.action === "like") {
       const lookId = String(payload.lookId ?? "").trim();
-      const delta = payload.liked ? 1 : -1;
+      const delta = (payload as any).liked ? 1 : -1;
       const look = state.looks.find(l => l.id === lookId);
       if (look) {
         (look as any).likeCount = Math.max(0, ((look as any).likeCount ?? 0) + delta);
-        await writeTryThisLookState(state);
+        await saveTryThisLookState(state);
       }
       return NextResponse.json({ likeCount: (look as any)?.likeCount ?? 0 });
     }
