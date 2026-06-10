@@ -250,10 +250,12 @@ export default function SellerDashboardPage() {
   const [requestingAi, setRequestingAi] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const session = getStoredAuthSession();
+  const [session, setSession] = useState<ReturnType<typeof getStoredAuthSession>>(null);
 
   useEffect(() => {
-    if (!session?.access_token) { router.push("/seller/login"); return; }
+    const s = getStoredAuthSession();
+    if (!s?.access_token) { router.push("/seller/login"); return; }
+    setSession(s);
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
