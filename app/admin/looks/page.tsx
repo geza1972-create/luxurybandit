@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import CropModal from "@/components/CropModal";
 import GarmentExtractorModal from "@/components/GarmentExtractorModal";
 import { ArrowLeft, ArrowRight, Camera, Check, Ghost, ImagePlus, Images, Loader2, Pencil, RefreshCw, Scissors, Sparkles, Trash2, UserRound } from "lucide-react";

@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { ArrowLeft, ChevronDown, ChevronUp, ExternalLink, Eye, EyeOff, Loader2, Mail, MapPin, Package, Phone, RefreshCw, Sparkles, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";

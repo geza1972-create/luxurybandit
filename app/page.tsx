@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { AccountPanel } from "@/components/AccountPanel";
 import { ImageEditor } from "@/components/ImageEditor";
 import { LuxuryBandiLanding } from "@/components/LuxuryBandiLanding";

@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import CropModal from "@/components/CropModal";
 import { getClientAccountId } from "@/lib/client-account";
 import { useParams, useRouter } from "next/navigation";

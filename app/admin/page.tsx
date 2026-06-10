@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { ArrowRight, Clock, ExternalLink, ImagePlus, LayoutDashboard, List, LogIn, Loader2, Megaphone, Package, RefreshCw, Settings, ShoppingBag, Store, Tags, UserPlus, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
