@@ -6,7 +6,6 @@ import CropModal from "@/components/CropModal";
 import { getClientAccountId } from "@/lib/client-account";
 import { useParams, useRouter } from "next/navigation";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import {
   Bookmark,
   ChevronLeft,
@@ -193,6 +192,12 @@ export default function LookPage() {
   const [imgIndex, setImgIndex] = useState(0);
   const [showInfo, setShowInfo] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
+  const galleryRef = useRef<HTMLDivElement>(null);
+  const dragX = useRef(0);
+  const dragStartX = useRef<number | null>(null);
+  const dragStartY = useRef<number | null>(null);
+  const dragStartTime = useRef(0);
+  const isDraggingGallery = useRef(false);
 
   // Panels: 0 = main look, 1 = try-on
   const [panel, setPanel] = useState<0 | 1>(0);
@@ -267,27 +272,102 @@ export default function LookPage() {
   const storeKey = look.storeSlug ?? look.storeName ?? "store";
   const garmentUrl = look.garmentFrontImageUrl ?? look.frontImageUrl ?? look.imageUrl;
 
-  // ── Gallery navigation ──
-  const prev = () => setImgIndex(i => (i - 1 + images.length) % images.length);
-  const next = () => setImgIndex(i => (i + 1) % images.length);
+  // Sync gallery position when imgIndex changes via dots click
+  useEffect(() => {
+    if (!galleryRef.current) return;
+    galleryRef.current.style.transition = "transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94)";
+    galleryRef.current.style.transform = `translateX(-${imgIndex * (100 / Math.max(images.length, 1))}%)`;
+  }, [imgIndex, images.length]);
 
-  // ── Unified touch handler (outer container) ──
+  // ── Live drag gallery helpers ──
+  const applyGalleryDrag = (offsetPx: number) => {
+    if (!galleryRef.current) return;
+    const pct = imgIndex * (100 / images.length);
+    const w = galleryRef.current.parentElement?.clientWidth ?? window.innerWidth;
+    const dragPct = (offsetPx / w) * (100 / images.length);
+    galleryRef.current.style.transition = "none";
+    galleryRef.current.style.transform = `translateX(calc(-${pct}% + ${offsetPx * (1 / images.length) * (images.length)}px))`;
+  };
+  const snapGallery = (targetIdx: number) => {
+    if (!galleryRef.current) return;
+    galleryRef.current.style.transition = "transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94)";
+    galleryRef.current.style.transform = `translateX(-${targetIdx * (100 / images.length)}%)`;
+    setImgIndex(targetIdx);
+  };
+
+  // ── Touch handler ──
   const onPanelTouchStart = (e: React.TouchEvent) => {
     panelStartX.current = e.touches[0].clientX;
     panelStartY.current = e.touches[0].clientY;
+    dragStartX.current = e.touches[0].clientX;
+    dragStartY.current = e.touches[0].clientY;
+    dragStartTime.current = Date.now();
+    isDraggingGallery.current = false;
+    dragX.current = 0;
   };
+
+  const onPanelTouchMove = (e: React.TouchEvent) => {
+    if (panel !== 0 || dragStartX.current === null || dragStartY.current === null) return;
+    const dx = e.touches[0].clientX - dragStartX.current;
+    const dy = e.touches[0].clientY - dragStartY.current;
+    const adx = Math.abs(dx);
+    const ady = Math.abs(dy);
+
+    // Lock to horizontal gallery drag once direction is clear
+    if (!isDraggingGallery.current) {
+      if (adx < 8 && ady < 8) return; // wait for clear intent
+      if (ady > adx) return; // vertical scroll wins — don't drag gallery
+      isDraggingGallery.current = true;
+    }
+
+    if (isDraggingGallery.current && images.length > 1) {
+      dragX.current = dx;
+      // Resistance at edges
+      const atStart = imgIndex === 0 && dx > 0;
+      const atEnd = imgIndex === images.length - 1 && dx < 0;
+      const resistance = (atStart || atEnd) ? 0.25 : 1;
+      if (!galleryRef.current) return;
+      const baseOffset = -imgIndex * (100 / images.length);
+      const w = galleryRef.current.parentElement?.clientWidth ?? window.innerWidth;
+      const dragOffset = (dx * resistance / w) * 100;
+      galleryRef.current.style.transition = "none";
+      galleryRef.current.style.transform = `translateX(${baseOffset + dragOffset / images.length}%)`;
+      e.stopPropagation();
+    }
+  };
+
   const onPanelTouchEnd = (e: React.TouchEvent) => {
     if (panelStartX.current === null || panelStartY.current === null) return;
     const dx = e.changedTouches[0].clientX - panelStartX.current;
     const dy = e.changedTouches[0].clientY - panelStartY.current;
-    panelStartX.current = null;
-    panelStartY.current = null;
-
     const adx = Math.abs(dx);
     const ady = Math.abs(dy);
+    const dt = Date.now() - dragStartTime.current;
+    const vx = adx / dt; // px/ms velocity
+    panelStartX.current = null;
+    panelStartY.current = null;
+    dragStartX.current = null;
+    dragStartY.current = null;
 
-    // Vertical swipe → switch look in-place (no page reload)
-    if (panel === 0 && ady >= 70 && ady > adx * 1.5) {
+    // Gallery drag snap
+    if (isDraggingGallery.current && images.length > 1) {
+      isDraggingGallery.current = false;
+      const isFastSwipe = vx > 0.3; // fast flick
+      if ((dx < -40 || isFastSwipe) && dx < 0 && imgIndex < images.length - 1) {
+        snapGallery(imgIndex + 1);
+      } else if ((dx > 40 || isFastSwipe) && dx > 0 && imgIndex > 0) {
+        snapGallery(imgIndex - 1);
+      } else {
+        snapGallery(imgIndex); // snap back
+      }
+      return;
+    }
+
+    // Must have clear direction — ignore diagonal gestures
+    if (adx < 50 && ady < 100) return;
+
+    // Vertical → navigate between looks (strict: 3:1 + 100px)
+    if (ady > adx * 3 && ady >= 100 && panel === 0 && storeLooks.length > 1) {
       let nextIdx = currentIdx;
       if (dy < 0 && currentIdx < storeLooks.length - 1) nextIdx = currentIdx + 1;
       else if (dy > 0 && currentIdx > 0) nextIdx = currentIdx - 1;
@@ -297,21 +377,16 @@ export default function LookPage() {
         setImgIndex(0);
         setShowSheet(false);
         window.history.pushState(null, "", `/look/${storeLooks[nextIdx].id}`);
+        if (galleryRef.current) {
+          galleryRef.current.style.transition = "none";
+          galleryRef.current.style.transform = "translateX(0%)";
+        }
       }
       return;
     }
 
-    // Horizontal swipe (must dominate)
-    if (adx < 40 || adx < ady * 1.2) return;
-
-    // Short horizontal swipe → gallery image (panel 0, multi-image)
-    if (panel === 0 && adx < 130 && images.length > 1) {
-      dx < 0 ? next() : prev();
-      return;
-    }
-
-    // Long horizontal swipe → panel change
-    if (adx >= 80) {
+    // Horizontal → panel switch (long swipe only, > 120px)
+    if (adx > ady * 2 && adx >= 120) {
       if (dx < 0 && panel === 0) setPanel(1);
       if (dx > 0 && panel === 1) setPanel(0);
     }
@@ -427,6 +502,7 @@ export default function LookPage() {
       className="relative w-full overflow-hidden bg-black"
       style={{ height: "100dvh" }}
       onTouchStart={onPanelTouchStart}
+      onTouchMove={onPanelTouchMove}
       onTouchEnd={onPanelTouchEnd}
     >
       {/* ── Two-panel slider ── */}
@@ -440,11 +516,22 @@ export default function LookPage() {
         ═══════════════════════════════════════════════ */}
         <div className="relative h-full" style={{ width: "50%" }}>
 
-          {/* Full-screen image */}
-          <div className="absolute inset-0">
-            {images[imgIndex] && (
-              <Image src={images[imgIndex]} alt={look.name} fill sizes="100vw" className="object-cover object-top" priority />
-            )}
+          {/* Full-screen gallery — live drag like Instagram */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div
+              ref={galleryRef}
+              className="flex h-full"
+              style={{ width: `${images.length * 100}%`, transform: `translateX(-${imgIndex * (100 / images.length)}%)`, willChange: "transform" }}
+            >
+              {images.map((src, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={i} src={src} alt={look.name}
+                  className="h-full object-cover object-top"
+                  style={{ width: `${100 / images.length}%` }}
+                  draggable={false}
+                />
+              ))}
+            </div>
             <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/60 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/80 to-transparent" />
           </div>
