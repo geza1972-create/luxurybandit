@@ -186,6 +186,7 @@ export default function LookPage() {
   // Look data
   const [look, setLook] = useState<Look | null>(null);
   const [storeLooks, setStoreLooks] = useState<Look[]>([]);
+  const [currentIdx, setCurrentIdx] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   // Gallery
@@ -229,7 +230,10 @@ export default function LookPage() {
         const current = all.find(l => l.id === lookId) ?? null;
         setLook(current);
         if (current?.storeSlug) {
-          setStoreLooks(all.filter(l => l.storeSlug === current.storeSlug));
+          const siblings = all.filter(l => l.storeSlug === current.storeSlug);
+          setStoreLooks(siblings);
+          const idx = siblings.findIndex(l => l.id === lookId);
+          setCurrentIdx(idx >= 0 ? idx : 0);
         }
       })
       .finally(() => setIsLoading(false));
@@ -245,7 +249,7 @@ export default function LookPage() {
 
   if (isLoading) return (
     <div className="flex h-screen items-center justify-center bg-black">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white" />
     </div>
   );
 
@@ -282,13 +286,17 @@ export default function LookPage() {
     const adx = Math.abs(dx);
     const ady = Math.abs(dy);
 
-    // Vertical swipe → navigate store looks (panel 0 only, vertical dominates)
+    // Vertical swipe → switch look in-place (no page reload)
     if (panel === 0 && ady >= 70 && ady > adx * 1.5) {
-      const idx = storeLooks.findIndex(l => l.id === lookId);
-      if (dy < 0 && idx < storeLooks.length - 1) {
-        router.push(`/look/${storeLooks[idx + 1].id}`);
-      } else if (dy > 0 && idx > 0) {
-        router.push(`/look/${storeLooks[idx - 1].id}`);
+      let nextIdx = currentIdx;
+      if (dy < 0 && currentIdx < storeLooks.length - 1) nextIdx = currentIdx + 1;
+      else if (dy > 0 && currentIdx > 0) nextIdx = currentIdx - 1;
+      if (nextIdx !== currentIdx) {
+        setCurrentIdx(nextIdx);
+        setLook(storeLooks[nextIdx]);
+        setImgIndex(0);
+        setShowSheet(false);
+        window.history.pushState(null, "", `/look/${storeLooks[nextIdx].id}`);
       }
       return;
     }
