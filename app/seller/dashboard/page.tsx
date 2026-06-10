@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import {
   Loader2, Plus, Pencil, Trash2, Sparkles, Lock,
   CheckCircle2, ImagePlus, X, User, ChevronDown,
