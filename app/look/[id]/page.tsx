@@ -200,7 +200,7 @@ export default function LookPage() {
     </div>
   );
 
-  const images = [look.frontImageUrl ?? look.imageUrl, ...(look.galleryImageUrls ?? [])].filter(Boolean) as string[];
+  const images = [...new Set([look.frontImageUrl ?? look.imageUrl, ...(look.galleryImageUrls ?? [])].filter(Boolean))] as string[];
   const isSoldOut = look.inStock === false;
   const displayPrice = look.salePrice ?? look.price;
   const storeKey = look.storeSlug ?? look.storeName ?? "store";
@@ -392,10 +392,10 @@ export default function LookPage() {
             </button>
 
             {images.length > 1 && (
-              <div className="flex gap-1">
+              <div className="flex items-center gap-[5px]">
                 {images.map((_, i) => (
                   <button key={i} type="button" onClick={() => setImgIndex(i)}
-                    className={`h-1 rounded-full transition-all ${i === imgIndex ? "w-5 bg-white" : "w-1.5 bg-white/40"}`} />
+                    className={`rounded-full transition-all duration-200 ${i === imgIndex ? "h-2 w-2 bg-white" : "h-1.5 w-1.5 bg-white/50"}`} />
                 ))}
               </div>
             )}

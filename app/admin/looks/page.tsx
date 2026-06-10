@@ -2365,7 +2365,7 @@ export default function AdminLooksPage() {
                       {look.storeName ?? "⚠ No seller assigned"}
                     </div>
                     {look.storeSlug && (() => {
-                      const lookPath = `/store/${look.storeSlug}/${normalizeSlug(look.name) || look.id}`;
+                      const lookPath = `/look/${look.id}`;
                       const fullUrl = `${typeof window !== "undefined" ? window.location.origin : ""}${lookPath}`;
                       return (
                         <div className="grid gap-1">
