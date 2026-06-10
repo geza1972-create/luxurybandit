@@ -9,6 +9,8 @@ import {
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+// Allow large JSON bodies for gallery uploads with multiple base64 images
+export const maxDuration = 60;
 
 function isAdmin(request: Request) {
   const configuredPin = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim();
@@ -18,6 +20,16 @@ function isAdmin(request: Request) {
 
 function normalizeSlug(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+function normalizeImageUrl(value = "") {
+  if (!value) return "";
+  try {
+    const url = new URL(value);
+    return `${url.origin}${url.pathname}`;
+  } catch {
+    return value.split("?")[0] ?? value;
+  }
 }
 
 function visibleImageUrls(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number]) {
@@ -43,6 +55,9 @@ function visibleImageUrls(look: Awaited<ReturnType<typeof readTryThisLookState>>
 function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number]) {
   const galleryImageUrls = visibleImageUrls(look);
   const primaryImageUrl = galleryImageUrls[0] ?? look.frontImageUrl ?? look.imageUrl;
+  const frontPath = look.frontImagePath ?? look.imagePath;
+  // Expose clean gallery paths: exclude front image path to avoid client-side duplicates
+  const cleanGalleryPaths = (look.galleryImagePaths ?? []).filter(p => p && p !== frontPath);
   return {
     id: look.id,
     name: look.name,
@@ -50,40 +65,45 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     storeName: look.storeName,
     storeSlug: look.storeSlug,
     storeAddress: look.storeAddress,
-    whatsappNumber: look.whatsappNumber,
     availableSizes: look.availableSizes,
     price: look.price,
     salePrice: look.salePrice,
     discountLabel: look.discountLabel,
     dealEndsAt: look.dealEndsAt,
     inStock: look.inStock,
+    published: look.published,
     availabilityNote: look.availabilityNote,
     deliveryTime: look.deliveryTime,
     productNote: look.productNote,
+    hashtags: (look as any).hashtags,
     createdAt: look.createdAt,
     imageUrl: primaryImageUrl,
     frontImageUrl: primaryImageUrl,
+    frontImagePath: frontPath,
     backImageUrl: look.backImageUrl,
     garmentFrontImageUrl: look.garmentFrontImageUrl,
     garmentBackImageUrl: look.garmentBackImageUrl,
-    galleryImageUrls
+    galleryImageUrls,
+    galleryImagePaths: cleanGalleryPaths
   };
 }
 
-function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, preferredStoreSlug = "", preferredLookSlug = "") {
+function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, preferredStoreSlug = "", preferredLookSlug = "", forAdmin = false) {
   const normalizedSlug = preferredStoreSlug.trim().toLowerCase();
   const normalizedLookSlug = normalizeSlug(preferredLookSlug);
   const globalActiveLook = getActiveTryThisLook(state);
   const globalActiveLooks = getActiveTryThisLooks(state);
+  // Drafts (published === false) are never visible to store visitors — but admin sees all
+  const visibleLooks = forAdmin ? state.looks : state.looks.filter((look) => look.published !== false);
   const storeLooks = normalizedSlug
-    ? state.looks.filter((look) => look.storeSlug?.toLowerCase() === normalizedSlug)
+    ? visibleLooks.filter((look) => look.storeSlug?.toLowerCase() === normalizedSlug)
     : [];
   const activeIds = new Set(state.activeLookIds?.length ? state.activeLookIds : [state.activeLookId]);
   const storeActiveLooks = normalizedSlug
     ? storeLooks.filter((look) => activeIds.has(look.id))
     : [];
   const preferredLook = normalizedLookSlug
-    ? (normalizedSlug ? storeLooks : state.looks).find((look) => look.id === preferredLookSlug || normalizeSlug(look.name) === normalizedLookSlug)
+    ? (normalizedSlug ? storeLooks : visibleLooks).find((look) => look.id === preferredLookSlug || normalizeSlug(look.name) === normalizedLookSlug)
     : undefined;
   const activeLook = normalizedSlug
     ? preferredLook ?? storeActiveLooks[0] ?? storeLooks[0] ?? globalActiveLook
@@ -91,11 +111,13 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
   const activeLooks = normalizedSlug
     ? storeActiveLooks.length ? storeActiveLooks : activeLook ? [activeLook] : []
     : globalActiveLooks;
+  // Strip sensitive fields from stores for public response
+  const publicStores = (state.stores ?? []).map(({ whatsappNumber: _wa, ...s }) => s);
   return {
     activeLook: activeLook ? serializeLook(activeLook) : undefined,
     activeLooks: activeLooks.map(serializeLook),
-    stores: state.stores ?? [],
-    looks: state.looks.map(serializeLook)
+    stores: forAdmin ? (state.stores ?? []) : publicStores,
+    looks: visibleLooks.map(serializeLook)
   };
 }
 
@@ -111,7 +133,7 @@ export async function GET(request: Request) {
     }
     if (!wantsAdminData) return NextResponse.json(publicState(state, storeSlug, lookSlug));
     return NextResponse.json({
-      ...publicState(state, storeSlug, lookSlug),
+      ...publicState(state, storeSlug, lookSlug, true),
       events: state.events,
       leads: state.leads,
       generations: state.generations
@@ -141,9 +163,11 @@ export async function POST(request: Request) {
       discountLabel?: string;
       dealEndsAt?: string;
       inStock?: boolean;
+      published?: boolean;
       availabilityNote?: string;
       deliveryTime?: string;
       productNote?: string;
+      hashtags?: string;
       image?: string;
       frontImage?: string;
       backImage?: string;
@@ -152,6 +176,8 @@ export async function POST(request: Request) {
       galleryImages?: string[];
       keepGalleryIndexes?: number[];
       keepGalleryImageUrls?: string[];
+      keepGalleryPaths?: string[];
+      frontImagePath?: string;
       lookId?: string;
       event?: string;
       email?: string;
@@ -169,10 +195,16 @@ export async function POST(request: Request) {
       status?: string;
       utmSource?: string;
       utmCampaign?: string;
+      // Seller AI management
+      aiEnabled?: boolean;
+      aiCreditsLimit?: number;
+      resetCredits?: boolean;
     };
 
     const state = await readTryThisLookState();
     const now = new Date().toISOString();
+    const adminRequest = isAdmin(request);
+    const ps = (s: typeof state) => publicState(s, "", "", adminRequest);
 
     if (payload.action === "event") {
       const activeLook = getActiveTryThisLook(state);
@@ -195,7 +227,7 @@ export async function POST(request: Request) {
       });
 
       const updatedState = await saveTryThisLookState(state);
-      return NextResponse.json(publicState(updatedState));
+      return NextResponse.json(ps(updatedState));
     }
 
     if (payload.action === "lead") {
@@ -248,7 +280,7 @@ export async function POST(request: Request) {
       });
 
       const updatedState = await saveTryThisLookState(state);
-      return NextResponse.json(publicState(updatedState));
+      return NextResponse.json(ps(updatedState));
     }
 
     if (payload.action === "update-lead-status") {
@@ -269,7 +301,7 @@ export async function POST(request: Request) {
       );
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json({
-        ...publicState(updatedState),
+        ...ps(updatedState),
         events: updatedState.events,
         leads: updatedState.leads,
         generations: updatedState.generations
@@ -293,7 +325,7 @@ export async function POST(request: Request) {
 
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json({
-        ...publicState(updatedState),
+        ...ps(updatedState),
         events: updatedState.events,
         leads: updatedState.leads,
         generations: updatedState.generations
@@ -326,7 +358,7 @@ export async function POST(request: Request) {
       });
 
       const updatedState = await saveTryThisLookState(state);
-      return NextResponse.json(publicState(updatedState));
+      return NextResponse.json(ps(updatedState));
     }
 
     if (!isAdmin(request)) {
@@ -348,6 +380,7 @@ export async function POST(request: Request) {
       const availabilityNote = String(payload.availabilityNote ?? "").trim();
       const deliveryTime = String(payload.deliveryTime ?? "").trim();
       const productNote = String(payload.productNote ?? "").trim();
+      const hashtags = String(payload.hashtags ?? "").trim();
       const availableSizes = Array.isArray(payload.availableSizes)
         ? payload.availableSizes.map((size) => String(size).trim()).filter(Boolean)
         : [];
@@ -374,6 +407,7 @@ export async function POST(request: Request) {
               .map((image) => uploadTryThisLookImage("looks", image))
           )
         : [];
+      const published = payload.published === true; // false by default (draft)
       const look = {
         id: `look-${Date.now()}`,
         name,
@@ -388,9 +422,11 @@ export async function POST(request: Request) {
         discountLabel: discountLabel || undefined,
         dealEndsAt: dealEndsAt || undefined,
         inStock: inStock || undefined,
+        published,
         availabilityNote: availabilityNote || undefined,
         deliveryTime: deliveryTime || undefined,
         productNote: productNote || undefined,
+        hashtags: hashtags || undefined,
         imagePath: frontImagePath,
         frontImagePath,
         backImagePath,
@@ -422,7 +458,7 @@ export async function POST(request: Request) {
 
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json({
-        ...publicState(updatedState),
+        ...ps(updatedState),
         events: updatedState.events,
         leads: updatedState.leads,
         generations: updatedState.generations
@@ -460,7 +496,7 @@ export async function POST(request: Request) {
 
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json({
-        ...publicState(updatedState),
+        ...ps(updatedState),
         events: updatedState.events,
         leads: updatedState.leads,
         generations: updatedState.generations
@@ -515,7 +551,7 @@ export async function POST(request: Request) {
 
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json({
-        ...publicState(updatedState),
+        ...ps(updatedState),
         events: updatedState.events,
         leads: updatedState.leads,
         generations: updatedState.generations
@@ -529,23 +565,26 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Look was not found." }, { status: 404 });
       }
 
-      const name = String(payload.name ?? "").trim() || existingLook.name;
-      const campaignName = String(payload.campaignName ?? "").trim();
-      const storeName = String(payload.storeName ?? "").trim();
-      const storeSlug = String(payload.storeSlug ?? "").trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
-      const storeAddress = String(payload.storeAddress ?? "").trim();
-      const whatsappNumber = String(payload.whatsappNumber ?? "").trim();
-      const price = String(payload.price ?? "").trim();
-      const salePrice = String(payload.salePrice ?? "").trim();
-      const discountLabel = String(payload.discountLabel ?? "").trim();
-      const dealEndsAt = String(payload.dealEndsAt ?? "").trim();
-      const inStock = payload.inStock === true;
-      const availabilityNote = String(payload.availabilityNote ?? "").trim();
-      const deliveryTime = String(payload.deliveryTime ?? "").trim();
-      const productNote = String(payload.productNote ?? "").trim();
-      const availableSizes = Array.isArray(payload.availableSizes)
-        ? payload.availableSizes.map((size) => String(size).trim()).filter(Boolean)
-        : [];
+      // Only override a field when it is explicitly present in the payload — otherwise keep the existing look's value
+      const hasField = (key: string) => Object.prototype.hasOwnProperty.call(payload, key);
+      const name = hasField("name") ? (String(payload.name ?? "").trim() || existingLook.name) : existingLook.name;
+      const campaignName = hasField("campaignName") ? String(payload.campaignName ?? "").trim() : (existingLook.campaignName ?? "");
+      const storeName = hasField("storeName") ? String(payload.storeName ?? "").trim() : (existingLook.storeName ?? "");
+      const storeSlug = hasField("storeSlug") ? String(payload.storeSlug ?? "").trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "") : (existingLook.storeSlug ?? "");
+      const storeAddress = hasField("storeAddress") ? String(payload.storeAddress ?? "").trim() : (existingLook.storeAddress ?? "");
+      const whatsappNumber = hasField("whatsappNumber") ? String(payload.whatsappNumber ?? "").trim() : (existingLook.whatsappNumber ?? "");
+      const price = hasField("price") ? String(payload.price ?? "").trim() : (existingLook.price ?? "");
+      const salePrice = hasField("salePrice") ? String(payload.salePrice ?? "").trim() : (existingLook.salePrice ?? "");
+      const discountLabel = hasField("discountLabel") ? String(payload.discountLabel ?? "").trim() : (existingLook.discountLabel ?? "");
+      const dealEndsAt = hasField("dealEndsAt") ? String(payload.dealEndsAt ?? "").trim() : (existingLook.dealEndsAt ?? "");
+      const inStock = hasField("inStock") ? payload.inStock === true : (existingLook.inStock !== false);
+      const availabilityNote = hasField("availabilityNote") ? String(payload.availabilityNote ?? "").trim() : (existingLook.availabilityNote ?? "");
+      const deliveryTime = hasField("deliveryTime") ? String(payload.deliveryTime ?? "").trim() : (existingLook.deliveryTime ?? "");
+      const productNote = hasField("productNote") ? String(payload.productNote ?? "").trim() : (existingLook.productNote ?? "");
+      const hashtags = hasField("hashtags") ? String(payload.hashtags ?? "").trim() : ((existingLook as any).hashtags ?? "");
+      const availableSizes = hasField("availableSizes")
+        ? (Array.isArray(payload.availableSizes) ? payload.availableSizes.map((size) => String(size).trim()).filter(Boolean) : [])
+        : (existingLook.availableSizes ?? []);
       const backImagePath = payload.backImage?.startsWith("data:image/")
         ? await uploadTryThisLookImage("looks", payload.backImage)
         : undefined;
@@ -563,51 +602,75 @@ export async function POST(request: Request) {
               .map((image) => uploadTryThisLookImage("looks", image))
           )
         : undefined;
+      // --- Gallery path resolution ---
+      // Priority: keepGalleryPaths (stable storagePaths) > keepGalleryImageUrls (signed URLs) > keepGalleryIndexes (fragile indexes)
+      const allExistingPaths = new Set([
+        existingLook.frontImagePath,
+        existingLook.imagePath,
+        ...(existingLook.galleryImagePaths ?? [])
+      ].filter(Boolean) as string[]);
+
+      const keepGalleryPaths = Array.isArray(payload.keepGalleryPaths)
+        ? payload.keepGalleryPaths.filter((p): p is string => typeof p === "string" && p.startsWith("try-this-look/"))
+        : null;
+
       const keepGalleryIndexes = Array.isArray(payload.keepGalleryIndexes)
         ? payload.keepGalleryIndexes
             .map((value) => Number(value))
             .filter((value) => Number.isInteger(value) && value >= 0)
         : [];
       const resolveExistingImagePath = (imageUrl: string) => {
-        if (imageUrl === existingLook.frontImageUrl || imageUrl === existingLook.imageUrl) {
+        const normalizedImageUrl = normalizeImageUrl(imageUrl);
+        if (normalizedImageUrl === normalizeImageUrl(existingLook.frontImageUrl) || normalizedImageUrl === normalizeImageUrl(existingLook.imageUrl)) {
           return existingLook.frontImagePath ?? existingLook.imagePath;
         }
-        const galleryIndex = existingLook.galleryImageUrls?.findIndex((url) => url === imageUrl) ?? -1;
+        const galleryIndex = existingLook.galleryImageUrls?.findIndex((url) => normalizeImageUrl(url) === normalizedImageUrl) ?? -1;
         return galleryIndex >= 0 ? existingLook.galleryImagePaths?.[galleryIndex] : undefined;
       };
       const keepGalleryImageUrls = Array.isArray(payload.keepGalleryImageUrls)
         ? payload.keepGalleryImageUrls.filter((image): image is string => typeof image === "string" && !image.startsWith("data:image/"))
         : null;
-      const keptExistingGalleryPaths = keepGalleryImageUrls
-        ? keepGalleryImageUrls.flatMap((image) => {
-            const path = resolveExistingImagePath(image);
-            return path ? [path] : [];
-          })
-        : keepGalleryIndexes.flatMap((index) =>
-            existingLook.galleryImagePaths?.[index] ? [existingLook.galleryImagePaths[index]] : []
-          );
+
+      const keptExistingGalleryPaths = keepGalleryPaths !== null
+        ? keepGalleryPaths.filter(p => allExistingPaths.has(p))
+        : keepGalleryImageUrls !== null
+          ? keepGalleryImageUrls.flatMap((image) => {
+              const path = resolveExistingImagePath(image);
+              return path ? [path] : [];
+            })
+          : keepGalleryIndexes.flatMap((index) =>
+              existingLook.galleryImagePaths?.[index] ? [existingLook.galleryImagePaths[index]] : []
+            );
+
       const nextGalleryImagePaths = galleryImagePaths
         ? [...keptExistingGalleryPaths, ...galleryImagePaths].slice(0, 12)
-        : payload.keepGalleryIndexes || keepGalleryImageUrls
+        : payload.keepGalleryIndexes || keepGalleryImageUrls !== null || keepGalleryPaths !== null
           ? keptExistingGalleryPaths.slice(0, 12)
           : undefined;
+
+      // --- Front image resolution ---
+      // Priority: new data URL upload > explicit stable path > URL-based lookup
       const frontImageValue = typeof payload.frontImage === "string" ? payload.frontImage : "";
       const uploadedFrontImagePath = frontImageValue.startsWith("data:image/")
         ? await uploadTryThisLookImage("looks", frontImageValue)
         : undefined;
+      // NEW: explicit stable path from frontend (most reliable)
+      const specifiedFrontPath = typeof payload.frontImagePath === "string" && payload.frontImagePath.startsWith("try-this-look/")
+        ? payload.frontImagePath
+        : undefined;
       const matchingGalleryIndex = frontImageValue && !frontImageValue.startsWith("data:image/")
-        ? existingLook.galleryImageUrls?.findIndex((url) => url === frontImageValue) ?? -1
+        ? existingLook.galleryImageUrls?.findIndex((url) => normalizeImageUrl(url) === normalizeImageUrl(frontImageValue)) ?? -1
         : -1;
       const existingFrontImagePath =
         frontImageValue && !frontImageValue.startsWith("data:image/")
-          ? frontImageValue === existingLook.frontImageUrl || frontImageValue === existingLook.imageUrl
+          ? normalizeImageUrl(frontImageValue) === normalizeImageUrl(existingLook.frontImageUrl) || normalizeImageUrl(frontImageValue) === normalizeImageUrl(existingLook.imageUrl)
             ? existingLook.frontImagePath ?? existingLook.imagePath
             : matchingGalleryIndex >= 0
               ? existingLook.galleryImagePaths?.[matchingGalleryIndex]
               : undefined
           : undefined;
-      const nextFrontImagePath = uploadedFrontImagePath ?? existingFrontImagePath;
-      const shouldUpdateFrontImage = typeof payload.frontImage === "string";
+      const nextFrontImagePath = uploadedFrontImagePath ?? specifiedFrontPath ?? existingFrontImagePath;
+      const shouldUpdateFrontImage = typeof payload.frontImage === "string" || Boolean(specifiedFrontPath);
 
       state.looks = state.looks.map((look) => {
         if (look.id !== lookId) return look;
@@ -625,19 +688,21 @@ export async function POST(request: Request) {
           discountLabel: discountLabel || undefined,
           dealEndsAt: dealEndsAt || undefined,
           inStock: inStock || undefined,
+          published: typeof payload.published === "boolean" ? payload.published : existingLook.published,
           availabilityNote: availabilityNote || undefined,
           deliveryTime: deliveryTime || undefined,
           productNote: productNote || undefined,
+          hashtags: hashtags || undefined,
           ...(backImagePath ? { backImagePath } : {}),
           ...(garmentFrontImagePath ? { garmentFrontImagePath } : {}),
           ...(garmentBackImagePath ? { garmentBackImagePath } : {}),
-          ...(payload.keepGalleryIndexes || keepGalleryImageUrls || galleryImagePaths ? { galleryImagePaths: nextGalleryImagePaths } : {})
+          ...(payload.keepGalleryIndexes || keepGalleryImageUrls !== null || keepGalleryPaths !== null || galleryImagePaths ? { galleryImagePaths: nextGalleryImagePaths } : {})
         };
         if (shouldUpdateFrontImage) {
           if (nextFrontImagePath) {
             return { ...nextLook, imagePath: nextFrontImagePath, frontImagePath: nextFrontImagePath };
           }
-          const { imagePath, frontImagePath, ...withoutFrontImage } = nextLook;
+          const { imagePath, frontImagePath: _fp, ...withoutFrontImage } = nextLook;
           return withoutFrontImage;
         }
         return {
@@ -659,7 +724,7 @@ export async function POST(request: Request) {
 
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json({
-        ...publicState(updatedState),
+        ...ps(updatedState),
         events: updatedState.events,
         leads: updatedState.leads,
         generations: updatedState.generations
@@ -675,7 +740,7 @@ export async function POST(request: Request) {
       state.activeLookIds = [lookId, ...(state.activeLookIds ?? []).filter((id) => id !== lookId)];
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json({
-        ...publicState(updatedState),
+        ...ps(updatedState),
         events: updatedState.events,
         leads: updatedState.leads,
         generations: updatedState.generations
@@ -692,7 +757,7 @@ export async function POST(request: Request) {
       state.activeLookId = state.activeLookIds[0];
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json({
-        ...publicState(updatedState),
+        ...ps(updatedState),
         events: updatedState.events,
         leads: updatedState.leads,
         generations: updatedState.generations
@@ -728,7 +793,7 @@ export async function POST(request: Request) {
 
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json({
-        ...publicState(updatedState),
+        ...ps(updatedState),
         events: updatedState.events,
         leads: updatedState.leads,
         generations: updatedState.generations
@@ -747,11 +812,35 @@ export async function POST(request: Request) {
 
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json({
-        ...publicState(updatedState),
+        ...ps(updatedState),
         events: updatedState.events,
         leads: updatedState.leads,
         generations: updatedState.generations
       });
+    }
+
+    // ── Update seller AI access + credits (admin only) ──────────────────────
+    if (payload.action === "update-seller") {
+      const storeSlug = String(payload.storeSlug ?? "").trim();
+      if (!storeSlug) {
+        return NextResponse.json({ error: "storeSlug required." }, { status: 400 });
+      }
+      const store = (state.stores ?? []).find((s) => s.slug === storeSlug);
+      if (!store) {
+        return NextResponse.json({ error: "Store not found." }, { status: 404 });
+      }
+      const updated = { ...store };
+      if (typeof payload.aiEnabled === "boolean") updated.aiEnabled = payload.aiEnabled;
+      if (typeof payload.aiCreditsLimit === "number") updated.aiCreditsLimit = payload.aiCreditsLimit;
+      if (payload.resetCredits === true) {
+        updated.aiCreditsUsed = 0;
+        updated.aiCreditsResetAt = now;
+      }
+      // Clear pending request when admin approves or rejects
+      if (typeof payload.aiEnabled === "boolean") updated.pendingAiRequest = false;
+      state.stores = (state.stores ?? []).map((s) => s.slug === storeSlug ? updated : s);
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, store: updated });
     }
 
     return NextResponse.json({ error: "Unknown action." }, { status: 400 });

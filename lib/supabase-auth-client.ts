@@ -101,3 +101,11 @@ export async function signUpWithPassword(email: string, password: string) {
 export function signOut() {
   saveAuthSession(null);
 }
+
+export async function resetPassword(email: string) {
+  await authFetch("/recover", {
+    method: "POST",
+    body: JSON.stringify({ email })
+  });
+  // Supabase returns 200 whether the email exists or not (security by design)
+}

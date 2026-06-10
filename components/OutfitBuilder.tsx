@@ -481,7 +481,7 @@ const makeUserProducts = (images: GalleryImageItem[], detectedProducts: StoredDe
       bodyZone: inferBodyZone(image.name),
       imageUrl: image.url,
       thumbnailUrl: image.url,
-      description: "Raw cutout. Create Design Ready apparel first before using it in Fashion Creator.",
+      description: "Raw cutout. Create Design Ready apparel first before using it in LuxbanditFit.",
       isTryOnReady: false,
       createdAt: image.createdAt,
       tags: ["user", "cutout"],
@@ -677,7 +677,7 @@ export function OutfitBuilder() {
       selectedDescriptions || "Selected design-ready apparel assets.",
       "",
       modelPrompt,
-      "The attached garment reference contains only selected Design Ready / LuxuryBandit Gallery apparel assets.",
+      "The attached garment reference contains only selected Design Ready / LuxbanditCut Gallery apparel assets.",
       "Use the garment reference as the source of truth.",
       "Do not use unselected garments.",
       "Do not add extra clothing pieces that are not in the selected apparel assets.",
@@ -1020,7 +1020,7 @@ export function OutfitBuilder() {
                   {hasMultipleViews ? firstProduct.productGroupTitle || "Linked apparel product" : `${products.length} apparel item${products.length === 1 ? "" : "s"} from one image`}
                 </div>
                 <div className="mt-1 text-xs font-bold text-ink/50">
-                  {hasMultipleViews ? `${sortedProducts.length} views available. Front view is for normal front-facing try-on.` : selectedCount > 0 ? `${selectedCount} selected for Fashion Creator` : "Choose only the pieces you want."}
+                  {hasMultipleViews ? `${sortedProducts.length} views available. Front view is for normal front-facing try-on.` : selectedCount > 0 ? `${selectedCount} selected for LuxbanditFit` : "Choose only the pieces you want."}
                 </div>
               </div>
               <button
@@ -1069,10 +1069,10 @@ export function OutfitBuilder() {
   return (
     <div className="grid gap-4 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
       <div>
-        <div className="text-3xl font-black uppercase tracking-normal text-cobalt md:text-4xl">Fashion Creator</div>
+        <div className="text-3xl font-black uppercase tracking-normal text-cobalt md:text-4xl">LuxbanditFit</div>
         <h2 className="mt-1 text-xl font-black text-ink">Create new fashion designs on one selected model</h2>
         <p className="mt-1 text-sm font-semibold leading-6 text-ink/60">
-          Select Design Ready apparel assets or LuxuryBandit Gallery items, choose a model, then create a new fashion image with FASHN.
+          Select Design Ready apparel assets or LuxbanditCut Gallery items, choose a model, then create a new fashion image with FASHN.
         </p>
       </div>
 
@@ -1083,7 +1083,7 @@ export function OutfitBuilder() {
               <div>
                 <div className="text-sm font-black text-ink">1. Select model and outfit</div>
                 <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">
-                  Pick clothes, shoes, and accessories like in a shop. LuxuryBandit uses your Design Ready apparel automatically.
+                  Pick clothes, shoes, and accessories like in a shop. LuxbanditCut uses your Design Ready apparel automatically.
                 </p>
               </div>
               <button
@@ -1100,7 +1100,7 @@ export function OutfitBuilder() {
             <div className="mt-3 grid grid-cols-2 gap-2 rounded-md border border-black/10 bg-white p-2">
               {[
                 { label: "My Apparel", value: "user" as const },
-                { label: "LuxuryBandit Gallery", value: "shopcut" as const }
+                { label: "LuxbanditCut Gallery", value: "shopcut" as const }
               ].map((source) => (
                 <button
                   key={source.value}
@@ -1119,7 +1119,7 @@ export function OutfitBuilder() {
                 <div>
                   <div className="text-sm font-black text-ink">Select model</div>
                   <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">
-                    Choose your own model reference or let LuxuryBandit create a new model for this design.
+                    Choose your own model reference or let LuxbanditCut create a new model for this design.
                   </p>
                 </div>
                 <div>
@@ -1202,7 +1202,7 @@ export function OutfitBuilder() {
                     </div>
                   ) : (
                     <p className="rounded-md border border-black/10 bg-white p-3 text-sm font-bold leading-6 text-ink/55">
-                      No model references yet. LuxuryBandit will use the AI-generated model unless you upload one.
+                      No model references yet. LuxbanditCut will use the AI-generated model unless you upload one.
                     </p>
                   )}
                 </div>
@@ -1280,7 +1280,7 @@ export function OutfitBuilder() {
                   <div className="flex items-center justify-between gap-2">
                     <div>
                       <div className="text-xs font-black uppercase tracking-[0.15em] text-ink/45">
-                        {productSource === "user" ? "My wardrobe" : "LuxuryBandit Gallery"}
+                        {productSource === "user" ? "My wardrobe" : "LuxbanditCut Gallery"}
                       </div>
                       <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">
                         Choose the clothes, shoes, and accessories you want on the model.
@@ -1331,7 +1331,7 @@ export function OutfitBuilder() {
               </div>
             ) : (
               <p className="mt-3 rounded-md border border-black/10 bg-white p-3 text-sm font-bold leading-6 text-ink/55">
-                No apparel assets yet. Create Design Ready apparel in Apparel Extractor first, or switch to LuxuryBandit Gallery.
+                No apparel assets yet. Create Design Ready apparel in Apparel Extractor first, or switch to LuxbanditCut Gallery.
               </p>
             )}
           </div>
@@ -1341,13 +1341,13 @@ export function OutfitBuilder() {
           <div>
             <div className="text-sm font-black text-ink">2. Create fashion design</div>
             <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">
-              Fashion Creator uses your connected FASHN account. Only selected Design Ready apparel assets are sent to FASHN.
+              LuxbanditFit uses your connected FASHN account. Only selected Design Ready apparel assets are sent to FASHN.
             </p>
           </div>
           <div className="rounded-md border border-black/10 bg-white p-3">
             <div className="text-xs font-black uppercase tracking-[0.14em] text-ink/45">Selection</div>
             <p className="mt-2 text-sm font-bold leading-6 text-ink/70">
-              Source: {productSource === "user" ? "My Apparel" : "LuxuryBandit Gallery"}
+              Source: {productSource === "user" ? "My Apparel" : "LuxbanditCut Gallery"}
             </p>
             <p className="text-sm font-bold leading-6 text-ink/70">
               Model: {usesAiGeneratedModel ? `AI-generated ${aiModelGender} model` : selectedModel?.name ?? "None selected"}

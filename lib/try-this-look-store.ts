@@ -12,6 +12,7 @@ export type TryThisLookLook = {
   discountLabel?: string;
   dealEndsAt?: string;
   inStock?: boolean;
+  published?: boolean;
   availabilityNote?: string;
   deliveryTime?: string;
   productNote?: string;
@@ -36,6 +37,15 @@ export type TryThisLookStore = {
   slug: string;
   address?: string;
   whatsappNumber?: string;
+  // Seller auth
+  ownerUserId?: string;       // Supabase auth user ID
+  ownerEmail?: string;
+  // AI access
+  aiEnabled?: boolean;
+  aiCreditsLimit?: number;    // max generations per month (set by admin)
+  aiCreditsUsed?: number;     // used this month
+  aiCreditsResetAt?: string;  // ISO date of last monthly reset
+  pendingAiRequest?: boolean; // seller requested AI access
   createdAt: string;
 };
 

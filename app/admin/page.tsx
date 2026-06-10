@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowRight, ExternalLink, Loader2, RefreshCw, Settings, Store, Tags } from "lucide-react";
+import { ArrowRight, Clock, ExternalLink, ImagePlus, LayoutDashboard, List, LogIn, Loader2, Megaphone, Package, RefreshCw, Settings, ShoppingBag, Store, Tags, UserPlus, Users } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 type StoreItem = {
@@ -98,18 +99,15 @@ export default function AdminDashboardPage() {
     void loadData(pin);
   };
 
-  const openExternalPage = async (path: string, label: string) => {
-    const url = path.startsWith("http") ? path : `${window.location.origin}${path}`;
-    const opened = window.open(url, "_blank", "popup,noopener,noreferrer");
-    if (!opened) {
-      await navigator.clipboard.writeText(url);
-      setMessage(`${label} link copied. Popup was blocked by the browser.`);
-    }
+  const openExternalPage = (path: string, _label: string) => {
+    const url = path.startsWith("http") ? path : path;
+    window.location.href = url;
   };
 
   const stores = data.stores ?? [];
   const looks = data.looks ?? [];
-  const activeLookIds = new Set((data.activeLooks ?? []).map((look) => look.id));
+  const activeLooks = data.activeLooks ?? [];
+  const activeLookIds = new Set(activeLooks.map((look) => look.id));
   const newLeads = (data.leads ?? []).filter((lead) => (lead.status ?? "new") === "new").length;
   const whatsappClicks = (data.events ?? []).filter((event) => event.name === "click_order_whatsapp").length;
 
@@ -132,32 +130,42 @@ export default function AdminDashboardPage() {
     : firstStore
       ? `/store/${firstStore.slug}`
       : "/stores";
-  const pageGroups = [
+  const pageGroups: { title: string; description: string; pages: { label: string; path: string; note: string; icon: LucideIcon }[] }[] = [
     {
       title: "Admin pages",
       description: "Use these to run the MVP.",
       pages: [
-        { label: "Dashboard", path: "/admin", note: "Overview, links, and boutique onboarding." },
-        { label: "Looks & offers", path: "/admin/looks", note: "Create/edit boutiques, offers, leads, and AI previews." },
-        { label: "Instagram creatives", path: "/admin/creative", note: "Create and export four social slides from a look." }
+        { label: "Dashboard", path: "/admin", note: "Overview, links, and seller onboarding.", icon: LayoutDashboard },
+        { label: "Listings & requests", path: "/admin/looks", note: "Create/edit sellers, listings, buyer requests, and AI previews.", icon: List },
+        { label: "User management", path: "/admin/sellers", note: "Registered sellers, AI access control, credit limits.", icon: Users },
+        { label: "Listing creatives", path: "/admin/creative", note: "Create and export four social slides from a listing.", icon: Package },
+        { label: "Internal image tools", path: "/tools/fashion-creator", note: "Private service tool for extracting apparel and creating fashion images.", icon: ImagePlus }
       ]
     },
     {
       title: "Public pages",
       description: "These are shown to boutiques or shoppers.",
       pages: [
-        { label: "Store list", path: "/stores", note: "Public boutique/offers list." },
-        { label: "Example store", path: firstStore ? `/store/${firstStore.slug}` : "/stores", note: "All active offers from one boutique." },
-        { label: "Example offer", path: firstOfferPath, note: "Mobile shopper deal page." },
-        { label: "Platform pitch", path: "/platform", note: "Sales page for boutique owners." }
+        { label: "Seller list", path: "/stores", note: "Public sellers and listings.", icon: Store },
+        { label: "Example seller", path: firstStore ? `/store/${firstStore.slug}` : "/stores", note: "All live listings from one seller.", icon: Store },
+        { label: "Example listing", path: firstOfferPath, note: "Mobile buyer listing page.", icon: ShoppingBag },
+        { label: "Platform pitch", path: "/platform", note: "Sales page for boutiques, vintage sellers, and private sellers.", icon: Megaphone }
+      ]
+    },
+    {
+      title: "Seller portal",
+      description: "Self-service pages for registered sellers.",
+      pages: [
+        { label: "Seller register", path: "/seller/register", note: "New seller signup — store name, email, password.", icon: UserPlus },
+        { label: "Seller login", path: "/seller/login", note: "Returning seller login.", icon: LogIn },
+        { label: "Seller dashboard", path: "/seller/dashboard", note: "Manage own listings, request AI access, see credits.", icon: LayoutDashboard }
       ]
     },
     {
       title: "Legacy/testing",
       description: "Keep these for testing until the full account system replaces them.",
       pages: [
-        { label: "Try-this-look fallback", path: "/try-this-look", note: "Legacy entry point for active look testing." },
-        { label: "Fashion creator home", path: "/", note: "Old creator tool, not the boutique MVP front door." }
+        { label: "Listing fallback", path: "/try-this-look", note: "Legacy entry point for active listing testing.", icon: Clock }
       ]
     }
   ];
@@ -170,7 +178,7 @@ export default function AdminDashboardPage() {
             <div className="text-xs font-black uppercase tracking-[0.18em] text-cobalt">LuxuryBandit Admin</div>
             <h1 className="text-5xl font-black leading-none text-ink">Dashboard</h1>
             <p className="max-w-3xl text-sm font-bold leading-6 text-ink/60">
-              One place for store links, active offers, leads, and the pages you need while testing the MVP.
+              One place for seller links, live listings, buyer requests, and the pages you need while testing the MVP.
             </p>
           </div>
           <button
@@ -188,6 +196,7 @@ export default function AdminDashboardPage() {
             <input
               value={pin}
               onChange={(event) => setPin(event.target.value)}
+              type="password"
               placeholder="Admin PIN"
               className="h-12 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt"
             />
@@ -200,11 +209,11 @@ export default function AdminDashboardPage() {
         {error && <div className="rounded-md border border-coral/25 bg-coral/10 p-4 text-sm font-black text-coral">{error}</div>}
         {message && <div className="rounded-md border border-cobalt/20 bg-cobalt/10 p-4 text-sm font-black text-cobalt">{message}</div>}
 
-        <section className="grid gap-3 md:grid-cols-4">
+        <section className="grid gap-3 md:grid-cols-5">
           {[
             { label: "Stores", value: stores.length },
-            { label: "Looks", value: looks.length },
-            { label: "New leads", value: newLeads },
+            { label: "Listings", value: looks.length },
+            { label: "New buyer requests", value: newLeads },
             { label: "WhatsApp clicks", value: whatsappClicks }
           ].map((item) => (
             <div key={item.label} className="rounded-lg border border-black/10 bg-white p-4 shadow-soft">
@@ -214,22 +223,79 @@ export default function AdminDashboardPage() {
           ))}
         </section>
 
+        <section className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-xs font-black uppercase tracking-[0.16em] text-cobalt">Live listings</div>
+              <h2 className="mt-1 text-3xl font-black leading-none text-ink">Currently live listings</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => void openExternalPage("/admin/looks", "Live listings")}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-ink px-3 text-xs font-black text-white"
+            >
+              View all listings
+              <ArrowRight aria-hidden="true" className="h-4 w-4" />
+            </button>
+          </div>
+          {activeLooks.length ? (
+            <button
+              type="button"
+              onClick={() => void openExternalPage("/admin/looks", "Live listings")}
+              className="grid gap-3 text-left sm:grid-cols-2 lg:grid-cols-4"
+            >
+              {activeLooks.map((look) => (
+                <div key={look.id} className="grid gap-2 rounded-md border border-black/10 bg-panel p-3">
+                  <div className="overflow-hidden rounded-md border border-black/10 bg-white">
+                    {look.frontImageUrl || look.imageUrl ? (
+                      <img src={look.frontImageUrl ?? look.imageUrl} alt="" className="aspect-[4/5] w-full object-cover object-top" />
+                    ) : (
+                      <div className="grid aspect-[4/5] place-items-center text-sm font-black text-ink/35">LB</div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-black text-ink">{look.name}</div>
+                    <div className="mt-1 flex items-center gap-1.5">
+                      {(look.storeSlug ?? look.storeName) && (
+                        <img
+                          src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(look.storeSlug ?? look.storeName ?? "default")}&backgroundColor=ffffff&color=000000`}
+                          alt=""
+                          className="h-4 w-4 shrink-0 rounded-full border border-black/10 bg-white object-cover"
+                        />
+                      )}
+                      <span className="truncate text-xs font-bold text-ink/50">{look.storeName ?? look.storeSlug ?? "No store"}</span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black">
+                      {look.discountLabel && <span className="rounded-full bg-coral px-2 py-1 text-white">{look.discountLabel}</span>}
+                      {look.salePrice && <span className="rounded-full bg-ink px-2 py-1 text-white">{look.salePrice}</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </button>
+          ) : (
+            <div className="rounded-md border border-black/10 bg-panel p-5 text-sm font-bold text-ink/55">
+              No live listings yet. Open Listings & requests and mark a listing as active.
+            </div>
+          )}
+        </section>
+
         <section className="grid gap-4 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
           <div>
             <div className="text-xs font-black uppercase tracking-[0.16em] text-cobalt">Boutique start</div>
-            <h2 className="mt-1 text-3xl font-black leading-none text-ink">How a boutique uses LuxuryBandit</h2>
+            <h2 className="mt-1 text-3xl font-black leading-none text-ink">How a seller uses LuxuryBandit</h2>
             <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-ink/55">
-              The MVP is a simple Instagram-to-WhatsApp sales funnel. The boutique creates an offer, exports social slides, posts them,
-              and follows customer requests in WhatsApp.
+              The MVP is a simple direct selling funnel. The seller lists an item for free, can upgrade it with AI, shares the link,
+              and follows real buyer requests in WhatsApp.
             </p>
           </div>
           <div className="grid gap-3 md:grid-cols-5">
             {[
-              ["1", "Set up boutique", "Name, city, address, WhatsApp."],
-              ["2", "Add offer", "Product image, deal, price, sizes."],
-              ["3", "Create Instagram post", "Export four ready-made slides."],
-              ["4", "Share link", "Post story/reel with the offer link."],
-              ["5", "Follow up", "Customer chooses size, pickup/delivery, then WhatsApp closes the sale."]
+              ["1", "Set up seller", "Name, city, address, WhatsApp."],
+              ["2", "Add listing", "Product image, price, sizes, pickup or delivery."],
+              ["3", "Create listing slides", "Export four ready-made slides."],
+              ["4", "Share link", "Post or share the listing link."],
+              ["5", "Follow up", "Buyer chooses size, pickup/delivery, then WhatsApp closes the sale."]
             ].map(([number, title, text]) => (
               <div key={number} className="rounded-md border border-black/10 bg-panel p-3">
                 <div className="grid h-9 w-9 place-items-center rounded-md bg-cobalt text-sm font-black text-white">{number}</div>
@@ -244,8 +310,8 @@ export default function AdminDashboardPage() {
           <button type="button" onClick={() => void openExternalPage("/admin/looks", "Admin")} className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 text-left shadow-soft">
             <Settings aria-hidden="true" className="h-6 w-6 text-cobalt" />
             <div>
-              <div className="text-xl font-black">Manage stores & looks</div>
-              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">Upload products, edit prices, set active offers, and view leads.</p>
+              <div className="text-xl font-black">Manage sellers & listings</div>
+              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">Upload products, edit prices, set live listings, and view buyer requests.</p>
             </div>
             <span className="inline-flex items-center gap-2 text-sm font-black text-cobalt">
               Open admin
@@ -256,8 +322,8 @@ export default function AdminDashboardPage() {
           <button type="button" onClick={() => void openExternalPage("/stores", "Stores")} className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 text-left shadow-soft">
             <Store aria-hidden="true" className="h-6 w-6 text-cobalt" />
             <div>
-              <div className="text-xl font-black">Public store list</div>
-              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">See the customer-facing list of boutiques and offers.</p>
+              <div className="text-xl font-black">Public seller list</div>
+              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">See the buyer-facing list of sellers and listings.</p>
             </div>
             <span className="inline-flex items-center gap-2 text-sm font-black text-cobalt">
               Open stores
@@ -269,7 +335,7 @@ export default function AdminDashboardPage() {
             <Tags aria-hidden="true" className="h-6 w-6 text-cobalt" />
             <div>
               <div className="text-xl font-black">Sales landing page</div>
-              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">Open the boutique pitch page for demos and investor conversations.</p>
+              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">Open the pitch page for boutiques, vintage sellers, and private sellers.</p>
             </div>
             <span className="inline-flex items-center gap-2 text-sm font-black text-cobalt">
               Open platform
@@ -280,11 +346,35 @@ export default function AdminDashboardPage() {
           <button type="button" onClick={() => void openExternalPage("/admin/creative", "Creative builder")} className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 text-left shadow-soft">
             <Tags aria-hidden="true" className="h-6 w-6 text-cobalt" />
             <div>
-              <div className="text-xl font-black">Instagram creatives</div>
-              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">Create four export-ready social slides from any look.</p>
+              <div className="text-xl font-black">Listing creatives</div>
+              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">Create four export-ready social slides from any listing.</p>
             </div>
             <span className="inline-flex items-center gap-2 text-sm font-black text-cobalt">
               Open builder
+              <ArrowRight aria-hidden="true" className="h-4 w-4" />
+            </span>
+          </button>
+
+          <button type="button" onClick={() => void openExternalPage("/admin/sellers", "User management")} className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 text-left shadow-soft">
+            <Settings aria-hidden="true" className="h-6 w-6 text-cobalt" />
+            <div>
+              <div className="text-xl font-black">User management</div>
+              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">Registered sellers, AI access control, and credit limits.</p>
+            </div>
+            <span className="inline-flex items-center gap-2 text-sm font-black text-cobalt">
+              Open
+              <ArrowRight aria-hidden="true" className="h-4 w-4" />
+            </span>
+          </button>
+
+          <button type="button" onClick={() => void openExternalPage("/tools/fashion-creator", "Internal image tools")} className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 text-left shadow-soft">
+            <ImagePlus aria-hidden="true" className="h-6 w-6 text-cobalt" />
+            <div>
+              <div className="text-xl font-black">Internal image tools</div>
+              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">Use Apparel Extractor and Fashion Creator for client image service work.</p>
+            </div>
+            <span className="inline-flex items-center gap-2 text-sm font-black text-cobalt">
+              Open tools
               <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </span>
           </button>
@@ -305,18 +395,26 @@ export default function AdminDashboardPage() {
                   <div className="text-lg font-black text-ink">{group.title}</div>
                   <p className="mt-1 text-xs font-bold leading-5 text-ink/55">{group.description}</p>
                 </div>
-                {group.pages.map((page) => (
-                  <button
-                    key={`${group.title}-${page.path}`}
-                    type="button"
-                    onClick={() => void openExternalPage(page.path, page.label)}
-                    className="grid gap-1 rounded-md border border-black/10 bg-white p-3 text-left"
-                  >
-                    <span className="text-sm font-black text-ink">{page.label}</span>
-                    <span className="break-all text-xs font-black text-cobalt">{page.path}</span>
-                    <span className="text-xs font-bold leading-5 text-ink/50">{page.note}</span>
-                  </button>
-                ))}
+                {group.pages.map((page) => {
+                  const Icon = page.icon;
+                  return (
+                    <button
+                      key={`${group.title}-${page.path}`}
+                      type="button"
+                      onClick={() => void openExternalPage(page.path, page.label)}
+                      className="flex gap-3 rounded-md border border-black/10 bg-white p-3 text-left hover:border-cobalt/40 transition-colors"
+                    >
+                      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-cobalt/10">
+                        <Icon className="h-3.5 w-3.5 text-cobalt" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-black text-ink">{page.label}</div>
+                        <div className="break-all text-xs font-black text-cobalt">{page.path}</div>
+                        <div className="mt-0.5 text-xs font-bold leading-5 text-ink/50">{page.note}</div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             ))}
           </div>
@@ -325,8 +423,8 @@ export default function AdminDashboardPage() {
         <section className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-2xl font-black">Store links</h2>
-              <p className="mt-1 text-sm font-bold text-ink/55">Use these for Instagram bio links, ad destinations, and testing.</p>
+              <h2 className="text-2xl font-black">Seller links</h2>
+              <p className="mt-1 text-sm font-bold text-ink/55">Use these for seller links, share links, ad destinations, and testing.</p>
             </div>
             <button
               type="button"
@@ -364,8 +462,8 @@ export default function AdminDashboardPage() {
                       <div className="text-xl font-black text-ink">{store.name}</div>
                       <div className="mt-1 text-sm font-bold text-ink/55">{store.address || "No address yet"}</div>
                       <div className="mt-2 flex flex-wrap gap-2 text-xs font-black">
-                        <span className="rounded-full bg-white px-3 py-1 text-ink/55">{lookCount} looks</span>
-                        <span className="rounded-full bg-cobalt/10 px-3 py-1 text-cobalt">{activeCount} active</span>
+                        <span className="rounded-full bg-white px-3 py-1 text-ink/55">{lookCount} listings</span>
+                        <span className="rounded-full bg-cobalt/10 px-3 py-1 text-cobalt">{activeCount} live</span>
                         {store.whatsappNumber && <span className="rounded-full bg-white px-3 py-1 text-ink/55">{store.whatsappNumber}</span>}
                       </div>
                       <div className="mt-3 grid gap-1 text-xs font-bold text-cobalt">
@@ -407,7 +505,7 @@ export default function AdminDashboardPage() {
             </div>
           ) : (
             <div className="rounded-md border border-black/10 bg-panel p-6 text-sm font-bold text-ink/55">
-              No stores yet. Start with “Manage stores & looks”.
+              No sellers yet. Start with “Manage sellers & listings”.
             </div>
           )}
         </section>

@@ -41,11 +41,12 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const image = formData.get("image");
   const promptOverride = String(formData.get("prompt") ?? "").trim();
-  const backgroundValue = String(formData.get("background") ?? "white") as BackgroundKey;
+  const backgroundValue = String(formData.get("background") ?? "white") as BackgroundKey | "transparent";
   const productDescription = String(formData.get("productDescription") ?? "lingerie product set").trim();
   const viewMode = String(formData.get("viewMode") ?? "auto") as ViewMode;
   const mode = String(formData.get("mode") ?? "preserve");
   const squareOutput = String(formData.get("square") ?? "false") === "true";
+  const useTransparent = backgroundValue === "transparent";
   const width = Number(formData.get("width") ?? 1024);
   const height = Number(formData.get("height") ?? 1024);
 
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
   }
 
   const prompt = promptOverride || (() => {
-    const requestedBackground = backgroundLabels[backgroundValue] ?? backgroundLabels.white;
+    const requestedBackground = backgroundValue !== "transparent" ? (backgroundLabels[backgroundValue] ?? backgroundLabels.white) : backgroundLabels.white;
     const requestedProduct = productDescription.slice(0, 180) || "the complete selected lingerie product or product set";
     const requestedView = viewInstructions[viewMode] ?? viewInstructions.auto;
     return [
@@ -120,7 +121,8 @@ export async function POST(request: Request) {
           action: "edit",
           size: squareOutput ? "1024x1024" : imageSize(width, height),
           quality: "low",
-          output_format: "png"
+          output_format: "png",
+          ...(useTransparent ? { background: "transparent" } : {})
         }
       ]
     })

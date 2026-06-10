@@ -6,7 +6,7 @@ import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "
 
 type ImageEditorProps = {
   viewName: string;
-  onContinueToFashionCreator?: () => void;
+  onContinueToLuxbanditFit?: () => void;
 };
 
 type EditorState = {
@@ -221,7 +221,7 @@ const aiRetouchProviders = [
 const editorGalleryGroups = [
   { title: "Uploads", types: ["upload"] as const, empty: "No Uploads yet." },
   { title: "Apparel", types: ["shop-image", "cutout"] as const, empty: "No Apparel assets yet." },
-  { title: "Your Designs", types: ["model-image"] as const, empty: "No Fashion Creator designs yet." }
+  { title: "Your Designs", types: ["model-image"] as const, empty: "No LuxbanditFit designs yet." }
 ];
 
 const galleryImageLabel = (type: GalleryImageItem["type"]) => {
@@ -361,7 +361,7 @@ const splitImageIntoFrontBackViews = async (sourceDataUrl: string) => {
   };
 };
 
-export function ImageEditor({ viewName, onContinueToFashionCreator }: ImageEditorProps) {
+export function ImageEditor({ viewName, onContinueToLuxbanditFit }: ImageEditorProps) {
   const fabricCanvasElementRef = useRef<HTMLCanvasElement | null>(null);
   const fabricCanvasRef = useRef<any>(null);
   const fabricModuleRef = useRef<any>(null);
@@ -1431,13 +1431,13 @@ export function ImageEditor({ viewName, onContinueToFashionCreator }: ImageEdito
   const handleSaveSelectedProductsAsAssets = async () => {
     const assetSourceImage = shopImage;
     if (!assetSourceImage) {
-      setRetouchError("Create a Design Ready image first. Fashion Creator assets are saved from the final prepared apparel image.");
+      setRetouchError("Create a Design Ready image first. LuxbanditFit assets are saved from the final prepared apparel image.");
       return;
     }
 
     const selectedProducts = detectedProducts.filter((product) => product.selected);
     if (selectedProducts.length === 0) {
-      setRetouchError("Select at least one detected apparel piece before saving it for Fashion Creator.");
+      setRetouchError("Select at least one detected apparel piece before saving it for LuxbanditFit.");
       return;
     }
 
@@ -1507,7 +1507,7 @@ export function ImageEditor({ viewName, onContinueToFashionCreator }: ImageEdito
         window.localStorage.setItem(productAssetsStorageKey, JSON.stringify(newAssets));
       }
       window.dispatchEvent(new Event("shopcut-gallery-updated"));
-      setAssetSaveMessage(`${newAssets.length} Fashion Creator asset${newAssets.length === 1 ? "" : "s"} saved under this Design Ready image. You can now build a look in Fashion Creator.`);
+      setAssetSaveMessage(`${newAssets.length} LuxbanditFit asset${newAssets.length === 1 ? "" : "s"} saved under this Design Ready image. You can now build a look in LuxbanditFit.`);
       setRetouchError(null);
     } catch {
       setAssetSaveMessage(null);
@@ -1542,7 +1542,7 @@ export function ImageEditor({ viewName, onContinueToFashionCreator }: ImageEdito
     imageWindow.document.write(`
       <html>
         <head>
-          <title>LuxuryBandit cutout PNG</title>
+          <title>LuxbanditCut PNG</title>
           <style>
             body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f4f1ea; }
             img { max-width: 95vw; max-height: 95vh; object-fit: contain; background-image:
@@ -1555,7 +1555,7 @@ export function ImageEditor({ viewName, onContinueToFashionCreator }: ImageEdito
             }
           </style>
         </head>
-        <body><img alt="LuxuryBandit cutout PNG" src="${cutoutPreview}" /></body>
+        <body><img alt="LuxbanditCut PNG" src="${cutoutPreview}" /></body>
       </html>
     `);
     imageWindow.document.close();
@@ -2102,7 +2102,7 @@ export function ImageEditor({ viewName, onContinueToFashionCreator }: ImageEdito
           <div>
             <div className="text-sm font-black text-ink">Import apparel from a website</div>
             <p className="mt-1 text-xs font-bold leading-5 text-ink/55">
-              Paste a product page or gallery URL. LuxuryBandit finds up to 10 images and can automatically turn all of them into My Apparel assets.
+              Paste a product page or gallery URL. LuxbanditCut finds up to 10 images and can automatically turn all of them into My Apparel assets.
             </p>
           </div>
           <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto]">
@@ -2458,7 +2458,7 @@ export function ImageEditor({ viewName, onContinueToFashionCreator }: ImageEdito
                 </span>
               </div>
               <p className="text-xs font-semibold leading-5 text-ink/60">
-                LuxuryBandit does not block this MVP locally. The selected provider can still use your connected API account credits.
+                LuxbanditCut does not block this MVP locally. The selected provider can still use your connected API account credits.
               </p>
             </div>
             <div className="mt-3 block text-xs font-bold uppercase tracking-[0.15em] text-ink/55">
@@ -2493,7 +2493,7 @@ export function ImageEditor({ viewName, onContinueToFashionCreator }: ImageEdito
               <div className="rounded-md border border-black/10 bg-panel p-3">
                 <div className="text-sm font-black text-ink">Select Apparel View</div>
                 <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">
-                  LuxuryBandit tries to select this automatically after apparel detection. You can change it before generating.
+                  LuxbanditCut tries to select this automatically after apparel detection. You can change it before generating.
                 </p>
                 <div className="mt-2 grid grid-cols-3 gap-2">
                   {productViewOptions.map((option) => (
@@ -2609,7 +2609,7 @@ export function ImageEditor({ viewName, onContinueToFashionCreator }: ImageEdito
                   Preserve Cutout can be prepared with FASHN or OpenAI. Rebuild Apparel still uses OpenAI.
                 </p>
                 <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">
-                  After apparel detection, LuxuryBandit auto-selects FASHN for lingerie-style apparel and OpenAI for regular clothing. You can still change it manually.
+                  After apparel detection, LuxbanditCut auto-selects FASHN for lingerie-style apparel and OpenAI for regular clothing. You can still change it manually.
                 </p>
               </div>
               <div className="grid gap-2 md:grid-cols-2">
@@ -2635,13 +2635,13 @@ export function ImageEditor({ viewName, onContinueToFashionCreator }: ImageEdito
                 })}
               </div>
             </div>
-            <div className="mb-2 mt-5 text-sm font-black text-ink">Prepare apparel for Fashion Creator</div>
+            <div className="mb-2 mt-5 text-sm font-black text-ink">Prepare apparel for LuxbanditFit</div>
             <div className="mb-3 grid gap-3 rounded-md border border-black/10 bg-panel p-3 md:grid-cols-[180px_minmax(0,1fr)] md:items-center">
-              <img src="/shopcut-logo.svg" alt="LuxuryBandit apparel extracted logo" className="mx-auto aspect-[2/1] w-full rounded-md border border-black/10 bg-white object-cover" />
+              <img src="/shopcut-logo.svg" alt="LuxbanditCut logo" className="mx-auto aspect-[2/1] w-full rounded-md border border-black/10 bg-white object-cover" />
               <div>
                 <div className="text-lg font-black text-ink">Model removed. Apparel extracted.</div>
                 <p className="mt-1 text-sm font-semibold leading-6 text-ink/60">
-                  {isGenerating ? "LuxuryBandit is preparing the apparel now." : "Extract and prepare the selected apparel for Fashion Creator."}
+                  {isGenerating ? "LuxbanditCut is preparing the apparel now." : "Extract and prepare the selected apparel for LuxbanditFit."}
                 </p>
               </div>
             </div>
@@ -2930,7 +2930,7 @@ export function ImageEditor({ viewName, onContinueToFashionCreator }: ImageEdito
                 {detectedProducts.length > 0 && (
                   <div className="grid gap-2 rounded-md border border-cobalt/20 bg-cobalt/10 p-3">
                     <p className="text-xs font-semibold leading-5 text-ink/65">
-                      Save the selected detected apparel from this Design Ready image to My Apparel for Fashion Creator.
+                      Save the selected detected apparel from this Design Ready image to My Apparel for LuxbanditFit.
                       If several pieces are selected, they are saved as separate checklist items under this same image.
                     </p>
                     <button
@@ -2940,21 +2940,21 @@ export function ImageEditor({ viewName, onContinueToFashionCreator }: ImageEdito
                       className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-cobalt px-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <Check aria-hidden="true" className="h-4 w-4" />
-                      Save selected as Fashion Creator assets
+                      Save selected as LuxbanditFit assets
                     </button>
                     {assetSaveMessage && (
                       <p className="rounded-md border border-cobalt/20 bg-white p-3 text-sm font-black leading-6 text-cobalt">
                         {assetSaveMessage}
                       </p>
                     )}
-                    {assetSaveMessage && onContinueToFashionCreator && (
+                    {assetSaveMessage && onContinueToLuxbanditFit && (
                       <button
                         type="button"
-                        onClick={onContinueToFashionCreator}
+                        onClick={onContinueToLuxbanditFit}
                         className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-md bg-ink px-3 text-sm font-black text-white"
                       >
                         <Sparkles aria-hidden="true" className="h-4 w-4" />
-                        Continue in Fashion Creator
+                        Continue in LuxbanditFit
                       </button>
                     )}
                   </div>

@@ -63,17 +63,17 @@ export default function Home() {
       : [
           {
             src: "/tryout-step-select.svg",
-            alt: "Choose apparel from saved assets or the LuxuryBandit gallery",
+            alt: "Choose apparel from saved assets or the LuxbanditCut gallery",
             label: "Choose clothes"
           },
           {
             src: "/tryout-step-upload.svg",
-            alt: "Upload model references for the Fashion Creator",
+            alt: "Upload model references for the LuxbanditFit",
             label: "Upload model references"
           },
           {
             src: "/tryout-step-result.svg",
-            alt: "Fashion Creator result with selected clothes on the model reference",
+            alt: "LuxbanditFit result with selected clothes on the model reference",
             label: "Design"
           }
         ];
@@ -85,18 +85,18 @@ export default function Home() {
           <div className="grid gap-4">
             <div className="flex items-center gap-3 text-3xl font-black text-cobalt md:text-4xl">
               <div className="grid h-14 w-14 place-items-center rounded-md border border-cobalt/20 bg-cobalt text-xl font-black text-white shadow-soft">
-                SC
+                LC
               </div>
-              LuxuryBandit
+              LuxbanditCut
               {workspace ? (
                 <span className="rounded-full border border-cobalt/20 bg-cobalt/10 px-3 py-1 text-xs font-black text-cobalt">
                   Workspace: {workspace.label}
                 </span>
               ) : null}
             </div>
-            <h1 className="mt-2 text-3xl font-black text-ink md:text-4xl">Fashion Creator</h1>
+            <h1 className="mt-2 text-3xl font-black text-ink md:text-4xl">LuxbanditCut</h1>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-ink/65">
-              LuxuryBandit extracts apparel from real photos and turns it into Design Ready assets for new fashion creations.
+              Extract apparel from real photos and turn it into clean product images ready for your listings.
             </p>
             <AccountPanel />
             <SavedImageGallery />
@@ -116,7 +116,7 @@ export default function Home() {
                 </div>
                 <div className="rounded-md border border-black/10 bg-panel p-3">
                   <div className="grid h-9 w-9 place-items-center rounded-md bg-cobalt text-sm font-black text-white">3</div>
-                  <p className="mt-3 text-sm font-bold leading-6 text-ink/70">Prepare the selected apparel as a Design Ready image for Fashion Creator.</p>
+                  <p className="mt-3 text-sm font-bold leading-6 text-ink/70">Prepare the selected apparel as a Design Ready image for LuxbanditFit.</p>
                 </div>
               </div>
             </div>
@@ -151,7 +151,7 @@ export default function Home() {
                     className={`h-8 w-8 rounded object-cover ${activeTool === "outfit" ? "opacity-100" : "opacity-45 grayscale"}`}
                   />
                   <span>
-                    <span className="block text-sm font-black">Fashion Creator</span>
+                    <span className="block text-sm font-black">LuxbanditFit</span>
                     <span className={`block text-xs font-semibold ${activeTool === "outfit" ? "text-white/65" : "text-ink/45"}`}>
                       {activeTool === "outfit" ? "Active tool" : "Create fashion designs"}
                     </span>
@@ -176,15 +176,15 @@ export default function Home() {
               <div>
                 <h2 className="text-2xl font-black text-ink md:text-3xl">Apparel Extractor</h2>
                 <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-ink/65">
-                  Extract apparel from source photos, prepare Design Ready assets, then use them in Fashion Creator.
+                  Extract apparel from source photos, prepare Design Ready assets, then use them in LuxbanditFit.
                 </p>
               </div>
             </div>
             ) : (
             <div className="flex items-center gap-4 rounded-md border border-black/10 bg-white p-4 shadow-soft">
-              <img src="/tryout-logo%202.svg" alt="Fashion Creator logo" className="h-20 w-36 rounded-md border border-black/10 bg-white object-cover shadow-soft" />
+              <img src="/tryout-logo%202.svg" alt="LuxbanditFit logo" className="h-20 w-36 rounded-md border border-black/10 bg-white object-cover shadow-soft" />
               <div>
-                <h2 className="text-2xl font-black text-ink md:text-3xl">Fashion Creator</h2>
+                <h2 className="text-2xl font-black text-ink md:text-3xl">LuxbanditFit</h2>
                 <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-ink/65">
                   Combine saved apparel assets from different photos, select one model, and create a new fashion design image.
                 </p>
@@ -211,7 +211,7 @@ export default function Home() {
       </section>
 
       <section className="mx-auto w-full max-w-[1800px] px-6 py-5">
-        {activeTool === "extractor" ? <ImageEditor viewName="Apparel" onContinueToFashionCreator={() => setActiveTool("outfit")} /> : <OutfitBuilder />}
+        {activeTool === "extractor" ? <ImageEditor viewName="Apparel" onContinueToLuxbanditFit={() => setActiveTool("outfit")} /> : <OutfitBuilder />}
       </section>
     </main>
   );

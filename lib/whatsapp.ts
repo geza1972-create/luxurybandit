@@ -25,22 +25,24 @@ const formatDaysLabel = (value?: string) => {
 };
 
 export function buildWhatsAppOfferMessage(input: WhatsAppOfferMessageInput) {
+  const greeting = input.shopperName ? `Hi, I'm ${input.shopperName}.` : "Hi,";
+
   const lines = [
-    `Hi ${input.boutiqueName},`,
-    `I found your offer${input.campaignTitle ? ` via ${input.campaignTitle}` : ""}.`,
-    `I would like to pre-order: ${input.productName}.`
+    greeting,
+    `I'd like to reserve this piece from ${input.boutiqueName}:`,
+    `*${input.productName}*`
   ];
 
-  if (input.selectedSize) lines.push(`Size: ${input.selectedSize}.`);
-  if (input.buyingPreference) lines.push(`Preference: ${input.buyingPreference === "delivery" ? "delivery" : "pickup"}.`);
-  if (input.shopperName) lines.push(`My name is ${input.shopperName}.`);
-  if (input.buyingPreference === "delivery") lines.push("Please confirm delivery cost, address details, and payment.");
-  if (input.buyingPreference === "pickup") lines.push("Please confirm pickup address and payment.");
-  if (input.salePrice) lines.push(`Action price: ${input.salePrice}.`);
-  if (input.regularPrice) lines.push(`Regular price: ${input.regularPrice}.`);
-  if (input.discountLabel) lines.push(`Deal: ${input.discountLabel}.`);
-  if (input.deliveryTime) lines.push(`Estimated delivery time: ${formatDaysLabel(input.deliveryTime)}.`);
-  if (input.offerUrl) lines.push(`Offer link: ${input.offerUrl}`);
+  if (input.salePrice) lines.push(`Price: ${input.salePrice}${input.discountLabel ? ` (${input.discountLabel})` : ""}`);
+  else if (input.regularPrice) lines.push(`Price: ${input.regularPrice}`);
+
+  if (input.selectedSize) lines.push(`Size: ${input.selectedSize}`);
+  if (input.buyingPreference === "delivery") lines.push("Delivery preferred — please confirm cost, address & payment.");
+  else if (input.buyingPreference === "pickup") lines.push("I'll pick it up — please confirm address & payment.");
+
+  if (input.offerUrl) lines.push(`\nListing: ${input.offerUrl}`);
+
+  lines.push("\nIs it still available?");
 
   return lines.join("\n");
 }

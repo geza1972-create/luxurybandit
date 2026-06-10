@@ -455,9 +455,9 @@ export default function CreativeBuilderPage() {
         }))
       );
       setPreviews(rendered);
-      setMessage("Instagram slides created.");
+      setMessage("Listing slides created.");
     } catch (renderError) {
-      setError(renderError instanceof Error ? renderError.message : "Instagram slides could not be created.");
+      setError(renderError instanceof Error ? renderError.message : "Listing slides could not be created.");
     } finally {
       setIsRendering(false);
     }
@@ -481,7 +481,7 @@ export default function CreativeBuilderPage() {
     const url = URL.createObjectURL(zipBlob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${selectedLook ? normalizeSlug(selectedLook.name) || selectedLook.id : "luxurybandit"}-instagram-slides.zip`;
+    link.download = `${selectedLook ? normalizeSlug(selectedLook.name) || selectedLook.id : "luxurybandit"}-listing-slides.zip`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -506,9 +506,9 @@ export default function CreativeBuilderPage() {
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-xs font-black uppercase tracking-[0.18em] text-cobalt">LuxuryBandit Admin</div>
-            <h1 className="mt-2 text-5xl font-black leading-none text-ink">Instagram Creative Builder</h1>
+            <h1 className="mt-2 text-5xl font-black leading-none text-ink">Listing Creative Builder</h1>
             <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-ink/60">
-              Create four export-ready Instagram slides from an existing boutique look.
+              Create four export-ready listing slides from an existing fashion listing.
             </p>
           </div>
           <button type="button" onClick={() => void loadData()} className="inline-flex h-11 items-center gap-2 rounded-md border border-black/10 bg-white px-4 text-sm font-black shadow-soft">
@@ -582,7 +582,7 @@ export default function CreativeBuilderPage() {
                   className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-cobalt px-4 text-sm font-black text-white disabled:cursor-wait disabled:opacity-50"
                 >
                   {isRendering ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
-                  {isRendering ? "Creating slides..." : "Create Instagram slides"}
+                  {isRendering ? "Creating slides..." : "Create listing slides"}
                 </button>
                 <button
                   type="button"
@@ -607,7 +607,7 @@ export default function CreativeBuilderPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="text-xs font-black uppercase tracking-[0.16em] text-cobalt">Carousel preview</div>
-                  <div className="mt-1 text-sm font-bold text-ink/55">Simulated Instagram slide flow.</div>
+                  <div className="mt-1 text-sm font-bold text-ink/55">Simulated listing slide flow.</div>
                 </div>
                 {previews.length > 1 && (
                   <button
@@ -645,7 +645,7 @@ export default function CreativeBuilderPage() {
                         <img src={selectedLook.frontImageUrl ?? selectedLook.imageUrl} alt="" className="h-full w-full object-cover object-top opacity-80" />
                       ) : (
                         <div className="grid h-full place-items-center p-6 text-center text-xs font-black text-ink/45">
-                          Create slides to preview the Instagram carousel.
+                          Create slides to preview the listing carousel.
                         </div>
                       )}
                     </div>
@@ -661,7 +661,7 @@ export default function CreativeBuilderPage() {
                           />
                         ))}
                       </div>
-                      <div className="text-xs font-black text-ink">{previews[currentPreviewIndex]?.title ?? "Instagram carousel preview"}</div>
+                      <div className="text-xs font-black text-ink">{previews[currentPreviewIndex]?.title ?? "Listing carousel preview"}</div>
                       <div className="text-[11px] font-bold leading-4 text-ink/55">
                         {previews.length ? "Swipe effect simulation for the four generated slides." : "After creating slides, this preview animates automatically."}
                       </div>
@@ -689,7 +689,7 @@ export default function CreativeBuilderPage() {
               ))
             ) : (
               <div className="rounded-md border border-black/10 bg-panel p-6 text-sm font-bold text-ink/55 md:col-span-2 xl:col-span-4">
-                Choose a look and create the four Instagram slides.
+                Choose a listing and create the four slides.
               </div>
             )}
             </div>

@@ -89,24 +89,18 @@ export async function POST(request: Request) {
             {
               type: "input_text",
               text: [
-                "Identify the visible fashion product pieces in this image.",
-                "If the image contains blue painted marks, treat them as user focus markers only. They mean: pay special attention to the marked logo, print, jewelry, hardware, accessory, or garment detail.",
-                "Do not describe the blue marker as a product color, fabric, logo, print, or garment part.",
-                "Use the marked areas to improve recognition of small details, but still identify the complete visible apparel pieces around them.",
-                "Return only concrete product parts that should be selectable for the final ecommerce image.",
-                "For each product part, identify the dominant visible color and material/fabric finish of the selected cutout.",
-                "Also identify the product shape/cut/style where relevant.",
-                "Use short lowercase product labels, for example: corset, panty, garter straps, bra, bodysuit, stockings.",
-                "Material examples: opaque black fabric, semi-sheer black lace, nude mesh, satin, elastic strap, sheer stocking.",
-                "Shape examples for panty: thong, tanga, brief, bikini, high-waist, cheeky, brazilian, string, cut-out panty.",
-                "If a panty is visible, be very specific about whether the panty front/back panel is opaque black, lace, mesh, sheer, or another material.",
-                "Also identify the product view if possible: front, side, or back. Use back when rear closures, back lacing, rear straps, or back panty/thong shape are visible. Use side only when the garment is clearly shown from the side. Use front when front cups, front panel, or front product construction is visible.",
-                "If the item has complex shapes, cut-outs, open panels, asymmetric edges, lace borders, high-leg openings, straps, rings, bows, or special construction, describe this in details.",
-                "For every product, return bbox as [x,y,width,height] using normalized image coordinates from 0 to 1000 around the visible product only. This is required for screenshots, wishlist pages, grids, and collages with multiple products.",
-                "If this is a shop wishlist, product grid, collage, screenshot, or page with multiple product cards, identify each visible product separately and give each product its own bbox.",
-                "Do not use the same bbox for different products unless they are truly one product set.",
-                "Do not include person, body, skin, background, hair, pose, lighting, or camera terms.",
-                "Return JSON only with this shape: {\"viewType\":\"front\",\"products\":[{\"label\":\"panty\",\"color\":\"black\",\"material\":\"opaque black fabric\",\"shape\":\"thong\",\"details\":\"high-leg thong cut with narrow side straps and opaque black front panel\",\"description\":\"black opaque thong panty\",\"bbox\":[420,260,180,210]}]}. Limit to 10 items."
+                "Identify all visible fashion products in this image.",
+                "This includes ALL fashion item types: clothing (tops, jackets, dresses, lingerie, corsets, bras, etc.), shoes, boots, sneakers, bags, handbags, clutches, backpacks, jewellery, necklaces, bracelets, belts, scarves, hats, sunglasses, and any other wearable fashion accessory.",
+                "If the image contains blue painted marks, treat them as user focus markers only — use them to improve recognition of details but do not describe the marker itself.",
+                "Return only concrete selectable product pieces for a clean ecommerce product image.",
+                "For each product identify: label (short lowercase name), dominant color, material/finish, shape/style, and notable details.",
+                "Label examples: corset, panty, high heel, ankle boot, leather tote bag, gold chain necklace, silk scarf, sunglasses, leather belt, satin slip dress, gold bracelet.",
+                "Also identify the view if possible: front, side, or back.",
+                "If the item has complex shapes, hardware, cut-outs, straps, closures, or special construction, describe in the details field.",
+                "For every product return bbox as [x,y,width,height] in normalized 0–1000 coordinates tightly around the visible product.",
+                "If multiple separate products are visible (e.g. shoe + bag, or a product grid), give each its own bbox.",
+                "Do not include person, body, skin, hair, background, or lighting.",
+                "Return JSON only: {\"viewType\":\"front\",\"products\":[{\"label\":\"high heel\",\"color\":\"black\",\"material\":\"patent leather\",\"shape\":\"stiletto\",\"details\":\"pointed toe, 10cm stiletto heel\",\"description\":\"black patent leather stiletto heel\",\"bbox\":[200,400,300,500]}]}. Limit to 10 items."
               ].join(" ")
             },
             {

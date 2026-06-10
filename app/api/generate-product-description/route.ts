@@ -52,12 +52,13 @@ export async function POST(request: Request) {
             {
               type: "input_text",
               text: [
-                "Write a short marketplace product description for this fashion listing.",
-                "Focus on what a buyer can see: item type, color, brand/logo if visible, material impression, condition impression only if visible, fit/style, and useful details.",
-                "Do not invent exact material, authenticity, size, condition, price, availability, or delivery details.",
-                "Use simple seller-friendly language. No hashtags. No emojis. No AI wording.",
-                "Return only the description text, 1 to 2 short sentences.",
-                name ? `Listing name: ${name}.` : ""
+                "You are helping a fashion marketplace seller write a listing.",
+                "Look at the product photo and return a JSON object with exactly three keys:",
+                "1. \"title\": a short punchy product title (3–6 words), e.g. 'Black Lace Corset Set' or 'Vintage Gucci Leather Bag'. Capitalise each word. No brand names unless clearly visible on the product. No emojis.",
+                "2. \"description\": 1–2 short sentences describing what a buyer can see — item type, color, brand/logo if visible, style, condition if apparent. No invented details. No emojis. No AI wording.",
+                "3. \"hashtags\": a string of 10–15 relevant Instagram hashtags starting with #, separated by spaces. Mix broad (#vintage #fashion) and specific (#dolcegabbana #leopardprint #blazer) tags relevant to this item.",
+                "Return ONLY valid JSON, no extra text.",
+                name ? `Existing name (hint only, do not copy): ${name}.` : ""
               ].filter(Boolean).join(" ")
             },
             {
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const description = String(
+  const rawText = String(
     payload?.output_text ??
     payload?.output?.flatMap((item: any) => item?.content ?? [])
       ?.map((content: any) => content?.text ?? "")
@@ -87,9 +88,27 @@ export async function POST(request: Request) {
     ""
   ).trim();
 
+  if (!rawText) {
+    return NextResponse.json({ error: "OpenAI hat keine Antwort zurückgegeben." }, { status: 502 });
+  }
+
+  // Try to parse as JSON first (new format), fall back to plain text (old format)
+  let title = "";
+  let description = "";
+  let hashtags = "";
+  try {
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    const parsed = JSON.parse(jsonMatch?.[0] ?? rawText);
+    title = String(parsed.title ?? "").trim();
+    description = String(parsed.description ?? "").trim();
+    hashtags = String(parsed.hashtags ?? "").trim();
+  } catch {
+    description = rawText; // fallback: treat whole response as description
+  }
+
   if (!description) {
     return NextResponse.json({ error: "OpenAI hat keine Beschreibung zurückgegeben." }, { status: 502 });
   }
 
-  return NextResponse.json({ description });
+  return NextResponse.json({ title, description, hashtags });
 }

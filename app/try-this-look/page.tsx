@@ -1,9 +1,11 @@
 "use client";
 
+import CropModal from "@/components/CropModal";
 import { getClientAccountId } from "@/lib/client-account";
 import { buildWhatsAppDeepLink, buildWhatsAppOfferMessage, normalizeWhatsAppNumber } from "@/lib/whatsapp";
 import { Download, ImagePlus, Loader2, RefreshCw, Save, Share2, Sparkles } from "lucide-react";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type TryLook = {
   id: string;
@@ -257,6 +259,66 @@ const recommendedProviderForLook = (look: TryLook): "fashn" | "openai" => {
     : "openai";
 };
 
+// ── Save look button (localStorage) ───────────────────────────────────────────
+function SaveLookButton({ lookId }: { lookId: string }) {
+  const [saved, setSaved] = useState(false);
+  useEffect(() => {
+    try {
+      const list = JSON.parse(localStorage.getItem("lb_saved") ?? "[]") as string[];
+      setSaved(list.includes(lookId));
+    } catch { /* noop */ }
+  }, [lookId]);
+  const toggle = () => {
+    try {
+      const list = JSON.parse(localStorage.getItem("lb_saved") ?? "[]") as string[];
+      const next = saved ? list.filter((id) => id !== lookId) : [...list, lookId];
+      localStorage.setItem("lb_saved", JSON.stringify(next));
+      setSaved(next.includes(lookId));
+    } catch { /* noop */ }
+  };
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={saved ? "Remove from saved" : "Save"}
+      className={`flex h-6 w-6 items-center justify-center rounded-full border transition ${saved ? "border-red-400 bg-red-50 text-red-500" : "border-black/20 text-black/35 hover:border-red-300 hover:text-red-400"}`}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill={saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.5">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+      </svg>
+    </button>
+  );
+}
+
+// ── Follow button (localStorage) ──────────────────────────────────────────────
+function FollowButton({ storeSlug, storeName }: { storeSlug: string; storeName: string }) {
+  const [following, setFollowing] = useState(false);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("lb_following") ?? "[]") as string[];
+      setFollowing(saved.includes(storeSlug));
+    } catch { /* noop */ }
+  }, [storeSlug]);
+  const toggle = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("lb_following") ?? "[]") as string[];
+      const next = following ? saved.filter((s) => s !== storeSlug) : [...saved, storeSlug];
+      localStorage.setItem("lb_following", JSON.stringify(next));
+      setFollowing(!following);
+    } catch { /* noop */ }
+  };
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={following ? `Unfollow ${storeName}` : `Follow ${storeName}`}
+      className={`h-6 rounded-full border px-2.5 text-[10px] font-black transition ${following ? "border-cobalt bg-cobalt text-white" : "border-black/20 bg-white text-ink/60 hover:border-cobalt hover:text-cobalt"}`}
+    >
+      {following ? "Following" : "Follow"}
+    </button>
+  );
+}
+
 export default function TryThisLookPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const tryOnSectionRef = useRef<HTMLElement | null>(null);
@@ -264,22 +326,17 @@ export default function TryThisLookPage() {
   const [accountId, setAccountId] = useState("");
   const [visitorId, setVisitorId] = useState("");
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [selectedLook, setSelectedLook] = useState<TryLook>(TEST_LOOK);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSimulatingTryOn, setIsSimulatingTryOn] = useState(false);
-  const [showLockedTryOnPreview, setShowLockedTryOnPreview] = useState(false);
-  const [tryOnLeadUnlocked, setTryOnLeadUnlocked] = useState(false);
-  const [smsCodeSent, setSmsCodeSent] = useState(false);
-  const [smsCode, setSmsCode] = useState("");
-  const [freeTryOnUnlocked, setFreeTryOnUnlocked] = useState(false);
+  const [outOfCredits, setOutOfCredits] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isSavingLead, setIsSavingLead] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [instagram, setInstagram] = useState("");
-  const [marketingConsent, setMarketingConsent] = useState(false);
   const [selectedSize, setSelectedSize] = useState("");
   const [buyingPreference, setBuyingPreference] = useState<"pickup" | "delivery">("pickup");
   const [selectedView, setSelectedView] = useState<"front" | "back">("front");
@@ -342,12 +399,8 @@ export default function TryThisLookPage() {
   useEffect(() => {
     setTryOnProvider(recommendedProviderForLook(selectedLook));
     setResultImage(null);
-    setShowLockedTryOnPreview(false);
     setIsSimulatingTryOn(false);
-    setTryOnLeadUnlocked(false);
-    setSmsCodeSent(false);
-    setSmsCode("");
-    setFreeTryOnUnlocked(false);
+    setOutOfCredits(false);
     setActiveLookImageIndex(0);
   }, [selectedLook]);
 
@@ -383,6 +436,7 @@ export default function TryThisLookPage() {
     return () => window.clearInterval(timer);
   }, [selectedLook.dealEndsAt]);
 
+  const router = useRouter();
   const boutiqueMode = hasBoutiqueData(selectedLook);
   const lookName = publicLookName(selectedLook.name);
   const hasBackView = Boolean(selectedLook.backImageUrl || selectedLook.garmentBackImageUrl);
@@ -433,7 +487,7 @@ export default function TryThisLookPage() {
     try {
       validateImageFile(file);
       const dataUrl = await fileToDataUrl(file);
-      setUserPhoto(dataUrl);
+      setCropSrc(dataUrl); // open crop modal
       trackLookEvent("upload_user_photo");
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : SUPPORTED_IMAGE_MESSAGE);
@@ -484,6 +538,7 @@ export default function TryThisLookPage() {
       return;
     }
     setIsGenerating(true);
+    setOutOfCredits(false);
     setError(null);
     setMessage(null);
     setResultImage(null);
@@ -595,20 +650,23 @@ export default function TryThisLookPage() {
       formData.append("aspectRatio", aspectRatio);
 
       const provider = tryOnProvider;
+      // Use visitor-specific account for billing so each browser gets its own credit pool
+      const billingAccountId = accountId.startsWith("user-") ? accountId : `visitor-${visitorId}`;
       const response = await fetch(provider === "openai" ? "/api/try-this-look-openai" : "/api/generate-fashn", {
         method: "POST",
         body: formData,
         headers: {
-          "x-shopcut-account-id": accountId
+          "x-shopcut-account-id": billingAccountId
         }
       });
       const payload = await readJsonResponse<{ image?: string }>(response);
-      if (!response.ok || !payload.image) throw new Error(payload.error ?? "Look could not be generated.");
-      setResultImage(payload.image);
-      if (!accountId.startsWith("user-")) {
-        window.localStorage.setItem(`${TRY_ON_ONCE_LIMIT_PREFIX}:${visitorId}:${selectedLook.id}`, "1");
-        setUsedFreeTryOnOnce(true);
+      if (response.status === 402) {
+        setOutOfCredits(true);
+        setIsGenerating(false);
+        setGenerationStartedAt(null);
+        return;
       }
+      if (!response.ok || !payload.image) throw new Error(payload.error ?? "Look could not be generated.");
       void fetch("/api/try-this-look", {
         method: "POST",
         headers: {
@@ -631,7 +689,7 @@ export default function TryThisLookPage() {
   };
 
   const handleSimulatedTryOn = () => {
-    if (isSimulatingTryOn) return;
+    if (isSimulatingTryOn || isGenerating) return;
     if (!userPhoto) {
       fileInputRef.current?.click();
       return;
@@ -639,79 +697,15 @@ export default function TryThisLookPage() {
     setError(null);
     setMessage(null);
     setResultImage(null);
-    setShowLockedTryOnPreview(false);
-    setTryOnLeadUnlocked(false);
-    setSmsCodeSent(false);
-    setSmsCode("");
-    setFreeTryOnUnlocked(false);
+    setOutOfCredits(false);
     setIsSimulatingTryOn(true);
     trackLookEvent("click_try_on_preview_locked");
     window.setTimeout(() => resultSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    // After 2s simulation, kick off the real generation
     window.setTimeout(() => {
       setIsSimulatingTryOn(false);
-      setShowLockedTryOnPreview(true);
-      trackLookEvent("try_on_preview_locked");
-    }, 3000);
-  };
-
-  const unlockTryOnPreview = async () => {
-    if (!phone.trim()) {
-      setError("Please enter your phone number.");
-      return;
-    }
-    if (!isValidPhoneNumber(phone)) {
-      setError("Please enter a valid phone number, for example +40 724 644 477.");
-      return;
-    }
-
-    setIsSavingLead(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      const response = await fetch("/api/try-this-look", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          action: "lead",
-          lookId: selectedLook.id,
-          visitorId,
-          customerName,
-          phone,
-          email,
-          instagram,
-          selectedSize,
-          buyingPreference,
-          leadSource: "try_on_unlock",
-          marketingConsent,
-          uploadedPhoto: userPhoto,
-          ...eventMetadata
-        })
-      });
-      const payload = await readJsonResponse(response);
-      if (!response.ok) throw new Error(payload.error ?? "Preview could not be unlocked.");
-      setSmsCodeSent(true);
-      setMessage("SMS code sent. For the local MVP demo, use code 123456.");
-      trackLookEvent("try_on_preview_unlock_lead", { selectedSize });
-    } catch (leadError) {
-      setError(leadError instanceof Error ? leadError.message : "Preview could not be unlocked.");
-    } finally {
-      setIsSavingLead(false);
-    }
-  };
-
-  const verifySmsCode = () => {
-    if (smsCode.trim() !== DEMO_SMS_CODE) {
-      setError("Invalid code. For this local MVP demo, use 123456.");
-      return;
-    }
-    setError(null);
-    setTryOnLeadUnlocked(true);
-    setFreeTryOnUnlocked(true);
-    setMessage("Number verified. You now have 1 free try-on generation.");
-    trackLookEvent("try_on_sms_verified", { selectedSize });
+      void handleGenerate();
+    }, 2000);
   };
 
   const downloadResult = () => {
@@ -887,16 +881,36 @@ export default function TryThisLookPage() {
       <section className="mx-auto grid w-full max-w-[92vw] min-w-0 overflow-x-clip gap-3 sm:max-w-xl">
         <header className="grid min-w-0 gap-2 overflow-hidden rounded-lg border border-black/10 bg-white p-2.5 sm:p-3 shadow-soft">
           <div className="grid min-w-0 gap-2 sm:flex sm:items-start sm:gap-2">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-cobalt text-sm font-black text-white shadow-soft">{brandInitials}</div>
+            <button
+              type="button"
+              onClick={() => selectedLook.storeSlug && router.push(`/store/${selectedLook.storeSlug}`)}
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-cobalt text-sm font-black text-white shadow-soft hover:opacity-80"
+            >
+              {brandInitials}
+            </button>
             <div className="min-w-0 grid gap-1">
-              <div className="truncate text-sm font-black text-ink">{brandName}</div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => { if (selectedLook.storeSlug) router.push(`/store/${selectedLook.storeSlug}`); }}
+                  className={`truncate text-sm font-black text-ink ${selectedLook.storeSlug ? "hover:text-cobalt hover:underline cursor-pointer" : "cursor-default"}`}
+                >
+                  {brandName}
+                </button>
+                <FollowButton storeSlug={selectedLook.storeSlug ?? brandName} storeName={brandName} />
+                <SaveLookButton lookId={selectedLook.id} />
+              </div>
               <h1 className="break-words text-[1.75rem] font-black leading-[0.96] tracking-tight text-ink sm:text-5xl">
-                {boutiqueMode ? "Pre-order this boutique deal" : "Try this look on yourself"}
+                {boutiqueMode ? lookName : "Try this item on yourself"}
               </h1>
               <p className="text-[11px] font-bold leading-5 text-ink/60 sm:text-sm sm:leading-6">
-                {boutiqueMode && selectedLook.storeName
-                  ? `${selectedLook.storeName} has this offer available now. Choose your size and send your pre-order on WhatsApp.`
-                  : "Upload your photo and see yourself in this AI fashion look."}
+                {boutiqueMode
+                  ? selectedLook.inStock
+                    ? "Available now — reserve before it's gone."
+                    : selectedLook.availabilityNote
+                      ? `Available in ${formatDaysLabel(selectedLook.availabilityNote)}.`
+                      : "Contact the seller for availability."
+                  : "Upload your photo and see yourself in this fashion item."}
               </p>
               {selectedLook.storeAddress && <div className="text-[11px] font-bold text-ink/45">{selectedLook.storeAddress}</div>}
             </div>
@@ -908,22 +922,28 @@ export default function TryThisLookPage() {
               {selectedLook.price && <span className={`min-w-0 rounded-full px-2.5 py-1 text-center ${selectedLook.salePrice ? "bg-white text-ink/45 line-through" : "bg-ink text-white"}`}>{selectedLook.price}</span>}
               {dealCountdown && <span className="col-span-2 min-w-0 rounded-full bg-coral/10 px-2.5 py-1 text-center text-coral">{dealCountdown}</span>}
             </div>
-            {(selectedLook.availableSizes ?? []).length > 0 && (
-              <div className="min-w-0 text-[11px] font-bold leading-5 text-ink/60 sm:text-sm">Sizes: {(selectedLook.availableSizes ?? []).join(", ")}</div>
+            {selectedLook.inStock !== undefined && (
+              <div className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black ${selectedLook.inStock ? "bg-emerald-50 text-emerald-700" : "bg-ink/10 text-ink/55"}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${selectedLook.inStock ? "bg-emerald-500" : "bg-ink/30"}`} />
+                {selectedLook.inStock ? "Available now" : "Sold"}
+              </div>
             )}
-            {selectedLook.inStock && <div className="min-w-0 text-[11px] font-bold leading-5 text-ink/60 sm:text-sm">Availability: In stock now</div>}
-            {!selectedLook.inStock && selectedLook.availabilityNote && (
-              <div className="min-w-0 text-[11px] font-bold leading-5 text-ink/60 sm:text-sm">Availability: {formatDaysLabel(selectedLook.availabilityNote)}</div>
-            )}
-            {selectedLook.inStock && selectedLook.deliveryTime && (
-              <div className="min-w-0 text-[11px] font-bold leading-5 text-ink/60 sm:text-sm">Estimated delivery time: {formatDaysLabel(selectedLook.deliveryTime)}</div>
+            {selectedLook.deliveryTime && selectedLook.inStock && (
+              <div className="min-w-0 text-[11px] font-bold leading-5 text-ink/60 sm:text-sm">Delivery: {formatDaysLabel(selectedLook.deliveryTime)}</div>
             )}
             {selectedLook.productNote && <div className="min-w-0 text-[11px] font-bold leading-5 text-ink/60 sm:text-sm">{selectedLook.productNote}</div>}
           </div>
         </header>
         <section className="min-w-0 overflow-hidden rounded-lg border border-black/10 bg-white shadow-soft">
           <div className="relative overflow-hidden bg-panel">
-            <img src={displayPreviewImageUrl} alt={lookName} className="aspect-[4/5] w-full object-cover object-top" />
+            <img src={displayPreviewImageUrl} alt={lookName} className={`aspect-[4/5] w-full object-cover object-top ${selectedLook.inStock === false ? "opacity-50 grayscale" : ""}`} />
+            {selectedLook.inStock === false && (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="rotate-[-12deg] rounded-md border-4 border-ink/80 px-5 py-2 text-4xl font-black uppercase tracking-widest text-ink/80 bg-white/70 shadow-lg">
+                  SOLD
+                </div>
+              </div>
+            )}
             {lookImages.length > 1 && (
               <>
                 <button
@@ -947,7 +967,7 @@ export default function TryThisLookPage() {
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/55 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4 min-w-0">
               <div className="text-xs font-black uppercase tracking-[0.18em] text-white/80">
-                {boutiqueMode ? "New arrival" : "Selected look"}
+                {boutiqueMode ? "Live listing" : "Selected item"}
               </div>
               <div className="mt-1 break-words text-2xl font-black leading-none text-white">{lookName}</div>
               {boutiqueMode && selectedLook.storeName && <div className="mt-2 text-sm font-black text-white/85">{selectedLook.storeName}</div>}
@@ -1010,9 +1030,9 @@ export default function TryThisLookPage() {
               )}
                 <div className="grid gap-3 rounded-md border border-black/10 bg-panel p-2.5">
                 <div>
-                  <div className="text-lg font-black text-ink">Pre-order this deal</div>
+                  <div className="text-lg font-black text-ink">Reserve this piece</div>
                   <p className="mt-1 text-xs font-bold leading-5 text-ink/55">
-                    Choose your size and send your pre-order request directly to the boutique on WhatsApp.
+                    Send your reservation directly to the seller on WhatsApp. They will confirm and arrange payment.
                   </p>
                 </div>
                 {requiresSize ? (
@@ -1051,7 +1071,7 @@ export default function TryThisLookPage() {
                     )}
                   </div>
                 ) : (
-                  <p className="rounded-md border border-coral/20 bg-coral/10 p-3 text-xs font-black text-coral">Ask the boutique for available sizes on WhatsApp.</p>
+                  <p className="rounded-md border border-black/10 bg-panel p-3 text-xs font-bold text-ink/55">One unique piece — ask the seller about fit on WhatsApp.</p>
                 )}
                 <div className="grid grid-cols-2 gap-2">
                   {(["pickup", "delivery"] as const).map((preference) => (
@@ -1076,18 +1096,21 @@ export default function TryThisLookPage() {
                     <span>The boutique will confirm delivery availability, delivery cost, your address, and the delivery timeline on WhatsApp.</span>
                   )}
                   <br />
-                  <span>Payment is arranged directly with the boutique after your pre-order request.</span>
+                  <span>Payment is arranged directly with the seller after your reservation.</span>
                 </div>
                 <div className="grid gap-2 md:grid-cols-2">
-                  <input
-                    value={customerName}
-                    onChange={(event) => setCustomerName(event.target.value)}
-                    placeholder="Your name optional"
-                    className="h-11 rounded-md border border-black/10 bg-white px-3 text-sm font-bold outline-none focus:border-cobalt"
-                  />
+                  <div className="grid gap-2">
+                    <div className="h-[15px]" aria-hidden="true" />
+                    <input
+                      value={customerName}
+                      onChange={(event) => setCustomerName(event.target.value)}
+                      placeholder="Your name optional"
+                      className="h-11 rounded-md border border-black/10 bg-white px-3 text-sm font-bold outline-none focus:border-cobalt"
+                    />
+                  </div>
                   <div className="grid gap-2">
                     <div className="flex items-center justify-between gap-3">
-                    <div className="text-[11px] font-black uppercase tracking-[0.14em] text-ink/55">
+                      <div className="text-[11px] font-black uppercase tracking-[0.14em] text-ink/55">
                         Tel / WhatsApp <span className="text-coral">*</span>
                       </div>
                       {showPhoneRequired && <div className="text-[11px] font-black text-coral">Required</div>}
@@ -1123,7 +1146,7 @@ export default function TryThisLookPage() {
                   onClick={() => void handlePreOrderViaWhatsApp()}
                 className="inline-flex h-11 items-center justify-center rounded-md bg-[#25D366] px-4 text-sm font-black text-white"
                 >
-                  Pre-order via WhatsApp
+                  Reserve on WhatsApp
                 </button>
                 <button
                   type="button"
@@ -1133,7 +1156,7 @@ export default function TryThisLookPage() {
                   Share product image
                 </button>
                 <p className="text-[11px] font-bold leading-4 text-ink/45">
-                  Your WhatsApp message goes to the boutique. LuxuryBandit stores the pre-order request so the boutique can confirm availability, delivery, and payment.
+                  Your message goes directly to the seller. LuxuryBandit records the reservation so the seller can confirm and close the sale on WhatsApp.
                 </p>
               </div>
             </div>
@@ -1222,12 +1245,12 @@ export default function TryThisLookPage() {
           {message && <p className="rounded-md border border-cobalt/20 bg-cobalt/10 p-3 text-sm font-black leading-6 text-cobalt">{message}</p>}
         </section>
 
-        {(isSimulatingTryOn || showLockedTryOnPreview || isGenerating || resultImage) && (
+        {(isSimulatingTryOn || outOfCredits || isGenerating || resultImage) && (
           <section ref={resultSectionRef} className="grid gap-4 rounded-lg border border-black/10 bg-white p-3 shadow-soft">
             <div>
-              <div className="text-2xl font-black text-ink">Your private try-on preview</div>
+              <div className="text-2xl font-black text-ink">Your try-on preview</div>
               <p className="mt-1 text-sm font-bold leading-6 text-ink/55">
-                The preview is prepared privately. Unlock it with your WhatsApp number so the boutique can follow up about this pre-order.
+                See yourself in this piece. If you love it, reserve it on WhatsApp before it's gone.
               </p>
             </div>
             {isSimulatingTryOn && (
@@ -1257,117 +1280,39 @@ export default function TryThisLookPage() {
                 </div>
               </div>
             )}
-            {showLockedTryOnPreview && !resultImage && !tryOnLeadUnlocked && (
-              <div className="grid gap-4 rounded-md border border-cobalt/20 bg-cobalt/5 p-3">
+            {outOfCredits && !isGenerating && !resultImage && (
+              <div className="grid gap-4 rounded-md border border-amber-200 bg-amber-50 p-3">
                 <div className="overflow-hidden rounded-md border border-black/10 bg-panel">
-                  <img src={userPhoto ?? previewImageUrl} alt="" className="max-h-[620px] w-full object-contain opacity-60 blur-xl scale-[1.02]" />
+                  <img src={userPhoto ?? previewImageUrl} alt="" className="max-h-[620px] w-full object-contain opacity-50 blur-xl scale-[1.02]" />
                 </div>
-                <div className="grid gap-3 rounded-md border border-white/75 bg-white p-4 text-center shadow-soft">
-                  <div className="mx-auto grid h-12 w-12 place-items-center rounded-md bg-cobalt/10 text-cobalt">
+                <div className="grid gap-3 rounded-md border border-white/75 bg-white p-5 text-center shadow-soft">
+                  <div className="mx-auto grid h-12 w-12 place-items-center rounded-md bg-amber-100 text-amber-600">
                     <Sparkles aria-hidden="true" className="h-6 w-6" />
                   </div>
                   <div>
-                    <div className="text-2xl font-black text-ink">Preview is ready</div>
+                    <div className="text-2xl font-black text-ink">Credits needed</div>
                     <p className="mt-2 text-sm font-bold leading-6 text-ink/60">
-                      Verify your phone number by SMS. After verification, you get 1 free real try-on generation. More generations need credits later.
+                      Your free try-ons have been used. Buy credits to generate your personalised look.
                     </p>
                   </div>
-                  <div className="grid gap-2 text-left">
-                    <input
-                      value={phone}
-                      onChange={(event) => setPhone(event.target.value)}
-                      placeholder="Mobile number, e.g. +40 724 644 477"
-                      className={`h-12 rounded-md bg-white px-3 text-sm font-bold outline-none ${
-                        phone.trim() && !isValidPhoneNumber(phone)
-                          ? "border border-coral bg-coral/5 focus:border-coral"
-                          : "border border-black/10 focus:border-cobalt"
-                      }`}
-                    />
-                    {phone.trim() && !isValidPhoneNumber(phone) && (
-                      <p className="text-xs font-black text-coral">Please enter a valid number, for example +40 724 644 477.</p>
-                    )}
-                    {smsCodeSent && (
-                      <input
-                        value={smsCode}
-                        onChange={(event) => setSmsCode(event.target.value)}
-                        placeholder="SMS code"
-                        className="h-12 rounded-md border border-black/10 bg-white px-3 text-sm font-bold outline-none focus:border-cobalt"
-                      />
-                    )}
-                    <label className="flex gap-2 rounded-md border border-black/10 bg-panel p-3 text-left text-xs font-bold leading-5 text-ink/60">
-                      <input
-                        type="checkbox"
-                        checked={marketingConsent}
-                        onChange={(event) => setMarketingConsent(event.target.checked)}
-                        className="mt-1 h-4 w-4 shrink-0 accent-cobalt"
-                      />
-                      <span>
-                        I agree that this boutique and LuxuryBandit may contact me on WhatsApp about this pre-order and future boutique deals.
-                      </span>
-                    </label>
-                    {!smsCodeSent ? (
-                      <button
-                        type="button"
-                        onClick={() => void unlockTryOnPreview()}
-                        disabled={isSavingLead}
-                        className="inline-flex h-12 items-center justify-center rounded-md bg-cobalt px-4 text-sm font-black text-white disabled:cursor-wait disabled:opacity-50"
-                      >
-                        {isSavingLead ? "Sending..." : "Send SMS code"}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={verifySmsCode}
-                        className="inline-flex h-12 items-center justify-center rounded-md bg-cobalt px-4 text-sm font-black text-white"
-                      >
-                        Verify code
-                      </button>
-                    )}
+                  <div className="grid gap-2 rounded-md border border-black/10 bg-panel p-3 text-left text-sm font-bold leading-6 text-ink/60">
+                    <div className="flex items-center justify-between">
+                      <span>Light AI — standard quality</span>
+                      <span className="font-black text-ink">2 credits</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Premium AI — photorealistic try-on</span>
+                      <span className="font-black text-amber-600">10 credits</span>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
-            {tryOnLeadUnlocked && !resultImage && (
-              <div className="grid gap-4 rounded-md border border-cobalt/20 bg-cobalt/5 p-3">
-                <div className="grid gap-4 rounded-md border border-white/75 bg-white p-5 shadow-soft">
-                  <div className="mx-auto grid h-12 w-12 place-items-center rounded-md bg-cobalt/10 text-cobalt">
-                    <Sparkles aria-hidden="true" className="h-6 w-6" />
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-black text-ink">Try-on flow unlocked</div>
-                    <p className="mt-2 text-sm font-bold leading-6 text-ink/60">
-                      Your number is verified. The boutique can follow up about your pre-order. You now have 1 free real try-on generation.
-                    </p>
-                  </div>
-                  <div className="grid gap-2 rounded-md border border-black/10 bg-panel p-3 text-sm font-bold leading-6 text-ink/60">
-                    <div>1. Use your 1 free try-on generation now.</div>
-                    <div>2. Continue with your pre-order on WhatsApp when you are ready.</div>
-                    <div>3. After the free try-on, more generations require credits.</div>
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    <button
-                      type="button"
-                      onClick={() => void handleGenerate()}
-                      disabled={!freeTryOnUnlocked || isGenerating}
-                      className="inline-flex h-12 items-center justify-center rounded-md bg-cobalt px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Generate 1 free try-on
-                    </button>
-                    <button
-                      type="button"
-                      onClick={continueToWhatsAppPreOrder}
-                      className="inline-flex h-12 items-center justify-center rounded-md bg-[#25D366] px-4 text-sm font-black text-white"
-                    >
-                      Continue to WhatsApp
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMessage("Real try-on generation will unlock after login and credit purchase.")}
-                      className="inline-flex h-12 items-center justify-center rounded-md border border-black/10 bg-white px-4 text-sm font-black text-ink"
-                    >
-                      Buy more credits later
-                    </button>
-                  </div>
+                  <a
+                    href="https://wa.me/40724644477?text=Hi%2C+I+want+to+buy+credits+for+LuxuryBandit+try-on"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-[#25D366] px-4 text-sm font-black text-white"
+                  >
+                    Buy credits via WhatsApp
+                  </a>
                 </div>
               </div>
             )}
@@ -1481,6 +1426,20 @@ export default function TryThisLookPage() {
             </div>
           </div>
         </div>
+      )}
+      {cropSrc && (
+        <CropModal
+          imageSrc={cropSrc}
+          onConfirm={(cropped) => {
+            setUserPhoto(cropped);
+            setCropSrc(null);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+          }}
+          onCancel={() => {
+            setCropSrc(null);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+          }}
+        />
       )}
     </main>
   );
