@@ -686,8 +686,8 @@ export default function LookPage() {
           {/* Tap zones for gallery */}
           {images.length > 1 && (
             <>
-              <button type="button" onClick={prev} className="absolute left-0 top-1/4 z-10 h-1/2 w-1/4" aria-label="Previous" />
-              <button type="button" onClick={next} className="absolute right-0 top-1/4 z-10 h-1/2 w-1/4" aria-label="Next" />
+              <button type="button" onClick={() => imgIndex > 0 && snapGallery(imgIndex - 1)} className="absolute left-0 top-1/4 z-10 h-1/2 w-1/4" aria-label="Previous" />
+              <button type="button" onClick={() => imgIndex < images.length - 1 && snapGallery(imgIndex + 1)} className="absolute right-0 top-1/4 z-10 h-1/2 w-1/4" aria-label="Next" />
             </>
           )}
         </div>
