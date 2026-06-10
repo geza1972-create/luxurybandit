@@ -34,6 +34,89 @@ type Payload = {
   error?: string;
 };
 
+// ── Saved looks list (bookmarks from lb_bookmarks in localStorage) ──────────
+function SavedLooksList() {
+  const [bookmarks, setBookmarks] = useState<string[]>([]);
+  const [looks, setLooks] = useState<Look[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const ids = JSON.parse(localStorage.getItem("lb_bookmarks") ?? "[]") as string[];
+      setBookmarks(ids);
+    } catch { setBookmarks([]); }
+  }, []);
+
+  useEffect(() => {
+    if (!open || bookmarks.length === 0) { setLoading(false); return; }
+    setLoading(true);
+    fetch("/api/try-this-look")
+      .then(r => r.json())
+      .then((data: Payload) => {
+        const all = data.looks ?? [];
+        setLooks(all.filter(l => bookmarks.includes(l.id)));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [open, bookmarks]);
+
+  const remove = (id: string) => {
+    const next = bookmarks.filter(b => b !== id);
+    setBookmarks(next);
+    setLooks(l => l.filter(x => x.id !== id));
+    try { localStorage.setItem("lb_bookmarks", JSON.stringify(next)); } catch { /**/ }
+  };
+
+  return (
+    <div className="rounded-xl border border-black/8 bg-black/[0.02] overflow-hidden">
+      <button type="button" onClick={() => setOpen(o => !o)}
+        className="flex w-full items-center justify-between px-4 py-3">
+        <span className="text-sm font-black text-ink">Saved looks</span>
+        <span className="flex items-center gap-1.5 text-xs font-bold text-ink/40">
+          {bookmarks.length > 0 && <span className="rounded-full bg-cobalt/15 px-2 py-0.5 text-cobalt font-black">{bookmarks.length}</span>}
+          <span>{open ? "▲" : "▼"}</span>
+        </span>
+      </button>
+      {open && (
+        <div className="border-t border-black/8 px-4 py-3">
+          {loading ? (
+            <p className="text-xs font-bold text-ink/40 py-2">Loading…</p>
+          ) : looks.length === 0 ? (
+            <p className="text-xs font-bold text-ink/40 py-2">No saved looks yet.</p>
+          ) : (
+            <div className="grid gap-2">
+              {looks.map(look => {
+                const img = look.frontImageUrl ?? look.imageUrl;
+                return (
+                  <div key={look.id} className="flex items-center gap-3">
+                    <a href={`/look/${look.id}`} className="flex items-center gap-3 flex-1 min-w-0 active:opacity-70">
+                      {img && (
+                        <div className="relative h-12 w-10 shrink-0 overflow-hidden rounded-lg bg-black/5">
+                          <Image src={img} alt={look.name} fill className="object-cover" sizes="40px" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate text-xs font-black text-ink">{look.name}</p>
+                        {look.storeName && <p className="truncate text-[10px] font-bold text-ink/40">{look.storeName}</p>}
+                        {look.price && <p className="text-[10px] font-black text-cobalt">{look.salePrice ?? look.price}</p>}
+                      </div>
+                    </a>
+                    <button type="button" onClick={() => remove(look.id)}
+                      className="shrink-0 text-ink/30 hover:text-coral transition text-lg leading-none">
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── User panel ───────────────────────────────────────────────────────────────
 function UserPanel({ onClose }: { onClose: () => void }) {
   const [session, setSession] = useState(() => {
@@ -130,6 +213,9 @@ function UserPanel({ onClose }: { onClose: () => void }) {
                 <Sparkles className="h-3.5 w-3.5" /> Buy 10 credits
               </a>
             </div>
+
+            {/* Saved looks */}
+            <SavedLooksList />
 
             {/* Links */}
             <a href="/seller/dashboard"

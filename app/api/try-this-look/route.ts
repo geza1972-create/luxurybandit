@@ -76,6 +76,7 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     deliveryTime: look.deliveryTime,
     productNote: look.productNote,
     hashtags: (look as any).hashtags,
+    likeCount: (look as any).likeCount ?? 0,
     createdAt: look.createdAt,
     imageUrl: primaryImageUrl,
     frontImageUrl: primaryImageUrl,
@@ -228,6 +229,17 @@ export async function POST(request: Request) {
 
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json(ps(updatedState));
+    }
+
+    if (payload.action === "like") {
+      const lookId = String(payload.lookId ?? "").trim();
+      const delta = payload.liked ? 1 : -1;
+      const look = state.looks.find(l => l.id === lookId);
+      if (look) {
+        (look as any).likeCount = Math.max(0, ((look as any).likeCount ?? 0) + delta);
+        await writeTryThisLookState(state);
+      }
+      return NextResponse.json({ likeCount: (look as any)?.likeCount ?? 0 });
     }
 
     if (payload.action === "lead") {

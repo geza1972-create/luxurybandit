@@ -8,6 +8,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
+  Bookmark,
   ChevronLeft,
   Download,
   Heart,
@@ -95,6 +96,61 @@ function SaveBtn({ lookId }: { lookId: string }) {
   );
 }
 
+// ── Bookmark button ──────────────────────────────────────────────────────────
+function BookmarkBtn({ lookId }: { lookId: string }) {
+  const [saved, setSaved] = useState(false);
+  useEffect(() => {
+    try { setSaved((JSON.parse(localStorage.getItem("lb_bookmarks") ?? "[]") as string[]).includes(lookId)); } catch { /**/ }
+  }, [lookId]);
+  const toggle = () => {
+    try {
+      const list = JSON.parse(localStorage.getItem("lb_bookmarks") ?? "[]") as string[];
+      const next = saved ? list.filter(id => id !== lookId) : [...list, lookId];
+      localStorage.setItem("lb_bookmarks", JSON.stringify(next));
+      setSaved(!saved);
+    } catch { /**/ }
+  };
+  return (
+    <button type="button" onClick={toggle} className="flex flex-col items-center gap-1.5">
+      <span className="grid h-12 w-12 place-items-center rounded-full bg-white/25 backdrop-blur">
+        <Bookmark className={`h-6 w-6 transition-transform active:scale-110 ${saved ? "fill-white text-white" : "text-white"}`} />
+      </span>
+      <span className="text-[11px] font-bold text-white drop-shadow">Save</span>
+    </button>
+  );
+}
+
+// ── Like button (Instagram Reels style) ──────────────────────────────────────
+function SaveBtnInsta({ lookId, initialCount }: { lookId: string; initialCount: number }) {
+  const [liked, setLiked] = useState(false);
+  const [count, setCount] = useState(initialCount);
+  useEffect(() => {
+    try { setLiked((JSON.parse(localStorage.getItem("lb_saved") ?? "[]") as string[]).includes(lookId)); } catch { /**/ }
+  }, [lookId]);
+  const toggle = async () => {
+    const next = !liked;
+    try {
+      const list = JSON.parse(localStorage.getItem("lb_saved") ?? "[]") as string[];
+      localStorage.setItem("lb_saved", JSON.stringify(next ? [...list, lookId] : list.filter(id => id !== lookId)));
+    } catch { /**/ }
+    setLiked(next);
+    setCount(c => c + (next ? 1 : -1));
+    fetch("/api/try-this-look", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "like", lookId, liked: next }),
+    }).catch(() => {});
+  };
+  return (
+    <button type="button" onClick={toggle} className="flex flex-col items-center gap-1.5">
+      <span className={`grid h-12 w-12 place-items-center rounded-full backdrop-blur transition-transform active:scale-110 ${liked ? "bg-red-500/90" : "bg-white/25"}`}>
+        <Heart className={`h-6 w-6 ${liked ? "fill-white text-white" : "text-white"}`} />
+      </span>
+      <span className="text-[11px] font-bold text-white drop-shadow">{count > 0 ? String(count) : "Like"}</span>
+    </button>
+  );
+}
+
 // ── Follow button ────────────────────────────────────────────────────────────
 function FollowBtn({ storeSlug, storeName }: { storeSlug: string; storeName: string }) {
   const [following, setFollowing] = useState(false);
@@ -135,6 +191,7 @@ export default function LookPage() {
   // Gallery
   const [imgIndex, setImgIndex] = useState(0);
   const [showInfo, setShowInfo] = useState(false);
+  const [showSheet, setShowSheet] = useState(false);
 
   // Panels: 0 = main look, 1 = try-on
   const [panel, setPanel] = useState<0 | 1>(0);
@@ -384,30 +441,51 @@ export default function LookPage() {
             <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/80 to-transparent" />
           </div>
 
-          {/* Top bar */}
-          <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-3 pt-12">
+          {/* Top bar — back button only */}
+          <div className="absolute inset-x-0 top-0 z-20 flex items-center px-3 pt-12">
             <button type="button" onClick={() => router.back()}
               className="grid h-11 w-11 place-items-center rounded-full bg-black/30 text-white backdrop-blur">
               <ChevronLeft className="h-6 w-6" />
             </button>
+          </div>
 
-            {images.length > 1 && (
-              <div className="flex items-center gap-[5px]">
-                {images.map((_, i) => (
-                  <button key={i} type="button" onClick={() => setImgIndex(i)}
-                    className={`rounded-full transition-all duration-200 ${i === imgIndex ? "h-2 w-2 bg-white" : "h-1.5 w-1.5 bg-white/50"}`} />
-                ))}
-              </div>
-            )}
-
-            <div className="flex items-center gap-1">
-              <SaveBtn lookId={look.id} />
-              <button type="button"
-                onClick={() => navigator.share?.({ title: look.name, url: window.location.href }).catch(() => {})}
-                className="grid h-11 w-11 place-items-center">
-                <Share2 className="h-5 w-5 text-white drop-shadow" />
-              </button>
+          {/* Dots — centered, above peek bar */}
+          {images.length > 1 && (
+            <div className="absolute bottom-20 inset-x-0 z-20 flex justify-center items-center gap-[5px]"
+              style={{ bottom: "calc(env(safe-area-inset-bottom) + 4.5rem)" }}>
+              {images.map((_, i) => (
+                <button key={i} type="button" onClick={() => setImgIndex(i)}
+                  className={`rounded-full transition-all duration-200 ${i === imgIndex ? "h-2 w-2 bg-white" : "h-1.5 w-1.5 bg-white/40"}`} />
+              ))}
             </div>
+          )}
+
+          {/* Right-side action buttons — Instagram Reels style */}
+          <div className="absolute right-3 z-20 flex flex-col items-center gap-6"
+            style={{ bottom: "calc(env(safe-area-inset-bottom) + 7rem)" }}>
+            {/* Like */}
+            <SaveBtnInsta lookId={look.id} initialCount={(look as any).likeCount ?? 0} />
+            {/* Share */}
+            <button type="button"
+              onClick={() => navigator.share?.({ title: look.name, url: window.location.href }).catch(() => {})}
+              className="flex flex-col items-center gap-1.5">
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-white/25 backdrop-blur">
+                <Share2 className="h-6 w-6 text-white" />
+              </span>
+              <span className="text-[11px] font-bold text-white drop-shadow">Share</span>
+            </button>
+            {/* Save / Bookmark */}
+            <BookmarkBtn lookId={look.id} />
+            {/* Try This Look */}
+            {!isSoldOut && (
+              <button type="button" onClick={() => setPanel(1)}
+                className="flex flex-col items-center gap-1.5">
+                <span className="grid h-12 w-12 place-items-center rounded-full bg-white/25 backdrop-blur">
+                  <Sparkles className="h-6 w-6 text-white" />
+                </span>
+                <span className="text-[11px] font-bold text-white drop-shadow">Try</span>
+              </button>
+            )}
           </div>
 
           {/* Sold-out overlay */}
@@ -417,66 +495,98 @@ export default function LookPage() {
             </div>
           )}
 
-          {/* Bottom info */}
-          <div className="absolute inset-x-0 bottom-0 z-20 px-4" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom) + 0.75rem)" }}>
-            <div className="mb-3 flex items-center gap-2">
-              <button type="button" onClick={() => look.storeSlug ? router.push(`/store/${look.storeSlug}`) : undefined}
-                className="flex items-center gap-2 active:opacity-70">
-                <span className="flex h-8 w-8 shrink-0 overflow-hidden rounded-full bg-white">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(storeKey)}&backgroundColor=ffffff&color=000000`} alt="" className="h-full w-full object-cover" />
-                </span>
-                <span className="text-sm font-black text-white drop-shadow">{look.storeName ?? storeKey}</span>
-              </button>
-              <FollowBtn storeSlug={storeKey} storeName={look.storeName ?? storeKey} />
-            </div>
-
-            <h1 className="text-xl font-black leading-tight text-white drop-shadow">{look.name}</h1>
-
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              {look.discountLabel && <span className="rounded-full bg-red-500 px-2.5 py-1 text-xs font-black text-white">{look.discountLabel}</span>}
-              {look.salePrice && <span className="text-lg font-black text-white">{look.salePrice}</span>}
-              {look.price && <span className={`text-base font-black ${look.salePrice ? "text-white/40 line-through" : "text-white"}`}>{look.price}</span>}
-            </div>
-
-            {(look.availableSizes ?? []).length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {look.availableSizes!.map(size => (
-                  <span key={size} className="rounded-full border border-white/40 px-3 py-1 text-xs font-black text-white">{size}</span>
-                ))}
+          {/* ── Peek bar (always visible) ── */}
+          <div className="absolute inset-x-0 bottom-0 z-20" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+            <div className="bg-gradient-to-t from-black/70 to-transparent px-4 pt-16 pb-3">
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => look.storeSlug ? router.push(`/store/${look.storeSlug}`) : undefined}
+                  className="flex items-center gap-2 active:opacity-70">
+                  <span className="flex h-8 w-8 shrink-0 overflow-hidden rounded-full bg-white border-2 border-white/30">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(storeKey)}&backgroundColor=ffffff&color=000000`} alt="" className="h-full w-full object-cover" />
+                  </span>
+                  <span className="text-sm font-black text-white">{look.storeName ?? storeKey}</span>
+                </button>
+                <FollowBtn storeSlug={storeKey} storeName={look.storeName ?? storeKey} />
+                <button type="button" onClick={() => setShowSheet(true)}
+                  className="ml-auto flex items-center gap-1 rounded-full bg-white/20 px-3 py-1.5 text-xs font-black text-white backdrop-blur active:opacity-70">
+                  <span>{look.name.length > 18 ? look.name.slice(0, 18) + "…" : look.name}</span>
+                  <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>
+                </button>
               </div>
-            )}
-
-            {look.productNote && (
-              <button type="button" onClick={() => setShowInfo(v => !v)} className="mt-2 text-left text-xs font-bold text-white/60">
-                {showInfo ? look.productNote : `${look.productNote.slice(0, 60)}${look.productNote.length > 60 ? "… more" : ""}`}
-              </button>
-            )}
-
-            {/* Hint: swipe left */}
-            <p className="mt-2 text-[10px] font-bold text-white/30">← nach links wischen für Try This Look</p>
-
-            <div className="mt-3 grid gap-2">
-              {!isSoldOut ? (
-                <>
-                  <button type="button" onClick={() => setShowContact(true)}
-                    className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-black text-base font-black text-white shadow-xl active:scale-95 transition-transform">
-                    <MessageCircle className="h-5 w-5" />
-                    Interesse melden
-                  </button>
-                  <button type="button" onClick={() => setPanel(1)}
-                    className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-white/15 text-sm font-black text-white backdrop-blur active:scale-95 transition-transform">
-                    <Sparkles className="h-4 w-4" />
-                    Try This Look
-                  </button>
-                </>
-              ) : (
-                <div className="flex h-14 w-full items-center justify-center rounded-2xl bg-white/10 text-base font-black text-white/40">
-                  Sold out
-                </div>
-              )}
             </div>
           </div>
+
+          {/* ── Bottom Sheet ── */}
+          {showSheet && (
+            <>
+              {/* Backdrop */}
+              <div className="absolute inset-0 z-30 bg-black/40" onClick={() => setShowSheet(false)} />
+              {/* Sheet */}
+              <div className="absolute inset-x-0 bottom-0 z-40 rounded-t-3xl bg-white"
+                style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
+                {/* Handle */}
+                <div className="flex justify-center pt-3 pb-2" onClick={() => setShowSheet(false)}>
+                  <div className="h-1 w-10 rounded-full bg-black/20" />
+                </div>
+                <div className="px-4 pb-2">
+                  {/* Store row */}
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="flex h-7 w-7 shrink-0 overflow-hidden rounded-full bg-black/5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(storeKey)}&backgroundColor=ffffff&color=000000`} alt="" className="h-full w-full object-cover" />
+                    </span>
+                    <span className="text-xs font-black text-black/50">{look.storeName ?? storeKey}</span>
+                  </div>
+                  {/* Title */}
+                  <h1 className="text-xl font-black leading-tight text-black">{look.name}</h1>
+                  {/* Price */}
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {look.discountLabel && <span className="rounded-full bg-red-500 px-2.5 py-1 text-xs font-black text-white">{look.discountLabel}</span>}
+                    {look.salePrice && <span className="text-lg font-black text-black">{look.salePrice}</span>}
+                    {look.price && <span className={`text-base font-black ${look.salePrice ? "text-black/30 line-through" : "text-black"}`}>{look.price}</span>}
+                  </div>
+                  {/* Sizes */}
+                  {(look.availableSizes ?? []).length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {look.availableSizes!.map(size => (
+                        <span key={size} className="rounded-full border border-black/20 px-3 py-1 text-xs font-black text-black">{size}</span>
+                      ))}
+                    </div>
+                  )}
+                  {/* Description */}
+                  {look.productNote && (
+                    <button type="button" onClick={() => setShowInfo(v => !v)} className="mt-2 text-left text-xs font-medium text-black/50">
+                      {showInfo ? look.productNote : `${look.productNote.slice(0, 80)}${look.productNote.length > 80 ? "… mehr" : ""}`}
+                    </button>
+                  )}
+                  {/* Hint */}
+                  <p className="mt-2 text-[10px] font-bold text-black/25">← swipe left for Try This Look</p>
+                  {/* Buttons */}
+                  <div className="mt-4 grid gap-2">
+                    {!isSoldOut ? (
+                      <>
+                        <button type="button" onClick={() => { setShowSheet(false); setShowContact(true); }}
+                          className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-black text-base font-black text-white shadow-lg active:scale-95 transition-transform">
+                          <MessageCircle className="h-5 w-5" />
+                          Interesse melden
+                        </button>
+                        <button type="button" onClick={() => { setShowSheet(false); setPanel(1); }}
+                          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-black/10 bg-black/5 text-sm font-black text-black active:scale-95 transition-transform">
+                          <Sparkles className="h-4 w-4" />
+                          Try This Look
+                        </button>
+                      </>
+                    ) : (
+                      <div className="flex h-14 w-full items-center justify-center rounded-2xl bg-black/5 text-base font-black text-black/30">
+                        Sold out
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Tap zones for gallery */}
           {images.length > 1 && (

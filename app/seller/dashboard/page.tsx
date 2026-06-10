@@ -258,16 +258,16 @@ export default function SellerDashboardPage() {
     const s = getStoredAuthSession();
     if (!s?.access_token) { router.push("/seller/login"); return; }
     setSession(s);
-    loadData();
+    loadData(s.access_token);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const authHeader = () => ({ Authorization: `Bearer ${session?.access_token ?? ""}` });
+  const authHeader = (token?: string) => ({ Authorization: `Bearer ${token ?? session?.access_token ?? ""}` });
 
-  const loadData = async () => {
+  const loadData = async (token?: string) => {
     setLoading(true);
     try {
-      const res = await fetch("/api/seller/me", { headers: authHeader() });
+      const res = await fetch("/api/seller/me", { headers: authHeader(token) });
       if (res.status === 401) { router.push("/seller/login"); return; }
       const payload = await res.json();
       if (!res.ok) { setError(payload.error ?? "Could not load data."); return; }
