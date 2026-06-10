@@ -128,6 +128,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  // ── Update store profile ────────────────────────────────────────────────────
+  if (action === "update-store") {
+    const name = formData.has("name") ? String(formData.get("name") ?? "").trim() : store.name;
+    const address = formData.has("address") ? String(formData.get("address") ?? "").trim() : store.address;
+    const description = formData.has("description") ? String(formData.get("description") ?? "").trim() : (store as any).description;
+    const instagram = formData.has("instagram") ? String(formData.get("instagram") ?? "").replace(/^@/, "").trim() : (store as any).instagram;
+
+    if (!name) return NextResponse.json({ error: "Store name is required." }, { status: 400 });
+
+    state.stores = (state.stores ?? []).map((s) =>
+      s.slug !== store.slug ? s : {
+        ...s,
+        name,
+        address: address || undefined,
+        description: description || undefined,
+        instagram: instagram || undefined,
+      }
+    );
+    // Sync store name on all looks for this store
+    state.looks = state.looks.map((l) =>
+      l.storeSlug !== store.slug ? l : { ...l, storeName: name }
+    );
+    await saveTryThisLookState(state);
+    return NextResponse.json({ ok: true });
+  }
+
   // ── Request AI access ───────────────────────────────────────────────────────
   if (action === "request-ai-access") {
     state.stores = (state.stores ?? []).map((s) =>

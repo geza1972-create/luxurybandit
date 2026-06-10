@@ -29,6 +29,9 @@ type Store = {
   id: string;
   name: string;
   slug: string;
+  address?: string;
+  description?: string;
+  instagram?: string;
   aiEnabled?: boolean;
   aiCreditsLimit?: number;
   aiCreditsUsed?: number;
@@ -252,6 +255,11 @@ export default function SellerDashboardPage() {
   const [requestingAi, setRequestingAi] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Store profile editing
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: "", address: "", description: "", instagram: "" });
+  const [savingProfile, setSavingProfile] = useState(false);
+
   const [session, setSession] = useState<ReturnType<typeof getStoredAuthSession>>(null);
 
   useEffect(() => {
@@ -343,10 +351,117 @@ export default function SellerDashboardPage() {
 
   const handleLogout = () => { signOut(); router.push("/seller/login"); };
 
+  const openEditProfile = () => {
+    const s = data?.store;
+    setProfileForm({ name: s?.name ?? "", address: s?.address ?? "", description: s?.description ?? "", instagram: s?.instagram ?? "" });
+    setEditingProfile(true);
+  };
+
+  const saveProfile = async () => {
+    setSavingProfile(true); setError(""); setMessage("");
+    try {
+      const fd = new FormData();
+      fd.append("action", "update-store");
+      fd.append("name", profileForm.name);
+      fd.append("address", profileForm.address);
+      fd.append("description", profileForm.description);
+      fd.append("instagram", profileForm.instagram);
+      const res = await fetch("/api/seller/action", { method: "POST", headers: authHeader(), body: fd });
+      const payload = await res.json();
+      if (!res.ok) { setError(payload.error ?? "Could not save."); return; }
+      setMessage("Store profile updated.");
+      setEditingProfile(false);
+      await loadData();
+    } catch { setError("Network error."); }
+    finally { setSavingProfile(false); }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#fafaf8]">
         <Loader2 className="h-6 w-6 animate-spin text-black/30" />
+      </div>
+    );
+  }
+
+  // No store linked — check if admin, otherwise generic error
+  if (!data?.store && error) {
+    const isAdmin = session?.user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+    const userEmail = session?.user?.email ?? "";
+    const userInitial = userEmail[0]?.toUpperCase() ?? "U";
+
+    return (
+      <div className="min-h-screen bg-[#fafaf8]">
+        <header className="sticky top-0 z-20 border-b border-black/8 bg-white/95 px-4 py-3 backdrop-blur">
+          <div className="mx-auto flex max-w-lg items-center justify-between">
+            <a href="/" className="grid h-8 w-8 place-items-center rounded-full border border-black/10 text-black/40">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="m15 18-6-6 6-6"/></svg>
+            </a>
+            <span className="text-sm font-black text-black">My Account</span>
+            <button type="button" onClick={handleLogout}
+              className="flex items-center gap-1 text-xs font-bold text-black/40 hover:text-black transition">
+              <LogOut className="h-3.5 w-3.5" /> Sign out
+            </button>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-lg px-4 py-6 grid gap-4">
+          {/* Identity card */}
+          <section className="rounded-2xl border border-black/8 bg-white p-4 flex items-center gap-4">
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-black text-white text-lg font-black">
+              {userInitial}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-black text-black">{userEmail}</p>
+              <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${isAdmin ? "bg-violet-100 text-violet-700" : "bg-black/8 text-black/50"}`}>
+                {isAdmin ? "Admin" : "User"}
+              </span>
+            </div>
+          </section>
+
+          {/* Admin links */}
+          {isAdmin && (
+            <section className="rounded-2xl border border-black/8 bg-white overflow-hidden">
+              <div className="px-4 py-3 border-b border-black/6">
+                <p className="text-xs font-black uppercase tracking-widest text-black/30">Admin</p>
+              </div>
+              {[
+                { label: "Looks & stores", href: "/admin/looks" },
+                { label: "Sellers", href: "/admin/sellers" },
+                { label: "Creative studio", href: "/admin/creative" },
+                { label: "Admin overview", href: "/admin" },
+              ].map(({ label, href }) => (
+                <a key={href} href={href}
+                  className="flex h-11 items-center justify-between px-4 border-b border-black/5 last:border-0 text-sm font-bold text-black hover:bg-black/[0.02] transition">
+                  {label}
+                  <span className="text-black/30">→</span>
+                </a>
+              ))}
+            </section>
+          )}
+
+          {/* Regular user links */}
+          <section className="rounded-2xl border border-black/8 bg-white overflow-hidden">
+            <div className="px-4 py-3 border-b border-black/6">
+              <p className="text-xs font-black uppercase tracking-widest text-black/30">Navigation</p>
+            </div>
+            {[
+              { label: "Home", href: "/" },
+              { label: "Stores", href: "/stores" },
+            ].map(({ label, href }) => (
+              <a key={href} href={href}
+                className="flex h-11 items-center justify-between px-4 border-b border-black/5 last:border-0 text-sm font-bold text-black hover:bg-black/[0.02] transition">
+                {label}
+                <span className="text-black/30">→</span>
+              </a>
+            ))}
+          </section>
+
+          <button type="button" onClick={handleLogout}
+            className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-black/10 bg-white text-sm font-bold text-black/50">
+            <LogOut className="h-4 w-4" /> Sign out
+          </button>
+        </main>
       </div>
     );
   }
@@ -363,9 +478,14 @@ export default function SellerDashboardPage() {
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-black/8 bg-white/95 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center justify-between">
-          <div>
-            <div className="text-sm font-black text-black leading-none">{store?.name ?? "My Store"}</div>
-            <div className="text-[11px] font-bold text-black/40">/store/{store?.slug}</div>
+          <div className="flex items-center gap-3">
+            <a href="/" className="grid h-8 w-8 place-items-center rounded-full border border-black/10 text-black/40 hover:text-black transition" title="Back to LuxuryBandit">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="m15 18-6-6 6-6"/></svg>
+            </a>
+            <div>
+              <div className="text-sm font-black text-black leading-none">{store?.name ?? "My Store"}</div>
+              <div className="text-[11px] font-bold text-black/40">/store/{store?.slug}</div>
+            </div>
           </div>
           <ProfileMenu
             email={session?.user?.email}
@@ -389,6 +509,73 @@ export default function SellerDashboardPage() {
             <button type="button" onClick={() => setMessage("")}><X className="h-4 w-4" /></button>
           </div>
         )}
+
+        {/* Store profile */}
+        <section className="rounded-2xl border border-black/8 bg-white p-4">
+          {!editingProfile ? (
+            <>
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <div className="text-sm font-black text-black">{store?.name}</div>
+                  <a href={`/store/${store?.slug}`} target="_blank" rel="noopener noreferrer"
+                    className="text-[11px] font-bold text-cobalt hover:underline">
+                    luxurybandit.com/store/{store?.slug}
+                  </a>
+                </div>
+                <button type="button" onClick={openEditProfile}
+                  className="flex h-8 items-center gap-1.5 rounded-lg border border-black/10 px-3 text-xs font-black text-black/60 hover:text-black transition">
+                  <Pencil className="h-3 w-3" /> Edit
+                </button>
+              </div>
+              <div className="grid gap-1.5 text-xs font-bold text-black/50">
+                {store?.address && <div className="flex items-start gap-2"><span className="shrink-0 font-black text-black/30">Address</span>{store.address}</div>}
+                {store?.description && <div className="flex items-start gap-2"><span className="shrink-0 font-black text-black/30">About</span>{store.description}</div>}
+                {store?.instagram && <div className="flex items-start gap-2"><span className="shrink-0 font-black text-black/30">Instagram</span>@{store.instagram}</div>}
+                {!store?.address && !store?.description && !store?.instagram && (
+                  <div className="text-black/30">No profile info yet — tap Edit to add.</div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="grid gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-black text-black">Edit store profile</span>
+                <button type="button" onClick={() => setEditingProfile(false)}><X className="h-4 w-4 text-black/30" /></button>
+              </div>
+              {[
+                { label: "Store name", key: "name", placeholder: "Your store name" },
+                { label: "Address", key: "address", placeholder: "Street, City" },
+                { label: "Instagram", key: "instagram", placeholder: "@yourhandle" },
+              ].map(({ label, key, placeholder }) => (
+                <div key={key} className="grid gap-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-black/40">{label}</label>
+                  <input
+                    type="text"
+                    value={profileForm[key as keyof typeof profileForm]}
+                    onChange={e => setProfileForm(f => ({ ...f, [key]: e.target.value }))}
+                    placeholder={placeholder}
+                    className="h-10 rounded-xl border border-black/10 bg-[#fafaf8] px-3 text-sm font-bold text-black outline-none focus:border-black"
+                  />
+                </div>
+              ))}
+              <div className="grid gap-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-black/40">About / Description</label>
+                <textarea
+                  rows={3}
+                  value={profileForm.description}
+                  onChange={e => setProfileForm(f => ({ ...f, description: e.target.value }))}
+                  placeholder="Short description of your store"
+                  className="rounded-xl border border-black/10 bg-[#fafaf8] px-3 py-2 text-sm font-bold text-black outline-none focus:border-black resize-none"
+                />
+              </div>
+              <button type="button" onClick={saveProfile} disabled={savingProfile}
+                className="flex h-10 items-center justify-center gap-2 rounded-xl bg-black text-sm font-black text-white disabled:opacity-60">
+                {savingProfile && <Loader2 className="h-4 w-4 animate-spin" />}
+                {savingProfile ? "Saving…" : "Save profile"}
+              </button>
+            </div>
+          )}
+        </section>
 
         {/* AI Credit box */}
         <section className="rounded-2xl border border-black/8 bg-white p-4">

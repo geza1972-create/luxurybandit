@@ -36,6 +36,8 @@ export type TryThisLookStore = {
   name: string;
   slug: string;
   address?: string;
+  description?: string;
+  instagram?: string;
   whatsappNumber?: string;
   // Seller auth
   ownerUserId?: string;       // Supabase auth user ID

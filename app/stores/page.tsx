@@ -189,7 +189,11 @@ function UserPanel({ onClose }: { onClose: () => void }) {
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-black text-ink">{session.user.email}</p>
-                <p className="text-[11px] font-bold text-ink/40">Buyer account</p>
+                {session.user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL ? (
+                  <span className="mt-0.5 inline-block rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-violet-700">Admin</span>
+                ) : (
+                  <p className="text-[11px] font-bold text-ink/40">Buyer account</p>
+                )}
               </div>
             </div>
 
@@ -218,10 +222,23 @@ function UserPanel({ onClose }: { onClose: () => void }) {
             <SavedLooksList />
 
             {/* Links */}
-            <a href="/seller/dashboard"
-              className="flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white text-sm font-black text-ink">
-              Seller dashboard →
-            </a>
+            {session.user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL ? (
+              <>
+                <a href="/admin/looks"
+                  className="flex h-11 items-center justify-center rounded-xl border border-violet-200 bg-violet-50 text-sm font-black text-violet-700">
+                  Admin panel →
+                </a>
+                <a href="/seller/dashboard"
+                  className="flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white text-sm font-black text-ink">
+                  Seller dashboard →
+                </a>
+              </>
+            ) : (
+              <a href="/seller/dashboard"
+                className="flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white text-sm font-black text-ink">
+                Seller dashboard →
+              </a>
+            )}
 
             <button type="button" onClick={handleSignOut}
               className="flex h-11 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white text-sm font-black text-ink/50 hover:text-coral transition">
@@ -371,7 +388,7 @@ export default function StoresPage() {
 
           {/* Right icons */}
           <div className="flex items-center gap-2">
-            <a href="https://instagram.com/luxurybandit" target="_blank" rel="noopener noreferrer"
+            <a href={`https://instagram.com/${process.env.NEXT_PUBLIC_INSTAGRAM_HANDLE ?? "luxurybandit"}`} target="_blank" rel="noopener noreferrer"
               className="flex h-9 w-9 items-center justify-center rounded-full border border-black/12 bg-black/4 text-black/50 hover:text-black transition"
               aria-label="Instagram">
               <Instagram className="h-4 w-4" />
