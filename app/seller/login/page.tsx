@@ -5,10 +5,10 @@ export const dynamic = "force-dynamic";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { saveAuthSession, signInWithPassword } from "@/lib/supabase-auth-client";
 
-export default function SellerLoginPage() {
+function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const confirmed = params.get("confirmed") === "1";
@@ -35,7 +35,6 @@ export default function SellerLoginPage() {
   return (
     <div className="flex min-h-screen items-start justify-center bg-[#fafaf8] px-4 py-16">
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="mb-8 text-center">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-black text-white text-sm font-black tracking-tight">
             LB
@@ -96,5 +95,13 @@ export default function SellerLoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SellerLoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
