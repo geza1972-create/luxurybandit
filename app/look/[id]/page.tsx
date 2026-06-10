@@ -129,6 +129,7 @@ export default function LookPage() {
 
   // Look data
   const [look, setLook] = useState<Look | null>(null);
+  const [storeLooks, setStoreLooks] = useState<Look[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Gallery
@@ -157,16 +158,23 @@ export default function LookPage() {
   const generationStartRef = useRef<number | null>(null);
 
   // Swipe tracking
-  const touchStartX = useRef<number | null>(null);   // gallery swipe
-  const panelStartX = useRef<number | null>(null);   // panel swipe
+  const touchStartX = useRef<number | null>(null);   // unused, kept for safety
+  const panelStartX = useRef<number | null>(null);
   const panelStartY = useRef<number | null>(null);
-  const gallerySwipedRef = useRef(false);
+  const gallerySwipedRef = useRef(false);            // unused, kept for safety
 
   useEffect(() => {
     setAccountId(getClientAccountId());
     fetch("/api/try-this-look")
       .then(r => r.json())
-      .then((p: Payload) => setLook((p.looks ?? []).find(l => l.id === lookId) ?? null))
+      .then((p: Payload) => {
+        const all = p.looks ?? [];
+        const current = all.find(l => l.id === lookId) ?? null;
+        setLook(current);
+        if (current?.storeSlug) {
+          setStoreLooks(all.filter(l => l.storeSlug === current.storeSlug));
+        }
+      })
       .finally(() => setIsLoading(false));
   }, [lookId]);
 
@@ -198,25 +206,11 @@ export default function LookPage() {
   const storeKey = look.storeSlug ?? look.storeName ?? "store";
   const garmentUrl = look.garmentFrontImageUrl ?? look.frontImageUrl ?? look.imageUrl;
 
-  // ── Gallery swipe (within panel 0 image area) ──
+  // ── Gallery navigation ──
   const prev = () => setImgIndex(i => (i - 1 + images.length) % images.length);
   const next = () => setImgIndex(i => (i + 1) % images.length);
 
-  const onGalleryTouchStart = (e: React.TouchEvent) => {
-    gallerySwipedRef.current = false;
-    touchStartX.current = e.touches[0].clientX;
-  };
-  const onGalleryTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    touchStartX.current = null;
-    if (Math.abs(dx) > 40 && images.length > 1) {
-      dx < 0 ? next() : prev();
-      gallerySwipedRef.current = true;
-    }
-  };
-
-  // ── Panel swipe (outer container) ──
+  // ── Unified touch handler (outer container) ──
   const onPanelTouchStart = (e: React.TouchEvent) => {
     panelStartX.current = e.touches[0].clientX;
     panelStartY.current = e.touches[0].clientY;
@@ -227,11 +221,35 @@ export default function LookPage() {
     const dy = e.changedTouches[0].clientY - panelStartY.current;
     panelStartX.current = null;
     panelStartY.current = null;
-    if (gallerySwipedRef.current) { gallerySwipedRef.current = false; return; }
-    // Only treat as panel swipe if horizontal dominates and threshold is large
-    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    if (dx < 0 && panel === 0) setPanel(1);
-    if (dx > 0 && panel === 1) setPanel(0);
+
+    const adx = Math.abs(dx);
+    const ady = Math.abs(dy);
+
+    // Vertical swipe → navigate store looks (panel 0 only, vertical dominates)
+    if (panel === 0 && ady >= 70 && ady > adx * 1.5) {
+      const idx = storeLooks.findIndex(l => l.id === lookId);
+      if (dy < 0 && idx < storeLooks.length - 1) {
+        router.push(`/look/${storeLooks[idx + 1].id}`);
+      } else if (dy > 0 && idx > 0) {
+        router.push(`/look/${storeLooks[idx - 1].id}`);
+      }
+      return;
+    }
+
+    // Horizontal swipe (must dominate)
+    if (adx < 40 || adx < ady * 1.2) return;
+
+    // Short horizontal swipe → gallery image (panel 0, multi-image)
+    if (panel === 0 && adx < 130 && images.length > 1) {
+      dx < 0 ? next() : prev();
+      return;
+    }
+
+    // Long horizontal swipe → panel change
+    if (adx >= 80) {
+      if (dx < 0 && panel === 0) setPanel(1);
+      if (dx > 0 && panel === 1) setPanel(0);
+    }
   };
 
   // ── Contact form submission ──
@@ -341,7 +359,8 @@ export default function LookPage() {
 
   return (
     <div
-      className="relative h-screen w-full overflow-hidden bg-black"
+      className="relative w-full overflow-hidden bg-black"
+      style={{ height: "100dvh" }}
       onTouchStart={onPanelTouchStart}
       onTouchEnd={onPanelTouchEnd}
     >
@@ -357,7 +376,7 @@ export default function LookPage() {
         <div className="relative h-full" style={{ width: "50%" }}>
 
           {/* Full-screen image */}
-          <div className="absolute inset-0" onTouchStart={onGalleryTouchStart} onTouchEnd={onGalleryTouchEnd}>
+          <div className="absolute inset-0">
             {images[imgIndex] && (
               <Image src={images[imgIndex]} alt={look.name} fill sizes="100vw" className="object-cover object-top" priority />
             )}
@@ -399,7 +418,7 @@ export default function LookPage() {
           )}
 
           {/* Bottom info */}
-          <div className="absolute inset-x-0 bottom-0 z-20 px-4 pb-6">
+          <div className="absolute inset-x-0 bottom-0 z-20 px-4" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom) + 0.75rem)" }}>
             <div className="mb-3 flex items-center gap-2">
               <button type="button" onClick={() => look.storeSlug ? router.push(`/store/${look.storeSlug}`) : undefined}
                 className="flex items-center gap-2 active:opacity-70">
