@@ -252,6 +252,14 @@ export default function LookPage() {
     return () => clearInterval(t);
   }, [isGenerating]);
 
+  // Sync gallery position on imgIndex change (must be before early returns)
+  useEffect(() => {
+    if (!galleryRef.current || !look) return;
+    const imgCount = [...new Set([look.frontImageUrl ?? look.imageUrl, ...(look.galleryImageUrls ?? [])].filter(Boolean))].length;
+    galleryRef.current.style.transition = "transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94)";
+    galleryRef.current.style.transform = `translateX(-${imgIndex * (100 / Math.max(imgCount, 1))}%)`;
+  }, [imgIndex, look]);
+
   if (isLoading) return (
     <div className="flex h-screen items-center justify-center bg-black">
       <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -271,13 +279,6 @@ export default function LookPage() {
   const displayPrice = look.salePrice ?? look.price;
   const storeKey = look.storeSlug ?? look.storeName ?? "store";
   const garmentUrl = look.garmentFrontImageUrl ?? look.frontImageUrl ?? look.imageUrl;
-
-  // Sync gallery position when imgIndex changes via dots click
-  useEffect(() => {
-    if (!galleryRef.current) return;
-    galleryRef.current.style.transition = "transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94)";
-    galleryRef.current.style.transform = `translateX(-${imgIndex * (100 / Math.max(images.length, 1))}%)`;
-  }, [imgIndex, images.length]);
 
   // ── Live drag gallery helpers ──
   const applyGalleryDrag = (offsetPx: number) => {
