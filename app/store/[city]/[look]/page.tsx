@@ -89,6 +89,7 @@ export default function LookDetailPage() {
   const router = useRouter();
   const storeSlug = String(params?.city ?? "");
   const lookId = String(params?.look ?? "");
+  const normalizeSlug = (v: string) => v.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
 
   const [look, setLook] = useState<Look | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -101,7 +102,7 @@ export default function LookDetailPage() {
   useEffect(() => {
     fetch(`/api/try-this-look?store=${encodeURIComponent(storeSlug)}`)
       .then(r => r.json())
-      .then((p: Payload) => setLook((p.looks ?? []).find(l => l.id === lookId) ?? null))
+      .then((p: Payload) => setLook((p.looks ?? []).find(l => l.id === lookId || normalizeSlug(l.name) === lookId) ?? null))
       .finally(() => setIsLoading(false));
   }, [storeSlug, lookId]);
 
