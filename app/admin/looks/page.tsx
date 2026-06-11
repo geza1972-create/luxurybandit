@@ -878,7 +878,7 @@ function CommunityModerationSection({
             onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
             className={`rounded-full px-3 py-1.5 text-xs font-black transition ${selectMode ? "bg-black text-white" : "border border-black/15 bg-panel text-ink/60"}`}
           >
-            {selectMode ? `Abbrechen${selectedIds.size ? ` (${selectedIds.size})` : ""}` : "Auswählen"}
+            {selectMode ? `Cancel${selectedIds.size ? ` (${selectedIds.size})` : ""}` : "Select"}
           </button>
         </div>
       </div>
@@ -895,7 +895,7 @@ function CommunityModerationSection({
           )}
           <button type="button" disabled={bulkWorking} onClick={() => void bulkDelete()}
             className="rounded-md bg-red-500 px-3 py-1.5 text-xs font-black text-white disabled:opacity-50">
-            {bulkWorking ? "…" : `Löschen (${selectedIds.size})`}
+            {bulkWorking ? "…" : `Delete (${selectedIds.size})`}
           </button>
         </div>
       )}

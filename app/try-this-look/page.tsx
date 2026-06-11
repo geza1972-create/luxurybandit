@@ -674,7 +674,7 @@ export default function TryThisLookPage() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ action: "generation", lookId: selectedLook.id, image: payload.image, visitorId, ...eventMetadata })
+        body: JSON.stringify({ action: "generation", lookId: selectedLook.id, image: payload.image, visitorId, customerName: customerName.trim() || undefined, userPhotoImage: userPhoto ?? undefined, ...eventMetadata })
       }).catch(() => undefined);
       trackLookEvent("generation_success");
     } catch (generateError) {

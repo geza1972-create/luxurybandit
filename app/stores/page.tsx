@@ -307,7 +307,7 @@ function CommunityDetailView({
             </button>
           )}
           {onDelete && (
-            <button type="button" onClick={() => onDelete(item.id)} title="Löschen"
+            <button type="button" onClick={() => onDelete(item.id)} title="Delete"
               className="grid h-10 w-10 place-items-center rounded-full bg-red-500/80 backdrop-blur text-white active:opacity-70">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
@@ -384,7 +384,7 @@ function MerklistePanel({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex flex-col bg-white">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-black/8 px-4 py-4 pt-safe-top">
-        <h2 className="text-base font-black text-ink">Merkliste</h2>
+        <h2 className="text-base font-black text-ink">Saved</h2>
         <button type="button" onClick={onClose}
           className="grid h-8 w-8 place-items-center rounded-full border border-black/10 text-ink/40">
           <X className="h-4 w-4" />
@@ -400,12 +400,12 @@ function MerklistePanel({ onClose }: { onClose: () => void }) {
         ) : looks.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-24 text-center px-6">
             <span className="text-4xl">🔖</span>
-            <p className="text-sm font-black text-black/40">Noch keine gemerkten Produkte.</p>
-            <p className="text-xs text-black/30">Tippe auf das Lesezeichen-Symbol bei einem Look, um ihn zu speichern.</p>
+            <p className="text-sm font-black text-black/40">No saved items yet.</p>
+            <p className="text-xs text-black/30">Tap the bookmark icon on a look to save it.</p>
           </div>
         ) : (
           <div className="grid gap-3">
-            <p className="text-xs font-bold text-black/40 mb-1">{looks.length} {looks.length === 1 ? "Produkt" : "Produkte"} gespeichert</p>
+            <p className="text-xs font-bold text-black/40 mb-1">{looks.length} {looks.length === 1 ? "item" : "items"} saved</p>
             {looks.map(look => {
               const img = look.frontImageUrl ?? look.imageUrl;
               return (
@@ -476,7 +476,7 @@ function SavedLooksList({ defaultOpen = false }: { defaultOpen?: boolean }) {
     <div className="rounded-xl border border-black/8 bg-black/[0.02] overflow-hidden">
       <button type="button" onClick={() => setOpen(o => !o)}
         className="flex w-full items-center justify-between px-4 py-3">
-        <span className="text-sm font-black text-ink">Merkliste</span>
+        <span className="text-sm font-black text-ink">Saved</span>
         <span className="flex items-center gap-1.5 text-xs font-bold text-ink/40">
           {bookmarks.length > 0 && <span className="rounded-full bg-cobalt/15 px-2 py-0.5 text-cobalt font-black">{bookmarks.length}</span>}
           <span>{open ? "▲" : "▼"}</span>
@@ -487,7 +487,7 @@ function SavedLooksList({ defaultOpen = false }: { defaultOpen?: boolean }) {
           {loading ? (
             <p className="text-xs font-bold text-ink/40 py-2">Lädt…</p>
           ) : looks.length === 0 ? (
-            <p className="text-xs font-bold text-ink/40 py-2">Noch nichts gespeichert.</p>
+            <p className="text-xs font-bold text-ink/40 py-2">Nothing saved yet.</p>
           ) : (
             <div className="grid gap-2">
               {looks.map(look => {
@@ -1112,7 +1112,7 @@ function StoresPage() {
                             </button>
                             <button type="button" disabled={bulkWorking} onClick={() => void bulkDelete()}
                               className="rounded-full bg-red-500 px-3 py-1.5 text-[11px] font-black text-white disabled:opacity-50 active:opacity-70">
-                              {bulkWorking ? "…" : "Löschen"}
+                              {bulkWorking ? "…" : "Delete"}
                             </button>
                           </>
                         )}
@@ -1120,7 +1120,7 @@ function StoresPage() {
                           className={`rounded-full px-3 py-1.5 text-[11px] font-black active:opacity-70 ${
                             selectMode ? "bg-black text-white" : "bg-black/8 text-black/60"
                           }`}>
-                          {selectMode ? "Abbrechen" : "Auswählen"}
+                          {selectMode ? "Cancel" : "Select"}
                         </button>
                       </div>
                     </div>
@@ -1230,7 +1230,7 @@ function StoresPage() {
                       </button>
                       <button type="button" disabled={feedBulkWorking} onClick={() => void bulkDeleteLooks()}
                         className="rounded-full bg-red-500 px-3 py-1.5 text-[11px] font-black text-white disabled:opacity-50 active:opacity-70 shrink-0">
-                        {feedBulkWorking ? "…" : `Löschen (${selectedLookIds.size})`}
+                        {feedBulkWorking ? "…" : `Delete (${selectedLookIds.size})`}
                       </button>
                     </>
                   )}
@@ -1239,7 +1239,7 @@ function StoresPage() {
                     className={`ml-auto rounded-full px-3 py-1.5 text-[11px] font-black shrink-0 active:opacity-70 ${
                       feedSelectMode ? "bg-black text-white" : "bg-black/8 text-black/60"
                     }`}>
-                    {feedSelectMode ? `Abbrechen${selectedLookIds.size ? ` (${selectedLookIds.size})` : ""}` : "Auswählen"}
+                    {feedSelectMode ? `Cancel${selectedLookIds.size ? ` (${selectedLookIds.size})` : ""}` : "Select"}
                   </button>
                 </div>
               </div>

@@ -95,7 +95,7 @@ export default function EntdeckenPage() {
       <header className="sticky top-0 z-40 border-b border-black/8 bg-white/95 backdrop-blur-md">
         <div className="mx-auto max-w-lg px-4 pt-safe-top">
           <div className="flex items-center justify-between py-3">
-            <span className="text-lg font-black tracking-tight text-black">Entdecken</span>
+            <span className="text-lg font-black tracking-tight text-black">Discover</span>
             <button
               type="button"
               onClick={() => router.push("/try-this-look")}
@@ -138,7 +138,7 @@ export default function EntdeckenPage() {
         {!loading && feed.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-24 text-center px-6">
             <span className="text-4xl">🛍️</span>
-            <p className="text-sm font-black text-black/40">Noch keine Produkte.</p>
+            <p className="text-sm font-black text-black/40">No products yet.</p>
           </div>
         )}
 

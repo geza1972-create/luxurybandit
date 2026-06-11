@@ -6,14 +6,14 @@ import { useEffect, useState } from "react";
 
 const SHOW_ON = ["/try-this-look", "/stores", "/entdecken"];
 
-type Tab = "home" | "community" | "gespeichert" | "konto";
+type Tab = "home" | "community" | "saved" | "account";
 
 function getActiveTab(pathname: string): Tab {
   if (pathname === "/stores") {
     try {
       const params = new URLSearchParams(window.location.search);
-      if (params.get("panel") === "saved") return "gespeichert";
-      if (params.get("panel") === "account") return "konto";
+      if (params.get("panel") === "saved") return "saved";
+      if (params.get("panel") === "account") return "account";
       if (params.get("tab") === "community") return "community";
     } catch { /**/ }
   }
@@ -68,11 +68,11 @@ export default function BottomNav() {
           <span className="text-[10px] font-bold">Community</span>
         </button>
 
-        {/* Merkliste */}
+        {/* Saved */}
         <button
           type="button"
-          onClick={() => go("gespeichert", "/stores?panel=saved")}
-          className={btn("gespeichert")}
+          onClick={() => go("saved", "/stores?panel=saved")}
+          className={btn("saved")}
         >
           <span className="relative">
             <Bookmark className="h-5 w-5" />
@@ -82,13 +82,13 @@ export default function BottomNav() {
               </span>
             )}
           </span>
-          <span className="text-[10px] font-bold">Merkliste</span>
+          <span className="text-[10px] font-bold">Saved</span>
         </button>
 
-        {/* Konto */}
-        <button type="button" onClick={() => go("konto", "/stores?panel=account")} className={btn("konto")}>
+        {/* Account */}
+        <button type="button" onClick={() => go("account", "/stores?panel=account")} className={btn("account")}>
           <User className="h-5 w-5" />
-          <span className="text-[10px] font-bold">Konto</span>
+          <span className="text-[10px] font-bold">Account</span>
         </button>
 
       </div>
