@@ -497,6 +497,19 @@ export async function POST(request: Request) {
       });
 
       const updatedState = await saveTryThisLookState(state);
+
+      // ── WhatsApp notification to admin (non-blocking) ────────────────────
+      const waPhone = process.env.ADMIN_WHATSAPP_PHONE?.trim();
+      const waKey = process.env.CALLMEBOT_API_KEY?.trim();
+      if (waPhone && waKey) {
+        const customerName = String(payload.customerName ?? "").trim();
+        const lookName = activeLook.name ?? "";
+        const adminUrl = "https://luxurybandit.com/admin/looks";
+        const msg = `🛍️ New try-on${customerName ? ` by ${customerName}` : ""} on "${lookName}". Review: ${adminUrl}`;
+        fetch(`https://api.callmebot.com/whatsapp.php?phone=${waPhone}&text=${encodeURIComponent(msg)}&apikey=${waKey}`)
+          .catch(() => {}); // fire-and-forget, never blocks the response
+      }
+
       return NextResponse.json(ps(updatedState));
     }
 
