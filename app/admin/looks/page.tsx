@@ -814,13 +814,29 @@ function CommunityModerationSection({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkWorking, setBulkWorking] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
+  const [search, setSearch] = useState("");
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+  const [assignName, setAssignName] = useState("");
+  const [assignWorking, setAssignWorking] = useState(false);
 
-  const visibleGenerations = showHidden
+  const base = showHidden
     ? generations.filter(g => g.hidden)
     : generations.filter(g => !g.hidden);
 
+  const visibleGenerations = search.trim()
+    ? base.filter(g => {
+        const q = search.toLowerCase();
+        return (
+          g.customerName?.toLowerCase().includes(q) ||
+          g.lookName?.toLowerCase().includes(q) ||
+          g.storeName?.toLowerCase().includes(q)
+        );
+      })
+    : base;
+
   const hiddenCount = generations.filter(g => g.hidden).length;
   const visibleCount = generations.filter(g => !g.hidden).length;
+  const unassignedCount = generations.filter(g => !g.hidden && !g.customerName).length;
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -843,12 +859,21 @@ function CommunityModerationSection({
 
   const bulkDelete = async () => {
     if (!selectedIds.size) return;
-    if (!window.confirm(`${selectedIds.size} Posts permanent löschen?`)) return;
+    if (!window.confirm(`Permanently delete ${selectedIds.size} posts?`)) return;
     setBulkWorking(true);
     await onBulkAction({ action: "bulk-delete-generations", ids: [...selectedIds] });
     onDataRefresh();
     exitSelectMode();
     setBulkWorking(false);
+  };
+
+  const doAssign = async (id: string) => {
+    setAssignWorking(true);
+    await onBulkAction({ action: "assign-generation", id, customerName: assignName.trim() });
+    onDataRefresh();
+    setAssigningId(null);
+    setAssignName("");
+    setAssignWorking(false);
   };
 
   return (
@@ -858,21 +883,20 @@ function CommunityModerationSection({
         <div>
           <h2 className="text-xl font-black text-ink">Community Posts</h2>
           <p className="mt-1 text-sm font-bold text-ink/50">
-            {visibleCount} sichtbar{hiddenCount > 0 ? `, ${hiddenCount} ausgeblendet` : ""}
+            {visibleCount} visible{hiddenCount > 0 ? `, ${hiddenCount} hidden` : ""}
+            {unassignedCount > 0 && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">{unassignedCount} unassigned</span>}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Hidden chip */}
           {hiddenCount > 0 && (
             <button
               type="button"
-              onClick={() => { setShowHidden(h => !h); exitSelectMode(); }}
+              onClick={() => { setShowHidden(h => !h); exitSelectMode(); setSearch(""); }}
               className={`rounded-full px-3 py-1.5 text-xs font-black transition ${showHidden ? "bg-amber-500 text-white" : "border border-amber-300 bg-amber-50 text-amber-700"}`}
             >
-              {showHidden ? `← Sichtbare anzeigen` : `👁 Ausgeblendet (${hiddenCount})`}
+              {showHidden ? `← Show visible` : `👁 Hidden (${hiddenCount})`}
             </button>
           )}
-          {/* Select mode toggle */}
           <button
             type="button"
             onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
@@ -883,14 +907,28 @@ function CommunityModerationSection({
         </div>
       </div>
 
+      {/* Search bar */}
+      <div className="relative">
+        <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink/35" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <circle cx="11" cy="11" r="8"/><path strokeLinecap="round" d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input
+          type="search"
+          placeholder="Search by name, look, or store…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full rounded-md border border-black/10 bg-panel py-2 pl-9 pr-3 text-sm font-bold text-ink placeholder:text-ink/35 outline-none focus:border-cobalt"
+        />
+      </div>
+
       {/* Bulk action bar */}
       {selectMode && selectedIds.size > 0 && (
         <div className="flex items-center gap-2 rounded-md border border-black/8 bg-panel px-3 py-2">
-          <span className="text-xs font-black text-ink/60">{selectedIds.size} ausgewählt</span>
+          <span className="text-xs font-black text-ink/60">{selectedIds.size} selected</span>
           {!showHidden && (
             <button type="button" disabled={bulkWorking} onClick={() => void bulkHide()}
               className="rounded-md bg-amber-400 px-3 py-1.5 text-xs font-black text-white disabled:opacity-50">
-              {bulkWorking ? "…" : `Ausblenden (${selectedIds.size})`}
+              {bulkWorking ? "…" : `Hide (${selectedIds.size})`}
             </button>
           )}
           <button type="button" disabled={bulkWorking} onClick={() => void bulkDelete()}
@@ -903,27 +941,39 @@ function CommunityModerationSection({
       {/* Grid */}
       {visibleGenerations.length === 0 ? (
         <p className="text-sm font-bold text-ink/40 py-4 text-center">
-          {showHidden ? "Keine ausgeblendeten Posts." : "Keine sichtbaren Posts."}
+          {search ? "No results." : showHidden ? "No hidden posts." : "No visible posts."}
         </p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
           {visibleGenerations.map(generation => {
             const isSelected = selectedIds.has(generation.id);
+            const hasName = Boolean(generation.customerName);
+            const isAssigning = assigningId === generation.id;
+
+            // Color: selected=blue, hidden=amber, assigned=green, unassigned=amber warning
+            const cardClass = isSelected
+              ? "border-cobalt bg-cobalt/5 ring-2 ring-cobalt/40"
+              : generation.hidden
+              ? "border-amber-200 bg-amber-50/50"
+              : hasName
+              ? "border-emerald-300 bg-emerald-50/40"
+              : "border-amber-300 bg-amber-50/60";
+
             return (
               <article
                 key={generation.id}
                 onClick={() => selectMode && toggleSelect(generation.id)}
-                className={`grid gap-2 rounded-md border p-3 transition ${
-                  selectMode ? "cursor-pointer" : ""
-                } ${
-                  isSelected ? "border-cobalt bg-cobalt/5 ring-2 ring-cobalt/40" :
-                  generation.hidden ? "border-amber-200 bg-amber-50/50" :
-                  "border-black/10 bg-panel"
-                }`}
+                className={`grid gap-2 rounded-md border p-3 transition ${selectMode ? "cursor-pointer" : ""} ${cardClass}`}
               >
+                {/* Image */}
                 {generation.imageUrl && (
                   <div className="relative overflow-hidden rounded-md border border-black/10 bg-white">
                     <img src={generation.imageUrl} alt="Community post" className="aspect-square w-full object-cover object-top" />
+                    {!hasName && !selectMode && (
+                      <div className="absolute top-1.5 left-1.5 rounded-full bg-amber-500 px-2 py-0.5 text-[9px] font-black text-white">
+                        Unassigned
+                      </div>
+                    )}
                     {selectMode && (
                       <div className={`absolute inset-0 flex items-center justify-center transition ${isSelected ? "bg-black/30" : "bg-transparent"}`}>
                         <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${isSelected ? "border-white bg-cobalt" : "border-white/80 bg-transparent"}`}>
@@ -933,23 +983,64 @@ function CommunityModerationSection({
                     )}
                   </div>
                 )}
+
+                {/* Info */}
                 <div className="grid gap-0.5 text-[11px] font-bold text-ink/50">
-                  {generation.customerName && <div className="font-black text-ink/70">{generation.customerName}</div>}
+                  {hasName
+                    ? <div className="font-black text-emerald-700">{generation.customerName}</div>
+                    : <div className="font-black text-amber-600">— no name —</div>
+                  }
                   {generation.lookName && <div className="truncate">{generation.lookName}</div>}
-                  {generation.hidden && <div className="text-amber-600 font-black text-[10px]">AUSGEBLENDET</div>}
+                  {generation.hidden && <div className="text-amber-600 font-black text-[10px]">HIDDEN</div>}
                 </div>
-                {!selectMode && (
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <button type="button" onClick={() => void onToggleHide(generation)} disabled={isSaving}
-                      className={`inline-flex h-9 items-center justify-center rounded-md border text-[11px] font-black disabled:opacity-50 ${
-                        generation.hidden ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-amber-300 bg-amber-50 text-amber-700"
+
+                {/* Assign inline form */}
+                {!selectMode && isAssigning && (
+                  <div className="grid gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="Customer name…"
+                      value={assignName}
+                      onChange={e => setAssignName(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") void doAssign(generation.id); if (e.key === "Escape") { setAssigningId(null); setAssignName(""); } }}
+                      autoFocus
+                      className="w-full rounded border border-black/15 bg-white px-2 py-1 text-[11px] font-bold text-ink outline-none focus:border-cobalt"
+                    />
+                    <div className="grid grid-cols-2 gap-1">
+                      <button type="button" disabled={assignWorking || !assignName.trim()} onClick={() => void doAssign(generation.id)}
+                        className="inline-flex h-7 items-center justify-center rounded bg-emerald-500 text-[10px] font-black text-white disabled:opacity-50">
+                        {assignWorking ? "…" : "Save"}
+                      </button>
+                      <button type="button" onClick={() => { setAssigningId(null); setAssignName(""); }}
+                        className="inline-flex h-7 items-center justify-center rounded border border-black/10 bg-white text-[10px] font-black text-ink/60">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                {!selectMode && !isAssigning && (
+                  <div className="grid gap-1.5">
+                    <button type="button"
+                      onClick={() => { setAssigningId(generation.id); setAssignName(generation.customerName ?? ""); }}
+                      className={`inline-flex h-8 w-full items-center justify-center rounded-md border text-[11px] font-black transition ${
+                        hasName ? "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "border-amber-400 bg-amber-100 text-amber-800 hover:bg-amber-200"
                       }`}>
-                      {generation.hidden ? "Einblenden" : "Ausblenden"}
+                      {hasName ? "✏ Edit name" : "＋ Assign name"}
                     </button>
-                    <button type="button" onClick={() => void onDelete(generation)} disabled={isSaving}
-                      className="inline-flex h-9 items-center justify-center rounded-md border border-coral/30 bg-coral/10 text-[11px] font-black text-coral disabled:opacity-50">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button type="button" onClick={() => void onToggleHide(generation)} disabled={isSaving}
+                        className={`inline-flex h-8 items-center justify-center rounded-md border text-[11px] font-black disabled:opacity-50 ${
+                          generation.hidden ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-black/15 bg-white text-ink/60"
+                        }`}>
+                        {generation.hidden ? "Show" : "Hide"}
+                      </button>
+                      <button type="button" onClick={() => void onDelete(generation)} disabled={isSaving}
+                        className="inline-flex h-8 items-center justify-center rounded-md border border-coral/30 bg-coral/10 text-[11px] font-black text-coral disabled:opacity-50">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 )}
               </article>
