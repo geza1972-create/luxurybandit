@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import CropModal from "@/components/CropModal";
 import { getClientAccountId } from "@/lib/client-account";
 import { buildWhatsAppDeepLink, buildWhatsAppOfferMessage, normalizeWhatsAppNumber } from "@/lib/whatsapp";
-import { Download, ImagePlus, Loader2, RefreshCw, Save, Share2, Sparkles } from "lucide-react";
+import { Download, ImagePlus, Loader2, RefreshCw, Save, Send, Sparkles } from "lucide-react";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -879,7 +879,7 @@ export default function TryThisLookPage() {
   };
 
   return (
-    <main className="min-h-screen overflow-x-clip bg-[#fbfaf7] px-2.5 py-3 text-ink sm:px-4 sm:py-5">
+    <main className="min-h-screen overflow-x-clip bg-[#fbfaf7] px-2.5 py-3 pb-20 text-ink sm:px-4 sm:py-5">
       <section className="mx-auto grid w-full max-w-[92vw] min-w-0 overflow-x-clip gap-3 sm:max-w-xl">
         <header className="grid min-w-0 gap-2 overflow-hidden rounded-lg border border-black/10 bg-white p-2.5 sm:p-3 shadow-soft">
           <div className="grid min-w-0 gap-2 sm:flex sm:items-start sm:gap-2">
@@ -1365,7 +1365,7 @@ export default function TryThisLookPage() {
                     onClick={() => void shareResult()}
                     className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-coral px-3 text-sm font-black text-white"
                   >
-                    <Share2 aria-hidden="true" className="h-4 w-4" />
+                    <Send aria-hidden="true" className="h-4 w-4" />
                     Share
                   </button>
                   <button

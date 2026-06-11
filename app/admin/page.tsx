@@ -62,6 +62,112 @@ const readJsonResponse = async <T,>(response: Response): Promise<T & { error?: s
   }
 };
 
+// ── KI-Kategorisierung ───────────────────────────────────────────────────────
+function KategorisierungSection({ pin }: { pin: string }) {
+  const [status, setStatus] = useState<"idle" | "running" | "done" | "error">("idle");
+  const [results, setResults] = useState<{ id: string; name: string; category: string }[]>([]);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const run = async () => {
+    setStatus("running");
+    setResults([]);
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/try-this-look", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(pin ? { "x-try-look-admin-pin": pin } : {})
+        },
+        body: JSON.stringify({ action: "batch-categorize", onlyUntagged: true })
+      });
+      const data = await res.json() as { ok?: boolean; categorized?: number; results?: { id: string; name: string; category: string }[]; error?: string };
+      if (data.error) { setErrorMsg(data.error); setStatus("error"); return; }
+      setResults(data.results ?? []);
+      setStatus("done");
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : "Fehler");
+      setStatus("error");
+    }
+  };
+
+  const rerunAll = async () => {
+    setStatus("running");
+    setResults([]);
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/try-this-look", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(pin ? { "x-try-look-admin-pin": pin } : {})
+        },
+        body: JSON.stringify({ action: "batch-categorize", onlyUntagged: false })
+      });
+      const data = await res.json() as { ok?: boolean; results?: { id: string; name: string; category: string }[]; error?: string };
+      if (data.error) { setErrorMsg(data.error); setStatus("error"); return; }
+      setResults(data.results ?? []);
+      setStatus("done");
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : "Fehler");
+      setStatus("error");
+    }
+  };
+
+  return (
+    <section className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-black text-ink">KI-Kategorisierung</h2>
+          <p className="text-xs font-bold text-ink/50 mt-0.5">Weist jedem Look automatisch eine Kategorie zu (Vintage, Luxury, Streetwear …)</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={status === "running"}
+            onClick={() => void run()}
+            className="inline-flex h-9 items-center gap-2 rounded-md bg-cobalt px-4 text-xs font-black text-white disabled:opacity-50"
+          >
+            {status === "running" ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Läuft…</> : "✨ Neue Looks kategorisieren"}
+          </button>
+          <button
+            type="button"
+            disabled={status === "running"}
+            onClick={() => void rerunAll()}
+            className="inline-flex h-9 items-center gap-2 rounded-md border border-black/10 bg-panel px-4 text-xs font-black text-ink disabled:opacity-50"
+          >
+            Alle neu kategorisieren
+          </button>
+        </div>
+      </div>
+
+      {status === "error" && (
+        <p className="rounded-md bg-red-50 px-3 py-2 text-xs font-bold text-red-600">{errorMsg}</p>
+      )}
+
+      {status === "done" && results.length === 0 && (
+        <p className="text-xs font-bold text-ink/50">Alle Looks sind bereits kategorisiert.</p>
+      )}
+
+      {results.length > 0 && (
+        <div className="rounded-md border border-black/8 overflow-hidden">
+          <div className="grid grid-cols-[1fr_auto] gap-x-4 border-b border-black/8 px-3 py-1.5 bg-panel text-[10px] font-black uppercase tracking-widest text-ink/40">
+            <span>Look</span><span>Kategorie</span>
+          </div>
+          <div className="max-h-60 overflow-y-auto divide-y divide-black/5">
+            {results.map(r => (
+              <div key={r.id} className="grid grid-cols-[1fr_auto] gap-x-4 px-3 py-2">
+                <span className="truncate text-xs font-bold text-ink">{r.name}</span>
+                <span className="text-xs font-black text-cobalt">{r.category}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function AdminDashboardPage() {
   const [pin, setPin] = useState("");
   const [data, setData] = useState<AdminPayload>({});
@@ -511,6 +617,10 @@ export default function AdminDashboardPage() {
             </div>
           )}
         </section>
+
+        {/* KI-Kategorisierung */}
+        <KategorisierungSection pin={pin} />
+
       </section>
     </main>
   );

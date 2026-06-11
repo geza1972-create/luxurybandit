@@ -202,10 +202,10 @@ export default function GarmentExtractorModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4">
-      <div className="flex w-full max-w-2xl flex-col rounded-xl bg-white shadow-2xl overflow-hidden max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex flex-col bg-white" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <div className="flex w-full flex-col h-full overflow-hidden">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 border-b border-black/10 p-4">
+        <div className="flex items-start justify-between gap-3 border-b border-black/10 p-4 flex-shrink-0">
           <div>
             <div className="text-xs font-black uppercase tracking-[0.14em] text-cobalt">
               Extract clothes
@@ -227,8 +227,10 @@ export default function GarmentExtractorModal({
           </button>
         </div>
 
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto">
         {/* Image + bbox overlays */}
-        <div className="relative overflow-auto bg-black/5 flex-shrink-0" style={{ maxHeight: "45vh" }}>
+        <div className="relative overflow-hidden bg-black/5">
           {isDetecting && (
             <div className="absolute inset-0 flex items-center justify-center bg-white/60 z-10">
               <Loader2 className="h-6 w-6 animate-spin text-cobalt" />
@@ -280,7 +282,7 @@ export default function GarmentExtractorModal({
 
         {/* Product chip list */}
         {!isDetecting && products.length > 0 && (
-          <div className="border-t border-black/10 p-4">
+          <div className="border-t border-black/10 p-4 pb-2">
             <div className="mb-2 text-xs font-bold text-ink/45">Select pieces to extract as garment reference:</div>
             <div className="flex flex-wrap gap-2">
               {products.map((product, i) => {
@@ -326,9 +328,10 @@ export default function GarmentExtractorModal({
             {error}
           </div>
         )}
+        </div>{/* end scrollable body */}
 
-        {/* Footer */}
-        <div className="flex gap-3 border-t border-black/10 p-4 mt-auto">
+        {/* Footer — always visible at bottom */}
+        <div className="flex gap-3 border-t border-black/10 p-4 flex-shrink-0">
           <button
             type="button"
             onClick={onCancel}

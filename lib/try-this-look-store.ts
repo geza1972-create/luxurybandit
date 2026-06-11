@@ -94,6 +94,14 @@ export type TryThisLookGeneration = {
   createdAt: string;
 };
 
+export type TryThisLookComment = {
+  id: string;
+  lookId: string;
+  authorName: string;
+  text: string;
+  createdAt: string;
+};
+
 export type TryThisLookState = {
   activeLookId: string;
   activeLookIds?: string[];
@@ -102,6 +110,7 @@ export type TryThisLookState = {
   events: TryThisLookEvent[];
   leads: TryThisLookLead[];
   generations: TryThisLookGeneration[];
+  comments?: TryThisLookComment[];
 };
 
 const BUCKET = process.env.SUPABASE_STORAGE_BUCKET ?? "shopcut-images";
@@ -241,7 +250,10 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
   const generations = await Promise.all(
     state.generations.map(async (generation) => ({
       ...generation,
-      imageUrl: await getSignedUrl(generation.imagePath)
+      imageUrl: await getSignedUrl(generation.imagePath),
+      userPhotoUrl: (generation as any).userPhotoPath
+        ? await getSignedUrl((generation as any).userPhotoPath)
+        : undefined,
     }))
   );
 
@@ -294,7 +306,8 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     looks: state.looks,
     events: state.events ?? [],
     leads: state.leads ?? [],
-    generations: state.generations ?? []
+    generations: state.generations ?? [],
+    comments: state.comments ?? [],
   });
 }
 
@@ -307,7 +320,8 @@ async function writeTryThisLookState(state: TryThisLookState) {
     looks: state.looks.map(({ imageUrl, frontImageUrl, backImageUrl, garmentFrontImageUrl, garmentBackImageUrl, galleryImageUrls, ...look }) => look),
     events: state.events.slice(0, 500),
     leads: state.leads.map(({ uploadedPhotoUrl, ...lead }) => lead).slice(0, 500),
-    generations: state.generations.map(({ imageUrl, ...generation }) => generation).slice(0, 200)
+    generations: state.generations.map(({ imageUrl, ...generation }) => generation).slice(0, 200),
+    comments: (state.comments ?? []).slice(0, 500),
   };
 
   const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(STATE_PATH)}`, {

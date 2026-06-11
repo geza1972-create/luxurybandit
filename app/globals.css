@@ -19,21 +19,19 @@
 }
 
 body {
-  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   font-family: Arial, Helvetica, sans-serif;
-  width: 100%;
-  overflow-x: hidden;
 }
 
 html {
-  width: 100%;
-  overflow-x: hidden;
+  /* Do NOT set overflow-x on html/body — iOS Safari stops document-scroll */
 }
 
 button,
 input {
   font: inherit;
+  touch-action: manipulation; /* prevent iOS double-tap zoom, allow scroll */
 }
 
 img,
@@ -46,6 +44,16 @@ svg {
 /* Safe-area spacing for notched phones */
 .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
 .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+
+/* Hard drop-shadow for icons on video/image backgrounds */
+.icon-hard-shadow {
+  filter: drop-shadow(2px 2px 0px #000) drop-shadow(-1px -1px 0px rgba(0,0,0,0.6));
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 
 .checkerboard {
   background-color: #fff;

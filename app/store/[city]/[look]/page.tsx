@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { MessageCircle, Heart, UserPlus, UserCheck, ChevronLeft, Share2 } from "lucide-react";
+import { MessageCircle, Heart, UserPlus, UserCheck, ChevronLeft, Send } from "lucide-react";
 
 type Look = {
   id: string;
@@ -187,7 +187,7 @@ export default function LookDetailPage() {
             onClick={() => navigator.share?.({ title: look.name, url: window.location.href }).catch(() => {})}
             className="grid h-11 w-11 place-items-center"
           >
-            <Share2 className="h-5 w-5 text-white drop-shadow" />
+            <Send className="h-5 w-5 text-white drop-shadow" />
           </button>
         </div>
       </div>

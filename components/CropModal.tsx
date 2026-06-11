@@ -69,6 +69,7 @@ export default function CropModal({ imageSrc, aspectRatio, outputRatio, onConfir
   // Load image and set up canvas
   useEffect(() => {
     const img = new Image();
+    img.crossOrigin = "anonymous";
     img.onload = () => {
       imageRef.current = img;
       const maxW = Math.min(window.innerWidth - 48, 520);

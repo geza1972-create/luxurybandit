@@ -52,7 +52,7 @@ function visibleImageUrls(look: Awaited<ReturnType<typeof readTryThisLookState>>
   }).slice(0, 6);
 }
 
-function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number]) {
+function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number], generationCount = 0) {
   const galleryImageUrls = visibleImageUrls(look);
   const primaryImageUrl = galleryImageUrls[0] ?? look.frontImageUrl ?? look.imageUrl;
   const frontPath = look.frontImagePath ?? look.imagePath;
@@ -76,7 +76,10 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     deliveryTime: look.deliveryTime,
     productNote: look.productNote,
     hashtags: (look as any).hashtags,
+    productType: (look as any).productType ?? "real",
     likeCount: (look as any).likeCount ?? 0,
+    generationCount,
+    category: (look as any).category ?? null,
     createdAt: look.createdAt,
     imageUrl: primaryImageUrl,
     frontImageUrl: primaryImageUrl,
@@ -114,11 +117,17 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
     : globalActiveLooks;
   // Strip sensitive fields from stores for public response
   const publicStores = (state.stores ?? []).map(({ whatsappNumber: _wa, ...s }) => s);
+  // Build per-look generation counts
+  const genCountByLook = new Map<string, number>();
+  for (const g of state.generations ?? []) {
+    genCountByLook.set(g.lookId, (genCountByLook.get(g.lookId) ?? 0) + 1);
+  }
+  const sl = (look: (typeof visibleLooks)[number]) => serializeLook(look, genCountByLook.get(look.id) ?? 0);
   return {
-    activeLook: activeLook ? serializeLook(activeLook) : undefined,
-    activeLooks: activeLooks.map(serializeLook),
+    activeLook: activeLook ? sl(activeLook) : undefined,
+    activeLooks: activeLooks.map(sl),
     stores: forAdmin ? (state.stores ?? []) : publicStores,
-    looks: visibleLooks.map(serializeLook)
+    looks: visibleLooks.map(sl)
   };
 }
 
@@ -132,6 +141,90 @@ export async function GET(request: Request) {
     if (wantsAdminData && !isAdmin(request)) {
       return NextResponse.json({ error: "Admin access required." }, { status: 401 });
     }
+    // Public comments for a specific look
+    const wantsComments = url.searchParams.get("comments") === "1";
+    const commentLookId = url.searchParams.get("lookId") ?? "";
+    if (wantsComments && commentLookId) {
+      const comments = (state.comments ?? [])
+        .filter(c => c.lookId === commentLookId)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      return NextResponse.json({ comments });
+    }
+
+    // Public user-generated looks for a specific look
+    const wantsUserLooks = url.searchParams.get("userLooks") === "1";
+    const filterLookId = url.searchParams.get("lookId") ?? "";
+    if (wantsUserLooks && filterLookId) {
+      const userGenerations = state.generations
+        .filter(g => g.lookId === filterLookId && !g.visitorId?.startsWith("admin-") && !(g as any).hidden)
+        .map(g => ({
+          id: g.id,
+          lookId: g.lookId,
+          imageUrl: (g as any).imageUrl ?? "",
+          userPhotoUrl: (g as any).userPhotoUrl ?? undefined,
+          customerName: (g as any).customerName ?? "",
+          createdAt: g.createdAt,
+        }));
+      return NextResponse.json({ userLooks: userGenerations });
+    }
+
+    // Global community feed — all recent public generations
+    if (url.searchParams.get("community") === "1") {
+      const lookById = new Map(state.looks.map(l => [l.id, l]));
+      const community = state.generations
+        .filter(g =>
+          !g.visitorId?.startsWith("admin-") &&
+          (g as any).imageUrl &&
+          !(g as any).hidden &&
+          // Only real user try-on images (path starts with try-this-look/generations/)
+          g.imagePath?.includes("generations/")
+        )
+        .slice(0, 100)
+        .map(g => {
+          const look = lookById.get(g.lookId);
+          return {
+            id: g.id,
+            lookId: g.lookId,
+            imageUrl: (g as any).imageUrl ?? "",
+            userPhotoUrl: (g as any).userPhotoUrl ?? undefined,
+            customerName: (g as any).customerName ?? "",
+            lookName: g.lookName ?? look?.name ?? "",
+            storeName: g.storeName ?? look?.storeName ?? "",
+            storeSlug: (look as any)?.storeSlug ?? "",
+            createdAt: g.createdAt,
+          };
+        });
+      return NextResponse.json({ community });
+    }
+
+    // Public user gallery — all generations by a given username slug
+    const filterUsername = url.searchParams.get("username") ?? "";
+    if (filterUsername) {
+      const querySlug = normalizeSlug(filterUsername);
+      const matched = state.generations.filter(g => {
+        const name = (g as any).customerName ?? "";
+        return name && normalizeSlug(name) === querySlug && !g.visitorId?.startsWith("admin-") && !(g as any).hidden;
+      });
+      const lookById = new Map(state.looks.map(l => [l.id, l]));
+      const userGallery = matched.map(g => {
+        const look = lookById.get(g.lookId);
+        return {
+          id: g.id,
+          lookId: g.lookId,
+          imageUrl: (g as any).imageUrl ?? "",
+          userPhotoUrl: (g as any).userPhotoUrl ?? undefined,
+          customerName: (g as any).customerName ?? "",
+          lookName: g.lookName ?? look?.name ?? "",
+          storeName: g.storeName ?? look?.storeName ?? "",
+          storeSlug: (look as any)?.storeSlug ?? "",
+          lookThumbUrl: look?.frontImageUrl ?? look?.imageUrl ?? "",
+          createdAt: g.createdAt,
+        };
+      });
+      const displayName = matched[0] ? ((matched[0] as any).customerName ?? filterUsername) : filterUsername;
+      return NextResponse.json({ userGallery, displayName });
+    }
+
     if (!wantsAdminData) return NextResponse.json(publicState(state, storeSlug, lookSlug));
     return NextResponse.json({
       ...publicState(state, storeSlug, lookSlug, true),
@@ -169,7 +262,11 @@ export async function POST(request: Request) {
       deliveryTime?: string;
       productNote?: string;
       hashtags?: string;
+      productType?: string;
+      userPhotoImage?: string;
       image?: string;
+      text?: string;
+      authorName?: string;
       frontImage?: string;
       backImage?: string;
       garmentFrontImage?: string;
@@ -200,6 +297,8 @@ export async function POST(request: Request) {
       aiEnabled?: boolean;
       aiCreditsLimit?: number;
       resetCredits?: boolean;
+      onlyUntagged?: boolean;
+      ids?: unknown[];
     };
 
     const state = await readTryThisLookState();
@@ -352,15 +451,20 @@ export async function POST(request: Request) {
       }
 
       const imagePath = await uploadTryThisLookImage("generations", payload.image);
+      const userPhotoPath = payload.userPhotoImage?.startsWith("data:image/")
+        ? await uploadTryThisLookImage("generations", payload.userPhotoImage)
+        : undefined;
       state.generations.unshift({
         id: `${Date.now()}-${crypto.randomUUID()}`,
         lookId,
         visitorId: String(payload.visitorId ?? "").trim() || undefined,
         storeName: String(payload.storeName ?? "").trim() || activeLook.storeName,
         lookName: String(payload.lookName ?? "").trim() || activeLook.name,
+        customerName: String(payload.customerName ?? "").trim() || undefined,
         imagePath,
+        userPhotoPath,
         createdAt: now
-      });
+      } as any);
       state.events.unshift({
         id: `${Date.now()}-${crypto.randomUUID()}`,
         name: "generation_success",
@@ -371,6 +475,26 @@ export async function POST(request: Request) {
 
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json(ps(updatedState));
+    }
+
+    if (payload.action === "add-comment") {
+      const lookId = String(payload.lookId ?? "").trim();
+      const text = String(payload.text ?? "").trim().slice(0, 500);
+      const authorName = String(payload.authorName ?? "").trim().slice(0, 60) || "Anonymous";
+      if (!lookId || !text) return NextResponse.json({ error: "lookId and text required." }, { status: 400 });
+      if (!state.comments) state.comments = [];
+      state.comments.unshift({
+        id: `${Date.now()}-${crypto.randomUUID()}`,
+        lookId,
+        authorName,
+        text,
+        createdAt: now,
+      });
+      // Keep max 500 comments total
+      state.comments = state.comments.slice(0, 500);
+      const updatedState = await saveTryThisLookState(state);
+      const lookComments = (updatedState.comments ?? []).filter(c => c.lookId === lookId);
+      return NextResponse.json({ ok: true, comments: lookComments });
     }
 
     if (!isAdmin(request)) {
@@ -393,6 +517,7 @@ export async function POST(request: Request) {
       const deliveryTime = String(payload.deliveryTime ?? "").trim();
       const productNote = String(payload.productNote ?? "").trim();
       const hashtags = String(payload.hashtags ?? "").trim();
+      const productType = payload.productType === "virtual" ? "virtual" : "real";
       const availableSizes = Array.isArray(payload.availableSizes)
         ? payload.availableSizes.map((size) => String(size).trim()).filter(Boolean)
         : [];
@@ -439,6 +564,7 @@ export async function POST(request: Request) {
         deliveryTime: deliveryTime || undefined,
         productNote: productNote || undefined,
         hashtags: hashtags || undefined,
+        productType,
         imagePath: frontImagePath,
         frontImagePath,
         backImagePath,
@@ -594,6 +720,7 @@ export async function POST(request: Request) {
       const deliveryTime = hasField("deliveryTime") ? String(payload.deliveryTime ?? "").trim() : (existingLook.deliveryTime ?? "");
       const productNote = hasField("productNote") ? String(payload.productNote ?? "").trim() : (existingLook.productNote ?? "");
       const hashtags = hasField("hashtags") ? String(payload.hashtags ?? "").trim() : ((existingLook as any).hashtags ?? "");
+      const productType = hasField("productType") ? (payload.productType === "virtual" ? "virtual" : "real") : ((existingLook as any).productType ?? "real");
       const availableSizes = hasField("availableSizes")
         ? (Array.isArray(payload.availableSizes) ? payload.availableSizes.map((size) => String(size).trim()).filter(Boolean) : [])
         : (existingLook.availableSizes ?? []);
@@ -705,6 +832,7 @@ export async function POST(request: Request) {
           deliveryTime: deliveryTime || undefined,
           productNote: productNote || undefined,
           hashtags: hashtags || undefined,
+          productType,
           ...(backImagePath ? { backImagePath } : {}),
           ...(garmentFrontImagePath ? { garmentFrontImagePath } : {}),
           ...(garmentBackImagePath ? { garmentBackImagePath } : {}),
@@ -812,6 +940,28 @@ export async function POST(request: Request) {
       });
     }
 
+    // ── Bulk delete (atomic, avoids parallel race condition) ─────────────────
+    if (payload.action === "bulk-delete-generations") {
+      if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const ids = new Set((Array.isArray(payload.ids) ? payload.ids : []).map(String));
+      const toDelete = state.generations.filter(g => ids.has(g.id));
+      // Also purge ghost entries (no imageUrl) while we're here
+      state.generations = state.generations.filter(g => !ids.has(g.id) && (g as any).imageUrl);
+      const updatedState = await saveTryThisLookState(state);
+      // Delete images after saving state (failures are non-fatal)
+      await Promise.allSettled(toDelete.map(g => deleteTryThisLookImage(g.imagePath)));
+      return NextResponse.json({ ok: true, deleted: toDelete.length, generations: updatedState.generations });
+    }
+
+    // ── Bulk hide (atomic) ───────────────────────────────────────────────────
+    if (payload.action === "bulk-hide-generations") {
+      if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const ids = new Set((Array.isArray(payload.ids) ? payload.ids : []).map(String));
+      state.generations.forEach(g => { if (ids.has(g.id)) (g as any).hidden = true; });
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, hidden: ids.size, generations: updatedState.generations });
+    }
+
     if (payload.action === "delete-generation") {
       const generationId = String(payload.id ?? "");
       const generationToDelete = state.generations.find((generation) => generation.id === generationId);
@@ -829,6 +979,31 @@ export async function POST(request: Request) {
         leads: updatedState.leads,
         generations: updatedState.generations
       });
+    }
+
+    if (payload.action === "hide-generation" || payload.action === "unhide-generation") {
+      if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const generationId = String(payload.id ?? "");
+      const gen = state.generations.find(g => g.id === generationId);
+      if (!gen) return NextResponse.json({ error: "Generated image was not found." }, { status: 404 });
+      (gen as any).hidden = payload.action === "hide-generation";
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json({
+        ...ps(updatedState),
+        events: updatedState.events,
+        leads: updatedState.leads,
+        generations: updatedState.generations
+      });
+    }
+
+    if (payload.action === "assign-generation") {
+      if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const generationId = String(payload.id ?? "");
+      const gen = state.generations.find(g => g.id === generationId);
+      if (!gen) return NextResponse.json({ error: "Generated image was not found." }, { status: 404 });
+      (gen as any).customerName = String(payload.customerName ?? "").trim();
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, customerName: (gen as any).customerName });
     }
 
     // ── Update seller AI access + credits (admin only) ──────────────────────
@@ -853,6 +1028,57 @@ export async function POST(request: Request) {
       state.stores = (state.stores ?? []).map((s) => s.slug === storeSlug ? updated : s);
       await saveTryThisLookState(state);
       return NextResponse.json({ ok: true, store: updated });
+    }
+
+    // ── Batch-categorize all looks via OpenAI ────────────────────────────────
+    if (payload.action === "batch-categorize") {
+      if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) return NextResponse.json({ error: "OPENAI_API_KEY not configured." }, { status: 500 });
+
+      const CATEGORIES = ["Vintage", "Luxury", "Streetwear", "Casual", "Sportswear", "Formalwear", "Accessories"];
+      const onlyUntagged = payload.onlyUntagged !== false; // default: only looks without category
+      const looksToTag = onlyUntagged
+        ? state.looks.filter(l => !(l as any).category)
+        : state.looks;
+
+      const results: { id: string; name: string; category: string }[] = [];
+      const BATCH = 8; // calls in parallel
+
+      for (let i = 0; i < looksToTag.length; i += BATCH) {
+        const slice = looksToTag.slice(i, i + BATCH);
+        await Promise.all(slice.map(async (look) => {
+          const text = [look.name, (look as any).productNote, (look as any).hashtags].filter(Boolean).join(", ");
+          try {
+            const res = await fetch("https://api.openai.com/v1/chat/completions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+              body: JSON.stringify({
+                model: "gpt-4o-mini",
+                max_tokens: 10,
+                messages: [
+                  {
+                    role: "system",
+                    content: `You are a fashion classifier. Classify the product into exactly one of these categories: ${CATEGORIES.join(", ")}. Reply with only the category name, nothing else.`
+                  },
+                  { role: "user", content: text || look.name }
+                ]
+              })
+            });
+            const data = await res.json() as any;
+            const raw = (data.choices?.[0]?.message?.content ?? "").trim();
+            const category = CATEGORIES.find(c => c.toLowerCase() === raw.toLowerCase()) ?? "Casual";
+            (look as any).category = category;
+            results.push({ id: look.id, name: look.name, category });
+          } catch {
+            (look as any).category = "Casual";
+            results.push({ id: look.id, name: look.name, category: "Casual" });
+          }
+        }));
+      }
+
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, categorized: results.length, results });
     }
 
     return NextResponse.json({ error: "Unknown action." }, { status: 400 });

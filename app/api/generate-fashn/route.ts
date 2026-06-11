@@ -129,7 +129,7 @@ export async function POST(request: Request) {
     const credits = refundReservation(accountId, reservation.reservationId);
     return NextResponse.json(
       {
-        error: `FASHN konnte das Bild nicht starten: ${readFashnError(createPayload, "Unbekannter Fehler.")}`,
+        error: `LuxbanditCut has rejected the image. Please try a different photo.`,
         credits
       },
       { status: createResponse.status || 502 }
@@ -139,7 +139,7 @@ export async function POST(request: Request) {
   const predictionId = createPayload?.id;
   if (!predictionId) {
     const credits = refundReservation(accountId, reservation.reservationId);
-    return NextResponse.json({ error: "FASHN hat keine Prediction-ID zurückgegeben.", credits }, { status: 502 });
+    return NextResponse.json({ error: "LuxbanditCut could not process this image. Please try again.", credits }, { status: 502 });
   }
 
   for (let attempt = 0; attempt < 180; attempt += 1) {
@@ -157,7 +157,7 @@ export async function POST(request: Request) {
       const output = statusPayload?.output?.[0];
       if (!output) {
         const credits = refundReservation(accountId, reservation.reservationId);
-        return NextResponse.json({ error: "FASHN hat kein Bild zurückgegeben.", credits }, { status: 502 });
+        return NextResponse.json({ error: "LuxbanditCut has rejected the image. Please try a different photo.", credits }, { status: 502 });
       }
 
       if (typeof output === "string" && output.startsWith("data:image/")) {
@@ -171,7 +171,7 @@ export async function POST(request: Request) {
         const imageResponse = await fetch(output);
         if (!imageResponse.ok) {
           const credits = refundReservation(accountId, reservation.reservationId);
-          return NextResponse.json({ error: "FASHN Bild konnte nicht geladen werden.", credits }, { status: 502 });
+          return NextResponse.json({ error: "LuxbanditCut could not load the result. Please try again.", credits }, { status: 502 });
         }
 
         const imageBytes = Buffer.from(await imageResponse.arrayBuffer());
@@ -182,14 +182,14 @@ export async function POST(request: Request) {
       }
 
       const credits = refundReservation(accountId, reservation.reservationId);
-      return NextResponse.json({ error: "FASHN hat ein unbekanntes Bildformat zurückgegeben.", credits }, { status: 502 });
+      return NextResponse.json({ error: "LuxbanditCut returned an unexpected format. Please try again.", credits }, { status: 502 });
     }
 
     if (status === "failed") {
       const credits = refundReservation(accountId, reservation.reservationId);
       return NextResponse.json(
         {
-          error: `FASHN konnte das Bild nicht erstellen: ${readFashnError(statusPayload, "Unbekannter Fehler.")}`,
+          error: `LuxbanditCut has rejected the image. Please try a different photo.`,
           credits
         },
         { status: 502 }
@@ -198,5 +198,5 @@ export async function POST(request: Request) {
   }
 
   const credits = refundReservation(accountId, reservation.reservationId);
-  return NextResponse.json({ error: "FASHN timeout after 3 minutes.", credits }, { status: 504 });
+  return NextResponse.json({ error: "LuxbanditCut is taking too long. Please try again.", credits }, { status: 504 });
 }

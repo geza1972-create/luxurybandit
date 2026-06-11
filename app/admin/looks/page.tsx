@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import CropModal from "@/components/CropModal";
 import GarmentExtractorModal from "@/components/GarmentExtractorModal";
-import { ArrowLeft, ArrowRight, Camera, Check, Ghost, ImagePlus, Images, Loader2, Pencil, RefreshCw, Scissors, Sparkles, Trash2, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, Check, Eye, EyeOff, Ghost, ImagePlus, Images, Layers, Loader2, PackageCheck, Pencil, RefreshCw, Scissors, Sparkles, Star, StarOff, Tag, Trash2, UserRound } from "lucide-react";
 import NextImage from "next/image";
 import Link from "next/link";
 import { ChangeEvent, RefObject, useEffect, useRef, useState } from "react";
@@ -36,6 +36,7 @@ type Look = {
   deliveryTime?: string;
   productNote?: string;
   hashtags?: string;
+  productType?: "real" | "virtual";
   createdAt: string;
   imageUrl: string;
   frontImageUrl?: string;
@@ -93,7 +94,9 @@ type Generation = {
   visitorId?: string;
   storeName?: string;
   lookName?: string;
+  customerName?: string;
   imageUrl?: string;
+  hidden?: boolean;
   createdAt: string;
 };
 
@@ -365,6 +368,8 @@ type LookFormProps = {
   deliveryTime: string;
   productNote: string;
   hashtags: string;
+  productType: "real" | "virtual";
+  onProductTypeChange: (value: "real" | "virtual") => void;
   isSaving: boolean;
   isGeneratingDescription?: boolean;
   sellerSlug?: string;
@@ -378,6 +383,7 @@ type LookFormProps = {
   onCropGalleryImage?: (key: string, url: string) => void;
   onPreviewGalleryImage?: (image: string) => void;
   onOpenAiTool?: () => void;
+  onOpenExtractor?: () => void;
   onLookNameChange: (value: string) => void;
   onCampaignNameChange: (value: string) => void;
   onAvailableSizesChange: (value: string) => void;
@@ -434,6 +440,7 @@ function LookForm({
   onCropGalleryImage,
   onPreviewGalleryImage,
   onOpenAiTool,
+  onOpenExtractor,
   onLookNameChange,
   onCampaignNameChange,
   onAvailableSizesChange,
@@ -446,6 +453,8 @@ function LookForm({
   onDeliveryTimeChange,
   onProductNoteChange,
   onHashtagsChange,
+  productType,
+  onProductTypeChange,
   onGenerateDescription,
   onSubmit,
   onSubmitDraft,
@@ -464,8 +473,8 @@ function LookForm({
 
       {/* Seller assignment — only shown in edit mode when stores are available */}
       {stores && onSellerSlugChange && (
-        <div className="rounded-md border border-black/10 bg-panel p-3">
-          <div className="mb-1.5 text-xs font-black uppercase tracking-[0.14em] text-ink/45">Seller</div>
+        <div className="grid gap-1.5">
+          <div className="text-xs font-black uppercase tracking-[0.14em] text-ink/45">Seller</div>
           <select
             value={sellerSlug ?? ""}
             onChange={(e) => onSellerSlugChange(e.target.value)}
@@ -479,13 +488,11 @@ function LookForm({
         </div>
       )}
 
-      <div className="rounded-md border border-cobalt/20 bg-cobalt/5 p-3 text-sm font-bold leading-6 text-ink/60">
-        Upload up to 10 product photos. The first image is the main listing image. Move images left or right to change the order.
-      </div>
+      <p className="text-xs font-bold text-ink/40">
+        Upload up to 10 photos. First image = main. Move left/right to reorder.
+      </p>
 
-      <div className="grid gap-3 rounded-md border border-black/10 bg-panel p-3">
-        <div className="text-xs font-black uppercase tracking-[0.14em] text-ink/45">Product gallery</div>
-        <div className="grid gap-2 rounded-md border border-black/10 bg-white p-3">
+      <div className="grid gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <div className="text-xs font-black uppercase tracking-[0.12em] text-ink/45">Product gallery</div>
@@ -506,7 +513,7 @@ function LookForm({
             )}
           </div>
           {(galleryEntriesToShow.length > 0 || galleryEntriesToShow.length < 10 || onOpenAiTool) ? (
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
               {galleryEntriesToShow.slice(0, 10).map((entry, index) => (
                 <div key={entry.key} className="relative overflow-hidden rounded border border-black/10 bg-panel">
                   <button
@@ -576,6 +583,20 @@ function LookForm({
                   </span>
                 </button>
               ))}
+              {onOpenExtractor && (
+                <button
+                  type="button"
+                  onClick={onOpenExtractor}
+                  className="grid aspect-square place-items-center rounded border border-dashed border-amber-400/60 bg-amber-50 p-2 text-center text-amber-700 transition hover:bg-amber-100"
+                >
+                  <span className="grid gap-1">
+                    <Scissors aria-hidden="true" className="mx-auto h-5 w-5" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.08em]">Upload &amp;</span>
+                    <span className="text-[9px] font-black uppercase tracking-[0.08em]">Extract</span>
+                    <span className="text-[9px] font-bold leading-3 text-amber-600/70">Clothes</span>
+                  </span>
+                </button>
+              )}
               {showAiImageTile && (
                 aiTileAvailable ? (
                   <button
@@ -605,7 +626,6 @@ function LookForm({
               No gallery images yet.
             </div>
           )}
-        </div>
       </div>
 
       {onGenerateDescription && (
@@ -675,7 +695,7 @@ function LookForm({
         onChange={(event) => onDealEndsAtChange(event.target.value)}
         className="h-12 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt"
       />
-      <label className="flex items-center gap-3 rounded-md border border-black/10 bg-panel px-3 py-3 text-sm font-bold text-ink">
+      <label className="flex items-center gap-3 px-1 py-1 text-sm font-bold text-ink">
         <input
           type="checkbox"
           checked={inStock}
@@ -704,6 +724,30 @@ function LookForm({
         placeholder="Product note optional, e.g. Limited drop, handmade, available this week."
         className="min-h-24 rounded-md border border-black/10 bg-panel p-3 text-sm font-bold outline-none focus:border-cobalt"
       />
+      {/* Product type */}
+      <div className="grid gap-1.5">
+        <div className="text-xs font-black uppercase tracking-[0.14em] text-ink/45">Product type</div>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => onProductTypeChange("real")}
+            className={`flex h-11 items-center justify-center gap-2 rounded-md border-2 text-sm font-black transition-all ${productType === "real" ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-black/10 bg-panel text-ink/50"}`}
+          >
+            <span className="text-base">🏪</span> Real product
+          </button>
+          <button
+            type="button"
+            onClick={() => onProductTypeChange("virtual")}
+            className={`flex h-11 items-center justify-center gap-2 rounded-md border-2 text-sm font-black transition-all ${productType === "virtual" ? "border-cobalt bg-cobalt/10 text-cobalt" : "border-black/10 bg-panel text-ink/50"}`}
+          >
+            <span className="text-base">✨</span> AI / Virtual
+          </button>
+        </div>
+        <p className="text-xs font-bold text-ink/35">
+          {productType === "real" ? "Physical item — can be ordered and delivered." : "AI-generated or virtual fashion — for inspiration only."}
+        </p>
+      </div>
+
       <div className="grid gap-1.5">
         <div className="text-xs font-black uppercase tracking-[0.14em] text-ink/45"># Hashtags</div>
         <textarea
@@ -750,6 +794,173 @@ function LookForm({
   );
 }
 
+// ── Community Moderation Section ─────────────────────────────────────────────
+function CommunityModerationSection({
+  generations,
+  isSaving,
+  onToggleHide,
+  onDelete,
+  onBulkAction,
+  onDataRefresh,
+}: {
+  generations: Generation[];
+  isSaving: boolean;
+  onToggleHide: (g: Generation) => Promise<void>;
+  onDelete: (g: Generation) => Promise<void>;
+  onBulkAction: (body: Record<string, unknown>) => Promise<unknown>;
+  onDataRefresh: () => void;
+}) {
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkWorking, setBulkWorking] = useState(false);
+  const [showHidden, setShowHidden] = useState(false);
+
+  const visibleGenerations = showHidden
+    ? generations.filter(g => g.hidden)
+    : generations.filter(g => !g.hidden);
+
+  const hiddenCount = generations.filter(g => g.hidden).length;
+  const visibleCount = generations.filter(g => !g.hidden).length;
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelectMode = () => { setSelectMode(false); setSelectedIds(new Set()); };
+
+  const bulkHide = async () => {
+    if (!selectedIds.size) return;
+    setBulkWorking(true);
+    await onBulkAction({ action: "bulk-hide-generations", ids: [...selectedIds] });
+    onDataRefresh();
+    exitSelectMode();
+    setBulkWorking(false);
+  };
+
+  const bulkDelete = async () => {
+    if (!selectedIds.size) return;
+    if (!window.confirm(`${selectedIds.size} Posts permanent löschen?`)) return;
+    setBulkWorking(true);
+    await onBulkAction({ action: "bulk-delete-generations", ids: [...selectedIds] });
+    onDataRefresh();
+    exitSelectMode();
+    setBulkWorking(false);
+  };
+
+  return (
+    <section className="grid gap-4 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-black text-ink">Community Posts</h2>
+          <p className="mt-1 text-sm font-bold text-ink/50">
+            {visibleCount} sichtbar{hiddenCount > 0 ? `, ${hiddenCount} ausgeblendet` : ""}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Hidden chip */}
+          {hiddenCount > 0 && (
+            <button
+              type="button"
+              onClick={() => { setShowHidden(h => !h); exitSelectMode(); }}
+              className={`rounded-full px-3 py-1.5 text-xs font-black transition ${showHidden ? "bg-amber-500 text-white" : "border border-amber-300 bg-amber-50 text-amber-700"}`}
+            >
+              {showHidden ? `← Sichtbare anzeigen` : `👁 Ausgeblendet (${hiddenCount})`}
+            </button>
+          )}
+          {/* Select mode toggle */}
+          <button
+            type="button"
+            onClick={() => selectMode ? exitSelectMode() : setSelectMode(true)}
+            className={`rounded-full px-3 py-1.5 text-xs font-black transition ${selectMode ? "bg-black text-white" : "border border-black/15 bg-panel text-ink/60"}`}
+          >
+            {selectMode ? `Abbrechen${selectedIds.size ? ` (${selectedIds.size})` : ""}` : "Auswählen"}
+          </button>
+        </div>
+      </div>
+
+      {/* Bulk action bar */}
+      {selectMode && selectedIds.size > 0 && (
+        <div className="flex items-center gap-2 rounded-md border border-black/8 bg-panel px-3 py-2">
+          <span className="text-xs font-black text-ink/60">{selectedIds.size} ausgewählt</span>
+          {!showHidden && (
+            <button type="button" disabled={bulkWorking} onClick={() => void bulkHide()}
+              className="rounded-md bg-amber-400 px-3 py-1.5 text-xs font-black text-white disabled:opacity-50">
+              {bulkWorking ? "…" : `Ausblenden (${selectedIds.size})`}
+            </button>
+          )}
+          <button type="button" disabled={bulkWorking} onClick={() => void bulkDelete()}
+            className="rounded-md bg-red-500 px-3 py-1.5 text-xs font-black text-white disabled:opacity-50">
+            {bulkWorking ? "…" : `Löschen (${selectedIds.size})`}
+          </button>
+        </div>
+      )}
+
+      {/* Grid */}
+      {visibleGenerations.length === 0 ? (
+        <p className="text-sm font-bold text-ink/40 py-4 text-center">
+          {showHidden ? "Keine ausgeblendeten Posts." : "Keine sichtbaren Posts."}
+        </p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+          {visibleGenerations.map(generation => {
+            const isSelected = selectedIds.has(generation.id);
+            return (
+              <article
+                key={generation.id}
+                onClick={() => selectMode && toggleSelect(generation.id)}
+                className={`grid gap-2 rounded-md border p-3 transition ${
+                  selectMode ? "cursor-pointer" : ""
+                } ${
+                  isSelected ? "border-cobalt bg-cobalt/5 ring-2 ring-cobalt/40" :
+                  generation.hidden ? "border-amber-200 bg-amber-50/50" :
+                  "border-black/10 bg-panel"
+                }`}
+              >
+                {generation.imageUrl && (
+                  <div className="relative overflow-hidden rounded-md border border-black/10 bg-white">
+                    <img src={generation.imageUrl} alt="Community post" className="aspect-square w-full object-cover object-top" />
+                    {selectMode && (
+                      <div className={`absolute inset-0 flex items-center justify-center transition ${isSelected ? "bg-black/30" : "bg-transparent"}`}>
+                        <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${isSelected ? "border-white bg-cobalt" : "border-white/80 bg-transparent"}`}>
+                          {isSelected && <svg className="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="grid gap-0.5 text-[11px] font-bold text-ink/50">
+                  {generation.customerName && <div className="font-black text-ink/70">{generation.customerName}</div>}
+                  {generation.lookName && <div className="truncate">{generation.lookName}</div>}
+                  {generation.hidden && <div className="text-amber-600 font-black text-[10px]">AUSGEBLENDET</div>}
+                </div>
+                {!selectMode && (
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button type="button" onClick={() => void onToggleHide(generation)} disabled={isSaving}
+                      className={`inline-flex h-9 items-center justify-center rounded-md border text-[11px] font-black disabled:opacity-50 ${
+                        generation.hidden ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-amber-300 bg-amber-50 text-amber-700"
+                      }`}>
+                      {generation.hidden ? "Einblenden" : "Ausblenden"}
+                    </button>
+                    <button type="button" onClick={() => void onDelete(generation)} disabled={isSaving}
+                      className="inline-flex h-9 items-center justify-center rounded-md border border-coral/30 bg-coral/10 text-[11px] font-black text-coral disabled:opacity-50">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function AdminLooksPage() {
   const frontFileInputRef = useRef<HTMLInputElement | null>(null);
   const backFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -780,6 +991,7 @@ export default function AdminLooksPage() {
   const [deliveryTime, setDeliveryTime] = useState("");
   const [productNote, setProductNote] = useState("");
   const [hashtags, setHashtags] = useState("");
+  const [newProductType, setNewProductType] = useState<"real" | "virtual">("real");
   const [editingLookId, setEditingLookId] = useState<string | null>(null);
   const [editLookName, setEditLookName] = useState("");
   const [editStoreSlug, setEditStoreSlug] = useState("");
@@ -794,6 +1006,7 @@ export default function AdminLooksPage() {
   const [editDeliveryTime, setEditDeliveryTime] = useState("");
   const [editProductNote, setEditProductNote] = useState("");
   const [editHashtags, setEditHashtags] = useState("");
+  const [editProductType, setEditProductType] = useState<"real" | "virtual">("real");
   const [editFrontLookImage, setEditFrontLookImage] = useState<string | null>(null);
   const [editBackLookImage, setEditBackLookImage] = useState<string | null>(null);
   const [editGarmentFrontImage, setEditGarmentFrontImage] = useState<string | null>(null);
@@ -832,6 +1045,20 @@ export default function AdminLooksPage() {
   const [descriptionGenerationTarget, setDescriptionGenerationTarget] = useState<"create" | "edit" | null>(null);
   const [aiGenerationStartedAt, setAiGenerationStartedAt] = useState<number | null>(null);
   const [aiGenerationSeconds, setAiGenerationSeconds] = useState(0);
+
+  // Auto-switch: Lingerie / One-pieces cannot use "No Model" (OpenAI blocks them).
+  // Whenever the garment category or model mode changes into this invalid combo, silently
+  // switch to AI Model + FASHN so the user never hits the warning.
+  useEffect(() => {
+    if (
+      aiModelMode === "no-model" &&
+      (aiGarmentCategory === "lingerie" || aiGarmentCategory === "one-pieces")
+    ) {
+      setAiModelMode("ai-model");
+      setAiProvider("fashn");
+    }
+  }, [aiGarmentCategory, aiModelMode]);
+
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [savedLook, setSavedLook] = useState<{ name: string; published: boolean } | null>(null);
@@ -1157,6 +1384,7 @@ export default function AdminLooksPage() {
         deliveryTime: deliveryTime.trim(),
         productNote: productNote.trim(),
         hashtags: hashtags.trim(),
+        productType: newProductType,
         frontImage: mainListingImage,
         backImage: newBackLookImage,
         garmentFrontImage: newGarmentFrontImage,
@@ -1346,6 +1574,7 @@ export default function AdminLooksPage() {
     setEditDeliveryTime(look.deliveryTime ?? "");
     setEditProductNote(look.productNote ?? "");
     setEditHashtags(look.hashtags ?? "");
+    setEditProductType(look.productType ?? "real");
     setEditFrontLookImage(null);
     setEditBackLookImage(null);
     setEditGarmentFrontImage(null);
@@ -1379,6 +1608,7 @@ export default function AdminLooksPage() {
     setEditDeliveryTime("");
     setEditProductNote("");
     setEditHashtags("");
+    setEditProductType("real");
     setEditFrontLookImage(null);
     setEditBackLookImage(null);
     setEditGarmentFrontImage(null);
@@ -1399,8 +1629,9 @@ export default function AdminLooksPage() {
       // Stable path of front image (if existing), or data URL (if new upload)
       const frontImagePath = !frontEntry.isNew ? frontEntry.storagePath : undefined;
       const frontImageDataUrl = frontEntry.isNew ? frontEntry.url : undefined;
-      // Stable paths of existing gallery images to keep (in order, excluding front)
+      // Stable paths of existing gallery images to keep (excluding index 0 = front, which is sent via frontImagePath)
       const keepGalleryPaths = editGalleryEntries
+        .slice(1)
         .filter((e) => !e.isNew && e.storagePath)
         .map((e) => e.storagePath as string);
       // New data URLs to upload and append to gallery
@@ -1430,6 +1661,7 @@ export default function AdminLooksPage() {
         deliveryTime: editDeliveryTime.trim(),
         productNote: editProductNote.trim(),
         hashtags: editHashtags.trim(),
+        productType: editProductType,
         // Stable front image path (highest priority) or data URL for new upload
         frontImagePath,
         frontImage: frontImageDataUrl,
@@ -1470,6 +1702,21 @@ export default function AdminLooksPage() {
     }
   };
 
+  const toggleHideGeneration = async (generation: Generation) => {
+    setIsSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const action = generation.hidden ? "unhide-generation" : "hide-generation";
+      await callAdminAction({ action, id: generation.id });
+      setMessage(generation.hidden ? "Post visible again." : "Post hidden from community.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update visibility.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const addImageDataUrlToProductGallery = async (look: Look, imageDataUrls: string | string[]) => {
     const newImages = Array.isArray(imageDataUrls) ? imageDataUrls : [imageDataUrls];
     // If this look is currently being edited in the form, use the live edit state
@@ -1487,8 +1734,8 @@ export default function AdminLooksPage() {
 
     // Build stable keep paths from current state (not stale server data)
     const keepGalleryPaths = isBeingEdited
-      ? currentEntries.filter((e) => !e.isNew && e.storagePath).map((e) => e.storagePath as string)
-      : ([look.frontImagePath, ...(look.galleryImagePaths ?? [])].filter(Boolean) as string[]);
+      ? currentEntries.slice(1).filter((e) => !e.isNew && e.storagePath).map((e) => e.storagePath as string)
+      : (look.galleryImagePaths ?? []).filter(Boolean) as string[];
 
     const updatedPayload = await callAdminAction({
       action: "update-look",
@@ -1557,6 +1804,18 @@ export default function AdminLooksPage() {
       look.garmentFrontImageUrl
     ].filter(Boolean) as string[];
     return Array.from(new Set(images)).slice(0, 6);
+  };
+
+  const openExtractorForLook = (look: Look) => {
+    // Must set aiToolLookId so handleExtractorConfirm knows which look to save into
+    setAiToolLookId(look.id);
+    // Use front image, then first gallery image, then garment front
+    const src =
+      look.frontImageUrl ||
+      (look.galleryImageUrls && look.galleryImageUrls[0]) ||
+      look.garmentFrontImageUrl ||
+      null;
+    if (src) setExtractorSrc(src);
   };
 
   const openAiImageTool = (look: Look) => {
@@ -1642,9 +1901,7 @@ export default function AdminLooksPage() {
       setMessage("Adding extracted garment images to gallery…");
       setError(null);
       try {
-        for (const crop of crops.slice(0, 4)) {
-          await addImageDataUrlToProductGallery(look, crop);
-        }
+        await addImageDataUrlToProductGallery(look, crops.slice(0, 4));
         setMessage(`${crops.length} extracted image${crops.length > 1 ? "s" : ""} added to gallery.`);
         // Close AI tool after successful extraction
         setAiToolLookId(null);
@@ -2191,7 +2448,14 @@ export default function AdminLooksPage() {
                 onProductNoteChange={setProductNote}
                 hashtags={hashtags}
                 onHashtagsChange={setHashtags}
+                productType={newProductType}
+                onProductTypeChange={setNewProductType}
                 onGenerateDescription={() => void generateProductDescription("create")}
+                onOpenExtractor={() => {
+                  // For new looks, use the uploaded front image if available
+                  const src = newFrontLookImage ?? (newGalleryEntries[0]?.url ?? null);
+                  if (src) setExtractorSrc(src);
+                }}
                 onSubmit={() => void uploadLook(true)}
                 onSubmitDraft={() => void uploadLook(false)}
               />
@@ -2246,12 +2510,14 @@ export default function AdminLooksPage() {
                 const active = activeLookIds.has(look.id);
                 const isEditing = editingLookId === look.id;
                 const lookGenerations = (data.generations ?? []).filter((generation) => generation.lookId === look.id);
+                const adminGenerations = lookGenerations.filter((g) => g.visitorId?.startsWith("admin-"));
+                const userGenerations = lookGenerations.filter((g) => !g.visitorId?.startsWith("admin-"));
                 return (
-                  <article key={look.id} data-look-id={look.id} className={`grid gap-2 rounded-md border p-3 ${isEditing ? "border-cobalt bg-white sm:col-span-2 lg:col-span-4" : active ? "border-cobalt bg-cobalt/10" : "border-black/10 bg-panel"}`}>
+                  <article key={look.id} data-look-id={look.id} className={`grid gap-2 rounded-md p-3 ${isEditing ? "bg-white sm:col-span-2 lg:col-span-4" : active ? "border border-cobalt bg-cobalt/10" : "border border-black/10 bg-panel"}`}>
                     {!isEditing && (
                       <>
                         <div className={`grid gap-1 ${look.backImageUrl ? "grid-cols-2" : ""}`}>
-                          <div className="relative h-40 w-full overflow-hidden rounded-md border border-black/10 bg-white">
+                          <div className="relative h-40 w-full overflow-hidden rounded-md bg-black/5">
                             <NextImage src={look.frontImageUrl ?? look.imageUrl ?? ""} alt={`${look.name} front`} fill sizes="320px" className="object-contain" />
                             {look.published === false && (
                               <div className="absolute left-1.5 top-1.5 rounded bg-amber-400 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white shadow">
@@ -2260,7 +2526,7 @@ export default function AdminLooksPage() {
                             )}
                           </div>
                           {look.backImageUrl && (
-                            <div className="relative h-40 w-full overflow-hidden rounded-md border border-black/10 bg-white">
+                            <div className="relative h-40 w-full overflow-hidden rounded-md bg-black/5">
                               <NextImage src={look.backImageUrl} alt={`${look.name} back`} fill sizes="160px" className="object-contain" />
                             </div>
                           )}
@@ -2274,7 +2540,7 @@ export default function AdminLooksPage() {
                       </>
                     )}
                     {isEditing ? (
-                      <div className="grid gap-3 rounded-md border border-black/10 bg-white p-3">
+                      <div className="grid gap-3">
                         <div>
                           <div className="text-xs font-black uppercase tracking-[0.16em] text-cobalt">Edit listing</div>
                           <h3 className="mt-1 text-2xl font-black text-ink">{look.name}</h3>
@@ -2316,6 +2582,7 @@ export default function AdminLooksPage() {
                           onCropGalleryImage={cropEditGalleryImage}
                           onPreviewGalleryImage={setPreviewGalleryImage}
                           onOpenAiTool={() => openAiImageTool(look)}
+                          onOpenExtractor={() => openExtractorForLook(look)}
                           onLookNameChange={setEditLookName}
                           onCampaignNameChange={setEditCampaignName}
                           onAvailableSizesChange={setEditAvailableSizes}
@@ -2329,6 +2596,8 @@ export default function AdminLooksPage() {
                           onProductNoteChange={setEditProductNote}
                           hashtags={editHashtags}
                           onHashtagsChange={setEditHashtags}
+                          productType={editProductType}
+                          onProductTypeChange={setEditProductType}
                           onGenerateDescription={() => void generateProductDescription("edit")}
                           sellerSlug={editStoreSlug}
                           stores={data.stores ?? []}
@@ -2409,72 +2678,108 @@ export default function AdminLooksPage() {
                         {look.inStock && look.deliveryTime && <div>Delivery time: {look.deliveryTime} days</div>}
                       </div>
                     )}
-                    <button
-                      type="button"
-                      disabled={!lookGenerations.length}
-                      onClick={() => setGenerationGalleryLookId(look.id)}
-                      className="inline-flex h-10 items-center justify-center rounded-md border border-black/10 bg-white px-3 text-xs font-black text-ink disabled:cursor-not-allowed disabled:opacity-45"
-                    >
-                      {lookGenerations.length} generated images
-                    </button>
-                    <div className="text-xs font-bold text-ink/45">{new Date(look.createdAt).toLocaleString()}</div>
+                    {/* 1. EDIT — primary action, always first */}
                     {!isEditing && (
                       <button
                         type="button"
                         disabled={isSaving}
                         onClick={() => startEditingLook(look)}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-black/10 bg-white px-3 text-xs font-black text-ink disabled:cursor-wait disabled:opacity-50"
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-cobalt px-3 text-xs font-black text-white disabled:cursor-wait disabled:opacity-50"
                       >
                         <Pencil aria-hidden="true" className="h-4 w-4" />
                         Edit
                       </button>
                     )}
-                    {!isEditing && (
-                      <a
-                        href={`/admin/creative?look=${look.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-cobalt px-3 text-xs font-black text-white"
-                      >
-                        Create listing slides
-                      </a>
+
+                    {/* 2. PUBLISH STATUS — Live/Draft badge + toggle */}
+                    {look.published !== false ? (
+                      <>
+                        <span className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-md border border-emerald-300 bg-emerald-50 px-3 text-xs font-black text-emerald-700">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                          Live
+                        </span>
+                        <button
+                          type="button"
+                          disabled={isSaving}
+                          onClick={async () => {
+                            setIsSaving(true);
+                            try {
+                              await callAdminAction({ action: "update-look", id: look.id, published: false });
+                              setMessage(`"${look.name}" hidden — set to Draft.`);
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : "Could not update.");
+                            } finally { setIsSaving(false); }
+                          }}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-cobalt/10 px-3 text-xs font-black text-cobalt disabled:cursor-wait disabled:opacity-50"
+                        >
+                          <EyeOff aria-hidden="true" className="h-4 w-4" />
+                          Hide (Draft)
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 text-xs font-black text-amber-700">
+                          <span className="h-2 w-2 rounded-full bg-amber-400" />
+                          Draft
+                        </span>
+                        <button
+                          type="button"
+                          disabled={isSaving}
+                          onClick={async () => {
+                            setIsSaving(true);
+                            try {
+                              await callAdminAction({ action: "update-look", id: look.id, published: true });
+                              setMessage(`"${look.name}" is now live in the store.`);
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : "Could not update.");
+                            } finally { setIsSaving(false); }
+                          }}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-3 text-xs font-black text-emerald-700 disabled:cursor-wait disabled:opacity-50"
+                        >
+                          <Eye aria-hidden="true" className="h-4 w-4" />
+                          Make live
+                        </button>
+                      </>
                     )}
-                    {!isEditing && (
-                      <button
-                        type="button"
-                        onClick={() => openAiImageTool(look)}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-cobalt/25 bg-white px-3 text-xs font-black text-cobalt"
-                      >
-                        <Sparkles aria-hidden="true" className="h-4 w-4" />
-                        Create AI image
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      disabled={active || isSaving}
-                      onClick={() => void setActiveLook(look.id)}
-                      className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-ink px-3 text-xs font-black text-white disabled:bg-cobalt disabled:opacity-100"
-                    >
-                      {active && <Check aria-hidden="true" className="h-4 w-4" />}
-                      {active ? "Active" : "Make active"}
-                    </button>
-                    {active && (
+
+                    {/* 3. ACTIVE (featured) */}
+                    {active ? (
+                      <>
+                        <span className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-md border border-emerald-300 bg-emerald-50 px-3 text-xs font-black text-emerald-700">
+                          <Check aria-hidden="true" className="h-3.5 w-3.5" />
+                          Active
+                        </span>
+                        <button
+                          type="button"
+                          disabled={isSaving}
+                          onClick={() => void unsetActiveLook(look.id)}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-cobalt/10 px-3 text-xs font-black text-cobalt disabled:cursor-wait disabled:opacity-50"
+                        >
+                          <StarOff aria-hidden="true" className="h-4 w-4" />
+                          Remove active
+                        </button>
+                      </>
+                    ) : (
                       <button
                         type="button"
                         disabled={isSaving}
-                        onClick={() => void unsetActiveLook(look.id)}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-black/10 bg-white px-3 text-xs font-black text-ink disabled:cursor-wait disabled:opacity-50"
+                        onClick={() => void setActiveLook(look.id)}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-cobalt/10 px-3 text-xs font-black text-cobalt disabled:cursor-wait disabled:opacity-50"
                       >
-                        Remove active
+                        <Star aria-hidden="true" className="h-4 w-4" />
+                        Make active
                       </button>
                     )}
+
+                    {/* 4. STOCK */}
                     {look.inStock !== false ? (
                       <button
                         type="button"
                         disabled={isSaving}
                         onClick={() => void markAsSold(look)}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-black/15 bg-panel px-3 text-xs font-black text-ink/60 disabled:cursor-wait disabled:opacity-50"
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-cobalt/10 px-3 text-xs font-black text-cobalt disabled:cursor-wait disabled:opacity-50"
                       >
+                        <Tag aria-hidden="true" className="h-4 w-4" />
                         Mark as sold
                       </button>
                     ) : (
@@ -2494,58 +2799,56 @@ export default function AdminLooksPage() {
                         }}
                         className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 text-xs font-black text-emerald-700 disabled:cursor-wait disabled:opacity-50"
                       >
+                        <PackageCheck aria-hidden="true" className="h-4 w-4" />
                         Mark as available
                       </button>
                     )}
-                    {/* Status badge + action button */}
-                    {look.published !== false ? (
-                      <>
-                        <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-emerald-300 bg-emerald-50 px-3 text-xs font-black text-emerald-700">
-                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                          Live
-                        </span>
-                        <button
-                          type="button"
-                          disabled={isSaving}
-                          onClick={async () => {
-                            setIsSaving(true);
-                            try {
-                              await callAdminAction({ action: "update-look", id: look.id, published: false });
-                              setMessage(`"${look.name}" hidden — set to Draft.`);
-                            } catch (err) {
-                              setError(err instanceof Error ? err.message : "Could not update.");
-                            } finally { setIsSaving(false); }
-                          }}
-                          className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-black/15 bg-panel px-3 text-xs font-black text-ink/60 disabled:cursor-wait disabled:opacity-50"
-                        >
-                          Hide (Draft)
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="inline-flex h-10 items-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 text-xs font-black text-amber-700">
-                          <span className="h-2 w-2 rounded-full bg-amber-400" />
-                          Draft
-                        </span>
-                        <button
-                          type="button"
-                          disabled={isSaving}
-                          onClick={async () => {
-                            setIsSaving(true);
-                            try {
-                              await callAdminAction({ action: "update-look", id: look.id, published: true });
-                              setMessage(`"${look.name}" is now live in the store.`);
-                            } catch (err) {
-                              setError(err instanceof Error ? err.message : "Could not update.");
-                            } finally { setIsSaving(false); }
-                          }}
-                          className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-3 text-xs font-black text-emerald-700 disabled:cursor-wait disabled:opacity-50"
-                        >
-                          Make live
-                        </button>
-                      </>
-                    )}
 
+                    {/* 5. TOOLS */}
+                    {!isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => openAiImageTool(look)}
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-cobalt/10 px-3 text-xs font-black text-cobalt"
+                      >
+                        <Sparkles aria-hidden="true" className="h-4 w-4" />
+                        Create AI image
+                      </button>
+                    )}
+                    {!isEditing && (
+                      <a
+                        href={`/admin/creative?look=${look.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-cobalt/10 px-3 text-xs font-black text-cobalt"
+                      >
+                        <Layers aria-hidden="true" className="h-4 w-4" />
+                        Create listing slides
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      disabled={!adminGenerations.length}
+                      onClick={() => setGenerationGalleryLookId(look.id)}
+                      className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-cobalt/10 px-3 text-xs font-black text-cobalt disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Images aria-hidden="true" className="h-4 w-4" />
+                      {adminGenerations.length} generated images
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!userGenerations.length}
+                      onClick={() => setGenerationGalleryLookId(look.id)}
+                      className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-cobalt/10 px-3 text-xs font-black text-cobalt disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <UserRound aria-hidden="true" className="h-4 w-4" />
+                      User Gallery ({userGenerations.length})
+                    </button>
+
+                    {/* 6. META */}
+                    <div className="text-xs font-bold text-ink/35">{new Date(look.createdAt).toLocaleString()}</div>
+
+                    {/* 7. DELETE — always last */}
                     <button
                       type="button"
                       disabled={isSaving || (data.looks ?? []).length <= 1}
@@ -2826,10 +3129,7 @@ export default function AdminLooksPage() {
                 <div className="grid gap-1">
                   <div className="flex items-center gap-2">
                     <div className="text-xs font-bold text-ink/55">Garment type</div>
-                    {aiGarmentCategory === "lingerie"
-                      ? <div className="text-xs font-bold text-cobalt">🔒 Locked to Lingerie</div>
-                      : <div className="text-xs text-ink/40">(auto-detected — change if wrong)</div>
-                    }
+                    <div className="text-xs text-ink/40">(auto-detected — change if wrong)</div>
                   </div>
                   <div className="flex flex-wrap gap-x-5 gap-y-1">
                     {([
@@ -2837,26 +3137,20 @@ export default function AdminLooksPage() {
                       { value: "bottoms",    label: "Bottoms",    hint: "skirt, pants, jeans, shorts" },
                       { value: "one-pieces", label: "One-pieces", hint: "dress, jumpsuit, bodysuit" },
                       { value: "lingerie",   label: "Lingerie",   hint: "corset, bra, set, dessous" },
-                    ] as const).map(({ value, label, hint }) => {
-                      const isLocked = aiGarmentCategory === "lingerie" && value !== "lingerie";
-                      return (
-                        <label key={value} className={`flex items-center gap-1.5 ${isLocked ? "cursor-not-allowed opacity-30" : "cursor-pointer"}`}>
-                          <input
-                            type="radio"
-                            name="aiGarmentCategory"
-                            value={value}
-                            checked={aiGarmentCategory === value}
-                            disabled={isLocked}
-                            onChange={() => {
-                              if (!isLocked) setAiGarmentCategory(value);
-                            }}
-                            className="accent-cobalt h-3.5 w-3.5 cursor-pointer"
-                          />
-                          <span className="text-sm font-bold text-ink">{label}</span>
-                          <span className="text-xs text-ink/35">{hint}</span>
-                        </label>
-                      );
-                    })}
+                    ] as const).map(({ value, label, hint }) => (
+                      <label key={value} className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="aiGarmentCategory"
+                          value={value}
+                          checked={aiGarmentCategory === value}
+                          onChange={() => setAiGarmentCategory(value)}
+                          className="accent-cobalt h-3.5 w-3.5 cursor-pointer"
+                        />
+                        <span className="text-sm font-bold text-ink">{label}</span>
+                        <span className="text-xs text-ink/35">{hint}</span>
+                      </label>
+                    ))}
                   </div>
                 </div>
 
@@ -3038,7 +3332,7 @@ export default function AdminLooksPage() {
                 <button
                   type="button"
                   onClick={() => void createAiImageForLook()}
-                  disabled={isGeneratingAiImage || !referenceImages.length || (aiModelMode === "no-model" && (aiGarmentCategory === "lingerie" || aiGarmentCategory === "one-pieces"))}
+                  disabled={isGeneratingAiImage || !referenceImages.length}
                   className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-cobalt px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {isGeneratingAiImage ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <Sparkles aria-hidden="true" className="h-4 w-4" />}
@@ -3049,11 +3343,6 @@ export default function AdminLooksPage() {
                       : "Create AI image"}
                 </button>
               </div>
-              {aiModelMode === "no-model" && (aiGarmentCategory === "lingerie" || aiGarmentCategory === "one-pieces") && (
-                <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm font-bold text-amber-800">
-                  ⚠ "No Model" doesn't work with Lingerie/One-pieces — OpenAI blocks these images. Use <strong>Extract from new photo</strong> to remove the person first, then try again. Or switch to <strong>AI Model</strong>.
-                </div>
-              )}
               {aiToolError && (
                 <div className="rounded-md border border-coral/30 bg-coral/10 p-3 text-sm font-bold text-coral">
                   {aiToolError}
@@ -3063,6 +3352,18 @@ export default function AdminLooksPage() {
           </div>
         );
       })()}
+      {/* ── Community Moderation ── */}
+      {data.generations && data.generations.filter(g => !g.visitorId?.startsWith("admin-") && g.imageUrl).length > 0 && (
+        <CommunityModerationSection
+          generations={data.generations.filter(g => !g.visitorId?.startsWith("admin-") && !!g.imageUrl) as Required<Pick<Generation,"imageUrl">> & Generation[]}
+          isSaving={isSaving}
+          onToggleHide={toggleHideGeneration}
+          onDelete={deleteGeneration}
+          onBulkAction={callAdminAction}
+          onDataRefresh={() => void loadData()}
+        />
+      )}
+
       {previewGalleryImage && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4" role="dialog" aria-modal="true">
           <div className="grid max-h-[92vh] w-full max-w-5xl gap-3 overflow-auto rounded-lg bg-white p-4 shadow-soft">
@@ -3140,6 +3441,16 @@ export default function AdminLooksPage() {
                       >
                         <ImagePlus aria-hidden="true" className="h-4 w-4" />
                         Add to product gallery
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void toggleHideGeneration(generation)}
+                        disabled={isSaving}
+                        className={`inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-xs font-black disabled:cursor-wait disabled:opacity-50 ${
+                          generation.hidden ? "border-emerald-300 bg-emerald-50 text-emerald-700" : "border-amber-300 bg-amber-50 text-amber-700"
+                        }`}
+                      >
+                        {generation.hidden ? "Einblenden" : "Ausblenden"}
                       </button>
                       <button
                         type="button"

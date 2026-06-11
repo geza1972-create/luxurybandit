@@ -4,18 +4,28 @@ export const dynamic = "force-dynamic";
 
 import CropModal from "@/components/CropModal";
 import { getClientAccountId } from "@/lib/client-account";
+import {
+  getStoredAuthSession,
+  resetPassword,
+  signInWithPassword,
+  signUpWithPassword,
+  type SupabaseAuthSession,
+} from "@/lib/supabase-auth-client";
 import { useParams, useRouter } from "next/navigation";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import {
+  ArrowRight,
   Bookmark,
   ChevronLeft,
   Download,
+  Home,
+  Image as ImageIcon,
   Heart,
   ImagePlus,
   Loader2,
   MessageCircle,
   RefreshCw,
-  Share2,
+  Send,
   Sparkles,
   UserCheck,
   UserPlus,
@@ -27,6 +37,7 @@ type Look = {
   name: string;
   storeName?: string;
   storeSlug?: string;
+  storeAddress?: string;
   price?: string;
   salePrice?: string;
   discountLabel?: string;
@@ -40,6 +51,57 @@ type Look = {
 };
 
 type Payload = { looks?: Look[]; error?: string };
+type UserLook = { id: string; lookId: string; imageUrl: string; userPhotoUrl?: string; customerName: string; createdAt: string };
+type Comment = { id: string; lookId: string; authorName: string; text: string; createdAt: string };
+
+// Deterministic seed comments so every look feels alive
+const SEED_TEXTS = [
+  ["Obsessed with this look 🔥", "Need this in my wardrobe ASAP"],
+  ["This is everything 😍", "Where can I get this??"],
+  ["Stunning combination 💕", "The details are insane"],
+  ["This gives main character energy 🖤", "Absolutely love it"],
+  ["Slay! This is so unique 🌟", "Can't stop staring at this"],
+  ["This is art 🎨", "Bold and beautiful"],
+  ["Living for this aesthetic ✨", "So editorial!"],
+  ["Goals 🙌", "This is exactly my vibe"],
+];
+const SEED_NAMES = ["Sofia", "Luna", "Mia", "Emma", "Lena", "Zara", "Nina", "Alicia", "Sara", "Leyla", "Vera", "Maja"];
+function seedComments(lookId: string): Comment[] {
+  let h = 0;
+  for (let i = 0; i < lookId.length; i++) { h = Math.imul(31, h) + lookId.charCodeAt(i) | 0; }
+  const abs = Math.abs(h);
+  const pair = SEED_TEXTS[abs % SEED_TEXTS.length];
+  const count = 2 + (abs % 3); // 2-4 seed comments
+  const out: Comment[] = [];
+  for (let i = 0; i < count; i++) {
+    const idx = (abs + i * 7) % SEED_TEXTS.length;
+    const textIdx = (abs + i * 3) % 2;
+    const nameIdx = (abs + i * 11) % SEED_NAMES.length;
+    void pair;
+    out.push({
+      id: `seed-${lookId}-${i}`,
+      lookId,
+      authorName: SEED_NAMES[nameIdx],
+      text: SEED_TEXTS[idx][textIdx],
+      createdAt: new Date(Date.now() - (i + 1) * 3600000 * (2 + (abs + i) % 12)).toISOString(),
+    });
+  }
+  return out;
+}
+
+// Seeded engagement counts for generation cards
+function seedInt(id: string, salt: string, min: number, max: number): number {
+  let h = 0;
+  const s = id + salt;
+  for (let i = 0; i < s.length; i++) { h = Math.imul(31, h) + s.charCodeAt(i) | 0; }
+  return min + (Math.abs(h) % (max - min + 1));
+}
+function fmtCount(n: number): string {
+  return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+}
+function genLikeCount(id: string) { return seedInt(id, "_gl", 18, 480); }
+function genCommentCount(id: string) { return seedInt(id, "_gc", 2, 28); }
+function genViewCount(id: string) { return seedInt(id, "_gv", 200, 980); }
 
 const SUPPORTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -96,12 +158,13 @@ function SaveBtn({ lookId }: { lookId: string }) {
 }
 
 // ── Bookmark button ──────────────────────────────────────────────────────────
-function BookmarkBtn({ lookId }: { lookId: string }) {
+function BookmarkBtn({ lookId, onAuthRequired }: { lookId: string; onAuthRequired?: () => void }) {
   const [saved, setSaved] = useState(false);
   useEffect(() => {
     try { setSaved((JSON.parse(localStorage.getItem("lb_bookmarks") ?? "[]") as string[]).includes(lookId)); } catch { /**/ }
   }, [lookId]);
   const toggle = () => {
+    if (onAuthRequired && !getStoredAuthSession()) { onAuthRequired(); return; }
     try {
       const list = JSON.parse(localStorage.getItem("lb_bookmarks") ?? "[]") as string[];
       const next = saved ? list.filter(id => id !== lookId) : [...list, lookId];
@@ -110,23 +173,22 @@ function BookmarkBtn({ lookId }: { lookId: string }) {
     } catch { /**/ }
   };
   return (
-    <button type="button" onClick={toggle} className="flex flex-col items-center gap-1.5">
-      <span className="grid h-12 w-12 place-items-center rounded-full bg-white/25 backdrop-blur">
-        <Bookmark className={`h-6 w-6 transition-transform active:scale-110 ${saved ? "fill-white text-white" : "text-white"}`} />
-      </span>
-      <span className="text-[11px] font-bold text-white drop-shadow">Save</span>
+    <button type="button" onClick={toggle} className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
+      <Bookmark strokeWidth={2} className={`h-7 w-7 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] transition-transform ${saved ? "fill-white text-white" : "text-white"}`} />
+      <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Save</span>
     </button>
   );
 }
 
 // ── Like button (Instagram Reels style) ──────────────────────────────────────
-function SaveBtnInsta({ lookId, initialCount }: { lookId: string; initialCount: number }) {
+function SaveBtnInsta({ lookId, initialCount, onAuthRequired }: { lookId: string; initialCount: number; onAuthRequired?: () => void }) {
   const [liked, setLiked] = useState(false);
   const [count, setCount] = useState(initialCount);
   useEffect(() => {
     try { setLiked((JSON.parse(localStorage.getItem("lb_saved") ?? "[]") as string[]).includes(lookId)); } catch { /**/ }
   }, [lookId]);
   const toggle = async () => {
+    if (onAuthRequired && !getStoredAuthSession()) { onAuthRequired(); return; }
     const next = !liked;
     try {
       const list = JSON.parse(localStorage.getItem("lb_saved") ?? "[]") as string[];
@@ -141,11 +203,9 @@ function SaveBtnInsta({ lookId, initialCount }: { lookId: string; initialCount: 
     }).catch(() => {});
   };
   return (
-    <button type="button" onClick={toggle} className="flex flex-col items-center gap-1.5">
-      <span className={`grid h-12 w-12 place-items-center rounded-full backdrop-blur transition-transform active:scale-110 ${liked ? "bg-red-500/90" : "bg-white/25"}`}>
-        <Heart className={`h-6 w-6 ${liked ? "fill-white text-white" : "text-white"}`} />
-      </span>
-      <span className="text-[11px] font-bold text-white drop-shadow">{count > 0 ? String(count) : "Like"}</span>
+    <button type="button" onClick={toggle} className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
+      <Heart strokeWidth={2} className={`h-7 w-7 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] transition-transform ${liked ? "fill-red-500 text-red-500 scale-110" : "text-white"}`} />
+      <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">{count > 0 ? String(count) : "Like"}</span>
     </button>
   );
 }
@@ -184,12 +244,13 @@ export default function LookPage() {
 
   // Look data
   const [look, setLook] = useState<Look | null>(null);
-  const [storeLooks, setStoreLooks] = useState<Look[]>([]);
+  const [allLooks, setAllLooks] = useState<Look[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   // Gallery
   const [imgIndex, setImgIndex] = useState(0);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
   const galleryRef = useRef<HTMLDivElement>(null);
@@ -211,20 +272,66 @@ export default function LookPage() {
 
   // Try-on (panel 1)
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const shareCardRef = useRef<HTMLDivElement>(null);
   const [accountId, setAccountId] = useState("");
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [tryConfirming, setTryConfirming] = useState(false);
+  const [userLooks, setUserLooks] = useState<UserLook[]>([]);
+  const [showUserLooks, setShowUserLooks] = useState(false);
+  const [generationLikes, setGenerationLikes] = useState<Record<string, boolean>>({});
+  const [shareNameInput, setShareNameInput] = useState("");
+  const [isSharing, setIsSharing] = useState(false);
+  const [sharedToGallery, setSharedToGallery] = useState(false);
+  const [savedModelMeta, setSavedModelMeta] = useState<{ fromLookName: string; fromStoreName: string } | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [commentName, setCommentName] = useState("");
+  const [isPostingComment, setIsPostingComment] = useState(false);
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [tryOnError, setTryOnError] = useState<string | null>(null);
   const [elapsedSec, setElapsedSec] = useState(0);
   const generationStartRef = useRef<number | null>(null);
 
+  // ── Auth ──
+  const [authSession, setAuthSession] = useState<SupabaseAuthSession | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot">("login");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authSuccess, setAuthSuccess] = useState<string | null>(null);
+  // pending action to run after login
+  const pendingGenerateRef = useRef(false);
+
   // Swipe tracking
   const touchStartX = useRef<number | null>(null);   // unused, kept for safety
   const panelStartX = useRef<number | null>(null);
   const panelStartY = useRef<number | null>(null);
   const gallerySwipedRef = useRef(false);            // unused, kept for safety
+  // Vertical carousel drag (TikTok-style)
+  const [verticalDrag, setVerticalDrag] = useState(0);
+  const [verticalSnapping, setVerticalSnapping] = useState(false);
+  const verticalDragRef = useRef(0);
+  const isDraggingVertical = useRef(false);
+  // Wheel / trackpad scroll debounce
+  const wheelCooldown = useRef(false);
+
+  // Load auth session on mount + listen for changes
+  useEffect(() => {
+    setAuthSession(getStoredAuthSession());
+    const handler = () => setAuthSession(getStoredAuthSession());
+    window.addEventListener("luxurybandit-auth-updated", handler);
+    return () => window.removeEventListener("luxurybandit-auth-updated", handler);
+  }, []);
+
+  // Load generation likes from localStorage
+  useEffect(() => {
+    try { setGenerationLikes(JSON.parse(localStorage.getItem("lb_gen_likes") ?? "{}")); } catch { /**/ }
+  }, []);
 
   useEffect(() => {
     setAccountId(getClientAccountId());
@@ -234,14 +341,27 @@ export default function LookPage() {
         const all = p.looks ?? [];
         const current = all.find(l => l.id === lookId) ?? null;
         setLook(current);
-        if (current?.storeSlug) {
-          const siblings = all.filter(l => l.storeSlug === current.storeSlug);
-          setStoreLooks(siblings);
-          const idx = siblings.findIndex(l => l.id === lookId);
-          setCurrentIdx(idx >= 0 ? idx : 0);
-        }
+        setAllLooks(all);
+        const idx = all.findIndex(l => l.id === lookId);
+        setCurrentIdx(idx >= 0 ? idx : 0);
       })
       .finally(() => setIsLoading(false));
+    // Load user-generated looks for this look
+    fetch(`/api/try-this-look?lookId=${lookId}&userLooks=1`)
+      .then(r => r.json())
+      .then((p: { userLooks?: UserLook[] }) => setUserLooks(p.userLooks ?? []))
+      .catch(() => {});
+    // Load comments (seed + real)
+    fetch(`/api/try-this-look?lookId=${lookId}&comments=1`)
+      .then(r => r.json())
+      .then((p: { comments?: Comment[] }) => {
+        const real = p.comments ?? [];
+        // Merge seed + real, deduplicate by id
+        const seeded = seedComments(lookId);
+        const all = [...real, ...seeded];
+        setComments(all);
+      })
+      .catch(() => setComments(seedComments(lookId)));
   }, [lookId]);
 
   // Elapsed timer during generation
@@ -251,6 +371,24 @@ export default function LookPage() {
     const t = setInterval(() => setElapsedSec(Math.floor((Date.now() - (generationStartRef.current ?? Date.now())) / 1000)), 1000);
     return () => clearInterval(t);
   }, [isGenerating]);
+
+  // Auto-scroll to share card when result arrives
+  useEffect(() => {
+    if (resultImage && shareCardRef.current) {
+      setTimeout(() => shareCardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 200);
+    }
+  }, [resultImage]);
+
+  // Check for saved model photo from a previous try-on
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("lb_model_meta");
+      if (raw && sessionStorage.getItem("lb_model_image")) {
+        const meta = JSON.parse(raw);
+        setSavedModelMeta({ fromLookName: meta.fromLookName ?? "", fromStoreName: meta.fromStoreName ?? "" });
+      }
+    } catch { /**/ }
+  }, []);
 
   // Sync gallery position on imgIndex change (must be before early returns)
   useEffect(() => {
@@ -304,6 +442,7 @@ export default function LookPage() {
     dragStartY.current = e.touches[0].clientY;
     dragStartTime.current = Date.now();
     isDraggingGallery.current = false;
+    isDraggingVertical.current = false;
     dragX.current = 0;
   };
 
@@ -314,11 +453,21 @@ export default function LookPage() {
     const adx = Math.abs(dx);
     const ady = Math.abs(dy);
 
-    // Lock to horizontal gallery drag once direction is clear
-    if (!isDraggingGallery.current) {
+    // Lock to horizontal or vertical once direction is clear
+    if (!isDraggingGallery.current && !isDraggingVertical.current) {
       if (adx < 8 && ady < 8) return; // wait for clear intent
-      if (ady > adx) return; // vertical scroll wins — don't drag gallery
-      isDraggingGallery.current = true;
+      if (ady > adx) {
+        // Vertical live drag (TikTok carousel)
+        isDraggingVertical.current = true;
+      } else {
+        isDraggingGallery.current = true;
+      }
+    }
+
+    if (isDraggingVertical.current) {
+      verticalDragRef.current = dy;
+      setVerticalDrag(dy);
+      return;
     }
 
     if (isDraggingGallery.current && images.length > 1) {
@@ -364,33 +513,84 @@ export default function LookPage() {
       return;
     }
 
-    // Must have clear direction — ignore diagonal gestures
-    if (adx < 50 && ady < 100) return;
+    // Vertical carousel snap
+    if (isDraggingVertical.current) {
+      isDraggingVertical.current = false;
+      const finalDrag = verticalDragRef.current;
+      verticalDragRef.current = 0;
+      const vh = window.innerHeight;
+      const threshold = vh * 0.2; // 20% of screen to commit
 
-    // Vertical → navigate between looks (strict: 3:1 + 100px)
-    if (ady > adx * 3 && ady >= 100 && panel === 0 && storeLooks.length > 1) {
-      let nextIdx = currentIdx;
-      if (dy < 0 && currentIdx < storeLooks.length - 1) nextIdx = currentIdx + 1;
-      else if (dy > 0 && currentIdx > 0) nextIdx = currentIdx - 1;
-      if (nextIdx !== currentIdx) {
-        setCurrentIdx(nextIdx);
-        setLook(storeLooks[nextIdx]);
-        setImgIndex(0);
-        setShowSheet(false);
-        window.history.pushState(null, "", `/look/${storeLooks[nextIdx].id}`);
-        if (galleryRef.current) {
-          galleryRef.current.style.transition = "none";
-          galleryRef.current.style.transform = "translateX(0%)";
-        }
+      if (Math.abs(finalDrag) >= threshold && panel === 0 && allLooks.length > 1) {
+        const nextIdx = finalDrag < 0
+          ? (currentIdx + 1) % allLooks.length
+          : (currentIdx - 1 + allLooks.length) % allLooks.length;
+        const targetY = finalDrag < 0 ? -vh : vh;
+        setVerticalSnapping(true);
+        setVerticalDrag(targetY);
+        setTimeout(() => {
+          setCurrentIdx(nextIdx);
+          setLook(allLooks[nextIdx]);
+          setImgIndex(0);
+          setImgLoaded(false);
+          setShowSheet(false);
+          window.history.pushState(null, "", `/look/${allLooks[nextIdx].id}`);
+          if (galleryRef.current) {
+            galleryRef.current.style.transition = "none";
+            galleryRef.current.style.transform = "translateX(0%)";
+          }
+          setVerticalDrag(0);
+          setVerticalSnapping(false);
+        }, 280);
+      } else {
+        // Snap back
+        setVerticalSnapping(true);
+        setVerticalDrag(0);
+        setTimeout(() => setVerticalSnapping(false), 280);
       }
       return;
     }
+
+    // Must have clear direction — ignore diagonal gestures
+    if (adx < 50 && ady < 100) return;
 
     // Horizontal → panel switch (long swipe only, > 120px)
     if (adx > ady * 2 && adx >= 120) {
       if (dx < 0 && panel === 0) setPanel(1);
       if (dx > 0 && panel === 1) setPanel(0);
     }
+  };
+
+  // ── Wheel / trackpad scroll (desktop two-finger) ──
+  const onWheel = (e: React.WheelEvent) => {
+    if (panel !== 0 || allLooks.length <= 1) return;
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    if (wheelCooldown.current || verticalSnapping) return;
+    wheelCooldown.current = true;
+    setTimeout(() => { wheelCooldown.current = false; }, 700);
+
+    const vh = window.innerHeight;
+    const nextIdx = e.deltaY > 0
+      ? (currentIdx + 1) % allLooks.length
+      : (currentIdx - 1 + allLooks.length) % allLooks.length;
+    const targetY = e.deltaY > 0 ? -vh : vh;
+
+    setVerticalSnapping(true);
+    setVerticalDrag(targetY);
+    setTimeout(() => {
+      setCurrentIdx(nextIdx);
+      setLook(allLooks[nextIdx]);
+      setImgIndex(0);
+      setImgLoaded(false);
+      setShowSheet(false);
+      window.history.pushState(null, "", `/look/${allLooks[nextIdx].id}`);
+      if (galleryRef.current) {
+        galleryRef.current.style.transition = "none";
+        galleryRef.current.style.transform = "translateX(0%)";
+      }
+      setVerticalDrag(0);
+      setVerticalSnapping(false);
+    }, 280);
   };
 
   // ── Contact form submission ──
@@ -437,12 +637,47 @@ export default function LookPage() {
     e.target.value = "";
   };
 
+  // ── Auth: submit ──
+  const handleAuthSubmit = async () => {
+    if (!authEmail.trim() || (authMode !== "forgot" && !authPassword.trim())) return;
+    setAuthLoading(true);
+    setAuthError(null);
+    setAuthSuccess(null);
+    try {
+      if (authMode === "login") {
+        await signInWithPassword(authEmail.trim(), authPassword);
+        setShowAuthModal(false);
+        if (pendingGenerateRef.current) {
+          pendingGenerateRef.current = false;
+          setTimeout(() => void handleGenerate(), 100);
+        }
+      } else if (authMode === "signup") {
+        await signUpWithPassword(authEmail.trim(), authPassword);
+        setAuthSuccess("Konto erstellt! Du kannst dich jetzt anmelden.");
+        setAuthMode("login");
+      } else {
+        await resetPassword(authEmail.trim());
+        setAuthSuccess("E-Mail gesendet! Überprüfe dein Postfach.");
+      }
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : "Fehler. Bitte erneut versuchen.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   // ── Try-on: generate ──
   const handleGenerate = async () => {
+    if (!authSession) {
+      pendingGenerateRef.current = true;
+      setShowAuthModal(true);
+      return;
+    }
     if (isGenerating) return;
     setIsGenerating(true);
     setTryOnError(null);
     setResultImage(null);
+    setSharedToGallery(false);
     generationStartRef.current = Date.now();
     try {
       const garmentData = await imageUrlToDataUrl(garmentUrl);
@@ -479,10 +714,71 @@ export default function LookPage() {
       if (res.status === 402) { setTryOnError("No credits. Buy credits on the Try-This-Look page."); return; }
       if (!res.ok || !payload.image) throw new Error(payload.error ?? "Generation failed.");
       setResultImage(payload.image);
+      // Auto-follow store when user generates
+      if (look.storeSlug) {
+        try {
+          const existing = JSON.parse(localStorage.getItem("lb_following") ?? "[]") as string[];
+          if (!existing.includes(look.storeSlug)) {
+            localStorage.setItem("lb_following", JSON.stringify([...existing, look.storeSlug]));
+          }
+        } catch { /**/ }
+      }
+      setTryConfirming(false);
+      setPanel(1);
     } catch (err) {
       setTryOnError(err instanceof Error ? err.message : "Generation failed.");
+      setTryConfirming(false);
+      setPanel(1);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const shareToGallery = async (name: string) => {
+    if (!resultImage || !look) return;
+    setIsSharing(true);
+    try {
+      await fetch("/api/try-this-look", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "generation",
+          lookId: look.id,
+          visitorId: accountId || "anon",
+          lookName: look.name,
+          storeName: look.storeName,
+          customerName: name.trim(),
+          image: resultImage,
+          userPhotoImage: userPhoto,
+        }),
+      });
+      setSharedToGallery(true);
+      // Refresh user looks
+      fetch(`/api/try-this-look?lookId=${look.id}&userLooks=1`)
+        .then(r => r.json())
+        .then((p: { userLooks?: UserLook[] }) => setUserLooks(p.userLooks ?? []))
+        .catch(() => {});
+    } catch { /**/ } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const postComment = async () => {
+    if (!commentText.trim() || !look) return;
+    if (!authSession) { setShowAuthModal(true); return; }
+    setIsPostingComment(true);
+    try {
+      const res = await fetch("/api/try-this-look", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "add-comment", lookId: look.id, text: commentText.trim(), authorName: authSession?.user?.email?.split("@")[0] ?? (commentName.trim() || "Anonymous") }),
+      });
+      const data = await res.json() as { comments?: Comment[] };
+      const real = data.comments ?? [];
+      setComments([...real, ...seedComments(look.id)]);
+      setCommentText("");
+    } catch { /**/ } finally {
+      setIsPostingComment(false);
     }
   };
 
@@ -505,6 +801,7 @@ export default function LookPage() {
       onTouchStart={onPanelTouchStart}
       onTouchMove={onPanelTouchMove}
       onTouchEnd={onPanelTouchEnd}
+      onWheel={onWheel}
     >
       {/* ── Two-panel slider ── */}
       <div
@@ -512,10 +809,50 @@ export default function LookPage() {
         style={{ width: "200%", transform: `translateX(${panel === 1 ? "-50%" : "0"})` }}
       >
 
+        {/* Hidden file input — always in DOM so it can be triggered from anywhere */}
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+
         {/* ═══════════════════════════════════════════════
             PANEL 0 — Main look view
         ═══════════════════════════════════════════════ */}
-        <div className="relative h-full" style={{ width: "50%" }}>
+        <div className="relative h-full overflow-hidden" style={{ width: "50%" }}>
+
+          {/* ── Prev look preview (above — slides down) ── */}
+          {currentIdx > 0 && allLooks[currentIdx - 1] && (
+            <div style={{
+              position: "absolute", left: 0, right: 0, bottom: "100%", height: "100%",
+              transform: `translateY(${verticalDrag}px)`,
+              transition: verticalSnapping ? "transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)" : "none",
+              willChange: "transform", zIndex: 0,
+            }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={allLooks[currentIdx - 1].frontImageUrl ?? allLooks[currentIdx - 1].imageUrl}
+                className="h-full w-full object-cover object-top" alt="" />
+            </div>
+          )}
+
+          {/* ── Next look preview (below — slides up) ── */}
+          {allLooks[currentIdx + 1] && (
+            <div style={{
+              position: "absolute", left: 0, right: 0, top: "100%", height: "100%",
+              transform: `translateY(${verticalDrag}px)`,
+              transition: verticalSnapping ? "transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)" : "none",
+              willChange: "transform", zIndex: 0,
+            }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={allLooks[currentIdx + 1].frontImageUrl ?? allLooks[currentIdx + 1].imageUrl}
+                className="h-full w-full object-cover object-top" alt="" />
+              <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/70 to-transparent" />
+            </div>
+          )}
+
+          {/* ── Current look content (translates with drag) ── */}
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 1,
+            transform: `translateY(${verticalDrag}px)`,
+            transition: verticalSnapping ? "transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)" : "none",
+            willChange: "transform",
+          }}>
 
           {/* Full-screen gallery — live drag like Instagram */}
           <div className="absolute inset-0 overflow-hidden">
@@ -530,17 +867,39 @@ export default function LookPage() {
                   className="h-full object-cover object-top"
                   style={{ width: `${100 / images.length}%` }}
                   draggable={false}
+                  fetchPriority={i === 0 ? "high" : "low"}
+                  onLoad={() => { if (i === 0) setImgLoaded(true); }}
                 />
               ))}
             </div>
-            <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/60 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/80 to-transparent" />
+            {/* Right-side gradient for icon readability */}
+            <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black/50 to-transparent" />
+
+            {/* Loading skeleton — fades out once image is loaded */}
+            <div
+              className="absolute inset-0 z-10 pointer-events-none transition-opacity duration-300"
+              style={{ opacity: imgLoaded ? 0 : 1, background: "linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%)" }}
+            >
+              <div className="absolute inset-0 animate-pulse" style={{ background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite" }} />
+            </div>
           </div>
 
-          {/* Top bar — back button only */}
-          <div className="absolute inset-x-0 top-0 z-20 flex items-center px-3 pt-12">
+          {/* Preload adjacent look images */}
+          {allLooks[currentIdx + 1] && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={allLooks[currentIdx + 1].frontImageUrl ?? allLooks[currentIdx + 1].imageUrl}
+              className="hidden" alt="" aria-hidden fetchPriority="low" />
+          )}
+          {currentIdx > 0 && allLooks[currentIdx - 1] && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={allLooks[currentIdx - 1].frontImageUrl ?? allLooks[currentIdx - 1].imageUrl}
+              className="hidden" alt="" aria-hidden fetchPriority="low" />
+          )}
+
+          {/* Top bar — back button + store button */}
+          <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-3 pt-12">
             <button type="button" onClick={() => router.back()}
-              className="grid h-11 w-11 place-items-center rounded-full bg-black/30 text-white backdrop-blur">
+              className="grid h-11 w-11 place-items-center rounded-full bg-black/30 backdrop-blur text-white">
               <ChevronLeft className="h-6 w-6" />
             </button>
           </div>
@@ -556,31 +915,59 @@ export default function LookPage() {
             </div>
           )}
 
-          {/* Right-side action buttons — Instagram Reels style */}
-          <div className="absolute right-3 z-20 flex flex-col items-center gap-6"
-            style={{ bottom: "calc(env(safe-area-inset-bottom) + 7rem)" }}>
+          {/* Right-side action buttons — TikTok style */}
+          <div className="absolute right-2 z-20 flex flex-col items-center gap-5"
+            style={{ bottom: "calc(env(safe-area-inset-bottom) + 5rem)" }}>
+            {/* Home */}
+            <a href="/stores" className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
+              <Home strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
+              <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Home</span>
+            </a>
             {/* Like */}
-            <SaveBtnInsta lookId={look.id} initialCount={(look as any).likeCount ?? 0} />
+            <SaveBtnInsta lookId={look.id} initialCount={(look as any).likeCount ?? 0} onAuthRequired={() => setShowAuthModal(true)} />
+            {/* Comments */}
+            <button type="button" onClick={() => { if (!authSession) { setShowAuthModal(true); return; } setShowComments(true); }}
+              className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
+              <MessageCircle strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
+              <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">{comments.length}</span>
+            </button>
+            {/* Save / Bookmark */}
+            <BookmarkBtn lookId={look.id} onAuthRequired={() => setShowAuthModal(true)} />
             {/* Share */}
             <button type="button"
               onClick={() => navigator.share?.({ title: look.name, url: window.location.href }).catch(() => {})}
-              className="flex flex-col items-center gap-1.5">
-              <span className="grid h-12 w-12 place-items-center rounded-full bg-white/25 backdrop-blur">
-                <Share2 className="h-6 w-6 text-white" />
-              </span>
-              <span className="text-[11px] font-bold text-white drop-shadow">Share</span>
+              className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
+              <Send strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
+              <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Share</span>
             </button>
-            {/* Save / Bookmark */}
-            <BookmarkBtn lookId={look.id} />
             {/* Try This Look */}
             {!isSoldOut && (
-              <button type="button" onClick={() => setPanel(1)}
-                className="flex flex-col items-center gap-1.5">
-                <span className="grid h-12 w-12 place-items-center rounded-full bg-white/25 backdrop-blur">
-                  <Sparkles className="h-6 w-6 text-white" />
-                </span>
-                <span className="text-[11px] font-bold text-white drop-shadow">Try</span>
-              </button>
+              <>
+                <button type="button" onClick={() => fileInputRef.current?.click()}
+                  className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
+                  <Sparkles strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
+                  <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Try-on</span>
+                </button>
+                <button type="button" onClick={() => userLooks.length > 0 ? setShowUserLooks(true) : undefined}
+                  className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
+                  <ImageIcon strokeWidth={2} className="h-6 w-6 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
+                  <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">
+                    {userLooks.length > 0 ? userLooks.length : "Gallery"}
+                  </span>
+                </button>
+                {savedModelMeta && (
+                  <button type="button"
+                    onClick={() => {
+                      try {
+                        const img = sessionStorage.getItem("lb_model_image");
+                        if (img) { setUserPhoto(img); setResultImage(null); setSharedToGallery(false); setTryConfirming(true); }
+                      } catch { /**/ }
+                    }}
+                    className="text-[10px] font-black text-amber-300 [text-shadow:0_1px_3px_#000] underline underline-offset-2 text-center leading-tight max-w-[52px]">
+                    ✨ Foto nutzen
+                  </button>
+                )}
+              </>
             )}
           </div>
 
@@ -593,7 +980,7 @@ export default function LookPage() {
 
           {/* ── Peek bar (always visible) ── */}
           <div className="absolute inset-x-0 bottom-0 z-20" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-            <div className="bg-gradient-to-t from-black/70 to-transparent px-4 pt-16 pb-3">
+            <div className="px-4 pt-4 pb-3">
               <div className="flex items-center gap-2">
                 <button type="button" onClick={() => look.storeSlug ? router.push(`/store/${look.storeSlug}`) : undefined}
                   className="flex items-center gap-2 active:opacity-70">
@@ -601,11 +988,11 @@ export default function LookPage() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(storeKey)}&backgroundColor=ffffff&color=000000`} alt="" className="h-full w-full object-cover" />
                   </span>
-                  <span className="text-sm font-black text-white">{look.storeName ?? storeKey}</span>
+                  <span className="text-sm font-black text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">{look.storeName ?? storeKey}</span>
                 </button>
                 <FollowBtn storeSlug={storeKey} storeName={look.storeName ?? storeKey} />
                 <button type="button" onClick={() => setShowSheet(true)}
-                  className="ml-auto flex items-center gap-1 rounded-full bg-white/20 px-3 py-1.5 text-xs font-black text-white backdrop-blur active:opacity-70">
+                  className="ml-auto flex items-center gap-1 rounded-full bg-white/20 px-3 py-1.5 text-xs font-black text-white backdrop-blur active:opacity-70 drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">
                   <span>{look.name.length > 18 ? look.name.slice(0, 18) + "…" : look.name}</span>
                   <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>
                 </button>
@@ -665,7 +1052,7 @@ export default function LookPage() {
                         <button type="button" onClick={() => { setShowSheet(false); setShowContact(true); }}
                           className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-black text-base font-black text-white shadow-lg active:scale-95 transition-transform">
                           <MessageCircle className="h-5 w-5" />
-                          Interesse melden
+                          Express Interest
                         </button>
                         <button type="button" onClick={() => { setShowSheet(false); setPanel(1); }}
                           className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-black/10 bg-black/5 text-sm font-black text-black active:scale-95 transition-transform">
@@ -691,6 +1078,7 @@ export default function LookPage() {
               <button type="button" onClick={() => imgIndex < images.length - 1 && snapGallery(imgIndex + 1)} className="absolute right-0 top-1/4 z-10 h-1/2 w-1/4" aria-label="Next" />
             </>
           )}
+          </div>{/* end translate wrapper */}
         </div>
 
         {/* ═══════════════════════════════════════════════
@@ -719,73 +1107,14 @@ export default function LookPage() {
 
           <div className="grid gap-4 p-4 pb-10">
 
-            {/* Side-by-side: your photo + the look */}
-            <div className="grid gap-2">
-              <div className="grid grid-cols-2 gap-2">
-
-                {/* Left: user photo */}
-                <div className="grid gap-1.5">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-ink/40">Your photo</p>
-                  {userPhoto ? (
-                    <div className="relative aspect-[3/4] overflow-hidden rounded-xl border border-black/10 bg-black/5">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={userPhoto} alt="Your photo" className="h-full w-full object-cover object-top" />
-                      <button type="button" onClick={() => { setUserPhoto(null); setResultImage(null); }}
-                        className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button type="button" onClick={() => fileInputRef.current?.click()}
-                      className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-black/15 bg-black/[0.02] text-ink/35 hover:border-cobalt/40 hover:text-cobalt transition">
-                      <ImagePlus className="h-6 w-6" />
-                      <span className="text-[10px] font-black">Upload</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* Right: the look */}
-                <div className="grid gap-1.5">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-ink/40">This look</p>
-                  <div className="aspect-[3/4] overflow-hidden rounded-xl border border-black/10 bg-black/5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={garmentUrl} alt={look.name} className="h-full w-full object-cover object-top" />
-                  </div>
-                </div>
-              </div>
-
-              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
-
-              <button type="button" onClick={() => fileInputRef.current?.click()}
-                className="flex h-10 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white text-xs font-black text-ink">
-                <ImagePlus className="h-3.5 w-3.5" />
-                {userPhoto ? "Change photo" : "Upload your photo"}
-              </button>
-            </div>
-
-            {/* Generate button — only when photo is uploaded */}
-            {userPhoto ? (
-              <button
-                type="button"
-                disabled={isGenerating}
-                onClick={handleGenerate}
-                className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-cobalt text-base font-black text-white disabled:opacity-50 active:scale-95 transition-transform shadow-xl"
-              >
-                {isGenerating
-                  ? <><Loader2 className="h-5 w-5 animate-spin" /> Generating… {elapsedSec}s</>
-                  : <><Sparkles className="h-5 w-5" /> Try this look on me</>
-                }
-              </button>
-            ) : (
-              <p className="rounded-xl border border-black/8 bg-white p-4 text-center text-sm font-bold text-ink/40">
-                Upload your photo to try this look on yourself.
-              </p>
-            )}
-
-            {/* Progress bar */}
+            {/* Generating spinner (if arrived here while still generating) */}
             {isGenerating && (
-              <div className="overflow-hidden rounded-full bg-black/10 h-2">
-                <div className="h-full rounded-full bg-cobalt transition-all duration-700" style={{ width: `${loadingProgress}%` }} />
+              <div className="flex flex-col items-center gap-3 py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-cobalt" />
+                <p className="text-sm font-bold text-ink/60">Generating your look… {elapsedSec}s</p>
+                <div className="w-full overflow-hidden rounded-full bg-black/10 h-2">
+                  <div className="h-full rounded-full bg-cobalt transition-all duration-700" style={{ width: `${loadingProgress}%` }} />
+                </div>
               </div>
             )}
 
@@ -799,7 +1128,58 @@ export default function LookPage() {
               <div className="grid gap-3 rounded-xl border border-black/10 bg-white p-4 shadow-soft">
                 <p className="text-sm font-black text-ink">Your look ✨</p>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={resultImage} alt="Try-on Ergebnis" className="w-full rounded-lg border border-black/10 object-contain" />
+                <img src={resultImage} alt="Try-on result" className="w-full rounded-lg border border-black/10 object-contain" />
+
+                {/* Share to look gallery — FIRST so it's visible after the image */}
+                {sharedToGallery ? (() => {
+                  const postedName = authSession?.user?.email?.split("@")[0] ?? shareNameInput.trim();
+                  const profileSlug = postedName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+                  return (
+                    <div className="grid gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                      <p className="text-center text-sm font-black text-emerald-700">✓ Posted to the look gallery!</p>
+                      {profileSlug && (
+                        <a href={`/u/${profileSlug}`}
+                          className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 text-sm font-black text-white active:opacity-80">
+                          View your gallery →
+                        </a>
+                      )}
+                    </div>
+                  );
+                })() : (
+                  <div ref={shareCardRef} className="grid gap-2 rounded-xl border-2 border-cobalt/30 bg-cobalt/5 p-3">
+                    <p className="text-sm font-black text-cobalt">📸 Post to look gallery</p>
+                    {authSession ? (
+                      <p className="text-[11px] font-bold text-ink/50">
+                        Posting as <span className="text-ink/70">{authSession.user.email?.split("@")[0] ?? "you"}</span>
+                      </p>
+                    ) : (
+                      <>
+                        <p className="text-[11px] font-bold text-ink/50">Your name will appear with your photo</p>
+                        <input
+                          type="text"
+                          value={shareNameInput}
+                          onChange={e => setShareNameInput(e.target.value)}
+                          placeholder="Your name (optional)"
+                          className="h-10 w-full rounded-lg border border-black/10 bg-white px-3 text-sm font-bold text-ink placeholder:text-ink/30 focus:outline-none focus:ring-2 focus:ring-cobalt/30"
+                        />
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      disabled={isSharing}
+                      onClick={() => {
+                        const name = authSession?.user?.email?.split("@")[0] ?? shareNameInput.trim();
+                        void shareToGallery(name);
+                      }}
+                      className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-cobalt text-sm font-black text-white disabled:opacity-50 active:scale-95 transition-transform"
+                    >
+                      {isSharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      Post to look gallery
+                    </button>
+                  </div>
+                )}
+
+                {/* Save / Share / Retry */}
                 <div className="grid grid-cols-3 gap-2">
                   <button type="button" onClick={downloadResult}
                     className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-ink text-xs font-black text-white">
@@ -808,21 +1188,53 @@ export default function LookPage() {
                   <button type="button"
                     onClick={() => navigator.share?.({ title: look.name, url: window.location.href }).catch(() => {})}
                     className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-coral text-xs font-black text-white">
-                    <Share2 className="h-4 w-4" /> Teilen
+                    <Send className="h-4 w-4" /> Share
                   </button>
-                  <button type="button" onClick={() => { setResultImage(null); setUserPhoto(null); }}
+                  <button type="button" onClick={() => { setResultImage(null); setUserPhoto(null); setSharedToGallery(false); }}
                     className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-black/10 bg-white text-xs font-black text-ink">
                     <RefreshCw className="h-4 w-4" /> Retry
                   </button>
                 </div>
+
+                {/* Try another look with this photo */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      sessionStorage.setItem("lb_model_image", resultImage!);
+                      localStorage.setItem("lb_model_meta", JSON.stringify({
+                        fromLookId: look.id,
+                        fromLookName: look.name,
+                        fromStoreSlug: look.storeSlug ?? "",
+                        fromStoreName: look.storeName ?? "",
+                        savedAt: new Date().toISOString(),
+                      }));
+                    } catch { /**/ }
+                    router.push("/stores");
+                  }}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-black/10 bg-black text-sm font-black text-white active:scale-95 transition-transform"
+                >
+                  Try another look with this photo
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+
                 {/* CTA to buy */}
                 {!isSoldOut && (
                   <button type="button" onClick={() => { setPanel(0); setShowContact(true); }}
                     className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-black py-3.5 text-sm font-black text-white active:scale-95 transition-transform">
-                    <MessageCircle className="h-4 w-4" /> Interesse melden
+                    <MessageCircle className="h-4 w-4" /> Express interest
                   </button>
                 )}
               </div>
+            )}
+
+            {/* Empty state — prompt to try */}
+            {!resultImage && !isGenerating && (
+              <button type="button" onClick={() => fileInputRef.current?.click()}
+                className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-cobalt/30 bg-cobalt/5 text-sm font-black text-cobalt">
+                <ImagePlus className="h-5 w-5" />
+                Upload your photo to try this look
+              </button>
             )}
 
           </div>
@@ -845,8 +1257,8 @@ export default function LookPage() {
             ) : (
               <>
                 <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-lg font-black text-black">Interesse melden</h2>
-                  <button type="button" onClick={() => setShowContact(false)} className="text-xs font-bold text-black/40">Abbrechen</button>
+                  <h2 className="text-lg font-black text-black">Express Interest</h2>
+                  <button type="button" onClick={() => setShowContact(false)} className="text-xs font-bold text-black/40">Cancel</button>
                 </div>
                 <div className="grid gap-3">
                   <div>
@@ -862,7 +1274,7 @@ export default function LookPage() {
                   <p className="text-xs font-bold text-black/35">Der Seller sieht deine Nummer und entscheidet ob er dich kontaktiert.</p>
                   <button type="button" disabled={!buyerName.trim() || !buyerPhone.trim() || sending} onClick={handleContact}
                     className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-black text-base font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
-                    {sending ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" /> : "Anfrage senden"}
+                    {sending ? <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" /> : "Send Request"}
                   </button>
                 </div>
               </>
@@ -871,11 +1283,357 @@ export default function LookPage() {
         </div>
       )}
 
+      {/* ── Try-on confirmation / generating overlay ── */}
+      {tryConfirming && userPhoto && (
+        <div className="fixed inset-0 z-50 flex flex-col">
+          {/* Blurred photo background */}
+          <div className="absolute inset-0 overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={userPhoto} alt="" className="h-full w-full object-cover blur-2xl scale-110 opacity-70" />
+            <div className="absolute inset-0 bg-black/40" />
+          </div>
+
+          {/* Content */}
+          <div className="relative z-10 flex h-full flex-col items-center justify-end px-5 pb-12 pt-8 gap-5">
+
+            {/* Look (left) → arrow → User photo (right) */}
+            <div className="flex w-full items-center justify-center gap-3 px-2">
+              {/* The look */}
+              <div className="flex-1 aspect-[3/4] overflow-hidden rounded-2xl border-2 border-white/30 shadow-2xl">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={garmentUrl} alt={look.name} className="h-full w-full object-cover object-top" />
+              </div>
+
+              {/* Arrow */}
+              <div className="flex flex-col items-center gap-1 shrink-0">
+                <ArrowRight className="h-8 w-8 text-white drop-shadow-lg" />
+              </div>
+
+              {/* User photo + circular spinner */}
+              <div className="relative flex-1 aspect-[3/4]">
+                <div className="h-full w-full overflow-hidden rounded-2xl border-2 border-white/30 shadow-2xl">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={userPhoto} alt="Dein Foto" className={`h-full w-full object-cover object-top transition-all duration-500 ${isGenerating ? "blur-sm scale-105" : ""}`} />
+                </div>
+                {isGenerating && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg className="h-16 w-16 -rotate-90" viewBox="0 0 80 80">
+                      <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="6" />
+                      <circle
+                        cx="40" cy="40" r="34" fill="none"
+                        stroke="white" strokeWidth="6"
+                        strokeLinecap="round"
+                        strokeDasharray={`${2 * Math.PI * 34}`}
+                        strokeDashoffset={`${2 * Math.PI * 34 * (1 - loadingProgress / 100)}`}
+                        className="transition-all duration-700"
+                      />
+                    </svg>
+                    <span className="absolute text-xs font-black text-white">{Math.round(loadingProgress)}%</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Message */}
+            <div className="text-center">
+              {isGenerating ? (
+                <>
+                  <p className="text-lg font-black text-white [text-shadow:0_2px_8px_#000]">Generating your look…</p>
+                  <p className="mt-1 text-sm font-bold text-white/70 [text-shadow:0_1px_4px_#000]">{elapsedSec}s — please wait</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-lg font-black text-white [text-shadow:0_2px_8px_#000]">Send this photo to AI?</p>
+                  <p className="mt-1 text-sm font-bold text-white/70 [text-shadow:0_1px_4px_#000]">You will be shown wearing this look</p>
+                </>
+              )}
+            </div>
+
+            {/* Buttons — hidden while generating */}
+            {!isGenerating && (
+              <div className="grid w-full gap-2">
+                <button
+                  type="button"
+                  onClick={() => { void handleGenerate(); }}
+                  className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 text-base font-black text-black shadow-xl active:scale-95 transition-transform"
+                >
+                  <Sparkles className="h-5 w-5 text-cobalt" />
+                  Yes, try the look
+                  <span className="ml-auto rounded-full bg-cobalt/15 px-2 py-0.5 text-xs font-black text-cobalt">2 credits</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setTryConfirming(false); setUserPhoto(null); setTimeout(() => fileInputRef.current?.click(), 100); }}
+                  className="flex h-12 w-full items-center justify-center rounded-2xl bg-white/20 text-sm font-black text-white backdrop-blur active:opacity-70"
+                >
+                  Upload a different photo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setTryConfirming(false); setUserPhoto(null); }}
+                  className="flex h-12 w-full items-center justify-center rounded-2xl bg-white/10 text-sm font-bold text-white/70 active:opacity-70"
+                >
+                  No, cancel
+                </button>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      {/* ── User looks gallery ── */}
+      {showUserLooks && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+          {/* Header */}
+          <div className="flex items-center gap-3 border-b border-black/10 px-4 py-3">
+            <button type="button" onClick={() => setShowUserLooks(false)}
+              className="grid h-9 w-9 place-items-center rounded-full border border-black/10 text-ink">
+              <X className="h-4 w-4" />
+            </button>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-black text-ink">Community Looks</p>
+              <p className="text-xs font-bold text-ink/40">{userLooks.length} {userLooks.length === 1 ? "person" : "people"} tried this look</p>
+            </div>
+          </div>
+
+          {/* Store info row */}
+          {look?.storeName && (
+            <button type="button"
+              onClick={() => { setShowUserLooks(false); if (look.storeSlug) { window.location.href = `/store/${look.storeSlug}`; } }}
+              className="flex items-center gap-2.5 border-b border-black/5 px-4 py-2.5 active:bg-black/3 text-left">
+              <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-black/5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(look.storeSlug ?? look.storeName ?? "")}&backgroundColor=ffffff&color=000000`}
+                  alt={look.storeName} className="h-full w-full object-cover" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-black text-ink">{look.storeName}</p>
+                {look.storeAddress && <p className="truncate text-[10px] font-bold text-ink/40">{look.storeAddress}</p>}
+              </div>
+              <ArrowRight className="h-4 w-4 shrink-0 text-ink/30" />
+            </button>
+          )}
+
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="grid gap-6">
+              {userLooks.map(ul => {
+                const isLiked = generationLikes[ul.id] ?? false;
+                const lookUrl = typeof window !== "undefined"
+                  ? `${window.location.origin}/look/${ul.lookId}`
+                  : `/look/${ul.lookId}`;
+                const handleGenLike = () => {
+                  if (!authSession) { setShowUserLooks(false); setShowAuthModal(true); return; }
+                  const next = { ...generationLikes, [ul.id]: !isLiked };
+                  setGenerationLikes(next);
+                  try { localStorage.setItem("lb_gen_likes", JSON.stringify(next)); } catch { /**/ }
+                };
+                const handleGenShare = async () => {
+                  const shareData: ShareData = {
+                    title: look?.name ?? "LuxuryBandit Look",
+                    text: `${ul.customerName ? ul.customerName + " is wearing " : ""}${look?.name ?? "this look"} — LuxuryBandit`,
+                    url: lookUrl
+                  };
+                  if (navigator.share) {
+                    try { await navigator.share(shareData); } catch { /**/ }
+                  } else {
+                    try { await navigator.clipboard.writeText(lookUrl); } catch { /**/ }
+                  }
+                };
+                return (
+                  <div key={ul.id} className="grid gap-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Before */}
+                      {ul.userPhotoUrl && (
+                        <div className="grid gap-1">
+                          <div className="aspect-[3/4] overflow-hidden rounded-xl border border-black/10 bg-black/5">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={ul.userPhotoUrl} alt="Original" className="h-full w-full object-cover object-top" />
+                          </div>
+                          <p className="text-center text-[10px] font-bold text-ink/40">Before</p>
+                        </div>
+                      )}
+                      {/* After */}
+                      <div className={`grid gap-1 ${!ul.userPhotoUrl ? "col-span-2" : ""}`}>
+                        <div className="aspect-[3/4] overflow-hidden rounded-xl border border-black/10 bg-black/5">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={ul.imageUrl} alt={ul.customerName || "User look"} className="h-full w-full object-cover object-top" />
+                        </div>
+                        <p className="text-center text-[10px] font-bold text-ink/40">After</p>
+                      </div>
+                    </div>
+
+                    {/* Name */}
+                    {ul.customerName && (
+                      <p className="text-center text-xs font-black text-ink/60">{ul.customerName}</p>
+                    )}
+
+                    {/* Social bar */}
+                    <div className="flex items-center gap-1.5 border-t border-black/5 pt-2">
+                      {/* Like */}
+                      <button type="button" onClick={handleGenLike}
+                        className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-black transition active:scale-95 ${
+                          isLiked ? "bg-red-50 text-red-500" : "bg-black/5 text-ink/50"
+                        }`}>
+                        <Heart className={`h-3.5 w-3.5 ${isLiked ? "fill-red-500 stroke-red-500" : ""}`} />
+                        <span>{fmtCount(genLikeCount(ul.id) + (isLiked ? 1 : 0))}</span>
+                      </button>
+                      {/* Comment */}
+                      <button type="button"
+                        onClick={() => { setShowUserLooks(false); if (!authSession) { setShowAuthModal(true); } else { setShowComments(true); } }}
+                        className="flex items-center gap-1 rounded-full bg-black/5 px-3 py-1.5 text-xs font-black text-ink/50 active:scale-95 transition">
+                        <MessageCircle className="h-3.5 w-3.5" />
+                        <span>{fmtCount(genCommentCount(ul.id))}</span>
+                      </button>
+                      {/* Views — display only */}
+                      <span className="flex items-center gap-1 px-2 py-1.5 text-xs font-bold text-ink/30 pointer-events-none select-none">
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        <span>{fmtCount(genViewCount(ul.id))}</span>
+                      </span>
+                      {/* Share */}
+                      <button type="button" onClick={() => void handleGenShare()}
+                        className="ml-auto flex items-center gap-1 rounded-full bg-black/5 px-3 py-1.5 text-xs font-black text-ink/50 active:scale-95 transition">
+                        <Send className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Auth modal ── */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-end bg-black/60 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget) { setShowAuthModal(false); pendingGenerateRef.current = false; } }}>
+          <div className="w-full max-w-md rounded-t-3xl bg-white px-6 pb-10 pt-5"
+            style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}>
+            {/* Handle */}
+            <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-black/15" />
+
+            {/* Header */}
+            <div className="mb-6 text-center">
+              <p className="text-lg font-black text-ink">
+                {authMode === "login" ? "Sign in" : authMode === "signup" ? "Create account" : "Reset password"}
+              </p>
+              <p className="mt-1 text-sm font-bold text-ink/50">
+                {authMode === "login"
+                  ? "Sign in to try the look"
+                  : authMode === "signup"
+                  ? "Create a free account"
+                  : "We'll send you a link"}
+              </p>
+            </div>
+
+            {/* Fields */}
+            <div className="grid gap-3">
+              <input type="email" value={authEmail} onChange={e => { setAuthEmail(e.target.value); setAuthError(null); }}
+                placeholder="E-Mail" autoComplete="email"
+                className="h-12 w-full rounded-xl border border-black/10 bg-black/3 px-4 text-sm font-bold text-ink placeholder:text-ink/30 outline-none focus:border-cobalt" />
+              {authMode !== "forgot" && (
+                <input type="password" value={authPassword} onChange={e => { setAuthPassword(e.target.value); setAuthError(null); }}
+                  placeholder="Password" autoComplete={authMode === "signup" ? "new-password" : "current-password"}
+                  onKeyDown={e => { if (e.key === "Enter") void handleAuthSubmit(); }}
+                  className="h-12 w-full rounded-xl border border-black/10 bg-black/3 px-4 text-sm font-bold text-ink placeholder:text-ink/30 outline-none focus:border-cobalt" />
+              )}
+            </div>
+
+            {authError && <p className="mt-3 text-center text-xs font-bold text-red-500">{authError}</p>}
+            {authSuccess && <p className="mt-3 text-center text-xs font-bold text-emerald-600">{authSuccess}</p>}
+
+            {/* CTA */}
+            <button type="button" onClick={() => void handleAuthSubmit()} disabled={authLoading}
+              className="mt-4 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-cobalt text-sm font-black text-white disabled:opacity-50">
+              {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {authMode === "login" ? "Sign in" : authMode === "signup" ? "Sign up" : "Send link"}
+            </button>
+
+            {/* Mode switch */}
+            <div className="mt-4 flex flex-col items-center gap-2 text-xs font-bold text-ink/50">
+              {authMode === "login" && (
+                <>
+                  <button type="button" onClick={() => { setAuthMode("signup"); setAuthError(null); setAuthSuccess(null); }}
+                    className="underline underline-offset-2">No account? Sign up</button>
+                  <button type="button" onClick={() => { setAuthMode("forgot"); setAuthError(null); setAuthSuccess(null); }}
+                    className="underline underline-offset-2">Forgot password?</button>
+                </>
+              )}
+              {authMode !== "login" && (
+                <button type="button" onClick={() => { setAuthMode("login"); setAuthError(null); setAuthSuccess(null); }}
+                  className="underline underline-offset-2">Back to sign in</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Comments sheet ── */}
+      {showComments && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+          {/* Header */}
+          <div className="flex items-center gap-3 border-b border-black/10 px-4 py-3">
+            <button type="button" onClick={() => setShowComments(false)}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10">
+              <X className="h-4 w-4" />
+            </button>
+            <div>
+              <p className="text-sm font-black text-ink">Comments</p>
+              <p className="text-xs font-bold text-ink/40">{comments.length} comments</p>
+            </div>
+          </div>
+
+          {/* Comment list */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="grid gap-4">
+              {comments.map(c => (
+                <div key={c.id} className="flex gap-3">
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-cobalt/10 text-xs font-black text-cobalt">
+                    {c.authorName.slice(0, 1).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-black text-ink">{c.authorName}</p>
+                    <p className="mt-0.5 text-sm font-bold text-ink/80">{c.text}</p>
+                    <p className="mt-0.5 text-[10px] font-bold text-ink/30">
+                      {new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Input */}
+          <div className="border-t border-black/10 px-4 py-3 grid gap-2">
+            {authSession?.user?.email && (
+              <p className="text-xs font-bold text-ink/40">
+                Commenting as <span className="text-ink/70">{authSession.user.email.split("@")[0]}</span>
+              </p>
+            )}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void postComment(); } }}
+                placeholder="Add a comment…"
+                className="h-11 min-w-0 flex-1 rounded-xl border border-black/10 bg-black/3 px-3 text-sm font-bold text-ink placeholder:text-ink/30 outline-none focus:border-cobalt"
+              />
+              <button type="button" onClick={() => void postComment()} disabled={!commentText.trim() || isPostingComment}
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-cobalt text-white disabled:opacity-40">
+                {isPostingComment ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Crop modal ── */}
       {cropSrc && (
         <CropModal
           imageSrc={cropSrc}
-          onConfirm={(cropped) => { setUserPhoto(cropped); setCropSrc(null); setResultImage(null); }}
+          onConfirm={(cropped) => { setUserPhoto(cropped); setCropSrc(null); setResultImage(null); setTryConfirming(true); }}
           onCancel={() => setCropSrc(null)}
         />
       )}
