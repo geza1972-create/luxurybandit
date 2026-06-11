@@ -12,7 +12,7 @@ import {
 import { Bookmark, Heart, Home, Image as ImageIcon, Instagram, Loader2, LogOut, MessageCircle, Search, Send, ShoppingBag, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 
 // Deterministic pseudo-random view count based on look ID
 function viewCount(id: string): string {
@@ -712,7 +712,7 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
 }
 
 // ── Main page ────────────────────────────────────────────────────────────────
-export default function StoresPage() {
+function StoresPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [looks, setLooks] = useState<Look[]>([]);
@@ -1443,5 +1443,13 @@ export default function StoresPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function StoresPageWrapper() {
+  return (
+    <Suspense>
+      <StoresPage />
+    </Suspense>
   );
 }
