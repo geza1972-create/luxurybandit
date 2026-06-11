@@ -13,7 +13,8 @@ interface CropModalProps {
   onCancel: () => void;
 }
 
-const HANDLE_SIZE = 12;
+const HANDLE_SIZE = 20;   // visual size
+const TOUCH_PAD  = 18;   // extra hit area padding for fingers
 const MIN_SIZE = 40;
 
 function clamp(v: number, min: number, max: number) {
@@ -36,13 +37,14 @@ function getHandleRect(crop: Rect, handle: Handle): Rect {
   }
 }
 
-function hitHandle(px: number, py: number, crop: Rect, ratio?: number): Handle | null {
+function hitHandle(px: number, py: number, crop: Rect, ratio?: number, isTouch = false): Handle | null {
+  const pad = isTouch ? TOUCH_PAD : 2;
   const handles: Handle[] = ratio
     ? ["nw", "ne", "sw", "se"]
     : ["nw", "ne", "sw", "se", "n", "s", "e", "w"];
   for (const h of handles) {
     const r = getHandleRect(crop, h);
-    if (px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h) return h;
+    if (px >= r.x - pad && px <= r.x + r.w + pad && py >= r.y - pad && py <= r.y + r.h + pad) return h;
   }
   if (px >= crop.x && px <= crop.x + crop.w && py >= crop.y && py <= crop.y + crop.h) return "move";
   return null;
@@ -147,8 +149,10 @@ export default function CropModal({ imageSrc, aspectRatio, outputRatio, onConfir
   };
 
   const onPointerDown = (e: React.MouseEvent | React.TouchEvent) => {
+    const isTouch = "touches" in e;
+    if (isTouch) { e.preventDefault(); e.stopPropagation(); }
     const { x, y } = getPos(e);
-    const handle = hitHandle(x, y, crop, aspectRatio);
+    const handle = hitHandle(x, y, crop, aspectRatio, isTouch);
     if (!handle) return;
     dragRef.current = { handle, startX: x, startY: y, startCrop: { ...crop } };
   };
@@ -156,12 +160,16 @@ export default function CropModal({ imageSrc, aspectRatio, outputRatio, onConfir
   const onPointerMove = (e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const isTouch = "touches" in e;
+    if (isTouch) { e.preventDefault(); e.stopPropagation(); }
     const { x, y } = getPos(e);
 
     if (!dragRef.current) {
-      // Update cursor
-      const handle = hitHandle(x, y, crop, aspectRatio);
-      canvas.style.cursor = handleCursor(handle);
+      // Update cursor (mouse only)
+      if (!isTouch) {
+        const handle = hitHandle(x, y, crop, aspectRatio, false);
+        canvas.style.cursor = handleCursor(handle);
+      }
       return;
     }
 
@@ -201,7 +209,10 @@ export default function CropModal({ imageSrc, aspectRatio, outputRatio, onConfir
     setCrop({ x: nx, y: ny, w: nw, h: nh });
   };
 
-  const onPointerUp = () => { dragRef.current = null; };
+  const onPointerUp = (e?: React.TouchEvent) => {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    dragRef.current = null;
+  };
 
   const confirmCrop = () => {
     const img = imageRef.current;
@@ -255,7 +266,11 @@ export default function CropModal({ imageSrc, aspectRatio, outputRatio, onConfir
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/85 p-4">
+    <div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/85 p-4"
+      style={{ touchAction: "none" }}
+      onTouchMove={e => e.preventDefault()}
+    >
       <div className="text-sm font-black text-white/80">Drag to move · Drag corners to resize</div>
       <canvas
         ref={canvasRef}
@@ -267,7 +282,7 @@ export default function CropModal({ imageSrc, aspectRatio, outputRatio, onConfir
         onMouseLeave={onPointerUp}
         onTouchStart={onPointerDown}
         onTouchMove={onPointerMove}
-        onTouchEnd={onPointerUp}
+        onTouchEnd={e => onPointerUp(e)}
       />
       <div className="flex gap-3">
         <button
