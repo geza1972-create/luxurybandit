@@ -1029,6 +1029,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, customerName: (gen as any).customerName });
     }
 
+    // ── Auth user management (admin only) ────────────────────────────────────
+    if (payload.action === "delete-auth-user" || payload.action === "ban-auth-user" || payload.action === "unban-auth-user") {
+      if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const userId = String(payload.userId ?? "").trim();
+      if (!userId) return NextResponse.json({ error: "userId required." }, { status: 400 });
+      const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/^["']|["']$/g, "");
+      const supabaseUrl = rawUrl
+        ? (rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`).replace(/\/rest\/v1\/?$/, "").replace(/\/storage\/v1\/?$/, "").replace(/\/$/, "")
+        : "";
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+      if (!supabaseUrl || !serviceKey) return NextResponse.json({ error: "Supabase not configured." }, { status: 500 });
+
+      if (payload.action === "delete-auth-user") {
+        const res = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
+          method: "DELETE",
+          headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }
+        });
+        if (!res.ok) {
+          const e = await res.json().catch(() => null);
+          return NextResponse.json({ error: e?.message ?? "Could not delete user." }, { status: res.status });
+        }
+        return NextResponse.json({ ok: true });
+      }
+
+      // Ban or unban
+      const banDuration = payload.action === "ban-auth-user" ? "876600h" : "none";
+      const res = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
+        method: "PUT",
+        headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ ban_duration: banDuration })
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => null);
+        return NextResponse.json({ error: e?.message ?? "Could not update user." }, { status: res.status });
+      }
+      return NextResponse.json({ ok: true });
+    }
+
     // ── Delete all data for a community user (admin only) ───────────────────
     if (payload.action === "delete-user-data") {
       if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });

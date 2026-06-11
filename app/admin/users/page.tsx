@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { ArrowLeft, ExternalLink, Image as ImageIcon, Loader2, RefreshCw, Search, Trash2, Users } from "lucide-react";
+import { ArrowLeft, Ban, ExternalLink, Image as ImageIcon, Loader2, RefreshCw, Search, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -23,6 +23,7 @@ type AuthUser = {
   created_at: string;
   last_sign_in_at?: string;
   email_confirmed_at?: string;
+  banned_until?: string;
   user_metadata?: { full_name?: string; name?: string; username?: string };
 };
 
@@ -69,6 +70,7 @@ export default function AdminUsersPage() {
   const [message, setMessage] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [authWorking, setAuthWorking] = useState<string | null>(null); // userId being acted on
 
   const loadData = async (adminPin = pin) => {
     setIsLoading(true);
@@ -120,6 +122,28 @@ export default function AdminUsersPage() {
     void loadData(stored);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const authAction = async (action: "delete-auth-user" | "ban-auth-user" | "unban-auth-user", userId: string) => {
+    setAuthWorking(userId);
+    setMessage("");
+    setError("");
+    try {
+      const res = await fetch("/api/try-this-look", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
+        body: JSON.stringify({ action, userId }),
+      });
+      const p = await res.json();
+      if (!res.ok) throw new Error(p.error ?? "Error.");
+      setMessage(action === "delete-auth-user" ? "User deleted." : action === "ban-auth-user" ? "User deactivated." : "User reactivated.");
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error.");
+    } finally {
+      setAuthWorking(null);
+      setConfirmDelete(null);
+    }
+  };
 
   const deleteUserData = async (slug: string) => {
     setDeleting(true);
@@ -232,8 +256,11 @@ export default function AdminUsersPage() {
                 const displayName = u.user_metadata?.full_name || u.user_metadata?.name || u.user_metadata?.username || u.email?.split("@")[0] || "—";
                 const username = u.user_metadata?.username || normalizeSlug(u.user_metadata?.full_name || u.user_metadata?.name || u.email?.split("@")[0] || "");
                 const isConfirmed = !!u.email_confirmed_at;
+                const isBanned = u.banned_until && u.banned_until !== "none" && new Date(u.banned_until) > new Date();
+                const isWorking = authWorking === u.id;
+                const isConfirmingDelete = confirmDelete === u.id;
                 return (
-                  <div key={u.id} className="flex items-center gap-4 rounded-xl border border-black/10 bg-white px-5 py-4 shadow-soft">
+                  <div key={u.id} className={`flex items-center gap-4 rounded-xl border bg-white px-5 py-4 shadow-soft ${isBanned ? "border-amber-300 bg-amber-50/30" : "border-black/10"}`}>
                     {/* Avatar */}
                     <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-black/5">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -253,6 +280,7 @@ export default function AdminUsersPage() {
                         ) : (
                           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">Unverified</span>
                         )}
+                        {isBanned && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-black text-red-600">Deactivated</span>}
                       </div>
                       <div className="flex flex-wrap gap-2 text-[11px] font-bold text-ink/40 mt-0.5">
                         <span>{u.email ? maskEmail(u.email) : "—"}</span>
@@ -261,17 +289,46 @@ export default function AdminUsersPage() {
                       </div>
                     </div>
 
-                    {/* Profile link if username known */}
-                    {username && (
-                      <a
-                        href={`/u/${username}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="shrink-0 inline-flex h-8 items-center gap-1.5 rounded-md border border-black/10 bg-white px-3 text-[11px] font-black text-cobalt hover:bg-cobalt/5 transition"
-                      >
-                        Profile <ExternalLink className="h-3 w-3" />
-                      </a>
-                    )}
+                    {/* Actions */}
+                    <div className="flex shrink-0 items-center gap-2">
+                      {username && (
+                        <a href={`/u/${username}`} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex h-8 items-center gap-1 rounded-md border border-black/10 bg-white px-2.5 text-[11px] font-black text-cobalt hover:bg-cobalt/5 transition">
+                          Profile <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+
+                      {/* Ban / Unban */}
+                      {isBanned ? (
+                        <button type="button" disabled={isWorking} onClick={() => void authAction("unban-auth-user", u.id)}
+                          className="inline-flex h-8 items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2.5 text-[11px] font-black text-emerald-700 disabled:opacity-50 hover:bg-emerald-100 transition">
+                          {isWorking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Reactivate"}
+                        </button>
+                      ) : (
+                        <button type="button" disabled={isWorking} onClick={() => void authAction("ban-auth-user", u.id)}
+                          className="inline-flex h-8 items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2.5 text-[11px] font-black text-amber-700 disabled:opacity-50 hover:bg-amber-100 transition">
+                          {isWorking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Ban className="h-3 w-3" /> Deactivate</>}
+                        </button>
+                      )}
+
+                      {/* Delete */}
+                      {isConfirmingDelete ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-black text-coral">Delete?</span>
+                          <button type="button" disabled={isWorking} onClick={() => void authAction("delete-auth-user", u.id)}
+                            className="h-7 rounded bg-coral px-2.5 text-[11px] font-black text-white disabled:opacity-50">
+                            {isWorking ? <Loader2 className="h-3 w-3 animate-spin" /> : "Yes"}
+                          </button>
+                          <button type="button" onClick={() => setConfirmDelete(null)}
+                            className="h-7 rounded border border-black/10 px-2 text-[11px] font-black text-ink/50">No</button>
+                        </div>
+                      ) : (
+                        <button type="button" onClick={() => setConfirmDelete(u.id)}
+                          className="flex h-8 w-8 items-center justify-center rounded-md border border-black/10 text-ink/30 hover:border-coral/40 hover:text-coral transition">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
