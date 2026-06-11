@@ -13,8 +13,17 @@ type Generation = {
   imagePath?: string;
   imageUrl?: string;
   createdAt: string;
-  hidden?: boolean;
   visitorId?: string;
+};
+
+type AuthUser = {
+  id: string;
+  email?: string;
+  phone?: string;
+  created_at: string;
+  last_sign_in_at?: string;
+  email_confirmed_at?: string;
+  user_metadata?: { full_name?: string; name?: string; username?: string };
 };
 
 type CommunityUser = {
@@ -43,9 +52,17 @@ function timeAgo(iso: string) {
   return new Date(iso).toLocaleDateString("en-GB");
 }
 
+function maskEmail(email: string) {
+  const [local, domain] = email.split("@");
+  if (!local || !domain) return email;
+  return local.slice(0, 2) + "•".repeat(Math.max(0, local.length - 2)) + "@" + domain;
+}
+
 export default function AdminUsersPage() {
   const [pin, setPin] = useState("");
-  const [users, setUsers] = useState<CommunityUser[]>([]);
+  const [tab, setTab] = useState<"accounts" | "community">("accounts");
+  const [authUsers, setAuthUsers] = useState<AuthUser[]>([]);
+  const [communityUsers, setCommunityUsers] = useState<CommunityUser[]>([]);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -57,14 +74,21 @@ export default function AdminUsersPage() {
     setIsLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/try-this-look?admin=1", {
-        headers: adminPin ? { "x-try-look-admin-pin": adminPin } : {},
-      });
-      const payload = await res.json();
-      if (!res.ok) throw new Error(payload.error ?? "Could not load data.");
-      const generations: Generation[] = payload.generations ?? [];
+      const headers: HeadersInit = adminPin ? { "x-try-look-admin-pin": adminPin } : {};
 
-      // Group by customerName slug
+      const [authRes, genRes] = await Promise.all([
+        fetch("/api/try-this-look?admin=1&authUsers=1", { headers }),
+        fetch("/api/try-this-look?admin=1", { headers }),
+      ]);
+
+      const authPayload = await authRes.json();
+      if (!authRes.ok) throw new Error(authPayload.error ?? "Could not load auth users.");
+      setAuthUsers(authPayload.authUsers ?? []);
+
+      const genPayload = await genRes.json();
+      if (!genRes.ok) throw new Error(genPayload.error ?? "Could not load generations.");
+
+      const generations: Generation[] = genPayload.generations ?? [];
       const map = new Map<string, CommunityUser>();
       for (const g of generations) {
         const name = (g.customerName ?? "").trim();
@@ -73,13 +97,7 @@ export default function AdminUsersPage() {
         if (!slug) continue;
         const existing = map.get(slug);
         if (!existing) {
-          map.set(slug, {
-            slug,
-            displayName: name,
-            count: 1,
-            lastAt: g.createdAt,
-            imageUrl: (g as any).imageUrl || undefined,
-          });
+          map.set(slug, { slug, displayName: name, count: 1, lastAt: g.createdAt, imageUrl: (g as any).imageUrl || undefined });
         } else {
           existing.count++;
           if (g.createdAt > existing.lastAt) {
@@ -88,9 +106,7 @@ export default function AdminUsersPage() {
           }
         }
       }
-
-      const sorted = Array.from(map.values()).sort((a, b) => b.lastAt.localeCompare(a.lastAt));
-      setUsers(sorted);
+      setCommunityUsers(Array.from(map.values()).sort((a, b) => b.lastAt.localeCompare(a.lastAt)));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error loading data.");
     } finally {
@@ -119,19 +135,25 @@ export default function AdminUsersPage() {
       });
       const payload = await res.json();
       if (!res.ok) throw new Error(payload.error ?? "Error.");
-      setMessage(`Deleted all data for "${slug}".`);
+      setMessage(`Deleted all try-ons for "${slug}".`);
       setConfirmDelete(null);
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error deleting user.");
+      setError(err instanceof Error ? err.message : "Error.");
     } finally {
       setDeleting(false);
     }
   };
 
-  const filtered = search.trim()
-    ? users.filter(u => u.displayName.toLowerCase().includes(search.toLowerCase()) || u.slug.includes(search.toLowerCase()))
-    : users;
+  const q = search.trim().toLowerCase();
+  const filteredAuth = q
+    ? authUsers.filter(u => u.email?.toLowerCase().includes(q) || u.user_metadata?.full_name?.toLowerCase().includes(q) || u.user_metadata?.username?.toLowerCase().includes(q))
+    : authUsers;
+  const filteredCommunity = q
+    ? communityUsers.filter(u => u.displayName.toLowerCase().includes(q) || u.slug.includes(q))
+    : communityUsers;
+
+  const totalTryOns = communityUsers.reduce((s, u) => s + u.count, 0);
 
   return (
     <main className="min-h-screen bg-[#fbfaf7] px-4 py-5 text-ink">
@@ -139,9 +161,9 @@ export default function AdminUsersPage() {
 
         <header className="grid gap-2">
           <div className="text-xs font-black uppercase tracking-[0.18em] text-cobalt">LuxuryBandit Admin</div>
-          <h1 className="text-5xl font-black leading-none text-ink">Community Users</h1>
+          <h1 className="text-5xl font-black leading-none text-ink">Users</h1>
           <p className="max-w-2xl text-sm font-bold leading-6 text-ink/60">
-            All users who have done a try-on. Each user has a profile at /u/[name].
+            Registered accounts (Supabase Auth) and community try-on users.
           </p>
           <Link href="/admin" className="inline-flex h-10 w-fit items-center gap-2 rounded-md border border-black/10 bg-white px-4 text-xs font-black text-ink shadow-soft">
             <ArrowLeft className="h-3.5 w-3.5" /> Back to dashboard
@@ -154,26 +176,40 @@ export default function AdminUsersPage() {
         {/* Stats */}
         {!isLoading && (
           <div className="flex flex-wrap gap-3">
-            <div className="flex items-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-3 shadow-soft">
+            <div className="flex items-center gap-2 rounded-lg border border-cobalt/30 bg-cobalt/5 px-4 py-3">
               <Users className="h-4 w-4 text-cobalt" />
-              <span className="text-sm font-black text-ink">{users.length} user{users.length !== 1 ? "s" : ""}</span>
+              <span className="text-sm font-black text-cobalt">{authUsers.length} registered account{authUsers.length !== 1 ? "s" : ""}</span>
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-3 shadow-soft">
-              <ImageIcon className="h-4 w-4 text-cobalt" />
-              <span className="text-sm font-black text-ink">{users.reduce((s, u) => s + u.count, 0)} try-ons total</span>
+              <ImageIcon className="h-4 w-4 text-ink/40" />
+              <span className="text-sm font-black text-ink">{communityUsers.length} try-on users · {totalTryOns} try-ons</span>
             </div>
           </div>
         )}
 
+        {/* Tabs */}
+        <div className="flex gap-1 rounded-xl border border-black/8 bg-black/[0.03] p-1">
+          {(["accounts", "community"] as const).map(t => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              className={`flex-1 rounded-lg py-2 text-xs font-black transition ${tab === t ? "bg-white text-ink shadow-soft" : "text-ink/40"}`}
+            >
+              {t === "accounts" ? `Registered accounts (${authUsers.length})` : `Try-on users (${communityUsers.length})`}
+            </button>
+          ))}
+        </div>
+
         {/* Search */}
-        {!isLoading && users.length > 0 && (
+        {!isLoading && (
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/30" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by name…"
+              placeholder="Search by name or email…"
               className="h-10 w-full rounded-lg border border-black/10 bg-white pl-9 pr-4 text-sm font-bold text-ink outline-none focus:border-cobalt shadow-soft"
             />
           </div>
@@ -183,99 +219,129 @@ export default function AdminUsersPage() {
           <div className="flex justify-center py-12">
             <Loader2 className="h-6 w-6 animate-spin text-black/30" />
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="rounded-lg border border-black/10 bg-white p-8 text-center shadow-soft">
-            <Users className="mx-auto h-8 w-8 text-black/20 mb-3" />
-            <p className="text-sm font-black text-black/40">
-              {search ? "No users match your search." : "No community users yet."}
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-3">
-            {filtered.map(u => (
-              <div key={u.slug} className="flex items-center gap-4 rounded-xl border border-black/10 bg-white px-5 py-4 shadow-soft">
-                {/* Avatar */}
-                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-black/5">
-                  {u.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={u.imageUrl} alt={u.displayName} className="h-full w-full object-cover object-top" />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(u.slug)}&backgroundColor=ffffff&color=000000`}
-                      alt={u.displayName}
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                </div>
-
-                {/* Info */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-black text-ink">{u.displayName}</span>
-                    <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10px] font-black text-ink/50">
-                      {u.count} try-on{u.count !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-3 text-[11px] font-bold text-ink/35 mt-0.5">
-                    <span>/u/{u.slug}</span>
-                    <span>·</span>
-                    <span>Last active {timeAgo(u.lastAt)}</span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <a
-                    href={`/u/${u.slug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-black/10 bg-white px-3 text-[11px] font-black text-cobalt hover:bg-cobalt/5 transition"
-                  >
-                    Profile <ExternalLink className="h-3 w-3" />
-                  </a>
-
-                  {confirmDelete === u.slug ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-black text-coral">Delete all?</span>
-                      <button
-                        type="button"
-                        disabled={deleting}
-                        onClick={() => void deleteUserData(u.slug)}
-                        className="h-8 rounded-lg bg-coral px-3 text-xs font-black text-white disabled:opacity-50"
-                      >
-                        {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Yes"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDelete(null)}
-                        className="h-8 rounded-lg border border-black/10 px-3 text-xs font-black text-ink/50"
-                      >
-                        No
-                      </button>
+        ) : tab === "accounts" ? (
+          /* ── Registered Auth Users ── */
+          filteredAuth.length === 0 ? (
+            <div className="rounded-lg border border-black/10 bg-white p-8 text-center shadow-soft">
+              <Users className="mx-auto h-8 w-8 text-black/20 mb-3" />
+              <p className="text-sm font-black text-black/40">{search ? "No accounts match." : "No registered accounts yet."}</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {filteredAuth.map(u => {
+                const displayName = u.user_metadata?.full_name || u.user_metadata?.name || u.user_metadata?.username || u.email?.split("@")[0] || "—";
+                const username = u.user_metadata?.username || normalizeSlug(u.user_metadata?.full_name || u.user_metadata?.name || u.email?.split("@")[0] || "");
+                const isConfirmed = !!u.email_confirmed_at;
+                return (
+                  <div key={u.id} className="flex items-center gap-4 rounded-xl border border-black/10 bg-white px-5 py-4 shadow-soft">
+                    {/* Avatar */}
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-black/5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(u.email ?? u.id)}&backgroundColor=ffffff&color=000000`}
+                        alt={displayName}
+                        className="h-full w-full object-cover"
+                      />
                     </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDelete(u.slug)}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/10 text-ink/30 hover:border-coral/40 hover:text-coral transition"
-                      title="Delete all try-ons for this user"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
+
+                    {/* Info */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-black text-ink">{displayName}</span>
+                        {isConfirmed ? (
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-700">Verified</span>
+                        ) : (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">Unverified</span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-[11px] font-bold text-ink/40 mt-0.5">
+                        <span>{u.email ? maskEmail(u.email) : "—"}</span>
+                        {u.last_sign_in_at && <><span>·</span><span>Last login {timeAgo(u.last_sign_in_at)}</span></>}
+                        <span>·</span><span>Joined {timeAgo(u.created_at)}</span>
+                      </div>
+                    </div>
+
+                    {/* Profile link if username known */}
+                    {username && (
+                      <a
+                        href={`/u/${username}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 inline-flex h-8 items-center gap-1.5 rounded-md border border-black/10 bg-white px-3 text-[11px] font-black text-cobalt hover:bg-cobalt/5 transition"
+                      >
+                        Profile <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ) : (
+          /* ── Community Try-on Users ── */
+          filteredCommunity.length === 0 ? (
+            <div className="rounded-lg border border-black/10 bg-white p-8 text-center shadow-soft">
+              <Users className="mx-auto h-8 w-8 text-black/20 mb-3" />
+              <p className="text-sm font-black text-black/40">{search ? "No users match." : "No community users yet."}</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {filteredCommunity.map(u => (
+                <div key={u.slug} className="flex items-center gap-4 rounded-xl border border-black/10 bg-white px-5 py-4 shadow-soft">
+                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-black/5">
+                    {u.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={u.imageUrl} alt={u.displayName} className="h-full w-full object-cover object-top" />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(u.slug)}&backgroundColor=ffffff&color=000000`} alt={u.displayName} className="h-full w-full object-cover" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-black text-ink">{u.displayName}</span>
+                      <span className="rounded-full bg-black/6 px-2 py-0.5 text-[10px] font-black text-ink/50">
+                        {u.count} try-on{u.count !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-3 text-[11px] font-bold text-ink/35 mt-0.5">
+                      <span>/u/{u.slug}</span>
+                      <span>·</span>
+                      <span>Last active {timeAgo(u.lastAt)}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <a href={`/u/${u.slug}`} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-md border border-black/10 bg-white px-3 text-[11px] font-black text-cobalt hover:bg-cobalt/5 transition">
+                      Profile <ExternalLink className="h-3 w-3" />
+                    </a>
+                    {confirmDelete === u.slug ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-coral">Delete all?</span>
+                        <button type="button" disabled={deleting} onClick={() => void deleteUserData(u.slug)}
+                          className="h-8 rounded-lg bg-coral px-3 text-xs font-black text-white disabled:opacity-50">
+                          {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Yes"}
+                        </button>
+                        <button type="button" onClick={() => setConfirmDelete(null)}
+                          className="h-8 rounded-lg border border-black/10 px-3 text-xs font-black text-ink/50">No</button>
+                      </div>
+                    ) : (
+                      <button type="button" onClick={() => setConfirmDelete(u.slug)}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/10 text-ink/30 hover:border-coral/40 hover:text-coral transition"
+                        title="Delete all try-ons">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )
         )}
 
         <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={() => void loadData()}
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-black/10 bg-white px-4 text-xs font-black text-ink shadow-soft"
-          >
+          <button type="button" onClick={() => void loadData()}
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-black/10 bg-white px-4 text-xs font-black text-ink shadow-soft">
             <RefreshCw className="h-3.5 w-3.5" /> Refresh
           </button>
         </div>

@@ -226,6 +226,29 @@ export async function GET(request: Request) {
     }
 
     if (!wantsAdminData) return NextResponse.json(publicState(state, storeSlug, lookSlug));
+
+    // Admin: optionally also return Supabase Auth users
+    const wantsAuthUsers = url.searchParams.get("authUsers") === "1";
+    if (wantsAuthUsers) {
+      const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/^["']|["']$/g, "");
+      const supabaseUrl = rawUrl
+        ? (rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`).replace(/\/rest\/v1\/?$/, "").replace(/\/storage\/v1\/?$/, "").replace(/\/$/, "")
+        : "";
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+      if (!supabaseUrl || !serviceKey) {
+        return NextResponse.json({ error: "Supabase not configured." }, { status: 500 });
+      }
+      const authRes = await fetch(`${supabaseUrl}/auth/v1/admin/users?per_page=1000`, {
+        headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }
+      });
+      if (!authRes.ok) {
+        const e = await authRes.json().catch(() => null);
+        return NextResponse.json({ error: e?.message ?? "Could not load auth users." }, { status: authRes.status });
+      }
+      const authData = await authRes.json();
+      return NextResponse.json({ authUsers: authData.users ?? [] });
+    }
+
     return NextResponse.json({
       ...publicState(state, storeSlug, lookSlug, true),
       events: state.events,
