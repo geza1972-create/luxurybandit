@@ -38,6 +38,16 @@ type Lead = {
   createdAt: string;
 };
 
+type Generation = {
+  id: string;
+  lookId: string;
+  imageUrl?: string;
+  customerName?: string;
+  visitorId?: string;
+  hidden?: boolean;
+  createdAt: string;
+};
+
 type AdminPayload = {
   activeLook?: Look;
   activeLooks?: Look[];
@@ -45,6 +55,7 @@ type AdminPayload = {
   looks?: Look[];
   leads?: Lead[];
   events?: Array<{ id: string; name: string }>;
+  generations?: Generation[];
   error?: string;
 };
 
@@ -175,6 +186,7 @@ export default function AdminDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [listingDashTab, setListingDashTab] = useState<"feeds" | "community">("feeds");
 
   const loadData = async (adminPin = pin) => {
     setIsLoading(true);
@@ -333,60 +345,106 @@ export default function AdminDashboardPage() {
         </section>
 
         <section className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
+          {/* Header */}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="text-xs font-black uppercase tracking-[0.16em] text-cobalt">Live listings</div>
-              <h2 className="mt-1 text-3xl font-black leading-none text-ink">Currently live listings</h2>
+            <div className="flex items-center gap-1 rounded-lg border border-black/10 bg-panel p-1">
+              <button
+                type="button"
+                onClick={() => setListingDashTab("feeds")}
+                className={`rounded-md px-4 py-1.5 text-sm font-black transition ${listingDashTab === "feeds" ? "bg-white text-ink shadow-soft" : "text-ink/50 hover:text-ink"}`}
+              >
+                Live listings
+              </button>
+              <button
+                type="button"
+                onClick={() => setListingDashTab("community")}
+                className={`flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-black transition ${listingDashTab === "community" ? "bg-white text-ink shadow-soft" : "text-ink/50 hover:text-ink"}`}
+              >
+                Community Posts
+                {(() => {
+                  const unassigned = (data.generations ?? []).filter(g => !g.visitorId?.startsWith("admin-") && g.imageUrl && !g.customerName && !g.hidden).length;
+                  return unassigned > 0 ? <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-black text-white">{unassigned}</span> : null;
+                })()}
+              </button>
             </div>
             <button
               type="button"
-              onClick={() => void openExternalPage("/admin/looks", "Live listings")}
+              onClick={() => void openExternalPage("/admin/looks", listingDashTab === "community" ? "Community Posts" : "Live listings")}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-ink px-3 text-xs font-black text-white"
             >
-              View all listings
+              Manage
               <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </button>
           </div>
-          {activeLooks.length ? (
-            <button
-              type="button"
-              onClick={() => void openExternalPage("/admin/looks", "Live listings")}
-              className="grid gap-3 text-left sm:grid-cols-2 lg:grid-cols-4"
-            >
-              {activeLooks.map((look) => (
-                <div key={look.id} className="grid gap-2 rounded-md border border-black/10 bg-panel p-3">
-                  <div className="overflow-hidden rounded-md border border-black/10 bg-white">
-                    {look.frontImageUrl || look.imageUrl ? (
-                      <img src={look.frontImageUrl ?? look.imageUrl} alt="" className="aspect-[4/5] w-full object-cover object-top" />
+
+          {/* Live listings tab */}
+          {listingDashTab === "feeds" && (
+            activeLooks.length ? (
+              <button
+                type="button"
+                onClick={() => void openExternalPage("/admin/looks", "Live listings")}
+                className="grid gap-3 text-left sm:grid-cols-2 lg:grid-cols-4"
+              >
+                {activeLooks.map((look) => (
+                  <div key={look.id} className="grid gap-2 rounded-md border border-black/10 bg-panel p-3">
+                    <div className="overflow-hidden rounded-md border border-black/10 bg-white">
+                      {look.frontImageUrl || look.imageUrl ? (
+                        <img src={look.frontImageUrl ?? look.imageUrl} alt="" className="aspect-[4/5] w-full object-cover object-top" />
+                      ) : (
+                        <div className="grid aspect-[4/5] place-items-center text-sm font-black text-ink/35">LB</div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-black text-ink">{look.name}</div>
+                      <div className="mt-1 flex items-center gap-1.5">
+                        {(look.storeSlug ?? look.storeName) && (
+                          <img
+                            src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(look.storeSlug ?? look.storeName ?? "default")}&backgroundColor=ffffff&color=000000`}
+                            alt=""
+                            className="h-4 w-4 shrink-0 rounded-full border border-black/10 bg-white object-cover"
+                          />
+                        )}
+                        <span className="truncate text-xs font-bold text-ink/50">{look.storeName ?? look.storeSlug ?? "No store"}</span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black">
+                        {look.discountLabel && <span className="rounded-full bg-coral px-2 py-1 text-white">{look.discountLabel}</span>}
+                        {look.salePrice && <span className="rounded-full bg-ink px-2 py-1 text-white">{look.salePrice}</span>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </button>
+            ) : (
+              <div className="rounded-md border border-black/10 bg-panel p-5 text-sm font-bold text-ink/55">
+                No live listings yet. Open Listings &amp; requests and mark a listing as active.
+              </div>
+            )
+          )}
+
+          {/* Community posts tab */}
+          {listingDashTab === "community" && (() => {
+            const posts = (data.generations ?? [])
+              .filter(g => !g.visitorId?.startsWith("admin-") && g.imageUrl && !g.hidden)
+              .slice(0, 8);
+            return posts.length ? (
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+                {posts.map(g => (
+                  <div key={g.id} className="relative overflow-hidden rounded-md border border-black/10 bg-panel">
+                    <img src={g.imageUrl} alt="" className="aspect-square w-full object-cover object-top" />
+                    {g.customerName ? (
+                      <div className="absolute bottom-0 left-0 right-0 truncate bg-emerald-600/80 px-1.5 py-0.5 text-[9px] font-black text-white">{g.customerName}</div>
                     ) : (
-                      <div className="grid aspect-[4/5] place-items-center text-sm font-black text-ink/35">LB</div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-amber-500/80 px-1.5 py-0.5 text-[9px] font-black text-white">Unassigned</div>
                     )}
                   </div>
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-black text-ink">{look.name}</div>
-                    <div className="mt-1 flex items-center gap-1.5">
-                      {(look.storeSlug ?? look.storeName) && (
-                        <img
-                          src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(look.storeSlug ?? look.storeName ?? "default")}&backgroundColor=ffffff&color=000000`}
-                          alt=""
-                          className="h-4 w-4 shrink-0 rounded-full border border-black/10 bg-white object-cover"
-                        />
-                      )}
-                      <span className="truncate text-xs font-bold text-ink/50">{look.storeName ?? look.storeSlug ?? "No store"}</span>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] font-black">
-                      {look.discountLabel && <span className="rounded-full bg-coral px-2 py-1 text-white">{look.discountLabel}</span>}
-                      {look.salePrice && <span className="rounded-full bg-ink px-2 py-1 text-white">{look.salePrice}</span>}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </button>
-          ) : (
-            <div className="rounded-md border border-black/10 bg-panel p-5 text-sm font-bold text-ink/55">
-              No live listings yet. Open Listings & requests and mark a listing as active.
-            </div>
-          )}
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-md border border-black/10 bg-panel p-5 text-sm font-bold text-ink/55">
+                No community posts yet.
+              </div>
+            );
+          })()}
         </section>
 
         <section className="grid gap-4 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
