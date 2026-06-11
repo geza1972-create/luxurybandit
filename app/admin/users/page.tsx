@@ -24,7 +24,7 @@ type AuthUser = {
   last_sign_in_at?: string;
   email_confirmed_at?: string;
   banned_until?: string;
-  user_metadata?: { full_name?: string; name?: string; username?: string };
+  user_metadata?: { full_name?: string; name?: string; username?: string; app?: string };
 };
 
 type CommunityUser = {
@@ -71,6 +71,7 @@ export default function AdminUsersPage() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [authWorking, setAuthWorking] = useState<string | null>(null); // userId being acted on
+  const [lbOnly, setLbOnly] = useState(true); // hide NutryCoach / other-app users by default
 
   const loadData = async (adminPin = pin) => {
     setIsLoading(true);
@@ -170,9 +171,13 @@ export default function AdminUsersPage() {
   };
 
   const q = search.trim().toLowerCase();
-  const filteredAuth = q
-    ? authUsers.filter(u => u.email?.toLowerCase().includes(q) || u.user_metadata?.full_name?.toLowerCase().includes(q) || u.user_metadata?.username?.toLowerCase().includes(q))
+  const lbUsers = lbOnly
+    ? authUsers.filter(u => !u.user_metadata?.app || u.user_metadata.app === "luxurybandit")
     : authUsers;
+  const filteredAuth = q
+    ? lbUsers.filter(u => u.email?.toLowerCase().includes(q) || u.user_metadata?.full_name?.toLowerCase().includes(q) || u.user_metadata?.username?.toLowerCase().includes(q))
+    : lbUsers;
+  const otherAppCount = authUsers.filter(u => u.user_metadata?.app && u.user_metadata.app !== "luxurybandit").length;
   const filteredCommunity = q
     ? communityUsers.filter(u => u.displayName.toLowerCase().includes(q) || u.slug.includes(q))
     : communityUsers;
@@ -202,8 +207,18 @@ export default function AdminUsersPage() {
           <div className="flex flex-wrap gap-3">
             <div className="flex items-center gap-2 rounded-lg border border-cobalt/30 bg-cobalt/5 px-4 py-3">
               <Users className="h-4 w-4 text-cobalt" />
-              <span className="text-sm font-black text-cobalt">{authUsers.length} registered account{authUsers.length !== 1 ? "s" : ""}</span>
+              <span className="text-sm font-black text-cobalt">{lbUsers.length} LuxuryBandit account{lbUsers.length !== 1 ? "s" : ""}</span>
             </div>
+            {otherAppCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setLbOnly(v => !v)}
+                className={`flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-black transition ${lbOnly ? "border-amber-200 bg-amber-50 text-amber-700" : "border-amber-300 bg-amber-100 text-amber-800"}`}
+              >
+                <span>⚠️ {otherAppCount} other-app user{otherAppCount !== 1 ? "s" : ""} (shared Supabase project)</span>
+                <span className="text-[11px] underline">{lbOnly ? "Show all" : "Hide"}</span>
+              </button>
+            )}
             <div className="flex items-center gap-2 rounded-lg border border-black/10 bg-white px-4 py-3 shadow-soft">
               <ImageIcon className="h-4 w-4 text-ink/40" />
               <span className="text-sm font-black text-ink">{communityUsers.length} try-on users · {totalTryOns} try-ons</span>
@@ -220,7 +235,7 @@ export default function AdminUsersPage() {
               onClick={() => setTab(t)}
               className={`flex-1 rounded-lg py-2 text-xs font-black transition ${tab === t ? "bg-white text-ink shadow-soft" : "text-ink/40"}`}
             >
-              {t === "accounts" ? `Registered accounts (${authUsers.length})` : `Try-on users (${communityUsers.length})`}
+              {t === "accounts" ? `Registered accounts (${lbUsers.length}${otherAppCount > 0 && !lbOnly ? `+${otherAppCount}` : ""})` : `Try-on users (${communityUsers.length})`}
             </button>
           ))}
         </div>
@@ -257,6 +272,8 @@ export default function AdminUsersPage() {
                 const username = u.user_metadata?.username || normalizeSlug(u.user_metadata?.full_name || u.user_metadata?.name || u.email?.split("@")[0] || "");
                 const isConfirmed = !!u.email_confirmed_at;
                 const isBanned = u.banned_until && u.banned_until !== "none" && new Date(u.banned_until) > new Date();
+                const userApp = u.user_metadata?.app;
+                const isOtherApp = userApp && userApp !== "luxurybandit";
                 const isWorking = authWorking === u.id;
                 const isConfirmingDelete = confirmDelete === u.id;
                 return (
@@ -281,6 +298,9 @@ export default function AdminUsersPage() {
                           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">Unverified</span>
                         )}
                         {isBanned && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-black text-red-600">Deactivated</span>}
+                        {isOtherApp && (
+                          <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-black text-orange-700">⚠️ {userApp}</span>
+                        )}
                       </div>
                       <div className="flex flex-wrap gap-2 text-[11px] font-bold text-ink/40 mt-0.5">
                         <span>{u.email ? maskEmail(u.email) : "—"}</span>

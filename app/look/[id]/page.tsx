@@ -298,6 +298,21 @@ export default function LookPage() {
   // ── Auth ──
   const [authSession, setAuthSession] = useState<SupabaseAuthSession | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [kbOffset, setKbOffset] = useState(0); // keyboard push-up offset
+
+  // Push auth sheet above keyboard on iOS (visualViewport shrinks when keyboard opens)
+  useEffect(() => {
+    if (!showAuthModal || typeof window === "undefined" || !window.visualViewport) return;
+    const vv = window.visualViewport;
+    const update = () => {
+      const hidden = window.innerHeight - vv.height - vv.offsetTop;
+      setKbOffset(Math.max(0, hidden));
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => { vv.removeEventListener("resize", update); vv.removeEventListener("scroll", update); };
+  }, [showAuthModal]);
   const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot">("login");
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
@@ -1506,10 +1521,16 @@ export default function LookPage() {
 
       {/* ── Auth modal ── */}
       {showAuthModal && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-end bg-black/60 backdrop-blur-sm"
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-end bg-black/60 backdrop-blur-sm overflow-y-auto"
           onClick={(e) => { if (e.target === e.currentTarget) { setShowAuthModal(false); pendingGenerateRef.current = false; } }}>
-          <div className="w-full max-w-md rounded-t-3xl bg-white px-6 pb-10 pt-5"
-            style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}>
+          <div className="w-full max-w-md rounded-t-3xl bg-white px-6 pt-5 mt-auto"
+            style={{
+              paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))",
+              maxHeight: "min(96svh, 96vh)",
+              overflowY: "auto",
+              marginBottom: kbOffset > 0 ? `${kbOffset}px` : undefined,
+              transition: "margin-bottom 0.2s ease",
+            }}>
             {/* Handle */}
             <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-black/15" />
 

@@ -91,7 +91,7 @@ export async function signInWithPassword(email: string, password: string) {
 export async function signUpWithPassword(email: string, password: string) {
   const payload = await authFetch<Partial<SupabaseAuthSession> & { user?: SupabaseAuthUser }>("/signup", {
     method: "POST",
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ email, password, data: { app: "luxurybandit" } })
   });
   const session = normalizeSession(payload);
   if (session) return saveAuthSession(session);
