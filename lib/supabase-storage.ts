@@ -1,3 +1,5 @@
+import { compressImage } from "@/lib/image-compress";
+
 export type GalleryImageType = "upload" | "cutout" | "shop-image" | "model-image";
 
 export type GalleryImageItem = {
@@ -75,11 +77,10 @@ export async function uploadGalleryImage(accountId: string, type: GalleryImageTy
   await ensureGalleryBucket();
 
   const [header, base64] = dataUrl.split(",");
-  const mimeType = header.match(/data:(.*);base64/)?.[1] ?? "image/png";
-  const extension = mimeType.includes("jpeg") ? "jpg" : mimeType.includes("webp") ? "webp" : "png";
+  const rawMime = header.match(/data:(.*);base64/)?.[1] ?? "image/png";
+  const { buffer: bytes, mimeType, extension } = await compressImage(base64, rawMime);
   const folder = type === "upload" ? "uploads" : type === "cutout" ? "cutouts" : type === "model-image" ? "model-images" : "shop-images";
   const path = `${accountId}/${folder}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
-  const bytes = Buffer.from(base64, "base64");
 
   const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(path)}`, {
     method: "POST",

@@ -1,3 +1,5 @@
+import { compressImage } from "@/lib/image-compress";
+
 export type TryThisLookLook = {
   id: string;
   name: string;
@@ -339,23 +341,19 @@ async function writeTryThisLookState(state: TryThisLookState) {
   }
 }
 
-function dataUrlToBytes(dataUrl: string) {
+async function dataUrlToBytes(dataUrl: string) {
   const [header, base64] = dataUrl.split(",");
-  const mimeType = header.match(/data:(.*);base64/)?.[1] ?? "image/png";
-  if (!SUPPORTED_IMAGE_TYPES.includes(mimeType)) {
+  const rawMime = header.match(/data:(.*);base64/)?.[1] ?? "image/png";
+  if (!SUPPORTED_IMAGE_TYPES.includes(rawMime)) {
     throw new Error("Unsupported image format. Please upload JPG, PNG, or WebP.");
   }
-  const extension = mimeType.includes("jpeg") ? "jpg" : mimeType.includes("webp") ? "webp" : "png";
-  return {
-    bytes: Buffer.from(base64, "base64"),
-    extension,
-    mimeType
-  };
+  const { buffer: bytes, mimeType, extension } = await compressImage(base64, rawMime);
+  return { bytes, extension, mimeType };
 }
 
 export async function uploadTryThisLookImage(folder: "looks" | "generations" | "uploads", dataUrl: string) {
   await ensureBucket();
-  const { bytes, extension, mimeType } = dataUrlToBytes(dataUrl);
+  const { bytes, extension, mimeType } = await dataUrlToBytes(dataUrl);
   const path = `try-this-look/${folder}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
   const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(path)}`, {
