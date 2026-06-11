@@ -1006,6 +1006,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, customerName: (gen as any).customerName });
     }
 
+    // ── Delete all data for a community user (admin only) ───────────────────
+    if (payload.action === "delete-user-data") {
+      if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const userSlug = String(payload.userSlug ?? "").trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+      if (!userSlug) return NextResponse.json({ error: "userSlug required." }, { status: 400 });
+      const toDelete = state.generations.filter(g => {
+        const name = String((g as any).customerName ?? "").trim();
+        if (!name) return false;
+        return name.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "") === userSlug;
+      });
+      // Delete images from storage
+      await Promise.allSettled(toDelete.map(g => deleteTryThisLookImage(g.imagePath)));
+      const toDeleteIds = new Set(toDelete.map(g => g.id));
+      state.generations = state.generations.filter(g => !toDeleteIds.has(g.id));
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, deleted: toDelete.length });
+    }
+
     // ── Update seller AI access + credits (admin only) ──────────────────────
     if (payload.action === "update-seller") {
       const storeSlug = String(payload.storeSlug ?? "").trim();

@@ -245,7 +245,8 @@ export default function AdminDashboardPage() {
       pages: [
         { label: "Dashboard", path: "/admin", note: "Overview, links, and seller onboarding.", icon: LayoutDashboard },
         { label: "Listings & requests", path: "/admin/looks", note: "Create/edit sellers, listings, buyer requests, and AI previews.", icon: List },
-        { label: "User management", path: "/admin/sellers", note: "Registered sellers, AI access control, credit limits.", icon: Users },
+        { label: "Sellers", path: "/admin/sellers", note: "Registered sellers, AI access control, credit limits.", icon: Users },
+        { label: "Community users", path: "/admin/users", note: "All users who have done a try-on, with profile links.", icon: Users },
         { label: "Listing creatives", path: "/admin/creative", note: "Create and export four social slides from a listing.", icon: Package },
         { label: "Internal image tools", path: "/tools/fashion-creator", note: "Private service tool for extracting apparel and creating fashion images.", icon: ImagePlus }
       ]
@@ -463,11 +464,23 @@ export default function AdminDashboardPage() {
             </span>
           </button>
 
-          <button type="button" onClick={() => void openExternalPage("/admin/sellers", "User management")} className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 text-left shadow-soft">
+          <button type="button" onClick={() => void openExternalPage("/admin/sellers", "Sellers")} className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 text-left shadow-soft">
             <Settings aria-hidden="true" className="h-6 w-6 text-cobalt" />
             <div>
-              <div className="text-xl font-black">User management</div>
+              <div className="text-xl font-black">Sellers</div>
               <p className="mt-1 text-sm font-bold leading-6 text-ink/55">Registered sellers, AI access control, and credit limits.</p>
+            </div>
+            <span className="inline-flex items-center gap-2 text-sm font-black text-cobalt">
+              Open
+              <ArrowRight aria-hidden="true" className="h-4 w-4" />
+            </span>
+          </button>
+
+          <button type="button" onClick={() => void openExternalPage("/admin/users", "Community users")} className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 text-left shadow-soft">
+            <Users aria-hidden="true" className="h-6 w-6 text-cobalt" />
+            <div>
+              <div className="text-xl font-black">Community users</div>
+              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">All users who did a try-on, with profile links and try-on counts.</p>
             </div>
             <span className="inline-flex items-center gap-2 text-sm font-black text-cobalt">
               Open

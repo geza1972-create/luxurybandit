@@ -819,6 +819,11 @@ function CommunityModerationSection({
   const [assignName, setAssignName] = useState("");
   const [assignWorking, setAssignWorking] = useState(false);
 
+  // Collect all unique known customer names for autofill
+  const allKnownNames = Array.from(
+    new Set(generations.map(g => g.customerName).filter(Boolean) as string[])
+  ).sort((a, b) => a.localeCompare(b));
+
   const base = showHidden
     ? generations.filter(g => g.hidden)
     : generations.filter(g => !g.hidden);
@@ -997,8 +1002,12 @@ function CommunityModerationSection({
                 {/* Assign inline form */}
                 {!selectMode && isAssigning && (
                   <div className="grid gap-1.5">
+                    <datalist id="community-names">
+                      {allKnownNames.map(name => <option key={name} value={name} />)}
+                    </datalist>
                     <input
                       type="text"
+                      list="community-names"
                       placeholder="Customer name…"
                       value={assignName}
                       onChange={e => setAssignName(e.target.value)}
@@ -1156,6 +1165,7 @@ export default function AdminLooksPage() {
   const [listingSearch, setListingSearch] = useState("");
   const [listingFilter, setListingFilter] = useState<"all" | "live" | "draft">("all");
   const [listingPage, setListingPage] = useState(1);
+  const [listingsMainTab, setListingsMainTab] = useState<"feeds" | "community">("feeds");
   const LISTINGS_PER_PAGE = 20;
 
   const loadData = async (adminPin = pin) => {
@@ -2555,16 +2565,49 @@ export default function AdminLooksPage() {
         </section>
 
         <section className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-black">Listings</h2>
+          {/* Header with top-level tabs */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-1 rounded-lg border border-black/10 bg-panel p-1">
+              <button
+                type="button"
+                onClick={() => setListingsMainTab("feeds")}
+                className={`rounded-md px-4 py-1.5 text-sm font-black transition ${listingsMainTab === "feeds" ? "bg-white text-ink shadow-soft" : "text-ink/50 hover:text-ink"}`}
+              >
+                Feeds
+              </button>
+              <button
+                type="button"
+                onClick={() => setListingsMainTab("community")}
+                className={`flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-black transition ${listingsMainTab === "community" ? "bg-white text-ink shadow-soft" : "text-ink/50 hover:text-ink"}`}
+              >
+                Community Posts
+                {(data.generations ?? []).filter(g => !g.visitorId?.startsWith("admin-") && !!g.imageUrl && !g.customerName && !g.hidden).length > 0 && (
+                  <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-black text-white">
+                    {(data.generations ?? []).filter(g => !g.visitorId?.startsWith("admin-") && !!g.imageUrl && !g.customerName && !g.hidden).length}
+                  </span>
+                )}
+              </button>
             </div>
             <button type="button" onClick={() => void loadData()} className="inline-flex h-10 items-center gap-2 rounded-md bg-panel px-3 text-sm font-black">
               <RefreshCw aria-hidden="true" className="h-4 w-4" />
               Refresh
             </button>
           </div>
-          {/* Search + filter bar */}
+
+          {/* ── COMMUNITY TAB ── */}
+          {listingsMainTab === "community" && (
+            <CommunityModerationSection
+              generations={(data.generations ?? []).filter(g => !g.visitorId?.startsWith("admin-") && !!g.imageUrl) as (Generation & { imageUrl: string })[]}
+              isSaving={isSaving}
+              onToggleHide={toggleHideGeneration}
+              onDelete={deleteGeneration}
+              onBulkAction={callAdminAction}
+              onDataRefresh={() => void loadData()}
+            />
+          )}
+
+          {/* ── FEEDS TAB: Search + filter bar ── */}
+          {listingsMainTab === "feeds" && (<>
           <div className="flex flex-wrap gap-2">
             <input
               value={listingSearch}
@@ -2990,6 +3033,7 @@ export default function AdminLooksPage() {
               </div>
             </div>
           )}
+          </>)}
         </section>
 
         <section className="grid gap-4">
@@ -3443,17 +3487,6 @@ export default function AdminLooksPage() {
           </div>
         );
       })()}
-      {/* ── Community Moderation ── */}
-      {data.generations && data.generations.filter(g => !g.visitorId?.startsWith("admin-") && g.imageUrl).length > 0 && (
-        <CommunityModerationSection
-          generations={data.generations.filter(g => !g.visitorId?.startsWith("admin-") && !!g.imageUrl) as Required<Pick<Generation,"imageUrl">> & Generation[]}
-          isSaving={isSaving}
-          onToggleHide={toggleHideGeneration}
-          onDelete={deleteGeneration}
-          onBulkAction={callAdminAction}
-          onDataRefresh={() => void loadData()}
-        />
-      )}
 
       {previewGalleryImage && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/75 p-4" role="dialog" aria-modal="true">

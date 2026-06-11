@@ -88,7 +88,7 @@ export async function uploadGalleryImage(accountId: string, type: GalleryImageTy
       "Content-Type": mimeType,
       "x-upsert": "false"
     },
-    body: bytes
+    body: new Uint8Array(bytes) as unknown as BodyInit
   });
 
   if (!response.ok) {

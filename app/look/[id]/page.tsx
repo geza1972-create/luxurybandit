@@ -653,7 +653,7 @@ export default function LookPage() {
         }
       } else if (authMode === "signup") {
         await signUpWithPassword(authEmail.trim(), authPassword);
-        setAuthSuccess("Konto erstellt! Du kannst dich jetzt anmelden.");
+        setAuthSuccess("Account created! You can now sign in.");
         setAuthMode("login");
       } else {
         await resetPassword(authEmail.trim());
@@ -1252,7 +1252,7 @@ export default function LookPage() {
                 <p className="text-base font-black text-black">Anfrage gesendet!</p>
                 <p className="mt-1 text-sm font-bold text-black/50">Der Seller meldet sich bei dir.</p>
                 <button type="button" onClick={() => { setShowContact(false); setSent(false); }}
-                  className="mt-5 h-12 w-full rounded-2xl bg-black text-sm font-black text-white">Schließen</button>
+                  className="mt-5 h-12 w-full rounded-2xl bg-black text-sm font-black text-white">Close</button>
               </div>
             ) : (
               <>

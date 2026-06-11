@@ -362,7 +362,7 @@ export async function uploadTryThisLookImage(folder: "looks" | "generations" | "
       "Content-Type": mimeType,
       "x-upsert": "false"
     },
-    body: bytes
+    body: new Uint8Array(bytes) as unknown as BodyInit
   });
 
   if (!response.ok) {
