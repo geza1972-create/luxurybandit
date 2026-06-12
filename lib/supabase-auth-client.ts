@@ -88,14 +88,25 @@ export async function signInWithPassword(email: string, password: string) {
   return saveAuthSession(session);
 }
 
-export async function signUpWithPassword(email: string, password: string) {
+export async function signUpWithPassword(
+  email: string,
+  password: string,
+  displayName?: string
+): Promise<{ session: SupabaseAuthSession | null; confirmationRequired: boolean }> {
+  const data: Record<string, string> = { app: "luxurybandit" };
+  if (displayName?.trim()) {
+    data.username = displayName.trim();
+    data.full_name = displayName.trim();
+  }
   const payload = await authFetch<Partial<SupabaseAuthSession> & { user?: SupabaseAuthUser }>("/signup", {
     method: "POST",
-    body: JSON.stringify({ email, password, data: { app: "luxurybandit" } })
+    body: JSON.stringify({ email, password, data })
   });
   const session = normalizeSession(payload);
-  if (session) return saveAuthSession(session);
-  throw new Error("Account created. Please confirm your email, then log in.");
+  if (session) {
+    return { session: saveAuthSession(session), confirmationRequired: false };
+  }
+  return { session: null, confirmationRequired: true };
 }
 
 export function signOut() {

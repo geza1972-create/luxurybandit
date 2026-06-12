@@ -316,6 +316,7 @@ export default function LookPage() {
   const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot">("login");
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
+  const [authName, setAuthName] = useState("");
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
@@ -667,9 +668,18 @@ export default function LookPage() {
           setTimeout(() => void handleGenerate(), 100);
         }
       } else if (authMode === "signup") {
-        await signUpWithPassword(authEmail.trim(), authPassword);
-        setAuthSuccess("Account created! You can now sign in.");
-        setAuthMode("login");
+        const { confirmationRequired } = await signUpWithPassword(authEmail.trim(), authPassword, authName.trim() || undefined);
+        if (confirmationRequired) {
+          setAuthSuccess("Account created! Please confirm your email, then sign in.");
+          setAuthMode("login");
+        } else {
+          // Email confirmation disabled — user is now logged in, go straight to try-on
+          setShowAuthModal(false);
+          if (pendingGenerateRef.current) {
+            pendingGenerateRef.current = false;
+            setTimeout(() => void handleGenerate(), 100);
+          }
+        }
       } else {
         await resetPassword(authEmail.trim());
         setAuthSuccess("E-Mail gesendet! Überprüfe dein Postfach.");
@@ -1550,6 +1560,11 @@ export default function LookPage() {
 
             {/* Fields */}
             <div className="grid gap-3">
+              {authMode === "signup" && (
+                <input type="text" value={authName} onChange={e => { setAuthName(e.target.value); setAuthError(null); }}
+                  placeholder="Your name or alias" autoComplete="nickname" maxLength={40}
+                  className="h-12 w-full rounded-xl border border-black/10 bg-black/[0.03] px-4 text-sm font-bold text-ink placeholder:text-ink/30 outline-none focus:border-black" />
+              )}
               <input type="email" value={authEmail} onChange={e => { setAuthEmail(e.target.value); setAuthError(null); }}
                 placeholder="E-Mail" autoComplete="email"
                 className="h-12 w-full rounded-xl border border-black/10 bg-black/[0.03] px-4 text-sm font-bold text-ink placeholder:text-ink/30 outline-none focus:border-black" />
