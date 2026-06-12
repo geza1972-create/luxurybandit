@@ -293,6 +293,7 @@ export default function LookPage() {
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [tryOnError, setTryOnError] = useState<string | null>(null);
+  const [isDraft, setIsDraft] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
   const generationStartRef = useRef<number | null>(null);
 
@@ -388,20 +389,35 @@ export default function LookPage() {
           l.id === lookId ||              // legacy: raw ID
           toSlug(l.name) === lookId       // legacy: plain name slug
         ) ?? null;
-        setLook(current);
-        setAllLooks(all);
-        const idx = all.findIndex(l =>
-          l.id === resolvedId || l.id === lookId || toSlug(l.name) === lookId
-        );
-        setCurrentIdx(idx >= 0 ? idx : 0);
-        // Canonicalise URL to new slug--id format
+
         if (current) {
+          setLook(current);
+          setAllLooks(all);
+          const idx = all.findIndex(l =>
+            l.id === resolvedId || l.id === lookId || toSlug(l.name) === lookId
+          );
+          setCurrentIdx(idx >= 0 ? idx : 0);
           const s = toSlug(current.name);
           const canonical = s ? `${s}--${current.id}` : current.id;
           if (canonical !== lookId) window.history.replaceState(null, "", `/look/${canonical}`);
+          setIsLoading(false);
+        } else {
+          // Not in public list — may be a draft. Try preview fallback.
+          fetch(`/api/try-this-look?previewId=${encodeURIComponent(resolvedId)}`)
+            .then(r => r.json())
+            .then((preview: { look?: Look; isDraft?: boolean }) => {
+              if (preview.look) {
+                setLook(preview.look);
+                setAllLooks([preview.look]);
+                setCurrentIdx(0);
+                setIsDraft(preview.isDraft ?? false);
+              }
+            })
+            .catch(() => {})
+            .finally(() => setIsLoading(false));
         }
       })
-      .finally(() => setIsLoading(false));
+      .catch(() => setIsLoading(false));
     // Load user-generated looks for this look
     fetch(`/api/try-this-look?lookId=${lookId}&userLooks=1`)
       .then(r => r.json())
@@ -1088,6 +1104,12 @@ export default function LookPage() {
                     </span>
                     <span className="text-xs font-black text-black/50">{look.storeName ?? storeKey}</span>
                   </div>
+                  {/* Draft banner */}
+                  {isDraft && (
+                    <div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-black text-amber-700">
+                      <span>⚠️ Draft — not publicly visible</span>
+                    </div>
+                  )}
                   {/* Title */}
                   <h1 className="text-xl font-black leading-tight text-black">{look.name}</h1>
                   {/* Price */}

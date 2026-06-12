@@ -141,6 +141,15 @@ export async function GET(request: Request) {
     if (wantsAdminData && !isAdmin(request)) {
       return NextResponse.json({ error: "Admin access required." }, { status: 401 });
     }
+    // Preview a specific look by ID — bypasses published filter (anyone with the URL can preview)
+    const previewLookId = url.searchParams.get("previewId") ?? "";
+    if (previewLookId) {
+      const look = state.looks.find(l => l.id === previewLookId);
+      if (!look) return NextResponse.json({ error: "Look not found." }, { status: 404 });
+      const genCount = state.generations.filter(g => g.lookId === previewLookId).length;
+      return NextResponse.json({ look: serializeLook(look, genCount), isDraft: look.published === false });
+    }
+
     // Public comments for a specific look
     const wantsComments = url.searchParams.get("comments") === "1";
     const commentLookId = url.searchParams.get("lookId") ?? "";
