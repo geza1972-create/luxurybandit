@@ -240,6 +240,24 @@ function storesFromLooks(looks: TryThisLookLook[]): TryThisLookStore[] {
   return Array.from(stores.values());
 }
 
+/**
+ * Recover a storage path from a Supabase signed or public URL.
+ * Used for legacy looks that stored a signed URL but no imagePath field.
+ */
+function extractPathFromUrl(urlStr: string | undefined): string | undefined {
+  if (!urlStr) return undefined;
+  try {
+    const parsed = new URL(urlStr);
+    // Signed URL: /storage/v1/object/sign/<bucket>/<path>?token=...
+    const signedMatch = parsed.pathname.match(/\/storage\/v1\/object\/sign\/[^/]+\/(.+)/);
+    if (signedMatch) return decodeURIComponent(signedMatch[1]);
+    // Public URL: /storage/v1/object/public/<bucket>/<path>
+    const publicMatch = parsed.pathname.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)/);
+    if (publicMatch) return decodeURIComponent(publicMatch[1]);
+  } catch { /**/ }
+  return undefined;
+}
+
 // Single path signing (used for uploads/admin only — not in hot path)
 async function getSignedUrl(path: string) {
   const { url } = getSupabaseConfig();
@@ -284,11 +302,17 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
   // Collect every path that needs a signed URL in one pass
   const allPaths: string[] = [];
   for (const look of state.looks) {
-    if (look.imagePath) allPaths.push(look.imagePath);
-    if (look.frontImagePath) allPaths.push(look.frontImagePath);
-    if ((look as any).backImagePath) allPaths.push((look as any).backImagePath);
-    if ((look as any).garmentFrontImagePath) allPaths.push((look as any).garmentFrontImagePath);
-    if ((look as any).garmentBackImagePath) allPaths.push((look as any).garmentBackImagePath);
+    const imgPath = look.imagePath ?? extractPathFromUrl(look.imageUrl);
+    if (imgPath) allPaths.push(imgPath);
+    const fImgPath = look.frontImagePath ?? extractPathFromUrl(look.frontImageUrl);
+    if (fImgPath) allPaths.push(fImgPath);
+    const bImgPath = (look as any).backImagePath ?? extractPathFromUrl((look as any).backImageUrl);
+    if (bImgPath) allPaths.push(bImgPath);
+    // garmentFrontImagePath may be missing on legacy looks — extract from stored URL as fallback
+    const gfPath = (look as any).garmentFrontImagePath ?? extractPathFromUrl((look as any).garmentFrontImageUrl);
+    if (gfPath) allPaths.push(gfPath);
+    const gbPath = (look as any).garmentBackImagePath ?? extractPathFromUrl((look as any).garmentBackImageUrl);
+    if (gbPath) allPaths.push(gbPath);
     for (const p of look.galleryImagePaths ?? []) if (p) allPaths.push(p);
   }
   for (const gen of state.generations) {
@@ -307,14 +331,23 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
 
   const looks = state.looks.map(look => ({
     ...look,
-    imageUrl: s(look.imagePath, look.imageUrl),
-    frontImageUrl: s(look.frontImagePath, look.frontImageUrl),
-    backImageUrl: s((look as any).backImagePath, (look as any).backImageUrl),
-    garmentFrontImageUrl: s((look as any).garmentFrontImagePath, (look as any).garmentFrontImageUrl),
-    garmentBackImageUrl: s((look as any).garmentBackImagePath, (look as any).garmentBackImageUrl),
+    imageUrl: s(look.imagePath ?? extractPathFromUrl(look.imageUrl), look.imageUrl),
+    frontImageUrl: s(look.frontImagePath ?? extractPathFromUrl(look.frontImageUrl), look.frontImageUrl),
+    backImageUrl: s((look as any).backImagePath ?? extractPathFromUrl((look as any).backImageUrl), (look as any).backImageUrl),
+    garmentFrontImageUrl: s(
+      (look as any).garmentFrontImagePath ?? extractPathFromUrl((look as any).garmentFrontImageUrl),
+      (look as any).garmentFrontImageUrl
+    ),
+    garmentBackImageUrl: s(
+      (look as any).garmentBackImagePath ?? extractPathFromUrl((look as any).garmentBackImageUrl),
+      (look as any).garmentBackImageUrl
+    ),
     galleryImageUrls: look.galleryImagePaths?.length
       ? look.galleryImagePaths.map(p => signed.get(p) ?? "").filter(Boolean)
-      : look.galleryImageUrls,
+      : (look.galleryImageUrls ?? []).map(u => {
+          const p = extractPathFromUrl(u);
+          return (p && signed.get(p)) ? signed.get(p)! : u;
+        }),
   }));
 
   const generations = state.generations.map(gen => ({
