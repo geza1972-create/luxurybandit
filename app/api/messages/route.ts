@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSellerFromRequest } from "@/lib/supabase-auth-server";
 import { readTryThisLookState, saveTryThisLookState } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
@@ -6,27 +7,11 @@ export const runtime = "nodejs";
 function getConfig() {
   const url = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "");
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-  const anonKey =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim().replace(/^["']|["']$/g, "") ||
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim().replace(/^["']|["']$/g, "") ||
-    "";
-  return { url, serviceKey, anonKey };
+  return { url, serviceKey };
 }
 
 function toSlug(s: string) {
   return s.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
-}
-
-async function getUserByToken(token: string) {
-  const { url, anonKey } = getConfig();
-  const res = await fetch(`${url}/auth/v1/user`, {
-    headers: { apikey: anonKey, Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) return null;
-  return await res.json() as {
-    id: string; email?: string;
-    user_metadata?: Record<string, string | undefined>;
-  };
 }
 
 async function findUserById(userId: string) {
@@ -60,10 +45,7 @@ async function findUserByUsername(username: string) {
 
 // ── GET /api/messages — inbox for authenticated user ──────────────────────────
 export async function GET(request: Request) {
-  const token = (request.headers.get("Authorization") ?? "").replace("Bearer ", "").trim();
-  if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-  const user = await getUserByToken(token);
+  const user = await getSellerFromRequest(request);
   if (!user) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
   const state = await readTryThisLookState();
@@ -84,10 +66,7 @@ export async function GET(request: Request) {
 
 // ── POST /api/messages — send a message ───────────────────────────────────────
 export async function POST(request: Request) {
-  const token = (request.headers.get("Authorization") ?? "").replace("Bearer ", "").trim();
-  if (!token) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
-  const sender = await getUserByToken(token);
+  const sender = await getSellerFromRequest(request);
   if (!sender) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
   const body = await request.json() as { toUsername?: string; toUserId?: string; text?: string };
@@ -106,7 +85,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Cannot message yourself." }, { status: 400 });
   }
 
-  const senderMeta = sender.user_metadata ?? {};
+  // Fetch full sender metadata (getSellerFromRequest only returns id+email)
+  const senderFull = await findUserById(sender.id);
+  const senderMeta = senderFull?.user_metadata ?? {};
   const senderSlug = toSlug(senderMeta.username ?? senderMeta.full_name ?? sender.email ?? "anonymous");
   const senderName = senderMeta.username ?? senderMeta.full_name ?? sender.email ?? "Anonymous";
 
@@ -124,7 +105,7 @@ export async function POST(request: Request) {
     fromUserId: sender.id,
     fromUsername: senderSlug,
     fromName: senderName,
-    fromEmail: sender.email,
+    fromEmail: senderFull?.email ?? sender.email,
     text,
     createdAt: new Date().toISOString(),
   };
