@@ -168,6 +168,29 @@ export async function GET(request: Request) {
       return NextResponse.json({ userLooks: userGenerations });
     }
 
+    // Single generation by ID — for /post/[id] deep links
+    const generationId = url.searchParams.get("generationId") ?? "";
+    if (generationId) {
+      const lookById = new Map(state.looks.map(l => [l.id, l]));
+      const g = state.generations.find(gen => gen.id === generationId);
+      if (!g || (g as any).hidden) return NextResponse.json({ error: "Post not found." }, { status: 404 });
+      const look = lookById.get(g.lookId);
+      return NextResponse.json({
+        post: {
+          id: g.id,
+          lookId: g.lookId,
+          imageUrl: (g as any).imageUrl ?? "",
+          userPhotoUrl: (g as any).userPhotoUrl ?? undefined,
+          customerName: (g as any).customerName ?? "",
+          lookName: g.lookName ?? look?.name ?? "",
+          storeName: g.storeName ?? look?.storeName ?? "",
+          storeSlug: (look as any)?.storeSlug ?? "",
+          lookThumbUrl: look?.frontImageUrl ?? look?.imageUrl ?? "",
+          createdAt: g.createdAt,
+        }
+      });
+    }
+
     // Global community feed — all recent public generations
     if (url.searchParams.get("community") === "1") {
       const lookById = new Map(state.looks.map(l => [l.id, l]));

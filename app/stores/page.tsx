@@ -1145,7 +1145,8 @@ function StoresPage() {
                         onPointerUp={(e) => {
                           const startY = (e.currentTarget as any)._startY ?? e.clientY;
                           if (Math.abs(e.clientY - startY) > 12) return;
-                          selectMode ? toggleSelect(item.id) : setCommunitySelectedIndex(itemIdx);
+                          if (selectMode) { toggleSelect(item.id); return; }
+                          router.push(`/post/${item.id}`);
                         }}
                         style={{touchAction:"pan-y"}}
                         className={`relative aspect-square w-full overflow-hidden bg-black/5 transition-opacity block ${
@@ -1181,7 +1182,7 @@ function StoresPage() {
                         </span>
                       </div>
                       {/* Social bar — same as regular feed */}
-                      <div className="flex items-center gap-2 px-2 py-1 bg-white border-b border-black/5 pointer-events-none select-none text-black/50">
+                      <div className="flex items-center gap-2 px-2 py-1 bg-white border-b border-black/5 select-none text-black/50">
                         <span className="flex items-center gap-1">
                           <Heart className="h-3.5 w-3.5" />
                           <span className="text-[10px] font-bold">{(() => { let h=0; const s=item.id+"_gl"; for(let i=0;i<s.length;i++){h=Math.imul(31,h)+s.charCodeAt(i)|0;} const n=200+(Math.abs(h)%49800); return n>=10000?`${(n/1000).toFixed(0)}k`:n>=1000?`${(n/1000).toFixed(1)}k`:String(n); })()}</span>
@@ -1194,6 +1195,17 @@ function StoresPage() {
                           <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                           <span className="text-[9px] font-bold">{(() => { let h=0; const s=item.id+"_gv"; for(let i=0;i<s.length;i++){h=Math.imul(31,h)+s.charCodeAt(i)|0;} const n=200+(Math.abs(h)%49800); return n>=10000?`${(n/1000).toFixed(0)}k`:n>=1000?`${(n/1000).toFixed(1)}k`:String(n); })()}</span>
                         </span>
+                        {/* Share button */}
+                        <button type="button"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const url = `${window.location.origin}/post/${item.id}`;
+                            if (navigator.share) { try { await navigator.share({ title: item.lookName, url }); } catch { /**/ } }
+                            else { try { await navigator.clipboard.writeText(url); } catch { /**/ } }
+                          }}
+                          className="ml-1 flex items-center gap-0.5 pointer-events-auto hover:text-black transition">
+                          <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+                        </button>
                       </div>
                     </div>
                   );

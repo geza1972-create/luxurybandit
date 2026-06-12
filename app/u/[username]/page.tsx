@@ -316,7 +316,7 @@ export default function UserGalleryPage() {
               const isLiked = likes[item.id] ?? false;
               return (
                 <button key={item.id} type="button"
-                  onClick={() => setSelected(item)}
+                  onClick={() => router.push(`/post/${item.id}`)}
                   className="relative aspect-square overflow-hidden bg-black/5 active:opacity-80 transition-opacity">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={item.imageUrl} alt={item.lookName} className="h-full w-full object-cover object-top" />
