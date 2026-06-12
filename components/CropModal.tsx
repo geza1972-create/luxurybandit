@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 type Rect = { x: number; y: number; w: number; h: number };
 type Handle = "nw" | "ne" | "sw" | "se" | "n" | "s" | "e" | "w" | "move";
@@ -62,6 +63,7 @@ function handleCursor(handle: Handle | null): string {
 }
 
 export default function CropModal({ imageSrc, aspectRatio, outputRatio, onConfirm, onCancel }: CropModalProps) {
+  useScrollLock(); // prevent iOS background scroll while crop modal is open
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const [displaySize, setDisplaySize] = useState({ w: 0, h: 0 });
