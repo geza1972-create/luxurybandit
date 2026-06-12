@@ -209,10 +209,8 @@ export default function CropModal({ imageSrc, aspectRatio, outputRatio, onConfir
     setCrop({ x: nx, y: ny, w: nw, h: nh });
   };
 
-  const onPointerUp = (e?: React.TouchEvent) => {
-    if (e) { e.preventDefault(); e.stopPropagation(); }
-    dragRef.current = null;
-  };
+  const onPointerUp = () => { dragRef.current = null; };
+  const onTouchEnd = (e: React.TouchEvent) => { e.preventDefault(); e.stopPropagation(); dragRef.current = null; };
 
   const confirmCrop = () => {
     const img = imageRef.current;
@@ -259,7 +257,7 @@ export default function CropModal({ imageSrc, aspectRatio, outputRatio, onConfir
 
   if (displaySize.w === 0) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80">
         <div className="text-sm font-black text-white">Loading…</div>
       </div>
     );
@@ -267,7 +265,7 @@ export default function CropModal({ imageSrc, aspectRatio, outputRatio, onConfir
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/85 p-4"
+      className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-4 bg-black/85 p-4"
       style={{ touchAction: "none" }}
       onTouchMove={e => e.preventDefault()}
     >
@@ -282,7 +280,7 @@ export default function CropModal({ imageSrc, aspectRatio, outputRatio, onConfir
         onMouseLeave={onPointerUp}
         onTouchStart={onPointerDown}
         onTouchMove={onPointerMove}
-        onTouchEnd={e => onPointerUp(e)}
+        onTouchEnd={onTouchEnd}
       />
       <div className="flex gap-3">
         <button

@@ -25,6 +25,7 @@ export async function POST(request: Request) {
 
   const state = await readTryThisLookState();
   let store = (state.stores ?? []).find((s) => s.ownerUserId === user.id);
+  const now = new Date().toISOString();
 
   // Auto-create a store on first product upload so users can sell without
   // going through the full seller registration flow first.
@@ -42,15 +43,13 @@ export async function POST(request: Request) {
       email: user.email ?? "",
       address: "",
       createdAt: now,
-    } as (typeof state.stores)[number];
-    state.stores = [store, ...(state.stores ?? [])];
+    } as NonNullable<typeof state.stores>[number];
+    state.stores = [store as NonNullable<typeof state.stores>[number], ...(state.stores ?? [])];
   }
 
   if (!store) {
     return NextResponse.json({ error: "No store found for this account." }, { status: 404 });
   }
-
-  const now = new Date().toISOString();
 
   // ── Upload new listing ──────────────────────────────────────────────────────
   if (action === "upload-look") {
@@ -60,16 +59,29 @@ export async function POST(request: Request) {
     const productNote = String(formData.get("productNote") ?? "").trim();
     const hashtags = String(formData.get("hashtags") ?? "").trim();
     const inStock = formData.get("inStock") !== "false";
-    const imageFile = formData.get("image");
-
+    const published = formData.get("published") === "true";
+    const campaignName = String(formData.get("campaignName") ?? "").trim();
+    const availableSizesRaw = String(formData.get("availableSizes") ?? "").trim();
+    const deliveryTime = String(formData.get("deliveryTime") ?? "").trim();
+    const availabilityNote = String(formData.get("availabilityNote") ?? "").trim();
+    const dealEndsAt = String(formData.get("dealEndsAt") ?? "").trim();
     if (!name) {
       return NextResponse.json({ error: "Listing name required." }, { status: 400 });
     }
 
-    let imagePath: string | undefined;
-    if (imageFile instanceof File && imageFile.size > 0) {
-      imagePath = await uploadTryThisLookImage("looks", await fileToDataUrl(imageFile));
+    // Upload gallery images (galleryFile0 … galleryFile9)
+    const galleryImagePaths: string[] = [];
+    for (let i = 0; i < 10; i++) {
+      const file = formData.get(`galleryFile${i}`);
+      if (file instanceof File && file.size > 0) {
+        const path = await uploadTryThisLookImage("looks", await fileToDataUrl(file));
+        galleryImagePaths.push(path);
+      }
     }
+
+    const availableSizes = availableSizesRaw
+      ? availableSizesRaw.split(/[,\n]/).map(s => s.trim()).filter(Boolean)
+      : undefined;
 
     const id = `look-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
     const look = {
@@ -77,13 +89,20 @@ export async function POST(request: Request) {
       name,
       storeName: store.name,
       storeSlug: store.slug,
+      campaignName: campaignName || undefined,
       price: price || undefined,
       salePrice: salePrice || undefined,
+      availableSizes: availableSizes?.length ? availableSizes : undefined,
       productNote: productNote || undefined,
       hashtags: hashtags || undefined,
       inStock,
-      published: false, // drafts until approved
-      imagePath,
+      published,
+      deliveryTime: deliveryTime || undefined,
+      availabilityNote: availabilityNote || undefined,
+      dealEndsAt: dealEndsAt || undefined,
+      // First gallery image is the main image
+      imagePath: galleryImagePaths[0],
+      galleryImagePaths: galleryImagePaths.length ? galleryImagePaths : undefined,
       createdAt: now,
     };
 
@@ -104,7 +123,7 @@ export async function POST(request: Request) {
     const price = formData.has("price") ? String(formData.get("price") ?? "").trim() : existing.price;
     const salePrice = formData.has("salePrice")
       ? String(formData.get("salePrice") ?? "").trim()
-      : existing.salePrice;
+      : (existing as any).salePrice;
     const productNote = formData.has("productNote")
       ? String(formData.get("productNote") ?? "").trim()
       : existing.productNote;
@@ -112,12 +131,44 @@ export async function POST(request: Request) {
       ? String(formData.get("hashtags") ?? "").trim()
       : (existing as any).hashtags;
     const inStock = formData.has("inStock") ? formData.get("inStock") !== "false" : existing.inStock;
-    const imageFile = formData.get("image");
+    const published = formData.has("published") ? formData.get("published") === "true" : existing.published;
+    const campaignName = formData.has("campaignName")
+      ? String(formData.get("campaignName") ?? "").trim()
+      : (existing as any).campaignName;
+    const availableSizesRaw = formData.has("availableSizes")
+      ? String(formData.get("availableSizes") ?? "").trim()
+      : ((existing as any).availableSizes ?? []).join(", ");
+    const deliveryTime = formData.has("deliveryTime")
+      ? String(formData.get("deliveryTime") ?? "").trim()
+      : (existing as any).deliveryTime;
+    const availabilityNote = formData.has("availabilityNote")
+      ? String(formData.get("availabilityNote") ?? "").trim()
+      : (existing as any).availabilityNote;
+    const dealEndsAt = formData.has("dealEndsAt")
+      ? String(formData.get("dealEndsAt") ?? "").trim()
+      : (existing as any).dealEndsAt;
+    // Merge existing paths + new uploads for gallery
+    const existingPathsRaw = String(formData.get("galleryExistingPaths") ?? "[]");
+    let existingPaths: (string | null)[] = [];
+    try { existingPaths = JSON.parse(existingPathsRaw); } catch { /**/ }
 
-    let imagePath = existing.imagePath;
-    if (imageFile instanceof File && imageFile.size > 0) {
-      imagePath = await uploadTryThisLookImage("looks", await fileToDataUrl(imageFile));
+    // Build merged gallery: existing paths + new files by slot index
+    const mergedPaths: (string | null)[] = existingPaths.length
+      ? [...existingPaths]
+      : Array.from({ length: 10 }, () => null);
+
+    for (let i = 0; i < 10; i++) {
+      const file = formData.get(`galleryFile${i}`);
+      if (file instanceof File && file.size > 0) {
+        mergedPaths[i] = await uploadTryThisLookImage("looks", await fileToDataUrl(file));
+      }
     }
+
+    const finalGalleryPaths = mergedPaths.filter((p): p is string => Boolean(p));
+
+    const availableSizes = availableSizesRaw
+      ? availableSizesRaw.split(/[,\n]/).map((s: string) => s.trim()).filter(Boolean)
+      : undefined;
 
     state.looks = state.looks.map((l) =>
       l.id !== lookId
@@ -125,12 +176,19 @@ export async function POST(request: Request) {
         : {
             ...l,
             name,
+            campaignName: campaignName || undefined,
             price: price || undefined,
             salePrice: salePrice || undefined,
+            availableSizes: availableSizes?.length ? availableSizes : undefined,
             productNote: productNote || undefined,
             hashtags: hashtags || undefined,
             inStock,
-            imagePath,
+            published,
+            deliveryTime: deliveryTime || undefined,
+            availabilityNote: availabilityNote || undefined,
+            dealEndsAt: dealEndsAt || undefined,
+            imagePath: finalGalleryPaths[0] || existing.imagePath,
+            galleryImagePaths: finalGalleryPaths.length ? finalGalleryPaths : undefined,
           }
     );
     await saveTryThisLookState(state);

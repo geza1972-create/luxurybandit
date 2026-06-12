@@ -11,7 +11,7 @@ import {
 } from "@/lib/supabase-auth-client";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { lookPath } from "@/lib/look-slug";
-import { Bookmark, Heart, Home, Image as ImageIcon, Instagram, Loader2, LogOut, MessageCircle, Search, Send, ShoppingBag, Sparkles, X } from "lucide-react";
+import { Bookmark, Heart, Home, Image as ImageIcon, Instagram, Loader2, LogOut, MessageCircle, Plus, Search, Send, ShoppingBag, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -954,6 +954,14 @@ function StoresPage() {
 
           {/* Right icons */}
           <div className="flex items-center gap-2">
+            {/* Add product */}
+            <button type="button"
+              onClick={() => router.push(isSignedIn ? "/user/mystore/new" : "/stores?panel=account")}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-white active:opacity-75 transition"
+              aria-label="Produkt hinzufügen">
+              <Plus className="h-4 w-4" />
+            </button>
+
             {/* Search toggle */}
             <button type="button"
               onClick={() => { setSearchOpen(v => !v); if (!searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50); else setQuery(""); }}
@@ -1020,7 +1028,7 @@ function StoresPage() {
         {/* Type filter chips */}
         <div className="flex gap-2 overflow-x-auto px-3 pb-2 scrollbar-none">
           {([["all", "Creators"], ["community", "🔥 Community"]] as const).map(([val, label]) => (
-            <button key={val} type="button" onClick={() => { setTypeFilter(val); setQuery(""); }}
+            <button key={val} type="button" onClick={() => { setTypeFilter(val); setQuery(""); router.replace(val === "community" ? "/stores?tab=community" : "/stores", { scroll: false }); }}
               className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-black transition ${typeFilter === val ? "bg-black text-white" : "bg-black/6 text-black/60"}`}>
               {label}
             </button>

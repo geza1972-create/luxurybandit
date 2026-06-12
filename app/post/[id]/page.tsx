@@ -12,6 +12,7 @@ type Post = {
   imageUrl: string;
   userPhotoUrl?: string;
   customerName: string;
+  userId?: string;
   lookName: string;
   storeName: string;
   storeSlug: string;
@@ -94,14 +95,14 @@ export default function PostPage() {
           setLiked(liked_ids.includes(p.id));
         } catch { /**/ }
 
-        // Load profile
-        const username = toSlug(p.customerName);
+        // Load profile — prefer userId lookup (exact), fall back to customerName slug
+        const profileKey = p.userId ?? toSlug(p.customerName);
         const authHeaders: Record<string, string> = session?.access_token
           ? { Authorization: `Bearer ${session.access_token}` } : {};
 
         const [profRes, followRes] = await Promise.all([
-          fetch(`/api/profile/${encodeURIComponent(username)}`).then(r => r.ok ? r.json() : null),
-          fetch(`/api/follow?slug=${encodeURIComponent(username)}&type=user`, { headers: authHeaders })
+          fetch(`/api/profile/${encodeURIComponent(profileKey)}`).then(r => r.ok ? r.json() : null),
+          fetch(`/api/follow?slug=${encodeURIComponent(toSlug(p.customerName))}&type=user`, { headers: authHeaders })
             .then(r => r.ok ? r.json() : { followerCount: 0, following: false }),
         ]);
 
@@ -144,7 +145,7 @@ export default function PostPage() {
   const handleFollow = async () => {
     if (!session) { router.push("/stores?panel=account"); return; }
     if (!post) return;
-    const username = toSlug(post.customerName);
+    const username = profile?.username ?? toSlug(post.customerName);
     setFollowLoading(true);
     try {
       const res = await fetch("/api/follow", {
@@ -204,7 +205,7 @@ export default function PostPage() {
     </div>
   );
 
-  const username = toSlug(post.customerName);
+  const username = profile?.username ?? toSlug(post.customerName);
   const displayName = profile?.displayName ?? post.customerName;
   const avatarUrl = profile?.avatarUrl;
   const isOwn = session?.user.id === profile?.userId;
@@ -218,7 +219,7 @@ export default function PostPage() {
           <ChevronLeft className="h-5 w-5" />
         </button>
         {/* Avatar + name → profile */}
-        <a href={`/u/${username}`} className="flex flex-1 items-center gap-2.5 min-w-0">
+        <a href={`/${username}`} className="flex flex-1 items-center gap-2.5 min-w-0">
           <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-black border border-black/8">
             {avatarUrl
               ? <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
@@ -294,7 +295,7 @@ export default function PostPage() {
       {/* Caption / look link */}
       <div className="px-4 py-3 grid gap-3">
         <p className="text-sm text-black/80 leading-relaxed">
-          <a href={`/u/${username}`} className="font-black text-black hover:underline">{displayName}</a>
+          <a href={`/${username}`} className="font-black text-black hover:underline">{displayName}</a>
           {" "}tried on{" "}
           <a href={lookPath(post.lookName, post.lookId)} className="font-bold text-black/70 hover:underline">{post.lookName}</a>
         </p>

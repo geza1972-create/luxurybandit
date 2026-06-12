@@ -182,6 +182,7 @@ export async function GET(request: Request) {
           imageUrl: (g as any).imageUrl ?? "",
           userPhotoUrl: (g as any).userPhotoUrl ?? undefined,
           customerName: (g as any).customerName ?? "",
+          userId: (g as any).userId ?? undefined,
           lookName: g.lookName ?? look?.name ?? "",
           storeName: g.storeName ?? look?.storeName ?? "",
           storeSlug: (look as any)?.storeSlug ?? "",
@@ -234,7 +235,7 @@ export async function GET(request: Request) {
           id: g.id,
           lookId: g.lookId,
           imageUrl: (g as any).imageUrl ?? "",
-          // userPhotoUrl omitted from list — only needed in /post/[id] detail view
+          userPhotoUrl: (g as any).userPhotoUrl ?? undefined,
           customerName: (g as any).customerName ?? "",
           lookName: g.lookName ?? look?.name ?? "",
           storeName: g.storeName ?? look?.storeName ?? "",
@@ -506,6 +507,7 @@ export async function POST(request: Request) {
         storeName: String(payload.storeName ?? "").trim() || activeLook.storeName,
         lookName: String(payload.lookName ?? "").trim() || activeLook.name,
         customerName: String(payload.customerName ?? "").trim() || undefined,
+        userId: String(payload.userId ?? "").trim() || undefined,
         imagePath,
         userPhotoPath,
         createdAt: now
@@ -1059,9 +1061,10 @@ export async function POST(request: Request) {
       const generationId = String(payload.id ?? "");
       const gen = state.generations.find(g => g.id === generationId);
       if (!gen) return NextResponse.json({ error: "Generated image was not found." }, { status: 404 });
-      (gen as any).customerName = String(payload.customerName ?? "").trim();
+      if (payload.customerName !== undefined) (gen as any).customerName = String(payload.customerName ?? "").trim();
+      if (payload.userId !== undefined) (gen as any).userId = String(payload.userId ?? "").trim() || undefined;
       const updatedState = await saveTryThisLookState(state);
-      return NextResponse.json({ ok: true, customerName: (gen as any).customerName });
+      return NextResponse.json({ ok: true, customerName: (gen as any).customerName, userId: (gen as any).userId });
     }
 
     // ── Bulk reassign generations from one customer name to another ──────────
@@ -1082,6 +1085,42 @@ export async function POST(request: Request) {
       if (count === 0) return NextResponse.json({ error: `No generations found with customer name matching "${fromName}".` }, { status: 404 });
       await saveTryThisLookState(state);
       return NextResponse.json({ ok: true, reassigned: count });
+    }
+
+    // ── Rename own generations when username changes ──────────────────────────
+    if (payload.action === "rename-my-generations") {
+      const accessToken = request.headers.get("authorization")?.replace("Bearer ", "").trim() ?? "";
+      if (!accessToken) return NextResponse.json({ error: "Auth required." }, { status: 401 });
+
+      // Verify token + get user info from Supabase
+      const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/^["']|["']$/g, "");
+      const supabaseUrl = rawUrl
+        ? (rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`).replace(/\/rest\/v1\/?$/, "").replace(/\/storage\/v1\/?$/, "").replace(/\/$/, "")
+        : "";
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+      const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+        headers: { apikey: serviceKey, Authorization: `Bearer ${accessToken}` },
+      });
+      if (!userRes.ok) return NextResponse.json({ error: "Invalid token." }, { status: 401 });
+      const userObj = await userRes.json() as { id: string; user_metadata?: Record<string, string> };
+
+      const newName = String(payload.newName ?? "").trim();
+      const oldName = String(payload.oldName ?? "").trim();
+      if (!newName) return NextResponse.json({ error: "newName required." }, { status: 400 });
+
+      const oldSlug = oldName.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+      let count = 0;
+      for (const g of state.generations) {
+        const matchesUserId = (g as any).userId === userObj.id;
+        const matchesOldName = oldSlug && (String((g as any).customerName ?? "").toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "") === oldSlug);
+        if (matchesUserId || matchesOldName) {
+          (g as any).customerName = newName;
+          (g as any).userId = userObj.id; // backfill userId while we're here
+          count++;
+        }
+      }
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, renamed: count });
     }
 
     // ── Auth user management (admin only) ────────────────────────────────────

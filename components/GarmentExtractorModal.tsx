@@ -35,6 +35,7 @@ export default function GarmentExtractorModal({
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [detectionBlocked, setDetectionBlocked] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
@@ -56,7 +57,14 @@ export default function GarmentExtractorModal({
         const payload = await apiRes.json();
         if (cancelled) return;
         if (!apiRes.ok || !Array.isArray(payload.products)) {
-          setError(payload.error ?? "Detection failed.");
+          const msg: string = payload.error ?? "";
+          // OpenAI content policy blocks lingerie/intimate images → offer direct FASHN fallback
+          const isBlocked = /safety|policy|content|refused|inappropriate|violat/i.test(msg) || apiRes.status === 400;
+          if (isBlocked) {
+            setDetectionBlocked(true);
+          } else {
+            setError(msg || "Detection failed.");
+          }
         } else {
           setProducts(payload.products);
           // Auto-select all detected pieces
@@ -77,6 +85,47 @@ export default function GarmentExtractorModal({
       if (next.has(i)) next.delete(i); else next.add(i);
       return next;
     });
+  };
+
+  // Bypass detection entirely — send full image straight to FASHN for cutout.
+  // Used when OpenAI blocks the image (e.g. lingerie).
+  const extractFullImage = async () => {
+    setIsExtracting(true);
+    try {
+      const blob = await fetch(imageSrc).then(r => r.blob());
+      const form = new FormData();
+      form.append("image", blob, "garment.jpg");
+      form.append("mode", "retouch-cutout");
+      form.append("square", "true");
+      form.append("aspectRatio", "1:1");
+      form.append(
+        "prompt",
+        [
+          "Create a clean ecommerce apparel image from this source photo.",
+          "Extract the visible clothing/lingerie only.",
+          "Remove person, body, skin, hair, background, scene, and shadows.",
+          "Background: pure white studio. Square 1:1 ecommerce image.",
+          "Preserve exact garment design, colors, prints, fabric, shape, and proportions.",
+          "Center the complete garment with comfortable margins.",
+        ].join("\n")
+      );
+      const res = await fetch("/api/generate-fashn", {
+        method: "POST",
+        body: form,
+        headers: { "x-shopcut-account-id": "admin-internal" },
+      });
+      const payload = await res.json();
+      if (res.ok && payload.image) {
+        onConfirm([payload.image]);
+      } else {
+        // Fallback: return the original image as-is
+        onConfirm([imageSrc]);
+      }
+    } catch {
+      onConfirm([imageSrc]);
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   const confirmExtract = async () => {
@@ -202,7 +251,7 @@ export default function GarmentExtractorModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-white" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+    <div className="fixed inset-0 z-[200] flex flex-col bg-white" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
       <div className="flex w-full flex-col h-full overflow-hidden">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 border-b border-black/10 p-4 flex-shrink-0">
@@ -213,6 +262,8 @@ export default function GarmentExtractorModal({
             <div className="mt-0.5 text-sm font-bold text-ink/65">
               {isDetecting
                 ? "Detecting clothing pieces…"
+                : detectionBlocked
+                ? "Use FASHN AI to extract directly"
                 : error
                 ? "Detection failed"
                 : `${products.length} piece${products.length !== 1 ? "s" : ""} detected — select which to extract`}
@@ -323,6 +374,22 @@ export default function GarmentExtractorModal({
           </div>
         )}
 
+        {detectionBlocked && (
+          <div className="border-t border-amber-200 bg-amber-50 p-4 grid gap-2">
+            <p className="text-sm font-black text-amber-800">Auto-detection blocked for this image type</p>
+            <p className="text-xs font-bold text-amber-700/80 leading-relaxed">
+              AI detection (OpenAI) cannot process intimate/lingerie images. Tap below to extract the full image directly via FASHN AI — background will still be removed.
+            </p>
+            <button
+              type="button"
+              onClick={() => void extractFullImage()}
+              disabled={isExtracting}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-500 text-sm font-black text-white disabled:opacity-50"
+            >
+              {isExtracting ? "Extracting via FASHN…" : "✂️  Extract full image via FASHN AI"}
+            </button>
+          </div>
+        )}
         {error && (
           <div className="border-t border-red-200 bg-red-50 p-3 text-sm font-bold text-red-600">
             {error}
@@ -339,7 +406,7 @@ export default function GarmentExtractorModal({
           >
             Cancel
           </button>
-          {!error && (
+          {!error && !detectionBlocked && (
             <button
               type="button"
               onClick={() => void confirmExtract()}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   ChevronLeft, Globe, Instagram, Heart, UserPlus, UserCheck, MessageCircle, X, Send,
@@ -37,6 +37,7 @@ type TryonItem = {
   id: string;
   lookId: string;
   imageUrl: string;
+  userPhotoUrl?: string;
   customerName: string;
   lookName: string;
   storeName: string;
@@ -79,6 +80,7 @@ function Initials({ name, size = 80 }: { name: string; size?: number }) {
 
 export default function CreatorProfilePage({ creatorSlug }: { creatorSlug: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const slug = toSlug(creatorSlug);
 
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -89,7 +91,9 @@ export default function CreatorProfilePage({ creatorSlug }: { creatorSlug: strin
   const [followLoading, setFollowLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [activeTab, setActiveTab] = useState<"creator" | "tryons">("creator");
+  const [activeTab, setActiveTab] = useState<"creator" | "tryons">(
+    searchParams?.get("tab") === "tryons" ? "tryons" : "creator"
+  );
   const [likedItems, setLikedItems] = useState<Record<string, boolean>>({});
 
   const [showMsg, setShowMsg] = useState(false);
@@ -130,12 +134,18 @@ export default function CreatorProfilePage({ creatorSlug }: { creatorSlug: strin
       setFollowerCount((followData as { followerCount: number })?.followerCount ?? 0);
       setFollowing((followData as { following: boolean })?.following ?? false);
 
+      let loadedLooks: Look[] = [];
       if (p?.storeSlug) {
         const looksRes = await fetch(`/api/try-this-look?store=${encodeURIComponent(p.storeSlug)}`);
         if (looksRes.ok) {
           const ld = await looksRes.json() as { looks?: Look[] };
-          setLooks((ld.looks ?? []).filter(l => l.published !== false));
+          loadedLooks = (ld.looks ?? []).filter(l => l.published !== false);
+          setLooks(loadedLooks);
         }
+      }
+      // Auto-switch to Tryons if Creator tab has no content and no tab was explicitly requested
+      if (!searchParams?.get("tab") && loadedLooks.length === 0) {
+        setActiveTab("tryons");
       }
     }).catch(() => setNotFound(true))
     .finally(() => setIsLoading(false));
@@ -290,7 +300,10 @@ export default function CreatorProfilePage({ creatorSlug }: { creatorSlug: strin
           {/* Tab bar */}
           <div className="grid grid-cols-2 border-t border-b border-black/8">
             {(["creator", "tryons"] as const).map(tab => (
-              <button key={tab} type="button" onClick={() => setActiveTab(tab)}
+              <button key={tab} type="button" onClick={() => {
+                setActiveTab(tab);
+                router.replace(`/${slug}?tab=${tab}`, { scroll: false });
+              }}
                 className={`py-3 text-sm font-black capitalize transition border-b-2 ${
                   activeTab === tab ? "border-black text-black" : "border-transparent text-black/35"
                 }`}>
@@ -355,10 +368,23 @@ export default function CreatorProfilePage({ creatorSlug }: { creatorSlug: strin
               <div className="grid grid-cols-2 gap-px bg-black/8 border-t border-black/8">
                 {tryons.map(item => {
                   const liked = likedItems[item.id];
+                  const hasBefore = !!item.userPhotoUrl;
                   return (
-                    <button key={item.id} type="button" onClick={() => setLightbox(item)}
+                    <button key={item.id} type="button" onClick={() => router.push(`/post/${item.id}`)}
                       className="relative bg-white aspect-[3/4] overflow-hidden group">
-                      {item.imageUrl ? (
+                      {hasBefore ? (
+                        /* Before / After split */
+                        <div className="w-full h-full flex">
+                          <div className="relative w-1/2 h-full overflow-hidden">
+                            <img src={item.userPhotoUrl} alt="Before" className="w-full h-full object-cover" />
+                            <span className="absolute bottom-1 left-1 text-[9px] font-black text-white bg-black/40 px-1 rounded">Before</span>
+                          </div>
+                          <div className="relative w-1/2 h-full overflow-hidden">
+                            <img src={item.imageUrl} alt="After" className="w-full h-full object-cover" />
+                            <span className="absolute bottom-1 right-1 text-[9px] font-black text-white bg-black/40 px-1 rounded">After</span>
+                          </div>
+                        </div>
+                      ) : item.imageUrl ? (
                         <img src={item.imageUrl} alt={item.lookName} className="w-full h-full object-cover transition group-active:scale-95" />
                       ) : (
                         <div className="w-full h-full bg-black/5 flex items-center justify-center"><span className="text-3xl">✨</span></div>
@@ -391,8 +417,21 @@ export default function CreatorProfilePage({ creatorSlug }: { creatorSlug: strin
               <X className="h-4 w-4 text-white" />
             </button>
           </div>
-          <div className="flex-1 flex items-center justify-center p-4" onClick={e => e.stopPropagation()}>
-            <img src={lightbox.imageUrl} alt={lightbox.lookName} className="max-w-full max-h-full object-contain rounded-xl" />
+          <div className="flex-1 flex items-center justify-center p-4 gap-2" onClick={e => e.stopPropagation()}>
+            {lightbox.userPhotoUrl ? (
+              <>
+                <div className="relative flex-1 h-full flex items-center justify-center">
+                  <img src={lightbox.userPhotoUrl} alt="Before" className="max-w-full max-h-full object-contain rounded-xl" />
+                  <span className="absolute bottom-2 left-2 text-[10px] font-black text-white bg-black/50 px-1.5 py-0.5 rounded">Before</span>
+                </div>
+                <div className="relative flex-1 h-full flex items-center justify-center">
+                  <img src={lightbox.imageUrl} alt="After" className="max-w-full max-h-full object-contain rounded-xl" />
+                  <span className="absolute bottom-2 right-2 text-[10px] font-black text-white bg-black/50 px-1.5 py-0.5 rounded">After</span>
+                </div>
+              </>
+            ) : (
+              <img src={lightbox.imageUrl} alt={lightbox.lookName} className="max-w-full max-h-full object-contain rounded-xl" />
+            )}
           </div>
           {lightbox.storeSlug && (
             <div className="px-4 pb-6 shrink-0">

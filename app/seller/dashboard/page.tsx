@@ -246,6 +246,7 @@ type TryOnItem = { id: string; imageUrl: string; lookName: string; storeName: st
 function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }: {
   isAdmin: boolean; userEmail: string; userInitial: string; accessToken: string; onLogout: () => void;
 }) {
+  const router = useRouter();
   const [alias, setAlias] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -265,6 +266,7 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
   const [tryOnsLoading, setTryOnsLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [userSlug, setUserSlug] = useState("");
+  const [currentUserId, setCurrentUserId] = useState("");
   const [storeSlug, setStoreSlug] = useState<string | null>(null); // null=loading, ""=no store
   const [newStoreName, setNewStoreName] = useState("");
   const [creatingStore, setCreatingStore] = useState(false);
@@ -293,6 +295,7 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
       .catch(() => {})
       .finally(() => setMessagesLoading(false));
     // Full profile (username, phone, address, bio, website, etc.)
+    setCurrentUserId(s.user.id);
     getAuthUser(s.access_token).then(u => {
       setAlias(u.user_metadata?.username ?? u.user_metadata?.full_name ?? "");
       setPhone(u.user_metadata?.phone ?? "");
@@ -328,6 +331,19 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
     try {
       if (newPw && newPw !== confirmPw) throw new Error("Passwords do not match.");
       if (newPw && newPw.length < 6) throw new Error("Password must be at least 6 characters.");
+
+      // Check username uniqueness if alias changed
+      const newSlugCheck = alias.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+      if (newSlugCheck && newSlugCheck !== userSlug) {
+        const checkRes = await fetch(`/api/profile/${encodeURIComponent(newSlugCheck)}`);
+        if (checkRes.ok) {
+          const existing = await checkRes.json() as { userId?: string };
+          if (existing.userId && existing.userId !== currentUserId) {
+            throw new Error(`Username "${alias.trim()}" is already taken.`);
+          }
+        }
+      }
+
       await updateUserProfile(accessToken, {
         displayName: alias.trim() || undefined,
         phone: phone.trim() || undefined,
@@ -340,19 +356,21 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
         callmebotKey: callmebotKey.trim() || undefined,
         newPassword: newPw || undefined,
       });
-      setSaveMsg("Saved!");
       setNewPw(""); setConfirmPw("");
-      // Reload try-ons if alias changed
+      // Rename existing generations + navigate to new URL if alias changed
       const newSlug = alias.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
       if (newSlug && newSlug !== userSlug) {
-        setUserSlug(newSlug);
-        setTryOnsLoading(true);
-        fetch(`/api/try-this-look?username=${encodeURIComponent(newSlug)}`)
-          .then(r => r.json())
-          .then((p: any) => setTryOns((p.userGallery ?? []) as TryOnItem[]))
-          .catch(() => {})
-          .finally(() => setTryOnsLoading(false));
+        // Await rename so old slug is gone before navigating
+        await fetch("/api/try-this-look", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+          body: JSON.stringify({ action: "rename-my-generations", newName: alias.trim(), oldName: userSlug }),
+        }).catch(() => {});
+        // Navigate to new account URL — old slug no longer resolves
+        router.replace(`/${newSlug}/myaccount`);
+        return;
       }
+      setSaveMsg("Saved!");
     } catch (e) {
       setSaveErr(e instanceof Error ? e.message : "Error saving.");
     } finally {
@@ -510,11 +528,11 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
                 <p className="mt-1.5 text-[11px] font-bold text-black/40">
                   Dein Profil:{" "}
                   <a
-                    href={`/u/${alias.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`}
+                    href={`/${alias.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`}
                     target="_blank" rel="noopener noreferrer"
                     className="font-black text-black underline underline-offset-2"
                   >
-                    luxurybandit.com/u/{alias.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}
+                    luxurybandit.com/{alias.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}
                   </a>
                 </p>
               )}

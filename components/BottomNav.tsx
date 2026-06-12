@@ -5,19 +5,18 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession, signOut } from "@/lib/supabase-auth-client";
 
-type Tab = "home" | "community" | "saved" | "messages" | "account";
+type Tab = "home" | "community" | "messages" | "account";
 
 function getActiveTab(pathname: string): Tab {
   if (pathname === "/stores") {
     try {
       const params = new URLSearchParams(window.location.search);
-      if (params.get("panel") === "saved") return "saved";
       if (params.get("panel") === "account") return "account";
       if (params.get("tab") === "community") return "community";
     } catch { /**/ }
   }
-  if (pathname === "/seller/dashboard" || pathname === "/user/myaccount") return "account";
-  if (pathname === "/user/mystore") return "account";
+  if (pathname === "/seller/dashboard" || pathname === "/user/myaccount" || pathname.endsWith("/myaccount")) return "account";
+  if (pathname === "/user/mystore" || pathname.endsWith("/mystore")) return "account";
   if (pathname === "/messages") return "messages";
   if (pathname.startsWith("/u/") || pathname.startsWith("/profile/") || pathname === "/entdecken") return "community";
   if (pathname.startsWith("/look/") || pathname.startsWith("/store/") || pathname === "/try-this-look") return "home";
@@ -27,17 +26,9 @@ function getActiveTab(pathname: string): Tab {
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const [savedCount, setSavedCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [active, setActive] = useState<Tab>("home");
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-
-  useEffect(() => {
-    try {
-      const ids = JSON.parse(localStorage.getItem("lb_bookmarks") ?? "[]") as string[];
-      setSavedCount(ids.length);
-    } catch { /**/ }
-  }, []);
 
   useEffect(() => {
     setActive(getActiveTab(pathname));
@@ -87,7 +78,7 @@ export default function BottomNav() {
       className="fixed bottom-0 inset-x-0 z-50 border-t border-black/10 bg-white/95 backdrop-blur-md"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="mx-auto grid max-w-lg grid-cols-5 h-14">
+      <div className="mx-auto grid max-w-lg grid-cols-4 h-14">
 
         {/* Home */}
         <button type="button" onClick={() => go("home", "/stores")} className={btn("home")}>
@@ -99,23 +90,6 @@ export default function BottomNav() {
         <button type="button" onClick={() => go("community", "/stores?tab=community")} className={btn("community")}>
           <Flame className="h-5 w-5" />
           <span className="text-[10px] font-bold">Community</span>
-        </button>
-
-        {/* Saved */}
-        <button
-          type="button"
-          onClick={() => go("saved", "/stores?panel=saved")}
-          className={btn("saved")}
-        >
-          <span className="relative">
-            <Bookmark className="h-5 w-5" />
-            {savedCount > 0 && (
-              <span className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[9px] font-black text-white">
-                {savedCount > 99 ? "99+" : savedCount}
-              </span>
-            )}
-          </span>
-          <span className="text-[10px] font-bold">Saved</span>
         </button>
 
         {/* Messages */}
@@ -184,8 +158,8 @@ export default function BottomNav() {
             </div>
             {/* Menu items */}
             <div className="grid divide-y divide-black/5">
-              {/* Account → /user/myaccount */}
-              <button type="button" onClick={() => navigate("/user/myaccount")}
+              {/* Account → /{slug}/myaccount */}
+              <button type="button" onClick={() => navigate(slug ? `/${slug}/myaccount` : "/user/myaccount")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
                 <Settings className="h-5 w-5 text-black/50 shrink-0" />
                 <span className="text-sm font-black text-black">Account</span>
@@ -205,7 +179,7 @@ export default function BottomNav() {
               )}
               {/* My try ons → public profile */}
               {slug && (
-                <button type="button" onClick={() => navigate(`/u/${slug}`)}
+                <button type="button" onClick={() => navigate(`/${slug}`)}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
                   <ImageIcon className="h-5 w-5 text-black/50 shrink-0" />
                   <span className="text-sm font-black text-black">My try ons</span>

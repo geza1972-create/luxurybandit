@@ -801,6 +801,7 @@ export default function LookPage() {
           lookName: look.name,
           storeName: look.storeName,
           customerName: name.trim(),
+          userId: authSession?.user?.id ?? undefined,
           image: resultImage,
           userPhotoImage: userPhoto,
         }),
@@ -970,7 +971,7 @@ export default function LookPage() {
 
           {/* Right-side action buttons — TikTok style */}
           <div className="absolute right-2 z-20 flex flex-col items-center gap-5"
-            style={{ bottom: "calc(env(safe-area-inset-bottom) + 5rem)" }}>
+            style={{ bottom: "calc(env(safe-area-inset-bottom) + 8rem)" }}>
             {/* Home */}
             <a href="/stores" className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
               <Home strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
@@ -1185,13 +1186,14 @@ export default function LookPage() {
 
                 {/* Share to look gallery — FIRST so it's visible after the image */}
                 {sharedToGallery ? (() => {
-                  const postedName = authSession?.user?.email?.split("@")[0] ?? shareNameInput.trim();
+                  const meta = (authSession?.user as any)?.user_metadata ?? {};
+                  const postedName = meta.username ?? meta.full_name ?? authSession?.user?.email?.split("@")[0] ?? shareNameInput.trim();
                   const profileSlug = postedName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
                   return (
                     <div className="grid gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
                       <p className="text-center text-sm font-black text-emerald-700">✓ Posted to the look gallery!</p>
                       {profileSlug && (
-                        <a href={`/u/${profileSlug}`}
+                        <a href={`/${profileSlug}`}
                           className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 text-sm font-black text-white active:opacity-80">
                           View your gallery →
                         </a>
@@ -1203,7 +1205,7 @@ export default function LookPage() {
                     <p className="text-sm font-black text-cobalt">📸 Post to look gallery</p>
                     {authSession ? (
                       <p className="text-[11px] font-bold text-ink/50">
-                        Posting as <span className="text-ink/70">{authSession.user.email?.split("@")[0] ?? "you"}</span>
+                        Posting as <span className="text-ink/70">{(authSession.user as any).user_metadata?.username ?? (authSession.user as any).user_metadata?.full_name ?? authSession.user.email?.split("@")[0] ?? "you"}</span>
                       </p>
                     ) : (
                       <>
@@ -1221,7 +1223,8 @@ export default function LookPage() {
                       type="button"
                       disabled={isSharing}
                       onClick={() => {
-                        const name = authSession?.user?.email?.split("@")[0] ?? shareNameInput.trim();
+                        const meta = (authSession?.user as any)?.user_metadata ?? {};
+                        const name = meta.username ?? meta.full_name ?? authSession?.user?.email?.split("@")[0] ?? shareNameInput.trim();
                         void shareToGallery(name);
                       }}
                       className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-cobalt text-sm font-black text-white disabled:opacity-50 active:scale-95 transition-transform"
