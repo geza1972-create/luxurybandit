@@ -1386,7 +1386,7 @@ function StoresPage() {
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => { setCommunitySelectedIndex(itemIdx); setTypeFilter("community"); }}
+                      onClick={() => router.push(`/post/${item.id}`)}
                       className="relative aspect-square overflow-hidden bg-black/5 transition-opacity active:opacity-80"
                     >
                       <Image
