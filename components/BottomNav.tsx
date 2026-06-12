@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
-const SHOW_ON = ["/try-this-look", "/stores", "/entdecken"];
+const SHOW_ON = ["/try-this-look", "/stores", "/entdecken", "/messages"];
 
 type Tab = "home" | "community" | "saved" | "messages" | "account";
 
@@ -19,6 +19,7 @@ function getActiveTab(pathname: string): Tab {
     } catch { /**/ }
   }
   if (pathname === "/seller/dashboard") return "account";
+  if (pathname === "/messages") return "messages";
   return "home";
 }
 
@@ -61,7 +62,7 @@ export default function BottomNav() {
   }, []);
 
   const showOn = [...SHOW_ON, "/seller/dashboard"];
-  if (!showOn.includes(pathname)) return null;
+  if (!showOn.some(p => pathname === p || pathname.startsWith(p + "/"))) return null;
 
   const go = (tab: Tab, href: string) => {
     setActive(tab);
@@ -112,7 +113,7 @@ export default function BottomNav() {
         {/* Messages */}
         <button
           type="button"
-          onClick={() => { go("messages", "/seller/dashboard"); setTimeout(() => { document.getElementById("messages")?.scrollIntoView({ behavior: "smooth" }); }, 400); }}
+          onClick={() => go("messages", "/messages")}
           className={btn("messages")}
         >
           <span className="relative">

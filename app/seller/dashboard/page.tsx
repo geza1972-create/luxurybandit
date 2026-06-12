@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import {
   Loader2, Plus, Pencil, Trash2, Sparkles, Lock,
   CheckCircle2, ImagePlus, X, User, ChevronDown,
-  LogOut, KeyRound, Phone, Mail
+  LogOut, KeyRound, Phone, Mail, MessageCircle
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -610,44 +610,22 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
           )}
         </section>
 
-        {/* Messages inbox */}
-        <section className="rounded-2xl border border-black/8 bg-white overflow-hidden" id="messages">
-          <div className="px-4 py-3 border-b border-black/6 flex items-center justify-between">
-            <p className="text-xs font-black uppercase tracking-widest text-black/30">Messages</p>
-            {messages.filter(m => !m.readAt).length > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-black px-1.5 text-[10px] font-black text-white">
-                {messages.filter(m => !m.readAt).length}
-              </span>
-            )}
+        {/* Messages link */}
+        <a href="/messages"
+          className="flex h-12 items-center justify-between rounded-2xl border border-black/8 bg-white px-4">
+          <div className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-black/40" />
+            <span className="text-sm font-black text-black">Messages</span>
           </div>
-          {messagesLoading ? (
-            <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-black/20" /></div>
-          ) : messages.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm font-bold text-black/30">No messages yet.</p>
-          ) : (
-            <div className="divide-y divide-black/5">
-              {messages.map(m => (
-                <div key={m.id} className={`px-4 py-3 ${!m.readAt ? "bg-black/[0.02]" : ""}`}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="h-8 w-8 shrink-0 rounded-full bg-black grid place-items-center text-white text-xs font-black">
-                        {(m.fromName || "?")[0].toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-black text-black truncate">{m.fromName}</p>
-                        <p className="text-[10px] text-black/40">@{m.fromUsername}</p>
-                      </div>
-                    </div>
-                    <p className="shrink-0 text-[10px] text-black/30">
-                      {new Date(m.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </p>
-                  </div>
-                  <p className="mt-2 text-sm text-black/70 leading-relaxed">{m.text}</p>
-                </div>
-              ))}
-            </div>
+          {messages.filter(m => !m.readAt).length > 0 && (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-black px-1.5 text-[10px] font-black text-white">
+              {messages.filter(m => !m.readAt).length}
+            </span>
           )}
-        </section>
+          {messages.filter(m => !m.readAt).length === 0 && (
+            <span className="text-sm text-black/30">→</span>
+          )}
+        </a>
 
         {/* Try-on gallery */}
         <section className="rounded-2xl border border-black/8 bg-white overflow-hidden">
