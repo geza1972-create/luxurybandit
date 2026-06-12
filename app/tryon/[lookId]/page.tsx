@@ -261,6 +261,23 @@ export default function TryonPage() {
   const garmentPreviewUrl = look.garmentFrontImageUrl ?? look.frontImageUrl ?? look.imageUrl;
   const lookBackPath = `/look/${look.id}`;
 
+  // Fallback chain: garmentFrontImageUrl → frontImageUrl → imageUrl → galleryImageUrls[0]
+  const garmentFallbacks = [
+    look.frontImageUrl,
+    look.imageUrl,
+    ...(look.galleryImageUrls ?? []),
+  ].filter((u): u is string => !!u);
+
+  const onGarmentError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const el = e.currentTarget;
+    const tried = el.dataset.tried ? parseInt(el.dataset.tried) : 0;
+    const next = garmentFallbacks[tried];
+    if (next && el.src !== next) {
+      el.dataset.tried = String(tried + 1);
+      el.src = next;
+    }
+  };
+
   // ─── CROP STEP ───
   if (step === "crop" && cropSrc) {
     return (
@@ -283,7 +300,7 @@ export default function TryonPage() {
         <div className="flex items-center gap-4 w-full max-w-xs">
           <div className="flex-1 aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/30 bg-white">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-contain" />
+            <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-contain" onError={onGarmentError} />
           </div>
           <ArrowRight className="h-8 w-8 text-white/60 shrink-0" />
           <div className="flex-1 aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/30 relative">
@@ -380,7 +397,8 @@ export default function TryonPage() {
         </div>
 
         {/* Content */}
-        <div className="relative z-10 flex flex-col min-h-screen px-5 pt-14 pb-8 gap-6 justify-end">
+        <div className="relative z-10 flex flex-col min-h-screen px-5 pt-14 gap-6 justify-end"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 5rem)" }}>
           {/* Back */}
           <button onClick={() => setStep("upload")}
             className="absolute top-12 left-4 grid h-10 w-10 place-items-center rounded-full bg-black/30 text-white">
@@ -391,14 +409,7 @@ export default function TryonPage() {
           <div className="flex items-center gap-4">
             <div className="flex-1 aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/60 bg-white shadow-2xl">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-contain"
-                onError={e => {
-                  const el = e.currentTarget;
-                  const fallbacks = [look.frontImageUrl, look.imageUrl].filter(Boolean) as string[];
-                  const next = fallbacks.find(f => f !== el.src);
-                  if (next) el.src = next;
-                }}
-              />
+              <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-contain" onError={onGarmentError} />
             </div>
             <ArrowRight className="h-8 w-8 text-white drop-shadow-lg shrink-0" />
             <div className="flex-1 aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/30 shadow-2xl">
@@ -473,7 +484,7 @@ export default function TryonPage() {
         {/* Look image */}
         <div className="w-48 aspect-[3/4] rounded-2xl overflow-hidden border border-black/10 shadow-lg bg-white">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-contain" />
+          <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-contain" onError={onGarmentError} />
         </div>
 
         {/* Instructions */}
