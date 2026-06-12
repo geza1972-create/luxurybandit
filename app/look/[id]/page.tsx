@@ -1040,19 +1040,14 @@ export default function LookPage() {
             {/* Try This Look */}
             {!isSoldOut && (
               <>
-                <button type="button" onClick={() => fileInputRef.current?.click()}
+                <button type="button" onClick={() => router.push(`/tryon/${look.id}`)}
                   className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
                   <Sparkles strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
                   <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Try-on</span>
                 </button>
                 {savedModelMeta && (
                   <button type="button"
-                    onClick={() => {
-                      try {
-                        const img = sessionStorage.getItem("lb_model_image");
-                        if (img) { setUserPhoto(img); setResultImage(null); setSharedToGallery(false); setTryConfirming(true); }
-                      } catch { /**/ }
-                    }}
+                    onClick={() => router.push(`/tryon/${look.id}`)}
                     className="text-[10px] font-black text-amber-300 [text-shadow:0_1px_3px_#000] underline underline-offset-2 text-center leading-tight max-w-[52px]">
                     ✨ Foto nutzen
                   </button>
@@ -1178,7 +1173,7 @@ export default function LookPage() {
                           <MessageCircle className="h-5 w-5" />
                           Express Interest
                         </button>
-                        <button type="button" onClick={() => { setShowSheet(false); setPanel(1); }}
+                        <button type="button" onClick={() => { setShowSheet(false); router.push(`/tryon/${look.id}`); }}
                           className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-black/10 bg-black/5 text-sm font-black text-black active:scale-95 transition-transform">
                           <Sparkles className="h-4 w-4" />
                           Try This Look
