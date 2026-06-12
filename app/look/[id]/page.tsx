@@ -1482,10 +1482,13 @@ export default function LookPage() {
                   try { localStorage.setItem("lb_gen_likes", JSON.stringify(next)); } catch { /**/ }
                 };
                 const handleGenShare = async () => {
+                  const postUrl = typeof window !== "undefined"
+                    ? `${window.location.origin}/post/${ul.id}`
+                    : `/post/${ul.id}`;
                   const shareData: ShareData = {
                     title: look?.name ?? "LuxuryBandit Look",
                     text: `${ul.customerName ? ul.customerName + " is wearing " : ""}${look?.name ?? "this look"} — LuxuryBandit`,
-                    url: lookUrl
+                    url: postUrl
                   };
                   if (navigator.share) {
                     try { await navigator.share(shareData); } catch { /**/ }
@@ -1516,10 +1519,21 @@ export default function LookPage() {
                       </div>
                     </div>
 
-                    {/* Name */}
-                    {ul.customerName && (
-                      <p className="text-center text-xs font-black text-ink/60">{ul.customerName}</p>
-                    )}
+                    {/* Creator row */}
+                    {ul.customerName && (() => {
+                      const slug = ul.customerName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+                      return (
+                        <a href={`/u/${slug}`} className="flex items-center gap-2 px-1 active:opacity-70">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(ul.customerName)}&backgroundColor=000000&fontColor=ffffff&fontSize=40`}
+                            alt={ul.customerName} className="h-7 w-7 shrink-0 rounded-full object-cover" />
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-black text-ink">{ul.customerName}</p>
+                            <p className="text-[10px] font-bold text-ink/40">{new Date(ul.createdAt).toLocaleDateString("de-AT", { day: "numeric", month: "short" })}</p>
+                          </div>
+                        </a>
+                      );
+                    })()}
 
                     {/* Social bar */}
                     <div className="flex items-center gap-1.5 border-t border-black/5 pt-2">

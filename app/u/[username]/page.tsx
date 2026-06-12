@@ -350,6 +350,21 @@ export default function UserGalleryPage() {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto overscroll-contain p-4">
+            {/* Creator row */}
+            <a href={`/u/${username}`} className="flex items-center gap-2.5 mb-4 active:opacity-70">
+              <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-black/5 border border-black/8">
+                {avatarUrl
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
+                  // eslint-disable-next-line @next/next/no-img-element
+                  : <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(displayName)}&backgroundColor=000000&fontColor=ffffff&fontSize=40`} alt={displayName} className="h-full w-full object-cover" />
+                }
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-black text-black">{displayName}</p>
+                <p className="text-[10px] font-bold text-black/40">Creator · {new Date(selected.createdAt).toLocaleDateString("de-AT", { day: "numeric", month: "short" })}</p>
+              </div>
+            </a>
             <div className="grid grid-cols-2 gap-3">
               {selected.userPhotoUrl && (
                 <div className="grid gap-1">
@@ -385,7 +400,7 @@ export default function UserGalleryPage() {
               </span>
               <button type="button"
                 onClick={async () => {
-                  const url = `${window.location.origin}/look/${selected.lookId}`;
+                  const url = `${window.location.origin}/post/${selected.id}`;
                   if (navigator.share) { try { await navigator.share({ title: selected.lookName, url }); } catch { /**/ } }
                   else { try { await navigator.clipboard.writeText(url); } catch { /**/ } }
                 }}
