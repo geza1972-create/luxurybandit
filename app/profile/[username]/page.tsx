@@ -4,6 +4,7 @@ import { Globe, Instagram, MessageCircle, Loader2, X, Send, Store } from "lucide
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 
 type ProfileData = {
   userId: string;
@@ -30,6 +31,25 @@ export default function PublicProfilePage() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [msgErr, setMsgErr] = useState("");
+
+  // Lock body scroll when message modal is open (iOS fix)
+  useEffect(() => {
+    if (!showMsg) return;
+    const y = window.scrollY;
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${y}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.overscrollBehavior = "none";
+    return () => {
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.overscrollBehavior = "";
+      window.scrollTo(0, y);
+    };
+  }, [showMsg]);
 
   const session = getStoredAuthSession();
 
@@ -172,7 +192,7 @@ export default function PublicProfilePage() {
       {/* Send message modal */}
       {showMsg && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm px-4 pb-6">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl overflow-y-auto overscroll-contain" style={{ maxHeight: "90dvh" }}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-black text-black">Message @{profile.username}</h2>
               <button type="button" onClick={() => { setShowMsg(false); setSent(false); setMsgErr(""); }}

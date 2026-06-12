@@ -9,6 +9,7 @@ import {
   signOut,
   signUpWithPassword,
 } from "@/lib/supabase-auth-client";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 import { Bookmark, Heart, Home, Image as ImageIcon, Instagram, Loader2, LogOut, MessageCircle, Search, Send, ShoppingBag, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -357,6 +358,7 @@ function CommunityDetailView({
 
 // ── Merkliste panel (standalone full-screen saved products) ─────────────────
 function MerklistePanel({ onClose }: { onClose: () => void }) {
+  useScrollLock();
   const [bookmarks, setBookmarks] = useState<string[]>([]);
   const [looks, setLooks] = useState<Look[]>([]);
   const [loading, setLoading] = useState(true);
@@ -523,6 +525,7 @@ function SavedLooksList({ defaultOpen = false }: { defaultOpen?: boolean }) {
 
 // ── User panel ───────────────────────────────────────────────────────────────
 function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSaved?: boolean }) {
+  useScrollLock();
   const [session, setSession] = useState(() => {
     try { return getStoredAuthSession(); } catch { return null; }
   });
@@ -578,7 +581,7 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="w-full max-w-lg rounded-t-2xl bg-white px-5 pt-5 pb-24 shadow-2xl overflow-y-auto" style={{ maxHeight: "90dvh" }}>
+      <div className="w-full max-w-lg rounded-t-2xl bg-white px-5 pt-5 pb-24 shadow-2xl overflow-y-auto overscroll-contain" style={{ maxHeight: "90dvh" }}>
 
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">

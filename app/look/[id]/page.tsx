@@ -11,6 +11,7 @@ import {
   signUpWithPassword,
   type SupabaseAuthSession,
 } from "@/lib/supabase-auth-client";
+import { useScrollLock } from "@/lib/use-scroll-lock";
 import { useParams, useRouter } from "next/navigation";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import {
@@ -299,6 +300,25 @@ export default function LookPage() {
   const [authSession, setAuthSession] = useState<SupabaseAuthSession | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [kbOffset, setKbOffset] = useState(0); // keyboard push-up offset
+
+  // Lock body scroll when auth modal is open (prevents iOS background scroll)
+  useEffect(() => {
+    if (!showAuthModal) return;
+    const y = window.scrollY;
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${y}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.overscrollBehavior = "none";
+    return () => {
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.overscrollBehavior = "";
+      window.scrollTo(0, y);
+    };
+  }, [showAuthModal]);
 
   // Push auth sheet above keyboard on iOS (visualViewport shrinks when keyboard opens)
   useEffect(() => {
@@ -1538,6 +1558,7 @@ export default function LookPage() {
               paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))",
               maxHeight: "min(96svh, 96vh)",
               overflowY: "auto",
+              overscrollBehavior: "contain",
               marginBottom: kbOffset > 0 ? `${kbOffset}px` : undefined,
               transition: "margin-bottom 0.2s ease",
             }}>
