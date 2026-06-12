@@ -375,16 +375,29 @@ export default function LookPage() {
       .then(r => r.json())
       .then((p: Payload) => {
         const all = p.looks ?? [];
-        const slug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-        // Support both raw ID (look-xxxx) and human-readable name slug
-        const current = all.find(l => l.id === lookId || slug(l.name) === lookId) ?? null;
+        const toSlug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+        // New URL format: "readable-slug--look-id" — extract ID after double dash
+        // Also support legacy: raw ID or plain name slug
+        const extractId = (param: string) => {
+          const ddIdx = param.lastIndexOf("--");
+          return ddIdx >= 0 ? param.slice(ddIdx + 2) : param;
+        };
+        const resolvedId = extractId(lookId);
+        const current = all.find(l =>
+          l.id === resolvedId ||          // new format: ID extracted from slug
+          l.id === lookId ||              // legacy: raw ID
+          toSlug(l.name) === lookId       // legacy: plain name slug
+        ) ?? null;
         setLook(current);
         setAllLooks(all);
-        const idx = all.findIndex(l => l.id === lookId || slug(l.name) === lookId);
+        const idx = all.findIndex(l =>
+          l.id === resolvedId || l.id === lookId || toSlug(l.name) === lookId
+        );
         setCurrentIdx(idx >= 0 ? idx : 0);
-        // Canonicalise URL to the human-readable slug
+        // Canonicalise URL to new slug--id format
         if (current) {
-          const canonical = slug(current.name) || current.id;
+          const s = toSlug(current.name);
+          const canonical = s ? `${s}--${current.id}` : current.id;
           if (canonical !== lookId) window.history.replaceState(null, "", `/look/${canonical}`);
         }
       })

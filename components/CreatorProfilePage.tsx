@@ -180,7 +180,7 @@ export default function CreatorProfilePage({ creatorSlug }: { creatorSlug: strin
       const res = await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ toUserId: profile?.userId, toSlug: slug, message: msgText.trim() }),
+        body: JSON.stringify({ toUserId: profile?.userId, text: msgText.trim() }),
       });
       if (res.ok) { setSent(true); setMsgText(""); }
       else setMsgErr("Konnte nicht senden.");
