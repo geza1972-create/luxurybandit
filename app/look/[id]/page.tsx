@@ -1407,10 +1407,24 @@ export default function LookPage() {
 
             {/* Look (left) → arrow → User photo (right) */}
             <div className="flex w-full items-center justify-center gap-3 px-2">
-              {/* The look */}
-              <div className="flex-1 aspect-[3/4] overflow-hidden rounded-2xl border-2 border-white/60 shadow-2xl bg-white">
+              {/* The look — use first gallery image as fallback if garmentUrl is broken */}
+              <div className="flex-1 aspect-[3/4] overflow-hidden rounded-2xl border-2 border-white/60 shadow-2xl bg-white relative">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={garmentUrl} alt={look.name} className="h-full w-full object-contain" />
+                <img
+                  src={garmentUrl || images[0]}
+                  alt={look.name}
+                  className="h-full w-full object-contain"
+                  onError={e => {
+                    const el = e.currentTarget;
+                    // Try gallery images in order until one works
+                    const tried = el.dataset.tried ? parseInt(el.dataset.tried) : 0;
+                    const next = images[tried];
+                    if (next && el.src !== next) {
+                      el.dataset.tried = String(tried + 1);
+                      el.src = next;
+                    }
+                  }}
+                />
               </div>
 
               {/* Arrow */}
