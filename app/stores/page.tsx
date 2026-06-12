@@ -1142,15 +1142,11 @@ function StoresPage() {
                     <div key={item.id} className="flex flex-col">
                       {/* Image */}
                       <button type="button"
-                        onPointerDown={(e) => { (e.currentTarget as any)._startY = e.clientY; }}
-                        onPointerUp={(e) => {
-                          const startY = (e.currentTarget as any)._startY ?? e.clientY;
-                          if (Math.abs(e.clientY - startY) > 12) return;
+                        onClick={() => {
                           if (selectMode) { toggleSelect(item.id); return; }
                           router.push(`/post/${item.id}`);
                         }}
-                        style={{touchAction:"pan-y"}}
-                        className={`relative aspect-square w-full overflow-hidden bg-black/5 transition-opacity block ${
+                        className={`relative aspect-square w-full overflow-hidden bg-black/5 transition-opacity active:opacity-80 block ${
                           selectMode && isSelected ? "opacity-60 ring-2 ring-inset ring-cobalt" : ""
                         }`}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1287,10 +1283,7 @@ function StoresPage() {
                     {/* Image */}
                     <button
                       type="button"
-                      onPointerDown={(e) => { (e.currentTarget as any)._startY = e.clientY; }}
-                      onPointerUp={(e) => {
-                        const startY = (e.currentTarget as any)._startY ?? e.clientY;
-                        if (Math.abs(e.clientY - startY) > 12) return; // was a scroll, not a tap
+                      onClick={() => {
                         if (feedSelectMode) {
                           setSelectedLookIds(prev => {
                             const next = new Set(prev);
@@ -1301,7 +1294,7 @@ function StoresPage() {
                           router.push(lookPath(look.name, look.id));
                         }
                       }}
-                      className="relative aspect-square overflow-hidden bg-black/5 transition-opacity" style={{touchAction:"pan-y"}}
+                      className="relative aspect-square overflow-hidden bg-black/5 transition-opacity active:opacity-80"
                     >
                       {thumb ? (
                         <Image
@@ -1393,14 +1386,8 @@ function StoresPage() {
                     <button
                       key={item.id}
                       type="button"
-                      onPointerDown={(e) => { (e.currentTarget as any)._startY = e.clientY; }}
-                      onPointerUp={(e) => {
-                        const startY = (e.currentTarget as any)._startY ?? e.clientY;
-                        if (Math.abs(e.clientY - startY) > 12) return;
-                        setCommunitySelectedIndex(itemIdx); setTypeFilter("community");
-                      }}
-                      style={{touchAction:"pan-y"}}
-                      className="relative aspect-square overflow-hidden bg-black/5 transition-opacity"
+                      onClick={() => { setCommunitySelectedIndex(itemIdx); setTypeFilter("community"); }}
+                      className="relative aspect-square overflow-hidden bg-black/5 transition-opacity active:opacity-80"
                     >
                       <Image
                         src={item.imageUrl}
