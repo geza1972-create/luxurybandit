@@ -1078,7 +1078,7 @@ export default function LookPage() {
                     key={ul.id}
                     src={ul.imageUrl}
                     alt={ul.customerName}
-                    className="h-14 w-10 rounded-lg object-cover object-top border-2 border-white/70 shadow-lg"
+                    className="h-[84px] w-[60px] rounded-lg object-cover object-top border-2 border-white/70 shadow-lg"
                     style={{ opacity: 1 - i * 0.12 }}
                   />
                 ))}
