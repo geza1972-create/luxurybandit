@@ -237,6 +237,9 @@ function FollowBtn({ storeSlug, storeName }: { storeSlug: string; storeName: str
   );
 }
 
+/** Mounts → locks body scroll; unmounts → restores it. Use conditionally by rendering only when needed. */
+function ScrollLock() { useScrollLock(); return null; }
+
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function LookPage() {
   const params = useParams();
@@ -1390,11 +1393,8 @@ export default function LookPage() {
 
       {/* ── Try-on confirmation / generating overlay ── */}
       {tryConfirming && userPhoto && (
-        <div
-          className="fixed inset-0 z-50 flex flex-col"
-          style={{ touchAction: "none" }}
-          onTouchMove={e => e.preventDefault()}
-        >
+        <div className="fixed inset-0 z-50 flex flex-col">
+          <ScrollLock />
           {/* Blurred photo background */}
           <div className="absolute inset-0 overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
