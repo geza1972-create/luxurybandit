@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChevronLeft, Heart, Send, MessageCircle, UserPlus, UserCheck, Loader2, X, Store } from "lucide-react";
+import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 type Post = {
@@ -295,11 +296,11 @@ export default function PostPage() {
         <p className="text-sm text-black/80 leading-relaxed">
           <a href={`/u/${username}`} className="font-black text-black hover:underline">{displayName}</a>
           {" "}tried on{" "}
-          <a href={`/look/${post.lookId}`} className="font-bold text-black/70 hover:underline">{post.lookName}</a>
+          <a href={lookPath(post.lookName, post.lookId)} className="font-bold text-black/70 hover:underline">{post.lookName}</a>
         </p>
 
         {/* Original look card */}
-        <a href={`/look/${post.lookId}`}
+        <a href={lookPath(post.lookName, post.lookId)}
           className="flex items-center gap-3 rounded-xl border border-black/10 bg-black/[0.02] p-3 hover:bg-black/5 transition active:scale-[0.98]">
           {post.lookThumbUrl && (
             // eslint-disable-next-line @next/next/no-img-element

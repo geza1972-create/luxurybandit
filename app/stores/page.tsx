@@ -10,6 +10,7 @@ import {
   signUpWithPassword,
 } from "@/lib/supabase-auth-client";
 import { useScrollLock } from "@/lib/use-scroll-lock";
+import { lookPath } from "@/lib/look-slug";
 import { Bookmark, Heart, Home, Image as ImageIcon, Instagram, Loader2, LogOut, MessageCircle, Search, Send, ShoppingBag, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -412,7 +413,7 @@ function MerklistePanel({ onClose }: { onClose: () => void }) {
               const img = look.frontImageUrl ?? look.imageUrl;
               return (
                 <div key={look.id} className="flex items-center gap-3 rounded-xl border border-black/8 p-3">
-                  <a href={`/look/${look.id}`} className="flex items-center gap-3 flex-1 min-w-0 active:opacity-70">
+                  <a href={lookPath(look.name, look.id)} className="flex items-center gap-3 flex-1 min-w-0 active:opacity-70">
                     {img && (
                       <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-black/5">
                         <Image src={img} alt={look.name} fill className="object-cover object-top" sizes="48px" />
@@ -496,7 +497,7 @@ function SavedLooksList({ defaultOpen = false }: { defaultOpen?: boolean }) {
                 const img = look.frontImageUrl ?? look.imageUrl;
                 return (
                   <div key={look.id} className="flex items-center gap-3">
-                    <a href={`/look/${look.id}`} className="flex items-center gap-3 flex-1 min-w-0 active:opacity-70">
+                    <a href={lookPath(look.name, look.id)} className="flex items-center gap-3 flex-1 min-w-0 active:opacity-70">
                       {img && (
                         <div className="relative h-12 w-10 shrink-0 overflow-hidden rounded-lg bg-black/5">
                           <Image src={img} alt={look.name} fill className="object-cover" sizes="40px" />
@@ -1297,7 +1298,7 @@ function StoresPage() {
                             return next;
                           });
                         } else {
-                          router.push(`/look/${look.id}`);
+                          router.push(lookPath(look.name, look.id));
                         }
                       }}
                       className="relative aspect-square overflow-hidden bg-black/5 transition-opacity" style={{touchAction:"pan-y"}}

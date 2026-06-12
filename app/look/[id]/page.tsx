@@ -577,7 +577,8 @@ export default function LookPage() {
           setImgIndex(0);
           setImgLoaded(false);
           setShowSheet(false);
-          window.history.replaceState(null, "", `/look/${allLooks[nextIdx].id}`);
+          const _ns = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+          window.history.replaceState(null, "", `/look/${_ns(allLooks[nextIdx].name) || allLooks[nextIdx].id}`);
           if (galleryRef.current) {
             galleryRef.current.style.transition = "none";
             galleryRef.current.style.transform = "translateX(0%)";
@@ -987,7 +988,7 @@ export default function LookPage() {
             <BookmarkBtn lookId={look.id} onAuthRequired={() => setShowAuthModal(true)} />
             {/* Share */}
             <button type="button"
-              onClick={() => navigator.share?.({ title: look.name, url: `${window.location.origin}/look/${look.id}` }).catch(() => {})}
+              onClick={() => navigator.share?.({ title: look.name, url: `${window.location.origin}/look/${look.name.trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||look.id}` }).catch(() => {})}
               className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
               <Send strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
               <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Share</span>
@@ -1238,7 +1239,7 @@ export default function LookPage() {
                     <Download className="h-4 w-4" /> Save
                   </button>
                   <button type="button"
-                    onClick={() => navigator.share?.({ title: look.name, url: `${window.location.origin}/look/${look.id}` }).catch(() => {})}
+                    onClick={() => navigator.share?.({ title: look.name, url: `${window.location.origin}/look/${look.name.trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")||look.id}` }).catch(() => {})}
                     className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-coral text-xs font-black text-white">
                     <Send className="h-4 w-4" /> Share
                   </button>

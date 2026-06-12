@@ -3,6 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { Heart, Loader2, MessageCircle, Image as ImageIcon, Sparkles } from "lucide-react";
+import { lookPath } from "@/lib/look-slug";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -151,7 +152,7 @@ export default function EntdeckenPage() {
                 <div key={look.id} className="flex flex-col">
                   <button
                     type="button"
-                    onClick={() => router.push(`/look/${look.id}`)}
+                    onClick={() => router.push(lookPath(look.name, look.id))}
                     className="relative aspect-square overflow-hidden bg-black/5 active:opacity-80 transition-opacity" style={{touchAction:"manipulation"}}
                   >
                     {thumb ? (

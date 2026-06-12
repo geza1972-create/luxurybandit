@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { lookPath } from "@/lib/look-slug";
 import { ChevronLeft, Heart, Image as ImageIcon, MessageCircle, UserCheck, UserPlus, Loader2 } from "lucide-react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
@@ -192,7 +193,7 @@ export default function StoreGalleryPage() {
               return (
                 <div key={look.id} className="flex flex-col">
                   {/* Image */}
-                  <button type="button" onClick={() => router.push(`/look/${look.id}`)}
+                  <button type="button" onClick={() => router.push(lookPath(look.name, look.id))}
                     className="relative aspect-square overflow-hidden bg-black/5 active:opacity-80 transition-opacity">
                     {thumb ? (
                       <Image src={thumb} alt={look.name} fill
