@@ -104,6 +104,12 @@ export async function signUpWithPassword(
   });
   const session = normalizeSession(payload);
   if (session) {
+    // Fire-and-forget welcome email (non-blocking)
+    fetch("/api/welcome-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, name: displayName ?? "" }),
+    }).catch(() => {});
     return { session: saveAuthSession(session), confirmationRequired: false };
   }
   return { session: null, confirmationRequired: true };
