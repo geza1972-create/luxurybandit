@@ -1,9 +1,9 @@
 "use client";
 
-import { Bookmark, Flame, Home, MessageCircle, User } from "lucide-react";
+import { Bookmark, Flame, Home, MessageCircle, User, X, Store, Image as ImageIcon, Settings, LogOut } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getStoredAuthSession } from "@/lib/supabase-auth-client";
+import { getStoredAuthSession, signOut } from "@/lib/supabase-auth-client";
 
 type Tab = "home" | "community" | "saved" | "messages" | "account";
 
@@ -29,6 +29,7 @@ export default function BottomNav() {
   const [savedCount, setSavedCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [active, setActive] = useState<Tab>("home");
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   useEffect(() => {
     try {
@@ -75,6 +76,7 @@ export default function BottomNav() {
     }`;
 
   return (
+    <>
     <nav
       className="fixed bottom-0 inset-x-0 z-50 border-t border-black/10 bg-white/95 backdrop-blur-md"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
@@ -128,12 +130,95 @@ export default function BottomNav() {
         </button>
 
         {/* Account */}
-        <button type="button" onClick={() => go("account", "/seller/dashboard")} className={btn("account")}>
+        <button type="button" onClick={() => { setActive("account"); setShowProfileMenu(true); }} className={btn("account")}>
           <User className="h-5 w-5" />
           <span className="text-[10px] font-bold">Account</span>
         </button>
 
       </div>
     </nav>
+
+    {/* Profile menu sheet */}
+    {showProfileMenu && (() => {
+      const session = getStoredAuthSession();
+      const meta = (session?.user as any)?.user_metadata ?? {};
+      const username = meta?.username ?? session?.user?.email?.split("@")[0] ?? "";
+      const slug = username.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+      const navigate = (href: string) => {
+        setShowProfileMenu(false);
+        router.push(href);
+      };
+      const handleSignOut = async () => {
+        setShowProfileMenu(false);
+        await signOut();
+        router.push("/stores");
+      };
+
+      return (
+        <>
+          {/* Backdrop */}
+          <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm" onClick={() => setShowProfileMenu(false)} />
+          {/* Sheet */}
+          <div className="fixed inset-x-0 bottom-0 z-[61] rounded-t-2xl bg-white shadow-2xl"
+            style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="h-1 w-10 rounded-full bg-black/15" />
+            </div>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pb-3">
+              <p className="text-base font-black text-black">
+                {session ? ((session.user as any).user_metadata?.full_name ?? session.user.email?.split("@")[0] ?? "Account") : "Account"}
+              </p>
+              <button type="button" onClick={() => setShowProfileMenu(false)}
+                className="grid h-8 w-8 place-items-center rounded-full bg-black/5 text-black/50">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            {/* Menu items */}
+            <div className="grid divide-y divide-black/5">
+              <button type="button" onClick={() => navigate("/stores?panel=account")}
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                <Settings className="h-5 w-5 text-black/50 shrink-0" />
+                <span className="text-sm font-black text-black">Account</span>
+              </button>
+              <button type="button" onClick={() => navigate("/stores?panel=saved")}
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                <Bookmark className="h-5 w-5 text-black/50 shrink-0" />
+                <span className="text-sm font-black text-black">Saved</span>
+              </button>
+              <button type="button" onClick={() => navigate("/seller/dashboard")}
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                <Store className="h-5 w-5 text-black/50 shrink-0" />
+                <span className="text-sm font-black text-black">My Store</span>
+              </button>
+              {slug && (
+                <button type="button" onClick={() => navigate(`/u/${slug}`)}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                  <ImageIcon className="h-5 w-5 text-black/50 shrink-0" />
+                  <span className="text-sm font-black text-black">My try ons</span>
+                </button>
+              )}
+              {session && (
+                <button type="button" onClick={() => void handleSignOut()}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                  <LogOut className="h-5 w-5 text-red-400 shrink-0" />
+                  <span className="text-sm font-black text-red-500">Abmelden</span>
+                </button>
+              )}
+              {!session && (
+                <button type="button" onClick={() => navigate("/stores?panel=account")}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                  <User className="h-5 w-5 text-black/50 shrink-0" />
+                  <span className="text-sm font-black text-black">Anmelden</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </>
+      );
+    })()}
+  </>
   );
 }
