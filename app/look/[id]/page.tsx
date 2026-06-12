@@ -1552,12 +1552,12 @@ export default function LookPage() {
             <div className="grid gap-3">
               <input type="email" value={authEmail} onChange={e => { setAuthEmail(e.target.value); setAuthError(null); }}
                 placeholder="E-Mail" autoComplete="email"
-                className="h-12 w-full rounded-xl border border-black/10 bg-black/3 px-4 text-sm font-bold text-ink placeholder:text-ink/30 outline-none focus:border-cobalt" />
+                className="h-12 w-full rounded-xl border border-black/10 bg-black/[0.03] px-4 text-sm font-bold text-ink placeholder:text-ink/30 outline-none focus:border-black" />
               {authMode !== "forgot" && (
                 <input type="password" value={authPassword} onChange={e => { setAuthPassword(e.target.value); setAuthError(null); }}
                   placeholder="Password" autoComplete={authMode === "signup" ? "new-password" : "current-password"}
                   onKeyDown={e => { if (e.key === "Enter") void handleAuthSubmit(); }}
-                  className="h-12 w-full rounded-xl border border-black/10 bg-black/3 px-4 text-sm font-bold text-ink placeholder:text-ink/30 outline-none focus:border-cobalt" />
+                  className="h-12 w-full rounded-xl border border-black/10 bg-black/[0.03] px-4 text-sm font-bold text-ink placeholder:text-ink/30 outline-none focus:border-black" />
               )}
             </div>
 
@@ -1566,7 +1566,7 @@ export default function LookPage() {
 
             {/* CTA */}
             <button type="button" onClick={() => void handleAuthSubmit()} disabled={authLoading}
-              className="mt-4 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-cobalt text-sm font-black text-white disabled:opacity-50">
+              className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-black text-base font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
               {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {authMode === "login" ? "Sign in" : authMode === "signup" ? "Sign up" : "Send link"}
             </button>
