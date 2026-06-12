@@ -514,7 +514,12 @@ export default function LookPage() {
   };
 
   // ── Touch handler ──
+  // Returns true when any overlay/modal is open — drag must be suppressed then
+  const anyModalOpen = () =>
+    !!cropSrc || tryConfirming || showUserLooks || showComments || showAuthModal || showContact || showInfo || showSheet;
+
   const onPanelTouchStart = (e: React.TouchEvent) => {
+    if (anyModalOpen()) return;
     panelStartX.current = e.touches[0].clientX;
     panelStartY.current = e.touches[0].clientY;
     dragStartX.current = e.touches[0].clientX;
@@ -526,6 +531,7 @@ export default function LookPage() {
   };
 
   const onPanelTouchMove = (e: React.TouchEvent) => {
+    if (anyModalOpen()) return;
     if (panel !== 0 || dragStartX.current === null || dragStartY.current === null) return;
     const dx = e.touches[0].clientX - dragStartX.current;
     const dy = e.touches[0].clientY - dragStartY.current;
@@ -566,6 +572,7 @@ export default function LookPage() {
   };
 
   const onPanelTouchEnd = (e: React.TouchEvent) => {
+    if (anyModalOpen()) { dragStartX.current = null; dragStartY.current = null; return; }
     if (panelStartX.current === null || panelStartY.current === null) return;
     const dx = e.changedTouches[0].clientX - panelStartX.current;
     const dy = e.changedTouches[0].clientY - panelStartY.current;
