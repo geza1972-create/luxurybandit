@@ -81,7 +81,7 @@ export default function Home() {
         ];
 
   return (
-    <main className="min-h-screen bg-[#fbfaf7]">
+    <main className="min-h-screen bg-[#fbfaf7] pb-20">
       <section className="border-b border-black/10 bg-white">
         <div className="mx-auto w-full max-w-[1800px] px-6 py-5">
           <div className="grid gap-4">

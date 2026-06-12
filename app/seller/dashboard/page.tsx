@@ -436,7 +436,7 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
         </div>
       </header>
 
-      <main className="mx-auto max-w-lg px-4 py-6 grid gap-4">
+      <main className="mx-auto max-w-lg px-4 py-6 pb-20 grid gap-4">
 
         {/* Identity */}
         <section className="rounded-2xl border border-black/8 bg-white p-4 flex items-center gap-4">

@@ -1024,7 +1024,7 @@ export default function LookPage() {
           )}
 
           {/* ── Peek bar (always visible) ── */}
-          <div className="absolute inset-x-0 bottom-0 z-20" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+          <div className="absolute inset-x-0 bottom-0 z-20" style={{ paddingBottom: "calc(56px + env(safe-area-inset-bottom))" }}>
             <div className="px-4 pt-4 pb-3">
               <div className="flex items-center gap-2">
                 <button type="button" onClick={() => look.storeSlug ? router.push(`/store/${look.storeSlug}`) : undefined}
