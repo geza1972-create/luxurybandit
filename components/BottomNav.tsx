@@ -148,7 +148,7 @@ export default function BottomNav() {
     {showProfileMenu && (() => {
       const session = getStoredAuthSession();
       const meta = (session?.user as any)?.user_metadata ?? {};
-      const username = meta?.username ?? session?.user?.email?.split("@")[0] ?? "";
+      const username = meta?.username ?? meta?.full_name ?? session?.user?.email?.split("@")[0] ?? "";
       const slug = username.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
       const navigate = (href: string) => {
