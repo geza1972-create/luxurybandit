@@ -17,6 +17,7 @@ function getActiveTab(pathname: string): Tab {
     } catch { /**/ }
   }
   if (pathname === "/seller/dashboard" || pathname === "/user/myaccount") return "account";
+  if (pathname === "/user/mystore") return "account";
   if (pathname === "/messages") return "messages";
   if (pathname.startsWith("/u/") || pathname.startsWith("/profile/") || pathname === "/entdecken") return "community";
   if (pathname.startsWith("/look/") || pathname.startsWith("/store/") || pathname === "/try-this-look") return "home";
@@ -194,12 +195,20 @@ export default function BottomNav() {
                 <Bookmark className="h-5 w-5 text-black/50 shrink-0" />
                 <span className="text-sm font-black text-black">Saved</span>
               </button>
-              {/* My Store → profile/looks page */}
-              {slug && (
-                <button type="button" onClick={() => navigate(`/u/${slug}`)}
+              {/* My Store → /user/mystore (product management) */}
+              {session && (
+                <button type="button" onClick={() => navigate("/user/mystore")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
                   <Store className="h-5 w-5 text-black/50 shrink-0" />
                   <span className="text-sm font-black text-black">My Store</span>
+                </button>
+              )}
+              {/* My try ons → public profile */}
+              {slug && (
+                <button type="button" onClick={() => navigate(`/u/${slug}`)}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                  <ImageIcon className="h-5 w-5 text-black/50 shrink-0" />
+                  <span className="text-sm font-black text-black">My try ons</span>
                 </button>
               )}
               {session && (
