@@ -372,6 +372,10 @@ export default function LookPage() {
 
   useEffect(() => {
     setAccountId(getClientAccountId());
+    // Extract real look ID from slug format "name--look-id"
+    const ddIdx = lookId.lastIndexOf("--");
+    const resolvedLookId = ddIdx >= 0 ? lookId.slice(ddIdx + 2) : lookId;
+
     fetch("/api/try-this-look")
       .then(r => r.json())
       .then((p: Payload) => {
@@ -418,22 +422,22 @@ export default function LookPage() {
         }
       })
       .catch(() => setIsLoading(false));
-    // Load user-generated looks for this look
-    fetch(`/api/try-this-look?lookId=${lookId}&userLooks=1`)
+    // Load user-generated looks for this look (use resolvedLookId — not the slug)
+    fetch(`/api/try-this-look?lookId=${encodeURIComponent(resolvedLookId)}&userLooks=1`)
       .then(r => r.json())
       .then((p: { userLooks?: UserLook[] }) => setUserLooks(p.userLooks ?? []))
       .catch(() => {});
     // Load comments (seed + real)
-    fetch(`/api/try-this-look?lookId=${lookId}&comments=1`)
+    fetch(`/api/try-this-look?lookId=${encodeURIComponent(resolvedLookId)}&comments=1`)
       .then(r => r.json())
       .then((p: { comments?: Comment[] }) => {
         const real = p.comments ?? [];
         // Merge seed + real, deduplicate by id
-        const seeded = seedComments(lookId);
+        const seeded = seedComments(resolvedLookId);
         const all = [...real, ...seeded];
         setComments(all);
       })
-      .catch(() => setComments(seedComments(lookId)));
+      .catch(() => setComments(seedComments(resolvedLookId)));
   }, [lookId]);
 
   // Elapsed timer during generation
