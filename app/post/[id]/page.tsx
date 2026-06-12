@@ -161,13 +161,16 @@ export default function PostPage() {
   };
 
   const handleSend = async () => {
-    if (!session || !post) { router.push("/stores?panel=account"); return; }
+    if (!post) return;
     if (!msgText.trim()) return;
+    // Always get a fresh token at send time
+    const freshSession = getStoredAuthSession();
+    if (!freshSession?.access_token) { router.push("/stores?panel=account"); return; }
     setSending(true); setMsgErr("");
     try {
       const res = await fetch("/api/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${freshSession.access_token}` },
         body: JSON.stringify({
           toUsername: toSlug(post.customerName),
           ...(profile?.userId ? { toUserId: profile.userId } : {}),
@@ -175,11 +178,14 @@ export default function PostPage() {
         }),
       });
       const p = await res.json();
-      if (!res.ok) throw new Error(p.error ?? "Error");
+      if (!res.ok) {
+        if (res.status === 401) { router.push("/stores?panel=account"); return; }
+        throw new Error(p.error ?? "Fehler beim Senden.");
+      }
       setSent(true); setMsgText("");
       setTimeout(() => { setShowMsg(false); setSent(false); }, 2000);
     } catch (e) {
-      setMsgErr(e instanceof Error ? e.message : "Error");
+      setMsgErr(e instanceof Error ? e.message : "Fehler beim Senden.");
     } finally { setSending(false); }
   };
 
@@ -326,8 +332,9 @@ export default function PostPage() {
 
       {/* Message modal */}
       {showMsg && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm px-4 pb-6">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl overscroll-contain" style={{ maxHeight: "80dvh" }}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm px-4"
+          style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
+          <div className="w-full max-w-lg rounded-2xl bg-white p-5 pb-6 shadow-2xl overscroll-contain" style={{ maxHeight: "80dvh" }}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-black text-black">Message {displayName}</h2>
               <button type="button" onClick={() => { setShowMsg(false); setSent(false); setMsgErr(""); }}

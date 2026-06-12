@@ -173,18 +173,27 @@ export default function CreatorProfilePage({ creatorSlug }: { creatorSlug: strin
   };
 
   const handleSendMsg = async () => {
-    if (!msgText.trim() || !session?.access_token) return;
+    if (!msgText.trim()) return;
+    // Fresh token at send time — avoid stale session from render
+    const freshSession = getStoredAuthSession();
+    if (!freshSession?.access_token) { router.push("/stores?panel=account"); return; }
     setSending(true);
     setMsgErr("");
     try {
+      const body: Record<string, string> = { text: msgText.trim() };
+      // Always send username as fallback; add userId only if non-empty
+      body.toUsername = slug;
+      if (profile?.userId) body.toUserId = profile.userId;
       const res = await fetch("/api/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ toUserId: profile?.userId, text: msgText.trim() }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${freshSession.access_token}` },
+        body: JSON.stringify(body),
       });
+      const p = await res.json() as { error?: string };
       if (res.ok) { setSent(true); setMsgText(""); }
-      else setMsgErr("Konnte nicht senden.");
-    } catch { setMsgErr("Konnte nicht senden."); }
+      else if (res.status === 401) { router.push("/stores?panel=account"); return; }
+      else setMsgErr(p.error ?? "Could not send message.");
+    } catch { setMsgErr("Could not send message."); }
     setSending(false);
   };
 
@@ -287,12 +296,12 @@ export default function CreatorProfilePage({ creatorSlug }: { creatorSlug: strin
                 className={`flex-1 h-9 rounded-xl text-sm font-black flex items-center justify-center gap-1.5 transition
                   ${following ? "border-2 border-black/20 text-black" : "bg-black text-white"}`}>
                 {following ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-                {following ? "Gefolgt" : "Folgen"}
+                {following ? "Following" : "Follow"}
               </button>
               <button type="button" onClick={() => { setShowMsg(true); setSent(false); setMsgErr(""); }}
                 className="flex-1 h-9 rounded-xl border-2 border-black/15 text-sm font-black text-black flex items-center justify-center gap-1.5 active:bg-black/5">
                 <MessageCircle className="h-4 w-4" />
-                Nachricht
+                Message
               </button>
             </div>
           </div>
@@ -452,7 +461,7 @@ export default function CreatorProfilePage({ creatorSlug }: { creatorSlug: strin
           <div className="fixed inset-x-0 bottom-0 z-[51] rounded-t-2xl bg-white shadow-2xl px-5 pt-4"
             style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-black">Nachricht an {displayName}</p>
+              <p className="text-sm font-black">Message {displayName}</p>
               <button type="button" onClick={() => setShowMsg(false)}
                 className="grid h-7 w-7 place-items-center rounded-full bg-black/5 text-black/50">
                 <X className="h-3.5 w-3.5" />
@@ -461,20 +470,20 @@ export default function CreatorProfilePage({ creatorSlug }: { creatorSlug: strin
             {sent ? (
               <div className="py-6 text-center">
                 <p className="text-2xl mb-2">✅</p>
-                <p className="text-sm font-black">Nachricht gesendet!</p>
-                <button type="button" onClick={() => setShowMsg(false)} className="mt-4 text-sm font-bold text-black/40">Schließen</button>
+                <p className="text-sm font-black">Message sent!</p>
+                <button type="button" onClick={() => setShowMsg(false)} className="mt-4 text-sm font-bold text-black/40">Close</button>
               </div>
             ) : (
               <>
                 <textarea value={msgText} onChange={e => setMsgText(e.target.value)}
-                  placeholder="Schreib eine Nachricht…" rows={4}
+                  placeholder={`Write to ${displayName}…`} rows={4}
                   className="w-full border border-black/15 rounded-xl p-3 text-sm font-medium resize-none outline-none focus:border-black transition" />
                 {msgErr && <p className="text-red-500 text-xs mt-1">{msgErr}</p>}
                 <button type="button" onClick={() => void handleSendMsg()}
                   disabled={sending || !msgText.trim()}
                   className="mt-3 w-full h-11 rounded-xl bg-black text-white text-sm font-black flex items-center justify-center gap-2 disabled:opacity-40">
                   <Send className="h-4 w-4" />
-                  {sending ? "Wird gesendet…" : "Senden"}
+                  {sending ? "Sending…" : "Send"}
                 </button>
               </>
             )}
