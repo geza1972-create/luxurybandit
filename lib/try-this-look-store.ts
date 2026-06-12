@@ -104,6 +104,19 @@ export type TryThisLookComment = {
   createdAt: string;
 };
 
+export type Message = {
+  id: string;
+  toUserId: string;
+  toUsername: string;
+  fromUserId: string;
+  fromUsername: string;
+  fromName: string;
+  fromEmail?: string;
+  text: string;
+  createdAt: string;
+  readAt?: string;
+};
+
 export type TryThisLookState = {
   activeLookId: string;
   activeLookIds?: string[];
@@ -113,6 +126,7 @@ export type TryThisLookState = {
   leads: TryThisLookLead[];
   generations: TryThisLookGeneration[];
   comments?: TryThisLookComment[];
+  messages?: Message[];
 };
 
 const BUCKET = process.env.SUPABASE_STORAGE_BUCKET ?? "shopcut-images";

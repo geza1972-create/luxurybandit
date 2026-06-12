@@ -1,12 +1,13 @@
 "use client";
 
-import { Bookmark, Flame, Home, User } from "lucide-react";
+import { Bookmark, Flame, Home, MessageCircle, User } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 const SHOW_ON = ["/try-this-look", "/stores", "/entdecken"];
 
-type Tab = "home" | "community" | "saved" | "account";
+type Tab = "home" | "community" | "saved" | "messages" | "account";
 
 function getActiveTab(pathname: string): Tab {
   if (pathname === "/stores") {
@@ -17,6 +18,7 @@ function getActiveTab(pathname: string): Tab {
       if (params.get("tab") === "community") return "community";
     } catch { /**/ }
   }
+  if (pathname === "/seller/dashboard") return "account";
   return "home";
 }
 
@@ -24,6 +26,7 @@ export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const [savedCount, setSavedCount] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const [active, setActive] = useState<Tab>("home");
 
   useEffect(() => {
@@ -37,7 +40,28 @@ export default function BottomNav() {
     setActive(getActiveTab(pathname));
   }, [pathname]);
 
-  if (!SHOW_ON.includes(pathname)) return null;
+  // Poll unread message count for logged-in users
+  useEffect(() => {
+    const fetchUnread = () => {
+      const s = getStoredAuthSession();
+      if (!s?.access_token) return;
+      fetch("/api/messages", { headers: { Authorization: `Bearer ${s.access_token}` } })
+        .then(r => r.ok ? r.json() : null)
+        .then((p: any) => {
+          if (p?.messages) {
+            const count = (p.messages as { readAt?: string }[]).filter(m => !m.readAt).length;
+            setUnreadMessages(count);
+          }
+        })
+        .catch(() => {});
+    };
+    fetchUnread();
+    const iv = setInterval(fetchUnread, 60_000);
+    return () => clearInterval(iv);
+  }, []);
+
+  const showOn = [...SHOW_ON, "/seller/dashboard"];
+  if (!showOn.includes(pathname)) return null;
 
   const go = (tab: Tab, href: string) => {
     setActive(tab);
@@ -54,7 +78,7 @@ export default function BottomNav() {
       className="fixed bottom-0 inset-x-0 z-50 border-t border-black/10 bg-white/95 backdrop-blur-md"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="mx-auto grid max-w-lg grid-cols-4 h-14">
+      <div className="mx-auto grid max-w-lg grid-cols-5 h-14">
 
         {/* Home */}
         <button type="button" onClick={() => go("home", "/stores")} className={btn("home")}>
@@ -85,8 +109,25 @@ export default function BottomNav() {
           <span className="text-[10px] font-bold">Saved</span>
         </button>
 
+        {/* Messages */}
+        <button
+          type="button"
+          onClick={() => { go("messages", "/seller/dashboard"); setTimeout(() => { document.getElementById("messages")?.scrollIntoView({ behavior: "smooth" }); }, 400); }}
+          className={btn("messages")}
+        >
+          <span className="relative">
+            <MessageCircle className="h-5 w-5" />
+            {unreadMessages > 0 && (
+              <span className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[9px] font-black text-white">
+                {unreadMessages > 99 ? "99+" : unreadMessages}
+              </span>
+            )}
+          </span>
+          <span className="text-[10px] font-bold">Messages</span>
+        </button>
+
         {/* Account */}
-        <button type="button" onClick={() => go("account", "/stores?panel=account")} className={btn("account")}>
+        <button type="button" onClick={() => go("account", "/seller/dashboard")} className={btn("account")}>
           <User className="h-5 w-5" />
           <span className="text-[10px] font-bold">Account</span>
         </button>

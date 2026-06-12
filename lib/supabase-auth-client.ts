@@ -113,6 +113,76 @@ export function signOut() {
   saveAuthSession(null);
 }
 
+export type AuthUserFull = {
+  id: string;
+  email?: string;
+  user_metadata?: {
+    username?: string;
+    full_name?: string;
+    phone?: string;
+    address?: string;
+    app?: string;
+    avatar_url?: string;
+    bio?: string;
+    website?: string;
+    instagram?: string;
+    notification_email?: string;
+    whatsapp_number?: string;
+    callmebot_key?: string;
+  };
+};
+
+export async function getAuthUser(accessToken: string): Promise<AuthUserFull> {
+  const { url, anonKey } = getSupabaseAuthConfig();
+  const res = await fetch(`${url}/auth/v1/user`, {
+    headers: { apikey: anonKey, Authorization: `Bearer ${accessToken}` }
+  });
+  if (!res.ok) throw new Error("Could not fetch user.");
+  return await res.json() as AuthUserFull;
+}
+
+export type ProfileUpdate = {
+  displayName?: string;
+  phone?: string;
+  address?: string;
+  bio?: string;
+  website?: string;
+  instagram?: string;
+  notificationEmail?: string;
+  whatsappNumber?: string;
+  callmebotKey?: string;
+  newPassword?: string;
+};
+
+export async function updateUserProfile(accessToken: string, update: ProfileUpdate) {
+  const body: Record<string, unknown> = {};
+  if (update.newPassword) body.password = update.newPassword;
+  const data: Record<string, string> = {};
+  if (update.displayName !== undefined) { data.username = update.displayName; data.full_name = update.displayName; }
+  if (update.phone !== undefined) data.phone = update.phone;
+  if (update.address !== undefined) data.address = update.address;
+  if (update.bio !== undefined) data.bio = update.bio;
+  if (update.website !== undefined) data.website = update.website;
+  if (update.instagram !== undefined) data.instagram = update.instagram;
+  if (update.notificationEmail !== undefined) data.notification_email = update.notificationEmail;
+  if (update.whatsappNumber !== undefined) data.whatsapp_number = update.whatsappNumber;
+  if (update.callmebotKey !== undefined) data.callmebot_key = update.callmebotKey;
+  if (Object.keys(data).length) body.data = data;
+  if (!Object.keys(body).length) return;
+
+  const { url, anonKey } = getSupabaseAuthConfig();
+  const res = await fetch(`${url}/auth/v1/user`, {
+    method: "PUT",
+    headers: { apikey: anonKey, Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const p = await res.json().catch(() => ({})) as { message?: string };
+    throw new Error(p.message ?? "Profile update failed.");
+  }
+  return await res.json();
+}
+
 export async function resetPassword(email: string) {
   await authFetch("/recover", {
     method: "POST",

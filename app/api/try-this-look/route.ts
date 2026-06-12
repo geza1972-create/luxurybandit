@@ -1098,6 +1098,108 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, deleted: toDelete.length });
     }
 
+    // ── User deletes own generation (auth token validated) ──────────────────
+    if (payload.action === "delete-own-generation") {
+      const generationId = String(payload.id ?? "");
+      const accessToken = String(payload.accessToken ?? "");
+      if (!generationId || !accessToken) return NextResponse.json({ error: "id and accessToken required." }, { status: 400 });
+
+      // Verify token + get username from Supabase
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/\/$/, "") ?? "";
+      const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "").trim();
+      const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+        headers: { apikey: anonKey, Authorization: `Bearer ${accessToken}` }
+      });
+      if (!userRes.ok) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+      const userJson = await userRes.json() as { user_metadata?: { username?: string; full_name?: string }; email?: string };
+      const ownerAlias = (userJson.user_metadata?.username ?? userJson.user_metadata?.full_name ?? "").trim();
+      const ownerSlug = ownerAlias.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+      if (!ownerSlug) return NextResponse.json({ error: "No alias set on this account." }, { status: 403 });
+
+      const gen = state.generations.find(g => g.id === generationId);
+      if (!gen) return NextResponse.json({ error: "Not found." }, { status: 404 });
+      const genSlug = String((gen as any).customerName ?? "").trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+      if (genSlug !== ownerSlug) return NextResponse.json({ error: "Not your image." }, { status: 403 });
+
+      state.generations = state.generations.filter(g => g.id !== generationId);
+      await deleteTryThisLookImage(gen.imagePath);
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true });
+    }
+
+    // ── Upload profile avatar (any authenticated user) ────────────────────────
+    if (payload.action === "upload-avatar") {
+      const accessToken = String(payload.accessToken ?? "");
+      const dataUrl = String(payload.dataUrl ?? "");
+      if (!accessToken || !dataUrl) return NextResponse.json({ error: "accessToken and dataUrl required." }, { status: 400 });
+
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/\/$/, "") ?? "";
+      const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "").trim();
+      const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
+
+      const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+        headers: { apikey: anonKey, Authorization: `Bearer ${accessToken}` }
+      });
+      if (!userRes.ok) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+      const { id: userId } = await userRes.json() as { id: string };
+
+      // Upload image to storage
+      const imagePath = await uploadTryThisLookImage("uploads", dataUrl);
+      // Build public URL
+      const bucket = process.env.SUPABASE_STORAGE_BUCKET ?? "shopcut-images";
+      const avatarUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${imagePath}`;
+
+      // Save avatar_url to user_metadata via admin API
+      if (serviceKey) {
+        await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
+          method: "PUT",
+          headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ user_metadata: { avatar_url: avatarUrl } })
+        });
+      }
+      return NextResponse.json({ ok: true, avatarUrl });
+    }
+
+    // ── Self-service store creation (any authenticated user) ─────────────────
+    if (payload.action === "create-own-store") {
+      const accessToken = String(payload.accessToken ?? "");
+      if (!accessToken) return NextResponse.json({ error: "accessToken required." }, { status: 400 });
+
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/\/$/, "") ?? "";
+      const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "").trim();
+      const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+        headers: { apikey: anonKey, Authorization: `Bearer ${accessToken}` }
+      });
+      if (!userRes.ok) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+      const userJson = await userRes.json() as { id: string; email?: string };
+
+      const storeName = String(payload.storeName ?? "").trim();
+      if (!storeName) return NextResponse.json({ error: "storeName required." }, { status: 400 });
+      const storeSlug = storeName.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+
+      // Don't create if they already have a store
+      if ((state.stores ?? []).some(s => (s as any).ownerUserId === userJson.id)) {
+        return NextResponse.json({ error: "You already have a store." }, { status: 409 });
+      }
+      // Don't allow duplicate slug
+      const finalSlug = (state.stores ?? []).some(s => s.slug === storeSlug) ? `${storeSlug}-${Date.now()}` : storeSlug;
+
+      const newStore = {
+        id: `store-${finalSlug}`,
+        name: storeName,
+        slug: finalSlug,
+        ownerUserId: userJson.id,
+        ownerEmail: userJson.email ?? "",
+        aiEnabled: false,
+        aiCreditsUsed: 0,
+        aiCreditsLimit: 0,
+        createdAt: now,
+      };
+      state.stores = [newStore, ...(state.stores ?? [])];
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, store: newStore });
+    }
+
     // ── Update seller AI access + credits (admin only) ──────────────────────
     if (payload.action === "update-seller") {
       const storeSlug = String(payload.storeSlug ?? "").trim();
