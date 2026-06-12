@@ -995,12 +995,17 @@ export default function SellerDashboardPage() {
           </div>
 
           {looks.length === 0 && !showForm && (
-            <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-black/15 py-12 text-center">
-              <ImagePlus className="h-8 w-8 text-black/20" />
-              <p className="text-sm font-black text-black/30">No listings yet</p>
+            <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-black/15 py-14 px-6 text-center">
+              <div className="grid h-16 w-16 place-items-center rounded-2xl bg-black/5 text-3xl">🛍️</div>
+              <div>
+                <p className="text-base font-black text-black">Du hast noch keine eigenen Produkte</p>
+                <p className="mt-1 text-sm font-bold text-black/40 max-w-xs mx-auto leading-relaxed">
+                  Fang an deine Produkte hier zu verkaufen und werde ein Creator auf LuxuryBandit.
+                </p>
+              </div>
               <button type="button" onClick={openCreateForm}
-                className="mt-1 flex h-9 items-center gap-1.5 rounded-xl bg-black px-4 text-xs font-black text-white">
-                <Plus className="h-3.5 w-3.5" /> Add your first listing
+                className="flex h-12 items-center gap-2 rounded-xl bg-black px-6 text-sm font-black text-white active:scale-95 transition-transform">
+                <Plus className="h-4 w-4" /> Erstes Produkt erstellen
               </button>
             </div>
           )}

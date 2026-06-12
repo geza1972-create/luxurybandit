@@ -199,17 +199,16 @@ export async function GET(request: Request) {
           !g.visitorId?.startsWith("admin-") &&
           (g as any).imageUrl &&
           !(g as any).hidden &&
-          // Only real user try-on images (path starts with try-this-look/generations/)
           g.imagePath?.includes("generations/")
         )
-        .slice(0, 100)
+        .slice(0, 40)
         .map(g => {
           const look = lookById.get(g.lookId);
           return {
             id: g.id,
             lookId: g.lookId,
             imageUrl: (g as any).imageUrl ?? "",
-            userPhotoUrl: (g as any).userPhotoUrl ?? undefined,
+            // userPhotoUrl intentionally omitted — not needed for thumbnails, only for /post/[id] detail
             customerName: (g as any).customerName ?? "",
             lookName: g.lookName ?? look?.name ?? "",
             storeName: g.storeName ?? look?.storeName ?? "",
@@ -235,7 +234,7 @@ export async function GET(request: Request) {
           id: g.id,
           lookId: g.lookId,
           imageUrl: (g as any).imageUrl ?? "",
-          userPhotoUrl: (g as any).userPhotoUrl ?? undefined,
+          // userPhotoUrl omitted from list — only needed in /post/[id] detail view
           customerName: (g as any).customerName ?? "",
           lookName: g.lookName ?? look?.name ?? "",
           storeName: g.storeName ?? look?.storeName ?? "",

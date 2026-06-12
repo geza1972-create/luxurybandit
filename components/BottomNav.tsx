@@ -178,7 +178,7 @@ export default function BottomNav() {
             </div>
             {/* Menu items */}
             <div className="grid divide-y divide-black/5">
-              <button type="button" onClick={() => navigate("/stores?panel=account")}
+              <button type="button" onClick={() => slug ? navigate(`/u/${slug}`) : navigate("/stores?panel=account")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
                 <Settings className="h-5 w-5 text-black/50 shrink-0" />
                 <span className="text-sm font-black text-black">Account</span>

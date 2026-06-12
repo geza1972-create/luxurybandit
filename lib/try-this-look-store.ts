@@ -240,16 +240,14 @@ function storesFromLooks(looks: TryThisLookLook[]): TryThisLookStore[] {
   return Array.from(stores.values());
 }
 
+// Single path signing (used for uploads/admin only — not in hot path)
 async function getSignedUrl(path: string) {
   const { url } = getSupabaseConfig();
   const response = await supabaseFetch(`/storage/v1/object/sign/${BUCKET}/${encodeStoragePath(path)}`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ expiresIn: 60 * 60 * 24 })
   });
-
   if (!response.ok) return "";
   const payload = await response.json().catch(() => null);
   const signedUrl = payload?.signedURL || payload?.signedUrl || "";
@@ -257,44 +255,82 @@ async function getSignedUrl(path: string) {
   return signedUrl.startsWith("http") ? signedUrl : `${url}/storage/v1${signedUrl}`;
 }
 
+// Batch signing — one request for all paths (replaces N individual calls)
+async function batchGetSignedUrls(paths: string[]): Promise<Map<string, string>> {
+  const unique = [...new Set(paths.filter(Boolean))];
+  if (unique.length === 0) return new Map();
+  const { url } = getSupabaseConfig();
+  const response = await supabaseFetch(`/storage/v1/object/sign/${BUCKET}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ paths: unique, expiresIn: 60 * 60 * 24 })
+  });
+  if (!response.ok) {
+    // Fallback: individual signing in parallel
+    const entries = await Promise.all(unique.map(async p => [p, await getSignedUrl(p)] as const));
+    return new Map(entries.filter(([, v]) => v));
+  }
+  const items = await response.json().catch(() => []) as { path?: string; signedURL?: string; error?: string | null }[];
+  const map = new Map<string, string>();
+  for (const item of items) {
+    if (!item.path || !item.signedURL || item.error) continue;
+    const signed = item.signedURL.startsWith("http") ? item.signedURL : `${url}/storage/v1${item.signedURL}`;
+    map.set(item.path, signed);
+  }
+  return map;
+}
+
 async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> {
-  const looks = await Promise.all(
-    state.looks.map(async (look) => ({
-      ...look,
-      imageUrl: look.imagePath ? await getSignedUrl(look.imagePath) : look.imageUrl,
-      frontImageUrl: look.frontImagePath ? await getSignedUrl(look.frontImagePath) : look.frontImageUrl,
-      backImageUrl: look.backImagePath ? await getSignedUrl(look.backImagePath) : look.backImageUrl,
-      garmentFrontImageUrl: look.garmentFrontImagePath ? await getSignedUrl(look.garmentFrontImagePath) : look.garmentFrontImageUrl,
-      garmentBackImageUrl: look.garmentBackImagePath ? await getSignedUrl(look.garmentBackImagePath) : look.garmentBackImageUrl,
-      galleryImageUrls: look.galleryImagePaths?.length
-        ? await Promise.all(look.galleryImagePaths.map((path) => getSignedUrl(path)))
-        : look.galleryImageUrls
-    }))
-  );
+  // Collect every path that needs a signed URL in one pass
+  const allPaths: string[] = [];
+  for (const look of state.looks) {
+    if (look.imagePath) allPaths.push(look.imagePath);
+    if (look.frontImagePath) allPaths.push(look.frontImagePath);
+    if ((look as any).backImagePath) allPaths.push((look as any).backImagePath);
+    if ((look as any).garmentFrontImagePath) allPaths.push((look as any).garmentFrontImagePath);
+    if ((look as any).garmentBackImagePath) allPaths.push((look as any).garmentBackImagePath);
+    for (const p of look.galleryImagePaths ?? []) if (p) allPaths.push(p);
+  }
+  for (const gen of state.generations) {
+    if (gen.imagePath) allPaths.push(gen.imagePath);
+    if ((gen as any).userPhotoPath) allPaths.push((gen as any).userPhotoPath);
+  }
+  for (const lead of state.leads ?? []) {
+    if (lead.uploadedPhotoPath) allPaths.push(lead.uploadedPhotoPath);
+  }
 
-  const generations = await Promise.all(
-    state.generations.map(async (generation) => ({
-      ...generation,
-      imageUrl: await getSignedUrl(generation.imagePath),
-      userPhotoUrl: (generation as any).userPhotoPath
-        ? await getSignedUrl((generation as any).userPhotoPath)
-        : undefined,
-    }))
-  );
+  // Single batch request instead of N×2 individual requests
+  const signed = await batchGetSignedUrls(allPaths);
 
-  const leads = await Promise.all(
-    (state.leads ?? []).map(async (lead) => ({
-      ...lead,
-      uploadedPhotoUrl: lead.uploadedPhotoPath ? await getSignedUrl(lead.uploadedPhotoPath) : lead.uploadedPhotoUrl
-    }))
-  );
+  const s = (path: string | undefined, fallback?: string) =>
+    path ? (signed.get(path) ?? fallback ?? "") : (fallback ?? "");
 
-  return {
-    ...state,
-    looks,
-    leads,
-    generations
-  };
+  const looks = state.looks.map(look => ({
+    ...look,
+    imageUrl: s(look.imagePath, look.imageUrl),
+    frontImageUrl: s(look.frontImagePath, look.frontImageUrl),
+    backImageUrl: s((look as any).backImagePath, (look as any).backImageUrl),
+    garmentFrontImageUrl: s((look as any).garmentFrontImagePath, (look as any).garmentFrontImageUrl),
+    garmentBackImageUrl: s((look as any).garmentBackImagePath, (look as any).garmentBackImageUrl),
+    galleryImageUrls: look.galleryImagePaths?.length
+      ? look.galleryImagePaths.map(p => signed.get(p) ?? "").filter(Boolean)
+      : look.galleryImageUrls,
+  }));
+
+  const generations = state.generations.map(gen => ({
+    ...gen,
+    imageUrl: s(gen.imagePath, (gen as any).imageUrl),
+    userPhotoUrl: (gen as any).userPhotoPath
+      ? signed.get((gen as any).userPhotoPath)
+      : undefined,
+  }));
+
+  const leads = (state.leads ?? []).map(lead => ({
+    ...lead,
+    uploadedPhotoUrl: lead.uploadedPhotoPath ? (signed.get(lead.uploadedPhotoPath) ?? lead.uploadedPhotoUrl) : lead.uploadedPhotoUrl,
+  }));
+
+  return { ...state, looks, leads, generations };
 }
 
 export async function readTryThisLookState(): Promise<TryThisLookState> {
