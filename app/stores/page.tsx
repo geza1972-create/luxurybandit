@@ -533,15 +533,22 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [credits, setCredits] = useState<number | null>(null);
+  const [isSeller, setIsSeller] = useState(false);
 
-  // Load credits when signed in
+  // Load credits + check seller status when signed in
   useEffect(() => {
-    if (!session) return;
+    if (!session) { setIsSeller(false); return; }
     fetch("/api/gallery", {
       headers: { "x-shopcut-account-id": `user-${session.user.id}` }
     })
       .then(r => r.json())
       .then((p: any) => { if (typeof p.credits === "number") setCredits(p.credits); })
+      .catch(() => {});
+    // Check if this user is a seller
+    fetch("/api/seller/me", {
+      headers: { Authorization: `Bearer ${session.access_token}` }
+    })
+      .then(r => { if (r.ok) setIsSeller(true); })
       .catch(() => {});
   }, [session]);
 
@@ -626,18 +633,13 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
             <SavedLooksList defaultOpen={openSaved} />
 
             {/* Links */}
-            {session.user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL ? (
-              <>
-                <a href="/admin/looks"
-                  className="flex h-11 items-center justify-center rounded-xl border border-violet-200 bg-violet-50 text-sm font-black text-violet-700">
-                  Admin panel →
-                </a>
-                <a href="/seller/dashboard"
-                  className="flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white text-sm font-black text-ink">
-                  Seller dashboard →
-                </a>
-              </>
-            ) : (
+            {session.user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && (
+              <a href="/admin/looks"
+                className="flex h-11 items-center justify-center rounded-xl border border-violet-200 bg-violet-50 text-sm font-black text-violet-700">
+                Admin panel →
+              </a>
+            )}
+            {isSeller && (
               <a href="/seller/dashboard"
                 className="flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white text-sm font-black text-ink">
                 Seller dashboard →
