@@ -504,8 +504,20 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
           </div>
           <div className="p-4 grid gap-3">
             <div>
-              <label className="mb-1.5 block text-[11px] font-black uppercase tracking-wider text-black/40">Name / Alias</label>
-              <input type="text" value={alias} onChange={e => setAlias(e.target.value)} placeholder="How you appear in the community" maxLength={40} className={field} />
+              <label className="mb-1 block text-[11px] font-black uppercase tracking-wider text-black/40">Username</label>
+              <input type="text" value={alias} onChange={e => setAlias(e.target.value)} placeholder="z.B. gerry" maxLength={40} className={field} />
+              {alias.trim() && (
+                <p className="mt-1.5 text-[11px] font-bold text-black/40">
+                  Dein Profil:{" "}
+                  <a
+                    href={`/u/${alias.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="font-black text-black underline underline-offset-2"
+                  >
+                    luxurybandit.com/u/{alias.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}
+                  </a>
+                </p>
+              )}
             </div>
             <div>
               <label className="mb-1.5 block text-[11px] font-black uppercase tracking-wider text-black/40">Bio</label>
