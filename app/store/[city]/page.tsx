@@ -3,7 +3,8 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { ChevronLeft, Heart, Image as ImageIcon, MessageCircle, UserCheck, UserPlus } from "lucide-react";
+import { ChevronLeft, Heart, Image as ImageIcon, MessageCircle, UserCheck, UserPlus, Loader2 } from "lucide-react";
+import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 type Look = {
   id: string;
@@ -47,27 +48,58 @@ function seedCommentCount(id: string): number {
 }
 
 function FollowBtn({ storeSlug, storeName }: { storeSlug: string; storeName: string }) {
+  const router = useRouter();
   const [following, setFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+
   useEffect(() => {
-    try { setFollowing((JSON.parse(localStorage.getItem("lb_following") ?? "[]") as string[]).includes(storeSlug)); } catch { /**/ }
+    const session = getStoredAuthSession();
+    const headers: Record<string, string> = session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` } : {};
+    fetch(`/api/follow?slug=${encodeURIComponent(storeSlug)}&type=store`, { headers })
+      .then(r => r.ok ? r.json() : { following: false, followerCount: 0 })
+      .then((d: { following: boolean; followerCount: number }) => {
+        setFollowing(d.following);
+        setFollowerCount(d.followerCount);
+      }).catch(() => {});
   }, [storeSlug]);
-  const toggle = () => {
+
+  const toggle = async () => {
+    const session = getStoredAuthSession();
+    if (!session) { router.push("/stores?panel=account"); return; }
+    setLoading(true);
     try {
-      const list = JSON.parse(localStorage.getItem("lb_following") ?? "[]") as string[];
-      const next = following ? list.filter(s => s !== storeSlug) : [...list, storeSlug];
-      localStorage.setItem("lb_following", JSON.stringify(next));
-      setFollowing(!following);
+      const res = await fetch("/api/follow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ slug: storeSlug, type: "store" }),
+      });
+      const d = await res.json() as { following: boolean; followerCount: number };
+      setFollowing(d.following);
+      setFollowerCount(d.followerCount);
     } catch { /**/ }
+    finally { setLoading(false); }
   };
+
   void storeName;
   return (
-    <button type="button" onClick={toggle}
-      className={`flex h-9 items-center gap-1.5 rounded-full px-4 text-xs font-black transition active:scale-95 ${
-        following ? "border border-black/20 bg-white text-black/60" : "bg-black text-white"
-      }`}>
-      {following ? <UserCheck className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />}
-      {following ? "Following" : "Follow"}
-    </button>
+    <div className="flex items-center gap-2">
+      {followerCount > 0 && (
+        <span className="text-xs font-bold text-black/40">{followerCount} followers</span>
+      )}
+      <button type="button" onClick={() => void toggle()} disabled={loading}
+        className={`flex h-9 items-center gap-1.5 rounded-full px-4 text-xs font-black transition active:scale-95 disabled:opacity-50 ${
+          following ? "border border-black/20 bg-white text-black/60" : "bg-black text-white"
+        }`}>
+        {loading
+          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          : following
+            ? <><UserCheck className="h-3.5 w-3.5" />Following</>
+            : <><UserPlus className="h-3.5 w-3.5" />Follow</>
+        }
+      </button>
+    </div>
   );
 }
 

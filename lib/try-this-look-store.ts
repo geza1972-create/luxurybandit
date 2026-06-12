@@ -117,6 +117,14 @@ export type Message = {
   readAt?: string;
 };
 
+export type Follow = {
+  id: string;
+  followerId: string;         // auth user id
+  followeeSlug: string;       // username or storeSlug
+  followeeType: "user" | "store";
+  createdAt: string;
+};
+
 export type TryThisLookState = {
   activeLookId: string;
   activeLookIds?: string[];
@@ -127,6 +135,7 @@ export type TryThisLookState = {
   generations: TryThisLookGeneration[];
   comments?: TryThisLookComment[];
   messages?: Message[];
+  follows?: Follow[];
 };
 
 const BUCKET = process.env.SUPABASE_STORAGE_BUCKET ?? "shopcut-images";
@@ -324,6 +333,8 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     leads: state.leads ?? [],
     generations: state.generations ?? [],
     comments: state.comments ?? [],
+    follows: state.follows ?? [],
+    messages: state.messages ?? [],
   });
 }
 
@@ -338,6 +349,8 @@ async function writeTryThisLookState(state: TryThisLookState) {
     leads: state.leads.map(({ uploadedPhotoUrl, ...lead }) => lead).slice(0, 500),
     generations: state.generations.map(({ imageUrl, ...generation }) => generation).slice(0, 200),
     comments: (state.comments ?? []).slice(0, 500),
+    follows: (state.follows ?? []).slice(0, 5000),
+    messages: (state.messages ?? []).slice(0, 2000),
   };
 
   const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(STATE_PATH)}`, {
