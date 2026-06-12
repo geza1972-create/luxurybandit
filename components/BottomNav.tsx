@@ -16,7 +16,7 @@ function getActiveTab(pathname: string): Tab {
       if (params.get("tab") === "community") return "community";
     } catch { /**/ }
   }
-  if (pathname === "/seller/dashboard") return "account";
+  if (pathname === "/seller/dashboard" || pathname === "/user/myaccount") return "account";
   if (pathname === "/messages") return "messages";
   if (pathname.startsWith("/u/") || pathname.startsWith("/profile/") || pathname === "/entdecken") return "community";
   if (pathname.startsWith("/look/") || pathname.startsWith("/store/") || pathname === "/try-this-look") return "home";
@@ -183,8 +183,8 @@ export default function BottomNav() {
             </div>
             {/* Menu items */}
             <div className="grid divide-y divide-black/5">
-              {/* Account → seller dashboard */}
-              <button type="button" onClick={() => navigate("/seller/dashboard")}
+              {/* Account → /user/myaccount */}
+              <button type="button" onClick={() => navigate("/user/myaccount")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
                 <Settings className="h-5 w-5 text-black/50 shrink-0" />
                 <span className="text-sm font-black text-black">Account</span>

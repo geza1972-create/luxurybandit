@@ -372,7 +372,7 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
       const p = await res.json();
       if (!res.ok) throw new Error(p.error ?? "Error creating store.");
       setStoreSlug(p.store?.slug ?? "");
-      window.location.href = "/seller/dashboard";
+      window.location.href = "/user/myaccount";
     } catch (e) {
       setStoreErr(e instanceof Error ? e.message : "Error.");
     } finally {
@@ -578,7 +578,7 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
           <div className="px-4 py-3 border-b border-black/6 flex items-center justify-between">
             <p className="text-xs font-black uppercase tracking-widest text-black/30">My looks</p>
             {storeSlug && (
-              <a href="/seller/dashboard" className="text-xs font-black text-black underline underline-offset-2">Manage store →</a>
+              <a href="/user/myaccount" className="text-xs font-black text-black underline underline-offset-2">Manage store →</a>
             )}
           </div>
           {storeSlug === null ? (
@@ -590,7 +590,7 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
                 className="text-sm font-black text-black underline underline-offset-2">
                 luxurybandit.com/store/{storeSlug}
               </a>
-              <a href="/seller/dashboard"
+              <a href="/user/myaccount"
                 className="flex h-11 items-center justify-center gap-2 rounded-xl bg-black text-sm font-black text-white active:scale-95 transition-transform">
                 Open seller dashboard →
               </a>

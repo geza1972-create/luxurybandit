@@ -24,6 +24,11 @@ const nextConfig = {
         source: "/try-this-look",
         destination: "/stores",
         permanent: false
+      },
+      {
+        source: "/seller/dashboard",
+        destination: "/user/myaccount",
+        permanent: true
       }
     ];
   },
