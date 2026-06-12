@@ -98,9 +98,13 @@ export async function signUpWithPassword(
     data.username = displayName.trim();
     data.full_name = displayName.trim();
   }
+  const emailRedirectTo =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/auth/confirm`
+      : undefined;
   const payload = await authFetch<Partial<SupabaseAuthSession> & { user?: SupabaseAuthUser }>("/signup", {
     method: "POST",
-    body: JSON.stringify({ email, password, data })
+    body: JSON.stringify({ email, password, data, ...(emailRedirectTo ? { emailRedirectTo } : {}) })
   });
   const session = normalizeSession(payload);
   if (session) {
@@ -190,9 +194,32 @@ export async function updateUserProfile(accessToken: string, update: ProfileUpda
 }
 
 export async function resetPassword(email: string) {
+  const redirectTo =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/auth/reset-password`
+      : undefined;
   await authFetch("/recover", {
     method: "POST",
-    body: JSON.stringify({ email })
+    body: JSON.stringify({ email, ...(redirectTo ? { redirectTo } : {}) })
   });
   // Supabase returns 200 whether the email exists or not (security by design)
+}
+
+/** Called from /auth/reset-password after the user clicks the email link.
+ *  The recovery access_token comes from the URL hash; use it to set a new password. */
+export async function updatePasswordWithToken(accessToken: string, newPassword: string) {
+  const { url, anonKey } = getSupabaseAuthConfig();
+  const res = await fetch(`${url}/auth/v1/user`, {
+    method: "PUT",
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ password: newPassword }),
+  });
+  if (!res.ok) {
+    const p = await res.json().catch(() => ({})) as { message?: string; error_description?: string };
+    throw new Error(p.error_description ?? p.message ?? "Passwort konnte nicht geändert werden.");
+  }
 }

@@ -62,8 +62,13 @@ export default function BottomNav() {
     return () => clearInterval(iv);
   }, []);
 
-  // Hide only on admin and auth-only pages
-  if (pathname.startsWith("/admin") || pathname.startsWith("/seller/login") || pathname.startsWith("/seller/register")) return null;
+  // Hide on admin, auth, and standalone pages
+  if (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/auth/") ||
+    pathname.startsWith("/seller/login") ||
+    pathname.startsWith("/seller/register")
+  ) return null;
 
   const go = (tab: Tab, href: string) => {
     setActive(tab);
