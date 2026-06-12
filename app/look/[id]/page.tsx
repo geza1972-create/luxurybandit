@@ -1038,13 +1038,6 @@ export default function LookPage() {
                   <Sparkles strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
                   <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Try-on</span>
                 </button>
-                <button type="button" onClick={() => userLooks.length > 0 ? setShowUserLooks(true) : undefined}
-                  className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
-                  <ImageIcon strokeWidth={2} className="h-6 w-6 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
-                  <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">
-                    {userLooks.length > 0 ? userLooks.length : "Gallery"}
-                  </span>
-                </button>
                 {savedModelMeta && (
                   <button type="button"
                     onClick={() => {
@@ -1060,6 +1053,34 @@ export default function LookPage() {
               </>
             )}
           </div>
+
+          {/* Left-side community thumbnails — vertical strip */}
+          {userLooks.length > 0 && (
+            <div
+              className="absolute left-2 z-20 flex flex-col items-center gap-1.5"
+              style={{ bottom: "calc(env(safe-area-inset-bottom) + 8rem)" }}
+            >
+              <button
+                type="button"
+                onClick={() => setShowUserLooks(true)}
+                className="flex flex-col items-center gap-1.5"
+              >
+                {userLooks.slice(0, 4).map((ul, i) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={ul.id}
+                    src={ul.imageUrl}
+                    alt={ul.customerName}
+                    className="h-14 w-10 rounded-lg object-cover object-top border-2 border-white/70 shadow-lg"
+                    style={{ opacity: 1 - i * 0.12 }}
+                  />
+                ))}
+                <span className="text-[10px] font-black text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)] mt-0.5">
+                  {userLooks.length > 4 ? `+${userLooks.length - 4} more` : `${userLooks.length} look${userLooks.length !== 1 ? "s" : ""}`}
+                </span>
+              </button>
+            </div>
+          )}
 
           {/* Sold-out overlay */}
           {isSoldOut && (
