@@ -5,8 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
-const SHOW_ON = ["/try-this-look", "/stores", "/entdecken", "/messages"];
-
 type Tab = "home" | "community" | "saved" | "messages" | "account";
 
 function getActiveTab(pathname: string): Tab {
@@ -20,6 +18,8 @@ function getActiveTab(pathname: string): Tab {
   }
   if (pathname === "/seller/dashboard") return "account";
   if (pathname === "/messages") return "messages";
+  if (pathname.startsWith("/u/") || pathname.startsWith("/profile/") || pathname === "/entdecken") return "community";
+  if (pathname.startsWith("/look/") || pathname.startsWith("/store/") || pathname === "/try-this-look") return "home";
   return "home";
 }
 
@@ -61,8 +61,8 @@ export default function BottomNav() {
     return () => clearInterval(iv);
   }, []);
 
-  const showOn = [...SHOW_ON, "/seller/dashboard"];
-  if (!showOn.some(p => pathname === p || pathname.startsWith(p + "/"))) return null;
+  // Hide only on admin and auth-only pages
+  if (pathname.startsWith("/admin") || pathname.startsWith("/seller/login") || pathname.startsWith("/seller/register")) return null;
 
   const go = (tab: Tab, href: string) => {
     setActive(tab);

@@ -29,9 +29,17 @@ async function getUserByToken(token: string) {
   };
 }
 
+async function findUserById(userId: string) {
+  const { url, serviceKey } = getConfig();
+  const res = await fetch(`${url}/auth/v1/admin/users/${userId}`, {
+    headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+  });
+  if (!res.ok) return null;
+  return await res.json() as { id: string; email?: string; user_metadata?: Record<string, string | undefined> };
+}
+
 async function findUserByUsername(username: string) {
   const { url, serviceKey } = getConfig();
-  // Fetch up to 1000 users and find by username slug
   const res = await fetch(`${url}/auth/v1/admin/users?page=1&per_page=1000`, {
     headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
   });
@@ -41,7 +49,11 @@ async function findUserByUsername(username: string) {
   return (
     data.users.find((u) => {
       const meta = u.user_metadata ?? {};
-      return toSlug(meta.username ?? meta.full_name ?? "") === target;
+      // match username, full_name, or display name slug
+      return (
+        toSlug(meta.username ?? "") === target ||
+        toSlug(meta.full_name ?? "") === target
+      );
     }) ?? null
   );
 }
@@ -78,14 +90,17 @@ export async function POST(request: Request) {
   const sender = await getUserByToken(token);
   if (!sender) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
-  const body = await request.json() as { toUsername?: string; text?: string };
+  const body = await request.json() as { toUsername?: string; toUserId?: string; text?: string };
   const toUsername = String(body.toUsername ?? "").trim();
+  const toUserId = String(body.toUserId ?? "").trim();
   const text = String(body.text ?? "").trim().slice(0, 1000);
-  if (!toUsername || !text) {
-    return NextResponse.json({ error: "toUsername and text required." }, { status: 400 });
+  if ((!toUsername && !toUserId) || !text) {
+    return NextResponse.json({ error: "toUsername or toUserId, and text are required." }, { status: 400 });
   }
 
-  const recipient = await findUserByUsername(toUsername);
+  // Prefer direct ID lookup (fast, reliable); fall back to slug scan
+  let recipient = toUserId ? await findUserById(toUserId) : null;
+  if (!recipient && toUsername) recipient = await findUserByUsername(toUsername);
   if (!recipient) return NextResponse.json({ error: "User not found." }, { status: 404 });
   if (recipient.id === sender.id) {
     return NextResponse.json({ error: "Cannot message yourself." }, { status: 400 });

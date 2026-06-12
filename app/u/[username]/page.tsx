@@ -144,7 +144,11 @@ export default function UserGalleryPage() {
       const res = await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ toUsername: username, text: msgText.trim() }),
+        body: JSON.stringify({
+          toUsername: username,
+          ...(profile?.userId ? { toUserId: profile.userId } : {}),
+          text: msgText.trim(),
+        }),
       });
       const p = await res.json();
       if (!res.ok) throw new Error(p.error ?? "Error.");
