@@ -1042,6 +1042,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, customerName: (gen as any).customerName });
     }
 
+    // ── Bulk reassign generations from one customer name to another ──────────
+    if (payload.action === "bulk-reassign-generations") {
+      if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const fromName = String(payload.fromName ?? "").trim();
+      const toName = String(payload.toName ?? "").trim();
+      if (!fromName || !toName) return NextResponse.json({ error: "fromName and toName required." }, { status: 400 });
+      const fromSlug = fromName.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+      let count = 0;
+      for (const g of state.generations) {
+        const name = String((g as any).customerName ?? "").trim();
+        if (name && name.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "") === fromSlug) {
+          (g as any).customerName = toName;
+          count++;
+        }
+      }
+      if (count === 0) return NextResponse.json({ error: `No generations found with customer name matching "${fromName}".` }, { status: 404 });
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, reassigned: count });
+    }
+
     // ── Auth user management (admin only) ────────────────────────────────────
     if (payload.action === "delete-auth-user" || payload.action === "ban-auth-user" || payload.action === "unban-auth-user") {
       if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });

@@ -999,6 +999,22 @@ function CommunityModerationSection({
                   {generation.hidden && <div className="text-amber-600 font-black text-[10px]">HIDDEN</div>}
                 </div>
 
+                {/* Public links */}
+                {!selectMode && (
+                  <div className="flex flex-wrap gap-1">
+                    <a href={`/look/${generation.lookId}`} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex h-6 items-center gap-1 rounded border border-cobalt/25 bg-cobalt/5 px-1.5 text-[10px] font-black text-cobalt hover:bg-cobalt/10 transition">
+                      🔗 Look page
+                    </a>
+                    {generation.imageUrl && (
+                      <a href={generation.imageUrl} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex h-6 items-center gap-1 rounded border border-black/15 bg-white px-1.5 text-[10px] font-black text-ink/50 hover:bg-black/5 transition">
+                        🖼 Image
+                      </a>
+                    )}
+                  </div>
+                )}
+
                 {/* Assign inline form */}
                 {!selectMode && isAssigning && (
                   <div className="grid gap-1.5">

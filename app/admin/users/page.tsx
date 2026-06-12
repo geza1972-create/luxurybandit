@@ -72,6 +72,11 @@ export default function AdminUsersPage() {
   const [deleting, setDeleting] = useState(false);
   const [authWorking, setAuthWorking] = useState<string | null>(null); // userId being acted on
   const [lbOnly, setLbOnly] = useState(true); // hide NutryCoach / other-app users by default
+  // Reassign try-ons
+  const [reassignTargetId, setReassignTargetId] = useState<string | null>(null); // userId of target user
+  const [reassignFromName, setReassignFromName] = useState("");
+  const [reassignWorking, setReassignWorking] = useState(false);
+  const [reassignMsg, setReassignMsg] = useState("");
 
   const loadData = async (adminPin = pin) => {
     setIsLoading(true);
@@ -143,6 +148,27 @@ export default function AdminUsersPage() {
     } finally {
       setAuthWorking(null);
       setConfirmDelete(null);
+    }
+  };
+
+  const handleReassign = async (toUsername: string) => {
+    if (!reassignFromName.trim()) return;
+    setReassignWorking(true); setReassignMsg("");
+    try {
+      const res = await fetch("/api/try-this-look", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
+        body: JSON.stringify({ action: "bulk-reassign-generations", fromName: reassignFromName.trim(), toName: toUsername }),
+      });
+      const p = await res.json();
+      if (!res.ok) throw new Error(p.error ?? "Error.");
+      setReassignMsg(`✓ ${p.reassigned} image${p.reassigned !== 1 ? "s" : ""} reassigned to "${toUsername}"`);
+      setReassignFromName("");
+      setTimeout(() => { setReassignTargetId(null); setReassignMsg(""); }, 3000);
+    } catch (err) {
+      setReassignMsg(err instanceof Error ? err.message : "Error.");
+    } finally {
+      setReassignWorking(false);
     }
   };
 
@@ -310,43 +336,74 @@ export default function AdminUsersPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex shrink-0 items-center gap-2">
-                      {username && (
-                        <a href={`/u/${username}`} target="_blank" rel="noopener noreferrer"
-                          className="inline-flex h-8 items-center gap-1 rounded-md border border-black/10 bg-white px-2.5 text-[11px] font-black text-cobalt hover:bg-cobalt/5 transition">
-                          Profile <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
-
-                      {/* Ban / Unban */}
-                      {isBanned ? (
-                        <button type="button" disabled={isWorking} onClick={() => void authAction("unban-auth-user", u.id)}
-                          className="inline-flex h-8 items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2.5 text-[11px] font-black text-emerald-700 disabled:opacity-50 hover:bg-emerald-100 transition">
-                          {isWorking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Reactivate"}
-                        </button>
-                      ) : (
-                        <button type="button" disabled={isWorking} onClick={() => void authAction("ban-auth-user", u.id)}
-                          className="inline-flex h-8 items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2.5 text-[11px] font-black text-amber-700 disabled:opacity-50 hover:bg-amber-100 transition">
-                          {isWorking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Ban className="h-3 w-3" /> Deactivate</>}
-                        </button>
-                      )}
-
-                      {/* Delete */}
-                      {isConfirmingDelete ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-black text-coral">Delete?</span>
-                          <button type="button" disabled={isWorking} onClick={() => void authAction("delete-auth-user", u.id)}
-                            className="h-7 rounded bg-coral px-2.5 text-[11px] font-black text-white disabled:opacity-50">
-                            {isWorking ? <Loader2 className="h-3 w-3 animate-spin" /> : "Yes"}
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      {/* Row 1: profile + ban + delete */}
+                      <div className="flex items-center gap-2">
+                        {username && (
+                          <a href={`/u/${username}`} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex h-8 items-center gap-1 rounded-md border border-black/10 bg-white px-2.5 text-[11px] font-black text-cobalt hover:bg-cobalt/5 transition">
+                            Profile <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                        {isBanned ? (
+                          <button type="button" disabled={isWorking} onClick={() => void authAction("unban-auth-user", u.id)}
+                            className="inline-flex h-8 items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2.5 text-[11px] font-black text-emerald-700 disabled:opacity-50 hover:bg-emerald-100 transition">
+                            {isWorking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Reactivate"}
                           </button>
-                          <button type="button" onClick={() => setConfirmDelete(null)}
-                            className="h-7 rounded border border-black/10 px-2 text-[11px] font-black text-ink/50">No</button>
-                        </div>
-                      ) : (
-                        <button type="button" onClick={() => setConfirmDelete(u.id)}
-                          className="flex h-8 w-8 items-center justify-center rounded-md border border-black/10 text-ink/30 hover:border-coral/40 hover:text-coral transition">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        ) : (
+                          <button type="button" disabled={isWorking} onClick={() => void authAction("ban-auth-user", u.id)}
+                            className="inline-flex h-8 items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2.5 text-[11px] font-black text-amber-700 disabled:opacity-50 hover:bg-amber-100 transition">
+                            {isWorking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Ban className="h-3 w-3" /> Deactivate</>}
+                          </button>
+                        )}
+                        {isConfirmingDelete ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-black text-coral">Delete?</span>
+                            <button type="button" disabled={isWorking} onClick={() => void authAction("delete-auth-user", u.id)}
+                              className="h-7 rounded bg-coral px-2.5 text-[11px] font-black text-white disabled:opacity-50">
+                              {isWorking ? <Loader2 className="h-3 w-3 animate-spin" /> : "Yes"}
+                            </button>
+                            <button type="button" onClick={() => setConfirmDelete(null)}
+                              className="h-7 rounded border border-black/10 px-2 text-[11px] font-black text-ink/50">No</button>
+                          </div>
+                        ) : (
+                          <button type="button" onClick={() => setConfirmDelete(u.id)}
+                            className="flex h-8 w-8 items-center justify-center rounded-md border border-black/10 text-ink/30 hover:border-coral/40 hover:text-coral transition">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Row 2: reassign try-ons */}
+                      {username && (
+                        reassignTargetId === u.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              autoFocus
+                              type="text"
+                              value={reassignFromName}
+                              onChange={e => setReassignFromName(e.target.value)}
+                              placeholder="From name (e.g. Szidi)"
+                              className="h-8 w-36 rounded-md border border-violet-300 bg-violet-50 px-2.5 text-[11px] font-bold text-ink outline-none focus:border-violet-500"
+                            />
+                            <button type="button" disabled={reassignWorking || !reassignFromName.trim()}
+                              onClick={() => void handleReassign(username)}
+                              className="inline-flex h-8 items-center gap-1 rounded-md bg-violet-600 px-2.5 text-[11px] font-black text-white disabled:opacity-40">
+                              {reassignWorking ? <Loader2 className="h-3 w-3 animate-spin" /> : "Assign"}
+                            </button>
+                            <button type="button" onClick={() => { setReassignTargetId(null); setReassignMsg(""); }}
+                              className="h-8 rounded-md border border-black/10 px-2 text-[11px] font-black text-ink/50">✕</button>
+                            {reassignMsg && (
+                              <span className={`text-[11px] font-bold ${reassignMsg.startsWith("✓") ? "text-emerald-600" : "text-red-500"}`}>{reassignMsg}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <button type="button"
+                            onClick={() => { setReassignTargetId(u.id); setReassignFromName(""); setReassignMsg(""); }}
+                            className="inline-flex h-7 items-center gap-1 rounded-md border border-violet-200 bg-violet-50 px-2.5 text-[10px] font-black text-violet-700 hover:bg-violet-100 transition">
+                            ↙ Assign try-ons
+                          </button>
+                        )
                       )}
                     </div>
                   </div>
