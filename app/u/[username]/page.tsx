@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ChevronLeft, Heart, Image as ImageIcon, Send, MessageCircle, Globe, Instagram, Store, X, Loader2, UserPlus, UserCheck } from "lucide-react";
+import { ChevronLeft, Heart, Image as ImageIcon, Send, MessageCircle, Globe, Instagram, Store, X, Loader2, UserPlus, UserCheck, Plus } from "lucide-react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 type GalleryItem = {
@@ -63,6 +63,14 @@ export default function UserGalleryPage() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [msgErr, setMsgErr] = useState("");
+
+  // Quick-sell
+  const [showQuickSell, setShowQuickSell] = useState(false);
+  const [quickSellFile, setQuickSellFile] = useState<File | null>(null);
+  const [quickSellPreview, setQuickSellPreview] = useState<string | null>(null);
+  const [quickSellPrice, setQuickSellPrice] = useState("");
+  const [quickSellStep, setQuickSellStep] = useState<"idle" | "generating" | "uploading" | "done" | "error">("idle");
+  const [quickSellError, setQuickSellError] = useState("");
   const session = typeof window !== "undefined" ? getStoredAuthSession() : null;
 
   useEffect(() => {
@@ -89,9 +97,69 @@ export default function UserGalleryPage() {
     try { setLikes(JSON.parse(localStorage.getItem("lb_gen_likes") ?? "{}")); } catch { /**/ }
   }, [username]);
 
+  const handleQuickSellImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setQuickSellFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setQuickSellPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const resetQuickSell = () => {
+    setShowQuickSell(false);
+    setQuickSellFile(null);
+    setQuickSellPreview(null);
+    setQuickSellPrice("");
+    setQuickSellStep("idle");
+    setQuickSellError("");
+  };
+
+  const handleQuickSellSubmit = async () => {
+    if (!quickSellFile || !session) return;
+    setQuickSellStep("generating");
+    setQuickSellError("");
+    try {
+      // Step 1: AI generates title + description
+      const descForm = new FormData();
+      descForm.append("image", quickSellFile);
+      const descRes = await fetch("/api/generate-product-description", {
+        method: "POST",
+        body: descForm,
+      });
+      const descData = (await descRes.json()) as { title?: string; description?: string; hashtags?: string };
+      const aiTitle = descData.title || quickSellFile.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
+      const aiDesc = descData.description || "";
+      const aiTags = descData.hashtags || "";
+
+      // Step 2: Create the listing
+      setQuickSellStep("uploading");
+      const uploadForm = new FormData();
+      uploadForm.append("action", "upload-look");
+      uploadForm.append("name", aiTitle);
+      uploadForm.append("price", quickSellPrice || "");
+      uploadForm.append("productNote", aiDesc);
+      uploadForm.append("hashtags", aiTags);
+      uploadForm.append("image", quickSellFile);
+      const uploadRes = await fetch("/api/seller/action", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: uploadForm,
+      });
+      if (!uploadRes.ok) {
+        const err = (await uploadRes.json()) as { error?: string };
+        throw new Error(err.error ?? "Upload fehlgeschlagen.");
+      }
+      setQuickSellStep("done");
+    } catch (e) {
+      setQuickSellError(e instanceof Error ? e.message : "Fehler beim Hochladen.");
+      setQuickSellStep("error");
+    }
+  };
+
   // Scroll lock when modals open
   useEffect(() => {
-    const active = showMsg || !!selected;
+    const active = showMsg || !!selected || showQuickSell;
     if (!active) return;
     const y = window.scrollY;
     document.body.style.position = "fixed";
@@ -226,6 +294,17 @@ export default function UserGalleryPage() {
                 <MessageCircle className="h-4 w-4" />
               </button>
             </>
+          )}
+          {/* Quick-sell "+" button (own profile only) */}
+          {isOwn && (
+            <button
+              type="button"
+              onClick={() => setShowQuickSell(true)}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black text-white active:opacity-75 transition-opacity"
+              title="Produkt verkaufen"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
           )}
           <button type="button" onClick={() => void shareProfile()}
             className="flex h-9 items-center gap-1.5 rounded-full bg-black px-3 text-xs font-black text-white active:opacity-80 transition-opacity">
@@ -410,6 +489,150 @@ export default function UserGalleryPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Quick-sell sheet */}
+      {showQuickSell && isOwn && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-[55] bg-black/40 backdrop-blur-sm"
+            onClick={() => {
+              if (quickSellStep === "idle" || quickSellStep === "error" || quickSellStep === "done") resetQuickSell();
+            }}
+          />
+          {/* Sheet */}
+          <div
+            className="fixed inset-x-0 bottom-0 z-[56] rounded-t-3xl bg-white shadow-2xl"
+            style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+          >
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="h-1 w-10 rounded-full bg-black/15" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 border-b border-black/5">
+              <p className="text-base font-black text-black">⚡ Schnell verkaufen</p>
+              <button
+                type="button"
+                onClick={resetQuickSell}
+                className="grid h-8 w-8 place-items-center rounded-full bg-black/5 text-black/50 active:bg-black/10"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Done state */}
+            {quickSellStep === "done" && (
+              <div className="flex flex-col items-center gap-4 px-5 py-8 text-center">
+                <div className="grid h-16 w-16 place-items-center rounded-2xl bg-emerald-50 text-4xl">✅</div>
+                <p className="text-base font-black text-black">Produkt eingereicht!</p>
+                <p className="text-sm font-bold text-black/50 max-w-xs leading-relaxed">
+                  Dein Produkt ist in der Review. In Kürze wird es auf LuxuryBandit veröffentlicht.
+                </p>
+                <a
+                  href="/seller/dashboard"
+                  className="flex h-12 w-full items-center justify-center rounded-2xl bg-black text-sm font-black text-white active:scale-95 transition-transform"
+                >
+                  Store öffnen
+                </a>
+                <button type="button" onClick={resetQuickSell} className="text-sm font-bold text-black/35">
+                  Schließen
+                </button>
+              </div>
+            )}
+
+            {/* Loading state */}
+            {(quickSellStep === "generating" || quickSellStep === "uploading") && (
+              <div className="flex flex-col items-center gap-5 px-5 py-10 text-center">
+                {quickSellPreview && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={quickSellPreview} alt="Preview" className="h-32 w-32 rounded-2xl object-cover opacity-60" />
+                )}
+                <Loader2 className="h-8 w-8 animate-spin text-black/30" />
+                <p className="text-sm font-black text-black">
+                  {quickSellStep === "generating" ? "KI analysiert dein Produkt…" : "Produkt wird erstellt…"}
+                </p>
+                <p className="text-xs font-bold text-black/35">Einen Moment bitte</p>
+              </div>
+            )}
+
+            {/* Main form */}
+            {(quickSellStep === "idle" || quickSellStep === "error") && (
+              <div className="grid gap-4 px-5 pt-4 pb-2">
+                {/* Image upload area */}
+                <label className="relative flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-black/15 bg-black/[0.02] cursor-pointer overflow-hidden active:bg-black/5 transition-colors min-h-[160px]">
+                  {quickSellPreview ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={quickSellPreview} alt="Preview" className="h-48 w-full rounded-2xl object-contain" />
+                      <p className="text-[10px] font-bold text-black/30 pb-2">Tippe zum Ändern</p>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 py-8 px-6 text-center">
+                      <div className="grid h-14 w-14 place-items-center rounded-2xl bg-black/5 text-2xl">📸</div>
+                      <p className="text-sm font-black text-black">Produktbild hochladen</p>
+                      <p className="text-xs font-bold text-black/40">Tippe hier um ein Bild auszuwählen</p>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    onChange={handleQuickSellImage}
+                  />
+                </label>
+
+                {/* Motivational copy (only before image selection) */}
+                {!quickSellPreview && (
+                  <p className="text-[11px] font-bold text-black/40 text-center leading-relaxed px-2">
+                    Lade ein Produktbild hoch und verkaufe sofort etwas cooles auf LuxuryBandit.
+                    Mach dir keine Sorgen, alles andere erledigt AI wie Titel, Beschreibung.
+                    In einer Minute ist dein Produkt online.
+                  </p>
+                )}
+
+                {/* Price input (show after image is chosen) */}
+                {quickSellPreview && (
+                  <div className="flex items-center gap-3 rounded-2xl border border-black/10 bg-black/[0.02] px-4 py-3">
+                    <span className="text-sm font-black text-black/30">€</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      placeholder="Preis eingeben (optional)"
+                      value={quickSellPrice}
+                      onChange={(e) => setQuickSellPrice(e.target.value)}
+                      className="flex-1 bg-transparent text-sm font-black text-black placeholder:text-black/25 outline-none"
+                    />
+                  </div>
+                )}
+
+                {/* Error */}
+                {quickSellStep === "error" && (
+                  <p className="text-xs font-bold text-red-500 text-center">{quickSellError}</p>
+                )}
+
+                {/* Submit */}
+                <button
+                  type="button"
+                  onClick={() => void handleQuickSellSubmit()}
+                  disabled={!quickSellFile}
+                  className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-black text-base font-black text-white shadow-lg disabled:opacity-25 active:scale-95 transition-transform"
+                >
+                  <span>⚡</span>
+                  {quickSellStep === "error" ? "Nochmal versuchen" : "Jetzt verkaufen"}
+                </button>
+
+                {!quickSellPreview && (
+                  <p className="text-[10px] font-bold text-black/20 text-center pb-1">
+                    Erst ein Bild hochladen
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* Message modal */}

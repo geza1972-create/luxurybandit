@@ -24,7 +24,28 @@ export async function POST(request: Request) {
   const action = String(formData.get("action") ?? "").trim();
 
   const state = await readTryThisLookState();
-  const store = (state.stores ?? []).find((s) => s.ownerUserId === user.id);
+  let store = (state.stores ?? []).find((s) => s.ownerUserId === user.id);
+
+  // Auto-create a store on first product upload so users can sell without
+  // going through the full seller registration flow first.
+  if (!store && action === "upload-look") {
+    const nameBase = user.email?.split("@")[0] ?? "creator";
+    const storeName = nameBase.charAt(0).toUpperCase() + nameBase.slice(1);
+    const storeSlug =
+      nameBase.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32) +
+      "-" + Date.now().toString(36);
+    store = {
+      id: `store-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+      name: storeName,
+      slug: storeSlug,
+      ownerUserId: user.id,
+      email: user.email ?? "",
+      address: "",
+      createdAt: now,
+    } as (typeof state.stores)[number];
+    state.stores = [store, ...(state.stores ?? [])];
+  }
+
   if (!store) {
     return NextResponse.json({ error: "No store found for this account." }, { status: 404 });
   }
