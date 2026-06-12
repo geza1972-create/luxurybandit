@@ -1187,7 +1187,17 @@ export default function LookPage() {
 
             {/* Error */}
             {tryOnError && (
-              <div className="rounded-xl border border-coral/25 bg-coral/10 p-4 text-sm font-black text-coral">{tryOnError}</div>
+              <div className="rounded-xl border border-coral/25 bg-coral/10 p-4 text-sm text-coral space-y-2">
+                <p className="font-black">{tryOnError}</p>
+                {tryOnError.toLowerCase().includes("rejected") && (
+                  <ul className="text-xs font-bold text-coral/80 space-y-0.5 list-disc pl-4">
+                    <li>Use a clear full-body or upper-body photo</li>
+                    <li>Good lighting, face clearly visible</li>
+                    <li>No heavy filters or cropped faces</li>
+                    <li>JPG or PNG, not a screenshot</li>
+                  </ul>
+                )}
+              </div>
             )}
 
             {/* Result */}
@@ -1354,7 +1364,11 @@ export default function LookPage() {
 
       {/* ── Try-on confirmation / generating overlay ── */}
       {tryConfirming && userPhoto && (
-        <div className="fixed inset-0 z-50 flex flex-col">
+        <div
+          className="fixed inset-0 z-50 flex flex-col"
+          style={{ touchAction: "none" }}
+          onTouchMove={e => e.preventDefault()}
+        >
           {/* Blurred photo background */}
           <div className="absolute inset-0 overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1368,9 +1382,9 @@ export default function LookPage() {
             {/* Look (left) → arrow → User photo (right) */}
             <div className="flex w-full items-center justify-center gap-3 px-2">
               {/* The look */}
-              <div className="flex-1 aspect-[3/4] overflow-hidden rounded-2xl border-2 border-white/30 shadow-2xl">
+              <div className="flex-1 aspect-[3/4] overflow-hidden rounded-2xl border-2 border-white/60 shadow-2xl bg-white">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={garmentUrl} alt={look.name} className="h-full w-full object-cover object-top" />
+                <img src={garmentUrl} alt={look.name} className="h-full w-full object-contain" />
               </div>
 
               {/* Arrow */}

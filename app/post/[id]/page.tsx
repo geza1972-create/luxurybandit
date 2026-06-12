@@ -180,12 +180,12 @@ export default function PostPage() {
       const p = await res.json();
       if (!res.ok) {
         if (res.status === 401) { router.push("/stores?panel=account"); return; }
-        throw new Error(p.error ?? "Fehler beim Senden.");
+        throw new Error(p.error ?? "Could not send message.");
       }
       setSent(true); setMsgText("");
       setTimeout(() => { setShowMsg(false); setSent(false); }, 2000);
     } catch (e) {
-      setMsgErr(e instanceof Error ? e.message : "Fehler beim Senden.");
+      setMsgErr(e instanceof Error ? e.message : "Could not send message.");
     } finally { setSending(false); }
   };
 

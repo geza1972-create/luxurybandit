@@ -1014,7 +1014,7 @@ function StoresPage() {
             {stores.length > 0 && (
               <div className="text-center">
                 <div className="text-sm font-black text-black leading-none">{stores.length}</div>
-                <div className="text-[10px] font-bold text-black/35 mt-0.5">seller{stores.length !== 1 ? "s" : ""}</div>
+                <div className="text-[10px] font-bold text-black/35 mt-0.5">creator{stores.length !== 1 ? "s" : ""}</div>
               </div>
             )}
             <div className="text-center">
