@@ -9,6 +9,20 @@ import {
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+
+// Build a small thumbnail variant of a Supabase signed/public image URL using
+// Supabase's on-the-fly image transformation (render/image endpoint). If the
+// project has image transformations disabled, the client falls back to the
+// full image via the <img> onError handler, so this is always safe.
+function toThumbUrl(url: string, width = 160): string {
+  if (!url || !url.includes("/storage/v1/")) return url;
+  const rendered = url
+    .replace("/object/sign/", "/render/image/sign/")
+    .replace("/object/public/", "/render/image/public/");
+  if (rendered === url) return url;
+  const sep = rendered.includes("?") ? "&" : "?";
+  return `${rendered}${sep}width=${width}&quality=70&resize=cover`;
+}
 // Allow large JSON bodies for gallery uploads with multiple base64 images
 export const maxDuration = 60;
 
@@ -175,6 +189,7 @@ export async function GET(request: Request) {
           id: g.id,
           lookId: g.lookId,
           imageUrl: (g as any).imageUrl ?? "",
+          thumbUrl: toThumbUrl((g as any).imageUrl ?? ""),
           userPhotoUrl: (g as any).userPhotoUrl ?? undefined,
           customerName: (g as any).customerName ?? "",
           createdAt: g.createdAt,
@@ -222,6 +237,7 @@ export async function GET(request: Request) {
             id: g.id,
             lookId: g.lookId,
             imageUrl: (g as any).imageUrl ?? "",
+            thumbUrl: toThumbUrl((g as any).imageUrl ?? ""),
             // userPhotoUrl intentionally omitted — not needed for thumbnails, only for /post/[id] detail
             customerName: (g as any).customerName ?? "",
             lookName: g.lookName ?? look?.name ?? "",

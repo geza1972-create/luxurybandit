@@ -67,6 +67,7 @@ type CommunityItem = {
   id: string;
   lookId: string;
   imageUrl: string;
+  thumbUrl?: string;
   userPhotoUrl?: string;
   customerName: string;
   lookName: string;
@@ -1158,7 +1159,9 @@ function StoresPage() {
                           selectMode && isSelected ? "opacity-60 ring-2 ring-inset ring-cobalt" : ""
                         }`}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={item.imageUrl} alt={item.lookName}
+                        <img src={item.thumbUrl || item.imageUrl} alt={item.lookName}
+                          loading="lazy" decoding="async"
+                          onError={(e) => { const img = e.currentTarget; if (item.imageUrl && img.src !== item.imageUrl) img.src = item.imageUrl; }}
                           className="h-full w-full object-cover object-top" />
                         {selectMode && (
                           <div className={`absolute top-1.5 left-1.5 h-5 w-5 rounded-full border-2 flex items-center justify-center transition ${

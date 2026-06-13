@@ -52,7 +52,7 @@ type Look = {
 };
 
 type Payload = { looks?: Look[]; error?: string };
-type UserLook = { id: string; lookId: string; imageUrl: string; userPhotoUrl?: string; customerName: string; createdAt: string };
+type UserLook = { id: string; lookId: string; imageUrl: string; thumbUrl?: string; userPhotoUrl?: string; customerName: string; createdAt: string };
 type Comment = { id: string; lookId: string; authorName: string; text: string; createdAt: string };
 
 // Deterministic seed comments so every look feels alive
@@ -1074,8 +1074,11 @@ export default function LookPage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     key={ul.id}
-                    src={ul.imageUrl}
+                    src={ul.thumbUrl || ul.imageUrl}
                     alt={ul.customerName}
+                    loading="lazy"
+                    decoding="async"
+                    onError={(e) => { const img = e.currentTarget; if (ul.imageUrl && img.src !== ul.imageUrl) img.src = ul.imageUrl; }}
                     className="h-[84px] w-[60px] rounded-lg object-cover object-top border-2 border-white/70 shadow-lg"
                     style={{ opacity: 1 - i * 0.12 }}
                   />
@@ -1600,7 +1603,7 @@ export default function LookPage() {
                         <div className="grid gap-1">
                           <div className="aspect-[3/4] overflow-hidden rounded-xl border border-black/10 bg-black/5">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={ul.userPhotoUrl} alt="Original" className="h-full w-full object-cover object-top" />
+                            <img src={ul.userPhotoUrl} alt="Original" loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
                           </div>
                           <p className="text-center text-[10px] font-bold text-ink/40">Before</p>
                         </div>
@@ -1609,7 +1612,7 @@ export default function LookPage() {
                       <div className={`grid gap-1 ${!ul.userPhotoUrl ? "col-span-2" : ""}`}>
                         <div className="aspect-[3/4] overflow-hidden rounded-xl border border-black/10 bg-black/5">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={ul.imageUrl} alt={ul.customerName || "User look"} className="h-full w-full object-cover object-top" />
+                          <img src={ul.imageUrl} alt={ul.customerName || "User look"} loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
                         </div>
                         <p className="text-center text-[10px] font-bold text-ink/40">After</p>
                       </div>
