@@ -168,7 +168,9 @@ export async function GET(request: Request) {
     const filterLookId = url.searchParams.get("lookId") ?? "";
     if (wantsUserLooks && filterLookId) {
       const userGenerations = state.generations
-        .filter(g => g.lookId === filterLookId && !g.visitorId?.startsWith("admin-") && !(g as any).hidden)
+        // Show all non-hidden try-ons for this look, including curated admin-generated
+        // example looks. Only an explicit `hidden` flag removes a post from the gallery.
+        .filter(g => g.lookId === filterLookId && !(g as any).hidden)
         .map(g => ({
           id: g.id,
           lookId: g.lookId,
@@ -209,7 +211,6 @@ export async function GET(request: Request) {
       const lookById = new Map(state.looks.map(l => [l.id, l]));
       const community = state.generations
         .filter(g =>
-          !g.visitorId?.startsWith("admin-") &&
           (g as any).imageUrl &&
           !(g as any).hidden &&
           g.imagePath?.includes("generations/")

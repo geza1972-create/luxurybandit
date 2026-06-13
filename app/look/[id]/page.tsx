@@ -425,23 +425,26 @@ export default function LookPage() {
         }
       })
       .catch(() => setIsLoading(false));
-    // Load user-generated looks for this look (use resolvedLookId — not the slug)
-    fetch(`/api/try-this-look?lookId=${encodeURIComponent(resolvedLookId)}&userLooks=1`)
+  }, [lookId]);
+
+  // Per-look content (user try-ons + comments) — refetch whenever the displayed
+  // look changes, including in-feed swipes that update `look` without a URL change.
+  useEffect(() => {
+    const id = look?.id;
+    if (!id) return;
+    fetch(`/api/try-this-look?lookId=${encodeURIComponent(id)}&userLooks=1`)
       .then(r => r.json())
       .then((p: { userLooks?: UserLook[] }) => setUserLooks(p.userLooks ?? []))
       .catch(() => {});
-    // Load comments (seed + real)
-    fetch(`/api/try-this-look?lookId=${encodeURIComponent(resolvedLookId)}&comments=1`)
+    fetch(`/api/try-this-look?lookId=${encodeURIComponent(id)}&comments=1`)
       .then(r => r.json())
       .then((p: { comments?: Comment[] }) => {
         const real = p.comments ?? [];
-        // Merge seed + real, deduplicate by id
-        const seeded = seedComments(resolvedLookId);
-        const all = [...real, ...seeded];
-        setComments(all);
+        const seeded = seedComments(id);
+        setComments([...real, ...seeded]);
       })
-      .catch(() => setComments(seedComments(resolvedLookId)));
-  }, [lookId]);
+      .catch(() => setComments(seedComments(id)));
+  }, [look?.id]);
 
   // Elapsed timer during generation
   useEffect(() => {
@@ -1078,7 +1081,7 @@ export default function LookPage() {
                   />
                 ))}
                 <span className="text-[10px] font-black text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)] mt-0.5">
-                  {userLooks.length > 4 ? `+${userLooks.length - 4} more` : `${userLooks.length} look${userLooks.length !== 1 ? "s" : ""}`}
+                  {userLooks.length > 4 ? `+${userLooks.length - 4} more` : `${userLooks.length} Tryon${userLooks.length !== 1 ? "s" : ""}`}
                 </span>
               </button>
             </div>
