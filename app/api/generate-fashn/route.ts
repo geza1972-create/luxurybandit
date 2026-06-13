@@ -86,9 +86,11 @@ export async function POST(request: Request) {
   const bytes = Buffer.from(await image.arrayBuffer());
   const mimeType = image.type || "image/png";
   const productImage = `data:${mimeType};base64,${bytes.toString("base64")}`;
-  const selectedModelImage = hasSelectedModelImage
-    ? `data:${modelImage.type || "image/jpeg"};base64,${Buffer.from(await modelImage.arrayBuffer()).toString("base64")}`
+  const modelBytes = hasSelectedModelImage ? Buffer.from(await (modelImage as File).arrayBuffer()) : null;
+  const selectedModelImage = hasSelectedModelImage && modelBytes
+    ? `data:${(modelImage as File).type || "image/jpeg"};base64,${modelBytes.toString("base64")}`
     : null;
+
 
   const createResponse = await fetch(FASHN_RUN_ENDPOINT, {
     method: "POST",
@@ -127,9 +129,11 @@ export async function POST(request: Request) {
 
   if (!createResponse.ok || createPayload?.error) {
     const credits = refundReservation(accountId, reservation.reservationId);
+    const realError = readFashnError(createPayload, "Unknown error from image service.");
+    console.error("[generate-fashn] create failed:", { status: createResponse.status, error: realError });
     return NextResponse.json(
       {
-        error: `LuxbanditCut has rejected the image. Please try a different photo.`,
+        error: `LuxbanditCut has rejected the image. Please try a different photo. (${realError})`,
         credits
       },
       { status: createResponse.status || 502 }
@@ -187,9 +191,15 @@ export async function POST(request: Request) {
 
     if (status === "failed") {
       const credits = refundReservation(accountId, reservation.reservationId);
+      const realError = readFashnError(statusPayload, "Generation failed.");
+      console.error("[generate-fashn] generation failed:", {
+        predictionId,
+        error: realError,
+        payload: statusPayload,
+      });
       return NextResponse.json(
         {
-          error: `LuxbanditCut has rejected the image. Please try a different photo.`,
+          error: `LuxbanditCut has rejected the image. Please try a different photo. (${realError})`,
           credits
         },
         { status: 502 }

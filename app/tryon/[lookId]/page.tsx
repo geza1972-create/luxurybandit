@@ -43,12 +43,30 @@ function dataUrlToBlob(dataUrl: string): Blob {
 async function imageUrlToDataUrl(url: string): Promise<string> {
   const res = await fetch(url);
   const blob = await res.blob();
+  // Guard: a relative/404 URL makes the dev server return the HTML app shell,
+  // which would be sent to the AI as a bogus "image". Only accept real images.
+  if (!res.ok || !blob.type.startsWith("image/")) {
+    throw new Error(`Not an image (status ${res.status}, type ${blob.type || "unknown"})`);
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
+}
+
+// Try each candidate URL in order; return the first that yields a real image.
+async function firstValidImageDataUrl(urls: (string | undefined)[]): Promise<string> {
+  const candidates = urls.filter((u): u is string => !!u && /^https?:\/\//i.test(u));
+  for (const u of candidates) {
+    try {
+      return await imageUrlToDataUrl(u);
+    } catch {
+      /* try next candidate */
+    }
+  }
+  throw new Error("No valid garment image found for this look.");
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -154,18 +172,23 @@ export default function TryonPage() {
     setError(null);
     setStep("generating");
     try {
-      const garmentUrl = look.garmentFrontImageUrl ?? look.frontImageUrl ?? look.imageUrl;
-      const garmentData = await imageUrlToDataUrl(garmentUrl);
+      const garmentData = await firstValidImageDataUrl([
+        look.garmentFrontImageUrl,
+        look.frontImageUrl,
+        look.imageUrl,
+        look.galleryImageUrls?.[0],
+      ]);
       const formData = new FormData();
       formData.append("image", dataUrlToBlob(garmentData), `${look.id}.jpg`);
       if (userPhoto) formData.append("modelImage", dataUrlToBlob(userPhoto), "user-photo.jpg");
       formData.append("visitorId", accountId || "anon");
       formData.append("lookId", look.id);
       formData.append("mode", "fashion-model");
-      formData.append("aspectRatio", "4:5");
+      formData.append("aspectRatio", "9:16");
+      const coverageRule = "Coverage rule: the generated image must keep the person at least as covered as in the original photo. Never expose more skin, remove undergarments, or show less clothing than the input. No nudity; keep intimate areas (chest, groin, buttocks) covered at all times.";
       formData.append("prompt", userPhoto
-        ? `Fashion try-on: dress the uploaded person in the selected garment. Preserve the person's face, hair, skin tone, and identity exactly. Remove original clothing completely. Look: ${look.name}.`
-        : `Fashion campaign image. Professional AI model wearing the selected garment. Look: ${look.name}.`
+        ? `Full-body virtual fashion try-on. Show the entire person from head to toe wearing the complete selected outfit. Replace the person's current clothing with the selected garment so the whole look is visible. Preserve the person's face, hair, skin tone, and identity exactly. Full-length framing. ${coverageRule} Look: ${look.name}.`
+        : `Full-body fashion campaign image. Professional AI model shown head to toe wearing the complete selected outfit. Full-length framing. ${coverageRule} Look: ${look.name}.`
       );
       const billingId = accountId.startsWith("user-") ? accountId : `visitor-${accountId || "anon"}`;
       const res = await fetch("/api/generate-fashn", {
@@ -258,7 +281,11 @@ export default function TryonPage() {
     );
   }
 
-  const garmentPreviewUrl = look.garmentFrontImageUrl ?? look.frontImageUrl ?? look.imageUrl;
+  // Use frontImageUrl for display — it always has a fresh signed URL.
+  // garmentFrontImageUrl is for AI generation only (may be expired on legacy looks).
+  const garmentPreviewUrl = look.frontImageUrl ?? look.imageUrl ?? (look.galleryImageUrls?.[0] ?? "");
+  // Garment image for AI generation is resolved at call time in handleGenerate
+  // (firstValidImageDataUrl), with a validated fallback chain.
   const lookBackPath = `/look/${look.id}`;
 
   // Fallback chain: garmentFrontImageUrl → frontImageUrl → imageUrl → galleryImageUrls[0]
@@ -284,7 +311,7 @@ export default function TryonPage() {
       <div className="fixed inset-0 z-50 bg-black">
         <CropModal
           imageSrc={cropSrc}
-          aspectRatio={3 / 4}
+          aspectRatio={9 / 16}
           onConfirm={handleCropConfirm}
           onCancel={() => { setCropSrc(null); setStep("upload"); }}
         />
@@ -430,7 +457,7 @@ export default function TryonPage() {
               <p className="font-black">{error}</p>
               {error.toLowerCase().includes("rejected") && (
                 <ul className="mt-1.5 text-xs text-white/80 list-disc pl-4 space-y-0.5">
-                  <li>Use a clear full-body or upper-body photo</li>
+                  <li>Use a full-body standing photo to see the whole look</li>
                   <li>Good lighting, face clearly visible</li>
                   <li>No heavy filters or cropped faces</li>
                 </ul>
@@ -504,7 +531,7 @@ export default function TryonPage() {
         <div className="w-full max-w-xs rounded-xl border border-black/8 bg-black/[0.03] p-4">
           <p className="text-xs font-black text-black/50 mb-2">Photo tips for best results:</p>
           <ul className="text-xs text-black/40 space-y-1 list-disc pl-4">
-            <li>Full body or upper body visible</li>
+            <li>Full body, standing — to see the whole look</li>
             <li>Good lighting, face clearly visible</li>
             <li>No heavy filters</li>
           </ul>

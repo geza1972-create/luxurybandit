@@ -85,8 +85,11 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     frontImageUrl: primaryImageUrl,
     frontImagePath: frontPath,
     backImageUrl: look.backImageUrl,
-    garmentFrontImageUrl: look.garmentFrontImageUrl,
-    garmentBackImageUrl: look.garmentBackImageUrl,
+    // Only expose garment URLs that are fully-qualified http(s) links. Relative
+    // paths (legacy/un-hydrated looks) would be fetched against the app origin and
+    // return the HTML shell, which then gets sent to the AI as a bogus image.
+    garmentFrontImageUrl: /^https?:\/\//i.test(look.garmentFrontImageUrl ?? "") ? look.garmentFrontImageUrl : undefined,
+    garmentBackImageUrl: /^https?:\/\//i.test((look as any).garmentBackImageUrl ?? "") ? look.garmentBackImageUrl : undefined,
     galleryImageUrls,
     galleryImagePaths: cleanGalleryPaths
   };
