@@ -16,6 +16,13 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 
+// Serve Supabase images via Next.js' image optimizer (right-sized WebP) instead
+// of full-resolution PNGs. Non-Supabase/empty URLs pass through unchanged.
+function optImg(url: string | undefined, w = 1080, q = 70): string {
+  if (!url || !url.includes("/storage/v1/")) return url ?? "";
+  return `/_next/image?url=${encodeURIComponent(url)}&w=${w}&q=${q}`;
+}
+
 // Deterministic pseudo-random view count based on look ID
 function viewCount(id: string): string {
   let h = 0;
@@ -88,7 +95,9 @@ function CommunitySlide({ it, offset, verticalDrag, transition }: {
       style={{ transform: `translateY(calc(${offset * 100}% + ${verticalDrag}px))`, transition, willChange: "transform" }}>
       <div className="relative flex-1 overflow-hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={it.imageUrl} alt={it.lookName} className="h-full w-full object-cover object-top" />
+        <img src={optImg(it.imageUrl, 1080)} alt={it.lookName} loading="lazy" decoding="async"
+          onError={(e) => { const im = e.currentTarget; if (im.src !== it.imageUrl) im.src = it.imageUrl; }}
+          className="h-full w-full object-cover object-top" />
         <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black/50 to-transparent pointer-events-none" />
       </div>
       <div className="flex items-center gap-3 bg-black px-4 py-3" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
@@ -1159,7 +1168,7 @@ function StoresPage() {
                           selectMode && isSelected ? "opacity-60 ring-2 ring-inset ring-cobalt" : ""
                         }`}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={item.thumbUrl || item.imageUrl} alt={item.lookName}
+                        <img src={optImg(item.imageUrl, 400)} alt={item.lookName}
                           loading="lazy" decoding="async"
                           onError={(e) => { const img = e.currentTarget; if (item.imageUrl && img.src !== item.imageUrl) img.src = item.imageUrl; }}
                           className="h-full w-full object-cover object-top" />

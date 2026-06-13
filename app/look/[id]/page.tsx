@@ -53,6 +53,14 @@ type Look = {
 
 type Payload = { looks?: Look[]; error?: string };
 type UserLook = { id: string; lookId: string; imageUrl: string; thumbUrl?: string; userPhotoUrl?: string; customerName: string; createdAt: string };
+
+// Route Supabase images through Next.js' built-in image optimizer so they are
+// served as right-sized WebP instead of full-resolution PNGs. Non-Supabase or
+// empty URLs are returned unchanged (e.g. data: URLs for fresh local previews).
+function optImg(url: string | undefined, w = 1080, q = 70): string {
+  if (!url || !url.includes("/storage/v1/")) return url ?? "";
+  return `/_next/image?url=${encodeURIComponent(url)}&w=${w}&q=${q}`;
+}
 type Comment = { id: string; lookId: string; authorName: string; text: string; createdAt: string };
 
 // Deterministic seed comments so every look feels alive
@@ -926,7 +934,7 @@ export default function LookPage() {
               willChange: "transform", zIndex: 0,
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={allLooks[currentIdx - 1].frontImageUrl ?? allLooks[currentIdx - 1].imageUrl}
+              <img src={optImg(allLooks[currentIdx - 1].frontImageUrl ?? allLooks[currentIdx - 1].imageUrl, 1080)}
                 className="h-full w-full object-cover object-top" alt="" />
             </div>
           )}
@@ -940,7 +948,7 @@ export default function LookPage() {
               willChange: "transform", zIndex: 0,
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={allLooks[currentIdx + 1].frontImageUrl ?? allLooks[currentIdx + 1].imageUrl}
+              <img src={optImg(allLooks[currentIdx + 1].frontImageUrl ?? allLooks[currentIdx + 1].imageUrl, 1080)}
                 className="h-full w-full object-cover object-top" alt="" />
               <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/70 to-transparent" />
             </div>
@@ -963,11 +971,12 @@ export default function LookPage() {
             >
               {images.map((src, i) => (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img key={i} src={src} alt={look.name}
+                <img key={i} src={optImg(src, 1080)} alt={look.name}
                   className="h-full object-cover object-top"
                   style={{ width: `${100 / images.length}%` }}
                   draggable={false}
                   fetchPriority={i === 0 ? "high" : "low"}
+                  onError={(e) => { const im = e.currentTarget; if (im.src !== src) im.src = src; }}
                   onLoad={() => { if (i === 0) setImgLoaded(true); }}
                 />
               ))}
@@ -987,12 +996,12 @@ export default function LookPage() {
           {/* Preload adjacent look images */}
           {allLooks[currentIdx + 1] && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={allLooks[currentIdx + 1].frontImageUrl ?? allLooks[currentIdx + 1].imageUrl}
+            <img src={optImg(allLooks[currentIdx + 1].frontImageUrl ?? allLooks[currentIdx + 1].imageUrl, 1080)}
               className="hidden" alt="" aria-hidden fetchPriority="low" />
           )}
           {currentIdx > 0 && allLooks[currentIdx - 1] && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={allLooks[currentIdx - 1].frontImageUrl ?? allLooks[currentIdx - 1].imageUrl}
+            <img src={optImg(allLooks[currentIdx - 1].frontImageUrl ?? allLooks[currentIdx - 1].imageUrl, 1080)}
               className="hidden" alt="" aria-hidden fetchPriority="low" />
           )}
 
@@ -1074,7 +1083,7 @@ export default function LookPage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     key={ul.id}
-                    src={ul.thumbUrl || ul.imageUrl}
+                    src={optImg(ul.imageUrl, 200)}
                     alt={ul.customerName}
                     loading="lazy"
                     decoding="async"
@@ -1603,7 +1612,7 @@ export default function LookPage() {
                         <div className="grid gap-1">
                           <div className="aspect-[3/4] overflow-hidden rounded-xl border border-black/10 bg-black/5">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={ul.userPhotoUrl} alt="Original" loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
+                            <img src={optImg(ul.userPhotoUrl, 640)} alt="Original" loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
                           </div>
                           <p className="text-center text-[10px] font-bold text-ink/40">Before</p>
                         </div>
@@ -1612,7 +1621,7 @@ export default function LookPage() {
                       <div className={`grid gap-1 ${!ul.userPhotoUrl ? "col-span-2" : ""}`}>
                         <div className="aspect-[3/4] overflow-hidden rounded-xl border border-black/10 bg-black/5">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={ul.imageUrl} alt={ul.customerName || "User look"} loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
+                          <img src={optImg(ul.imageUrl, 640)} alt={ul.customerName || "User look"} loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
                         </div>
                         <p className="text-center text-[10px] font-bold text-ink/40">After</p>
                       </div>
