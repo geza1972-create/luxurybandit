@@ -12,7 +12,7 @@ const nextConfig = {
     return [
       {
         source: "/",
-        destination: "/stores",
+        destination: "/stores?tab=community",
         permanent: false
       },
       {

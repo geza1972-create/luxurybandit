@@ -1181,7 +1181,11 @@ export default function AdminLooksPage() {
   const [listingSearch, setListingSearch] = useState("");
   const [listingFilter, setListingFilter] = useState<"all" | "live" | "draft">("all");
   const [listingPage, setListingPage] = useState(1);
-  const [listingsMainTab, setListingsMainTab] = useState<"feeds" | "community">("feeds");
+  const [listingsMainTab, setListingsMainTab] = useState<"feeds" | "community">(() =>
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "community"
+      ? "community"
+      : "feeds"
+  );
   const LISTINGS_PER_PAGE = 20;
 
   const loadData = async (adminPin = pin) => {
@@ -1566,13 +1570,17 @@ export default function AdminLooksPage() {
     const confirmed = window.confirm(`Delete boutique "${selectedStore.name}" including its looks, customer requests, AI previews, and tracking data?`);
     if (!confirmed) return;
 
+    // Users' try-ons are kept by default (shown as "Original creator has been
+    // deleted"). Offer to also purge them + their images for takedown cases.
+    const purgeTryons = window.confirm("Also delete users' try-ons of this creator (and their images)?\n\nOK = delete them · Cancel = keep them");
+
     setIsSaving(true);
     setError(null);
     setMessage(null);
     try {
-      await callAdminAction({ action: "delete-store", storeSlug: selectedStore.slug });
+      await callAdminAction({ action: "delete-store", storeSlug: selectedStore.slug, purgeTryons });
       startNewStore();
-      setMessage("Boutique deleted.");
+      setMessage(purgeTryons ? "Boutique + try-ons deleted." : "Boutique deleted.");
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Boutique could not be deleted.");
     } finally {

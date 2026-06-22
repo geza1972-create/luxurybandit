@@ -1,7 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const arrivalsHosts = new Set(["luxurybandit.com", "www.luxurybandit.com", "luxurybandi.com", "www.luxurybandi.com"]);
-
 const PROTECTED_PREFIXES = ["/admin", "/tools"];
 
 function requiresAuth(pathname: string) {
@@ -9,15 +7,10 @@ function requiresAuth(pathname: string) {
 }
 
 export function middleware(request: NextRequest) {
-  const host = request.headers.get("host")?.split(":")[0]?.toLowerCase() ?? "";
   const { pathname } = request.nextUrl;
 
-  // ── Domain rewrite: luxurybandit.com / → /stores ──────────────────────────
-  if (arrivalsHosts.has(host) && pathname === "/") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/stores";
-    return NextResponse.rewrite(url);
-  }
+  // Start page (/ → /stores?tab=community) is handled by redirects() in
+  // next.config.mjs, which runs before middleware.
 
   // ── Protect /admin and /tools with HTTP Basic Auth ─────────────────────────
   if (requiresAuth(pathname)) {
@@ -58,7 +51,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/",
     "/admin",
     "/admin/:path*",
     "/tools",

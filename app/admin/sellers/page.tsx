@@ -100,10 +100,10 @@ export default function AdminSellersPage() {
     }
   };
 
-  const deleteStore = async (storeSlug: string) => {
+  const deleteStore = async (storeSlug: string, purgeTryons: boolean) => {
     try {
-      await callAdmin({ action: "delete-store", storeSlug });
-      setMessage("Store gelöscht.");
+      await callAdmin({ action: "delete-store", storeSlug, purgeTryons });
+      setMessage(purgeTryons ? "Store + Tryons gelöscht." : "Store gelöscht.");
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error.");
@@ -200,7 +200,7 @@ function SellerCard({
   looks: Look[];
   onUpdate: (slug: string, fields: { aiEnabled?: boolean; aiCreditsLimit?: number; resetCredits?: boolean }) => void;
   onTogglePublished: (lookId: string, published: boolean) => void;
-  onDelete: (slug: string) => void;
+  onDelete: (slug: string, purgeTryons: boolean) => void;
 }) {
   const [limit, setLimit] = useState(String(store.aiCreditsLimit ?? 20));
   const [saving, setSaving] = useState(false);
@@ -208,6 +208,7 @@ function SellerCard({
   const [showLooks, setShowLooks] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [purgeTryons, setPurgeTryons] = useState(false);
 
   const isAdminStore = !store.ownerEmail && !store.ownerUserId;
 
@@ -219,9 +220,10 @@ function SellerCard({
 
   const handleDelete = async () => {
     setDeleting(true);
-    await onDelete(store.slug);
+    await onDelete(store.slug, purgeTryons);
     setDeleting(false);
     setConfirmDelete(false);
+    setPurgeTryons(false);
   };
 
   const maskedNumber = (n: string) => {
@@ -296,23 +298,34 @@ function SellerCard({
               <Trash2 className="h-4 w-4" />
             </button>
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-black text-coral">Sicher?</span>
-              <button
-                type="button"
-                disabled={deleting}
-                onClick={handleDelete}
-                className="h-8 rounded-lg bg-coral px-3 text-xs font-black text-white disabled:opacity-50"
-              >
-                {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Ja, löschen"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmDelete(false)}
-                className="h-8 rounded-lg border border-black/10 px-3 text-xs font-black text-ink/50"
-              >
-                Abbrechen
-              </button>
+            <div className="flex flex-col items-end gap-2">
+              <label className="flex items-center gap-2 text-xs font-bold text-ink/60">
+                <input
+                  type="checkbox"
+                  checked={purgeTryons}
+                  onChange={(e) => setPurgeTryons(e.target.checked)}
+                  className="h-4 w-4 accent-coral"
+                />
+                Tryons der Nutzer mitlöschen
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-coral">Sicher?</span>
+                <button
+                  type="button"
+                  disabled={deleting}
+                  onClick={handleDelete}
+                  className="h-8 rounded-lg bg-coral px-3 text-xs font-black text-white disabled:opacity-50"
+                >
+                  {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Ja, löschen"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setConfirmDelete(false); setPurgeTryons(false); }}
+                  className="h-8 rounded-lg border border-black/10 px-3 text-xs font-black text-ink/50"
+                >
+                  Abbrechen
+                </button>
+              </div>
             </div>
           )}
         </div>

@@ -369,7 +369,7 @@ export default function AdminDashboardPage() {
             </div>
             <button
               type="button"
-              onClick={() => void openExternalPage("/admin/looks", listingDashTab === "community" ? "Community Posts" : "Live listings")}
+              onClick={() => void openExternalPage(listingDashTab === "community" ? "/admin/looks?tab=community" : "/admin/looks", listingDashTab === "community" ? "Community Posts" : "Live listings")}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-ink px-3 text-xs font-black text-white"
             >
               Manage

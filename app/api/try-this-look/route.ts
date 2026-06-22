@@ -216,6 +216,7 @@ export async function GET(request: Request) {
           storeName: g.storeName ?? look?.storeName ?? "",
           storeSlug: (look as any)?.storeSlug ?? "",
           lookThumbUrl: look?.frontImageUrl ?? look?.imageUrl ?? "",
+          creatorDeleted: (g as any).creatorDeleted ?? false,
           createdAt: g.createdAt,
         }
       });
@@ -741,14 +742,31 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Boutique was not found." }, { status: 404 });
       }
 
+      // purgeTryons = true → also delete the users' try-ons + their images
+      // (use for takedown / rights / abuse cases). Default keeps them, orphaned.
+      const purgeTryons = payload.purgeTryons === true;
+
       const lookIds = new Set(storeLooks.map((look) => look.id));
       const storeLeads = state.leads.filter((lead) => lookIds.has(lead.lookId));
-      const storeGenerations = state.generations.filter((generation) => lookIds.has(generation.lookId));
+      const storeGenerations = purgeTryons
+        ? state.generations.filter((generation) => lookIds.has(generation.lookId))
+        : [];
 
       state.stores = (state.stores ?? []).filter((store) => store.slug !== storeSlug);
       state.looks = state.looks.filter((look) => look.storeSlug !== storeSlug);
       state.leads = state.leads.filter((lead) => !lookIds.has(lead.lookId));
-      state.generations = state.generations.filter((generation) => !lookIds.has(generation.lookId));
+      if (purgeTryons) {
+        // Hard delete: remove the users' try-ons entirely.
+        state.generations = state.generations.filter((generation) => !lookIds.has(generation.lookId));
+      } else {
+        // Keep users' try-ons, but orphan them: drop the dead store name and flag
+        // that the original creator was deleted (shown on /post/[id]).
+        state.generations = state.generations.map((generation) =>
+          lookIds.has(generation.lookId)
+            ? { ...generation, creatorDeleted: true, storeName: "" }
+            : generation
+        );
+      }
       state.events = state.events.filter((event) => !lookIds.has(event.lookId));
 
       const remainingLookIds = new Set(state.looks.map((look) => look.id));
@@ -771,6 +789,7 @@ export async function POST(request: Request) {
       for (const lead of storeLeads) {
         if (lead.uploadedPhotoPath) pathsToDelete.add(String(lead.uploadedPhotoPath));
       }
+      // Try-on images are only deleted when purging; otherwise the try-ons survive.
       for (const generation of storeGenerations) {
         if (generation.imagePath) pathsToDelete.add(String(generation.imagePath));
       }

@@ -17,6 +17,7 @@ type Post = {
   storeName: string;
   storeSlug: string;
   lookThumbUrl: string;
+  creatorDeleted?: boolean;
   createdAt: string;
 };
 
@@ -307,27 +308,40 @@ export default function PostPage() {
         </p>
 
         {/* Original look card */}
-        <a href={lookPath(post.lookName, post.lookId)}
-          className="flex items-center gap-3 rounded-xl border border-black/10 bg-black/[0.02] p-3 hover:bg-black/5 transition active:scale-[0.98]">
-          {post.lookThumbUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={post.lookThumbUrl} alt={post.lookName} className="h-14 w-10 rounded-lg object-cover object-top shrink-0" />
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-black text-black">{post.lookName}</p>
-            {post.storeName && <p className="truncate text-[10px] font-bold text-black/40">{post.storeName}</p>}
+        {post.creatorDeleted ? (
+          <div className="flex items-center gap-3 rounded-xl border border-black/10 bg-black/[0.02] p-3">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-black text-black/50">{post.lookName}</p>
+            </div>
           </div>
-          <span className="text-[10px] font-black text-black/40 shrink-0">Try it →</span>
-        </a>
+        ) : (
+          <a href={lookPath(post.lookName, post.lookId)}
+            className="flex items-center gap-3 rounded-xl border border-black/10 bg-black/[0.02] p-3 hover:bg-black/5 transition active:scale-[0.98]">
+            {post.lookThumbUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={post.lookThumbUrl} alt={post.lookName} className="h-14 w-10 rounded-lg object-cover object-top shrink-0" />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-black text-black">{post.lookName}</p>
+              {post.storeName && <p className="truncate text-[10px] font-bold text-black/40">{post.storeName}</p>}
+            </div>
+            <span className="text-[10px] font-black text-black/40 shrink-0">Try it →</span>
+          </a>
+        )}
 
-        {/* Store link */}
-        {post.storeSlug && (
+        {/* Store link / deleted-creator note */}
+        {post.creatorDeleted ? (
+          <p className="flex items-center gap-2 text-xs font-bold text-black/40">
+            <Store className="h-4 w-4" />
+            Original creator has been deleted
+          </p>
+        ) : post.storeSlug ? (
           <a href={`/store/${post.storeSlug}`}
             className="flex items-center gap-2 text-xs font-bold text-black/50 hover:text-black transition">
             <Store className="h-4 w-4" />
             {post.storeName || post.storeSlug}
           </a>
-        )}
+        ) : null}
       </div>
 
       {/* Message modal */}

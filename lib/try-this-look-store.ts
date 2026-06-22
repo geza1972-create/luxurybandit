@@ -94,6 +94,8 @@ export type TryThisLookGeneration = {
   imagePath: string;
   imageUrl?: string;
   createdAt: string;
+  // Set when the original creator/store was deleted but the user's try-on is kept.
+  creatorDeleted?: boolean;
 };
 
 export type TryThisLookComment = {

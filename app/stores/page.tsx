@@ -1072,6 +1072,18 @@ function StoresPage() {
         {/* ── Community tab ── */}
         {typeFilter === "community" && (
           <>
+            {/* Intro / page description */}
+            <section className="px-4 pt-4 pb-1">
+              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-cobalt">LuxuryBandit Community</p>
+              <h1 className="mt-1 text-xl font-semibold leading-tight tracking-tight text-black">
+                Probier Vintage- &amp; Luxusmode virtuell an
+              </h1>
+              <p className="mt-1.5 text-sm font-normal leading-6 text-black/55">
+                Entdecke Looks echter Creator und Stores, sieh per KI-Anprobe sofort, wie sie an dir aussehen,
+                und speichere deine Favoriten. Tippe auf einen Look, um ihn anzuprobieren.
+              </p>
+            </section>
+
             {communityLoading && (
               <div className="flex justify-center py-20">
                 <Loader2 className="h-6 w-6 animate-spin text-black/30" />

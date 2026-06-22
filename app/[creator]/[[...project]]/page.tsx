@@ -4,9 +4,8 @@ import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import CreatorProfilePage from "@/components/CreatorProfilePage";
 
-// Lazy-load the LuxbanditCut workspace to avoid importing route-segment
-// configs (dynamic = "force-dynamic") from app/page.tsx at module level.
-const LuxbanditWorkspace = dynamic(() => import("../../page"), { ssr: false });
+// Lazy-load the LuxbanditCut workspace.
+const LuxbanditWorkspace = dynamic(() => import("@/components/LuxbanditCutTool"), { ssr: false });
 
 export default function CreatorOrWorkspace() {
   const params = useParams();
