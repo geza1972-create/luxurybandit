@@ -557,6 +557,18 @@ export default function AdminDashboardPage() {
               <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </span>
           </button>
+
+          <button type="button" onClick={() => void openExternalPage("/admin/ai-studio", "AI Studio")} className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 text-left shadow-soft">
+            <Megaphone aria-hidden="true" className="h-6 w-6 text-cobalt" />
+            <div>
+              <div className="text-xl font-black">AI Studio</div>
+              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">Trend scanner, content ideas, look generator, and free-influencer strategy — powered by Claude.</p>
+            </div>
+            <span className="inline-flex items-center gap-2 text-sm font-black text-cobalt">
+              Open
+              <ArrowRight aria-hidden="true" className="h-4 w-4" />
+            </span>
+          </button>
         </section>
 
         <section className="grid gap-4 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
