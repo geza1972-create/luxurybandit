@@ -96,6 +96,7 @@ type Generation = {
   lookName?: string;
   customerName?: string;
   imageUrl?: string;
+  videoUrl?: string;
   hidden?: boolean;
   createdAt: string;
 };
@@ -979,6 +980,9 @@ function CommunityModerationSection({
                         Unassigned
                       </div>
                     )}
+                    {generation.videoUrl && (
+                      <div className="absolute top-1.5 right-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black text-white">▶ VIDEO</div>
+                    )}
                     {selectMode && (
                       <div className={`absolute inset-0 flex items-center justify-center transition ${isSelected ? "bg-black/30" : "bg-transparent"}`}>
                         <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center ${isSelected ? "border-white bg-cobalt" : "border-white/80 bg-transparent"}`}>
@@ -987,6 +991,12 @@ function CommunityModerationSection({
                       </div>
                     )}
                   </div>
+                )}
+
+                {/* Try-on video — review it right here, then hide/delete if it's off */}
+                {generation.videoUrl && !selectMode && (
+                  <video src={generation.videoUrl} controls loop playsInline muted preload="metadata"
+                    className="aspect-square w-full rounded-md border border-black/10 bg-black object-contain" />
                 )}
 
                 {/* Info */}

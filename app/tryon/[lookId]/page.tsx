@@ -365,10 +365,12 @@ export default function TryonPage() {
       setResultImage(payload.image);
       setProgress(100);
       setStep("result");
-      // Consent default-on: post the try-on into the look's feed right away.
-      if (showInFeed) void postToFeed(payload.image);
-      // "Always both": kick off the video from the freshly generated still.
-      void startTryonVideo(payload.image);
+      // Post the try-on FIRST (so its generation is persisted), THEN start the video.
+      // Running them in parallel raced the shared state save and lost the try-on.
+      void (async () => {
+        if (showInFeed) await postToFeed(payload.image);
+        await startTryonVideo(payload.image);
+      })();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed.");
       setStep("confirm");
