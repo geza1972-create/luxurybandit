@@ -43,13 +43,23 @@ async function findUserByUsername(username: string) {
   );
 }
 
-// ── GET /api/messages — inbox for authenticated user ──────────────────────────
+// ── GET /api/messages — inbox for authenticated user OR curator ───────────────
 export async function GET(request: Request) {
-  const user = await getSellerFromRequest(request);
-  if (!user) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-
   const state = await readTryThisLookState();
-  const messages = (state.messages ?? []).filter((m) => m.toUserId === user.id);
+
+  // Identity can come from a Supabase auth session OR a curator session header.
+  const user = await getSellerFromRequest(request);
+  let identityId = user?.id ?? "";
+  if (!identityId) {
+    const curatorId = request.headers.get("x-curator-id")?.trim() ?? "";
+    const curator = curatorId
+      ? (state.curators ?? []).find((c) => c.id === curatorId)
+      : null;
+    if (curator) identityId = curator.id;
+  }
+  if (!identityId) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+
+  const messages = (state.messages ?? []).filter((m) => m.toUserId === identityId);
 
   // Mark fetched messages as read (non-blocking write)
   const unread = messages.filter((m) => !m.readAt).map((m) => m.id);
@@ -66,8 +76,34 @@ export async function GET(request: Request) {
 
 // ── POST /api/messages — send a message ───────────────────────────────────────
 export async function POST(request: Request) {
-  const sender = await getSellerFromRequest(request);
-  if (!sender) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  const stateForCurator = await readTryThisLookState();
+
+  // Resolve sender — Supabase auth OR curator session header
+  let senderId = "";
+  let senderSlug = "anonymous";
+  let senderName = "Anonymous";
+  let senderEmail = "";
+
+  const supabaseSender = await getSellerFromRequest(request);
+  if (supabaseSender) {
+    senderId = supabaseSender.id;
+    senderEmail = supabaseSender.email ?? "";
+    const senderFull = await findUserById(supabaseSender.id);
+    const meta = senderFull?.user_metadata ?? {};
+    senderSlug = toSlug(meta.username ?? meta.full_name ?? senderEmail ?? "anonymous");
+    senderName = meta.username ?? meta.full_name ?? senderEmail ?? "Anonymous";
+    senderEmail = senderFull?.email ?? senderEmail;
+  } else {
+    const curatorId = request.headers.get("x-curator-id")?.trim() ?? "";
+    const curator = curatorId ? (stateForCurator.curators ?? []).find((c) => c.id === curatorId) : null;
+    if (!curator) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    senderId = curator.id;
+    senderEmail = (curator as any).email ?? "";
+    const firstName = (curator as any).firstName ?? "";
+    const lastName = (curator as any).lastName ?? "";
+    senderName = `${firstName} ${lastName}`.trim() || senderEmail.split("@")[0] || "Curator";
+    senderSlug = toSlug(senderName || curatorId);
+  }
 
   const body = await request.json() as { toUsername?: string; toUserId?: string; text?: string };
   const toUsername = String(body.toUsername ?? "").trim();
@@ -80,32 +116,38 @@ export async function POST(request: Request) {
   // Prefer direct ID lookup (fast, reliable); fall back to slug scan
   let recipient = toUserId ? await findUserById(toUserId) : null;
   if (!recipient && toUsername) recipient = await findUserByUsername(toUsername);
+  // Curator recipient (our only login) — match by id or display-name slug.
+  if (!recipient) {
+    const cur = (stateForCurator.curators ?? []).find((c) => {
+      const nm = `${(c as any).firstName ?? ""} ${(c as any).lastName ?? ""}`.trim();
+      return c.id === toUserId || (toUsername && toSlug(nm) === toUsername);
+    });
+    if (cur) {
+      const nm = `${(cur as any).firstName ?? ""} ${(cur as any).lastName ?? ""}`.trim();
+      recipient = { id: cur.id, email: (cur as any).email, user_metadata: { username: toSlug(nm), full_name: nm } };
+    }
+  }
   if (!recipient) return NextResponse.json({ error: "User not found." }, { status: 404 });
-  if (recipient.id === sender.id) {
+  if (recipient.id === senderId) {
     return NextResponse.json({ error: "Cannot message yourself." }, { status: 400 });
   }
-
-  // Fetch full sender metadata (getSellerFromRequest only returns id+email)
-  const senderFull = await findUserById(sender.id);
-  const senderMeta = senderFull?.user_metadata ?? {};
-  const senderSlug = toSlug(senderMeta.username ?? senderMeta.full_name ?? sender.email ?? "anonymous");
-  const senderName = senderMeta.username ?? senderMeta.full_name ?? sender.email ?? "Anonymous";
 
   const recipientMeta = recipient.user_metadata ?? {};
   const recipientSlug = toSlug(recipientMeta.username ?? recipientMeta.full_name ?? "");
   const recipientName = recipientMeta.username ?? recipientMeta.full_name ?? "there";
 
-  const state = await readTryThisLookState();
+  // Re-use the state already fetched for curator lookup
+  const state = stateForCurator;
   if (!state.messages) state.messages = [];
 
   const message = {
     id: `${Date.now()}-${crypto.randomUUID()}`,
     toUserId: recipient.id,
     toUsername: recipientSlug,
-    fromUserId: sender.id,
+    fromUserId: senderId,
     fromUsername: senderSlug,
     fromName: senderName,
-    fromEmail: senderFull?.email ?? sender.email,
+    fromEmail: senderEmail || recipient.email,
     text,
     createdAt: new Date().toISOString(),
   };

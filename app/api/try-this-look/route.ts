@@ -4,8 +4,10 @@ import {
   getActiveTryThisLooks,
   readTryThisLookState,
   saveTryThisLookState,
-  uploadTryThisLookImage
+  uploadTryThisLookImage,
+  type CuratorProfile
 } from "@/lib/try-this-look-store";
+import { authorizeStudio } from "@/lib/studio-auth";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -66,7 +68,30 @@ function visibleImageUrls(look: Awaited<ReturnType<typeof readTryThisLookState>>
   }).slice(0, 6);
 }
 
-function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number], generationCount = 0) {
+// Wrap an outbound shop link in the matching partner store's affiliate template,
+// injecting the curator's SubID for internal attribution. No template (account
+// not live yet) → returns the raw URL unchanged. Done at serve time so it
+// activates retroactively for ALL looks the moment a template is added.
+type AffiliateStore = { homeUrl: string; affiliateTemplate?: string };
+function affiliateWrap(url: string | undefined, sid: string, stores: AffiliateStore[]): string | undefined {
+  if (!url) return url;
+  let host: string;
+  try { host = new URL(url).hostname.replace(/^www\./, ""); } catch { return url; }
+  const store = stores.find(s => {
+    try { return new URL(s.homeUrl).hostname.replace(/^www\./, "") === host; } catch { return false; }
+  });
+  if (!store?.affiliateTemplate) return url;
+  return store.affiliateTemplate
+    .split("{url}").join(encodeURIComponent(url))
+    .split("{sid}").join(encodeURIComponent(sid || "house"));
+}
+
+function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number], generationCount = 0, partnerStores: AffiliateStore[] = [], curators: CuratorProfile[] = []) {
+  const sid = String((look as any).curatorId ?? "house");
+  const wrap = (u: string | undefined) => affiliateWrap(u, sid, partnerStores);
+  // Attribute the look to the curator who published it (name, photo, profile link).
+  const curator = (look as any).curatorId ? curators.find(c => c.id === (look as any).curatorId) : undefined;
+  const curatorName = curator ? [curator.firstName, curator.lastName].filter(Boolean).join(" ").trim() : "";
   const galleryImageUrls = visibleImageUrls(look);
   const primaryImageUrl = galleryImageUrls[0] ?? look.frontImageUrl ?? look.imageUrl;
   const frontPath = look.frontImagePath ?? look.imagePath;
@@ -89,8 +114,19 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     availabilityNote: look.availabilityNote,
     deliveryTime: look.deliveryTime,
     productNote: look.productNote,
+    buyUrl: wrap((look as any).buyUrl),
+    alternatives: Array.isArray((look as any).alternatives)
+      ? (look as any).alternatives.map((a: any) => ({ ...a, link: wrap(a.link) }))
+      : (look as any).alternatives,
     hashtags: (look as any).hashtags,
+    curatorId: (look as any).curatorId,
+    curatorName: curatorName || undefined,
+    curatorPhotoUrl: curator?.photoUrl || undefined,
+    curatorMotto: curator?.motto || undefined,
     productType: (look as any).productType ?? "real",
+    aiCreated: (look as any).aiCreated === true,
+    curatorNote: (look as any).curatorNote ?? undefined,
+    commentsOff: (look as any).commentsOff === true,
     likeCount: (look as any).likeCount ?? 0,
     generationCount,
     category: (look as any).category ?? null,
@@ -139,7 +175,7 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
   for (const g of state.generations ?? []) {
     genCountByLook.set(g.lookId, (genCountByLook.get(g.lookId) ?? 0) + 1);
   }
-  const sl = (look: (typeof visibleLooks)[number]) => serializeLook(look, genCountByLook.get(look.id) ?? 0);
+  const sl = (look: (typeof visibleLooks)[number]) => serializeLook(look, genCountByLook.get(look.id) ?? 0, state.partnerStores ?? [], state.curators ?? []);
   return {
     activeLook: activeLook ? sl(activeLook) : undefined,
     activeLooks: activeLooks.map(sl),
@@ -158,13 +194,28 @@ export async function GET(request: Request) {
     if (wantsAdminData && !isAdmin(request)) {
       return NextResponse.json({ error: "Admin access required." }, { status: 401 });
     }
+    // Partner stores — read by the studio (curators) and the admin manager.
+    // Admin sees the affiliate templates; curators get only what discovery needs.
+    if (url.searchParams.get("partnerStores") === "1") {
+      const stores = state.partnerStores ?? [];
+      const studioAuth = await authorizeStudio(request);
+      const out = studioAuth.isAdmin
+        ? stores
+        : stores.filter(s => s.enabled).map(({ affiliateTemplate, ...s }) => s);
+      return NextResponse.json({ partnerStores: out });
+    }
+    // Admin: list curators (for management/cleanup).
+    if (url.searchParams.get("curators") === "1") {
+      if (!isAdmin(request)) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      return NextResponse.json({ curators: state.curators ?? [] });
+    }
     // Preview a specific look by ID — bypasses published filter (anyone with the URL can preview)
     const previewLookId = url.searchParams.get("previewId") ?? "";
     if (previewLookId) {
       const look = state.looks.find(l => l.id === previewLookId);
       if (!look) return NextResponse.json({ error: "Look not found." }, { status: 404 });
       const genCount = state.generations.filter(g => g.lookId === previewLookId).length;
-      return NextResponse.json({ look: serializeLook(look, genCount), isDraft: look.published === false });
+      return NextResponse.json({ look: serializeLook(look, genCount, state.partnerStores ?? [], state.curators ?? []), isDraft: look.published === false });
     }
 
     // Public comments for a specific look
@@ -241,6 +292,7 @@ export async function GET(request: Request) {
             thumbUrl: toThumbUrl((g as any).imageUrl ?? ""),
             // userPhotoUrl intentionally omitted — not needed for thumbnails, only for /post/[id] detail
             customerName: (g as any).customerName ?? "",
+            curatorId: (g as any).curatorId ?? "",
             lookName: g.lookName ?? look?.name ?? "",
             storeName: g.storeName ?? look?.storeName ?? "",
             storeSlug: (look as any)?.storeSlug ?? "",
@@ -339,6 +391,7 @@ export async function POST(request: Request) {
       productNote?: string;
       hashtags?: string;
       productType?: string;
+      aiCreated?: boolean;
       userPhotoImage?: string;
       image?: string;
       text?: string;
@@ -358,6 +411,7 @@ export async function POST(request: Request) {
       instagram?: string;
       visitorId?: string;
       customerName?: string;
+      curatorId?: string;
       phone?: string;
       campaignId?: string;
       lookName?: string;
@@ -538,6 +592,7 @@ export async function POST(request: Request) {
         lookName: String(payload.lookName ?? "").trim() || activeLook.name,
         customerName: String(payload.customerName ?? "").trim() || undefined,
         userId: String(payload.userId ?? "").trim() || undefined,
+        curatorId: String(payload.curatorId ?? "").trim() || undefined,
         imagePath,
         userPhotoPath,
         createdAt: now
@@ -572,6 +627,9 @@ export async function POST(request: Request) {
       const text = String(payload.text ?? "").trim().slice(0, 500);
       const authorName = String(payload.authorName ?? "").trim().slice(0, 60) || "Anonymous";
       if (!lookId || !text) return NextResponse.json({ error: "lookId and text required." }, { status: 400 });
+      if ((state.looks.find(l => l.id === lookId) as any)?.commentsOff === true) {
+        return NextResponse.json({ error: "Comments are turned off for this look." }, { status: 403 });
+      }
       if (!state.comments) state.comments = [];
       state.comments.unshift({
         id: `${Date.now()}-${crypto.randomUUID()}`,
@@ -587,8 +645,56 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, comments: lookComments });
     }
 
-    if (!isAdmin(request)) {
+    // Curators may ONLY publish looks (upload-look); every other action below
+    // stays admin-only (delete/update/store/activation are destructive).
+    const studioAuth = payload.action === "upload-look"
+      ? await authorizeStudio(request)
+      : { ok: false as const };
+    if (!isAdmin(request) && !studioAuth.ok) {
       return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+    }
+
+    if (payload.action === "save-partner-store") {
+      const p = payload as any;
+      const name = String(p.name ?? "").trim();
+      const homeUrl = String(p.homeUrl ?? "").trim();
+      if (!name || !homeUrl) {
+        return NextResponse.json({ error: "Name and home URL are required." }, { status: 400 });
+      }
+      const state = await readTryThisLookState();
+      const stores = [...(state.partnerStores ?? [])];
+      const id = String(p.id ?? "").trim() || `store-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const next = {
+        id,
+        name,
+        network: String(p.network ?? "").trim() || undefined,
+        homeUrl,
+        searchUrlTemplate: String(p.searchUrlTemplate ?? "").trim() || undefined,
+        affiliateTemplate: String(p.affiliateTemplate ?? "").trim() || undefined,
+        enabled: p.enabled !== false,
+        createdAt: stores.find(s => s.id === id)?.createdAt ?? new Date().toISOString(),
+      };
+      const idx = stores.findIndex(s => s.id === id);
+      if (idx >= 0) stores[idx] = next; else stores.push(next);
+      await saveTryThisLookState({ ...state, partnerStores: stores });
+      return NextResponse.json({ ok: true, partnerStores: stores });
+    }
+
+    if (payload.action === "delete-partner-store") {
+      const id = String((payload as any).id ?? "").trim();
+      const state = await readTryThisLookState();
+      const stores = (state.partnerStores ?? []).filter(s => s.id !== id);
+      await saveTryThisLookState({ ...state, partnerStores: stores });
+      return NextResponse.json({ ok: true, partnerStores: stores });
+    }
+
+    if (payload.action === "delete-curator") {
+      const id = String((payload as any).id ?? "").trim();
+      const all = String((payload as any).all ?? "") === "1";
+      const state = await readTryThisLookState();
+      const curators = all ? [] : (state.curators ?? []).filter(c => c.id !== id);
+      await saveTryThisLookState({ ...state, curators });
+      return NextResponse.json({ ok: true, curators });
     }
 
     if (payload.action === "upload-look") {
@@ -606,8 +712,24 @@ export async function POST(request: Request) {
       const availabilityNote = String(payload.availabilityNote ?? "").trim();
       const deliveryTime = String(payload.deliveryTime ?? "").trim();
       const productNote = String(payload.productNote ?? "").trim();
+      const buyUrl = String(payload.buyUrl ?? "").trim();
+      const alternatives = Array.isArray((payload as any).alternatives)
+        ? (payload as any).alternatives
+            .filter((a: any) => a && typeof a.link === "string" && typeof a.thumbnail === "string")
+            .slice(0, 12)
+            .map((a: any) => ({
+              title: String(a.title ?? "").slice(0, 200),
+              link: String(a.link),
+              source: a.source ? String(a.source).slice(0, 80) : undefined,
+              thumbnail: String(a.thumbnail),
+              price: a.price ? String(a.price).slice(0, 40) : undefined,
+              priceValue: typeof a.priceValue === "number" ? a.priceValue : undefined,
+              currency: a.currency ? String(a.currency).slice(0, 8) : undefined,
+            }))
+        : undefined;
       const hashtags = String(payload.hashtags ?? "").trim();
       const productType = payload.productType === "virtual" ? "virtual" : "real";
+      const aiCreated = payload.aiCreated === true; // AI Fashion creation vs curated web find
       const availableSizes = Array.isArray(payload.availableSizes)
         ? payload.availableSizes.map((size) => String(size).trim()).filter(Boolean)
         : [];
@@ -653,8 +775,12 @@ export async function POST(request: Request) {
         availabilityNote: availabilityNote || undefined,
         deliveryTime: deliveryTime || undefined,
         productNote: productNote || undefined,
+        buyUrl: buyUrl || undefined,
+        alternatives: alternatives && alternatives.length ? alternatives : undefined,
         hashtags: hashtags || undefined,
         productType,
+        aiCreated: aiCreated || undefined,
+        curatorId: (studioAuth as any).curatorId || (payload as any).curatorId || undefined,
         imagePath: frontImagePath,
         frontImagePath,
         backImagePath,

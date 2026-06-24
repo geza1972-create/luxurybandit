@@ -20,6 +20,14 @@ async function getUserFromBearer(authHeader: string | null) {
   return await res.json() as { id: string; user_metadata?: { username?: string } };
 }
 
+// The follower identity — a Supabase user OR a curator session (our only login).
+async function getFollowerId(request: Request): Promise<string | null> {
+  const user = await getUserFromBearer(request.headers.get("Authorization"));
+  if (user?.id) return user.id;
+  const curatorId = request.headers.get("x-curator-id")?.trim();
+  return curatorId ? `curator:${curatorId}` : null;
+}
+
 // GET /api/follow?slug=X&type=user|store
 // Returns { followerCount, following } — `following` requires Bearer token
 export async function GET(request: Request) {
@@ -34,9 +42,9 @@ export async function GET(request: Request) {
     f => f.followeeSlug === slug && f.followeeType === type
   ).length;
 
-  const user = await getUserFromBearer(request.headers.get("Authorization"));
-  const following = user
-    ? follows.some(f => f.followeeSlug === slug && f.followeeType === type && f.followerId === user.id)
+  const followerId = await getFollowerId(request);
+  const following = followerId
+    ? follows.some(f => f.followeeSlug === slug && f.followeeType === type && f.followerId === followerId)
     : false;
 
   return NextResponse.json({ followerCount, following });
@@ -45,8 +53,8 @@ export async function GET(request: Request) {
 // POST /api/follow  body: { slug, type }
 // Toggles follow. Requires Bearer token.
 export async function POST(request: Request) {
-  const user = await getUserFromBearer(request.headers.get("Authorization"));
-  if (!user) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  const followerId = await getFollowerId(request);
+  if (!followerId) return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
 
   const body = await request.json() as { slug?: string; type?: string };
   const slug = body.slug?.trim().toLowerCase() ?? "";
@@ -56,7 +64,7 @@ export async function POST(request: Request) {
   const state = await readTryThisLookState();
   const follows = state.follows ?? [];
   const existingIdx = follows.findIndex(
-    f => f.followeeSlug === slug && f.followeeType === type && f.followerId === user.id
+    f => f.followeeSlug === slug && f.followeeType === type && f.followerId === followerId
   );
 
   let following: boolean;
@@ -70,7 +78,7 @@ export async function POST(request: Request) {
     // Follow
     const newFollow: Follow = {
       id: crypto.randomUUID(),
-      followerId: user.id,
+      followerId,
       followeeSlug: slug,
       followeeType: type,
       createdAt: new Date().toISOString(),

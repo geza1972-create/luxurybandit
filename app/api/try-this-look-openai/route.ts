@@ -206,7 +206,7 @@ async function runOpenAiImageEdit(
   openAiForm.append("model", process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1");
   openAiForm.append("prompt", fullPrompt);
   openAiForm.append("size", outputSize(aspectRatio));
-  openAiForm.append("quality", "medium");
+  openAiForm.append("quality", process.env.OPENAI_IMAGE_QUALITY ?? "low");
   openAiForm.append("n", "1");
 
   for (let i = 0; i < garmentImages.length; i++) {
@@ -274,7 +274,7 @@ async function regenerateModelInPose(
   form.append("model", "gpt-image-1");
   form.append("size", "1024x1536");
   form.append("n", "1");
-  form.append("quality", "medium");
+  form.append("quality", process.env.OPENAI_IMAGE_QUALITY ?? "low");
 
   const response = await fetch("https://api.openai.com/v1/images/edits", {
     method: "POST",

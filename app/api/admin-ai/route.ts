@@ -1,15 +1,9 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { authorizeStudio } from "@/lib/studio-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
-
-// Same PIN that protects /admin (Basic auth) and the try-this-look admin actions.
-function isAdmin(request: Request) {
-  const configuredPin = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim();
-  if (!configuredPin) return process.env.NODE_ENV !== "production";
-  return request.headers.get("x-try-look-admin-pin") === configuredPin;
-}
 
 // Default to the most capable model. Switch to "claude-sonnet-4-6" here if you
 // want lower cost for these marketing-copy tasks.
@@ -20,8 +14,8 @@ const SYSTEM =
   "Output only the requested content in the exact format asked for — no preamble, no meta-commentary, no closing remarks.";
 
 export async function POST(request: Request) {
-  if (!isAdmin(request)) {
-    return NextResponse.json({ error: "Admin only. Bitte Admin-PIN eingeben." }, { status: 403 });
+  if (!(await authorizeStudio(request)).ok) {
+    return NextResponse.json({ error: "Studio access only." }, { status: 403 });
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;

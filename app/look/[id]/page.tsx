@@ -27,6 +27,7 @@ import {
   MessageCircle,
   RefreshCw,
   Send,
+  ShoppingBag,
   Sparkles,
   UserCheck,
   UserPlus,
@@ -45,10 +46,18 @@ type Look = {
   inStock?: boolean;
   availableSizes?: string[];
   productNote?: string;
+  buyUrl?: string;
+  alternatives?: { title: string; link: string; source?: string; thumbnail: string; price?: string; priceValue?: number; currency?: string }[];
   imageUrl: string;
   frontImageUrl?: string;
   garmentFrontImageUrl?: string;
   galleryImageUrls?: string[];
+  curatorId?: string;
+  curatorName?: string;
+  curatorPhotoUrl?: string;
+  curatorMotto?: string;
+  curatorNote?: string;
+  commentsOff?: boolean;
 };
 
 type Payload = { looks?: Look[]; error?: string };
@@ -109,6 +118,11 @@ function fmtCount(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 }
 function genLikeCount(id: string) { return seedInt(id, "_gl", 18, 480); }
+// A curator session (localStorage) counts as signed in — no Supabase token needed.
+function isAuthed() {
+  if (getStoredAuthSession()) return true;
+  try { return !!JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id; } catch { return false; }
+}
 function genCommentCount(id: string) { return seedInt(id, "_gc", 2, 28); }
 function genViewCount(id: string) { return seedInt(id, "_gv", 200, 980); }
 
@@ -173,7 +187,7 @@ function BookmarkBtn({ lookId, onAuthRequired }: { lookId: string; onAuthRequire
     try { setSaved((JSON.parse(localStorage.getItem("lb_bookmarks") ?? "[]") as string[]).includes(lookId)); } catch { /**/ }
   }, [lookId]);
   const toggle = () => {
-    if (onAuthRequired && !getStoredAuthSession()) { onAuthRequired(); return; }
+    if (onAuthRequired && !isAuthed()) { onAuthRequired(); return; }
     try {
       const list = JSON.parse(localStorage.getItem("lb_bookmarks") ?? "[]") as string[];
       const next = saved ? list.filter(id => id !== lookId) : [...list, lookId];
@@ -197,7 +211,7 @@ function SaveBtnInsta({ lookId, initialCount, onAuthRequired }: { lookId: string
     try { setLiked((JSON.parse(localStorage.getItem("lb_saved") ?? "[]") as string[]).includes(lookId)); } catch { /**/ }
   }, [lookId]);
   const toggle = async () => {
-    if (onAuthRequired && !getStoredAuthSession()) { onAuthRequired(); return; }
+    if (onAuthRequired && !isAuthed()) { onAuthRequired(); return; }
     const next = !liked;
     try {
       const list = JSON.parse(localStorage.getItem("lb_saved") ?? "[]") as string[];
@@ -220,7 +234,7 @@ function SaveBtnInsta({ lookId, initialCount, onAuthRequired }: { lookId: string
 }
 
 // ── Follow button ────────────────────────────────────────────────────────────
-function FollowBtn({ storeSlug, storeName }: { storeSlug: string; storeName: string }) {
+function FollowBtn({ storeSlug, storeName, iconOnly }: { storeSlug: string; storeName: string; iconOnly?: boolean }) {
   const [following, setFollowing] = useState(false);
   useEffect(() => {
     try { setFollowing((JSON.parse(localStorage.getItem("lb_following") ?? "[]") as string[]).includes(storeSlug)); } catch { /**/ }
@@ -233,13 +247,20 @@ function FollowBtn({ storeSlug, storeName }: { storeSlug: string; storeName: str
       setFollowing(!following);
     } catch { /**/ }
   };
+  if (iconOnly) {
+    return (
+      <button type="button" onClick={toggle} aria-label={following ? "Following" : "Follow"}
+        className={`grid h-7 w-7 place-items-center rounded-full shadow active:scale-90 transition ${following ? "bg-white/30 text-white" : "bg-cobalt text-white"}`}>
+        {following ? <UserCheck className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+      </button>
+    );
+  }
   return (
     <button
       type="button"
       onClick={toggle}
-      className={`flex h-7 items-center gap-1.5 rounded-full px-3 text-xs font-black transition ${following ? "bg-white/20 text-white" : "bg-white text-black"}`}
+      className={`flex h-7 items-center rounded-full px-3.5 text-xs font-black transition ${following ? "bg-white/20 text-white" : "bg-white text-black"}`}
     >
-      {following ? <UserCheck className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />}
       {following ? "Following" : "Follow"}
     </button>
   );
@@ -263,7 +284,6 @@ export default function LookPage() {
   // Gallery
   const [imgIndex, setImgIndex] = useState(0);
   const [imgLoaded, setImgLoaded] = useState(false);
-  const [showInfo, setShowInfo] = useState(false);
   const [showSheet, setShowSheet] = useState(false);
   const galleryRef = useRef<HTMLDivElement>(null);
   const dragX = useRef(0);
@@ -527,7 +547,7 @@ export default function LookPage() {
   // ── Touch handler ──
   // Returns true when any overlay/modal is open — drag must be suppressed then
   const anyModalOpen = () =>
-    !!cropSrc || tryConfirming || showUserLooks || showComments || showAuthModal || showContact || showInfo || showSheet;
+    !!cropSrc || tryConfirming || showUserLooks || showComments || showAuthModal || showContact || showSheet;
 
   const onPanelTouchStart = (e: React.TouchEvent) => {
     if (anyModalOpen()) return;
@@ -873,7 +893,7 @@ export default function LookPage() {
 
   const postComment = async () => {
     if (!commentText.trim() || !look) return;
-    if (!authSession) { setShowAuthModal(true); return; }
+    if (!isAuthed()) { setShowAuthModal(true); return; }
     setIsPostingComment(true);
     try {
       const res = await fetch("/api/try-this-look", {
@@ -935,7 +955,7 @@ export default function LookPage() {
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={optImg(allLooks[currentIdx - 1].frontImageUrl ?? allLooks[currentIdx - 1].imageUrl, 1080)}
-                className="h-full w-full object-cover object-top" alt="" />
+                className="h-full w-full object-contain bg-white" alt="" />
             </div>
           )}
 
@@ -949,7 +969,7 @@ export default function LookPage() {
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={optImg(allLooks[currentIdx + 1].frontImageUrl ?? allLooks[currentIdx + 1].imageUrl, 1080)}
-                className="h-full w-full object-cover object-top" alt="" />
+                className="h-full w-full object-contain bg-white" alt="" />
               <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-black/70 to-transparent" />
             </div>
           )}
@@ -963,7 +983,7 @@ export default function LookPage() {
           }}>
 
           {/* Full-screen gallery — live drag like Instagram */}
-          <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute inset-0 overflow-hidden bg-white">
             <div
               ref={galleryRef}
               className="flex h-full"
@@ -972,7 +992,7 @@ export default function LookPage() {
               {images.map((src, i) => (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img key={i} src={optImg(src, 1080)} alt={look.name}
-                  className="h-full object-cover object-top"
+                  className="h-full object-contain"
                   style={{ width: `${100 / images.length}%` }}
                   draggable={false}
                   fetchPriority={i === 0 ? "high" : "low"}
@@ -981,8 +1001,8 @@ export default function LookPage() {
                 />
               ))}
             </div>
-            {/* Right-side gradient for icon readability */}
-            <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black/50 to-transparent" />
+            {/* Right-side gradient for icon readability over light product shots */}
+            <div className="absolute inset-y-0 right-0 z-10 w-28 bg-gradient-to-l from-black/35 to-transparent pointer-events-none" />
 
             {/* Loading skeleton — fades out once image is loaded */}
             <div
@@ -1005,10 +1025,10 @@ export default function LookPage() {
               className="hidden" alt="" aria-hidden fetchPriority="low" />
           )}
 
-          {/* Top bar — back button + store button */}
-          <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-3 pt-12">
+          {/* Top bar — back button only (creator lives in the right rail) */}
+          <div className="absolute inset-x-0 top-0 z-20 flex items-center px-3 pt-12">
             <button type="button" onClick={() => router.back()}
-              className="grid h-11 w-11 place-items-center rounded-full bg-black/30 backdrop-blur text-white">
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-black/30 backdrop-blur text-white">
               <ChevronLeft className="h-6 w-6" />
             </button>
           </div>
@@ -1024,22 +1044,28 @@ export default function LookPage() {
             </div>
           )}
 
-          {/* Right-side action buttons — TikTok style */}
-          <div className="absolute right-2 z-20 flex flex-col items-center gap-5"
-            style={{ bottom: "calc(env(safe-area-inset-bottom) + 8rem)" }}>
-            {/* Home */}
-            <a href="/stores" className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
-              <Home strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
-              <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Home</span>
-            </a>
+          {/* Right-side action rail — creator + actions, raised above the dupes strip */}
+          <div className="absolute right-2 z-20 flex flex-col items-center gap-4"
+            style={{ bottom: "calc(env(safe-area-inset-bottom) + 17rem)" }}>
+            {/* Creator: avatar + follow icon — the curator who published the look */}
+            <div className="mb-1 flex flex-col items-center gap-1.5">
+              <button type="button" onClick={() => look.curatorId ? router.push(`/curator/${look.curatorId}`) : look.storeSlug ? router.push(`/store/${look.storeSlug}`) : undefined}
+                className="h-11 w-11 overflow-hidden rounded-full border-2 border-white bg-white shadow-lg active:scale-90 transition-transform">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={look.curatorPhotoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(look.curatorName || storeKey)}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
+              </button>
+              <FollowBtn storeSlug={look.curatorId || storeKey} storeName={look.curatorName || look.storeName || storeKey} />
+            </div>
             {/* Like */}
             <SaveBtnInsta lookId={look.id} initialCount={(look as any).likeCount ?? 0} onAuthRequired={() => setShowAuthModal(true)} />
-            {/* Comments */}
-            <button type="button" onClick={() => { if (!authSession) { setShowAuthModal(true); return; } setShowComments(true); }}
-              className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
-              <MessageCircle strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
-              <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">{comments.length}</span>
-            </button>
+            {/* Comments — hidden when the curator turned them off for this look */}
+            {!look.commentsOff && (
+              <button type="button" onClick={() => { if (!isAuthed()) { setShowAuthModal(true); return; } setShowComments(true); }}
+                className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
+                <MessageCircle strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
+                <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">{comments.length}</span>
+              </button>
+            )}
             {/* Save / Bookmark */}
             <BookmarkBtn lookId={look.id} onAuthRequired={() => setShowAuthModal(true)} />
             {/* Share */}
@@ -1049,27 +1075,13 @@ export default function LookPage() {
               <Send strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
               <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Share</span>
             </button>
-            {/* Try This Look */}
-            {!isSoldOut && (
-              <>
-                <button type="button" onClick={() => router.push(`/tryon/${look.id}`)}
-                  className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
-                  <Sparkles strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
-                  <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Try-on</span>
-                </button>
-                {savedModelMeta && (
-                  <button type="button"
-                    onClick={() => router.push(`/tryon/${look.id}`)}
-                    className="text-[10px] font-black text-amber-300 [text-shadow:0_1px_3px_#000] underline underline-offset-2 text-center leading-tight max-w-[52px]">
-                    ✨ Foto nutzen
-                  </button>
-                )}
-              </>
-            )}
           </div>
 
-          {/* Left-side community thumbnails — vertical strip */}
-          {userLooks.length > 0 && (
+          {/* Bottom gradient behind the action bar (starts at the nav).
+              Dupes live on the Details page now — the hero stays clean. */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[14rem] bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+
+          {userLooks.length > 0 && (look.alternatives?.length ?? 0) === 0 && (
             <div
               className="absolute left-2 z-20 flex flex-col items-center gap-1.5"
               style={{ bottom: "calc(env(safe-area-inset-bottom) + 8rem)" }}
@@ -1108,102 +1120,29 @@ export default function LookPage() {
 
           {/* ── Peek bar (always visible) ── */}
           <div className="absolute inset-x-0 bottom-0 z-20" style={{ paddingBottom: "calc(56px + env(safe-area-inset-bottom))" }}>
-            <div className="px-4 pt-4 pb-3">
+            {/* Curator's personal note/thoughts on this look */}
+            {look.curatorNote && (
+              <div className="mx-4 mb-2 rounded-2xl bg-black/45 px-3.5 py-2.5 backdrop-blur">
+                <p className="text-[9px] font-black uppercase tracking-[0.16em] text-white/55">{look.curatorName ? `${look.curatorName}'s take` : "Curator's take"}</p>
+                <p className="mt-0.5 whitespace-pre-line text-[13px] font-semibold leading-snug text-white line-clamp-4">{look.curatorNote}</p>
+              </div>
+            )}
+            <div className="px-4 pb-3 pt-10">
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => look.storeSlug ? router.push(`/store/${look.storeSlug}`) : undefined}
-                  className="flex items-center gap-2 active:opacity-70">
-                  <span className="flex h-8 w-8 shrink-0 overflow-hidden rounded-full bg-white border-2 border-white/30">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(storeKey)}&backgroundColor=ffffff&color=000000`} alt="" className="h-full w-full object-cover" />
-                  </span>
-                  <span className="text-sm font-black text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">{look.storeName ?? storeKey}</span>
-                </button>
-                <FollowBtn storeSlug={storeKey} storeName={look.storeName ?? storeKey} />
-                <button type="button" onClick={() => setShowSheet(true)}
-                  className="ml-auto flex items-center gap-1 rounded-full bg-white/20 px-3 py-1.5 text-xs font-black text-white backdrop-blur active:opacity-70 drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">
-                  <span>{look.name.length > 18 ? look.name.slice(0, 18) + "…" : look.name}</span>
-                  <svg className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7"/></svg>
+                {!isSoldOut && (
+                  <button type="button" onClick={() => router.push(`/tryon/${look.id}`)}
+                    className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-white/95 text-sm font-black text-black shadow-lg backdrop-blur active:scale-95 transition-transform">
+                    <Sparkles className="h-4 w-4 shrink-0" />
+                    Try This Look
+                  </button>
+                )}
+                <button type="button" onClick={() => { const slug = look.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); router.push(`/look/${slug ? `${slug}--${look.id}` : look.id}/details`); }}
+                  className="flex h-11 items-center justify-center gap-1.5 rounded-full bg-white/20 px-5 text-sm font-black text-white backdrop-blur active:opacity-70">
+                  Shop the Look
                 </button>
               </div>
             </div>
           </div>
-
-          {/* ── Bottom Sheet ── */}
-          {showSheet && (
-            <>
-              {/* Backdrop */}
-              <div className="absolute inset-0 z-30 bg-black/40" onClick={() => setShowSheet(false)} />
-              {/* Sheet */}
-              <div className="absolute inset-x-0 bottom-0 z-40 rounded-t-3xl bg-white"
-                style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
-                {/* Handle */}
-                <div className="flex justify-center pt-3 pb-2" onClick={() => setShowSheet(false)}>
-                  <div className="h-1 w-10 rounded-full bg-black/20" />
-                </div>
-                <div className="px-4 pb-2">
-                  {/* Store row */}
-                  <div className="mb-3 flex items-center gap-2">
-                    <span className="flex h-7 w-7 shrink-0 overflow-hidden rounded-full bg-black/5">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(storeKey)}&backgroundColor=ffffff&color=000000`} alt="" className="h-full w-full object-cover" />
-                    </span>
-                    <span className="text-xs font-black text-black/50">{look.storeName ?? storeKey}</span>
-                  </div>
-                  {/* Draft banner */}
-                  {isDraft && (
-                    <div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-black text-amber-700">
-                      <span>⚠️ Draft — not publicly visible</span>
-                    </div>
-                  )}
-                  {/* Title */}
-                  <h1 className="text-xl font-black leading-tight text-black">{look.name}</h1>
-                  {/* Price */}
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    {look.discountLabel && <span className="rounded-full bg-red-500 px-2.5 py-1 text-xs font-black text-white">{look.discountLabel}</span>}
-                    {look.salePrice && <span className="text-lg font-black text-black">{look.salePrice}</span>}
-                    {look.price && <span className={`text-base font-black ${look.salePrice ? "text-black/30 line-through" : "text-black"}`}>{look.price}</span>}
-                  </div>
-                  {/* Sizes */}
-                  {(look.availableSizes ?? []).length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {look.availableSizes!.map(size => (
-                        <span key={size} className="rounded-full border border-black/20 px-3 py-1 text-xs font-black text-black">{size}</span>
-                      ))}
-                    </div>
-                  )}
-                  {/* Description */}
-                  {look.productNote && (
-                    <button type="button" onClick={() => setShowInfo(v => !v)} className="mt-2 text-left text-xs font-medium text-black/50">
-                      {showInfo ? look.productNote : `${look.productNote.slice(0, 80)}${look.productNote.length > 80 ? "… mehr" : ""}`}
-                    </button>
-                  )}
-                  {/* Hint */}
-                  <p className="mt-2 text-[10px] font-bold text-black/25">← swipe left for Try This Look</p>
-                  {/* Buttons */}
-                  <div className="mt-4 grid gap-2">
-                    {!isSoldOut ? (
-                      <>
-                        <button type="button" onClick={() => { setShowSheet(false); setShowContact(true); }}
-                          className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-black text-base font-black text-white shadow-lg active:scale-95 transition-transform">
-                          <MessageCircle className="h-5 w-5" />
-                          Express Interest
-                        </button>
-                        <button type="button" onClick={() => { setShowSheet(false); router.push(`/tryon/${look.id}`); }}
-                          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-black/10 bg-black/5 text-sm font-black text-black active:scale-95 transition-transform">
-                          <Sparkles className="h-4 w-4" />
-                          Try This Look
-                        </button>
-                      </>
-                    ) : (
-                      <div className="flex h-14 w-full items-center justify-center rounded-2xl bg-black/5 text-base font-black text-black/30">
-                        Sold out
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
 
           {/* Tap zones for gallery */}
           {images.length > 1 && (
@@ -1558,19 +1497,19 @@ export default function LookPage() {
             </div>
           </div>
 
-          {/* Store info row */}
-          {look?.storeName && (
+          {/* Curator info row — links to the curator's public profile */}
+          {(look?.curatorName || look?.storeName) && (
             <button type="button"
-              onClick={() => { setShowUserLooks(false); if (look.storeSlug) { window.location.href = `/store/${look.storeSlug}`; } }}
+              onClick={() => { setShowUserLooks(false); if (look.curatorId) { window.location.href = `/curator/${look.curatorId}`; } else if (look.storeSlug) { window.location.href = `/store/${look.storeSlug}`; } }}
               className="flex items-center gap-2.5 border-b border-black/5 px-4 py-2.5 active:bg-black/3 text-left">
               <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-black/5">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(look.storeSlug ?? look.storeName ?? "")}&backgroundColor=ffffff&color=000000`}
-                  alt={look.storeName} className="h-full w-full object-cover" />
+                <img src={look.curatorPhotoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(look.curatorName || look.storeSlug || look.storeName || "")}&backgroundColor=000000&fontColor=ffffff`}
+                  alt={look.curatorName || look.storeName} className="h-full w-full object-cover" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-black text-ink">{look.storeName}</p>
-                {look.storeAddress && <p className="truncate text-[10px] font-bold text-ink/40">{look.storeAddress}</p>}
+                <p className="truncate text-xs font-black text-ink">{look.curatorName || look.storeName}</p>
+                {(look.curatorMotto || look.storeAddress) && <p className="truncate text-[10px] font-bold text-ink/40">{look.curatorMotto || look.storeAddress}</p>}
               </div>
               <ArrowRight className="h-4 w-4 shrink-0 text-ink/30" />
             </button>
@@ -1584,7 +1523,7 @@ export default function LookPage() {
                   ? `${window.location.origin}/look/${ul.lookId}`
                   : `/look/${ul.lookId}`;
                 const handleGenLike = () => {
-                  if (!authSession) { setShowUserLooks(false); setShowAuthModal(true); return; }
+                  if (!isAuthed()) { setShowUserLooks(false); setShowAuthModal(true); return; }
                   const next = { ...generationLikes, [ul.id]: !isLiked };
                   setGenerationLikes(next);
                   try { localStorage.setItem("lb_gen_likes", JSON.stringify(next)); } catch { /**/ }
@@ -1655,7 +1594,7 @@ export default function LookPage() {
                       </button>
                       {/* Comment */}
                       <button type="button"
-                        onClick={() => { setShowUserLooks(false); if (!authSession) { setShowAuthModal(true); } else { setShowComments(true); } }}
+                        onClick={() => { setShowUserLooks(false); if (!isAuthed()) { setShowAuthModal(true); } else { setShowComments(true); } }}
                         className="flex items-center gap-1 rounded-full bg-black/5 px-3 py-1.5 text-xs font-black text-ink/50 active:scale-95 transition">
                         <MessageCircle className="h-3.5 w-3.5" />
                         <span>{fmtCount(genCommentCount(ul.id))}</span>

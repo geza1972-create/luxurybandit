@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Flame, Home, MessageCircle, User, X, Store, Image as ImageIcon, Settings, LogOut } from "lucide-react";
+import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession, signOut } from "@/lib/supabase-auth-client";
@@ -29,17 +29,41 @@ export default function BottomNav() {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [active, setActive] = useState<Tab>("home");
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isCurator, setIsCurator] = useState(false);
+  const [curatorCredits, setCuratorCredits] = useState<number | null>(null);
 
   useEffect(() => {
     setActive(getActiveTab(pathname));
-  }, [pathname]);
+    try {
+      const c = JSON.parse(localStorage.getItem("lb_curator") ?? "{}");
+      setIsCurator(!!c.id);
+      if (c.id) {
+        fetch(`/api/curator?me=1`, { headers: { "x-curator-id": c.id } })
+          .then(r => r.ok ? r.json() : null)
+          .then(d => {
+            const n = typeof d?.credits === "number" ? d.credits : d?.credits?.credits;
+            if (typeof n === "number") setCuratorCredits(n);
+          })
+          .catch(() => {});
+      } else {
+        setCuratorCredits(null);
+      }
+    } catch { setIsCurator(false); setCuratorCredits(null); }
+  }, [pathname, showProfileMenu]);
 
   // Poll unread message count for logged-in users
   useEffect(() => {
     const fetchUnread = () => {
       const s = getStoredAuthSession();
-      if (!s?.access_token) return;
-      fetch("/api/messages", { headers: { Authorization: `Bearer ${s.access_token}` } })
+      const curatorId = (() => {
+        try { return JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id ?? ""; }
+        catch { return ""; }
+      })();
+      const headers: Record<string, string> = {};
+      if (s?.access_token) headers.Authorization = `Bearer ${s.access_token}`;
+      else if (curatorId) headers["x-curator-id"] = curatorId;
+      else return;
+      fetch("/api/messages", { headers })
         .then(r => r.ok ? r.json() : null)
         .then((p: any) => {
           if (p?.messages) {
@@ -59,7 +83,8 @@ export default function BottomNav() {
     pathname.startsWith("/admin") ||
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/seller/login") ||
-    pathname.startsWith("/seller/register")
+    pathname.startsWith("/seller/register") ||
+    pathname.startsWith("/curators/apply")
   ) return null;
 
   const go = (tab: Tab, href: string) => {
@@ -78,18 +103,12 @@ export default function BottomNav() {
       className="fixed bottom-0 inset-x-0 z-50 border-t border-black/10 bg-white/95 backdrop-blur-md"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="mx-auto grid max-w-lg grid-cols-4 h-14">
+      <div className="mx-auto grid max-w-lg grid-cols-3 h-14">
 
         {/* Home */}
         <button type="button" onClick={() => go("home", "/stores")} className={btn("home")}>
           <Home className="h-5 w-5" />
           <span className="text-[10px] font-bold">Home</span>
-        </button>
-
-        {/* Community */}
-        <button type="button" onClick={() => go("community", "/stores?tab=community")} className={btn("community")}>
-          <Flame className="h-5 w-5" />
-          <span className="text-[10px] font-bold">Community</span>
         </button>
 
         {/* Messages */}
@@ -111,7 +130,14 @@ export default function BottomNav() {
 
         {/* Account */}
         <button type="button" onClick={() => { setActive("account"); setShowProfileMenu(true); }} className={btn("account")}>
-          <User className="h-5 w-5" />
+          <span className="relative">
+            <User className="h-5 w-5" />
+            {curatorCredits !== null && (
+              <span className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[9px] font-black text-white">
+                {curatorCredits}
+              </span>
+            )}
+          </span>
           <span className="text-[10px] font-bold">Account</span>
         </button>
 
@@ -124,6 +150,11 @@ export default function BottomNav() {
       const meta = (session?.user as any)?.user_metadata ?? {};
       const username = meta?.username ?? meta?.full_name ?? session?.user?.email?.split("@")[0] ?? "";
       const slug = username.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+      // A curator session (localStorage) counts as signed in even without a Supabase session.
+      const curator = (() => { try { return JSON.parse(localStorage.getItem("lb_curator") ?? "{}"); } catch { return {}; } })();
+      const signedIn = !!session || !!curator?.id;
+      const displayName = (curator?.firstName || meta?.full_name || username || curator?.email?.split("@")[0] || "").trim();
+      const displayEmail = curator?.email || session?.user?.email || "";
 
       const navigate = (href: string) => {
         setShowProfileMenu(false);
@@ -131,6 +162,8 @@ export default function BottomNav() {
       };
       const handleSignOut = async () => {
         setShowProfileMenu(false);
+        try { localStorage.removeItem("lb_curator"); } catch { /**/ }
+        setIsCurator(false);
         await signOut();
         router.push("/stores");
       };
@@ -146,37 +179,54 @@ export default function BottomNav() {
             <div className="flex justify-center pt-3 pb-2">
               <div className="h-1 w-10 rounded-full bg-black/15" />
             </div>
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pb-3">
-              <p className="text-base font-black text-black">
-                {session ? ((session.user as any).user_metadata?.full_name ?? session.user.email?.split("@")[0] ?? "Account") : "Account"}
-              </p>
+            {/* Header — show who's signed in */}
+            <div className="flex items-center gap-3 px-5 pb-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-black text-sm font-black text-white">
+                {(displayName || "?").slice(0, 1).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-base font-black text-black">{displayName || (signedIn ? "Account" : "Not signed in")}</p>
+                {signedIn ? (
+                  <p className="flex items-center gap-1 truncate text-[11px] font-bold text-emerald-600">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    {curator?.id ? "Signed in as curator" : "Signed in"}{displayEmail ? ` · ${displayEmail}` : ""}
+                  </p>
+                ) : (
+                  <p className="truncate text-[11px] font-bold text-black/40">Sign in to save & curate</p>
+                )}
+              </div>
               <button type="button" onClick={() => setShowProfileMenu(false)}
-                className="grid h-8 w-8 place-items-center rounded-full bg-black/5 text-black/50">
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-black/5 text-black/50">
                 <X className="h-4 w-4" />
               </button>
             </div>
             {/* Menu items */}
             <div className="grid divide-y divide-black/5">
-              {/* Account → /{slug}/myaccount */}
-              <button type="button" onClick={() => navigate(slug ? `/${slug}/myaccount` : "/user/myaccount")}
-                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
-                <Settings className="h-5 w-5 text-black/50 shrink-0" />
-                <span className="text-sm font-black text-black">Account</span>
+              {/* Curator studio — the tool (sign in / register handled at the profile) */}
+              <button type="button" onClick={() => navigate(isCurator ? "/studio" : "/curators/profile")}
+                className="flex items-center gap-3 bg-black px-5 py-3.5 text-left active:opacity-90 transition">
+                <Sparkles className="h-5 w-5 text-white shrink-0" />
+                <span className="text-sm font-black text-white">Curator studio</span>
               </button>
+              {/* Curator → My profile (their form data); others → generic account */}
+              {isCurator ? (
+                <button type="button" onClick={() => navigate("/curators/profile")}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                  <User className="h-5 w-5 text-black/50 shrink-0" />
+                  <span className="text-sm font-black text-black">My profile</span>
+                </button>
+              ) : (
+                <button type="button" onClick={() => navigate(slug ? `/${slug}/myaccount` : "/user/myaccount")}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                  <Settings className="h-5 w-5 text-black/50 shrink-0" />
+                  <span className="text-sm font-black text-black">Account</span>
+                </button>
+              )}
               <button type="button" onClick={() => navigate("/stores?panel=saved")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
                 <Bookmark className="h-5 w-5 text-black/50 shrink-0" />
                 <span className="text-sm font-black text-black">Saved</span>
               </button>
-              {/* My Store → /user/mystore (product management) */}
-              {session && (
-                <button type="button" onClick={() => navigate("/user/mystore")}
-                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
-                  <Store className="h-5 w-5 text-black/50 shrink-0" />
-                  <span className="text-sm font-black text-black">My Store</span>
-                </button>
-              )}
               {/* My try ons → public profile */}
               {slug && (
                 <button type="button" onClick={() => navigate(`/${slug}`)}
@@ -185,20 +235,31 @@ export default function BottomNav() {
                   <span className="text-sm font-black text-black">My try ons</span>
                 </button>
               )}
-              {session && (
+              {signedIn ? (
                 <button type="button" onClick={() => void handleSignOut()}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
                   <LogOut className="h-5 w-5 text-red-400 shrink-0" />
                   <span className="text-sm font-black text-red-500">Abmelden</span>
                 </button>
-              )}
-              {!session && (
+              ) : (
                 <button type="button" onClick={() => navigate("/stores?panel=account")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
                   <User className="h-5 w-5 text-black/50 shrink-0" />
                   <span className="text-sm font-black text-black">Anmelden</span>
                 </button>
               )}
+            </div>
+
+            {/* Info & legal */}
+            <div className="mt-4 border-t border-black/5 px-5 pt-3">
+              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-black/30">Info &amp; legal</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-bold text-black/45">
+                <button type="button" onClick={() => navigate("/curators")} className="hover:text-black">Become a curator</button>
+                <button type="button" onClick={() => navigate("/about")} className="hover:text-black">About</button>
+                <button type="button" onClick={() => navigate("/terms")} className="hover:text-black">Terms</button>
+                <button type="button" onClick={() => navigate("/privacy")} className="hover:text-black">Privacy</button>
+                <button type="button" onClick={() => navigate("/imprint")} className="hover:text-black">Imprint</button>
+              </div>
             </div>
           </div>
         </>

@@ -11,7 +11,7 @@ import {
 } from "@/lib/supabase-auth-client";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { lookPath } from "@/lib/look-slug";
-import { Bookmark, Heart, Home, Image as ImageIcon, Instagram, Loader2, LogOut, MessageCircle, Plus, Search, Send, ShoppingBag, Sparkles, X } from "lucide-react";
+import { Bookmark, Heart, Home, Image as ImageIcon, Instagram, Loader2, LogOut, MessageCircle, Search, Send, ShoppingBag, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -62,7 +62,37 @@ type Look = {
   galleryImageUrls?: string[];
   productType?: "real" | "virtual";
   generationCount?: number;
+  curatorId?: string;
+  curatorName?: string;
+  curatorPhotoUrl?: string;
+  curatorMotto?: string;
+  alternatives?: { title: string; link: string; source?: string; thumbnail: string; price?: string; priceValue?: number; currency?: string }[];
 };
+
+// The AI hero isn't for sale — the dupes are. On cards we show the entry price
+// of the cheapest dupe ("from $46") instead of the single source price.
+// The shoppable price RANGE across a look's options — the "shop it at any price"
+// hook made visible (e.g. "$35–$475"). Single option → just that price.
+function priceRange(alts?: Look["alternatives"]): string | null {
+  const withVal = (alts ?? []).filter(a => typeof a.priceValue === "number" && (a.priceValue as number) > 0);
+  if (withVal.length === 0) return null;
+  const byCur: Record<string, number[]> = {};
+  for (const a of withVal) { const c = a.currency || "$"; (byCur[c] ??= []).push(a.priceValue as number); }
+  const cur = Object.keys(byCur).sort((a, b) => byCur[b].length - byCur[a].length)[0];
+  const vals = byCur[cur];
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
+  return lo === hi ? `${cur}${fmt(lo)}` : `${cur}${fmt(lo)}–${cur}${fmt(hi)}`;
+}
+// Price to show on a feed card: the range when we have shop options, else the
+// look's own price (formatted with a $ if it's a bare number — fixes "from 1190").
+function feedPrice(look: Look): string | null {
+  const range = priceRange(look.alternatives);
+  if (range) return range;
+  const raw = String(look.salePrice ?? look.price ?? "").trim();
+  if (!raw) return null;
+  return /^[\d.,]+$/.test(raw) ? `$${raw}` : raw;
+}
 
 type Payload = {
   looks?: Look[];
@@ -80,6 +110,7 @@ type CommunityItem = {
   lookName: string;
   storeName: string;
   storeSlug: string;
+  curatorId?: string;
   createdAt: string;
 };
 
@@ -432,9 +463,10 @@ function MerklistePanel({ onClose }: { onClose: () => void }) {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-black text-ink">{look.name}</p>
                       {look.storeName && <p className="truncate text-xs font-bold text-ink/40">{look.storeName}</p>}
-                      {(look.salePrice ?? look.price) && (
-                        <p className="mt-0.5 text-xs font-black text-cobalt">{look.salePrice ?? look.price}</p>
-                      )}
+                      {(() => {
+                        const label = feedPrice(look);
+                        return label ? <p className="mt-0.5 text-xs font-black text-ink">{label}</p> : null;
+                      })()}
                     </div>
                   </a>
                   <button type="button" onClick={() => remove(look.id)}
@@ -516,7 +548,10 @@ function SavedLooksList({ defaultOpen = false }: { defaultOpen?: boolean }) {
                       <div className="min-w-0">
                         <p className="truncate text-xs font-black text-ink">{look.name}</p>
                         {look.storeName && <p className="truncate text-[10px] font-bold text-ink/40">{look.storeName}</p>}
-                        {look.price && <p className="text-[10px] font-black text-cobalt">{look.salePrice ?? look.price}</p>}
+                        {(() => {
+                          const label = feedPrice(look);
+                          return label ? <p className="text-[10px] font-black text-ink">{label}</p> : null;
+                        })()}
                       </div>
                     </a>
                     <button type="button" onClick={() => remove(look.id)}
@@ -548,6 +583,11 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
   const [message, setMessage] = useState("");
   const [credits, setCredits] = useState<number | null>(null);
   const [isSeller, setIsSeller] = useState(false);
+  // Curator session (separate from the auth login) → entry to their studio.
+  const [curator, setCurator] = useState<{ firstName?: string } | null>(null);
+  useEffect(() => {
+    try { const c = JSON.parse(localStorage.getItem("lb_curator") ?? "null"); setCurator(c?.id ? c : null); } catch { setCurator(null); }
+  }, []);
 
   // Load credits + check seller status when signed in
   useEffect(() => {
@@ -589,6 +629,31 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
 
   const handleSignOut = () => { signOut(); setSession(null); setCredits(null); };
 
+  // Curator sign-in (email only, no password — our only login).
+  const handleCuratorSignin = async () => {
+    const em = email.trim();
+    if (!em) return;
+    setError(""); setMessage(""); setLoading(true);
+    try {
+      const res = await fetch("/api/curator", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "signin", email: em }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.curator) {
+        setError("No curator found with that email. Become a curator first.");
+        return;
+      }
+      localStorage.setItem("lb_curator", JSON.stringify({ id: data.curator.id, firstName: data.curator.firstName, email: data.curator.email, style: data.curator.style }));
+      setCurator(data.curator);
+    } catch {
+      setError("Sign-in failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -597,13 +662,34 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-black text-ink">
-            {session ? "Your account" : tab === "signin" ? "Sign in" : tab === "register" ? "Create account" : "Reset password"}
+            {session || curator ? "Your account" : tab === "signin" ? "Sign in" : tab === "register" ? "Create account" : "Reset password"}
           </h2>
           <button type="button" onClick={onClose}
             className="grid h-8 w-8 place-items-center rounded-full border border-black/10 text-ink/40">
             <X className="h-4 w-4" />
           </button>
         </div>
+
+        {/* Curator studio entry (separate curator session) */}
+        {curator ? (
+          <a href="/studio"
+            className="mb-5 flex items-center justify-between gap-3 rounded-2xl bg-black px-4 py-3.5 text-white active:scale-[0.99] transition-transform">
+            <span className="min-w-0">
+              <span className="block text-sm font-black">Open your studio{curator.firstName ? `, ${curator.firstName}` : ""}</span>
+              <span className="block text-[11px] font-bold text-white/55">Find trends · publish looks</span>
+            </span>
+            <span className="shrink-0 text-lg font-black">→</span>
+          </a>
+        ) : (
+          <a href="/curators"
+            className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-black/10 bg-black/[0.02] px-4 py-3.5 text-ink active:scale-[0.99] transition-transform">
+            <span className="min-w-0">
+              <span className="block text-sm font-black">Become a curator</span>
+              <span className="block text-[11px] font-bold text-ink/45">Spot trends, earn via affiliate</span>
+            </span>
+            <span className="shrink-0 text-lg font-black text-ink/40">→</span>
+          </a>
+        )}
 
         {session ? (
           /* ── Signed-in view ── */
@@ -665,61 +751,59 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
               <LogOut className="h-4 w-4" /> Sign out
             </button>
           </div>
-        ) : (
-          /* ── Auth forms ── */
+        ) : curator ? (
+          /* ── Curator signed-in view — curators have no password, so never show the
+                buyer email/password form to them. ── */
           <div className="grid gap-4">
-            {/* Tab switcher */}
-            {tab !== "forgot" && (
-              <div className="grid grid-cols-2 gap-1 rounded-xl border border-black/8 bg-black/[0.03] p-1">
-                {(["signin", "register"] as const).map(t => (
-                  <button key={t} type="button" onClick={() => { setTab(t); setError(""); setMessage(""); }}
-                    className={`h-9 rounded-lg text-xs font-black transition ${tab === t ? "bg-white text-ink shadow-sm" : "text-ink/40"}`}>
-                    {t === "signin" ? "Sign in" : "Register"}
-                  </button>
-                ))}
+            <div className="flex items-center gap-3 rounded-xl border border-black/8 bg-black/[0.02] p-4">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink text-white text-sm font-black">
+                {(curator.firstName ?? "C").slice(0, 1).toUpperCase()}
               </div>
-            )}
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black text-ink">{curator.firstName || "Curator"}</p>
+                <p className="flex items-center gap-1 text-[11px] font-bold text-emerald-600">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Signed in as curator
+                </p>
+              </div>
+            </div>
+            <a href="/curators/profile"
+              className="flex h-11 items-center justify-center rounded-xl border border-black/10 bg-white text-sm font-black text-ink">
+              My profile →
+            </a>
+            <button type="button"
+              onClick={() => { try { localStorage.removeItem("lb_curator"); } catch { /**/ } setCurator(null); onClose(); }}
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-black/10 bg-white text-sm font-black text-ink/50 hover:text-coral transition">
+              <LogOut className="h-4 w-4" /> Sign out
+            </button>
+          </div>
+        ) : (
+          /* ── Curator sign-in (email only — our only login) ── */
+          <div className="grid gap-4">
+            <p className="text-xs font-bold text-ink/45">Already a curator? Sign in with your email — no password needed.</p>
 
             {error && <p className="rounded-xl border border-coral/25 bg-coral/10 px-4 py-3 text-xs font-black text-coral">{error}</p>}
             {message && <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-xs font-black text-green-700">{message}</p>}
 
-            <div className="grid gap-3">
-              <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
-                className="h-12 rounded-xl border border-black/10 bg-black/[0.02] px-4 text-sm font-bold outline-none focus:border-cobalt" />
-              {tab !== "forgot" && (
-                <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") void handle(tab); }}
-                  className="h-12 rounded-xl border border-black/10 bg-black/[0.02] px-4 text-sm font-bold outline-none focus:border-cobalt" />
-              )}
-            </div>
+            <input type="email" placeholder="you@email.com" value={email} onChange={e => setEmail(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") void handleCuratorSignin(); }}
+              className="h-12 rounded-xl border border-black/10 bg-black/[0.02] px-4 text-sm font-bold outline-none focus:border-cobalt" />
 
             <button type="button"
-              disabled={loading || !email.trim() || (tab !== "forgot" && !password)}
-              onClick={() => void handle(tab)}
+              disabled={loading || !email.trim()}
+              onClick={() => void handleCuratorSignin()}
               className="flex h-13 items-center justify-center rounded-xl bg-ink py-3.5 text-sm font-black text-white disabled:opacity-40">
-              {loading
-                ? <Loader2 className="h-4 w-4 animate-spin" />
-                : tab === "signin" ? "Sign in"
-                : tab === "register" ? "Create account"
-                : "Send reset link"}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign in"}
             </button>
 
-            <div className="flex items-center justify-between">
-              {tab !== "forgot" && (
-                <p className="text-[11px] font-bold text-ink/35">
-                  {tab === "signin" ? "No account? " : "Have an account? "}
-                  <button type="button" onClick={() => { setTab(tab === "signin" ? "register" : "signin"); setError(""); setMessage(""); }}
-                    className="font-black text-cobalt underline underline-offset-2">
-                    {tab === "signin" ? "Register" : "Sign in"}
-                  </button>
-                </p>
-              )}
-              <button type="button"
-                onClick={() => { setTab(tab === "forgot" ? "signin" : "forgot"); setError(""); setMessage(""); }}
-                className="ml-auto text-[11px] font-black text-ink/35 underline underline-offset-2">
-                {tab === "forgot" ? "← Back to sign in" : "Forgot password?"}
-              </button>
+            <div className="my-1 flex items-center gap-3">
+              <span className="h-px flex-1 bg-black/10" />
+              <span className="text-[11px] font-black uppercase tracking-wider text-ink/30">New here?</span>
+              <span className="h-px flex-1 bg-black/10" />
             </div>
+            <a href="/curators"
+              className="flex h-13 items-center justify-center gap-2 rounded-xl border border-black/15 bg-white py-3.5 text-sm font-black text-ink active:scale-95 transition-transform">
+              <Sparkles className="h-4 w-4" /> Become a curator — it&apos;s free
+            </a>
           </div>
         )}
       </div>
@@ -741,6 +825,10 @@ function StoresPage() {
   const [communityLoading, setCommunityLoading] = useState(false);
   const [communitySelectedIndex, setCommunitySelectedIndex] = useState<number | null>(null);
   const [communityLikes, setCommunityLikes] = useState<Record<string, boolean>>({});
+  // "Mine" filter for signed-in creators — show only their own try-ons / trends
+  const [myCuratorId, setMyCuratorId] = useState("");
+  const [mineOnly, setMineOnly] = useState(false);
+  const [myTrendsOnly, setMyTrendsOnly] = useState(false);
   const [followed, setFollowed] = useState<Set<string>>(new Set());
   const [savedModel, setSavedModel] = useState<{ fromLookName: string; fromStoreName: string; imageUrl: string } | null>(null);
   const [showUserPanel, setShowUserPanel] = useState(false);
@@ -800,7 +888,8 @@ function StoresPage() {
     const tab = searchParams.get("tab");
     if (panel === "account") { setShowUserPanel(true); setSavedAutoOpen(false); setShowMerkliste(false); }
     if (panel === "saved") { setShowMerkliste(true); setShowUserPanel(false); }
-    if (tab === "community") { setTypeFilter("community"); }
+    // Community try-on feed retired — always show the Trends feed.
+    void tab;
   }, [searchParams]);
 
   const toggleFollow = (slug: string, e: React.MouseEvent) => {
@@ -920,10 +1009,18 @@ function StoresPage() {
       .finally(() => setIsLoading(false));
   }, []);
 
+  // Read the signed-in creator's id (if any) for the "Mine" filter
+  useEffect(() => {
+    try { setMyCuratorId(JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id ?? ""); }
+    catch { setMyCuratorId(""); }
+  }, []);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return looks;
-    return looks.filter((l) =>
+    let items = looks;
+    if (myTrendsOnly && myCuratorId) items = items.filter((l) => (l as any).curatorId === myCuratorId);
+    if (!q) return items;
+    return items.filter((l) =>
       l.name.toLowerCase().includes(q) ||
       (l.storeName ?? "").toLowerCase().includes(q) ||
       (l.storeSlug ?? "").toLowerCase().includes(q) ||
@@ -932,17 +1029,30 @@ function StoresPage() {
       ((l as any).hashtags ?? "").toLowerCase().includes(q) ||
       ((l as any).productNote ?? "").toLowerCase().includes(q)
     );
-  }, [looks, query]);
+  }, [looks, query, myTrendsOnly, myCuratorId]);
+
+  const myLookCount = useMemo(
+    () => (myCuratorId ? looks.filter((l) => (l as any).curatorId === myCuratorId).length : 0),
+    [looks, myCuratorId]
+  );
 
   const filteredCommunity = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return communityItems;
-    return communityItems.filter((c) =>
+    let items = communityItems;
+    if (mineOnly && myCuratorId) items = items.filter((c) => c.curatorId === myCuratorId);
+    if (!q) return items;
+    return items.filter((c) =>
       (c.customerName ?? "").toLowerCase().includes(q) ||
       c.lookName.toLowerCase().includes(q) ||
       c.storeName.toLowerCase().includes(q)
     );
-  }, [communityItems, query]);
+  }, [communityItems, query, mineOnly, myCuratorId]);
+
+  // How many of the loaded try-ons belong to the signed-in creator
+  const myTryOnCount = useMemo(
+    () => (myCuratorId ? communityItems.filter((c) => c.curatorId === myCuratorId).length : 0),
+    [communityItems, myCuratorId]
+  );
 
   return (
     <div className="min-h-dvh bg-white" style={{ maxWidth: "100vw" }}>
@@ -958,20 +1068,12 @@ function StoresPage() {
             </div>
             <div>
               <div className="text-sm font-black uppercase tracking-widest text-black leading-none">LuxuryBandit</div>
-              <div className="text-[10px] font-bold text-black/40 mt-0.5">Vintage &amp; Luxury C2C Fashion</div>
+              <div className="text-[10px] font-bold text-black/40 mt-0.5">Bandit this life!</div>
             </div>
           </div>
 
           {/* Right icons */}
           <div className="flex items-center gap-2">
-            {/* Add product */}
-            <button type="button"
-              onClick={() => router.push(isSignedIn ? "/user/mystore/new" : "/stores?panel=account")}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-white active:opacity-75 transition"
-              aria-label="Produkt hinzufügen">
-              <Plus className="h-4 w-4" />
-            </button>
-
             {/* Search toggle */}
             <button type="button"
               onClick={() => { setSearchOpen(v => !v); if (!searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50); else setQuery(""); }}
@@ -1035,15 +1137,6 @@ function StoresPage() {
         )}
 
 
-        {/* Type filter chips */}
-        <div className="flex gap-2 overflow-x-auto px-3 pb-2 scrollbar-none">
-          {([["all", "Creators"], ["community", "🔥 Community"]] as const).map(([val, label]) => (
-            <button key={val} type="button" onClick={() => { setTypeFilter(val); setQuery(""); router.replace(val === "community" ? "/stores?tab=community" : "/stores", { scroll: false }); }}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-black transition ${typeFilter === val ? "bg-black text-white" : "bg-black/6 text-black/60"}`}>
-              {label}
-            </button>
-          ))}
-        </div>
       </header>
 
       <main className="pb-24">
@@ -1074,15 +1167,40 @@ function StoresPage() {
           <>
             {/* Intro / page description */}
             <section className="px-4 pt-4 pb-1">
-              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-cobalt">LuxuryBandit Community</p>
+              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-cobalt">LuxuryBandit Try-ons</p>
               <h1 className="mt-1 text-xl font-semibold leading-tight tracking-tight text-black">
-                Probier Vintage- &amp; Luxusmode virtuell an
+                Real people, wearing the looks
               </h1>
               <p className="mt-1.5 text-sm font-normal leading-6 text-black/55">
-                Entdecke Looks echter Creator und Stores, sieh per KI-Anprobe sofort, wie sie an dir aussehen,
-                und speichere deine Favoriten. Tippe auf einen Look, um ihn anzuprobieren.
+                See how trend looks land on real bodies — AI try-ons from the community.
+                Try any look on yourself, then shop the style at the price that suits you.
               </p>
             </section>
+
+            {/* All / Mine — only for signed-in creators */}
+            {myCuratorId && (
+              <div className="flex items-center gap-2 px-4 pb-1 pt-1">
+                <button type="button" onClick={() => setMineOnly(false)}
+                  className={`rounded-full px-4 py-1.5 text-xs font-black transition ${!mineOnly ? "bg-black text-white" : "bg-black/[0.04] text-black/45"}`}>
+                  All try-ons
+                </button>
+                <button type="button" onClick={() => setMineOnly(true)}
+                  className={`rounded-full px-4 py-1.5 text-xs font-black transition ${mineOnly ? "bg-black text-white" : "bg-black/[0.04] text-black/45"}`}>
+                  My try-ons{myTryOnCount > 0 ? ` · ${myTryOnCount}` : ""}
+                </button>
+              </div>
+            )}
+
+            {/* Empty state when a creator has no try-ons of their own yet */}
+            {!communityLoading && mineOnly && myCuratorId && myTryOnCount === 0 && (
+              <div className="flex flex-col items-center gap-2 py-20 text-center px-8">
+                <ImageIcon className="h-9 w-9 text-black/15" />
+                <p className="text-sm font-black text-black/45">You haven&apos;t posted a try-on yet</p>
+                <p className="max-w-xs text-xs font-medium leading-5 text-black/45">
+                  Tap any look, try it on yourself, then share it — it&apos;ll show up here under your name.
+                </p>
+              </div>
+            )}
 
             {communityLoading && (
               <div className="flex justify-center py-20">
@@ -1245,6 +1363,45 @@ function StoresPage() {
           </>
         )}
 
+        {/* Intro / page description — Trends & Dupes */}
+        {typeFilter !== "community" && (
+          <section className="px-4 pt-4 pb-1">
+            <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-cobalt">Trends</p>
+            <h1 className="mt-1 text-xl font-semibold leading-tight tracking-tight text-black">
+              The look — shop it at any price
+            </h1>
+            <p className="mt-1.5 text-sm font-normal leading-6 text-black/55">
+              Curators spot the trends and pick the real products worth buying. Every look comes with
+              shop options across budgets — and you can try it on with AI, on your own photo, before you buy.
+            </p>
+          </section>
+        )}
+
+        {/* All / My Trends — only for signed-in creators */}
+        {typeFilter !== "community" && myCuratorId && (
+          <div className="flex items-center gap-2 px-4 pb-3 pt-1">
+            <button type="button" onClick={() => setMyTrendsOnly(false)}
+              className={`rounded-full px-4 py-1.5 text-xs font-black transition ${!myTrendsOnly ? "bg-black text-white" : "bg-black/[0.04] text-black/45"}`}>
+              All trends
+            </button>
+            <button type="button" onClick={() => setMyTrendsOnly(true)}
+              className={`rounded-full px-4 py-1.5 text-xs font-black transition ${myTrendsOnly ? "bg-black text-white" : "bg-black/[0.04] text-black/45"}`}>
+              My trends{myLookCount > 0 ? ` · ${myLookCount}` : ""}
+            </button>
+          </div>
+        )}
+
+        {/* Empty state when creator has no looks of their own yet */}
+        {typeFilter !== "community" && !isLoading && myTrendsOnly && myCuratorId && myLookCount === 0 && (
+          <div className="flex flex-col items-center gap-2 py-20 text-center px-8">
+            <ShoppingBag className="h-9 w-9 text-black/15" />
+            <p className="text-sm font-black text-black/45">You haven&apos;t published a look yet</p>
+            <p className="max-w-xs text-xs font-medium leading-5 text-black/45">
+              Go to your studio, create a look and publish it — it&apos;ll show up here.
+            </p>
+          </div>
+        )}
+
         {typeFilter !== "community" && isLoading && (
           <div className="flex justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin text-black/30" />
@@ -1357,28 +1514,26 @@ function StoresPage() {
                       )}
                     </button>
 
-                    {/* Info row */}
+                    {/* Info row — attributed to the curator who published it */}
                     <div className="flex items-center gap-1.5 px-2 pt-1 pb-0 bg-white">
-                      {/* Store avatar */}
+                      {/* Curator avatar (falls back to store) */}
                       <button type="button"
-                        onClick={(e) => { e.stopPropagation(); if (look.storeSlug) router.push(`/store/${look.storeSlug}`); }}
+                        onClick={(e) => { e.stopPropagation(); if (look.curatorId) router.push(`/curator/${look.curatorId}`); else if (look.storeSlug) router.push(`/store/${look.storeSlug}`); }}
                         className="flex h-4 w-4 shrink-0 overflow-hidden rounded-full bg-black/5">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(look.storeSlug ?? "default")}&backgroundColor=ffffff&color=000000`}
+                        <img src={look.curatorPhotoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(look.curatorName || look.storeSlug || "LB")}&backgroundColor=000000&fontColor=ffffff`}
                           alt="" className="h-full w-full object-cover" />
                       </button>
                       <span className="min-w-0 flex-1 truncate text-[9px] font-black text-black/70">
-                        {look.storeName ?? look.storeSlug ?? ""}
+                        {look.curatorName || look.storeName || look.storeSlug || ""}
                       </span>
-                      {(look.salePrice ?? look.price) && (
-                        <span className="shrink-0 text-[9px] font-black text-black/70">{look.salePrice ?? look.price}</span>
-                      )}
+                      {(() => {
+                        const label = feedPrice(look);
+                        return label ? <span className="shrink-0 text-[9px] font-black text-ink">{label}</span> : null;
+                      })()}
                       {look.discountLabel && !isSoldOut && (
                         <span className="shrink-0 rounded bg-black/10 px-1 py-0.5 text-[8px] font-black text-black/60">{look.discountLabel}</span>
                       )}
-                      <span className="shrink-0 rounded-full bg-black/8 px-1 py-0.5 text-[8px] font-black text-black/50">
-                        {(look.productType ?? "real") === "virtual" ? "✨AI" : "🏪Real"}
-                      </span>
                     </div>
 
                     {/* Social bar — display only */}
@@ -1411,7 +1566,7 @@ function StoresPage() {
             {query.trim() && filteredCommunity.length > 0 && (
               <div className="mt-4 mb-2">
                 <p className="px-3 py-2 text-xs font-black text-black/40 uppercase tracking-widest">
-                  🔥 Community ({filteredCommunity.length})
+                  Try Ons ({filteredCommunity.length})
                 </p>
                 <div className="grid grid-cols-3 gap-0.5">
                   {filteredCommunity.map((item, itemIdx) => (

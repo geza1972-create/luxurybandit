@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { ArrowRight, Clock, ExternalLink, ImagePlus, LayoutDashboard, List, LogIn, Loader2, Megaphone, Package, RefreshCw, Settings, ShoppingBag, Store, Tags, UserPlus, Users } from "lucide-react";
+import { ArrowRight, ExternalLink, ImagePlus, LayoutDashboard, List, Loader2, Megaphone, Package, RefreshCw, Settings, ShoppingBag, Store, Tags, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -228,8 +228,6 @@ export default function AdminDashboardPage() {
   const looks = data.looks ?? [];
   const activeLooks = data.activeLooks ?? [];
   const activeLookIds = new Set(activeLooks.map((look) => look.id));
-  const newLeads = (data.leads ?? []).filter((lead) => (lead.status ?? "new") === "new").length;
-  const whatsappClicks = (data.events ?? []).filter((event) => event.name === "click_order_whatsapp").length;
 
   const storeRows = useMemo(() => {
     return stores.map((store) => {
@@ -256,8 +254,10 @@ export default function AdminDashboardPage() {
       description: "Use these to run the MVP.",
       pages: [
         { label: "Dashboard", path: "/admin", note: "Overview, links, and seller onboarding.", icon: LayoutDashboard },
-        { label: "Listings & requests", path: "/admin/looks", note: "Create/edit sellers, listings, buyer requests, and AI previews.", icon: List },
-        { label: "Sellers", path: "/admin/sellers", note: "Registered sellers, AI access control, credit limits.", icon: Users },
+        { label: "Trends studio", path: "/admin/trends", note: "Import products by style → yes/no → publish to Trends.", icon: Tags },
+        { label: "Curators", path: "/admin/curators", note: "Everyone who applied — edit email & details, view their looks.", icon: Users },
+        { label: "Partner stores", path: "/admin/partners", note: "Affiliate partner stores curators source from (search + affiliate links).", icon: Store },
+        { label: "Listings & requests", path: "/admin/looks", note: "Manage published looks and buyer requests.", icon: List },
         { label: "Community users", path: "/admin/users", note: "All users who have done a try-on, with profile links.", icon: Users },
         { label: "Listing creatives", path: "/admin/creative", note: "Create and export four social slides from a listing.", icon: Package },
         { label: "Internal image tools", path: "/tools/fashion-creator", note: "Private service tool for extracting apparel and creating fashion images.", icon: ImagePlus }
@@ -265,28 +265,10 @@ export default function AdminDashboardPage() {
     },
     {
       title: "Public pages",
-      description: "These are shown to boutiques or shoppers.",
+      description: "These are shown to shoppers.",
       pages: [
-        { label: "Seller list", path: "/stores", note: "Public sellers and listings.", icon: Store },
-        { label: "Example seller", path: firstStore ? `/store/${firstStore.slug}` : "/stores", note: "All live listings from one seller.", icon: Store },
-        { label: "Example listing", path: firstOfferPath, note: "Mobile buyer listing page.", icon: ShoppingBag },
-        { label: "Platform pitch", path: "/platform", note: "Sales page for boutiques, vintage sellers, and private sellers.", icon: Megaphone }
-      ]
-    },
-    {
-      title: "Seller portal",
-      description: "Self-service pages for registered sellers.",
-      pages: [
-        { label: "Seller register", path: "/seller/register", note: "New seller signup — store name, email, password.", icon: UserPlus },
-        { label: "Seller login", path: "/seller/login", note: "Returning seller login.", icon: LogIn },
-        { label: "Seller dashboard", path: "/seller/dashboard", note: "Manage own listings, request AI access, see credits.", icon: LayoutDashboard }
-      ]
-    },
-    {
-      title: "Legacy/testing",
-      description: "Keep these for testing until the full account system replaces them.",
-      pages: [
-        { label: "Listing fallback", path: "/try-this-look", note: "Legacy entry point for active listing testing.", icon: Clock }
+        { label: "Trends feed", path: "/stores", note: "The public start page — Trends + Community.", icon: Store },
+        { label: "Example look", path: firstOfferPath, note: "Mobile look page with shop options + try-on.", icon: ShoppingBag }
       ]
     }
   ];
@@ -330,20 +312,6 @@ export default function AdminDashboardPage() {
         {error && <div className="rounded-md border border-coral/25 bg-coral/10 p-4 text-sm font-black text-coral">{error}</div>}
         {message && <div className="rounded-md border border-cobalt/20 bg-cobalt/10 p-4 text-sm font-black text-cobalt">{message}</div>}
 
-        <section className="grid gap-3 md:grid-cols-5">
-          {[
-            { label: "Stores", value: stores.length },
-            { label: "Listings", value: looks.length },
-            { label: "New buyer requests", value: newLeads },
-            { label: "WhatsApp clicks", value: whatsappClicks }
-          ].map((item) => (
-            <div key={item.label} className="rounded-lg border border-black/10 bg-white p-4 shadow-soft">
-              <div className="text-xs font-black uppercase tracking-[0.16em] text-ink/45">{item.label}</div>
-              <div className="mt-2 text-4xl font-black text-cobalt">{item.value}</div>
-            </div>
-          ))}
-        </section>
-
         <section className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
           {/* Header */}
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -353,14 +321,14 @@ export default function AdminDashboardPage() {
                 onClick={() => setListingDashTab("feeds")}
                 className={`rounded-md px-4 py-1.5 text-sm font-black transition ${listingDashTab === "feeds" ? "bg-white text-ink shadow-soft" : "text-ink/50 hover:text-ink"}`}
               >
-                Live listings
+                Trends
               </button>
               <button
                 type="button"
                 onClick={() => setListingDashTab("community")}
                 className={`flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-black transition ${listingDashTab === "community" ? "bg-white text-ink shadow-soft" : "text-ink/50 hover:text-ink"}`}
               >
-                Community Posts
+                Tryons
                 {(() => {
                   const unassigned = (data.generations ?? []).filter(g => !g.visitorId?.startsWith("admin-") && g.imageUrl && !g.customerName && !g.hidden).length;
                   return unassigned > 0 ? <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-black text-white">{unassigned}</span> : null;
@@ -369,7 +337,7 @@ export default function AdminDashboardPage() {
             </div>
             <button
               type="button"
-              onClick={() => void openExternalPage(listingDashTab === "community" ? "/admin/looks?tab=community" : "/admin/looks", listingDashTab === "community" ? "Community Posts" : "Live listings")}
+              onClick={() => void openExternalPage(listingDashTab === "community" ? "/admin/looks?tab=community" : "/admin/looks", listingDashTab === "community" ? "Tryons" : "Trends")}
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-ink px-3 text-xs font-black text-white"
             >
               Manage
@@ -377,12 +345,12 @@ export default function AdminDashboardPage() {
             </button>
           </div>
 
-          {/* Live listings tab */}
+          {/* Trends tab */}
           {listingDashTab === "feeds" && (
             activeLooks.length ? (
               <button
                 type="button"
-                onClick={() => void openExternalPage("/admin/looks", "Live listings")}
+                onClick={() => void openExternalPage("/admin/looks", "Trends")}
                 className="grid gap-3 text-left sm:grid-cols-2 lg:grid-cols-4"
               >
                 {activeLooks.map((look) => (
@@ -447,38 +415,12 @@ export default function AdminDashboardPage() {
           })()}
         </section>
 
-        <section className="grid gap-4 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
-          <div>
-            <div className="text-xs font-black uppercase tracking-[0.16em] text-cobalt">Boutique start</div>
-            <h2 className="mt-1 text-3xl font-black leading-none text-ink">How a seller uses LuxuryBandit</h2>
-            <p className="mt-2 max-w-3xl text-sm font-bold leading-6 text-ink/55">
-              The MVP is a simple direct selling funnel. The seller lists an item for free, can upgrade it with AI, shares the link,
-              and follows real buyer requests in WhatsApp.
-            </p>
-          </div>
-          <div className="grid gap-3 md:grid-cols-5">
-            {[
-              ["1", "Set up seller", "Name, city, address, WhatsApp."],
-              ["2", "Add listing", "Product image, price, sizes, pickup or delivery."],
-              ["3", "Create listing slides", "Export four ready-made slides."],
-              ["4", "Share link", "Post or share the listing link."],
-              ["5", "Follow up", "Buyer chooses size, pickup/delivery, then WhatsApp closes the sale."]
-            ].map(([number, title, text]) => (
-              <div key={number} className="rounded-md border border-black/10 bg-panel p-3">
-                <div className="grid h-9 w-9 place-items-center rounded-md bg-cobalt text-sm font-black text-white">{number}</div>
-                <div className="mt-3 text-sm font-black text-ink">{title}</div>
-                <p className="mt-1 text-xs font-bold leading-5 text-ink/55">{text}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
         <section className="grid gap-3 md:grid-cols-4">
           <button type="button" onClick={() => void openExternalPage("/admin/looks", "Admin")} className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 text-left shadow-soft">
             <Settings aria-hidden="true" className="h-6 w-6 text-cobalt" />
             <div>
-              <div className="text-xl font-black">Manage sellers & listings</div>
-              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">Upload products, edit prices, set live listings, and view buyer requests.</p>
+              <div className="text-xl font-black">Manage listings</div>
+              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">Edit published looks, prices, and view buyer requests.</p>
             </div>
             <span className="inline-flex items-center gap-2 text-sm font-black text-cobalt">
               Open admin
@@ -489,23 +431,11 @@ export default function AdminDashboardPage() {
           <button type="button" onClick={() => void openExternalPage("/stores", "Stores")} className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 text-left shadow-soft">
             <Store aria-hidden="true" className="h-6 w-6 text-cobalt" />
             <div>
-              <div className="text-xl font-black">Public seller list</div>
-              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">See the buyer-facing list of sellers and listings.</p>
+              <div className="text-xl font-black">Public start page</div>
+              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">The shopper-facing Trends feed and Community.</p>
             </div>
             <span className="inline-flex items-center gap-2 text-sm font-black text-cobalt">
               Open stores
-              <ArrowRight aria-hidden="true" className="h-4 w-4" />
-            </span>
-          </button>
-
-          <button type="button" onClick={() => void openExternalPage("/platform", "Platform")} className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 text-left shadow-soft">
-            <Tags aria-hidden="true" className="h-6 w-6 text-cobalt" />
-            <div>
-              <div className="text-xl font-black">Sales landing page</div>
-              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">Open the pitch page for boutiques, vintage sellers, and private sellers.</p>
-            </div>
-            <span className="inline-flex items-center gap-2 text-sm font-black text-cobalt">
-              Open platform
               <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </span>
           </button>
@@ -522,11 +452,11 @@ export default function AdminDashboardPage() {
             </span>
           </button>
 
-          <button type="button" onClick={() => void openExternalPage("/admin/sellers", "Sellers")} className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 text-left shadow-soft">
-            <Settings aria-hidden="true" className="h-6 w-6 text-cobalt" />
+          <button type="button" onClick={() => void openExternalPage("/admin/curators", "Curators")} className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 text-left shadow-soft">
+            <Users aria-hidden="true" className="h-6 w-6 text-cobalt" />
             <div>
-              <div className="text-xl font-black">Sellers</div>
-              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">Registered sellers, AI access control, and credit limits.</p>
+              <div className="text-xl font-black">Curators</div>
+              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">Everyone who applied — edit details, view their public profile & looks.</p>
             </div>
             <span className="inline-flex items-center gap-2 text-sm font-black text-cobalt">
               Open
@@ -558,11 +488,11 @@ export default function AdminDashboardPage() {
             </span>
           </button>
 
-          <button type="button" onClick={() => void openExternalPage("/admin/ai-studio", "AI Studio")} className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 text-left shadow-soft">
+          <button type="button" onClick={() => void openExternalPage("/admin/trends", "Trends")} className="grid gap-3 rounded-lg border border-black/10 bg-white p-4 text-left shadow-soft">
             <Megaphone aria-hidden="true" className="h-6 w-6 text-cobalt" />
             <div>
-              <div className="text-xl font-black">AI Studio</div>
-              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">Trend scanner, content ideas, look generator, and free-influencer strategy — powered by Claude.</p>
+              <div className="text-xl font-black">Trends</div>
+              <p className="mt-1 text-sm font-bold leading-6 text-ink/55">Produkt-Links importieren, per Ja/Nein kuratieren und als tryon-fähige Looks unter „LuxuryBandit" veröffentlichen.</p>
             </div>
             <span className="inline-flex items-center gap-2 text-sm font-black text-cobalt">
               Open

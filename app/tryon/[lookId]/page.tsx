@@ -15,7 +15,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import {
   ArrowRight, ChevronLeft, Download, ImagePlus,
-  Loader2, RefreshCw, Send, Sparkles, X,
+  Loader2, Lock, RefreshCw, Send, Sparkles, X,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -25,9 +25,10 @@ type Look = {
   price?: string; salePrice?: string; inStock?: boolean;
   imageUrl: string; frontImageUrl?: string; garmentFrontImageUrl?: string;
   galleryImageUrls?: string[];
+  alternatives?: { title: string; link: string; thumbnail: string; price?: string; source?: string }[];
 };
 
-type Step = "upload" | "crop" | "confirm" | "generating" | "result";
+type Step = "upload" | "crop" | "confirm" | "generating" | "result" | "locked";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -86,10 +87,18 @@ export default function TryonPage() {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [elapsedSec, setElapsedSec] = useState(0);
+  const [genMessage, setGenMessage] = useState("Generating your look…");
   const [sharedToGallery, setSharedToGallery] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareNameInput, setShareNameInput] = useState("");
   const [accountId, setAccountId] = useState("");
+
+  // Profile photo as try-on base (creators) — gated behind a one-time consent
+  const [curatorPhotoUrl, setCuratorPhotoUrl] = useState<string | null>(null);
+  const [curatorId, setCuratorId] = useState("");
+  const [curatorName, setCuratorName] = useState("");
+  const [showPhotoConsent, setShowPhotoConsent] = useState(false);
+  const [loadingProfilePhoto, setLoadingProfilePhoto] = useState(false);
 
   // Auth
   const [authSession, setAuthSession] = useState<SupabaseAuthSession | null>(null);
@@ -122,6 +131,24 @@ export default function TryonPage() {
       }
     } catch { /**/ }
 
+    // Creators can try the look on their own profile photo (with consent)
+    try {
+      const c = JSON.parse(localStorage.getItem("lb_curator") ?? "{}");
+      if (c?.id) {
+        setCuratorId(c.id);
+        // Pre-fill the "share to gallery" name from the session right away (editable).
+        if (c.firstName) setShareNameInput((prev) => prev || c.firstName);
+        fetch(`/api/curator?profile=${encodeURIComponent(c.id)}`)
+          .then(r => r.json())
+          .then(d => {
+            if (d.profile?.photoUrl) setCuratorPhotoUrl(d.profile.photoUrl as string);
+            const nm = `${d.profile?.firstName ?? ""} ${d.profile?.lastName ?? ""}`.trim() || d.profile?.motto || "";
+            if (nm) { setCuratorName(nm); setShareNameInput((prev) => (!prev || prev === c.firstName) ? nm : prev); }
+          })
+          .catch(() => {});
+      }
+    } catch { /**/ }
+
     fetch(`/api/try-this-look?previewId=${encodeURIComponent(lookId)}`)
       .then(r => r.json())
       .then((p: { look?: Look }) => { if (p.look) setLook(p.look); })
@@ -129,11 +156,48 @@ export default function TryonPage() {
       .finally(() => setIsLoadingLook(false));
   }, [lookId]);
 
+  // ── Use the creator's profile photo as the try-on base ──
+  const loadProfilePhoto = async () => {
+    if (!curatorPhotoUrl) return;
+    setLoadingProfilePhoto(true);
+    setError(null);
+    try {
+      // Proxy keeps it same-origin so the signed URL converts cleanly to a data URL
+      const res = await fetch(`/api/img-proxy?url=${encodeURIComponent(curatorPhotoUrl)}`);
+      const blob = await res.blob();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result as string);
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      });
+      setUserPhoto(dataUrl);
+      setStep("confirm");
+    } catch {
+      setError("Couldn't load your profile photo. Upload one instead.");
+    } finally {
+      setLoadingProfilePhoto(false);
+    }
+  };
+
+  const onUseProfilePhoto = () => {
+    let consented = false;
+    try { consented = localStorage.getItem("lb_tryon_photo_consent") === "1"; } catch { /**/ }
+    if (consented) void loadProfilePhoto();
+    else setShowPhotoConsent(true);
+  };
+
+  const grantConsentAndUse = () => {
+    try { localStorage.setItem("lb_tryon_photo_consent", "1"); } catch { /**/ }
+    setShowPhotoConsent(false);
+    void loadProfilePhoto();
+  };
+
   // ── Progress timer ──
   useEffect(() => {
     if (step === "generating") {
       generationStartRef.current = Date.now();
-      setProgress(0); setElapsedSec(0);
+      setProgress(0); setElapsedSec(0); setGenMessage("Generating your look…");
       timerRef.current = setInterval(() => {
         const sec = (Date.now() - (generationStartRef.current ?? Date.now())) / 1000;
         setElapsedSec(Math.floor(sec));
@@ -166,37 +230,83 @@ export default function TryonPage() {
   };
 
   // ── Generate ──
-  const handleGenerate = async () => {
-    if (!authSession) { pendingGenerateRef.current = true; setShowAuth(true); return; }
+  // photoOverride lets callers (e.g. the resume-after-application flow) pass the
+  // photo directly, avoiding a stale `userPhoto` closure right after setUserPhoto.
+  const handleGenerate = async (photoOverride?: string) => {
+    const isAuthed = () => {
+      if (authSession) return true;
+      try { return !!JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id; } catch { return false; }
+    };
+    // Not signed in → tease it: run a fake "computing" pass, then show a blurred
+    // locked preview. Signing in unlocks it and runs the real generation.
+    if (!isAuthed()) {
+      if (!look) return;
+      pendingGenerateRef.current = true;
+      setError(null);
+      setStep("generating");
+      await new Promise((r) => setTimeout(r, 4200));
+      setStep("locked");
+      return;
+    }
     if (!look) return;
+    const photo = photoOverride ?? userPhoto;
     setError(null);
     setStep("generating");
     try {
+      // ?alt=N → try on a specific dupe alternative (its image is the garment).
+      const altParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("alt") : null;
+      const altIdx = altParam !== null && /^\d+$/.test(altParam) ? Number(altParam) : -1;
+      const altThumb = altIdx >= 0 ? look.alternatives?.[altIdx]?.thumbnail : undefined;
       const garmentData = await firstValidImageDataUrl([
+        altThumb,
         look.garmentFrontImageUrl,
         look.frontImageUrl,
         look.imageUrl,
         look.galleryImageUrls?.[0],
       ]);
-      const formData = new FormData();
-      formData.append("image", dataUrlToBlob(garmentData), `${look.id}.jpg`);
-      if (userPhoto) formData.append("modelImage", dataUrlToBlob(userPhoto), "user-photo.jpg");
-      formData.append("visitorId", accountId || "anon");
-      formData.append("lookId", look.id);
-      formData.append("mode", "fashion-model");
-      formData.append("aspectRatio", "9:16");
       const coverageRule = "Coverage rule: the generated image must keep the person at least as covered as in the original photo. Never expose more skin, remove undergarments, or show less clothing than the input. No nudity; keep intimate areas (chest, groin, buttocks) covered at all times.";
-      formData.append("prompt", userPhoto
+      const prompt = photo
         ? `Full-body virtual fashion try-on. Show the entire person from head to toe wearing the complete selected outfit. Replace the person's current clothing with the selected garment so the whole look is visible. Preserve the person's face, hair, skin tone, and identity exactly. Full-length framing. ${coverageRule} Look: ${look.name}.`
-        : `Full-body fashion campaign image. Professional AI model shown head to toe wearing the complete selected outfit. Full-length framing. ${coverageRule} Look: ${look.name}.`
-      );
-      const billingId = accountId.startsWith("user-") ? accountId : `visitor-${accountId || "anon"}`;
-      const res = await fetch("/api/generate-fashn", {
-        method: "POST", body: formData,
-        headers: { "x-shopcut-account-id": billingId },
-      });
-      const payload = await res.json() as { image?: string; error?: string };
-      if (res.status === 402) { setError("No credits. Buy credits first."); setStep("confirm"); return; }
+        : `Full-body fashion campaign image. Professional AI model shown head to toe wearing the complete selected outfit. Full-length framing. ${coverageRule} Look: ${look.name}.`;
+      // Fresh FormData per request (a body can't be reused across two fetches).
+      const buildForm = () => {
+        const fd = new FormData();
+        fd.append("image", dataUrlToBlob(garmentData), `${look.id}.jpg`);
+        if (photo) fd.append("modelImage", dataUrlToBlob(photo), "user-photo.jpg");
+        fd.append("visitorId", accountId || "anon");
+        fd.append("lookId", look.id);
+        fd.append("mode", "fashion-model");
+        fd.append("aspectRatio", "9:16");
+        fd.append("prompt", prompt);
+        return fd;
+      };
+      // Signed-in users (Supabase OR curator session) bill as a "user-" account so
+      // the anonymous 1-per-day try-on limit never applies to them.
+      const curatorBillingId = (() => { try { return JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id ?? ""; } catch { return ""; } })();
+      const billingId = authSession?.user?.id
+        ? `user-${authSession.user.id}`
+        : curatorBillingId
+        ? `user-${curatorBillingId}`
+        : accountId.startsWith("user-") ? accountId : `visitor-${accountId || "anon"}`;
+      const headers = { "x-shopcut-account-id": billingId };
+      // General apparel uses OpenAI (gpt-image). For fitted/lingerie-style garments
+      // OpenAI's classifier sometimes refuses ([sexual]); FASHN — a dedicated try-on
+      // model without that filter — is the fallback so the user still gets a result.
+      let res = await fetch("/api/generate-openai-tryon", { method: "POST", body: buildForm(), headers });
+      let payload = await res.json() as { image?: string; error?: string; outOfCredits?: boolean };
+      if (res.status === 402) { setError(payload.error ?? "You're out of credits. Earn more by getting likes & try-ons on your looks — or buy credits to keep going."); setStep("confirm"); return; }
+      const wasSafetyBlock = !res.ok && /safety|sexual/i.test(payload.error ?? "");
+      if (wasSafetyBlock) {
+        // Let the user know we're on the second engine + restart the progress bar so
+        // it doesn't sit frozen at the top during the (slower) FASHN pass.
+        setGenMessage("Fine-tuning this look for you…");
+        generationStartRef.current = Date.now();
+        setProgress(8);
+        // OpenAI refunds its own charge on failure; FASHN bills its own attempt.
+        res = await fetch("/api/generate-fashn", { method: "POST", body: buildForm(), headers });
+        payload = await res.json() as { image?: string; error?: string; outOfCredits?: boolean };
+        if (res.status === 402) { setError(payload.error ?? "You're out of credits. Earn more by getting likes & try-ons on your looks — or buy credits to keep going."); setStep("confirm"); return; }
+      }
       if (!res.ok || !payload.image) throw new Error(payload.error ?? "Generation failed.");
       setResultImage(payload.image);
       setProgress(100);
@@ -204,6 +314,54 @@ export default function TryonPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed.");
       setStep("confirm");
+    }
+  };
+
+  // ── Resume after the application flow ──
+  // If the visitor went off to become a curator mid try-on, pick up where they left
+  // off: restore their photo and run the generation now that they're signed in.
+  const resumedRef = useRef(false);
+  useEffect(() => {
+    if (resumedRef.current || !look) return;
+    let resume: { returnTo?: string; lookId?: string; userPhoto?: string } | null = null;
+    try { resume = JSON.parse(sessionStorage.getItem("lb_resume_tryon") ?? "null"); } catch { /* ignore */ }
+    if (!resume || resume.lookId !== look.id) return;
+    const isCurator = (() => { try { return !!JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id; } catch { return false; } })();
+    if (!isCurator) return; // application not completed yet
+    resumedRef.current = true;
+    try { sessionStorage.removeItem("lb_resume_tryon"); } catch { /**/ }
+    if (resume.userPhoto) {
+      setUserPhoto(resume.userPhoto);
+      // Pass the photo explicitly so generation doesn't race the state update.
+      void handleGenerate(resume.userPhoto);
+    } else {
+      setStep("confirm"); // no photo saved → they re-pick, but stay on this look
+    }
+  }, [look]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Curator sign-in (email only, no password — our only login) ──
+  const handleCuratorSignin = async () => {
+    const email = authEmail.trim();
+    if (!email) return;
+    setAuthLoading(true); setAuthError(""); setAuthSuccess("");
+    try {
+      const res = await fetch("/api/curator", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "signin", email }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.curator) {
+        setAuthError("No curator found with that email. Become a curator first to try looks on.");
+        return;
+      }
+      localStorage.setItem("lb_curator", JSON.stringify({ id: data.curator.id, firstName: data.curator.firstName, email: data.curator.email, style: data.curator.style }));
+      setShowAuth(false);
+      if (pendingGenerateRef.current) { pendingGenerateRef.current = false; setTimeout(() => void handleGenerate(), 100); }
+    } catch {
+      setAuthError("Sign-in failed. Please try again.");
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -240,7 +398,7 @@ export default function TryonPage() {
     setIsSharing(true);
     try {
       const meta = (authSession?.user as any)?.user_metadata ?? {};
-      const name = shareNameInput.trim() || meta.username || meta.full_name || "Anonymous";
+      const name = shareNameInput.trim() || curatorName || meta.username || meta.full_name || "Anonymous";
       await fetch("/api/try-this-look", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -249,6 +407,7 @@ export default function TryonPage() {
           visitorId: accountId || "anon",
           lookName: look.name, storeName: look.storeName,
           customerName: name, userId: authSession?.user?.id ?? undefined,
+          curatorId: curatorId || undefined,
           image: resultImage, userPhotoImage: userPhoto,
         }),
       });
@@ -305,6 +464,54 @@ export default function TryonPage() {
     }
   };
 
+  // Shared auth modal — used by the main view AND the locked teaser step (both
+  // return early, so it must be rendered in each place it can be opened).
+  const authModal = showAuth ? (
+    <>
+      <div className="fixed inset-0 z-[60] bg-black/50" onClick={() => setShowAuth(false)} />
+      <div className="fixed inset-x-0 bottom-0 z-[61] max-h-[88dvh] overflow-y-auto rounded-t-2xl bg-white px-5 pt-5"
+        style={{ paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" }}>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-base font-black">Sign in to reveal your look</p>
+          <button onClick={() => setShowAuth(false)} className="grid h-8 w-8 place-items-center rounded-full bg-black/5">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <p className="mb-4 text-xs font-bold text-black/45">Curators sign in with their email — no password needed.</p>
+        <div className="grid gap-3">
+          <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") void handleCuratorSignin(); }}
+            placeholder="you@email.com" className="w-full rounded-xl border border-black/15 px-3 py-3 text-sm outline-none focus:border-black" />
+          {authError && <p className="text-xs font-bold text-red-500">{authError}</p>}
+          <button onClick={() => void handleCuratorSignin()} disabled={authLoading || !authEmail.trim()}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-black text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
+            {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign in"}
+          </button>
+        </div>
+        <div className="my-4 flex items-center gap-3">
+          <span className="h-px flex-1 bg-black/10" />
+          <span className="text-[11px] font-black uppercase tracking-wider text-black/30">New here?</span>
+          <span className="h-px flex-1 bg-black/10" />
+        </div>
+        <button onClick={() => {
+            // Remember where to come back to (+ the uploaded photo) so we can resume
+            // the try-on right after the application is done.
+            try {
+              sessionStorage.setItem("lb_resume_tryon", JSON.stringify({
+                returnTo: typeof window !== "undefined" ? window.location.pathname : "",
+                lookId: look?.id ?? "",
+                userPhoto: userPhoto ?? "",
+              }));
+            } catch { /* photo too big for storage — resume without it */ }
+            router.push("/curators");
+          }}
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform">
+          <Sparkles className="h-4 w-4" /> Become a curator — it&apos;s free
+        </button>
+      </div>
+    </>
+  ) : null;
+
   // ─── CROP STEP ───
   if (step === "crop" && cropSrc) {
     return (
@@ -348,9 +555,53 @@ export default function TryonPage() {
           </div>
         </div>
         <div className="text-center">
-          <p className="text-lg font-black text-white">Generating your look…</p>
+          <p className="text-lg font-black text-white">{genMessage}</p>
           <p className="mt-1 text-sm font-bold text-white/60">{elapsedSec}s — please wait</p>
         </div>
+      </div>
+    );
+  }
+
+  // ─── LOCKED STEP — look is "ready" but blurred until the visitor signs in ───
+  if (step === "locked") {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-black">
+        {/* Blurred teaser of the result */}
+        <div className="relative flex-1 overflow-hidden">
+          {userPhoto ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={userPhoto} alt="" className="h-full w-full object-cover object-top blur-2xl scale-125" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={garmentPreviewUrl} alt="" className="h-full w-full object-cover blur-2xl scale-125" onError={onGarmentError} />
+          )}
+          <div className="absolute inset-0 bg-black/40" />
+          {/* Small sharp garment chip so they see what it's about */}
+          <div className="absolute left-1/2 top-6 -translate-x-1/2 h-20 w-16 overflow-hidden rounded-xl border-2 border-white/40 shadow-lg">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-cover" onError={onGarmentError} />
+          </div>
+          {/* Center lock + copy */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
+            <div className="grid h-16 w-16 place-items-center rounded-full bg-white/15 backdrop-blur">
+              <Lock className="h-7 w-7 text-white" />
+            </div>
+            <p className="mt-4 text-xl font-black text-white">Your look is ready</p>
+            <p className="mt-1.5 max-w-xs text-sm font-bold text-white/70">Sign in to reveal yourself wearing this look — it&apos;s free.</p>
+          </div>
+        </div>
+        {/* Actions */}
+        <div className="px-5 pt-4" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
+          <button onClick={() => setShowAuth(true)}
+            className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-white py-3.5 text-sm font-black text-black active:scale-95 transition-transform">
+            <Sparkles className="h-4 w-4" /> Sign in to reveal
+          </button>
+          <button onClick={() => { pendingGenerateRef.current = false; setStep("confirm"); }}
+            className="mt-2 flex h-11 w-full items-center justify-center text-sm font-black text-white/50">
+            Back
+          </button>
+        </div>
+        {authModal}
       </div>
     );
   }
@@ -392,7 +643,7 @@ export default function TryonPage() {
               <input
                 value={shareNameInput}
                 onChange={e => setShareNameInput(e.target.value)}
-                placeholder="Your name (optional)"
+                placeholder="Your name"
                 className="w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-black"
               />
               <button onClick={() => void handleShare()} disabled={isSharing}
@@ -449,6 +700,12 @@ export default function TryonPage() {
           <div className="text-center">
             <p className="text-lg font-black text-white [text-shadow:0_2px_8px_#000]">Send this photo to AI?</p>
             <p className="mt-1 text-sm font-bold text-white/70">You will be shown wearing this look</p>
+          </div>
+
+          {/* Full-body reminder — the AI can only dress what's in frame */}
+          <div className="rounded-xl border border-amber-300/30 bg-amber-400/15 px-3 py-2.5 text-center">
+            <p className="text-xs font-black text-amber-100">For the whole outfit, use a full-body standing photo.</p>
+            <p className="mt-0.5 text-[11px] font-bold text-amber-100/70">A close-up only shows the part of the look that&apos;s in the photo.</p>
           </div>
 
           {/* Error */}
@@ -520,12 +777,25 @@ export default function TryonPage() {
           <p className="mt-1 text-sm text-black/50">Upload a photo and AI will dress you in this outfit</p>
         </div>
 
-        {/* Upload button */}
-        <button onClick={() => fileInputRef.current?.click()}
-          className="flex h-14 w-full max-w-xs items-center justify-center gap-3 rounded-2xl bg-black text-white text-base font-black shadow-xl active:scale-95 transition-transform">
-          <ImagePlus className="h-5 w-5" />
-          Upload your photo
-        </button>
+        {/* Actions */}
+        <div className="flex w-full max-w-xs flex-col items-center gap-2.5">
+          {/* Profile photo (creators) — primary when available */}
+          {curatorPhotoUrl && (
+            <button onClick={onUseProfilePhoto} disabled={loadingProfilePhoto}
+              className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-black text-white text-base font-black shadow-xl active:scale-95 transition-transform disabled:opacity-50">
+              {loadingProfilePhoto ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={curatorPhotoUrl} alt="" className="h-7 w-7 rounded-full object-cover border border-white/40" />
+              )}
+              Use my profile photo
+            </button>
+          )}
+          <button onClick={() => fileInputRef.current?.click()}
+            className={`flex h-14 w-full items-center justify-center gap-3 rounded-2xl text-base font-black active:scale-95 transition-transform ${curatorPhotoUrl ? "border-2 border-black/10 bg-white text-black" : "bg-black text-white shadow-xl"}`}>
+            <ImagePlus className="h-5 w-5" />
+            Upload {curatorPhotoUrl ? "another" : "your"} photo
+          </button>
+        </div>
 
         {/* Tips */}
         <div className="w-full max-w-xs rounded-xl border border-black/8 bg-black/[0.03] p-4">
@@ -538,49 +808,39 @@ export default function TryonPage() {
         </div>
       </div>
 
-      {/* Auth modal */}
-      {showAuth && (
+      {/* Profile-photo consent */}
+      {showPhotoConsent && (
         <>
-          <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setShowAuth(false)} />
+          <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setShowPhotoConsent(false)} />
           <div className="fixed inset-x-0 bottom-0 z-[51] rounded-t-2xl bg-white px-5 pt-5"
             style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
-            <div className="flex items-center justify-between mb-5">
-              <p className="text-base font-black">
-                {authMode === "login" ? "Sign in to try the look" : authMode === "signup" ? "Create account" : "Reset password"}
-              </p>
-              <button onClick={() => setShowAuth(false)} className="grid h-8 w-8 place-items-center rounded-full bg-black/5">
-                <X className="h-4 w-4" />
-              </button>
+            <div className="mb-3 flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {curatorPhotoUrl && <img src={curatorPhotoUrl} alt="" className="h-12 w-12 rounded-full object-cover border border-black/10" />}
+              <p className="text-base font-black">Use your profile photo?</p>
             </div>
-            {authSuccess ? (
-              <p className="text-sm font-bold text-emerald-600 mb-4">{authSuccess}</p>
-            ) : (
-              <div className="grid gap-3">
-                {authMode === "signup" && (
-                  <input value={authName} onChange={e => setAuthName(e.target.value)}
-                    placeholder="Name" className="w-full rounded-xl border border-black/15 px-3 py-3 text-sm outline-none focus:border-black" />
-                )}
-                <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)}
-                  placeholder="Email" className="w-full rounded-xl border border-black/15 px-3 py-3 text-sm outline-none focus:border-black" />
-                {authMode !== "reset" && (
-                  <input type="password" value={authPassword} onChange={e => setAuthPassword(e.target.value)}
-                    placeholder="Password" className="w-full rounded-xl border border-black/15 px-3 py-3 text-sm outline-none focus:border-black" />
-                )}
-                {authError && <p className="text-xs font-bold text-red-500">{authError}</p>}
-                <button onClick={() => void handleAuth()} disabled={authLoading}
-                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-black text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
-                  {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : authMode === "login" ? "Sign in" : authMode === "signup" ? "Create account" : "Send reset link"}
-                </button>
-              </div>
-            )}
-            <div className="mt-4 flex justify-center gap-4 text-xs font-bold text-black/40">
-              {authMode !== "login" && <button onClick={() => setAuthMode("login")}>Sign in</button>}
-              {authMode !== "signup" && <button onClick={() => setAuthMode("signup")}>Create account</button>}
-              {authMode !== "reset" && <button onClick={() => setAuthMode("reset")}>Forgot password</button>}
+            <p className="mb-1 text-sm leading-relaxed text-black/55">
+              We&apos;ll send your profile photo to the AI to generate try-on images of you wearing this look.
+            </p>
+            <p className="mb-4 text-xs leading-relaxed text-black/40">
+              It&apos;s only used when you start a try-on. You can upload a different photo anytime.
+            </p>
+            <div className="grid gap-2">
+              <button onClick={grantConsentAndUse}
+                className="flex h-13 min-h-[52px] w-full items-center justify-center rounded-2xl bg-black text-sm font-black text-white active:scale-95 transition-transform">
+                Yes, use my profile photo
+              </button>
+              <button onClick={() => setShowPhotoConsent(false)}
+                className="flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold text-black/50 active:opacity-70">
+                Cancel
+              </button>
             </div>
           </div>
         </>
       )}
+
+      {/* Auth modal */}
+      {authModal}
 
       {/* Hidden file input */}
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFilePick} />

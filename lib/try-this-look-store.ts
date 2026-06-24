@@ -18,6 +18,17 @@ export type TryThisLookLook = {
   availabilityNote?: string;
   deliveryTime?: string;
   productNote?: string;
+  buyUrl?: string;
+  // Price-ladder alternatives (dupes) found via visual search, sorted desc by price.
+  alternatives?: {
+    title: string;
+    link: string;
+    source?: string;
+    thumbnail: string;
+    price?: string;
+    priceValue?: number;
+    currency?: string;
+  }[];
   createdAt: string;
   imagePath?: string;
   imageUrl?: string;
@@ -127,6 +138,105 @@ export type Follow = {
   createdAt: string;
 };
 
+// A fashion curator: applies via /curators/apply, then works in AI Studio
+// (generates looks + tryons). Earns later via affiliate on approved looks.
+export type CuratorProfile = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  brands?: string;            // free-text brands they love
+  style?: string;             // free-text style description
+  genderFocus?: string;       // "women" | "men" | "unisex"
+  colors?: string;            // comma-joined colour tags
+  fabrics?: string;           // comma-joined fabric tags
+  occasions?: string;         // comma-joined occasion tags
+  priceTiers?: string;        // comma-joined: Budget / Mid-range / Luxury
+  fitFocus?: string;          // comma-joined: Standard / Petite / Curve / Tall
+  ageFocus?: string;          // target audience age range
+  motto?: string;             // short tagline (AI-suggested, editable)
+  bio?: string;               // short profile description (AI-suggested, editable)
+  photoPath?: string;         // storage path of the curator's photo
+  photoUrl?: string;          // hydrated signed URL (read side only)
+  instagram?: string;         // handle for promotion
+  status: "active" | "pending";
+  createdAt: string;
+  // Creator credits (communicated to creators as "credits", never money).
+  // Missing credits → STARTER_CREDITS. See lib/curator-budget.ts.
+  credits?: number;             // spendable balance
+  creditsSpent?: number;        // lifetime spent
+  creditsEarned?: number;       // lifetime earned via engagement
+  awardedMilestones?: string[]; // earn-milestone keys already granted
+  creditLog?: { at: string; credits: number; label: string }[];
+};
+
+// An affiliate partner store the admin maintains. Curators source looks from
+// these (search by style); published shop-links get wrapped via affiliateTemplate
+// with the curator's SubID for internal attribution.
+export type PartnerStore = {
+  id: string;
+  name: string;
+  network?: string;            // e.g. "CJ Affiliate", "FlexOffers"
+  homeUrl: string;             // store homepage
+  searchUrlTemplate?: string;  // {q} placeholder, e.g. ".../search?q={q}"
+  affiliateTemplate?: string;  // {url} + {sid} placeholders (empty until account live)
+  enabled: boolean;
+  createdAt: string;
+};
+
+export const DEFAULT_PARTNER_STORES: PartnerStore[] = [
+  { id: "store-revolve", name: "Revolve", network: "CJ Affiliate", homeUrl: "https://www.revolve.com/", searchUrlTemplate: "https://www.revolve.com/r/Search.jsp?search={q}", affiliateTemplate: "", enabled: true, createdAt: "2026-06-23T00:00:00.000Z" },
+  { id: "store-ally", name: "Ally Fashion", network: "FlexOffers / Skimlinks", homeUrl: "https://allyfashion.com/", searchUrlTemplate: "https://allyfashion.com/search?q={q}", affiliateTemplate: "", enabled: true, createdAt: "2026-06-23T00:00:00.000Z" },
+];
+
+// Fashion-brand autocomplete database. Seeded from a large curated list, then
+// grown from what curators enter on the apply form.
+export { FASHION_BRANDS as DEFAULT_BRANDS } from "./fashion-brands";
+import { FASHION_BRANDS as DEFAULT_BRANDS } from "./fashion-brands";
+
+// Style-descriptor autocomplete database. Seeded, then grown from curator input.
+export const DEFAULT_STYLES: string[] = [
+  "Boho", "Minimal", "Old money", "Quiet luxury", "Streetwear", "Coastal grandmother", "Clean girl",
+  "Romantic", "Edgy", "Classic", "Preppy", "Y2K", "Cottagecore", "Grunge", "Athleisure",
+  "Business casual", "Festival", "Resort", "Glam", "Vintage", "Monochrome", "Parisian chic",
+  "Scandi", "Western", "Gothic", "Sporty", "Feminine", "Androgynous", "Maximalist", "Mob wife",
+  "Boudoir", "Provocative",
+];
+
+export const DEFAULT_COLORS: string[] = [
+  "Black", "White", "Cream", "Beige", "Camel", "Brown", "Chocolate", "Tan", "Navy", "Grey", "Charcoal",
+  "Red", "Burgundy", "Wine", "Pink", "Blush", "Hot pink", "Lavender", "Purple", "Lilac", "Blue",
+  "Sky blue", "Cobalt", "Teal", "Green", "Olive", "Sage", "Emerald", "Forest green", "Yellow", "Mustard",
+  "Orange", "Rust", "Terracotta", "Gold", "Silver", "Neutrals", "Earth tones", "Pastels", "Jewel tones",
+  "Monochrome", "Metallics", "Animal print", "Floral",
+];
+
+export const DEFAULT_FABRICS: string[] = [
+  "Linen", "Cotton", "Silk", "Satin", "Denim", "Leather", "Faux leather", "Suede", "Wool", "Cashmere",
+  "Knit", "Crochet", "Lace", "Tweed", "Velvet", "Chiffon", "Organza", "Tulle", "Jersey", "Ribbed",
+  "Sequin", "Mesh", "Corduroy", "Faux fur", "Sheer", "Viscose", "Cupro", "Modal",
+];
+
+export const DEFAULT_OCCASIONS: string[] = [
+  "Everyday", "Workwear", "Office", "Evening", "Cocktail", "Wedding guest", "Bridal", "Resort", "Vacation",
+  "Festival", "Date night", "Going out", "Brunch", "Loungewear", "Black tie", "Maternity",
+];
+
+// Union two tag lists (defaults + stored), case-insensitive dedupe, defaults first.
+function unionTags(defaults: string[], stored: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const v of [...defaults, ...stored]) {
+    const k = v.trim().toLowerCase();
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(v.trim());
+  }
+  return out;
+}
+
 export type TryThisLookState = {
   activeLookId: string;
   activeLookIds?: string[];
@@ -138,6 +248,13 @@ export type TryThisLookState = {
   comments?: TryThisLookComment[];
   messages?: Message[];
   follows?: Follow[];
+  curators?: CuratorProfile[];
+  partnerStores?: PartnerStore[];
+  brands?: string[];
+  styles?: string[];
+  colors?: string[];
+  fabrics?: string[];
+  occasions?: string[];
 };
 
 const BUCKET = process.env.SUPABASE_STORAGE_BUCKET ?? "shopcut-images";
@@ -216,7 +333,13 @@ function defaultState(): TryThisLookState {
     looks: [DEFAULT_LOOK],
     events: [],
     leads: [],
-    generations: []
+    generations: [],
+    partnerStores: DEFAULT_PARTNER_STORES,
+    brands: DEFAULT_BRANDS,
+    styles: DEFAULT_STYLES,
+    colors: DEFAULT_COLORS,
+    fabrics: DEFAULT_FABRICS,
+    occasions: DEFAULT_OCCASIONS
   };
 }
 
@@ -261,7 +384,7 @@ function extractPathFromUrl(urlStr: string | undefined): string | undefined {
 }
 
 // Single path signing (used for uploads/admin only — not in hot path)
-async function getSignedUrl(path: string) {
+export async function getSignedUrl(path: string) {
   const { url } = getSupabaseConfig();
   const response = await supabaseFetch(`/storage/v1/object/sign/${BUCKET}/${encodeStoragePath(path)}`, {
     method: "POST",
@@ -324,6 +447,9 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
   for (const lead of state.leads ?? []) {
     if (lead.uploadedPhotoPath) allPaths.push(lead.uploadedPhotoPath);
   }
+  for (const cur of state.curators ?? []) {
+    if (cur.photoPath) allPaths.push(cur.photoPath);
+  }
 
   // Single batch request instead of N×2 individual requests
   const signed = await batchGetSignedUrls(allPaths);
@@ -365,7 +491,12 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
     uploadedPhotoUrl: lead.uploadedPhotoPath ? (signed.get(lead.uploadedPhotoPath) ?? lead.uploadedPhotoUrl) : lead.uploadedPhotoUrl,
   }));
 
-  return { ...state, looks, leads, generations };
+  const curators = (state.curators ?? []).map(cur => ({
+    ...cur,
+    photoUrl: cur.photoPath ? (signed.get(cur.photoPath) ?? cur.photoUrl) : cur.photoUrl,
+  }));
+
+  return { ...state, looks, leads, generations, curators };
 }
 
 export async function readTryThisLookState(): Promise<TryThisLookState> {
@@ -406,6 +537,13 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     comments: state.comments ?? [],
     follows: state.follows ?? [],
     messages: state.messages ?? [],
+    curators: state.curators ?? [],
+    partnerStores: state.partnerStores?.length ? state.partnerStores : DEFAULT_PARTNER_STORES,
+    brands: unionTags(DEFAULT_BRANDS, state.brands ?? []),
+    styles: unionTags(DEFAULT_STYLES, state.styles ?? []),
+    colors: unionTags(DEFAULT_COLORS, state.colors ?? []),
+    fabrics: unionTags(DEFAULT_FABRICS, state.fabrics ?? []),
+    occasions: unionTags(DEFAULT_OCCASIONS, state.occasions ?? []),
   });
 }
 
@@ -422,6 +560,13 @@ async function writeTryThisLookState(state: TryThisLookState) {
     comments: (state.comments ?? []).slice(0, 500),
     follows: (state.follows ?? []).slice(0, 5000),
     messages: (state.messages ?? []).slice(0, 2000),
+    curators: (state.curators ?? []).map(({ photoUrl, ...curator }) => curator).slice(0, 2000),
+    partnerStores: (state.partnerStores ?? []).slice(0, 200),
+    brands: (state.brands ?? []).slice(0, 5000),
+    styles: (state.styles ?? []).slice(0, 5000),
+    colors: (state.colors ?? []).slice(0, 5000),
+    fabrics: (state.fabrics ?? []).slice(0, 5000),
+    occasions: (state.occasions ?? []).slice(0, 5000),
   };
 
   const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(STATE_PATH)}`, {

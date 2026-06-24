@@ -30,6 +30,15 @@ function readFashnError(payload: any, fallback: string) {
   return fallback;
 }
 
+// Don't blame the user's photo when the AI service failed for its own reasons
+// (e.g. FASHN account out of credits). Give an accurate message instead.
+function tryonErrorMessage(realError: string) {
+  if (/out of credits|credit|quota|billing|payment|insufficient|balance/i.test(realError)) {
+    return `Try-on ist gerade nicht verfügbar — das AI-Kontingent ist erschöpft. (${realError})`;
+  }
+  return `LuxbanditCut has rejected the image. Please try a different photo. (${realError})`;
+}
+
 export async function POST(request: Request) {
   const apiKey = process.env.FASHN_API_KEY;
 
@@ -133,7 +142,7 @@ export async function POST(request: Request) {
     console.error("[generate-fashn] create failed:", { status: createResponse.status, error: realError });
     return NextResponse.json(
       {
-        error: `LuxbanditCut has rejected the image. Please try a different photo. (${realError})`,
+        error: tryonErrorMessage(realError),
         credits
       },
       { status: createResponse.status || 502 }
@@ -199,7 +208,7 @@ export async function POST(request: Request) {
       });
       return NextResponse.json(
         {
-          error: `LuxbanditCut has rejected the image. Please try a different photo. (${realError})`,
+          error: tryonErrorMessage(realError),
           credits
         },
         { status: 502 }

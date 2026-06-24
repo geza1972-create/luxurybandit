@@ -36,8 +36,16 @@ export default function MessagesPage() {
 
   useEffect(() => {
     const s = getStoredAuthSession();
-    if (!s?.access_token) { setAuthed(false); setLoading(false); return; }
-    fetch("/api/messages", { headers: { Authorization: `Bearer ${s.access_token}` } })
+    // Curators sign in via localStorage (no Supabase session) — accept either.
+    const curatorId = (() => {
+      try { return JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id ?? ""; }
+      catch { return ""; }
+    })();
+    const headers: Record<string, string> = {};
+    if (s?.access_token) headers.Authorization = `Bearer ${s.access_token}`;
+    else if (curatorId) headers["x-curator-id"] = curatorId;
+    else { setAuthed(false); setLoading(false); return; }
+    fetch("/api/messages", { headers })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then((p: { messages: InboxMessage[] }) => setMessages(p.messages ?? []))
       .catch(() => {})

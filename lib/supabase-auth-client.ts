@@ -119,6 +119,16 @@ export async function signUpWithPassword(
   return { session: null, confirmationRequired: true };
 }
 
+// Passwordless: send a magic sign-in link to the email. Creates the user if new.
+// The link redirects to /auth/confirm, which saves the session.
+export async function sendMagicLink(email: string, displayName?: string) {
+  const data: Record<string, string> = { app: "luxurybandit" };
+  if (displayName?.trim()) { data.username = displayName.trim(); data.full_name = displayName.trim(); }
+  const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth/confirm` : "";
+  const path = `/otp${redirectTo ? `?redirect_to=${encodeURIComponent(redirectTo)}` : ""}`;
+  await authFetch(path, { method: "POST", body: JSON.stringify({ email, create_user: true, data }) });
+}
+
 export function signOut() {
   saveAuthSession(null);
 }

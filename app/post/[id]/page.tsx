@@ -74,6 +74,13 @@ export default function PostPage() {
   const [msgErr, setMsgErr] = useState("");
 
   const session = typeof window !== "undefined" ? getStoredAuthSession() : null;
+  // Curators sign in via localStorage — treat a valid curator session as "signed in"
+  const [curatorSession, setCuratorSession] = useState<{ id: string; email?: string; firstName?: string } | null>(null);
+  useEffect(() => {
+    try { const c = JSON.parse(localStorage.getItem("lb_curator") ?? "{}"); if (c?.id) setCuratorSession(c); }
+    catch { /**/ }
+  }, []);
+  const isSignedIn = !!session || !!curatorSession?.id;
 
   useEffect(() => {
     if (!postId) return;
@@ -144,14 +151,17 @@ export default function PostPage() {
   };
 
   const handleFollow = async () => {
-    if (!session) { router.push("/stores?panel=account"); return; }
+    if (!isSignedIn) { router.push("/stores?panel=account"); return; }
     if (!post) return;
     const username = profile?.username ?? toSlug(post.customerName);
     setFollowLoading(true);
     try {
+      const authH: Record<string, string> = { "Content-Type": "application/json" };
+      if (session?.access_token) authH.Authorization = `Bearer ${session.access_token}`;
+      else if (curatorSession?.id) authH["x-curator-id"] = curatorSession.id;
       const res = await fetch("/api/follow", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        headers: authH,
         body: JSON.stringify({ slug: username, type: "user" }),
       });
       const p = await res.json() as { following: boolean; followerCount: number };
@@ -164,14 +174,17 @@ export default function PostPage() {
   const handleSend = async () => {
     if (!post) return;
     if (!msgText.trim()) return;
-    // Always get a fresh token at send time
+    // Build auth headers — prefer Supabase session, fall back to curator session
     const freshSession = getStoredAuthSession();
-    if (!freshSession?.access_token) { router.push("/stores?panel=account"); return; }
+    const msgHeaders: Record<string, string> = { "Content-Type": "application/json" };
+    if (freshSession?.access_token) msgHeaders.Authorization = `Bearer ${freshSession.access_token}`;
+    else if (curatorSession?.id) msgHeaders["x-curator-id"] = curatorSession.id;
+    else { router.push("/stores?panel=account"); return; }
     setSending(true); setMsgErr("");
     try {
       const res = await fetch("/api/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${freshSession.access_token}` },
+        headers: msgHeaders,
         body: JSON.stringify({
           toUsername: toSlug(post.customerName),
           ...(profile?.userId ? { toUserId: profile.userId } : {}),
@@ -363,7 +376,7 @@ export default function PostPage() {
                 </div>
                 <p className="text-sm font-black text-emerald-700">Message sent!</p>
               </div>
-            ) : !session ? (
+            ) : !isSignedIn ? (
               <div className="grid gap-3">
                 <p className="text-sm text-black/60">Sign in to send messages.</p>
                 <a href="/stores?panel=account" className="flex h-11 items-center justify-center rounded-xl bg-black text-sm font-black text-white">Sign in</a>

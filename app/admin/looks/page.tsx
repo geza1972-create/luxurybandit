@@ -886,7 +886,7 @@ function CommunityModerationSection({
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black text-ink">Community Posts</h2>
+          <h2 className="text-xl font-black text-ink">Tryons</h2>
           <p className="mt-1 text-sm font-bold text-ink/50">
             {visibleCount} visible{hiddenCount > 0 ? `, ${hiddenCount} hidden` : ""}
             {unassignedCount > 0 && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">{unassignedCount} unassigned</span>}
@@ -2451,7 +2451,7 @@ export default function AdminLooksPage() {
         <section className="grid gap-4 rounded-lg border border-black/10 bg-white p-4 shadow-soft">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-cobalt/20 bg-cobalt/5 p-3">
             <div className="grid gap-2">
-              <div className="text-xl font-black text-ink">Live listings</div>
+              <div className="text-xl font-black text-ink">Trends</div>
               <div className="flex flex-wrap gap-2">
                 {visibleActiveLooks.length ? (
                   visibleActiveLooks.map((look) => (
@@ -2604,7 +2604,7 @@ export default function AdminLooksPage() {
                 onClick={() => setListingsMainTab("community")}
                 className={`flex items-center gap-1.5 rounded-md px-4 py-1.5 text-sm font-black transition ${listingsMainTab === "community" ? "bg-white text-ink shadow-soft" : "text-ink/50 hover:text-ink"}`}
               >
-                Community Posts
+                Tryons
                 {(data.generations ?? []).filter(g => !g.visitorId?.startsWith("admin-") && !!g.imageUrl && !g.customerName && !g.hidden).length > 0 && (
                   <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-black text-white">
                     {(data.generations ?? []).filter(g => !g.visitorId?.startsWith("admin-") && !!g.imageUrl && !g.customerName && !g.hidden).length}
