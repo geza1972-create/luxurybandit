@@ -299,6 +299,9 @@ async function supabaseFetch(path: string, init: RequestInit = {}) {
   const { url, serviceRoleKey } = getSupabaseConfig();
   return fetch(`${url}${path}`, {
     ...init,
+    // CRITICAL: never let Next.js cache state reads — a cached read froze the whole
+    // app (writes succeeded but reads kept returning a stale snapshot → "lost" try-ons).
+    cache: "no-store",
     headers: {
       apikey: serviceRoleKey,
       Authorization: `Bearer ${serviceRoleKey}`,
@@ -620,7 +623,9 @@ async function writeTryThisLookState(state: TryThisLookState) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-upsert": "true"
+      "x-upsert": "true",
+      // Store the blob with no CDN cache so reads always get the freshest state.
+      "cache-control": "no-cache, max-age=0"
     },
     body: JSON.stringify(strippedState)
   });

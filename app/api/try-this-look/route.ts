@@ -12,6 +12,9 @@ import { FASHION_BRANDS } from "@/lib/fashion-brands";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+// Always read/write live state — never serve a cached/prerendered response.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 // Brands sorted longest-first so "Yves Saint Laurent" wins over "Saint Laurent".
 const BRANDS_BY_LEN = [...FASHION_BRANDS].sort((a, b) => b.length - a.length);

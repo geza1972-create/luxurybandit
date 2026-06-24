@@ -38,6 +38,7 @@ async function supabaseFetch(path: string, init: RequestInit = {}) {
   try {
     return await fetch(`${url}${path}`, {
       ...init,
+      cache: "no-store", // never serve stale Supabase reads from Next.js's data cache
       headers: {
         apikey: serviceRoleKey,
         Authorization: `Bearer ${serviceRoleKey}`,
