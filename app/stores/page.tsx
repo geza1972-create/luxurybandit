@@ -1112,10 +1112,12 @@ function StoresPage() {
     for (const it of historyItems) if (it.brand) counts.set(it.brand, (counts.get(it.brand) ?? 0) + 1);
     return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([brand]) => brand);
   }, [historyItems]);
-  const visibleHistory = useMemo(
-    () => brandFilter ? historyItems.filter(it => it.brand === brandFilter) : historyItems,
-    [historyItems, brandFilter],
-  );
+  const visibleHistory = useMemo(() => {
+    let items = brandFilter ? historyItems.filter(it => it.brand === brandFilter) : historyItems;
+    const q = query.trim().toLowerCase();
+    if (q) items = items.filter(it => `${it.name} ${it.curatorName ?? ""} ${it.brand ?? ""}`.toLowerCase().includes(q));
+    return items;
+  }, [historyItems, brandFilter, query]);
 
   // ── Default home = full-screen vertical feed (TikTok/IG style, newest first) ──
   // The legacy grid below is kept only for the search experience.
@@ -1256,15 +1258,16 @@ function StoresPage() {
           </div>
         )}
 
-        {/* ── Discover: one mixed archive (looks + curator videos + try-ons), newest first ── */}
-        {!searchOpen && (
+        {/* ── Discover: one mixed archive (looks + curator videos + try-ons), newest
+            first. Search filters THIS grid (no jump to a legacy page). ── */}
+        {(showGrid || searchOpen) && (
           historyItems.length === 0 ? (
             <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-black/30" /></div>
           ) : (
           <>
             {/* Hero — explains in one glance what LuxuryBandit lets you do.
-                Hidden while a brand filter is active to keep browsing clean. */}
-            {!brandFilter && (
+                Hidden while filtering/searching to keep browsing clean. */}
+            {!brandFilter && !searchOpen && (
               <section className="px-4 pt-4 pb-3">
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cobalt">LuxuryBandit</p>
                 <h1 className="mt-1.5 text-[1.7rem] font-black leading-[1.1] tracking-tight text-black">
@@ -1336,8 +1339,8 @@ function StoresPage() {
                     {it.videoUrl && (
                       <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur"><Play className="h-3 w-3 fill-current" /></span>
                     )}
-                    {/* Label so it's always clear what the tile is */}
-                    <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">
+                    {/* Label at the BOTTOM — the face is usually at the top of the crop */}
+                    <span className="absolute left-1.5 bottom-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">
                       {it.kind === "tryon"
                         ? (it.videoUrl ? "Try-on · video" : "Try-on")
                         : it.videoUrl
@@ -1569,8 +1572,8 @@ function StoresPage() {
           </>
         )}
 
-        {/* Intro / page description — Trends & Dupes */}
-        {searchOpen && (
+        {/* Legacy Trends intro — replaced by the Discover grid above */}
+        {false && (
           <section className="px-4 pt-4 pb-1">
             <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-cobalt">Trends</p>
             <h1 className="mt-1 text-xl font-semibold leading-tight tracking-tight text-black">
@@ -1584,7 +1587,7 @@ function StoresPage() {
         )}
 
         {/* All / My Trends — only for signed-in creators */}
-        {searchOpen && myCuratorId && (
+        {false && myCuratorId && (
           <div className="flex items-center gap-2 px-4 pb-3 pt-1">
             <button type="button" onClick={() => setMyTrendsOnly(false)}
               className={`rounded-full px-4 py-1.5 text-xs font-black transition ${!myTrendsOnly ? "bg-black text-white" : "bg-black/[0.04] text-black/45"}`}>
@@ -1598,7 +1601,7 @@ function StoresPage() {
         )}
 
         {/* Empty state when creator has no looks of their own yet */}
-        {searchOpen && !isLoading && myTrendsOnly && myCuratorId && myLookCount === 0 && (
+        {false && !isLoading && myTrendsOnly && myCuratorId && myLookCount === 0 && (
           <div className="flex flex-col items-center gap-2 py-20 text-center px-8">
             <ShoppingBag className="h-9 w-9 text-black/15" />
             <p className="text-sm font-black text-black/45">You haven&apos;t published a look yet</p>
@@ -1608,24 +1611,24 @@ function StoresPage() {
           </div>
         )}
 
-        {searchOpen && isLoading && (
+        {false && isLoading && (
           <div className="flex justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin text-black/30" />
           </div>
         )}
 
-        {searchOpen && error && (
+        {false && error && (
           <p className="p-4 text-center text-sm font-bold text-red-500">{error}</p>
         )}
 
-        {searchOpen && !isLoading && !error && looks.length === 0 && (
+        {false && !isLoading && !error && looks.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-24 text-center px-6">
             <ShoppingBag className="h-10 w-10 text-black/15" />
             <p className="text-sm font-black text-black/40">No listings yet — check back soon.</p>
           </div>
         )}
 
-        {searchOpen && !isLoading && looks.length > 0 && (
+        {false && !isLoading && looks.length > 0 && (
           <>
             {/* Admin feed toolbar */}
             {isAdmin && (

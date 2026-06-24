@@ -86,6 +86,8 @@ export default function TryonPage() {
   const [resultImage, setResultImage] = useState<string | null>(null);
   // Try-on video (auto-generated from the result image; charged in credits)
   const [videoStatus, setVideoStatus] = useState<"idle" | "generating" | "done" | "error">("idle");
+  const [videoProgress, setVideoProgress] = useState(0);
+  const videoProgressRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoNote, setVideoNote] = useState<string | null>(null);
   const [videoMuted, setVideoMuted] = useState(true);
@@ -249,6 +251,13 @@ export default function TryonPage() {
     setVideoStatus("generating");
     setVideoUrl(null);
     setVideoNote(null);
+    // Time-based progress bar (ramps to ~95% over ~75s) so people wait, not bail.
+    setVideoProgress(4);
+    if (videoProgressRef.current) clearInterval(videoProgressRef.current);
+    videoProgressRef.current = setInterval(() => {
+      setVideoProgress(p => (p < 95 ? p + Math.max(0.4, (95 - p) * 0.035) : p));
+    }, 600);
+    const stopProgress = (final: number) => { if (videoProgressRef.current) clearInterval(videoProgressRef.current); setVideoProgress(final); };
     try {
       const res = await fetch("/api/generate-tryon-video", {
         method: "POST",
@@ -266,6 +275,7 @@ export default function TryonPage() {
         const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(videoId)}&curatorId=${encodeURIComponent(cid)}`)
           .then(r => r.json()).catch(() => null);
         if (p?.status === "done" && p.videoUrl) {
+          stopProgress(100);
           setVideoUrl(p.videoUrl); setVideoStatus("done");
           // Attach the video to the feed post (if shared) so it plays in the carousel.
           if (sharedGenIdRef.current) {
@@ -276,11 +286,11 @@ export default function TryonPage() {
           }
           return;
         }
-        if (p?.status === "failed") { setVideoStatus("error"); setVideoNote(p.error ?? "Video failed — here's your photo."); return; }
+        if (p?.status === "failed") { stopProgress(0); setVideoStatus("error"); setVideoNote(p.error ?? "Video failed — here's your photo."); return; }
       }
-      setVideoStatus("error"); setVideoNote("Video is taking too long — here's your photo.");
+      stopProgress(0); setVideoStatus("error"); setVideoNote("Video is taking too long — here's your photo.");
     } catch {
-      setVideoStatus("error"); setVideoNote("Video couldn't be created — here's your photo.");
+      stopProgress(0); setVideoStatus("error"); setVideoNote("Video couldn't be created — here's your photo.");
     }
   };
 
@@ -499,8 +509,46 @@ export default function TryonPage() {
       window.open(url, "_blank"); // last resort: open it so the user can save manually
     }
   };
-  const handleDownload = () => { if (resultImage) void downloadFile(resultImage, "luxurybandit-tryon.jpg"); };
-  const handleDownloadVideo = () => { if (videoUrl) void downloadFile(videoUrl, "luxurybandit-tryon.mp4"); };
+  // Save to the device. On iOS a normal download only offers "Save to Files" — to
+  // get "Save to Photos" we must go through the native share sheet (Web Share API
+  // with a File). Fall back to a regular download where sharing files isn't allowed.
+  const saveToDevice = async (url: string, filename: string, mime: string) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const file = new File([blob], filename, { type: blob.type || mime });
+      const navAny = navigator as any;
+      if (navAny.canShare && navAny.canShare({ files: [file] })) {
+        await navAny.share({ files: [file] }); // iOS: offers "Save Video" / "Save Image" → Photos
+        return;
+      }
+      const obj = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = obj; a.download = filename; a.click();
+      setTimeout(() => URL.revokeObjectURL(obj), 4000);
+    } catch {
+      if (url.startsWith("data:")) { const a = document.createElement("a"); a.href = url; a.download = filename; a.click(); }
+      else window.open(url, "_blank");
+    }
+  };
+  const handleDownload = () => { if (resultImage) void saveToDevice(resultImage, "luxurybandit-tryon.jpg", "image/jpeg"); };
+  const handleDownloadVideo = () => { if (videoUrl) void saveToDevice(videoUrl, "luxurybandit-tryon.mp4", "video/mp4"); };
+
+  // ── Save the display name onto the already-posted try-on ──
+  const [nameSaved, setNameSaved] = useState(false);
+  const [nameSaving, setNameSaving] = useState(false);
+  const saveName = async () => {
+    const name = shareNameInput.trim();
+    if (!name || !sharedGenIdRef.current) return;
+    setNameSaving(true); setNameSaved(false);
+    try {
+      await fetch("/api/try-this-look", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "set-generation-name", generationId: sharedGenIdRef.current, customerName: name }),
+      });
+      setNameSaved(true);
+    } catch { /* ignore */ } finally { setNameSaving(false); }
+  };
 
   // ── Optional email capture (lead) after the result ──
   const submitLead = async () => {
@@ -719,10 +767,23 @@ export default function TryonPage() {
 
         {/* Result — VIDEO first so it's never missed, then the photo */}
         <div className="flex-1 overflow-y-auto px-4 pt-4 pb-6 flex flex-col gap-4">
-          {/* Try-on video — auto-generated from the still (image + video) */}
+          {/* Try-on video — big "Please wait!" loader over a blurred preview so
+              people don't bail before the 5s video is ready */}
           {videoStatus === "generating" && (
-            <div className="flex items-center justify-center gap-2 rounded-2xl border border-black/10 bg-black/[0.02] py-6 text-sm font-black text-black/55">
-              <Loader2 className="h-4 w-4 animate-spin" /> <Film className="h-4 w-4" /> Creating your video… (~1 min)
+            <div className="relative h-[44dvh] overflow-hidden rounded-2xl border border-black/10 shadow-lg">
+              {resultImage && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={resultImage} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-xl opacity-70" />
+              )}
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-white/40 px-8 text-center">
+                <Loader2 className="h-9 w-9 animate-spin text-black" />
+                <p className="text-xl font-black text-black">Please wait!</p>
+                <p className="text-[13px] font-bold text-black/60">Creating your 5-second video… (~1 min)</p>
+                <div className="mt-1 h-2 w-56 max-w-[80%] overflow-hidden rounded-full bg-black/15">
+                  <div className="h-full rounded-full bg-black transition-[width] duration-500 ease-out" style={{ width: `${Math.min(100, Math.round(videoProgress))}%` }} />
+                </div>
+                <p className="text-[11px] font-black text-black/40">{Math.min(99, Math.round(videoProgress))}%</p>
+              </div>
             </div>
           )}
           {videoStatus === "done" && videoUrl && (
@@ -805,12 +866,19 @@ export default function TryonPage() {
               </button>
             </div>
             {showInFeed && (
-              <input
-                value={shareNameInput}
-                onChange={e => setShareNameInput(e.target.value)}
-                placeholder="Your name (shown on the post)"
-                className="w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-black"
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  value={shareNameInput}
+                  onChange={e => { setShareNameInput(e.target.value); setNameSaved(false); }}
+                  onKeyDown={e => { if (e.key === "Enter") void saveName(); }}
+                  placeholder="Your name (shown on the post)"
+                  className="h-11 flex-1 rounded-xl border border-black/15 px-3 text-sm outline-none focus:border-black"
+                />
+                <button type="button" onClick={() => void saveName()} disabled={nameSaving || !shareNameInput.trim() || !sharedGenIdRef.current}
+                  className="flex h-11 shrink-0 items-center justify-center rounded-xl bg-black px-4 text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
+                  {nameSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : nameSaved ? "✓ Saved" : "Save"}
+                </button>
+              </div>
             )}
             <p className="flex items-center gap-1.5 text-[11px] font-bold text-black/40">
               {isSharing ? <><Loader2 className="h-3 w-3 animate-spin" /> Posting…</>

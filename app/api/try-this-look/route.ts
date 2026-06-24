@@ -730,6 +730,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    // Update the display name shown on a try-on post (entered after posting).
+    if (payload.action === "set-generation-name") {
+      const genId = String(payload.generationId ?? "").trim();
+      const name = String(payload.customerName ?? "").trim().slice(0, 60);
+      const gen = state.generations.find(g => g.id === genId);
+      if (!gen) return NextResponse.json({ error: "Generation not found." }, { status: 404 });
+      (gen as any).customerName = name || undefined;
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true });
+    }
+
     // Toggle a try-on's consent to appear in the feed carousel.
     if (payload.action === "set-generation-feed") {
       const genId = String(payload.generationId ?? "").trim();

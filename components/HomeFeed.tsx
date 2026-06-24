@@ -73,6 +73,7 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
   const [inView, setInView] = useState(false);
   // All videos in this slide's carousel (curator + community), keyed by slide index.
   const videoRefs = useRef<Record<number, HTMLVideoElement>>({});
+  const carouselRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const captionRef = useRef<HTMLParagraphElement>(null);
   // Carousel order: curator video → product image → try-ons (each: photo, then its
@@ -95,6 +96,10 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
     ...communityMedia,
     ...shopAlts.map(a => ({ type: "product" as const, alt: a })),
   ];
+  // How many people have tried this look on (distinct names, else photo count).
+  const tryOnPeople = new Set(community.map(c => c.name).filter(Boolean)).size || community.length;
+  const firstTryOnIdx = media.findIndex(m => m.type === "cphoto" || m.type === "cvideo");
+  const scrollToSlide = (i: number) => carouselRef.current?.scrollTo({ left: i * (carouselRef.current.clientWidth || 0), behavior: "smooth" });
 
   useEffect(() => {
     try { setLiked(!!JSON.parse(localStorage.getItem("lb_post_likes") ?? "{}")[look.id]); } catch { /**/ }
@@ -121,7 +126,9 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
 
   // Drive ALL videos (curator + community) from visibility + carousel position +
   // global mute: only the on-screen, active video plays; every other one is silent.
-  useEffect(() => {
+  // Also called from the videos' onCanPlay so a clip that wasn't buffered yet when
+  // it scrolled into view still autostarts (fixes "only plays after tapping sound").
+  const syncVideos = () => {
     for (const [idxStr, v] of Object.entries(videoRefs.current)) {
       if (!v) continue;
       const isActiveVideo = inView && Number(idxStr) === active;
@@ -133,10 +140,16 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
         v.muted = true;
       }
     }
+  };
+  useEffect(() => {
+    syncVideos();
   }, [inView, active, muted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const img = look.frontImageUrl ?? look.imageUrl;
   const detail = lookPath(look.name, look.id);
+  // When the active carousel slide is a shop option, show its buy card on white below.
+  const am = media[active];
+  const activeProduct = am && am.type === "product" ? am.alt : null;
   // Curator's own voice first, else the editorial note — never empty in the feed.
   const caption = (look.curatorNote || look.productNote || "").trim();
   const range = priceRange(look);
@@ -184,7 +197,7 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
         <img src={img} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-2xl" />
 
         {/* Horizontal media carousel: video first, image second */}
-        <div className="absolute inset-0 flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        <div ref={carouselRef} className="absolute inset-0 flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           onScroll={(e) => {
             const i = Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth);
             if (i !== active) setActive(i); // the effect handles play/pause + mute
@@ -195,7 +208,7 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
                 <div className="relative h-full w-full">
                   <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
                     src={look.videoUrl} poster={look.videoPosterUrl || img} className="h-full w-full object-contain"
-                    muted loop playsInline preload="metadata" />
+                    muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
                   <span className="absolute left-3 top-3 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">{look.aiCreated ? "✦ AI video" : "Video"}</span>
                 </div>
               ) : m.type === "cphoto" ? (
@@ -209,26 +222,24 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
                 // Community try-on video — same sound handling as the curator video.
                 <div className="relative h-full w-full">
                   <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
-                    src={m.url} className="h-full w-full bg-black object-contain" muted loop playsInline preload="metadata" />
+                    src={m.url} className="h-full w-full bg-black object-contain" muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
                   <span className="absolute left-3 top-3 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">{m.name ? `${m.name}'s video` : "Member video"}</span>
                 </div>
               ) : m.type === "image" ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={img} alt={look.name} className="h-full w-full object-contain" />
+                <div className="relative h-full w-full">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img} alt={look.name} className="h-full w-full object-contain" />
+                  <span className={`absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide backdrop-blur ${look.aiCreated ? "bg-black/70 text-white" : "bg-white/85 text-black/70"}`}>
+                    {look.aiCreated ? "✦ Original" : "Curated"}
+                  </span>
+                </div>
               ) : (
-                // Shop option slide — product photo + buy card.
+                // Shop option slide — product photo only; title + "Shop now" live in
+                // the white area below (so they never cover the model).
                 <div className="relative h-full w-full bg-white">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={m.alt.thumbnail} alt={m.alt.title || "Product"} className="absolute inset-0 h-full w-full object-contain" />
-                  <span className="absolute left-3 top-3 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">Shop option</span>
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pb-5">
-                    <p className="line-clamp-1 text-[13px] font-black text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">{m.alt.title || "Shop this piece"}</p>
-                    <p className="mt-0.5 text-[12px] font-bold text-white/75 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">{[m.alt.source, m.alt.price].filter(Boolean).join(" · ")}</p>
-                    <a href={m.alt.link} target="_blank" rel="noopener noreferrer"
-                      className="mt-2.5 inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-white px-5 text-sm font-black text-black active:scale-95 transition-transform">
-                      Shop now →
-                    </a>
-                  </div>
+                  <span className="absolute left-3 bottom-3 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">Shop option</span>
                 </div>
               )}
             </div>
@@ -266,6 +277,19 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
             ))}
           </div>
         )}
+        {/* Shop-option buy card (on white) — only when that slide is active */}
+        {activeProduct && (
+          <div className="mb-2 flex items-center gap-3 rounded-2xl border border-black/10 bg-black/[0.02] p-2.5">
+            <div className="min-w-0 flex-1">
+              <p className="line-clamp-1 text-[13px] font-black text-black">{activeProduct.title || "Shop this piece"}</p>
+              <p className="mt-0.5 truncate text-[12px] font-bold text-black/45">{[activeProduct.source, activeProduct.price].filter(Boolean).join(" · ")}</p>
+            </div>
+            <a href={activeProduct.link} target="_blank" rel="noopener noreferrer"
+              className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
+              Shop now →
+            </a>
+          </div>
+        )}
         <p ref={captionRef} className={`text-[13px] leading-snug text-black ${expanded ? "" : "line-clamp-2"}`}>
           <button type="button" onClick={() => look.curatorId && router.push(`/curator/${look.curatorId}`)} className="font-black">{look.curatorName || "LuxuryBandit"}</button>{" "}
           {caption || look.name}
@@ -276,6 +300,19 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
           </button>
         )}
         <p className="mt-1 truncate text-[12px] font-bold text-black/45">{look.name}{range ? ` · ${range}` : ""}</p>
+        {/* Social proof — how many people tried this look on (tap → their try-ons) */}
+        {tryOnPeople > 0 && firstTryOnIdx >= 0 && (
+          <button type="button" onClick={() => scrollToSlide(firstTryOnIdx)}
+            className="mt-1 flex items-center gap-1.5 text-[12px] font-black text-black active:opacity-70">
+            <span className="flex -space-x-1.5">
+              {community.slice(0, 3).map((c, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={i} src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(c.name || "LB")}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-4 w-4 rounded-full border border-white object-cover" />
+              ))}
+            </span>
+            {tryOnPeople} {tryOnPeople === 1 ? "person" : "people"} tried this on →
+          </button>
+        )}
         {!look.commentsOff && (
           <button type="button" onClick={() => onComment(look)} className="mt-0.5 text-[12px] font-bold text-black/40">View comments</button>
         )}

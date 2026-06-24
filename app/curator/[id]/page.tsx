@@ -219,9 +219,9 @@ export default function CuratorPublicPage() {
                       className="h-full w-full object-cover object-top" />
                     {/* AI Fashion creation vs curated web find */}
                     {l.aiCreated ? (
-                      <span className="absolute left-1.5 top-1.5 rounded-full bg-black px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">✦ Original</span>
+                      <span className="absolute left-1.5 bottom-1.5 rounded-full bg-black px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">✦ Original</span>
                     ) : (
-                      <span className="absolute left-1.5 top-1.5 rounded-full bg-white/85 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-black/70 backdrop-blur">Curated</span>
+                      <span className="absolute left-1.5 bottom-1.5 rounded-full bg-white/85 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-black/70 backdrop-blur">Curated</span>
                     )}
                   </div>
                   {from && <span className="px-2 pt-1 text-[10px] font-black text-ink">{from}</span>}
@@ -237,9 +237,9 @@ export default function CuratorPublicPage() {
                     onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
                     className="h-full w-full object-cover object-top" />
                   {t.lookId && ownLookIds.has(t.lookId) ? (
-                    <span className="absolute left-1.5 top-1.5 rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">✓ Self-test</span>
+                    <span className="absolute left-1.5 bottom-1.5 rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">✓ Self-test</span>
                   ) : (
-                    <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">Tryon</span>
+                    <span className="absolute left-1.5 bottom-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">Tryon</span>
                   )}
                   {t.videoUrl && (
                     <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur"><Play className="h-3 w-3 fill-current" /></span>
