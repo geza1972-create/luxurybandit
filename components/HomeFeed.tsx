@@ -147,9 +147,14 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
 
   const img = look.frontImageUrl ?? look.imageUrl;
   const detail = lookPath(look.name, look.id);
-  // When the active carousel slide is a shop option, show its buy card on white below.
+  // When the active carousel slide is a shop option, show its buy card on white below
+  // AND make "Try This Look" use THAT product (its clean image), not the look's photo.
   const am = media[active];
   const activeProduct = am && am.type === "product" ? am.alt : null;
+  const activeAltIdx = activeProduct
+    ? (look.alternatives ?? []).findIndex(a => a?.link === activeProduct.link && a?.thumbnail === activeProduct.thumbnail)
+    : -1;
+  const tryOnHref = activeAltIdx >= 0 ? `/tryon/${look.id}?alt=${activeAltIdx}` : `/tryon/${look.id}`;
   // Curator's own voice first, else the editorial note — never empty in the feed.
   const caption = (look.curatorNote || look.productNote || "").trim();
   const range = priceRange(look);
@@ -317,7 +322,7 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
           <button type="button" onClick={() => onComment(look)} className="mt-0.5 text-[12px] font-bold text-black/40">View comments</button>
         )}
         <div className="mt-2.5 flex items-center gap-2">
-          <button type="button" onClick={() => router.push(`/tryon/${look.id}`)}
+          <button type="button" onClick={() => router.push(tryOnHref)}
             className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-black text-sm font-black text-white active:scale-95 transition-transform">
             <Sparkles className="h-4 w-4" /> Try This Look
           </button>

@@ -541,13 +541,25 @@ export default function TryonPage() {
   const [nameSaving, setNameSaving] = useState(false);
   const saveName = async () => {
     const name = shareNameInput.trim();
-    if (!name || !sharedGenIdRef.current) return;
+    if (!name) return;
     setNameSaving(true); setNameSaved(false);
     try {
-      await fetch("/api/try-this-look", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "set-generation-name", generationId: sharedGenIdRef.current, customerName: name }),
-      });
+      // If the try-on was already posted, just update its name; otherwise post it
+      // now WITH the name (so Save always works, even if the auto-post hasn't run).
+      if (sharedGenIdRef.current) {
+        await fetch("/api/try-this-look", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "set-generation-name", generationId: sharedGenIdRef.current, customerName: name }),
+        });
+      } else if (resultImage && showInFeed) {
+        await postToFeed(resultImage);
+        if (sharedGenIdRef.current) {
+          await fetch("/api/try-this-look", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "set-generation-name", generationId: sharedGenIdRef.current, customerName: name }),
+          });
+        }
+      }
       setNameSaved(true);
     } catch { /* ignore */ } finally { setNameSaving(false); }
   };
@@ -812,6 +824,18 @@ export default function TryonPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={resultImage} alt="Your try-on result" className="max-h-[58dvh] w-full rounded-2xl border border-black/10 object-contain shadow-lg" />
             <span className="absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">Photo</span>
+            {/* Persistent video-loading bar ON the photo so the video isn't missed */}
+            {videoStatus === "generating" && (
+              <div className="absolute inset-x-0 bottom-0 rounded-b-2xl bg-black/75 px-4 py-3 backdrop-blur">
+                <div className="mb-1.5 flex items-center justify-between text-[12px] font-black text-white">
+                  <span className="flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Your video is loading… please wait</span>
+                  <span>{Math.min(99, Math.round(videoProgress))}%</span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/25">
+                  <div className="h-full rounded-full bg-white transition-[width] duration-500" style={{ width: `${Math.min(100, Math.round(videoProgress))}%` }} />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Download — photo + video */}
@@ -876,7 +900,7 @@ export default function TryonPage() {
                   placeholder="Your name (shown on the post)"
                   className="h-11 flex-1 rounded-xl border border-black/15 px-3 text-sm outline-none focus:border-black"
                 />
-                <button type="button" onClick={() => void saveName()} disabled={nameSaving || !shareNameInput.trim() || !sharedGenIdRef.current}
+                <button type="button" onClick={() => void saveName()} disabled={nameSaving || !shareNameInput.trim()}
                   className="flex h-11 shrink-0 items-center justify-center rounded-xl bg-black px-4 text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
                   {nameSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : nameSaved ? "✓ Saved" : "Save"}
                 </button>

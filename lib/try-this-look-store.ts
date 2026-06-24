@@ -554,8 +554,48 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
   });
 }
 
+// The whole state is one JSON blob written with last-write-wins. A slow/stale
+// request would otherwise revert append-mostly collections (e.g. drop try-ons
+// posted by other requests in the meantime). Re-read the latest blob and UNION
+// these collections by id so a save can never LOSE records it didn't know about.
+async function fetchRawState(): Promise<Partial<TryThisLookState> | null> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(STATE_PATH)}`);
+    if (!res.ok) return null;
+    const text = await res.text();
+    if (!text.trim()) return null;
+    return JSON.parse(text) as Partial<TryThisLookState>;
+  } catch { return null; }
+}
+// Append-only union by id (for collections that don't get individually deleted).
+function unionById<T extends { id: string }>(ours: T[] = [], latest: T[] = []): T[] {
+  const seen = new Set(ours.map(r => r.id));
+  return [...ours, ...latest.filter(r => !seen.has(r.id))];
+}
+// For generations (which CAN be deleted): only re-add storage records that are
+// NEWER than our newest — i.e. concurrent posts we hadn't seen. Older records we
+// don't have were deleted on purpose, so we must NOT resurrect them.
+function mergeNewerById<T extends { id: string; createdAt?: string }>(ours: T[] = [], latest: T[] = []): T[] {
+  const seen = new Set(ours.map(r => r.id));
+  const ourNewest = ours.reduce((m, r) => (String(r.createdAt ?? "") > m ? String(r.createdAt ?? "") : m), "");
+  const missedNewer = latest.filter(r => !seen.has(r.id) && String(r.createdAt ?? "") > ourNewest);
+  return [...missedNewer, ...ours];
+}
+
 async function writeTryThisLookState(state: TryThisLookState) {
   await ensureBucket();
+  // The whole state is one blob (last-write-wins). Re-read the latest and merge so
+  // a slow/stale save can never DROP try-ons/comments posted in the meantime.
+  const latest = await fetchRawState();
+  if (latest) {
+    state = {
+      ...state,
+      generations: mergeNewerById(state.generations as any, latest.generations as any) as any,
+      comments: unionById((state.comments ?? []) as any, (latest.comments ?? []) as any) as any,
+      leads: unionById((state.leads ?? []) as any, (latest.leads ?? []) as any) as any,
+      messages: unionById((state.messages ?? []) as any, (latest.messages ?? []) as any) as any,
+    };
+  }
   const strippedState: TryThisLookState = {
     activeLookId: state.activeLookId,
     activeLookIds: state.activeLookIds?.length ? state.activeLookIds : [state.activeLookId],
