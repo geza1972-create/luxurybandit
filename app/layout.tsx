@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 
@@ -24,7 +25,11 @@ export default function RootLayout({
     <html lang="en">
       <body>
         {children}
-        <BottomNav />
+        {/* Suspense so BottomNav's useSearchParams doesn't force CSR bailout on
+            statically-prerendered pages (e.g. 404) — required for the prod build. */}
+        <Suspense fallback={null}>
+          <BottomNav />
+        </Suspense>
       </body>
     </html>
   );
