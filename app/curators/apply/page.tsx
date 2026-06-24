@@ -195,7 +195,7 @@ export default function CuratorApplyPage() {
         <div className="mt-5 grid gap-3">
           <div>
             <span className={label}>Motto</span>
-            <input className={field} value={motto} onChange={e => setMotto(e.target.value)} placeholder="Bandit this life!" />
+            <input className={field} value={motto} onChange={e => setMotto(e.target.value)} placeholder="Bandit the look!" />
             {mottoIdeas.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
                 {mottoIdeas.map((m, i) => (

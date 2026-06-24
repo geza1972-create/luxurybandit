@@ -263,7 +263,7 @@ export default function CuratorProfilePage() {
 
         {/* Motto + bio */}
         <div className="mt-5 grid gap-3">
-          <div><span className={label}>Motto</span><input className={field} value={motto} onChange={e => setMotto(e.target.value)} placeholder="Bandit this life!" /></div>
+          <div><span className={label}>Motto</span><input className={field} value={motto} onChange={e => setMotto(e.target.value)} placeholder="Bandit the look!" /></div>
           <div><span className={label}>Short bio</span><textarea className={`${field} h-auto py-3 leading-5`} rows={3} value={bio} onChange={e => setBio(e.target.value)} /></div>
         </div>
 

@@ -4,8 +4,8 @@ import BottomNav from "@/components/BottomNav";
 
 export const metadata: Metadata = {
   metadataBase: new URL((process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "")),
-  title: "LuxuryBandit — Bandit this life!",
-  description: "Curated trend looks you can try on with AI — each with options across every budget, so you shop the style at the price that suits you. Bandit this life!"
+  title: "LuxuryBandit — Bandit the look!",
+  description: "Curated trend looks you can try on with AI — each with options across every budget, so you shop the style at the price that suits you. Bandit the look!"
 };
 
 export const viewport: Viewport = {

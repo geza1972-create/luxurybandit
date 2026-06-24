@@ -8,9 +8,27 @@ import {
   type CuratorProfile
 } from "@/lib/try-this-look-store";
 import { authorizeStudio } from "@/lib/studio-auth";
+import { FASHION_BRANDS } from "@/lib/fashion-brands";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+
+// Brands sorted longest-first so "Yves Saint Laurent" wins over "Saint Laurent".
+const BRANDS_BY_LEN = [...FASHION_BRANDS].sort((a, b) => b.length - a.length);
+// Detect the fashion brand named in a look's title/description (the brand the
+// curator specified at generation). Returns the canonical brand name, or null.
+function detectBrand(...parts: (string | undefined)[]): string | null {
+  // Normalize away spaces/punctuation so "Dolce&Gabbana" matches "Dolce & Gabbana".
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const text = norm(parts.filter(Boolean).join(" "));
+  if (!text) return null;
+  for (const b of BRANDS_BY_LEN) {
+    const bn = norm(b);
+    if (bn.length < 4) continue;
+    if (text.includes(bn)) return b;
+  }
+  return null;
+}
 
 // Build a small thumbnail variant of a Supabase signed/public image URL using
 // Supabase's on-the-fly image transformation (render/image endpoint). If the
@@ -86,7 +104,7 @@ function affiliateWrap(url: string | undefined, sid: string, stores: AffiliateSt
     .split("{sid}").join(encodeURIComponent(sid || "house"));
 }
 
-function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number], generationCount = 0, partnerStores: AffiliateStore[] = [], curators: CuratorProfile[] = []) {
+function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number], generationCount = 0, partnerStores: AffiliateStore[] = [], curators: CuratorProfile[] = [], tryOnImageUrl?: string, communityTryOns: { imageUrl: string; videoUrl?: string; name?: string }[] = []) {
   const sid = String((look as any).curatorId ?? "house");
   const wrap = (u: string | undefined) => affiliateWrap(u, sid, partnerStores);
   // Attribute the look to the curator who published it (name, photo, profile link).
@@ -124,11 +142,15 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     curatorPhotoUrl: curator?.photoUrl || undefined,
     curatorMotto: curator?.motto || undefined,
     productType: (look as any).productType ?? "real",
+    brand: detectBrand(look.name, (look as any).productNote, (look as any).campaignName) ?? undefined,
     aiCreated: (look as any).aiCreated === true,
     curatorNote: (look as any).curatorNote ?? undefined,
     commentsOff: (look as any).commentsOff === true,
     videoUrl: (look as any).videoUrl ?? undefined,
+    videoCreatedAt: (look as any).videoCreatedAt ?? undefined,
     videoPosterUrl: (look as any).videoPosterUrl ?? undefined,
+    tryOnImageUrl: tryOnImageUrl ?? (look as any).videoPosterUrl ?? undefined,
+    communityTryOns,
     feedOrder: typeof (look as any).feedOrder === "number" ? (look as any).feedOrder : undefined,
     likeCount: (look as any).likeCount ?? 0,
     generationCount,
@@ -178,7 +200,44 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
   for (const g of state.generations ?? []) {
     genCountByLook.set(g.lookId, (genCountByLook.get(g.lookId) ?? 0) + 1);
   }
-  const sl = (look: (typeof visibleLooks)[number]) => serializeLook(look, genCountByLook.get(look.id) ?? 0, state.partnerStores ?? [], state.curators ?? []);
+  // Self-test try-on per look: the curator's OWN generation on their OWN look
+  // (customerName slug matches the look's curator). Used as a feed carousel slide.
+  const curatorSlugById = new Map<string, string>();
+  for (const c of state.curators ?? []) {
+    const nm = [c.firstName, c.lastName].filter(Boolean).join(" ").trim();
+    if (nm) curatorSlugById.set(c.id, normalizeSlug(nm));
+  }
+  const curatorIdByLook = new Map<string, string>();
+  for (const l of state.looks ?? []) {
+    const cid = (l as any).curatorId;
+    if (cid) curatorIdByLook.set(l.id, String(cid));
+  }
+  const selftestByLook = new Map<string, { url: string; at: string }>();
+  for (const g of state.generations ?? []) {
+    const url = (g as any).imageUrl;
+    if (!url || (g as any).hidden || g.visitorId?.startsWith("admin-")) continue;
+    const cid = curatorIdByLook.get(g.lookId);
+    if (!cid) continue;
+    if (normalizeSlug((g as any).customerName ?? "") !== curatorSlugById.get(cid)) continue;
+    const at = String((g as any).createdAt ?? "");
+    const prev = selftestByLook.get(g.lookId);
+    if (!prev || at > prev.at) selftestByLook.set(g.lookId, { url, at }); // keep the newest
+  }
+  // Try-ons (consented, feed:true) shown as carousel slides AFTER the curator's
+  // video + product image and BEFORE the dupes. Includes the curator's OWN try-ons
+  // (with their video) and members'. Newest first (generations are newest-first).
+  const communityByLook = new Map<string, { imageUrl: string; videoUrl?: string; name?: string; isCurator?: boolean }[]>();
+  for (const g of state.generations ?? []) {
+    const url = (g as any).imageUrl;
+    if (!url || (g as any).hidden || (g as any).feed === false || g.visitorId?.startsWith("admin-")) continue;
+    const cid = curatorIdByLook.get(g.lookId);
+    const isCurator = !!(cid && normalizeSlug((g as any).customerName ?? "") === curatorSlugById.get(cid));
+    const list = communityByLook.get(g.lookId) ?? [];
+    if (list.length >= 12) continue;
+    list.push({ imageUrl: url, videoUrl: (g as any).videoUrl || undefined, name: (g as any).customerName || undefined, isCurator });
+    communityByLook.set(g.lookId, list);
+  }
+  const sl = (look: (typeof visibleLooks)[number]) => serializeLook(look, genCountByLook.get(look.id) ?? 0, state.partnerStores ?? [], state.curators ?? [], selftestByLook.get(look.id)?.url, communityByLook.get(look.id) ?? []);
   return {
     activeLook: activeLook ? sl(activeLook) : undefined,
     activeLooks: activeLooks.map(sl),
@@ -263,6 +322,7 @@ export async function GET(request: Request) {
           id: g.id,
           lookId: g.lookId,
           imageUrl: (g as any).imageUrl ?? "",
+          videoUrl: (g as any).videoUrl ?? undefined,
           userPhotoUrl: (g as any).userPhotoUrl ?? undefined,
           customerName: (g as any).customerName ?? "",
           userId: (g as any).userId ?? undefined,
@@ -279,13 +339,10 @@ export async function GET(request: Request) {
     // Global community feed — all recent public generations
     if (url.searchParams.get("community") === "1") {
       const lookById = new Map(state.looks.map(l => [l.id, l]));
+      // Discover archive — EVERY post on the portal, individually (not just a slice).
       const community = state.generations
-        .filter(g =>
-          (g as any).imageUrl &&
-          !(g as any).hidden &&
-          g.imagePath?.includes("generations/")
-        )
-        .slice(0, 40)
+        .filter(g => (g as any).imageUrl && !(g as any).hidden)
+        .slice(0, 200)
         .map(g => {
           const look = lookById.get(g.lookId);
           return {
@@ -293,6 +350,8 @@ export async function GET(request: Request) {
             lookId: g.lookId,
             imageUrl: (g as any).imageUrl ?? "",
             thumbUrl: toThumbUrl((g as any).imageUrl ?? ""),
+            videoUrl: (g as any).videoUrl ?? undefined,
+            brand: detectBrand(g.lookName ?? look?.name, (look as any)?.productNote) ?? undefined,
             // userPhotoUrl intentionally omitted — not needed for thumbnails, only for /post/[id] detail
             customerName: (g as any).customerName ?? "",
             curatorId: (g as any).curatorId ?? "",
@@ -306,6 +365,36 @@ export async function GET(request: Request) {
     }
 
     // Public user gallery — all generations by a given username slug
+    // Try-ons attributed to a curator ACCOUNT (by curatorId), regardless of the
+    // display name typed during the try-on. Also includes name-matched ones so
+    // legacy self-tests still appear. Exposes the try-on video when present.
+    const curatorTryonsId = url.searchParams.get("curatorTryons") ?? "";
+    if (curatorTryonsId) {
+      const cur = (state.curators ?? []).find(c => c.id === curatorTryonsId);
+      const nameSlug = cur ? normalizeSlug([cur.firstName, cur.lastName].filter(Boolean).join(" ")) : "";
+      const matched = state.generations.filter(g => {
+        if (g.visitorId?.startsWith("admin-") || (g as any).hidden) return false;
+        if ((g as any).curatorId === curatorTryonsId) return true;
+        return nameSlug && normalizeSlug((g as any).customerName ?? "") === nameSlug;
+      });
+      const lookById = new Map(state.looks.map(l => [l.id, l]));
+      const userGallery = matched.map(g => {
+        const look = lookById.get(g.lookId);
+        return {
+          id: g.id,
+          lookId: g.lookId,
+          imageUrl: (g as any).imageUrl ?? "",
+          videoUrl: (g as any).videoUrl ?? undefined,
+          customerName: (g as any).customerName ?? "",
+          lookName: g.lookName ?? look?.name ?? "",
+          storeName: g.storeName ?? look?.storeName ?? "",
+          lookThumbUrl: look?.frontImageUrl ?? look?.imageUrl ?? "",
+          createdAt: g.createdAt,
+        };
+      });
+      return NextResponse.json({ userGallery, displayName: cur ? [cur.firstName, cur.lastName].filter(Boolean).join(" ") : "" });
+    }
+
     const filterUsername = url.searchParams.get("username") ?? "";
     if (filterUsername) {
       const querySlug = normalizeSlug(filterUsername);
@@ -587,8 +676,9 @@ export async function POST(request: Request) {
       const userPhotoPath = payload.userPhotoImage?.startsWith("data:image/")
         ? await uploadTryThisLookImage("generations", payload.userPhotoImage)
         : undefined;
+      const generationId = `${Date.now()}-${crypto.randomUUID()}`;
       state.generations.unshift({
-        id: `${Date.now()}-${crypto.randomUUID()}`,
+        id: generationId,
         lookId,
         visitorId: String(payload.visitorId ?? "").trim() || undefined,
         storeName: String(payload.storeName ?? "").trim() || activeLook.storeName,
@@ -598,6 +688,8 @@ export async function POST(request: Request) {
         curatorId: String(payload.curatorId ?? "").trim() || undefined,
         imagePath,
         userPhotoPath,
+        // Consent to show this try-on in the look's feed carousel (default on).
+        feed: payload.feed !== false,
         createdAt: now
       } as any);
       state.events.unshift({
@@ -622,7 +714,30 @@ export async function POST(request: Request) {
           .catch(() => {}); // fire-and-forget, never blocks the response
       }
 
-      return NextResponse.json(ps(updatedState));
+      return NextResponse.json({ ...ps(updatedState), generationId });
+    }
+
+    // Attach a finished try-on video to a gallery generation (best-effort, from the
+    // try-on tool once Pixverse is done) so it can play in the look's feed carousel.
+    if (payload.action === "attach-generation-video") {
+      const genId = String(payload.generationId ?? "").trim();
+      const videoUrl = String(payload.videoUrl ?? "").trim();
+      const gen = state.generations.find(g => g.id === genId);
+      if (!gen) return NextResponse.json({ error: "Generation not found." }, { status: 404 });
+      if (videoUrl) (gen as any).videoUrl = videoUrl;
+      if (typeof payload.feed === "boolean") (gen as any).feed = payload.feed;
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true });
+    }
+
+    // Toggle a try-on's consent to appear in the feed carousel.
+    if (payload.action === "set-generation-feed") {
+      const genId = String(payload.generationId ?? "").trim();
+      const gen = state.generations.find(g => g.id === genId);
+      if (!gen) return NextResponse.json({ error: "Generation not found." }, { status: 404 });
+      (gen as any).feed = payload.feed !== false;
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true });
     }
 
     if (payload.action === "add-comment") {

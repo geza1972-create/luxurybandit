@@ -1,7 +1,7 @@
 "use client";
 
-import { Bookmark, LayoutGrid, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { Bookmark, LayoutGrid, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession, signOut } from "@/lib/supabase-auth-client";
 
@@ -26,6 +26,7 @@ function getActiveTab(pathname: string): Tab {
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [active, setActive] = useState<Tab>("home");
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -105,11 +106,23 @@ export default function BottomNav() {
     >
       <div className="mx-auto grid max-w-lg grid-cols-3 h-14">
 
-        {/* Home — gallery/feed of looks */}
-        <button type="button" onClick={() => go("home", "/stores")} className={btn("home")}>
-          <LayoutGrid className="h-5 w-5" />
-          <span className="text-[10px] font-bold">Home</span>
-        </button>
+        {/* Home — toggles between the full-screen feed and the grid overview */}
+        {(() => {
+          const onStores = pathname === "/stores";
+          const gridView = onStores && searchParams.get("view") === "grid";
+          return (
+            <button type="button"
+              onClick={() => {
+                setActive("home");
+                if (!onStores) { router.push("/stores"); return; }
+                router.push(gridView ? "/stores" : "/stores?view=grid");
+              }}
+              className={btn("home")}>
+              {gridView ? <Play className="h-5 w-5" /> : <LayoutGrid className="h-5 w-5" />}
+              <span className="text-[10px] font-bold">{gridView ? "Feed" : "Discover"}</span>
+            </button>
+          );
+        })()}
 
         {/* Messages */}
         <button

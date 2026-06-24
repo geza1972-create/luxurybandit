@@ -14,6 +14,9 @@ const ENABLED = process.env.CREATOR_CREDITS_ENABLED !== "false"; // on by defaul
 export const STARTER_CREDITS = Number(process.env.STARTER_CREDITS ?? 30);
 export const TRYON_CREDITS = Number(process.env.TRYON_CREDITS ?? 2);
 export const SEARCH_CREDITS = Number(process.env.SEARCH_CREDITS ?? 1);
+// A 5s Pixverse try-on video is much pricier than a still try-on (~€0.20+),
+// so it costs more credits. Charged to the look's owner curator.
+export const VIDEO_CREDITS = Number(process.env.VIDEO_CREDITS ?? 8);
 
 // Earn-as-you-prove-yourself milestones. Each is granted once (tracked by key).
 // Thresholds are cumulative across all of a creator's published looks.

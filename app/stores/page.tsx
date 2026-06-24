@@ -13,7 +13,7 @@ import { useScrollLock } from "@/lib/use-scroll-lock";
 import { lookPath } from "@/lib/look-slug";
 import HomeFeed from "@/components/HomeFeed";
 import { isAdminEmail } from "@/lib/is-admin-email";
-import { Bookmark, Heart, Home, Image as ImageIcon, Instagram, Loader2, LogOut, MessageCircle, Search, Send, ShoppingBag, Sparkles, X } from "lucide-react";
+import { Bookmark, Heart, Home, Image as ImageIcon, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -63,6 +63,7 @@ type Look = {
   frontImageUrl?: string;
   galleryImageUrls?: string[];
   productType?: "real" | "virtual";
+  brand?: string;
   generationCount?: number;
   curatorId?: string;
   curatorName?: string;
@@ -71,7 +72,9 @@ type Look = {
   curatorNote?: string;
   productNote?: string;
   videoUrl?: string;
+  videoCreatedAt?: string;
   videoPosterUrl?: string;
+  tryOnImageUrl?: string;
   feedOrder?: number;
   aiCreated?: boolean;
   commentsOff?: boolean;
@@ -105,6 +108,16 @@ function feedPrice(look: Look): string | null {
   return /^[\d.,]+$/.test(raw) ? `$${raw}` : raw;
 }
 
+// Persisted videos are stored as /videos/<epoch-ms>-<uuid>.mp4 — recover the
+// generation time from the filename for looks that predate the videoCreatedAt field.
+function tsFromVideoUrl(url?: string): string | null {
+  if (!url) return null;
+  const m = url.match(/\/videos\/(\d{10,})-/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isFinite(n) ? new Date(n).toISOString() : null;
+}
+
 type Payload = {
   looks?: Look[];
   stores?: { name: string; slug: string }[];
@@ -115,6 +128,8 @@ type CommunityItem = {
   id: string;
   lookId: string;
   imageUrl: string;
+  videoUrl?: string;
+  brand?: string;
   thumbUrl?: string;
   userPhotoUrl?: string;
   customerName: string;
@@ -854,6 +869,10 @@ function StoresPage() {
   const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
   const [bulkAssignName, setBulkAssignName] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  // Feed (default) vs. grid overview — driven by ?view=grid so the bottom-nav
+  // Home toggle and the in-page controls stay in sync.
+  const showGrid = searchParams.get("view") === "grid";
+  const [brandFilter, setBrandFilter] = useState<string | null>(null);
   const [feedSelectMode, setFeedSelectMode] = useState(false);
   const [selectedLookIds, setSelectedLookIds] = useState<Set<string>>(new Set());
   const [feedBulkWorking, setFeedBulkWorking] = useState(false);
@@ -997,16 +1016,16 @@ function StoresPage() {
     setBulkWorking(false);
   };
 
-  // Load community feed when tab or search is first activated
+  // Load community try-ons for the merged Discover grid (and search/community tab)
   useEffect(() => {
-    if ((typeFilter !== "community" && !searchOpen) || communityItems.length > 0) return;
+    if ((typeFilter !== "community" && !searchOpen && !showGrid) || communityItems.length > 0) return;
     setCommunityLoading(true);
     fetch("/api/try-this-look?community=1")
       .then(r => r.json())
       .then((p: { community?: CommunityItem[] }) => setCommunityItems(p.community ?? []))
       .catch(() => {})
       .finally(() => setCommunityLoading(false));
-  }, [typeFilter, communityItems.length]);
+  }, [typeFilter, communityItems.length, searchOpen, showGrid]);
 
   useEffect(() => {
     fetch("/api/try-this-look")
@@ -1064,19 +1083,58 @@ function StoresPage() {
     [communityItems, myCuratorId]
   );
 
+  // Discover = ONE mixed archive: looks, curator videos AND try-ons, by timestamp.
+  const historyItems = useMemo(() => {
+    type HItem = { key: string; kind: "look" | "tryon"; id: string; thumb: string; videoUrl?: string; videoPoster?: string; aiCreated?: boolean; brand?: string; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string };
+    const items: HItem[] = [];
+    for (const l of looks) {
+      const thumb = l.frontImageUrl || l.imageUrl;
+      // Poster only when it's a REAL model frame (never the floating product); else
+      // the video tile shows the video's own first frame.
+      const videoPoster = l.videoPosterUrl || l.tryOnImageUrl || undefined;
+      // Sort by the most recent activity: a freshly generated video beats publish
+      // date. Fall back to the timestamp embedded in the video filename for older ones.
+      const videoTs = l.videoCreatedAt || tsFromVideoUrl(l.videoUrl) || "";
+      const when = videoTs > (l.createdAt ?? "") ? videoTs : (l.createdAt ?? "");
+      items.push({ key: `look-${l.id}`, kind: "look", id: l.id, thumb, videoUrl: l.videoUrl, videoPoster, aiCreated: l.aiCreated, brand: l.brand, createdAt: when, name: l.name, price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl });
+    }
+    for (const c of communityItems) {
+      // A try-on still IS a real model frame → use it as the video poster.
+      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, brand: c.brand, createdAt: c.createdAt ?? "", name: c.customerName || c.lookName, curatorName: c.customerName });
+    }
+    items.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    return items;
+  }, [looks, communityItems]);
+
+  // Brand filter chips — only brands the curator named at generation (paid placement).
+  const brandChips = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const it of historyItems) if (it.brand) counts.set(it.brand, (counts.get(it.brand) ?? 0) + 1);
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([brand]) => brand);
+  }, [historyItems]);
+  const visibleHistory = useMemo(
+    () => brandFilter ? historyItems.filter(it => it.brand === brandFilter) : historyItems,
+    [historyItems, brandFilter],
+  );
+
   // ── Default home = full-screen vertical feed (TikTok/IG style, newest first) ──
   // The legacy grid below is kept only for the search experience.
-  if (!searchOpen) {
+  if (!searchOpen && !showGrid) {
     return (
       <div className="min-h-dvh bg-black" style={{ maxWidth: "100vw" }}>
         <HomeFeed looks={looks} />
-        {/* Floating search (top-right) — brand stays per-slide via the curator chip */}
-        <button type="button" aria-label="Search"
-          onClick={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 50); }}
-          className="fixed right-3 z-30 grid h-9 w-9 place-items-center rounded-full bg-black/35 text-white backdrop-blur active:scale-90 transition-transform"
-          style={{ top: "calc(env(safe-area-inset-top) + 0.6rem)" }}>
-          <Search className="h-4 w-4" />
-        </button>
+        {/* Floating controls (top-right): gallery/grid + search */}
+        <div className="fixed right-3 z-30 flex items-center gap-2" style={{ top: "calc(env(safe-area-inset-top) + 0.6rem)" }}>
+          <button type="button" aria-label="Gallery" onClick={() => router.push("/stores?view=grid")}
+            className="grid h-9 w-9 place-items-center rounded-full bg-black/35 text-white backdrop-blur active:scale-90 transition-transform">
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+          <button type="button" aria-label="Search"
+            onClick={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 50); }}
+            className="grid h-9 w-9 place-items-center rounded-full bg-black/35 text-white backdrop-blur active:scale-90 transition-transform">
+            <Search className="h-4 w-4" />
+          </button>
+        </div>
         {showMerkliste && <MerklistePanel onClose={() => setShowMerkliste(false)} />}
         {showUserPanel && <UserPanel onClose={() => { setShowUserPanel(false); setSavedAutoOpen(false); }} openSaved={savedAutoOpen} />}
       </div>
@@ -1097,12 +1155,20 @@ function StoresPage() {
             </div>
             <div>
               <div className="text-sm font-black uppercase tracking-widest text-black leading-none">LuxuryBandit</div>
-              <div className="text-[10px] font-bold text-black/40 mt-0.5">Bandit this life!</div>
+              <div className="text-[10px] font-bold text-black/40 mt-0.5">Bandit the look!</div>
             </div>
           </div>
 
           {/* Right icons */}
           <div className="flex items-center gap-2">
+            {/* Back to the full-screen feed */}
+            <button type="button"
+              onClick={() => { router.push("/stores"); setSearchOpen(false); setQuery(""); }}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-black/12 bg-black/4 text-black/50 hover:text-black transition"
+              aria-label="Feed">
+              <Home className="h-4 w-4" />
+            </button>
+
             {/* Search toggle */}
             <button type="button"
               onClick={() => { setSearchOpen(v => !v); if (!searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50); else setQuery(""); }}
@@ -1165,7 +1231,6 @@ function StoresPage() {
           </div>
         )}
 
-
       </header>
 
       <main className="pb-24">
@@ -1189,6 +1254,115 @@ function StoresPage() {
               <X className="h-4 w-4" />
             </button>
           </div>
+        )}
+
+        {/* ── Discover: one mixed archive (looks + curator videos + try-ons), newest first ── */}
+        {!searchOpen && (
+          historyItems.length === 0 ? (
+            <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-black/30" /></div>
+          ) : (
+          <>
+            {/* Hero — explains in one glance what LuxuryBandit lets you do.
+                Hidden while a brand filter is active to keep browsing clean. */}
+            {!brandFilter && (
+              <section className="px-4 pt-4 pb-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cobalt">LuxuryBandit</p>
+                <h1 className="mt-1.5 text-[1.7rem] font-black leading-[1.1] tracking-tight text-black">
+                  See how every brand<br />looks on <span className="text-cobalt">you</span>.
+                </h1>
+                <p className="mt-2 max-w-md text-sm font-medium leading-6 text-black/55">
+                  Try any luxury look on your own photo — as a photo <span className="font-black text-black/70">and</span> a 5-second video.
+                  Be the brand, find the trend, and shop it at any price.
+                </p>
+                <div className="mt-3 grid gap-1.5">
+                  {[
+                    [<Sparkles key="i" className="h-4 w-4 text-cobalt" />, "Make a try-on", "Any look, on you, in seconds — photo + video."],
+                    [<ShoppingBag key="i" className="h-4 w-4 text-cobalt" />, "Shop the look", "From the real luxury piece down to the best dupe."],
+                    [<Heart key="i" className="h-4 w-4 text-cobalt" />, "Join the community", "Become a curator, build a following — and earn."],
+                  ].map(([icon, title, text], i) => (
+                    <div key={i} className="flex items-start gap-2.5">
+                      <span className="mt-0.5 shrink-0">{icon as React.ReactNode}</span>
+                      <p className="text-[13px] leading-snug text-black/70">
+                        <span className="font-black text-black">{title as string}</span> — {text as string}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3.5 flex items-center gap-2">
+                  <button type="button" onClick={() => router.push("/curators")}
+                    className="flex h-10 items-center justify-center gap-1.5 rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
+                    <Sparkles className="h-4 w-4" /> Become a curator
+                  </button>
+                  <button type="button" onClick={() => router.push("/about")}
+                    className="flex h-10 items-center justify-center rounded-full border border-black/15 bg-white px-5 text-sm font-black text-black active:scale-95 transition-transform">
+                    How it works
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {/* Brand filter chips — only brands named at generation (paid placement) */}
+            {brandChips.length > 0 && (
+              <div className="flex gap-1.5 overflow-x-auto px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <button type="button" onClick={() => setBrandFilter(null)}
+                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${brandFilter === null ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>
+                  All
+                </button>
+                {brandChips.map(b => (
+                  <button key={b} type="button" onClick={() => setBrandFilter(b)}
+                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${brandFilter === b ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>
+                    {b}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="grid grid-cols-3 gap-0.5">
+              {visibleHistory.map(it => (
+                <div key={it.key} className="flex flex-col">
+                  <button type="button"
+                    onClick={() => router.push(it.kind === "look" ? lookPath(it.name, it.id) : `/post/${it.id}`)}
+                    className="relative aspect-square overflow-hidden bg-black/5 transition-opacity active:opacity-80">
+                    {it.videoUrl ? (
+                      // Video tile — show a real model frame: the model poster if we
+                      // have one, else the video's own first frame (#t=0.1 forces it).
+                      <video src={it.videoPoster ? it.videoUrl : `${it.videoUrl}#t=0.1`} poster={it.videoPoster} muted playsInline preload="metadata"
+                        className="h-full w-full bg-black object-cover object-top" />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={optImg(it.thumb, 400)} alt={it.name} loading="lazy" decoding="async"
+                        onError={(e) => { const im = e.currentTarget; if (it.thumb && im.src !== it.thumb) im.src = it.thumb; }}
+                        className="h-full w-full object-cover object-top" />
+                    )}
+                    {it.videoUrl && (
+                      <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur"><Play className="h-3 w-3 fill-current" /></span>
+                    )}
+                    {/* Label so it's always clear what the tile is */}
+                    <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">
+                      {it.kind === "tryon"
+                        ? (it.videoUrl ? "Try-on · video" : "Try-on")
+                        : it.videoUrl
+                          ? (it.aiCreated ? "✦ AI video" : "✓ Self-test")
+                          : "Look"}
+                    </span>
+                  </button>
+                  <div className="flex items-center gap-1.5 px-2 pt-1 pb-1.5 bg-white">
+                    {it.curatorName && (
+                      <span className="flex h-4 w-4 shrink-0 overflow-hidden rounded-full bg-black/5">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={it.curatorPhoto || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(it.curatorName)}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1 truncate text-[9px] font-black text-black/70">{it.curatorName || it.name}</span>
+                    {it.price && <span className="shrink-0 text-[9px] font-black text-ink">{it.price}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {brandFilter && visibleHistory.length === 0 && (
+              <p className="py-16 text-center text-sm font-black text-black/40">Nothing from {brandFilter} yet.</p>
+            )}
+          </>
+          )
         )}
 
         {/* ── Community tab ── */}
@@ -1331,6 +1505,9 @@ function StoresPage() {
                           loading="lazy" decoding="async"
                           onError={(e) => { const img = e.currentTarget; if (item.imageUrl && img.src !== item.imageUrl) img.src = item.imageUrl; }}
                           className="h-full w-full object-cover object-top" />
+                        {item.videoUrl && !selectMode && (
+                          <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur"><Play className="h-3 w-3 fill-current" /></span>
+                        )}
                         {selectMode && (
                           <div className={`absolute top-1.5 left-1.5 h-5 w-5 rounded-full border-2 flex items-center justify-center transition ${
                             isSelected ? "bg-cobalt border-cobalt" : "bg-black/30 border-white/60"
@@ -1393,7 +1570,7 @@ function StoresPage() {
         )}
 
         {/* Intro / page description — Trends & Dupes */}
-        {typeFilter !== "community" && (
+        {searchOpen && (
           <section className="px-4 pt-4 pb-1">
             <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-cobalt">Trends</p>
             <h1 className="mt-1 text-xl font-semibold leading-tight tracking-tight text-black">
@@ -1407,7 +1584,7 @@ function StoresPage() {
         )}
 
         {/* All / My Trends — only for signed-in creators */}
-        {typeFilter !== "community" && myCuratorId && (
+        {searchOpen && myCuratorId && (
           <div className="flex items-center gap-2 px-4 pb-3 pt-1">
             <button type="button" onClick={() => setMyTrendsOnly(false)}
               className={`rounded-full px-4 py-1.5 text-xs font-black transition ${!myTrendsOnly ? "bg-black text-white" : "bg-black/[0.04] text-black/45"}`}>
@@ -1421,7 +1598,7 @@ function StoresPage() {
         )}
 
         {/* Empty state when creator has no looks of their own yet */}
-        {typeFilter !== "community" && !isLoading && myTrendsOnly && myCuratorId && myLookCount === 0 && (
+        {searchOpen && !isLoading && myTrendsOnly && myCuratorId && myLookCount === 0 && (
           <div className="flex flex-col items-center gap-2 py-20 text-center px-8">
             <ShoppingBag className="h-9 w-9 text-black/15" />
             <p className="text-sm font-black text-black/45">You haven&apos;t published a look yet</p>
@@ -1431,24 +1608,24 @@ function StoresPage() {
           </div>
         )}
 
-        {typeFilter !== "community" && isLoading && (
+        {searchOpen && isLoading && (
           <div className="flex justify-center py-20">
             <Loader2 className="h-6 w-6 animate-spin text-black/30" />
           </div>
         )}
 
-        {typeFilter !== "community" && error && (
+        {searchOpen && error && (
           <p className="p-4 text-center text-sm font-bold text-red-500">{error}</p>
         )}
 
-        {typeFilter !== "community" && !isLoading && !error && looks.length === 0 && (
+        {searchOpen && !isLoading && !error && looks.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-24 text-center px-6">
             <ShoppingBag className="h-10 w-10 text-black/15" />
             <p className="text-sm font-black text-black/40">No listings yet — check back soon.</p>
           </div>
         )}
 
-        {typeFilter !== "community" && !isLoading && looks.length > 0 && (
+        {searchOpen && !isLoading && looks.length > 0 && (
           <>
             {/* Admin feed toolbar */}
             {isAdmin && (

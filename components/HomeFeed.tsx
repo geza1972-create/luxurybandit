@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
+import TryOnQR from "@/components/TryOnQR";
 
 export type FeedLook = {
   id: string;
@@ -17,6 +18,8 @@ export type FeedLook = {
   productNote?: string;
   videoUrl?: string;
   videoPosterUrl?: string;
+  tryOnImageUrl?: string;
+  communityTryOns?: { imageUrl: string; videoUrl?: string; name?: string }[];
   feedOrder?: number;
   aiCreated?: boolean;
   commentsOff?: boolean;
@@ -59,23 +62,37 @@ function RailButton({ icon, label, active, onClick }: { icon: React.ReactNode; l
   );
 }
 
-function Slide({ look, onComment }: { look: FeedLook; onComment: (look: FeedLook) => void }) {
+function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment: (look: FeedLook) => void; muted: boolean; setMuted: (fn: (m: boolean) => boolean) => void }) {
   const router = useRouter();
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(look.likeCount ?? 0);
   const [saved, setSaved] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [clamped, setClamped] = useState(false);
-  const [muted, setMuted] = useState(true);
   const [active, setActive] = useState(0);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [inView, setInView] = useState(false);
+  // All videos in this slide's carousel (curator + community), keyed by slide index.
+  const videoRefs = useRef<Record<number, HTMLVideoElement>>({});
+  const sectionRef = useRef<HTMLElement>(null);
   const captionRef = useRef<HTMLParagraphElement>(null);
-  // Carousel: video first (if any), then the look image, then the shop options as
-  // swipeable product slides (capped so the carousel stays manageable).
+  // Carousel order: curator video → product image → try-ons (each: photo, then its
+  // video if any) → shop options. Try-ons are placed after the product image.
   const shopAlts = (look.alternatives ?? []).filter(a => a?.thumbnail && a?.link).slice(0, 8);
-  const media: ({ type: "video" } | { type: "image" } | { type: "product"; alt: ShopAlt })[] = [
+  const community = (look.communityTryOns ?? []).filter(c => c?.imageUrl);
+  const communityMedia = community.flatMap(c => [
+    { type: "cphoto" as const, url: c.imageUrl, name: c.name },
+    ...(c.videoUrl ? [{ type: "cvideo" as const, url: c.videoUrl, name: c.name }] : []),
+  ]);
+  const media: (
+    | { type: "video" }
+    | { type: "image" }
+    | { type: "cvideo"; url: string; name?: string }
+    | { type: "cphoto"; url: string; name?: string }
+    | { type: "product"; alt: ShopAlt }
+  )[] = [
     ...(look.videoUrl ? [{ type: "video" as const }] : []),
     { type: "image" as const },
+    ...communityMedia,
     ...shopAlts.map(a => ({ type: "product" as const, alt: a })),
   ];
 
@@ -89,6 +106,34 @@ function Slide({ look, onComment }: { look: FeedLook; onComment: (look: FeedLook
     const el = captionRef.current;
     if (el && !expanded) setClamped(el.scrollHeight > el.clientHeight + 2);
   }, [look.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Track whether THIS slide is the one on screen (vertical snap).
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([e]) => setInView(e.isIntersecting && e.intersectionRatio >= 0.6),
+      { threshold: [0, 0.6, 1] },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  // Drive ALL videos (curator + community) from visibility + carousel position +
+  // global mute: only the on-screen, active video plays; every other one is silent.
+  useEffect(() => {
+    for (const [idxStr, v] of Object.entries(videoRefs.current)) {
+      if (!v) continue;
+      const isActiveVideo = inView && Number(idxStr) === active;
+      if (isActiveVideo) {
+        v.muted = muted;
+        void v.play().catch(() => {});
+      } else {
+        v.pause();
+        v.muted = true;
+      }
+    }
+  }, [inView, active, muted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const img = look.frontImageUrl ?? look.imageUrl;
   const detail = lookPath(look.name, look.id);
@@ -116,7 +161,22 @@ function Slide({ look, onComment }: { look: FeedLook; onComment: (look: FeedLook
   };
 
   return (
-    <section className="relative flex h-[100dvh] w-full snap-start snap-always flex-col bg-white">
+    <section ref={sectionRef} className="relative flex h-[100dvh] w-full snap-start snap-always flex-col bg-white">
+      {/* ── Header bar (white) — curator + badge ABOVE the image, never over the face ── */}
+      <div className="z-20 flex items-center gap-2 bg-white px-3 pb-2 pr-14" style={{ paddingTop: "calc(env(safe-area-inset-top) + 0.75rem)" }}>
+        <button type="button" onClick={() => look.curatorId && router.push(`/curator/${look.curatorId}`)}
+          className="flex min-w-0 items-center gap-2 active:opacity-80">
+          <span className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-black/10 bg-black/5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={look.curatorPhotoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(look.curatorName || "LB")}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
+          </span>
+          <span className="truncate text-sm font-black text-black">{look.curatorName || "LuxuryBandit"}</span>
+        </button>
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${look.aiCreated ? "bg-black text-white" : "bg-black/[0.06] text-black/60"}`}>
+          {look.aiCreated ? "✦ Original" : "Curated"}
+        </span>
+      </div>
+
       {/* ── Image area ── */}
       <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
         {/* Blurred fill so the whole look stays visible without empty bars */}
@@ -127,17 +187,31 @@ function Slide({ look, onComment }: { look: FeedLook; onComment: (look: FeedLook
         <div className="absolute inset-0 flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           onScroll={(e) => {
             const i = Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth);
-            if (i !== active) {
-              setActive(i);
-              const v = videoRef.current;
-              if (v) { if (media[i]?.type === "video") void v.play(); else v.pause(); }
-            }
+            if (i !== active) setActive(i); // the effect handles play/pause + mute
           }}>
           {media.map((m, i) => (
             <div key={i} className="relative h-full w-full shrink-0 snap-center">
               {m.type === "video" ? (
-                <video ref={videoRef} src={look.videoUrl} poster={look.videoPosterUrl || img} className="h-full w-full object-contain"
-                  autoPlay muted loop playsInline preload="metadata" />
+                <div className="relative h-full w-full">
+                  <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
+                    src={look.videoUrl} poster={look.videoPosterUrl || img} className="h-full w-full object-contain"
+                    muted loop playsInline preload="metadata" />
+                  <span className="absolute left-3 top-3 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">{look.aiCreated ? "✦ AI video" : "Video"}</span>
+                </div>
+              ) : m.type === "cphoto" ? (
+                // Community try-on photo (someone wearing this look).
+                <div className="relative h-full w-full">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={m.url} alt={`${look.name} on ${m.name ?? "a member"}`} className="h-full w-full object-contain" />
+                  <span className="absolute left-3 top-3 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">{m.name ? `${m.name}'s try-on` : "Member try-on"}</span>
+                </div>
+              ) : m.type === "cvideo" ? (
+                // Community try-on video — same sound handling as the curator video.
+                <div className="relative h-full w-full">
+                  <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
+                    src={m.url} className="h-full w-full bg-black object-contain" muted loop playsInline preload="metadata" />
+                  <span className="absolute left-3 top-3 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">{m.name ? `${m.name}'s video` : "Member video"}</span>
+                </div>
               ) : m.type === "image" ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={img} alt={look.name} className="h-full w-full object-contain" />
@@ -161,39 +235,15 @@ function Slide({ look, onComment }: { look: FeedLook; onComment: (look: FeedLook
           ))}
         </div>
 
-        {/* Carousel dots */}
-        {media.length > 1 && (
-          <div className="absolute left-1/2 z-10 flex -translate-x-1/2 gap-1.5" style={{ top: "calc(env(safe-area-inset-top) + 3.25rem)" }}>
-            {media.map((_, i) => (
-              <span key={i} className={`h-1.5 w-1.5 rounded-full transition-colors ${active === i ? "bg-white" : "bg-white/40"}`} />
-            ))}
-          </div>
-        )}
-
-        {/* Mute toggle (only while the video slide is active) */}
-        {look.videoUrl && active === 0 && (
+        {/* Mute toggle — shown whenever the active carousel slide is a video */}
+        {(media[active]?.type === "video" || media[active]?.type === "cvideo") && (
           <button type="button" aria-label={muted ? "Unmute" : "Mute"}
-            onClick={() => { const v = videoRef.current; if (!v) return; v.muted = !v.muted; setMuted(v.muted); if (!v.muted) void v.play(); }}
+            onClick={() => setMuted(m => !m)}
             className="absolute bottom-3 left-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform">
             {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
           </button>
         )}
 
-        {/* Top: curator + badge */}
-        <div className="absolute inset-x-0 top-0 z-10 flex items-center gap-2 bg-gradient-to-b from-black/55 to-transparent px-3 pb-10 pr-14"
-          style={{ paddingTop: "calc(env(safe-area-inset-top) + 0.75rem)" }}>
-          <button type="button" onClick={() => look.curatorId && router.push(`/curator/${look.curatorId}`)}
-            className="flex min-w-0 items-center gap-2 active:opacity-80">
-            <span className="h-9 w-9 shrink-0 overflow-hidden rounded-full border-2 border-white/80 bg-black/40">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={look.curatorPhotoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(look.curatorName || "LB")}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
-            </span>
-            <span className="truncate text-sm font-black text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]">{look.curatorName || "LuxuryBandit"}</span>
-          </button>
-          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide backdrop-blur ${look.aiCreated ? "bg-black/70 text-white" : "bg-white/85 text-black/70"}`}>
-            {look.aiCreated ? "✦ Original" : "Curated"}
-          </span>
-        </div>
 
         {/* Right rail (on the image) */}
         <div className="absolute right-2.5 bottom-4 z-10 flex flex-col items-center gap-4">
@@ -208,6 +258,14 @@ function Slide({ look, onComment }: { look: FeedLook; onComment: (look: FeedLook
 
       {/* ── White caption + actions (Instagram-style, below the image) ── */}
       <div className="shrink-0 bg-white px-4 pt-2.5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4rem)" }}>
+        {/* Carousel dots — on white, below the image (Instagram-style) */}
+        {media.length > 1 && (
+          <div className="mb-2 flex justify-center gap-1.5">
+            {media.map((_, i) => (
+              <span key={i} className={`h-1.5 w-1.5 rounded-full transition-colors ${active === i ? "bg-black" : "bg-black/20"}`} />
+            ))}
+          </div>
+        )}
         <p ref={captionRef} className={`text-[13px] leading-snug text-black ${expanded ? "" : "line-clamp-2"}`}>
           <button type="button" onClick={() => look.curatorId && router.push(`/curator/${look.curatorId}`)} className="font-black">{look.curatorName || "LuxuryBandit"}</button>{" "}
           {caption || look.name}
@@ -226,6 +284,7 @@ function Slide({ look, onComment }: { look: FeedLook; onComment: (look: FeedLook
             className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-black text-sm font-black text-white active:scale-95 transition-transform">
             <Sparkles className="h-4 w-4" /> Try This Look
           </button>
+          <TryOnQR lookId={look.id} lookName={look.name} variant="icon" />
           <button type="button" onClick={() => router.push(`${detail}/details`)}
             className="flex h-11 items-center justify-center rounded-full border border-black/15 bg-white px-5 text-sm font-black text-black active:scale-95 transition-transform">
             Shop the Look
@@ -333,6 +392,9 @@ function CommentsSheet({ look, onClose }: { look: FeedLook; onClose: () => void 
 
 export default function HomeFeed({ looks }: { looks: FeedLook[] }) {
   const [commentsFor, setCommentsFor] = useState<FeedLook | null>(null);
+  // One global sound switch for the whole feed — so scrolling never leaves an
+  // off-screen video audible, and the mute preference carries to the next video.
+  const [muted, setMuted] = useState(true);
   // Curator-defined order first (feedOrder asc); anything unordered falls back to newest.
   const feed = [...looks].sort((a, b) => {
     const ao = typeof a.feedOrder === "number" ? a.feedOrder : Infinity;
@@ -352,7 +414,7 @@ export default function HomeFeed({ looks }: { looks: FeedLook[] }) {
   return (
     <>
       <div className="h-[100dvh] w-full snap-y snap-mandatory overflow-y-scroll overscroll-contain bg-black [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {feed.map(look => <Slide key={look.id} look={look} onComment={setCommentsFor} />)}
+        {feed.map(look => <Slide key={look.id} look={look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} />)}
       </div>
       {commentsFor && <CommentsSheet look={commentsFor} onClose={() => setCommentsFor(null)} />}
     </>

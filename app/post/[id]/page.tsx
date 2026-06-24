@@ -2,14 +2,16 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ChevronLeft, Heart, Send, MessageCircle, UserPlus, UserCheck, Loader2, X, Store } from "lucide-react";
+import { ChevronLeft, Heart, Send, MessageCircle, UserPlus, UserCheck, Loader2, X, Store, Sparkles } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
+import TryOnQR from "@/components/TryOnQR";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 type Post = {
   id: string;
   lookId: string;
   imageUrl: string;
+  videoUrl?: string;
   userPhotoUrl?: string;
   customerName: string;
   userId?: string;
@@ -288,6 +290,13 @@ export default function PostPage() {
             <img src={post.imageUrl} alt={post.lookName} className="h-full w-full object-cover object-top" />
           </div>
         )}
+        {/* Try-on video (when one was generated for this try-on) */}
+        {post.videoUrl && (
+          <div className="relative mt-0.5 max-h-[75dvh] w-full overflow-hidden bg-black">
+            <video src={post.videoUrl} className="mx-auto h-full max-h-[75dvh] w-full object-contain" controls loop playsInline muted autoPlay />
+            <div className="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white">Video</div>
+          </div>
+        )}
       </div>
 
       {/* Actions row */}
@@ -340,6 +349,22 @@ export default function PostPage() {
             </div>
             <span className="text-[10px] font-black text-black/40 shrink-0">Try it →</span>
           </a>
+        )}
+
+        {/* Try this look — direct + QR (scan a projected code to try it on a phone) */}
+        {!post.creatorDeleted && (
+          <div className="flex items-center gap-2">
+            <a href={`/tryon/${post.lookId}`}
+              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-black text-sm font-black text-white active:scale-95 transition-transform">
+              <Sparkles className="h-4 w-4" /> Try This Look
+            </a>
+            <TryOnQR lookId={post.lookId} lookName={post.lookName} />
+          </div>
+        )}
+
+        {/* Large inline QR — scannable directly (e.g. projected on a wall) */}
+        {!post.creatorDeleted && (
+          <TryOnQR lookId={post.lookId} lookName={post.lookName} variant="inline" />
         )}
 
         {/* Store link / deleted-creator note */}

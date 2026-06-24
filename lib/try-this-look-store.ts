@@ -104,6 +104,12 @@ export type TryThisLookGeneration = {
   lookName?: string;
   imagePath: string;
   imageUrl?: string;
+  // Try-on video (a long-lived signed URL) + consent to show this try-on in the feed.
+  videoUrl?: string;
+  feed?: boolean;
+  customerName?: string;
+  userId?: string;
+  curatorId?: string;
   createdAt: string;
   // Set when the original creator/store was deleted but the user's try-on is kept.
   creatorDeleted?: boolean;

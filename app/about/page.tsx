@@ -6,7 +6,7 @@ export const metadata = { title: "About — LuxuryBandit" };
 export default function AboutPage() {
   return (
     <InfoPage title="About LuxuryBandit">
-      <p className="text-lg font-black text-black">Bandit this life!</p>
+      <p className="text-lg font-black text-black">Bandit the look!</p>
       <p>
         LuxuryBandit is a curated trend marketplace. Real people — our curators — spot the
         looks worth wearing and pick the actual products behind them, across every budget.

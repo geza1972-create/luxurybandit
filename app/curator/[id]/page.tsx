@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowLeft, Instagram, Loader2, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send } from "lucide-react";
+import { ArrowLeft, Instagram, Loader2, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play } from "lucide-react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 const fmtN = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`);
@@ -16,7 +16,7 @@ function viewerHeaders(): Record<string, string> {
 
 type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; instagram?: string; style?: string; genderFocus?: string };
 type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
-type TryOn = { id: string; imageUrl: string; lookName?: string; lookId?: string };
+type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string };
 
 const toSlug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 function optImg(url?: string, w = 600) { if (!url) return ""; if (url.startsWith("data:") || url.startsWith("blob:")) return url; return `/_next/image?url=${encodeURIComponent(url)}&w=${w}&q=70`; }
@@ -96,12 +96,9 @@ export default function CuratorPublicPage() {
         setLookPrices(prices);
         // Looks this curator created — a try-on of one of these is a self-test.
         setOwnLookIds(new Set(all.filter(l => l.curatorId === id).map(l => l.id)));
-        // Their try-ons are attributed by display-name slug (customerName).
-        const nm = `${p?.firstName ?? ""} ${p?.lastName ?? ""}`.trim();
-        if (nm) {
-          const g = await fetch(`/api/try-this-look?username=${encodeURIComponent(toSlug(nm))}`).then(r => r.json()).catch(() => null);
-          if (active && Array.isArray(g?.userGallery)) setTryons(g.userGallery as TryOn[]);
-        }
+        // Try-ons attributed to this curator ACCOUNT (any display name they used).
+        const g = await fetch(`/api/try-this-look?curatorTryons=${encodeURIComponent(id)}`).then(r => r.json()).catch(() => null);
+        if (active && Array.isArray(g?.userGallery)) setTryons(g.userGallery as TryOn[]);
       } catch { /* ignore */ } finally {
         if (active) setLoading(false);
       }
@@ -243,6 +240,9 @@ export default function CuratorPublicPage() {
                     <span className="absolute left-1.5 top-1.5 rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">✓ Self-test</span>
                   ) : (
                     <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">Tryon</span>
+                  )}
+                  {t.videoUrl && (
+                    <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur"><Play className="h-3 w-3 fill-current" /></span>
                   )}
                 </div>
                 {t.lookId && lookPrices[t.lookId] && (

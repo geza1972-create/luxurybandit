@@ -9,6 +9,27 @@ const trace = () => crypto.randomUUID();
 const FASHION_PROMPT =
   "Elegant high-fashion presentation. The subject stays mostly still with subtle, slow, gentle movement — a soft breath, a small natural sway. CRITICAL: the outfit must stay IDENTICAL — keep the exact same garment shape, cut, colour, fabric, pattern and details; do not redesign, restyle or change the clothing. Minimal camera motion, refined studio lighting. No text or logos.";
 
+const slug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+// Find the curator's own existing try-on of this look (a "self-test"). Reusing it
+// as the video source avoids a fresh OpenAI try-on (which can fail / cost money).
+function findSelftestImage(state: Awaited<ReturnType<typeof readTryThisLookState>>, look: any): string | null {
+  const cid = look.curatorId;
+  if (!cid) return null;
+  const cur = (state.curators ?? []).find((c) => c.id === cid);
+  const nm = cur ? [cur.firstName, cur.lastName].filter(Boolean).join(" ").trim() : "";
+  if (!nm) return null;
+  const want = slug(nm);
+  let best: { url: string; at: string } | null = null;
+  for (const g of state.generations ?? []) {
+    if (g.lookId !== look.id || !(g as any).imageUrl || (g as any).hidden) continue;
+    if (slug((g as any).customerName ?? "") !== want) continue;
+    const at = String((g as any).createdAt ?? "");
+    if (!best || at > best.at) best = { url: (g as any).imageUrl, at };
+  }
+  return best?.url ?? null;
+}
+
 function pvHeaders(key: string, json = false): Record<string, string> {
   const h: Record<string, string> = { "API-KEY": key, "Ai-trace-id": trace() };
   if (json) h["Content-Type"] = "application/json";
@@ -101,24 +122,41 @@ export async function POST(request: Request) {
     //    try the garment on the curator's profile photo, then animate that.
     let srcBlob: Blob | null = null;
     if (!(look as any).aiCreated) {
-      const curator = (state.curators ?? []).find((c) => c.id === (look as any).curatorId);
-      const personUrl = curator?.photoPath ? await getSignedUrl((curator as any).photoPath) : (curator as any)?.photoUrl;
-      const garmentUrl = (look as any).garmentFrontImageUrl ?? imgUrl;
-      if (personUrl) {
-        const dataUrl = await tryOnGarment(garmentUrl, personUrl);
-        if (dataUrl) {
-          const [, b64] = dataUrl.split(",");
-          srcBlob = new Blob([Buffer.from(b64, "base64")], { type: "image/png" });
-          // Store the try-on frame as the video poster so the feed shows the model
-          // (not the bare product) before the video starts playing.
-          try {
-            const posterPath = await uploadTryThisLookImage("looks", dataUrl);
-            (look as any).videoPosterUrl = (await getSignedUrl(posterPath, 60 * 60 * 24 * 365 * 10)) || undefined;
-          } catch { /* poster is optional */ }
+      // 1a) Best path: reuse the curator's existing self-test try-on of this look
+      //     (already a model wearing it) — no new OpenAI call, no failure, no cost.
+      const selftestUrl = findSelftestImage(state, look);
+      if (selftestUrl) {
+        try {
+          const r = await fetch(selftestUrl);
+          if (r.ok) { srcBlob = await r.blob(); (look as any).videoPosterUrl = selftestUrl; }
+        } catch { /* fall through to a fresh try-on */ }
+      }
+      // 1b) Otherwise put the garment on the curator's profile photo.
+      if (!srcBlob) {
+        const curator = (state.curators ?? []).find((c) => c.id === (look as any).curatorId);
+        const personUrl = curator?.photoPath ? await getSignedUrl((curator as any).photoPath) : (curator as any)?.photoUrl;
+        const garmentUrl = (look as any).garmentFrontImageUrl ?? imgUrl;
+        // A curated look is a product photo → it MUST be worn by a model before we
+        // animate it, otherwise the video shows a garment floating on its own.
+        if (!personUrl) {
+          return NextResponse.json({ error: "Add a profile photo to this curator first — the curated garment needs a model to wear it in the video." }, { status: 400 });
         }
+        const dataUrl = await tryOnGarment(garmentUrl, personUrl);
+        if (!dataUrl) {
+          return NextResponse.json({ error: "Couldn't put the garment on the model (try-on failed). Tip: try this look on yourself once, then generate the video — we'll reuse that image." }, { status: 502 });
+        }
+        const [, b64] = dataUrl.split(",");
+        srcBlob = new Blob([Buffer.from(b64, "base64")], { type: "image/png" });
+        // Store the try-on frame as the video poster so the feed shows the model
+        // (not the bare product) before the video starts playing.
+        try {
+          const posterPath = await uploadTryThisLookImage("looks", dataUrl);
+          (look as any).videoPosterUrl = (await getSignedUrl(posterPath, 60 * 60 * 24 * 365 * 10)) || undefined;
+        } catch { /* poster is optional */ }
       }
     }
     if (!srcBlob) {
+      // AI looks already show the curator wearing the outfit → animate directly.
       const imgRes = await fetch(imgUrl);
       if (!imgRes.ok) return NextResponse.json({ error: "Could not load the look image." }, { status: 502 });
       srcBlob = await imgRes.blob();
@@ -196,6 +234,7 @@ export async function GET(request: Request) {
       try { finalUrl = await persistVideo(d.Resp.url); }
       catch (e) { console.error("[generate-look-video] persist failed:", e); }
       (look as any).videoUrl = finalUrl;
+      (look as any).videoCreatedAt = new Date().toISOString(); // for newest-first sorting
       (look as any).pendingVideoId = undefined;
       await saveTryThisLookState(state);
       return NextResponse.json({ status: "done", videoUrl: finalUrl });

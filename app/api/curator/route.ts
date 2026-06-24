@@ -148,7 +148,7 @@ export async function POST(request: Request) {
       `Their style: ${style || "(not given)"}.\n\n` +
       `Return STRICT JSON only, no prose, shape:\n` +
       `{"mottos":["...","...","..."],"bio":"..."}\n` +
-      `- "mottos": 3 short, punchy English taglines (max 6 words each) that fit this curator's taste. Aspirational, on-brand with "Bandit this life!". No hashtags, no quotes inside.\n` +
+      `- "mottos": 3 short, punchy English taglines (max 6 words each) that fit this curator's taste. Aspirational, on-brand with "Bandit the look!". No hashtags, no quotes inside.\n` +
       `- "bio": one English sentence (max 160 chars) describing this curator's eye/taste for their public profile.`;
 
     try {

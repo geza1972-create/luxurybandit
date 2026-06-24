@@ -15,7 +15,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import {
   ArrowRight, ChevronLeft, Download, ImagePlus,
-  Loader2, Lock, RefreshCw, Send, Sparkles, X,
+  Loader2, Lock, RefreshCw, Send, Sparkles, X, Film, Volume2, VolumeX,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -84,6 +84,18 @@ export default function TryonPage() {
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [userPhoto, setUserPhoto] = useState<string | null>(null);
   const [resultImage, setResultImage] = useState<string | null>(null);
+  // Try-on video (auto-generated from the result image; charged in credits)
+  const [videoStatus, setVideoStatus] = useState<"idle" | "generating" | "done" | "error">("idle");
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoNote, setVideoNote] = useState<string | null>(null);
+  const [videoMuted, setVideoMuted] = useState(true);
+  // Consent to show this try-on in the look's feed carousel (default on).
+  const [showInFeed, setShowInFeed] = useState(true);
+  const sharedGenIdRef = useRef<string>("");
+  // Optional email capture AFTER the result (lead) — for no-login QR/event try-ons.
+  const [leadEmail, setLeadEmail] = useState("");
+  const [leadSending, setLeadSending] = useState(false);
+  const [leadDone, setLeadDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [elapsedSec, setElapsedSec] = useState(0);
@@ -229,25 +241,57 @@ export default function TryonPage() {
     setStep("confirm");
   };
 
+  // ── Try-on video ──
+  // Animate the finished try-on still into a 5s music video (Pixverse). Auto-runs
+  // when a result appears; costs credits (billed to the look's owner curator).
+  const startTryonVideo = async (image: string) => {
+    if (!look) return;
+    setVideoStatus("generating");
+    setVideoUrl(null);
+    setVideoNote(null);
+    try {
+      const res = await fetch("/api/generate-tryon-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lookId: look.id, image }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 402) { setVideoStatus("error"); setVideoNote("No credits left for a video — here's your photo."); return; }
+      if (!res.ok || !data.videoId) { setVideoStatus("error"); setVideoNote("Video couldn't be created — here's your photo."); return; }
+      // Poll until done / failed (~max 2.5 min).
+      const videoId = String(data.videoId);
+      const cid = String(data.curatorId ?? "");
+      for (let i = 0; i < 50; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(videoId)}&curatorId=${encodeURIComponent(cid)}`)
+          .then(r => r.json()).catch(() => null);
+        if (p?.status === "done" && p.videoUrl) {
+          setVideoUrl(p.videoUrl); setVideoStatus("done");
+          // Attach the video to the feed post (if shared) so it plays in the carousel.
+          if (sharedGenIdRef.current) {
+            fetch("/api/try-this-look", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "attach-generation-video", generationId: sharedGenIdRef.current, videoUrl: p.videoUrl }),
+            }).catch(() => {});
+          }
+          return;
+        }
+        if (p?.status === "failed") { setVideoStatus("error"); setVideoNote(p.error ?? "Video failed — here's your photo."); return; }
+      }
+      setVideoStatus("error"); setVideoNote("Video is taking too long — here's your photo.");
+    } catch {
+      setVideoStatus("error"); setVideoNote("Video couldn't be created — here's your photo.");
+    }
+  };
+
   // ── Generate ──
   // photoOverride lets callers (e.g. the resume-after-application flow) pass the
   // photo directly, avoiding a stale `userPhoto` closure right after setUserPhoto.
   const handleGenerate = async (photoOverride?: string) => {
-    const isAuthed = () => {
-      if (authSession) return true;
-      try { return !!JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id; } catch { return false; }
-    };
-    // Not signed in → tease it: run a fake "computing" pass, then show a blurred
-    // locked preview. Signing in unlocks it and runs the real generation.
-    if (!isAuthed()) {
-      if (!look) return;
-      pendingGenerateRef.current = true;
-      setError(null);
-      setStep("generating");
-      await new Promise((r) => setTimeout(r, 4200));
-      setStep("locked");
-      return;
-    }
+    // No login required — anyone (e.g. someone scanning a projected QR) can try a
+    // look on. Abuse is capped by the per-device daily limit on the server; the
+    // look's owner curator/brand pays the credits. We capture an email AFTER the
+    // result (optional), not before, to keep conversion high.
     if (!look) return;
     const photo = photoOverride ?? userPhoto;
     setError(null);
@@ -311,6 +355,10 @@ export default function TryonPage() {
       setResultImage(payload.image);
       setProgress(100);
       setStep("result");
+      // Consent default-on: post the try-on into the look's feed right away.
+      if (showInFeed) void postToFeed(payload.image);
+      // "Always both": kick off the video from the freshly generated still.
+      void startTryonVideo(payload.image);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed.");
       setStep("confirm");
@@ -392,14 +440,15 @@ export default function TryonPage() {
     finally { setAuthLoading(false); }
   };
 
-  // ── Share to gallery ──
-  const handleShare = async () => {
-    if (!resultImage || !look) return;
+  // ── Post the try-on into the look's feed (with consent) ──
+  // Posts the image immediately; the video is attached later when Pixverse is done.
+  const postToFeed = async (image: string) => {
+    if (!look) return;
     setIsSharing(true);
     try {
       const meta = (authSession?.user as any)?.user_metadata ?? {};
       const name = shareNameInput.trim() || curatorName || meta.username || meta.full_name || "Anonymous";
-      await fetch("/api/try-this-look", {
+      const res = await fetch("/api/try-this-look", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -408,18 +457,63 @@ export default function TryonPage() {
           lookName: look.name, storeName: look.storeName,
           customerName: name, userId: authSession?.user?.id ?? undefined,
           curatorId: curatorId || undefined,
-          image: resultImage, userPhotoImage: userPhoto,
+          image, userPhotoImage: userPhoto,
+          feed: true,
         }),
       });
+      const data = await res.json().catch(() => ({}));
+      if (data?.generationId) sharedGenIdRef.current = String(data.generationId);
       setSharedToGallery(true);
     } catch { /**/ } finally { setIsSharing(false); }
   };
 
+  // Toggle whether this try-on appears in the feed (consent).
+  const toggleShowInFeed = async (next: boolean) => {
+    setShowInFeed(next);
+    if (next && !sharedGenIdRef.current && resultImage) { await postToFeed(resultImage); return; }
+    if (sharedGenIdRef.current) {
+      fetch("/api/try-this-look", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "set-generation-feed", generationId: sharedGenIdRef.current, feed: next }),
+      }).catch(() => {});
+    }
+  };
+
   // ── Download ──
-  const handleDownload = () => {
-    if (!resultImage) return;
-    const a = document.createElement("a");
-    a.href = resultImage; a.download = `luxurybandit-tryon.jpg`; a.click();
+  // Works for data URLs AND cross-origin (Supabase) URLs: fetch → blob → download.
+  // The plain `<a download>` attribute is ignored for cross-origin links.
+  const downloadFile = async (url: string, filename: string) => {
+    try {
+      if (url.startsWith("data:")) {
+        const a = document.createElement("a");
+        a.href = url; a.download = filename; a.click();
+        return;
+      }
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const obj = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = obj; a.download = filename; a.click();
+      setTimeout(() => URL.revokeObjectURL(obj), 4000);
+    } catch {
+      window.open(url, "_blank"); // last resort: open it so the user can save manually
+    }
+  };
+  const handleDownload = () => { if (resultImage) void downloadFile(resultImage, "luxurybandit-tryon.jpg"); };
+  const handleDownloadVideo = () => { if (videoUrl) void downloadFile(videoUrl, "luxurybandit-tryon.mp4"); };
+
+  // ── Optional email capture (lead) after the result ──
+  const submitLead = async () => {
+    const email = leadEmail.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !look) return;
+    setLeadSending(true);
+    try {
+      await fetch("/api/try-this-look", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "lead", email, lookId: look.id, lookName: look.name, leadSource: "tryon", visitorId: accountId || "anon" }),
+      });
+      setLeadDone(true);
+    } catch { /* ignore */ } finally { setLeadSending(false); }
   };
 
   // ─── Loading ───
@@ -623,38 +717,110 @@ export default function TryonPage() {
           </button>
         </div>
 
-        {/* Result image */}
+        {/* Result — VIDEO first so it's never missed, then the photo */}
         <div className="flex-1 overflow-y-auto px-4 pt-4 pb-6 flex flex-col gap-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={resultImage} alt="Your try-on result" className="w-full rounded-2xl border border-black/10 object-contain shadow-lg" />
+          {/* Try-on video — auto-generated from the still (image + video) */}
+          {videoStatus === "generating" && (
+            <div className="flex items-center justify-center gap-2 rounded-2xl border border-black/10 bg-black/[0.02] py-6 text-sm font-black text-black/55">
+              <Loader2 className="h-4 w-4 animate-spin" /> <Film className="h-4 w-4" /> Creating your video… (~1 min)
+            </div>
+          )}
+          {videoStatus === "done" && videoUrl && (
+            <div className="relative overflow-hidden rounded-2xl border border-black/10 shadow-lg">
+              <video src={videoUrl} className="max-h-[58dvh] w-full bg-black object-contain" autoPlay loop playsInline muted={videoMuted} />
+              <button type="button" aria-label={videoMuted ? "Unmute" : "Mute"}
+                onClick={() => setVideoMuted(m => !m)}
+                className="absolute bottom-3 left-3 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform">
+                {videoMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
+              <button type="button" aria-label="Download video" onClick={handleDownloadVideo}
+                className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform">
+                <Download className="h-4 w-4" />
+              </button>
+              <span className="absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">Video</span>
+            </div>
+          )}
+          {videoStatus === "error" && videoNote && (
+            <p className="rounded-2xl border border-black/10 bg-black/[0.02] px-4 py-3 text-center text-[12px] font-bold text-black/45">{videoNote}</p>
+          )}
 
-          {/* Share to gallery */}
-          {sharedToGallery ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center">
-              <p className="text-sm font-black text-emerald-700">✓ Posted to the look gallery!</p>
-              <button onClick={() => router.push(lookBackPath)}
-                className="mt-3 text-sm font-black text-emerald-600 underline">
-                View on look page →
+          {/* Result photo */}
+          <div className="relative">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={resultImage} alt="Your try-on result" className="max-h-[58dvh] w-full rounded-2xl border border-black/10 object-contain shadow-lg" />
+            <span className="absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">Photo</span>
+          </div>
+
+          {/* Download — photo + video */}
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={handleDownload}
+              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform">
+              <Download className="h-4 w-4" /> Photo
+            </button>
+            <button type="button" onClick={handleDownloadVideo} disabled={videoStatus !== "done" || !videoUrl}
+              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform disabled:opacity-40">
+              {videoStatus === "generating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />} Video
+            </button>
+          </div>
+
+          {/* Optional email capture (after the result) — for no-login QR/event
+              try-ons. Soft lead: keep your look + join the community. */}
+          {!authSession && !curatorId && (
+            leadDone ? (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center">
+                <p className="text-sm font-black text-emerald-700">✓ Sent! Check your inbox to save your look.</p>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-black/10 bg-black/[0.02] p-4 flex flex-col gap-2.5">
+                <div>
+                  <p className="text-sm font-black">Keep your look &amp; join LuxuryBandit</p>
+                  <p className="text-[12px] font-bold text-black/45">Drop your email to save this try-on and discover more — no account needed.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="email" inputMode="email" value={leadEmail} onChange={e => setLeadEmail(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") void submitLead(); }}
+                    placeholder="you@email.com"
+                    className="h-11 flex-1 rounded-xl border border-black/15 px-3 text-sm outline-none focus:border-black" />
+                  <button type="button" onClick={() => void submitLead()} disabled={leadSending || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(leadEmail.trim())}
+                    className="flex h-11 items-center justify-center gap-1.5 rounded-xl bg-black px-5 text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
+                    {leadSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+            )
+          )}
+
+          {/* Show in feed — consent toggle (default on). Posts photo + video into
+              the look's feed carousel; off keeps it private to you. */}
+          <div className="rounded-2xl border border-black/10 bg-black/[0.02] p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-black">Show in the look's feed</p>
+                <p className="text-[12px] font-bold text-black/45">Your photo {videoUrl ? "& video " : ""}appears on this look so others see it worn.</p>
+              </div>
+              <button type="button" role="switch" aria-checked={showInFeed}
+                onClick={() => void toggleShowInFeed(!showInFeed)}
+                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${showInFeed ? "bg-emerald-500" : "bg-black/20"}`}>
+                <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${showInFeed ? "left-[1.375rem]" : "left-0.5"}`} />
               </button>
             </div>
-          ) : (
-            <div className="rounded-2xl border border-black/10 bg-black/[0.02] p-4 flex flex-col gap-3">
-              <p className="text-sm font-black">Share to community gallery</p>
+            {showInFeed && (
               <input
                 value={shareNameInput}
                 onChange={e => setShareNameInput(e.target.value)}
-                placeholder="Your name"
+                placeholder="Your name (shown on the post)"
                 className="w-full rounded-xl border border-black/15 px-3 py-2.5 text-sm outline-none focus:border-black"
               />
-              <button onClick={() => void handleShare()} disabled={isSharing}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-black text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
-                {isSharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-4 w-4" /> Post to gallery</>}
-              </button>
-            </div>
-          )}
+            )}
+            <p className="flex items-center gap-1.5 text-[11px] font-bold text-black/40">
+              {isSharing ? <><Loader2 className="h-3 w-3 animate-spin" /> Posting…</>
+                : showInFeed ? <><Send className="h-3 w-3" /> {sharedToGallery ? "Posted to the feed" : "Will be posted"}</>
+                : "Hidden — only you can see this"}
+            </p>
+          </div>
 
           {/* Try again */}
-          <button onClick={() => { setResultImage(null); setUserPhoto(null); setStep("upload"); }}
+          <button onClick={() => { setResultImage(null); setUserPhoto(null); setVideoUrl(null); setVideoStatus("idle"); setVideoNote(null); setShowInFeed(true); sharedGenIdRef.current = ""; setSharedToGallery(false); setStep("upload"); }}
             className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-black/15 text-sm font-black active:opacity-70">
             <RefreshCw className="h-4 w-4" /> Try a different photo
           </button>
@@ -775,6 +941,14 @@ export default function TryonPage() {
         <div className="text-center">
           <p className="text-xl font-black">Try this look on you</p>
           <p className="mt-1 text-sm text-black/50">Upload a photo and AI will dress you in this outfit</p>
+        </div>
+
+        {/* What you get + cost (TRYON 2 + VIDEO 8 credits — keep in sync with curator-budget.ts) */}
+        <div className="w-full max-w-xs rounded-2xl border border-black/10 bg-black/[0.02] px-4 py-3 text-center">
+          <p className="text-[13px] font-black text-black">You'll get a try-on photo <span className="text-black/40">+</span> a 5-second video with music</p>
+          <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-black px-2.5 py-1 text-[11px] font-black text-white">
+            <Sparkles className="h-3 w-3" /> Costs 10 credits
+          </p>
         </div>
 
         {/* Actions */}
