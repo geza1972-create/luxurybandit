@@ -999,10 +999,10 @@ export default function TryonPage() {
         {look.price && <p className="text-sm font-black shrink-0">{look.salePrice ?? look.price}</p>}
       </div>
 
-      {/* Look preview + upload */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 gap-8">
+      {/* Look preview + upload — scrollable so the action buttons are always reachable */}
+      <div className="flex-1 overflow-y-auto flex flex-col items-center px-6 py-5 gap-5">
         {/* Look image */}
-        <div className="w-48 aspect-[3/4] rounded-2xl overflow-hidden border border-black/10 shadow-lg bg-white">
+        <div className="w-36 aspect-[3/4] shrink-0 rounded-2xl overflow-hidden border border-black/10 shadow-lg bg-white">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-contain" onError={onGarmentError} />
         </div>
