@@ -32,6 +32,31 @@ type Step = "upload" | "crop" | "confirm" | "generating" | "result" | "locked";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+// Shrink a (possibly multi-MB PNG) data URL to a compact JPEG before sending it
+// in a JSON body — Vercel rejects request bodies over ~4.5MB, which silently
+// dropped feed posts on production (worked locally where there's no such limit).
+async function compressDataUrl(dataUrl: string, maxDim = 1080, quality = 0.85): Promise<string> {
+  if (!dataUrl.startsWith("data:image/")) return dataUrl;
+  try {
+    return await new Promise<string>((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { resolve(dataUrl); return; }
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  } catch { return dataUrl; }
+}
+
 function dataUrlToBlob(dataUrl: string): Blob {
   const [header, b64] = dataUrl.split(",");
   const mime = header.match(/:(.*?);/)?.[1] ?? "image/jpeg";
@@ -259,10 +284,11 @@ export default function TryonPage() {
     }, 600);
     const stopProgress = (final: number) => { if (videoProgressRef.current) clearInterval(videoProgressRef.current); setVideoProgress(final); };
     try {
+      const imageSmall = await compressDataUrl(image); // stay under Vercel's body limit
       const res = await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lookId: look.id, image }),
+        body: JSON.stringify({ lookId: look.id, image: imageSmall }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 402) { setVideoStatus("error"); setVideoNote("No credits left for a video — here's your photo."); return; }
@@ -460,6 +486,11 @@ export default function TryonPage() {
     try {
       const meta = (authSession?.user as any)?.user_metadata ?? {};
       const name = shareNameInput.trim() || curatorName || meta.username || meta.full_name || "Anonymous";
+      // Compress before sending so the JSON body stays under Vercel's ~4.5MB limit.
+      const [imageSmall, userPhotoSmall] = await Promise.all([
+        compressDataUrl(image),
+        userPhoto ? compressDataUrl(userPhoto) : Promise.resolve(undefined),
+      ]);
       const res = await fetch("/api/try-this-look", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -469,7 +500,7 @@ export default function TryonPage() {
           lookName: look.name, storeName: look.storeName,
           customerName: name, userId: authSession?.user?.id ?? undefined,
           curatorId: curatorId || undefined,
-          image, userPhotoImage: userPhoto,
+          image: imageSmall, userPhotoImage: userPhotoSmall,
           feed: true,
         }),
       });
