@@ -12,6 +12,7 @@ import {
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { lookPath } from "@/lib/look-slug";
 import HomeFeed from "@/components/HomeFeed";
+import { isAdminEmail } from "@/lib/is-admin-email";
 import { Bookmark, Heart, Home, Image as ImageIcon, Instagram, Loader2, LogOut, MessageCircle, Search, Send, ShoppingBag, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -710,7 +711,7 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-black text-ink">{session.user.email}</p>
-                {session.user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL ? (
+                {isAdminEmail(session.user.email) ? (
                   <span className="mt-0.5 inline-block rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-violet-700">Admin</span>
                 ) : (
                   <p className="text-[11px] font-bold text-ink/40">Buyer account</p>
@@ -743,7 +744,7 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
             <SavedLooksList defaultOpen={openSaved} />
 
             {/* Links */}
-            {session.user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && (
+            {isAdminEmail(session.user.email) && (
               <a href="/admin/looks"
                 className="flex h-11 items-center justify-center rounded-xl border border-violet-200 bg-violet-50 text-sm font-black text-violet-700">
                 Admin panel →
@@ -868,8 +869,7 @@ function StoresPage() {
     try {
       const session = getStoredAuthSession();
       setIsSignedIn(!!session);
-      const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? "support@luxurybandit.com";
-      if (session?.user?.email?.toLowerCase() === adminEmail.toLowerCase()) {
+      if (isAdminEmail(session?.user?.email) || session?.user?.email?.toLowerCase() === "support@luxurybandit.com") {
         setIsAdmin(true);
         const storedPin = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "";
         setAdminPin(storedPin);

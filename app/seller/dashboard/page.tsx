@@ -11,6 +11,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { getStoredAuthSession, signOut, updateUserProfile, getAuthUser } from "@/lib/supabase-auth-client";
+import { isAdminEmail } from "@/lib/is-admin-email";
 
 type Look = {
   id: string;
@@ -849,7 +850,7 @@ export default function SellerDashboardPage() {
 
   // No store linked — show full profile page for community users / admin
   if (!data?.store && error) {
-    const isAdmin = session?.user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+    const isAdmin = isAdminEmail(session?.user?.email);
     const userEmail = session?.user?.email ?? "";
     const userInitial = userEmail[0]?.toUpperCase() ?? "U";
     return <ProfilePage
