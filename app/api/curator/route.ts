@@ -64,7 +64,12 @@ export async function GET(request: Request) {
     if (url.searchParams.get("mylooks") === "1") {
       const looks = !curator ? [] : (state.looks ?? [])
         .filter(l => (l as any).curatorId === curator.id)
-        .map(l => ({ id: l.id, name: l.name, imageUrl: (l as any).frontImageUrl ?? l.imageUrl, published: l.published !== false, altCount: ((l as any).alternatives ?? []).length, note: (l as any).curatorNote ?? "", commentsOff: (l as any).commentsOff === true }));
+        .map(l => ({ id: l.id, name: l.name, imageUrl: (l as any).frontImageUrl ?? l.imageUrl, published: l.published !== false, altCount: ((l as any).alternatives ?? []).length, note: (l as any).curatorNote ?? "", commentsOff: (l as any).commentsOff === true, videoUrl: (l as any).videoUrl ?? "", feedOrder: typeof (l as any).feedOrder === "number" ? (l as any).feedOrder : undefined }))
+        .sort((a, b) => {
+          const ao = typeof a.feedOrder === "number" ? a.feedOrder : Infinity;
+          const bo = typeof b.feedOrder === "number" ? b.feedOrder : Infinity;
+          return ao - bo; // explicit feed order first; unordered keep their place
+        });
       return NextResponse.json({ looks });
     }
     // Earn-as-you-prove-yourself: tally this creator's engagement and grant any
@@ -320,6 +325,30 @@ export async function POST(request: Request) {
     (look as any).commentsOff = off || undefined;
     await saveTryThisLookState(state);
     return NextResponse.json({ ok: true, commentsOff: off });
+  }
+
+  // Curator sets the feed order of their own looks (array of lookIds, top → bottom).
+  if (action === "set-feed-order") {
+    const order = Array.isArray((payload as any).order) ? (payload as any).order.map((x: any) => String(x)) : [];
+    if (!order.length) return jsonError("Order is empty.");
+    const state = await readTryThisLookState();
+    const adminPin = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim();
+    const isAdmin = adminPin && request.headers.get("x-try-look-admin-pin") === adminPin;
+    const sessionId = request.headers.get("x-curator-id")?.trim();
+    const tokenEmail = await emailFromToken(request);
+    let assigned = 0;
+    order.forEach((lookId: string, idx: number) => {
+      const look = state.looks.find(l => l.id === lookId);
+      if (!look) return;
+      const owner = (state.curators ?? []).find(c => c.id === (look as any).curatorId);
+      const ownsBySession = !!sessionId && sessionId === (look as any).curatorId;
+      const ownsByToken = !!tokenEmail && !!owner && (owner.email ?? "").trim().toLowerCase() === tokenEmail;
+      if (!isAdmin && !ownsBySession && !ownsByToken) return; // skip looks not owned
+      (look as any).feedOrder = idx;
+      assigned++;
+    });
+    await saveTryThisLookState(state);
+    return NextResponse.json({ ok: true, assigned });
   }
 
   if (action === "update") {

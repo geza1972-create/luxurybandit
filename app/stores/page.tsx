@@ -11,6 +11,7 @@ import {
 } from "@/lib/supabase-auth-client";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { lookPath } from "@/lib/look-slug";
+import HomeFeed from "@/components/HomeFeed";
 import { Bookmark, Heart, Home, Image as ImageIcon, Instagram, Loader2, LogOut, MessageCircle, Search, Send, ShoppingBag, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -66,6 +67,15 @@ type Look = {
   curatorName?: string;
   curatorPhotoUrl?: string;
   curatorMotto?: string;
+  curatorNote?: string;
+  productNote?: string;
+  videoUrl?: string;
+  videoPosterUrl?: string;
+  feedOrder?: number;
+  aiCreated?: boolean;
+  commentsOff?: boolean;
+  likeCount?: number;
+  createdAt?: string;
   alternatives?: { title: string; link: string; source?: string; thumbnail: string; price?: string; priceValue?: number; currency?: string }[];
 };
 
@@ -1053,6 +1063,25 @@ function StoresPage() {
     () => (myCuratorId ? communityItems.filter((c) => c.curatorId === myCuratorId).length : 0),
     [communityItems, myCuratorId]
   );
+
+  // ── Default home = full-screen vertical feed (TikTok/IG style, newest first) ──
+  // The legacy grid below is kept only for the search experience.
+  if (!searchOpen) {
+    return (
+      <div className="min-h-dvh bg-black" style={{ maxWidth: "100vw" }}>
+        <HomeFeed looks={looks} />
+        {/* Floating search (top-right) — brand stays per-slide via the curator chip */}
+        <button type="button" aria-label="Search"
+          onClick={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 50); }}
+          className="fixed right-3 z-30 grid h-9 w-9 place-items-center rounded-full bg-black/35 text-white backdrop-blur active:scale-90 transition-transform"
+          style={{ top: "calc(env(safe-area-inset-top) + 0.6rem)" }}>
+          <Search className="h-4 w-4" />
+        </button>
+        {showMerkliste && <MerklistePanel onClose={() => setShowMerkliste(false)} />}
+        {showUserPanel && <UserPanel onClose={() => { setShowUserPanel(false); setSavedAutoOpen(false); }} openSaved={savedAutoOpen} />}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-dvh bg-white" style={{ maxWidth: "100vw" }}>

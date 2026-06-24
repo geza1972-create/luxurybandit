@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Check, Crop, ExternalLink, ImagePlus, Loader2, Plus, Search, Trash2, Wand2, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronUp, ChevronDown, Crop, ExternalLink, ImagePlus, Loader2, Plus, Search, Trash2, Video, Wand2, X } from "lucide-react";
 
 const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
 const STORE_NAME = "LuxuryBandit";
@@ -522,10 +522,47 @@ export default function AdminTrends() {
     try { localStorage.setItem("lb_ai_generations", JSON.stringify(aiGenerations)); }
     catch { /* quota exceeded — keep in-memory only */ }
   }, [aiGenerations]);
-  const [myLooks, setMyLooks] = useState<{ id: string; name: string; imageUrl: string; published: boolean; altCount: number; note?: string; commentsOff?: boolean }[]>([]);
+  const [myLooks, setMyLooks] = useState<{ id: string; name: string; imageUrl: string; published: boolean; altCount: number; note?: string; commentsOff?: boolean; videoUrl?: string }[]>([]);
+  const [uploadingVideo, setUploadingVideo] = useState<string>("");
   const toggleLookComments = async (lookId: string, commentsOff: boolean) => {
     setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, commentsOff } : l));
     await fetch("/api/curator", { method: "POST", headers: studioHeaders(), body: JSON.stringify({ action: "toggle-look-comments", lookId, commentsOff }) }).catch(() => {});
+  };
+  // Move a look up/down in the feed order, then persist the new order.
+  const moveLook = async (lookId: string, dir: -1 | 1) => {
+    setMyLooks((ls) => {
+      const i = ls.findIndex(l => l.id === lookId);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= ls.length) return ls;
+      const next = [...ls];
+      [next[i], next[j]] = [next[j], next[i]];
+      void fetch("/api/curator", { method: "POST", headers: studioHeaders(), body: JSON.stringify({ action: "set-feed-order", order: next.map(l => l.id) }) }).catch(() => {});
+      return next;
+    });
+  };
+  // Generate a 5s presentation video via Pixverse, then poll until it's ready.
+  const generateLookVideo = async (lookId: string) => {
+    setUploadingVideo(lookId);
+    try {
+      const start = await fetch("/api/generate-look-video", { method: "POST", headers: studioHeaders(), body: JSON.stringify({ lookId }) });
+      const sd = await start.json();
+      if (!start.ok || !sd.videoId) { setUploadingVideo(""); alert(sd.error ?? "Could not start video generation."); return; }
+      // Poll up to ~5 min.
+      for (let i = 0; i < 100; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        const pr = await fetch(`/api/generate-look-video?lookId=${encodeURIComponent(lookId)}`, { headers: studioHeaders() });
+        const pd = await pr.json();
+        if (pd.status === "done" && pd.videoUrl) { setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, videoUrl: pd.videoUrl } : l)); break; }
+        if (pd.status === "failed") { alert(pd.error ?? "Video generation failed."); break; }
+      }
+    } catch { /**/ }
+    setUploadingVideo("");
+  };
+  const removeLookVideo = async (lookId: string) => {
+    setUploadingVideo(lookId);
+    const fd = new FormData(); fd.append("lookId", lookId); fd.append("remove", "1"); fd.append("curatorId", getCuratorId());
+    try { await fetch("/api/upload-look-video", { method: "POST", headers: { "x-curator-id": getCuratorId() }, body: fd }); setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, videoUrl: "" } : l)); } catch { /**/ }
+    setUploadingVideo("");
   };
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [savingNote, setSavingNote] = useState<string>("");
@@ -1180,7 +1217,7 @@ export default function AdminTrends() {
             </div>
             <p className="mt-1 text-[11px] font-bold text-ink/40">Everything you've published — these show in My Trends. Deactivate to take a look offline without deleting it.</p>
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {myLooks.map((l) => {
+              {myLooks.map((l, idx) => {
                 const lookSlug = l.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
                 const lookHref = `/look/${lookSlug}--${l.id}`;
                 return (
@@ -1198,6 +1235,13 @@ export default function AdminTrends() {
                   <div className="p-2">
                     <p className="line-clamp-1 text-[11px] font-bold text-ink/80">{l.name}</p>
                     <div className="mt-1.5 flex items-center gap-1.5">
+                      {/* Feed order */}
+                      <div className="flex shrink-0 flex-col">
+                        <button type="button" onClick={() => void moveLook(l.id, -1)} disabled={idx === 0} aria-label="Move up"
+                          className="grid h-3.5 w-7 place-items-center rounded-t-md bg-black/5 text-ink/50 disabled:opacity-25 active:bg-black/10"><ChevronUp className="h-3.5 w-3.5" /></button>
+                        <button type="button" onClick={() => void moveLook(l.id, 1)} disabled={idx === myLooks.length - 1} aria-label="Move down"
+                          className="grid h-3.5 w-7 place-items-center rounded-b-md bg-black/5 text-ink/50 disabled:opacity-25 active:bg-black/10"><ChevronDown className="h-3.5 w-3.5" /></button>
+                      </div>
                       <button type="button" onClick={() => void toggleMyLook(l.id, !l.published)}
                         className={`flex-1 rounded-md py-1.5 text-[11px] font-black transition active:scale-95 ${l.published ? "bg-black/5 text-ink/60 hover:bg-black/10" : "bg-emerald-500 text-white"}`}>
                         {l.published ? "Deactivate" : "Activate"}
@@ -1232,6 +1276,18 @@ export default function AdminTrends() {
                             <span>Comments</span>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] ${l.commentsOff ? "bg-black/10 text-ink/50" : "bg-emerald-100 text-emerald-700"}`}>{l.commentsOff ? "Off" : "On"}</span>
                           </button>
+                          {/* AI video — Pixverse generates a 5s clip presenting the look */}
+                          {l.videoUrl ? (
+                            <div className="mt-1.5 flex items-center justify-between rounded-md bg-emerald-50 px-2 py-1.5 text-[11px] font-black text-emerald-700">
+                              <span className="flex items-center gap-1"><Video className="h-3.5 w-3.5" /> Video ready</span>
+                              <button type="button" onClick={() => void removeLookVideo(l.id)} disabled={uploadingVideo === l.id} className="text-red-500 disabled:opacity-50">Remove</button>
+                            </div>
+                          ) : (
+                            <button type="button" onClick={() => void generateLookVideo(l.id)} disabled={uploadingVideo === l.id}
+                              className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-black/15 bg-panel px-2 py-1.5 text-[11px] font-black text-ink/55 hover:border-cobalt disabled:opacity-60">
+                              {uploadingVideo === l.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating video…</> : <><Video className="h-3.5 w-3.5" /> Generate AI video · 5s</>}
+                            </button>
+                          )}
                         </div>
                       );
                     })()}

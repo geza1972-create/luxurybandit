@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles } from "lucide-react";
+import { Bookmark, LayoutGrid, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession, signOut } from "@/lib/supabase-auth-client";
@@ -105,9 +105,9 @@ export default function BottomNav() {
     >
       <div className="mx-auto grid max-w-lg grid-cols-3 h-14">
 
-        {/* Home */}
+        {/* Home — gallery/feed of looks */}
         <button type="button" onClick={() => go("home", "/stores")} className={btn("home")}>
-          <Home className="h-5 w-5" />
+          <LayoutGrid className="h-5 w-5" />
           <span className="text-[10px] font-bold">Home</span>
         </button>
 

@@ -383,13 +383,14 @@ function extractPathFromUrl(urlStr: string | undefined): string | undefined {
   return undefined;
 }
 
-// Single path signing (used for uploads/admin only — not in hot path)
-export async function getSignedUrl(path: string) {
+// Single path signing (used for uploads/admin only — not in hot path).
+// expiresIn defaults to 24h; pass a longer value for assets stored as a URL (videos).
+export async function getSignedUrl(path: string, expiresIn = 60 * 60 * 24) {
   const { url } = getSupabaseConfig();
   const response = await supabaseFetch(`/storage/v1/object/sign/${BUCKET}/${encodeStoragePath(path)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ expiresIn: 60 * 60 * 24 })
+    body: JSON.stringify({ expiresIn })
   });
   if (!response.ok) return "";
   const payload = await response.json().catch(() => null);
@@ -613,6 +614,22 @@ export async function uploadTryThisLookImage(folder: "looks" | "generations" | "
     throw new Error(payload?.message ?? "Image could not be saved.");
   }
 
+  return path;
+}
+
+// Upload raw bytes (e.g. a video file) and return the storage path.
+export async function uploadTryThisLookBytes(folder: "looks" | "videos" | "uploads", bytes: ArrayBuffer, mimeType: string, extension: string) {
+  await ensureBucket();
+  const path = `try-this-look/${folder}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+  const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(path)}`, {
+    method: "POST",
+    headers: { "Content-Type": mimeType || "application/octet-stream", "x-upsert": "false" },
+    body: new Uint8Array(bytes) as unknown as BodyInit,
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.message ?? "File could not be saved.");
+  }
   return path;
 }
 
