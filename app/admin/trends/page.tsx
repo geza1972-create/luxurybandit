@@ -498,7 +498,9 @@ export default function AdminTrends() {
   const [publishResult, setPublishResult] = useState("");
   const [myFilters, setMyFilters] = useState<{ label: string; tags: string[] }[]>([]);
   const [activeTags, setActiveTags] = useState<string[]>([]);
-  const [pickedBrand, setPickedBrand] = useState("");   // brand is SELECT-only (from the official list)
+  const [pickedBrand, setPickedBrand] = useState("");   // brand chosen from the searchable list (or added)
+  const [brandQuery, setBrandQuery] = useState("");     // brand search box text
+  const [brandOpen, setBrandOpen] = useState(false);    // brand dropdown open
   const [pickedGarment, setPickedGarment] = useState(""); // target garment type
   const [credits, setCredits] = useState<{ credits: number; spent: number; earned: number } | null>(null);
   const [costs, setCosts] = useState<{ tryon: number; search: number; starter: number } | null>(null);
@@ -892,14 +894,40 @@ export default function AdminTrends() {
             </div>
             <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">Nothing selected yet. Tap the ones you want to style the look, then hit <span className="font-black text-ink">{mode === "ai" ? "Create AI Fashion" : "Find products"}</span>.</p>
             <div className="mt-3 grid gap-3">
-              {/* Brand — SELECT only, from the official brand list (no free text) */}
+              {/* Brand — searchable dropdown; pick from the official list or add one */}
               <div>
                 <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-ink/35">Brand</span>
-                <select value={pickedBrand} onChange={(e) => setPickedBrand(e.target.value)}
-                  className="mt-1 w-full rounded-md border border-black/12 bg-white px-3 py-2 text-xs font-black text-ink">
-                  <option value="">Any brand</option>
-                  {BRAND_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
-                </select>
+                {pickedBrand ? (
+                  <div className="mt-1 flex items-center justify-between rounded-md border border-black bg-black px-3 py-2">
+                    <span className="text-xs font-black text-white">{pickedBrand}</span>
+                    <button type="button" onClick={() => { setPickedBrand(""); setBrandQuery(""); }} className="text-white/70 hover:text-white"><X className="h-4 w-4" /></button>
+                  </div>
+                ) : (
+                  <div className="relative mt-1">
+                    <input value={brandQuery} onChange={(e) => { setBrandQuery(e.target.value); setBrandOpen(true); }}
+                      onFocus={() => setBrandOpen(true)} onBlur={() => setTimeout(() => setBrandOpen(false), 150)}
+                      placeholder="Search a brand…"
+                      className="w-full rounded-md border border-black/12 bg-white px-3 py-2 text-xs font-black text-ink placeholder:font-bold placeholder:text-ink/35" />
+                    {brandOpen && (() => {
+                      const q = brandQuery.trim().toLowerCase();
+                      const matches = (q ? BRAND_OPTIONS.filter(b => b.toLowerCase().includes(q)) : BRAND_OPTIONS).slice(0, 8);
+                      const exact = BRAND_OPTIONS.some(b => b.toLowerCase() === q);
+                      if (!matches.length && !q) return null;
+                      return (
+                        <div className="absolute z-30 mt-1 max-h-60 w-full overflow-auto rounded-md border border-black/12 bg-white shadow-lg">
+                          {matches.map((b) => (
+                            <button key={b} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setPickedBrand(b); setBrandQuery(""); setBrandOpen(false); }}
+                              className="block w-full px-3 py-2 text-left text-xs font-black text-ink hover:bg-black/5">{b}</button>
+                          ))}
+                          {q && !exact && (
+                            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setPickedBrand(brandQuery.trim()); setBrandQuery(""); setBrandOpen(false); }}
+                              className="block w-full border-t border-black/8 px-3 py-2 text-left text-xs font-black text-cobalt hover:bg-cobalt/5">+ Add “{brandQuery.trim()}”</button>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
               {/* Garment type — tap one to target the search */}
               <div>
