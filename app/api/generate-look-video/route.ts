@@ -102,7 +102,12 @@ async function tryOnGarmentFashn(garmentUrl: string, personUrl: string): Promise
     const product_image = `data:${gRes.headers.get("content-type") || "image/jpeg"};base64,${gBuf.toString("base64")}`;
     const create = await fetch(FASHN_RUN, {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model_name: "tryon-max", inputs: { model_image, product_image, num_images: 1, output_format: "png" } }),
+      body: JSON.stringify({ model_name: "tryon-max", inputs: {
+        model_image, product_image,
+        prompt: "Tasteful editorial fashion photograph of the person wearing the garment, fully and modestly dressed, clean studio lighting.",
+        aspect_ratio: "9:16", resolution: "1k", generation_mode: "balanced",
+        num_images: 1, output_format: "png", return_base64: true,
+      } }),
     });
     const cp = await create.json().catch(() => null);
     const id = cp?.id;
