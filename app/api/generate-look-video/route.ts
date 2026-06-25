@@ -13,6 +13,12 @@ const FASHION_PROMPT =
 
 const slug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
+// Lingerie / swimwear: the brand product photo already shows a model wearing the
+// piece, and OpenAI/FASHN refuse to "dress" a model in it anyway. For these we
+// skip the try-on and animate the source image directly with Pixverse.
+const INTIMATE = /lingerie|intimate|intimissimi|la perla|bra\b|bralette|corset|bustier|teddy|babydoll|negligee|nightie|chemise|garter|suspender|thong|knicker|brief|panty|panties|underwear|bodysuit|swim|bikini|one-piece|monokini|tankini|bathing suit/i;
+const isIntimate = (look: any) => INTIMATE.test(`${look?.name ?? ""} ${look?.productNote ?? ""} ${look?.category ?? ""}`);
+
 // Find the curator's own existing try-on of this look (a "self-test"). Reusing it
 // as the video source avoids a fresh OpenAI try-on (which can fail / cost money).
 function findSelftestImage(state: Awaited<ReturnType<typeof readTryThisLookState>>, look: any): string | null {
@@ -176,8 +182,14 @@ export async function POST(request: Request) {
           if (r.ok) { srcBlob = await r.blob(); (look as any).videoPosterUrl = selftestUrl; }
         } catch { /* fall through to a fresh try-on */ }
       }
-      // 1b) Otherwise put the garment on the curator's profile photo.
-      if (!srcBlob) {
+      // 1b) Lingerie / swim: the brand photo is already on a model and try-on
+      //     services refuse to dress one — animate the source image directly.
+      if (!srcBlob && isIntimate(look)) {
+        (look as any).videoPosterUrl = imgUrl;
+        // leave srcBlob null → the block below animates imgUrl directly.
+      }
+      // 1c) Otherwise put the garment on the curator's profile photo.
+      if (!srcBlob && !isIntimate(look)) {
         const curator = (state.curators ?? []).find((c) => c.id === (look as any).curatorId);
         const personUrl = curator?.photoPath ? await getSignedUrl((curator as any).photoPath) : (curator as any)?.photoUrl;
         const garmentUrl = (look as any).garmentFrontImageUrl ?? imgUrl;
@@ -186,20 +198,23 @@ export async function POST(request: Request) {
         if (!personUrl) {
           return NextResponse.json({ error: "Add a profile photo to this curator first — the curated garment needs a model to wear it in the video." }, { status: 400 });
         }
-        // OpenAI first; if it refuses (e.g. lingerie/swim), fall back to FASHN.
+        // OpenAI first; if it refuses, fall back to FASHN.
         let dataUrl = await tryOnGarment(garmentUrl, personUrl);
         if (!dataUrl) dataUrl = await tryOnGarmentFashn(garmentUrl, personUrl);
-        if (!dataUrl) {
-          return NextResponse.json({ error: "Couldn't put the garment on the model (try-on failed). Tip: try this look on yourself once, then generate the video — we'll reuse that image." }, { status: 502 });
+        if (dataUrl) {
+          const [, b64] = dataUrl.split(",");
+          srcBlob = new Blob([Buffer.from(b64, "base64")], { type: "image/png" });
+          // Store the try-on frame as the video poster so the feed shows the model
+          // (not the bare product) before the video starts playing.
+          try {
+            const posterPath = await uploadTryThisLookImage("looks", dataUrl);
+            (look as any).videoPosterUrl = (await getSignedUrl(posterPath, 60 * 60 * 24 * 365 * 10)) || undefined;
+          } catch { /* poster is optional */ }
+        } else {
+          // Try-on refused (e.g. a revealing piece our filter missed) → don't dead-end
+          // the button; animate the original product image directly instead.
+          (look as any).videoPosterUrl = imgUrl;
         }
-        const [, b64] = dataUrl.split(",");
-        srcBlob = new Blob([Buffer.from(b64, "base64")], { type: "image/png" });
-        // Store the try-on frame as the video poster so the feed shows the model
-        // (not the bare product) before the video starts playing.
-        try {
-          const posterPath = await uploadTryThisLookImage("looks", dataUrl);
-          (look as any).videoPosterUrl = (await getSignedUrl(posterPath, 60 * 60 * 24 * 365 * 10)) || undefined;
-        } catch { /* poster is optional */ }
       }
     }
     if (!srcBlob) {
