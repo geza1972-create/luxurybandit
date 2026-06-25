@@ -220,9 +220,9 @@ export default function BottomNav() {
             <div className="grid divide-y divide-black/5">
               {/* Curator studio — the tool (sign in / register handled at the profile) */}
               <button type="button" onClick={() => navigate(isCurator ? "/studio" : "/curators/profile")}
-                className="flex items-center gap-3 bg-black px-5 py-3.5 text-left active:opacity-90 transition">
-                <Sparkles className="h-5 w-5 text-white shrink-0" />
-                <span className="text-sm font-black text-white">Curator studio</span>
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                <Sparkles className="h-5 w-5 shrink-0 text-cobalt" />
+                <span className="text-sm font-black text-black">Curator studio</span>
               </button>
               {/* Curator → My profile (their form data); others → generic account */}
               {isCurator ? (
