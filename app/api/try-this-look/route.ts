@@ -2,7 +2,6 @@ import {
   deleteTryThisLookImage,
   getActiveTryThisLook,
   getActiveTryThisLooks,
-  getSignedUrl,
   readTryThisLookState,
   saveTryThisLookState,
   uploadTryThisLookImage,
@@ -499,6 +498,7 @@ export async function POST(request: Request) {
       authorName?: string;
       frontImage?: string;
       backImage?: string;
+      modelImage?: string;
       garmentFrontImage?: string;
       garmentBackImage?: string;
       galleryImages?: string[];
@@ -876,32 +876,20 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Front look image is missing." }, { status: 400 });
       }
 
-      // Prefer to publish a MODEL wearing the piece, not a bare product flatlay.
-      // For a curated look (not AI-created, which already shows a model) we put the
-      // garment on a curator's profile photo first. Best-effort: if no model photo
-      // is available or the try-on fails, we still publish (the original product),
-      // so publishing never dead-ends. Swim/lingerie route to FASHN.
-      if (!aiCreated) {
-        const ownerId = (studioAuth as any).curatorId || (payload as any).curatorId;
-        // The publishing curator's own photo first; otherwise borrow a house model
-        // (any curator who has a photo) so the look still shows a person.
-        const owner = (state.curators ?? []).find((c) => c.id === ownerId);
-        const houseModel = owner?.photoPath ? owner : (state.curators ?? []).find((c) => !!c.photoPath);
-        const personUrl = houseModel?.photoPath ? await getSignedUrl(houseModel.photoPath) : undefined;
-        if (personUrl) {
-          // The bare product is the try-on garment; keep it for re-try-ons/dupes.
-          const garmentSrc = typeof payload.garmentFrontImage === "string" && payload.garmentFrontImage.startsWith("data:image/")
-            ? payload.garmentFrontImage
-            : frontImageInput;
-          if (!(payload.garmentFrontImage?.startsWith("data:image/"))) payload.garmentFrontImage = frontImageInput;
-          const dressed = await tryOnGarment(garmentSrc, personUrl, { name });
-          if (dressed) {
-            frontImageInput = dressed; // the model wearing it becomes the look image
-          } else {
-            console.warn("[upload-look] try-on failed — publishing the product photo as-is for", name);
-          }
+      // The curator CHOOSES the model in the studio before publishing. If they
+      // passed a chosen model photo, dress it in the garment here and publish that
+      // model image (the bare product is kept as the try-on garment). No model
+      // chosen → publish the image as sent. Swim/lingerie route to FASHN.
+      if (!aiCreated && typeof payload.modelImage === "string" && payload.modelImage.startsWith("data:image/")) {
+        const garmentSrc = typeof payload.garmentFrontImage === "string" && payload.garmentFrontImage.startsWith("data:image/")
+          ? payload.garmentFrontImage
+          : frontImageInput;
+        if (!(payload.garmentFrontImage?.startsWith("data:image/"))) payload.garmentFrontImage = frontImageInput;
+        const dressed = await tryOnGarment(garmentSrc, payload.modelImage, { name });
+        if (dressed) {
+          frontImageInput = dressed; // the chosen model wearing it becomes the look image
         } else {
-          console.warn("[upload-look] no curator photo available — publishing the product photo as-is for", name);
+          console.warn("[upload-look] chosen-model try-on failed — publishing the product photo as-is for", name);
         }
       }
 

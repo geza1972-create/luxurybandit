@@ -61,6 +61,16 @@ async function thumbToDataUrl(thumbnail: string): Promise<string> {
   });
 }
 
+// Read a File/Blob (or fetch a same-origin URL) into a data URL.
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 // Studio APIs accept the admin PIN or a curator session — send whichever we have.
 function studioHeaders(): Record<string, string> {
   return {
@@ -183,7 +193,7 @@ function storeNameFromUrl(url: string): string {
   } catch { return "Shop"; }
 }
 
-async function callPublish(draft: Draft, name: string, price: string, brandQueries?: string[], guaranteedAlt?: any): Promise<{ altCount: number }> {
+async function callPublish(draft: Draft, name: string, price: string, brandQueries?: string[], guaranteedAlt?: any, modelImage?: string): Promise<{ altCount: number }> {
   // An AI-generated look has no source shop URL. Its shop "Vorschläge" come from TWO
   // sources merged: (1) brand-aware text search so real on-brand pieces (e.g. Tom
   // Ford) show up, then (2) a reverse-image search for visually similar dupes across
@@ -239,6 +249,9 @@ async function callPublish(draft: Draft, name: string, price: string, brandQueri
       image: main,            // real product photo = main display (no AI hero)
       frontImage: main,
       garmentFrontImage: draft.imageDataUrl, // real product = tryon garment
+      // Chosen model: the server dresses this photo in the garment and publishes
+      // the result as the look image (the bare product stays as the garment).
+      ...(modelImage ? { modelImage } : {}),
     }),
   });
   const data = await res.json();
@@ -494,6 +507,7 @@ export default function AdminTrends() {
   const [discoverError, setDiscoverError] = useState("");
   const [searchInfo, setSearchInfo] = useState<{ searched: number; reused: number } | null>(null);
   const [publishing, setPublishing] = useState(false);
+  const [modelPickerOpen, setModelPickerOpen] = useState(false);
   const [publishProgress, setPublishProgress] = useState({ done: 0, total: 0 });
   const [publishResult, setPublishResult] = useState("");
   const [myFilters, setMyFilters] = useState<{ label: string; tags: string[] }[]>([]);
@@ -703,19 +717,22 @@ export default function AdminTrends() {
     } finally { setAdding(""); }
   };
 
-  const publishSelection = async () => {
+  const publishSelection = async (modelImage?: string) => {
     if (!drafts.length || publishing) return;
+    setModelPickerOpen(false);
     setPublishing(true); setPublishResult("");
     setPublishProgress({ done: 0, total: drafts.length });
     let ok = 0;
     for (const d of drafts) {
-      try { await callPublish(d, d.name || "Trend Look", d.price); ok++; }
+      try { await callPublish(d, d.name || "Trend Look", d.price, undefined, undefined, modelImage); ok++; }
       catch { /* skip failed item */ }
       setPublishProgress((p) => ({ ...p, done: p.done + 1 }));
     }
     setDrafts([]); setUsedLinks([]);
     setPublishing(false);
-    setPublishResult(`${ok} look${ok === 1 ? "" : "s"} published to Trends.`);
+    setPublishResult(modelImage
+      ? `${ok} look${ok === 1 ? "" : "s"} published — your model is wearing ${ok === 1 ? "it" : "them"}.`
+      : `${ok} look${ok === 1 ? "" : "s"} published (product photo).`);
     void loadMyLooks();
     setTimeout(() => setPublishResult(""), 5000);
   };
@@ -1420,12 +1437,64 @@ export default function AdminTrends() {
             <span className="text-sm font-black text-ink">{drafts.length} selected</span>
             <button type="button" onClick={() => { setDrafts([]); setUsedLinks([]); }} disabled={publishing}
               className="text-xs font-black text-ink/45 underline disabled:opacity-40">Clear</button>
-            <button type="button" onClick={() => void publishSelection()} disabled={publishing}
+            <button type="button" onClick={() => setModelPickerOpen(true)} disabled={publishing}
               className="ml-auto inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-black px-6 text-sm font-black text-white disabled:opacity-50 active:scale-95 transition-transform">
               {publishing
                 ? <><Loader2 className="h-4 w-4 animate-spin" /> Publishing… {publishProgress.done}/{publishProgress.total}</>
                 : <>Publish selection ({drafts.length})</>}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Choose-a-model sheet — opens on "Publish selection". The chosen photo is
+          dressed in each selected piece (server-side try-on) and published. */}
+      {modelPickerOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setModelPickerOpen(false); }}>
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-5 sm:rounded-3xl"
+            style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-lg font-black text-ink">Choose a model</p>
+                <p className="mt-0.5 text-xs font-bold text-ink/45">
+                  We&apos;ll put {drafts.length === 1 ? "this piece" : `these ${drafts.length} pieces`} on the model you pick, then publish.
+                </p>
+              </div>
+              <button type="button" onClick={() => setModelPickerOpen(false)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 text-ink"><X className="h-4 w-4" /></button>
+            </div>
+
+            <div className="mt-4 flex flex-col gap-2.5">
+              {curatorPhotoUrl && (
+                <button type="button"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(curatorPhotoUrl);
+                      const dataUrl = await blobToDataUrl(await res.blob());
+                      void publishSelection(dataUrl);
+                    } catch { void publishSelection(); }
+                  }}
+                  className="flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-black text-sm font-black text-white transition active:bg-black/90">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={curatorPhotoUrl} alt="Profile" className="h-7 w-7 rounded-full object-cover" />
+                  Use my profile photo
+                </button>
+              )}
+
+              <label className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-black/15 text-sm font-black text-ink/60 transition hover:border-black/30 hover:bg-black/[0.03]">
+                <ImagePlus className="h-4 w-4" /> Upload a model photo
+                <input type="file" accept="image/*" className="sr-only"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0]; if (!f) return;
+                    try { void publishSelection(await blobToDataUrl(f)); } catch { void publishSelection(); }
+                  }} />
+              </label>
+
+              <button type="button" onClick={() => void publishSelection()}
+                className="h-11 w-full rounded-xl text-xs font-black text-ink/45 underline">
+                Publish product photo only (no model)
+              </button>
+            </div>
           </div>
         </div>
       )}
