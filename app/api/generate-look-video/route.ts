@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { readTryThisLookState, saveTryThisLookState, uploadTryThisLookBytes, uploadTryThisLookImage, getSignedUrl } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const PV_BASE = "https://app-api.pixverse.ai/openapi/v2";
+const FASHN_RUN = process.env.FASHN_API_ENDPOINT ?? "https://api.fashn.ai/v1/run";
+const FASHN_STATUS = process.env.FASHN_STATUS_ENDPOINT ?? "https://api.fashn.ai/v1/status";
 const trace = () => crypto.randomUUID();
 const FASHION_PROMPT =
   "Elegant high-fashion presentation. The subject stays mostly still with subtle, slow, gentle movement — a soft breath, a small natural sway. CRITICAL: the outfit must stay IDENTICAL — keep the exact same garment shape, cut, colour, fabric, pattern and details; do not redesign, restyle or change the clothing. Minimal camera motion, refined studio lighting. No text or logos.";
@@ -86,6 +88,44 @@ async function tryOnGarment(garmentUrl: string, personUrl: string): Promise<stri
   }
 }
 
+// FASHN fallback — when OpenAI refuses the garment (e.g. lingerie/swim), FASHN's
+// dedicated try-on model still puts it on the model. Returns a data URL or null.
+async function tryOnGarmentFashn(garmentUrl: string, personUrl: string): Promise<string | null> {
+  const key = process.env.FASHN_API_KEY;
+  if (!key) return null;
+  try {
+    const [pRes, gRes] = await Promise.all([fetch(personUrl), fetch(garmentUrl)]);
+    if (!pRes.ok || !gRes.ok) return null;
+    const pBuf = Buffer.from(await pRes.arrayBuffer());
+    const gBuf = Buffer.from(await gRes.arrayBuffer());
+    const model_image = `data:${pRes.headers.get("content-type") || "image/jpeg"};base64,${pBuf.toString("base64")}`;
+    const product_image = `data:${gRes.headers.get("content-type") || "image/jpeg"};base64,${gBuf.toString("base64")}`;
+    const create = await fetch(FASHN_RUN, {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model_name: "tryon-max", inputs: { model_image, product_image, num_images: 1, output_format: "png" } }),
+    });
+    const cp = await create.json().catch(() => null);
+    const id = cp?.id;
+    if (!create.ok || !id) { console.error("[generate-look-video] fashn create failed:", cp?.error ?? create.status); return null; }
+    for (let i = 0; i < 70; i++) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const st = await fetch(`${FASHN_STATUS}/${id}`, { headers: { Authorization: `Bearer ${key}` } }).then((r) => r.json()).catch(() => null);
+      const status = String(st?.status ?? "").toLowerCase();
+      if (status === "completed") {
+        const out = st?.output?.[0];
+        if (typeof out === "string" && out.startsWith("data:image/")) return out;
+        if (typeof out === "string") { const ir = await fetch(out); if (!ir.ok) return null; return `data:image/png;base64,${Buffer.from(await ir.arrayBuffer()).toString("base64")}`; }
+        return null;
+      }
+      if (status === "failed") return null;
+    }
+    return null;
+  } catch (e) {
+    console.error("[generate-look-video] fashn error:", e);
+    return null;
+  }
+}
+
 async function ownedLook(request: Request, lookId: string) {
   const state = await readTryThisLookState();
   const look = state.looks.find((l) => l.id === lookId);
@@ -141,7 +181,9 @@ export async function POST(request: Request) {
         if (!personUrl) {
           return NextResponse.json({ error: "Add a profile photo to this curator first — the curated garment needs a model to wear it in the video." }, { status: 400 });
         }
-        const dataUrl = await tryOnGarment(garmentUrl, personUrl);
+        // OpenAI first; if it refuses (e.g. lingerie/swim), fall back to FASHN.
+        let dataUrl = await tryOnGarment(garmentUrl, personUrl);
+        if (!dataUrl) dataUrl = await tryOnGarmentFashn(garmentUrl, personUrl);
         if (!dataUrl) {
           return NextResponse.json({ error: "Couldn't put the garment on the model (try-on failed). Tip: try this look on yourself once, then generate the video — we'll reuse that image." }, { status: 502 });
         }
