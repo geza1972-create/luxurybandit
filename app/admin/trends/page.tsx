@@ -4,6 +4,12 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, Check, ChevronUp, ChevronDown, Crop, ExternalLink, ImagePlus, Loader2, Plus, Search, Trash2, Video, Wand2, X } from "lucide-react";
+import { FASHION_BRANDS } from "@/lib/fashion-brands";
+
+// Garment types a curator can target the search with (select one, sorted A→Z list
+// in the dropdown). Keeps the search focused on a real category.
+const GARMENT_TYPES = ["Dress", "Gown", "Maxi dress", "Mini dress", "Skirt", "Trousers", "Jeans", "Jacket", "Blazer", "Coat", "Top", "Blouse", "Bodysuit", "Jumpsuit", "Co-ord set", "Knitwear", "Swimsuit", "Lingerie"];
+const BRAND_OPTIONS = [...new Set(FASHION_BRANDS)].sort((a, b) => a.localeCompare(b));
 
 const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
 const STORE_NAME = "LuxuryBandit";
@@ -492,6 +498,8 @@ export default function AdminTrends() {
   const [publishResult, setPublishResult] = useState("");
   const [myFilters, setMyFilters] = useState<{ label: string; tags: string[] }[]>([]);
   const [activeTags, setActiveTags] = useState<string[]>([]);
+  const [pickedBrand, setPickedBrand] = useState("");   // brand is SELECT-only (from the official list)
+  const [pickedGarment, setPickedGarment] = useState(""); // target garment type
   const [credits, setCredits] = useState<{ credits: number; spent: number; earned: number } | null>(null);
   const [costs, setCosts] = useState<{ tryon: number; search: number; starter: number } | null>(null);
   const [justEarned, setJustEarned] = useState<{ label: string; credits: number }[]>([]);
@@ -633,12 +641,15 @@ export default function AdminTrends() {
     const brandSet = new Set(brandGroup.map(b => b.toLowerCase()));
     const activeBrands = activeTags.filter(t => brandSet.has(t.toLowerCase()));
     const activeTerms = activeTags.filter(t => !brandSet.has(t.toLowerCase()));
-    const refine = [free, ...activeTerms.slice(0, 2)].filter(Boolean).join(" ").trim();
-    if (activeBrands.length) return activeBrands.slice(0, 3).map(b => `${b} ${refine}`.trim());
+    // Garment type leads the refinement, then free text + a couple taste terms.
+    const refine = [pickedGarment, free, ...activeTerms.slice(0, 2)].filter(Boolean).join(" ").trim();
+    const brands = pickedBrand ? [pickedBrand, ...activeBrands] : activeBrands;
+    if (brands.length) return [...new Set(brands)].slice(0, 3).map(b => `${b} ${refine}`.trim());
     if (refine) return [refine];
     if (free) return [free];
     return [];
   };
+  const canSearch = activeTags.length > 0 || !!pickedBrand || !!pickedGarment;
 
   const runDiscover = async (term?: string) => {
     if (term !== undefined) setStyle(term);
@@ -881,6 +892,28 @@ export default function AdminTrends() {
             </div>
             <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">Nothing selected yet. Tap the ones you want to style the look, then hit <span className="font-black text-ink">{mode === "ai" ? "Create AI Fashion" : "Find products"}</span>.</p>
             <div className="mt-3 grid gap-3">
+              {/* Brand — SELECT only, from the official brand list (no free text) */}
+              <div>
+                <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-ink/35">Brand</span>
+                <select value={pickedBrand} onChange={(e) => setPickedBrand(e.target.value)}
+                  className="mt-1 w-full rounded-md border border-black/12 bg-white px-3 py-2 text-xs font-black text-ink">
+                  <option value="">Any brand</option>
+                  {BRAND_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              {/* Garment type — tap one to target the search */}
+              <div>
+                <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-ink/35">Garment</span>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {GARMENT_TYPES.map((gm) => {
+                    const active = pickedGarment === gm;
+                    return (
+                      <button key={gm} type="button" onClick={() => setPickedGarment(active ? "" : gm)}
+                        className={`rounded-full px-3 py-1.5 text-xs font-black transition ${active ? "bg-black text-white" : "border border-black/12 bg-white text-ink/45 hover:border-black"}`}>{gm}</button>
+                    );
+                  })}
+                </div>
+              </div>
               {myFilters.map((g) => (
                 <div key={g.label}>
                   <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-ink/35">{g.label}</span>
@@ -902,7 +935,7 @@ export default function AdminTrends() {
         {/* Find products — driven by the active filters above */}
         {mode === "web" && (
         <section className="mt-5 rounded-lg border border-black/10 bg-white p-5 shadow-soft">
-          <button type="button" onClick={() => runDiscover()} disabled={discovering || !activeTags.length}
+          <button type="button" onClick={() => runDiscover()} disabled={discovering || !canSearch}
             className="flex h-12 w-full items-center justify-center gap-2 rounded-md bg-black text-sm font-black text-white transition active:scale-[0.99] disabled:opacity-40">
             {discovering
               ? <><Loader2 className="h-4 w-4 animate-spin" /> Searching…</>
