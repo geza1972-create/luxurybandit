@@ -880,6 +880,7 @@ export async function POST(request: Request) {
       // passed a chosen model photo, dress it in the garment here and publish that
       // model image (the bare product is kept as the try-on garment). No model
       // chosen → publish the image as sent. Swim/lingerie route to FASHN.
+      let modelReady = false; // true once the look image is a model wearing the piece
       if (!aiCreated && typeof payload.modelImage === "string" && payload.modelImage.startsWith("data:image/")) {
         const garmentSrc = typeof payload.garmentFrontImage === "string" && payload.garmentFrontImage.startsWith("data:image/")
           ? payload.garmentFrontImage
@@ -888,6 +889,7 @@ export async function POST(request: Request) {
         const dressed = await tryOnGarment(garmentSrc, payload.modelImage, { name });
         if (dressed) {
           frontImageInput = dressed; // the chosen model wearing it becomes the look image
+          modelReady = true;
         } else {
           console.warn("[upload-look] chosen-model try-on failed — publishing the product photo as-is for", name);
         }
@@ -935,6 +937,9 @@ export async function POST(request: Request) {
         hashtags: hashtags || undefined,
         productType,
         aiCreated: aiCreated || undefined,
+        // The look image is already a model wearing the piece → the video can
+        // animate it directly (no second try-on in generate-look-video).
+        modelReady: modelReady || undefined,
         curatorId: (studioAuth as any).curatorId || (payload as any).curatorId || undefined,
         imagePath: frontImagePath,
         frontImagePath,
@@ -968,6 +973,8 @@ export async function POST(request: Request) {
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json({
         ...ps(updatedState),
+        lookId: look.id,
+        modelReady,
         events: updatedState.events,
         leads: updatedState.leads,
         generations: updatedState.generations

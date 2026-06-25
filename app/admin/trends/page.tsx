@@ -256,7 +256,7 @@ async function callPublish(draft: Draft, name: string, price: string, brandQueri
   });
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error || `Publish failed (${res.status})`);
-  return { altCount: alternatives.length };
+  return { altCount: alternatives.length, lookId: data.lookId as string | undefined, modelReady: !!data.modelReady };
 }
 
 // ─── UI bits (LuxuryBandit admin CI) ───────────────────────────────────────────
@@ -724,8 +724,18 @@ export default function AdminTrends() {
     setPublishProgress({ done: 0, total: drafts.length });
     let ok = 0;
     for (const d of drafts) {
-      try { await callPublish(d, d.name || "Trend Look", d.price, undefined, undefined, modelImage); ok++; }
-      catch { /* skip failed item */ }
+      try {
+        const r = await callPublish(d, d.name || "Trend Look", d.price, undefined, undefined, modelImage);
+        ok++;
+        // Model chosen → kick off the look video right away (Pixverse, async). We
+        // don't wait for it; it finishes in the background and shows when ready.
+        if (r.modelReady && r.lookId) {
+          void fetch("/api/generate-look-video", {
+            method: "POST", headers: studioHeaders(),
+            body: JSON.stringify({ lookId: r.lookId }),
+          }).catch(() => {});
+        }
+      } catch { /* skip failed item */ }
       setPublishProgress((p) => ({ ...p, done: p.done + 1 }));
     }
     setDrafts([]); setUsedLinks([]);

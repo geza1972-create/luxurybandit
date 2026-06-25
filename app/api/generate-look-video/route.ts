@@ -168,7 +168,9 @@ export async function POST(request: Request) {
     //    outfit → animate directly. A curated product photo (no person) → first
     //    try the garment on the curator's profile photo, then animate that.
     let srcBlob: Blob | null = null;
-    if (!(look as any).aiCreated) {
+    // aiCreated looks AND looks already published with a chosen model (modelReady)
+    // already show a person → animate the image directly, no second try-on.
+    if (!(look as any).aiCreated && !(look as any).modelReady) {
       // 1a) Best path: reuse the curator's existing self-test try-on of this look
       //     (already a model wearing it) — no new OpenAI call, no failure, no cost.
       const selftestUrl = findSelftestImage(state, look);
