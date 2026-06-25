@@ -236,7 +236,7 @@ export default function CuratorPublicPage() {
                     className="h-full w-full object-cover object-top" />
                   <span className="absolute left-1.5 bottom-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">Try-on</span>
                   {t.videoUrl && (
-                    <span className="pointer-events-none absolute inset-0 grid place-items-center"><Play className="h-10 w-10 fill-white text-white opacity-90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]" /></span>
+                    <span className="pointer-events-none absolute inset-0 grid place-items-center"><Play className="h-10 w-10 fill-white text-white opacity-45 drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]" /></span>
                   )}
                 </div>
                 {t.lookId && lookPrices[t.lookId] && (
