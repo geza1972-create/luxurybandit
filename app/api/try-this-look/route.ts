@@ -876,26 +876,33 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Front look image is missing." }, { status: 400 });
       }
 
-      // Never publish a bare product flatlay. For a curated look (not AI-created,
-      // which already shows a model), put the garment on the curator's profile
-      // photo FIRST and publish that model image. Swim/lingerie route to FASHN.
+      // Prefer to publish a MODEL wearing the piece, not a bare product flatlay.
+      // For a curated look (not AI-created, which already shows a model) we put the
+      // garment on a curator's profile photo first. Best-effort: if no model photo
+      // is available or the try-on fails, we still publish (the original product),
+      // so publishing never dead-ends. Swim/lingerie route to FASHN.
       if (!aiCreated) {
         const ownerId = (studioAuth as any).curatorId || (payload as any).curatorId;
-        const curator = (state.curators ?? []).find((c) => c.id === ownerId);
-        const personUrl = curator?.photoPath ? await getSignedUrl(curator.photoPath) : undefined;
-        if (!personUrl) {
-          return NextResponse.json({ error: "Add a profile photo first — every published look must show you wearing the piece." }, { status: 400 });
+        // The publishing curator's own photo first; otherwise borrow a house model
+        // (any curator who has a photo) so the look still shows a person.
+        const owner = (state.curators ?? []).find((c) => c.id === ownerId);
+        const houseModel = owner?.photoPath ? owner : (state.curators ?? []).find((c) => !!c.photoPath);
+        const personUrl = houseModel?.photoPath ? await getSignedUrl(houseModel.photoPath) : undefined;
+        if (personUrl) {
+          // The bare product is the try-on garment; keep it for re-try-ons/dupes.
+          const garmentSrc = typeof payload.garmentFrontImage === "string" && payload.garmentFrontImage.startsWith("data:image/")
+            ? payload.garmentFrontImage
+            : frontImageInput;
+          if (!(payload.garmentFrontImage?.startsWith("data:image/"))) payload.garmentFrontImage = frontImageInput;
+          const dressed = await tryOnGarment(garmentSrc, personUrl, { name });
+          if (dressed) {
+            frontImageInput = dressed; // the model wearing it becomes the look image
+          } else {
+            console.warn("[upload-look] try-on failed — publishing the product photo as-is for", name);
+          }
+        } else {
+          console.warn("[upload-look] no curator photo available — publishing the product photo as-is for", name);
         }
-        // The bare product is the try-on garment; keep it for re-try-ons/dupes.
-        const garmentSrc = typeof payload.garmentFrontImage === "string" && payload.garmentFrontImage.startsWith("data:image/")
-          ? payload.garmentFrontImage
-          : frontImageInput;
-        if (!(payload.garmentFrontImage?.startsWith("data:image/"))) payload.garmentFrontImage = frontImageInput;
-        const dressed = await tryOnGarment(garmentSrc, personUrl, { name });
-        if (!dressed) {
-          return NextResponse.json({ error: "Couldn't put this piece on your model (try-on failed) — not published. We never publish a product photo without a model." }, { status: 422 });
-        }
-        frontImageInput = dressed; // the model wearing it becomes the look image
       }
 
       const frontImagePath = await uploadTryThisLookImage("looks", frontImageInput);
