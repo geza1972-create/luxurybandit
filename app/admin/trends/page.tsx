@@ -894,6 +894,26 @@ export default function AdminTrends() {
             </div>
             <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">Nothing selected yet. Tap the ones you want to style the look, then hit <span className="font-black text-ink">{mode === "ai" ? "Create AI Fashion" : "Find products"}</span>.</p>
             <div className="mt-3 grid gap-3">
+              {/* Favourite brands (the curator's saved taste) — shown FIRST as a quick
+                  pick that fills the Brand dropdown below. */}
+              {(() => {
+                const fav = myFilters.find((g) => g.label === "Brands");
+                if (!fav) return null;
+                return (
+                  <div>
+                    <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-ink/35">Favourite brands</span>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {fav.tags.map((tag) => {
+                        const active = pickedBrand === tag;
+                        return (
+                          <button key={tag} type="button" onClick={() => setPickedBrand(active ? "" : tag)}
+                            className={`rounded-full px-3 py-1.5 text-xs font-black transition ${active ? "bg-black text-white" : "border border-black/12 bg-white text-ink/45 hover:border-black"}`}>{tag}</button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
               {/* Brand — searchable dropdown; pick from the official list or add one */}
               <div>
                 <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-ink/35">Brand</span>
@@ -943,18 +963,16 @@ export default function AdminTrends() {
                 </div>
               </div>
               {myFilters.map((g) => {
-                // The curator's saved brands stay visible (their taste), but here they
-                // act as a quick-pick that fills the Brand dropdown above — so brand is
-                // chosen in ONE place, no confusing duplicate.
-                const isBrands = g.label === "Brands";
+                // Brands are rendered above (as "Favourite brands"); skip here.
+                if (g.label === "Brands") return null;
                 return (
                   <div key={g.label}>
-                    <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-ink/35">{isBrands ? "Favourite brands" : g.label}</span>
+                    <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-ink/35">{g.label}</span>
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {g.tags.map((tag) => {
-                        const active = isBrands ? pickedBrand === tag : activeTags.includes(tag);
+                        const active = activeTags.includes(tag);
                         return (
-                          <button key={tag} type="button" onClick={() => isBrands ? setPickedBrand(active ? "" : tag) : toggleFilter(tag)}
+                          <button key={tag} type="button" onClick={() => toggleFilter(tag)}
                             className={`rounded-full px-3 py-1.5 text-xs font-black transition ${active ? "bg-black text-white" : "border border-black/12 bg-white text-ink/45 hover:border-black"}`}>{tag}</button>
                         );
                       })}
