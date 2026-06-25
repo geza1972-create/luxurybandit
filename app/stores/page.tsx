@@ -1349,7 +1349,7 @@ function StoresPage() {
                         className="h-full w-full object-cover object-top" />
                     )}
                     {it.videoUrl && (
-                      <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur"><Play className="h-3 w-3 fill-current" /></span>
+                      <span className="pointer-events-none absolute inset-0 grid place-items-center"><Play className="h-12 w-12 fill-white text-white opacity-90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]" /></span>
                     )}
                     {/* Label at the BOTTOM — the face is usually at the top of the crop */}
                     <span className="absolute left-1.5 bottom-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">
