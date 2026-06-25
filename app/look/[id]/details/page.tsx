@@ -303,7 +303,7 @@ export default function LookDetailsPage() {
               )}
               <button type="button" onClick={() => router.push(`/tryon/${look.id}`)}
                 className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-black/10 bg-black/5 text-sm font-black text-black active:scale-95 transition-transform">
-                <Sparkles className="h-4 w-4" /> Try This Look
+                <Sparkles className="h-4 w-4" /> Try This Look · 2 Credits
               </button>
             </>
           ) : (
