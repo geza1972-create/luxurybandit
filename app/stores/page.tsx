@@ -1106,6 +1106,14 @@ function StoresPage() {
     return items;
   }, [looks, communityItems]);
 
+  // Distinct curators with content (looks or try-ons) — for the header count.
+  const curatorCount = useMemo(() => {
+    const set = new Set<string>();
+    for (const l of looks) if (l.curatorName) set.add(l.curatorName.toLowerCase());
+    for (const c of communityItems) if (c.customerName) set.add(c.customerName.toLowerCase());
+    return set.size;
+  }, [looks, communityItems]);
+
   // Brand filter chips — only brands the curator named at generation (paid placement).
   const brandChips = useMemo(() => {
     const counts = new Map<string, number>();
@@ -1220,10 +1228,10 @@ function StoresPage() {
               <div className="text-sm font-black text-black leading-none">{looks.length}</div>
               <div className="text-[10px] font-bold text-black/35 mt-0.5">listings</div>
             </div>
-            {stores.length > 0 && (
+            {curatorCount > 0 && (
               <div className="text-center">
-                <div className="text-sm font-black text-black leading-none">{stores.length}</div>
-                <div className="text-[10px] font-bold text-black/35 mt-0.5">creator{stores.length !== 1 ? "s" : ""}</div>
+                <div className="text-sm font-black text-black leading-none">{curatorCount}</div>
+                <div className="text-[10px] font-bold text-black/35 mt-0.5">Curator{curatorCount !== 1 ? "s" : ""}</div>
               </div>
             )}
             <div className="text-center">

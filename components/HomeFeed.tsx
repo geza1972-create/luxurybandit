@@ -76,14 +76,15 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
   const carouselRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const captionRef = useRef<HTMLParagraphElement>(null);
-  // Carousel order: curator video → product image → try-ons (each: photo, then its
-  // video if any) → shop options. Try-ons are placed after the product image.
+  // Carousel order: curator try-on VIDEOS first (most engaging — what the user
+  // asked for), then the look's own video, the product image, the curator try-on
+  // photos, and finally the shop options.
   const shopAlts = (look.alternatives ?? []).filter(a => a?.thumbnail && a?.link).slice(0, 8);
   const community = (look.communityTryOns ?? []).filter(c => c?.imageUrl);
-  const communityMedia = community.flatMap(c => [
-    { type: "cphoto" as const, url: c.imageUrl, name: c.name },
-    ...(c.videoUrl ? [{ type: "cvideo" as const, url: c.videoUrl, name: c.name }] : []),
-  ]);
+  const communityVideos = community
+    .filter(c => c.videoUrl)
+    .map(c => ({ type: "cvideo" as const, url: c.videoUrl as string, name: c.name }));
+  const communityPhotos = community.map(c => ({ type: "cphoto" as const, url: c.imageUrl, name: c.name }));
   const media: (
     | { type: "video" }
     | { type: "image" }
@@ -91,9 +92,10 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
     | { type: "cphoto"; url: string; name?: string }
     | { type: "product"; alt: ShopAlt }
   )[] = [
+    ...communityVideos,
     ...(look.videoUrl ? [{ type: "video" as const }] : []),
     { type: "image" as const },
-    ...communityMedia,
+    ...communityPhotos,
     ...shopAlts.map(a => ({ type: "product" as const, alt: a })),
   ];
   // How many people have tried this look on (distinct names, else photo count).
@@ -437,13 +439,8 @@ export default function HomeFeed({ looks }: { looks: FeedLook[] }) {
   // One global sound switch for the whole feed — so scrolling never leaves an
   // off-screen video audible, and the mute preference carries to the next video.
   const [muted, setMuted] = useState(true);
-  // Curator-defined order first (feedOrder asc); anything unordered falls back to newest.
-  const feed = [...looks].sort((a, b) => {
-    const ao = typeof a.feedOrder === "number" ? a.feedOrder : Infinity;
-    const bo = typeof b.feedOrder === "number" ? b.feedOrder : Infinity;
-    if (ao !== bo) return ao - bo;
-    return String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""));
-  });
+  // Newest first — fresh curator posts always surface at the top of the feed.
+  const feed = [...looks].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
 
   if (!feed.length) {
     return (

@@ -26,7 +26,7 @@ export default function BecomeSellerPage() {
         {[
           { icon: <ShoppingBag className="h-5 w-5" />, title: "Verkaufe deine Looks", desc: "Lade Produkte hoch und erreiche Tausende von Käufern." },
           { icon: <Sparkles className="h-5 w-5" />, title: "KI Try-On für deine Kunden", desc: "Kunden können deine Kleidung virtuell anprobieren." },
-          { icon: <TrendingUp className="h-5 w-5" />, title: "Wachse als Creator", desc: "Baue dir eine Community auf und gewinne Follower." },
+          { icon: <TrendingUp className="h-5 w-5" />, title: "Wachse als Curator", desc: "Baue dir eine Community auf und gewinne Follower." },
           { icon: <Package className="h-5 w-5" />, title: "Einfache Verwaltung", desc: "Alles in einem Dashboard — Produkte, Anfragen, Statistiken." },
         ].map((b, i) => (
           <div key={i} className="flex items-start gap-3 rounded-2xl border border-black/8 bg-black/[0.02] p-4">

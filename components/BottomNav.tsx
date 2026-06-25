@@ -104,23 +104,26 @@ export default function BottomNav() {
       className="fixed bottom-0 inset-x-0 z-50 border-t border-black/10 bg-white/95 backdrop-blur-md"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="mx-auto grid max-w-lg grid-cols-3 h-14">
+      <div className="mx-auto grid max-w-lg grid-cols-4 h-14">
 
-        {/* Home — toggles between the full-screen feed and the grid overview */}
+        {/* Feed + Discover — two separate tabs (no more toggle) */}
         {(() => {
           const onStores = pathname === "/stores";
           const gridView = onStores && searchParams.get("view") === "grid";
+          const feedActive = onStores && !gridView;
           return (
-            <button type="button"
-              onClick={() => {
-                setActive("home");
-                if (!onStores) { router.push("/stores"); return; }
-                router.push(gridView ? "/stores" : "/stores?view=grid");
-              }}
-              className={btn("home")}>
-              {gridView ? <Play className="h-5 w-5" /> : <LayoutGrid className="h-5 w-5" />}
-              <span className="text-[10px] font-bold">{gridView ? "Feed" : "Discover"}</span>
-            </button>
+            <>
+              <button type="button" onClick={() => { setActive("home"); router.push("/stores"); }}
+                className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${feedActive ? "text-black" : "text-black/35"}`}>
+                <Play className="h-5 w-5" />
+                <span className="text-[10px] font-bold">Curator Feeds</span>
+              </button>
+              <button type="button" onClick={() => { setActive("home"); router.push("/stores?view=grid"); }}
+                className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${gridView ? "text-black" : "text-black/35"}`}>
+                <LayoutGrid className="h-5 w-5" />
+                <span className="text-[10px] font-bold">Discover</span>
+              </button>
+            </>
           );
         })()}
 

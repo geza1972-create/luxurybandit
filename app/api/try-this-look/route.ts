@@ -1194,6 +1194,10 @@ export async function POST(request: Request) {
           dealEndsAt: dealEndsAt || undefined,
           inStock: inStock || undefined,
           published: typeof payload.published === "boolean" ? payload.published : existingLook.published,
+          // Admin may reassign the owning curator (e.g. distribute seeded looks).
+          ...(adminRequest && typeof payload.curatorId === "string" && payload.curatorId.trim()
+            ? { curatorId: payload.curatorId.trim() }
+            : {}),
           availabilityNote: availabilityNote || undefined,
           deliveryTime: deliveryTime || undefined,
           productNote: productNote || undefined,

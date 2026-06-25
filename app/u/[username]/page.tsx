@@ -269,7 +269,7 @@ export default function UserGalleryPage() {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-black text-black">{displayName}</p>
               <p className="text-[10px] font-bold text-black/40 truncate">
-                {profile?.bio ? profile.bio.slice(0, 40) + (profile.bio.length > 40 ? "…" : "") : "AI Fashion Creator"}
+                {profile?.bio ? profile.bio.slice(0, 40) + (profile.bio.length > 40 ? "…" : "") : "AI Fashion Curator"}
               </p>
             </div>
           </div>
@@ -441,7 +441,7 @@ export default function UserGalleryPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-black text-black">{displayName}</p>
-                <p className="text-[10px] font-bold text-black/40">Creator · {new Date(selected.createdAt).toLocaleDateString("de-AT", { day: "numeric", month: "short" })}</p>
+                <p className="text-[10px] font-bold text-black/40">Curator · {new Date(selected.createdAt).toLocaleDateString("de-AT", { day: "numeric", month: "short" })}</p>
               </div>
             </a>
             <div className="grid grid-cols-2 gap-3">
