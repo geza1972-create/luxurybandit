@@ -96,7 +96,7 @@ function priceRange(alts?: Look["alternatives"]): string | null {
   const vals = byCur[cur];
   const lo = Math.min(...vals), hi = Math.max(...vals);
   const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
-  return lo === hi ? `${cur}${fmt(lo)}` : `${cur}${fmt(lo)}–${cur}${fmt(hi)}`;
+  return lo === hi ? `${cur}${fmt(lo)}` : `${cur}${fmt(hi)}–${cur}${fmt(lo)}`;
 }
 // Price to show on a feed card: the range when we have shop options, else the
 // look's own price (formatted with a $ if it's a bare number — fixes "from 1190").
@@ -1087,6 +1087,7 @@ function StoresPage() {
   const historyItems = useMemo(() => {
     type HItem = { key: string; kind: "look" | "tryon"; id: string; thumb: string; videoUrl?: string; videoPoster?: string; aiCreated?: boolean; brand?: string; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string };
     const items: HItem[] = [];
+    const lookById = new Map(looks.map((l) => [l.id, l]));
     for (const l of looks) {
       const thumb = l.frontImageUrl || l.imageUrl;
       // Poster only when it's a REAL model frame (never the floating product); else
@@ -1100,7 +1101,8 @@ function StoresPage() {
     }
     for (const c of communityItems) {
       // A try-on still IS a real model frame → use it as the video poster.
-      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, brand: c.brand, createdAt: c.createdAt ?? "", name: c.customerName || c.lookName, curatorName: c.customerName });
+      const srcLook = lookById.get(c.lookId);
+      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, brand: c.brand, createdAt: c.createdAt ?? "", name: c.customerName || c.lookName, price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName });
     }
     items.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
     return items;
@@ -1288,7 +1290,7 @@ function StoresPage() {
                 <div className="mt-3 grid gap-1.5">
                   {[
                     [<Sparkles key="i" className="h-4 w-4 text-cobalt" />, "Make a try-on", "Any look, on you, in seconds — photo + video."],
-                    [<ShoppingBag key="i" className="h-4 w-4 text-cobalt" />, "Shop the look", "From the real luxury piece down to the best dupe."],
+                    [<ShoppingBag key="i" className="h-4 w-4 text-cobalt" />, "Bandit the look", "From the real luxury piece down to the best dupe."],
                     [<Heart key="i" className="h-4 w-4 text-cobalt" />, "Join the community", "Become a curator, build a following — and earn."],
                   ].map(([icon, title, text], i) => (
                     <div key={i} className="flex items-start gap-2.5">

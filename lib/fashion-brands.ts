@@ -64,4 +64,10 @@ export const FASHION_BRANDS: string[] = [
   "Sergio Rossi", "Roger Vivier", "Salvatore Ferragamo", "Ferragamo", "Tod's", "Bally", "Church's",
   "Dr. Martens", "Birkenstock", "UGG", "Hunter", "Sam Edelman", "Steve Madden", "Schutz", "Goyard",
   "Longchamp", "Mulberry", "Anya Hindmarch", "Aspinal of London", "Coach", "Kate Spade", "Furla",
+  // ── Lingerie & intimates ──
+  "La Perla", "Intimissimi", "Hunkemöller", "Hunkemoller", "Triumph", "Agent Provocateur", "Calvin Klein",
+  "Skims", "Chantelle", "Wolford", "Eres", "Cosabella", "Aubade", "Wacoal", "Victoria's Secret",
+  "Fleur du Mal", "Carine Gilson", "Kiki de Montparnasse", "Coco de Mer", "I.D. Sarrieri",
+  // ── Swimwear ──
+  "Calzedonia", "Solid & Striped", "Hunza G", "Melissa Odabash", "Zimmermann Swim", "Oséree", "Marysia",
 ];

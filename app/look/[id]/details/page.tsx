@@ -40,7 +40,7 @@ function priceRange(alts: NonNullable<Look["alternatives"]>): string | null {
   const lo = Math.min(...vals), hi = Math.max(...vals);
   const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
   const sym = cur || "";
-  return lo === hi ? `${sym}${fmt(lo)}` : `${sym}${fmt(lo)} – ${sym}${fmt(hi)}`;
+  return lo === hi ? `${sym}${fmt(lo)}` : `${sym}${fmt(hi)} – ${sym}${fmt(lo)}`;
 }
 
 function optImg(url: string | undefined, w = 1080, q = 70): string {
@@ -56,6 +56,22 @@ export default function LookDetailsPage() {
 
   const [look, setLook] = useState<Look | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Dupes are fetched ON DEMAND when this list opens — from the DB if already
+  // cached, otherwise generated once via visual search and saved. So looks nobody
+  // opens cost nothing.
+  const [dupes, setDupes] = useState<Look["alternatives"] | null>(null);
+  const [dupesLoading, setDupesLoading] = useState(false);
+  // Progress bar while the dupe finder works (shows what's happening).
+  const DUPE_STEPS = ["Analyzing the look…", "Searching every store…", "Matching colour & fabric…", "Ranking from luxe to budget…"];
+  const [progress, setProgress] = useState(0);
+  const [stepIdx, setStepIdx] = useState(0);
+  useEffect(() => {
+    if (!dupesLoading) return;
+    setProgress(8); setStepIdx(0);
+    const p = setInterval(() => setProgress((v) => Math.min(v + Math.random() * 11 + 3, 92)), 320);
+    const s = setInterval(() => setStepIdx((i) => (i + 1) % DUPE_STEPS.length), 1100);
+    return () => { clearInterval(p); clearInterval(s); setProgress(100); };
+  }, [dupesLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Express-Interest contact form (for looks without a buyable ladder)
   const [showContact, setShowContact] = useState(false);
@@ -84,6 +100,18 @@ export default function LookDetailsPage() {
       })
       .catch(() => setIsLoading(false));
   }, [lookId]);
+
+  // On-demand dupe fetch: cache-first (DB), else generate + save. Fires once when
+  // the look's shop list opens.
+  useEffect(() => {
+    if (!look?.id) return;
+    setDupesLoading(true);
+    fetch("/api/look-dupes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lookId: look.id }) })
+      .then(r => r.json())
+      .then(d => setDupes(Array.isArray(d.alternatives) ? d.alternatives : []))
+      .catch(() => setDupes([]))
+      .finally(() => setDupesLoading(false));
+  }, [look?.id]);
 
   const handleContact = async () => {
     if (!look || !buyerName.trim() || !buyerPhone.trim()) return;
@@ -127,11 +155,12 @@ export default function LookDetailsPage() {
   const isSoldOut = look.inStock === false;
   const displayPrice = look.salePrice ?? look.price;
   const hero = look.frontImageUrl ?? look.imageUrl;
-  // Lowest price first — this page is the "shop it cheaper" ladder.
-  const alts = [...(look.alternatives ?? [])].sort((a, b) => {
-    const av = typeof a.priceValue === "number" && a.priceValue > 0 ? a.priceValue : Infinity;
-    const bv = typeof b.priceValue === "number" && b.priceValue > 0 ? b.priceValue : Infinity;
-    return av - bv;
+  // The ladder is the on-demand dupes (DB cache or freshly generated), most
+  // expensive first.
+  const alts = [...(dupes ?? [])].sort((a, b) => {
+    const av = typeof a.priceValue === "number" && a.priceValue > 0 ? a.priceValue : -1;
+    const bv = typeof b.priceValue === "number" && b.priceValue > 0 ? b.priceValue : -1;
+    return bv - av;
   });
 
   return (
@@ -145,15 +174,7 @@ export default function LookDetailsPage() {
         <p className="truncate text-sm font-black text-black">Details</p>
       </div>
 
-      {/* Hero */}
-      <div className="px-4 pt-4">
-        <div className="overflow-hidden rounded-3xl bg-black/5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={optImg(hero, 1080)} alt={look.name} className="aspect-[3/4] w-full object-cover" />
-        </div>
-      </div>
-
-      {/* Product info */}
+      {/* Product info — compact: small reference thumb + name (no big hero) */}
       <div className="px-4 pt-4">
         <button type="button"
           onClick={() => { if (look.curatorId) router.push(`/curator/${look.curatorId}`); }}
@@ -165,7 +186,15 @@ export default function LookDetailsPage() {
           <span className="text-xs font-black text-black/50">{look.curatorName || look.storeName || look.storeSlug}</span>
         </button>
 
-        <h1 className="text-2xl font-black leading-tight text-black">{look.name}</h1>
+        <div className="flex gap-3">
+          <span className="h-24 w-20 shrink-0 overflow-hidden rounded-2xl bg-black/5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={hero} alt=""
+              onError={(e) => { const el = e.currentTarget; if (!el.dataset.proxied) { el.dataset.proxied = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(hero)}`; } }}
+              className="h-full w-full object-cover" />
+          </span>
+          <h1 className="min-w-0 flex-1 text-xl font-black leading-tight text-black">{look.name}</h1>
+        </div>
 
         {/* Price range across the buyable dupes (the AI hero itself isn't for sale) */}
         {(() => {
@@ -173,7 +202,7 @@ export default function LookDetailsPage() {
           if (range) {
             return (
               <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-[11px] font-black uppercase tracking-[0.12em] text-black/40">Shop the look</span>
+                <span className="text-[11px] font-black uppercase tracking-[0.12em] text-black/40">Bandit the look</span>
                 <span className="text-xl font-black text-black">{range}</span>
               </div>
             );
@@ -201,27 +230,54 @@ export default function LookDetailsPage() {
         )}
       </div>
 
-      {/* Price ladder */}
+      {/* Progress bar while the dupes are found on demand — shows what's happening */}
+      {dupesLoading && alts.length === 0 && (
+        <div className="px-4 pt-6">
+          <div className="mb-2 flex items-center gap-2 text-[12px] font-bold text-black/55">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> {DUPE_STEPS[stepIdx]}
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/10">
+            <div className="h-full rounded-full bg-black transition-all duration-300 ease-out" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+      )}
       {alts.length > 0 && (
         <div className="px-4 pt-6">
           <div className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-black/40">
-            <ShoppingBag className="h-3.5 w-3.5" /> Shop it cheaper — lowest price first
+            <ShoppingBag className="h-3.5 w-3.5" /> Bandit the look — luxe to budget
           </div>
           <div className="grid gap-2.5">
-            {alts.map((a, i) => (
-              <a key={i} href={a.link} target="_blank" rel="noopener noreferrer sponsored"
-                className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-black/10 bg-white p-2.5 active:scale-[0.99] transition-transform">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={a.thumbnail} alt=""
-                  onError={(e) => { const el = e.currentTarget; if (!el.dataset.proxied) { el.dataset.proxied = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(a.thumbnail)}`; } }}
-                  className="h-28 w-24 shrink-0 rounded-xl bg-black/5 object-cover" />
-                <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-sm font-black text-black">{a.title || a.source || "Anbieter"}</p>
-                  {a.source && <p className="mt-0.5 truncate text-[11px] font-bold text-black/40">{a.source}</p>}
+            {alts.map((a, i) => {
+              const altIdx = (dupes ?? []).findIndex(x => x.link === a.link && x.thumbnail === a.thumbnail);
+              return (
+                <div key={i} className="flex w-full min-w-0 gap-3 rounded-2xl border border-black/10 bg-white p-2.5">
+                  <a href={a.link} target="_blank" rel="noopener noreferrer sponsored" className="shrink-0 active:scale-95 transition-transform">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={a.thumbnail} alt=""
+                      onError={(e) => { const el = e.currentTarget; if (!el.dataset.proxied) { el.dataset.proxied = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(a.thumbnail)}`; } }}
+                      className="h-28 w-24 rounded-xl bg-black/5 object-cover" />
+                  </a>
+                  <div className="flex min-w-0 flex-1 flex-col gap-2 py-0.5">
+                    <a href={a.link} target="_blank" rel="noopener noreferrer sponsored" className="min-w-0 active:opacity-70">
+                      <p className="line-clamp-2 text-sm font-black text-black">{a.title || a.source || "Anbieter"}</p>
+                      {a.source && <p className="mt-0.5 truncate text-[11px] font-bold text-black/40">{a.source}</p>}
+                    </a>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-base font-black text-ink">{a.price || "—"}</span>
+                      <a href={a.link} target="_blank" rel="noopener noreferrer sponsored"
+                        className="flex shrink-0 items-center gap-1.5 rounded-full bg-black px-4 py-1.5 text-[12px] font-black text-white active:scale-95 transition-transform">
+                        <ShoppingBag className="h-3.5 w-3.5" /> Shop now
+                      </a>
+                    </div>
+                    <button type="button"
+                      onClick={() => router.push(`/tryon/${look.id}${altIdx >= 0 ? `?alt=${altIdx}` : ""}`)}
+                      className="flex w-full items-center justify-center gap-1.5 rounded-full border border-black/15 bg-white px-3.5 py-2 text-[12px] font-black text-black active:scale-95 transition-transform">
+                      <Sparkles className="h-3.5 w-3.5" /> Try-on · 2 Credits
+                    </button>
+                  </div>
                 </div>
-                <span className="shrink-0 text-base font-black text-ink">{a.price || "ansehen →"}</span>
-              </a>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

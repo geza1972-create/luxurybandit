@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
@@ -28,6 +28,8 @@ export type FeedLook = {
   alternatives?: { title?: string; link?: string; source?: string; thumbnail?: string; price?: string; priceValue?: number; currency?: string }[];
   price?: string;
   salePrice?: string;
+  buyUrl?: string;
+  storeName?: string;
 };
 
 type ShopAlt = NonNullable<FeedLook["alternatives"]>[number];
@@ -41,7 +43,7 @@ function priceRange(look: FeedLook): string | null {
     const cur = Object.keys(byCur).sort((a, b) => byCur[b].length - byCur[a].length)[0];
     const v = byCur[cur]; const lo = Math.min(...v), hi = Math.max(...v);
     const f = (n: number) => Number.isInteger(n) ? String(n) : n.toFixed(2);
-    return lo === hi ? `${cur}${f(lo)}` : `${cur}${f(lo)}–${cur}${f(hi)}`;
+    return lo === hi ? `${cur}${f(lo)}` : `${cur}${f(hi)}–${cur}${f(lo)}`;
   }
   const raw = String(look.salePrice ?? look.price ?? "").trim();
   if (!raw) return null;
@@ -62,7 +64,7 @@ function RailButton({ icon, label, active, onClick }: { icon: React.ReactNode; l
   );
 }
 
-function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment: (look: FeedLook) => void; muted: boolean; setMuted: (fn: (m: boolean) => boolean) => void }) {
+function Slide({ look, onComment, muted, setMuted, index, onActive }: { look: FeedLook; onComment: (look: FeedLook) => void; muted: boolean; setMuted: (fn: (m: boolean) => boolean) => void; index: number; onActive: (i: number) => void }) {
   const router = useRouter();
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(look.likeCount ?? 0);
@@ -76,10 +78,22 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
   const carouselRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const captionRef = useRef<HTMLParagraphElement>(null);
-  // Carousel order: curator try-on VIDEOS first (most engaging — what the user
-  // asked for), then the look's own video, the product image, the curator try-on
-  // photos, and finally the shop options.
-  const shopAlts = (look.alternatives ?? []).filter(a => a?.thumbnail && a?.link).slice(0, 8);
+  // Carousel order: ALL curator-created content first — try-on VIDEOS, then try-on
+  // PHOTOS (most engaging — what the user asked for) — then the look's own video,
+  // the product image, and finally the shop options.
+  // Shop options: dedupe by link, then most expensive first (items without a
+  // price go last) — a clean high→low range instead of a jumble.
+  const shopAlts = (() => {
+    const seen = new Set<string>();
+    return (look.alternatives ?? [])
+      .filter(a => a?.thumbnail && a?.link && !seen.has(a.link!) && seen.add(a.link!))
+      .sort((a, b) => {
+        const av = typeof a.priceValue === "number" && a.priceValue > 0 ? a.priceValue : -1;
+        const bv = typeof b.priceValue === "number" && b.priceValue > 0 ? b.priceValue : -1;
+        return bv - av;
+      })
+      .slice(0, 8);
+  })();
   const community = (look.communityTryOns ?? []).filter(c => c?.imageUrl);
   const communityVideos = community
     .filter(c => c.videoUrl)
@@ -93,9 +107,9 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
     | { type: "product"; alt: ShopAlt }
   )[] = [
     ...communityVideos,
+    ...communityPhotos,
     ...(look.videoUrl ? [{ type: "video" as const }] : []),
     { type: "image" as const },
-    ...communityPhotos,
     ...shopAlts.map(a => ({ type: "product" as const, alt: a })),
   ];
   // How many people have tried this look on (distinct names, else photo count).
@@ -126,6 +140,10 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
     return () => obs.disconnect();
   }, []);
 
+  // When this slide scrolls into view, tell the feed to switch the soundtrack to
+  // this slide's track (resuming, not restarting).
+  useEffect(() => { if (inView) onActive(index); }, [inView]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Drive ALL videos (curator + community) from visibility + carousel position +
   // global mute: only the on-screen, active video plays; every other one is silent.
   // Also called from the videos' onCanPlay so a clip that wasn't buffered yet when
@@ -135,7 +153,9 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
       if (!v) continue;
       const isActiveVideo = inView && Number(idxStr) === active;
       if (isActiveVideo) {
-        v.muted = muted;
+        // Videos always play silent — the feed soundtrack is the only audio, so
+        // baked-in per-clip music (Pixverse) never clashes with it.
+        v.muted = true;
         void v.play().catch(() => {});
       } else {
         v.pause();
@@ -297,6 +317,27 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
             </a>
           </div>
         )}
+        {/* Main product image → its own buy card so the user knows what they see:
+            "Shop now" when there's a shop link, otherwise a simple Details link. */}
+        {am?.type === "image" && (
+          <div className="mb-2 flex items-center gap-3 rounded-2xl border border-black/10 bg-black/[0.02] p-2.5">
+            <div className="min-w-0 flex-1">
+              <p className="line-clamp-1 text-[13px] font-black text-black">{look.name}</p>
+              <p className="mt-0.5 truncate text-[12px] font-bold text-black/45">{[look.storeName, look.salePrice || look.price || range].filter(Boolean).join(" · ") || "The original piece"}</p>
+            </div>
+            {look.buyUrl ? (
+              <a href={look.buyUrl} target="_blank" rel="noopener noreferrer"
+                className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
+                Shop now →
+              </a>
+            ) : (
+              <button type="button" onClick={() => router.push(`${detail}/details`)}
+                className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full border border-black/15 bg-white px-5 text-sm font-black text-black active:scale-95 transition-transform">
+                Details →
+              </button>
+            )}
+          </div>
+        )}
         <p ref={captionRef} className={`text-[13px] leading-snug text-black ${expanded ? "" : "line-clamp-2"}`}>
           <span className="text-black/45">{look.aiCreated ? "Created by " : "Curated by "}</span>
           <button type="button" onClick={() => look.curatorId && router.push(`/curator/${look.curatorId}`)} className="font-black">{look.curatorName || "LuxuryBandit"}</button>
@@ -326,13 +367,13 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
         )}
         <div className="mt-2.5 flex items-center gap-2">
           <button type="button" onClick={() => router.push(tryOnHref)}
-            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-black text-sm font-black text-white active:scale-95 transition-transform">
-            <Sparkles className="h-4 w-4" /> Try This Look
+            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform">
+            <Sparkles className="h-4 w-4" /> Try This Look · 2 Credits
           </button>
           <TryOnQR lookId={look.id} lookName={look.name} variant="icon" />
           <button type="button" onClick={() => router.push(`${detail}/details`)}
-            className="flex h-11 items-center justify-center rounded-full border border-black/15 bg-white px-5 text-sm font-black text-black active:scale-95 transition-transform">
-            Shop the Look
+            className="flex h-11 shrink-0 items-center justify-center rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
+            Bandit the look!
           </button>
         </div>
       </div>
@@ -437,9 +478,49 @@ function CommentsSheet({ look, onClose }: { look: FeedLook; onClose: () => void 
 
 export default function HomeFeed({ looks }: { looks: FeedLook[] }) {
   const [commentsFor, setCommentsFor] = useState<FeedLook | null>(null);
-  // One global sound switch for the whole feed — so scrolling never leaves an
-  // off-screen video audible, and the mute preference carries to the next video.
+  // One global sound switch for the whole feed. The audio is a single looping
+  // soundtrack (drop your track at public/feed-music.mp3) — consistent across all
+  // clips, since Kling videos are silent and we keep every video muted.
   const [muted, setMuted] = useState(true);
+  const mutedRef = useRef(true); mutedRef.current = muted;
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const tracksRef = useRef<string[]>([]);
+  const curTrack = useRef(-1);
+  const positions = useRef<Record<number, number>>({}); // per-track playback position
+  // Pull the mp3s from /public and shuffle them once.
+  useEffect(() => {
+    fetch("/api/feed-music").then(r => r.json())
+      .then(d => { tracksRef.current = [...(d.tracks ?? [])].sort(() => Math.random() - 0.5); })
+      .catch(() => {});
+  }, []);
+
+  // Switch the soundtrack to a given track, RESUMING from where it last paused
+  // (so each track continues its sequence instead of restarting).
+  const playTrack = useCallback((trackIdx: number) => {
+    const a = audioRef.current, t = tracksRef.current;
+    if (!a || !t.length || trackIdx === curTrack.current) return;
+    if (curTrack.current >= 0) positions.current[curTrack.current] = a.currentTime || 0;
+    curTrack.current = trackIdx;
+    a.src = t[trackIdx];
+    a.volume = 0.5;
+    const resume = positions.current[trackIdx] || 0;
+    const onMeta = () => { try { a.currentTime = resume; } catch { /**/ } if (!mutedRef.current) void a.play().catch(() => {}); a.removeEventListener("loadedmetadata", onMeta); };
+    a.addEventListener("loadedmetadata", onMeta);
+  }, []);
+
+  // Active slide → its track (slideIndex % N) so scrolling alternates tracks.
+  const handleActive = useCallback((slideIdx: number) => {
+    const t = tracksRef.current;
+    if (t.length) playTrack(slideIdx % t.length);
+  }, [playTrack]);
+
+  // Global mute toggle gates the whole soundtrack.
+  useEffect(() => {
+    const a = audioRef.current; if (!a) return;
+    if (muted) { if (curTrack.current >= 0) positions.current[curTrack.current] = a.currentTime || 0; a.pause(); }
+    else if (curTrack.current < 0 && tracksRef.current.length) playTrack(0);
+    else void a.play().catch(() => {});
+  }, [muted, playTrack]);
   // Newest first — fresh curator posts always surface at the top of the feed.
   const feed = [...looks].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
 
@@ -454,8 +535,12 @@ export default function HomeFeed({ looks }: { looks: FeedLook[] }) {
   return (
     <>
       <div className="h-[100dvh] w-full snap-y snap-mandatory overflow-y-scroll overscroll-contain bg-black [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {feed.map(look => <Slide key={look.id} look={look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} />)}
+        {feed.map((look, i) => <Slide key={look.id} look={look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} index={i} onActive={handleActive} />)}
       </div>
+      {/* Slide-coupled feed soundtrack — shuffled /public mp3s, the track changes
+          as you scroll and resumes where it left off. Only audio source (videos muted). */}
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio ref={audioRef} preload="auto" loop />
       {commentsFor && <CommentsSheet look={commentsFor} onClose={() => setCommentsFor(null)} />}
     </>
   );

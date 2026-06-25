@@ -1090,6 +1090,22 @@ export async function POST(request: Request) {
       const availableSizes = hasField("availableSizes")
         ? (Array.isArray(payload.availableSizes) ? payload.availableSizes.map((size) => String(size).trim()).filter(Boolean) : [])
         : (existingLook.availableSizes ?? []);
+      // Admin may replace the shop options (e.g. swap brand-catalogue items for
+      // real look-alike dupes). Same shape as upload-look's alternatives.
+      const altInput = hasField("alternatives") && Array.isArray((payload as any).alternatives)
+        ? (payload as any).alternatives
+            .filter((a: any) => a && typeof a.link === "string" && typeof a.thumbnail === "string")
+            .slice(0, 12)
+            .map((a: any) => ({
+              title: String(a.title ?? "").slice(0, 200),
+              link: String(a.link),
+              source: a.source ? String(a.source).slice(0, 80) : undefined,
+              thumbnail: String(a.thumbnail),
+              price: a.price ? String(a.price).slice(0, 40) : undefined,
+              priceValue: typeof a.priceValue === "number" ? a.priceValue : undefined,
+              currency: a.currency ? String(a.currency).slice(0, 8) : undefined,
+            }))
+        : undefined;
       const backImagePath = payload.backImage?.startsWith("data:image/")
         ? await uploadTryThisLookImage("looks", payload.backImage)
         : undefined;
@@ -1198,6 +1214,8 @@ export async function POST(request: Request) {
           ...(adminRequest && typeof payload.curatorId === "string" && payload.curatorId.trim()
             ? { curatorId: payload.curatorId.trim() }
             : {}),
+          // Admin may replace the shop options (vetted look-alike dupes).
+          ...(altInput ? { alternatives: altInput } : {}),
           availabilityNote: availabilityNote || undefined,
           deliveryTime: deliveryTime || undefined,
           productNote: productNote || undefined,
