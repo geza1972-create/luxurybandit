@@ -158,7 +158,9 @@ export async function POST(request: Request) {
   if ("error" in owned) return NextResponse.json({ error: owned.error }, { status: owned.status });
   const { state, look } = owned;
 
-  const imgUrl = (look as any).frontImageUrl ?? look.imageUrl;
+  // Use || not ?? — the store hydrates these as "" (empty string), not undefined,
+  // and "" ?? x keeps the empty string while "" || x correctly falls through.
+  const imgUrl = (look as any).frontImageUrl || look.imageUrl;
   if (!imgUrl) return NextResponse.json({ error: "Look has no image." }, { status: 400 });
 
   try {
@@ -185,7 +187,7 @@ export async function POST(request: Request) {
       if (!srcBlob) {
         const curator = (state.curators ?? []).find((c) => c.id === (look as any).curatorId);
         const personUrl = curator?.photoPath ? await getSignedUrl((curator as any).photoPath) : (curator as any)?.photoUrl;
-        const garmentUrl = (look as any).garmentFrontImageUrl ?? imgUrl;
+        const garmentUrl = (look as any).garmentFrontImageUrl || imgUrl;
         if (personUrl) {
           // OpenAI first; if it refuses (e.g. revealing pieces), fall back to FASHN.
           let dataUrl = await tryOnGarment(garmentUrl, personUrl);
