@@ -179,13 +179,11 @@ export default function CuratorPublicPage() {
           const fn = profile.firstName || name;
           const hasOriginal = looks.some(l => l.aiCreated);
           const hasCurated = looks.some(l => !l.aiCreated);
-          const hasSelftest = tryons.some(t => t.lookId && ownLookIds.has(t.lookId));
-          const hasTryon = tryons.some(t => !(t.lookId && ownLookIds.has(t.lookId)));
+          const hasTryon = tryons.length > 0;
           const rows: { badge: ReactNode; text: string }[] = [];
           if (hasOriginal) rows.push({ badge: <span className="rounded-full bg-black px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">✦ Original</span>, text: `An AI fashion look ${fn} created.` });
           if (hasCurated) rows.push({ badge: <span className="rounded-full bg-black/[0.06] px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-black/60">Curated</span>, text: `A real product ${fn} hand-picked for you.` });
-          if (hasSelftest) rows.push({ badge: <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">✓ Self-test</span>, text: `${fn} wore their own creation.` });
-          if (hasTryon) rows.push({ badge: <span className="rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">Tryon</span>, text: `${fn} tried this look on.` });
+          if (hasTryon) rows.push({ badge: <span className="rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">Try-on</span>, text: `${fn} tried this look on.` });
           if (!rows.length) return null;
           return (
             <div className="mx-4 mb-3 grid gap-1.5 rounded-xl border border-black/8 bg-black/[0.015] px-3 py-2.5">
@@ -236,11 +234,7 @@ export default function CuratorPublicPage() {
                   <img src={optImg(t.imageUrl)} alt={t.lookName ?? "Try-on"} loading="lazy" decoding="async"
                     onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
                     className="h-full w-full object-cover object-top" />
-                  {t.lookId && ownLookIds.has(t.lookId) ? (
-                    <span className="absolute left-1.5 bottom-1.5 rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">✓ Self-test</span>
-                  ) : (
-                    <span className="absolute left-1.5 bottom-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">Tryon</span>
-                  )}
+                  <span className="absolute left-1.5 bottom-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">Try-on</span>
                   {t.videoUrl && (
                     <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur"><Play className="h-3 w-3 fill-current" /></span>
                   )}
