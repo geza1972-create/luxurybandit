@@ -1105,7 +1105,9 @@ function StoresPage() {
       items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, brand: c.brand, createdAt: c.createdAt ?? "", name: c.customerName || c.lookName, price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName });
     }
     items.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
-    return items;
+    // "The A List" is a wall of try-ons only — people showing the looks ON them.
+    // (The shoppable looks live in the Curator Feeds.)
+    return items.filter(it => it.kind === "tryon");
   }, [looks, communityItems]);
 
   // Distinct curators with content (looks or try-ons) — for the header count.
