@@ -942,20 +942,26 @@ export default function AdminTrends() {
                   })}
                 </div>
               </div>
-              {myFilters.map((g) => (
-                <div key={g.label}>
-                  <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-ink/35">{g.label}</span>
-                  <div className="mt-1 flex flex-wrap gap-1.5">
-                    {g.tags.map((tag) => {
-                      const active = activeTags.includes(tag);
-                      return (
-                        <button key={tag} type="button" onClick={() => toggleFilter(tag)}
-                          className={`rounded-full px-3 py-1.5 text-xs font-black transition ${active ? "bg-black text-white" : "border border-black/12 bg-white text-ink/45 hover:border-black"}`}>{tag}</button>
-                      );
-                    })}
+              {myFilters.map((g) => {
+                // The curator's saved brands stay visible (their taste), but here they
+                // act as a quick-pick that fills the Brand dropdown above — so brand is
+                // chosen in ONE place, no confusing duplicate.
+                const isBrands = g.label === "Brands";
+                return (
+                  <div key={g.label}>
+                    <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-ink/35">{isBrands ? "Favourite brands" : g.label}</span>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {g.tags.map((tag) => {
+                        const active = isBrands ? pickedBrand === tag : activeTags.includes(tag);
+                        return (
+                          <button key={tag} type="button" onClick={() => isBrands ? setPickedBrand(active ? "" : tag) : toggleFilter(tag)}
+                            className={`rounded-full px-3 py-1.5 text-xs font-black transition ${active ? "bg-black text-white" : "border border-black/12 bg-white text-ink/45 hover:border-black"}`}>{tag}</button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         )}
