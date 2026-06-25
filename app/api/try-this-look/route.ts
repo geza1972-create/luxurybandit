@@ -320,6 +320,8 @@ export async function GET(request: Request) {
       const g = state.generations.find(gen => gen.id === generationId);
       if (!g || (g as any).hidden) return NextResponse.json({ error: "Post not found." }, { status: 404 });
       const look = lookById.get(g.lookId);
+      const lookCuratorId = (look as any)?.curatorId ?? "";
+      const lookCurator = lookCuratorId ? (state.curators ?? []).find(c => c.id === lookCuratorId) : undefined;
       return NextResponse.json({
         post: {
           id: g.id,
@@ -333,6 +335,8 @@ export async function GET(request: Request) {
           storeName: g.storeName ?? look?.storeName ?? "",
           storeSlug: (look as any)?.storeSlug ?? "",
           lookThumbUrl: look?.frontImageUrl ?? look?.imageUrl ?? "",
+          curatorId: lookCuratorId || undefined,
+          curatorName: lookCurator ? [lookCurator.firstName, lookCurator.lastName].filter(Boolean).join(" ") : undefined,
           creatorDeleted: (g as any).creatorDeleted ?? false,
           createdAt: g.createdAt,
         }

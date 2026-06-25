@@ -1353,9 +1353,9 @@ function StoresPage() {
                     <span className="absolute left-1.5 bottom-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">
                       {it.kind === "tryon"
                         ? (it.videoUrl ? "Try-on · video" : "Try-on")
-                        : it.videoUrl
-                          ? (it.aiCreated ? "✦ AI video" : "✓ Self-test")
-                          : "Look"}
+                        : it.aiCreated
+                          ? "✦ Original"
+                          : "Curated"}
                     </span>
                   </button>
                   <div className="flex items-center gap-1.5 px-2 pt-1 pb-1.5 bg-white">

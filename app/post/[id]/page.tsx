@@ -19,6 +19,8 @@ type Post = {
   storeName: string;
   storeSlug: string;
   lookThumbUrl: string;
+  curatorId?: string;
+  curatorName?: string;
   creatorDeleted?: boolean;
   createdAt: string;
 };
@@ -347,7 +349,13 @@ export default function PostPage() {
               <p className="truncate text-xs font-black text-black">{post.lookName}</p>
               {post.storeName && <p className="truncate text-[10px] font-bold text-black/40">{post.storeName}</p>}
             </div>
-            <span className="text-[10px] font-black text-black/40 shrink-0">Try it →</span>
+            {post.curatorName ? (
+              <span className="shrink-0 max-w-[42%] text-right text-[10px] font-bold leading-tight text-black/45">
+                Curated by <span className="font-black text-black/70">{post.curatorName}</span>
+              </span>
+            ) : (
+              <span className="text-[10px] font-black text-black/40 shrink-0">Try it →</span>
+            )}
           </a>
         )}
 
