@@ -298,8 +298,9 @@ function Slide({ look, onComment, muted, setMuted }: { look: FeedLook; onComment
           </div>
         )}
         <p ref={captionRef} className={`text-[13px] leading-snug text-black ${expanded ? "" : "line-clamp-2"}`}>
-          <button type="button" onClick={() => look.curatorId && router.push(`/curator/${look.curatorId}`)} className="font-black">{look.curatorName || "LuxuryBandit"}</button>{" "}
-          {caption || look.name}
+          <span className="text-black/45">{look.aiCreated ? "Created by " : "Curated by "}</span>
+          <button type="button" onClick={() => look.curatorId && router.push(`/curator/${look.curatorId}`)} className="font-black">{look.curatorName || "LuxuryBandit"}</button>
+          {caption ? <> — {caption}</> : null}
         </p>
         {clamped && (
           <button type="button" onClick={() => setExpanded(e => !e)} className="mt-0.5 text-[12px] font-bold text-black/40">
