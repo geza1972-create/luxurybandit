@@ -85,7 +85,9 @@ async function imageUrlToDataUrl(url: string): Promise<string> {
 
 // Try each candidate URL in order; return the first that yields a real image.
 async function firstValidImageDataUrl(urls: (string | undefined)[]): Promise<string> {
-  const candidates = urls.filter((u): u is string => !!u && /^https?:\/\//i.test(u));
+  // Allow same-origin relative URLs too (e.g. /api/img-proxy?... used to fetch
+  // CORS-blocked CDN thumbnails like the gstatic lingerie-card image).
+  const candidates = urls.filter((u): u is string => !!u && (/^https?:\/\//i.test(u) || u.startsWith("/")));
   for (const u of candidates) {
     try {
       return await imageUrlToDataUrl(u);
