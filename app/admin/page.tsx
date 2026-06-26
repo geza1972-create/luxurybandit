@@ -662,9 +662,16 @@ export default function AdminPage() {
                         : <span className="text-sm font-black text-ink">{g.name}</span>}
                       <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-cobalt/10 px-2.5 py-1 text-xs font-black text-cobalt"><UserPlus className="h-3.5 w-3.5" /> {g.followers.length}</span>
                     </div>
-                    <p className="mt-1 line-clamp-2 text-xs font-bold text-ink/55">
-                      {g.followers.slice(0, 20).join(", ")}{g.followers.length > 20 ? ` +${g.followers.length - 20} more` : ""}
-                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {g.followers.slice(0, 10).map((n, idx) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img key={idx} loading="lazy" src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(n)}&backgroundColor=f1f0ec,e3e0d8`}
+                          alt={n} title={n} className="h-9 w-9 rounded-full border border-black/10 bg-black/5 object-cover" />
+                      ))}
+                      {g.followers.length > 10 && (
+                        <span className="grid h-9 min-w-9 place-items-center rounded-full bg-black/5 px-1.5 text-[10px] font-black text-ink/50">+{g.followers.length - 10}</span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
