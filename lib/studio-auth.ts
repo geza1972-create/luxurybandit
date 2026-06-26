@@ -8,8 +8,20 @@ export type StudioAuth = { ok: boolean; curatorId?: string; isAdmin: boolean };
 export async function authorizeStudio(request: Request): Promise<StudioAuth> {
   const pin = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim();
 
-  // Admin via PIN header (matches the existing admin-* convention)
+  // Admin via PIN header (matches the existing admin-* convention).
   if (pin && request.headers.get("x-try-look-admin-pin") === pin) {
+    // The admin can "Act as" a curator (impersonation): keep admin privileges
+    // (no credit cap) but ATTRIBUTE the post to that curator so it shows on their
+    // profile. Without this the PIN short-circuited attribution → everything went
+    // to the house account.
+    const actingAs = request.headers.get("x-curator-id")?.trim();
+    if (actingAs) {
+      try {
+        const state = await readTryThisLookState();
+        const curator = (state.curators ?? []).find(c => c.id === actingAs);
+        if (curator) return { ok: true, isAdmin: true, curatorId: actingAs };
+      } catch { /* fall through to plain admin */ }
+    }
     return { ok: true, isAdmin: true };
   }
   // No PIN configured (local dev) → treat as admin

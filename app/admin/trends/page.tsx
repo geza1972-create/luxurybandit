@@ -694,6 +694,12 @@ export default function AdminTrends() {
   // A curator session present without an admin PIN → curator-facing chrome.
   const isCurator = !pin && !!getCuratorId();
   const curatorName = getCuratorName();
+  // Admin "Act as": PIN + a curator id → posting in that curator's name.
+  const actingAs = !!pin && !!getCuratorId();
+  const exitActingAs = () => {
+    try { localStorage.removeItem("lb_curator"); } catch { /* ignore */ }
+    window.location.reload();
+  };
 
   // Build the search from the active filters: one search per active brand
   // (refined by a couple of active style/colour terms), plus any free text.
@@ -914,6 +920,32 @@ export default function AdminTrends() {
               : "Produkt-Links von Partner-Shops einfügen → importieren → Ja/Nein. „Ja“ veröffentlicht den Look unter „LuxuryBandit“ in der Trends-Galerie, mit Shop-Optionen und Tryon."}
           </p>
         </header>
+
+        {/* Who am I — always show the active identity, especially when an admin is
+            acting in a curator's name (otherwise it's invisible who you post as). */}
+        {!isCurator && (
+          actingAs ? (
+            <section className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-3.5">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-200 text-base">🎭</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-black text-amber-800">Posting as {curatorName || "this curator"}</p>
+                <p className="text-[11px] font-bold text-amber-700/80">Looks, comments & messages you create here go out in their name.</p>
+              </div>
+              <button type="button" onClick={exitActingAs}
+                className="shrink-0 rounded-lg border border-amber-400 bg-white px-3 py-2 text-[11px] font-black text-amber-800 transition active:scale-[0.98] hover:bg-amber-100">
+                Exit → back to Admin
+              </button>
+            </section>
+          ) : (
+            <section className="mt-4 flex items-center gap-3 rounded-2xl border border-black/10 bg-white p-3.5 shadow-soft">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-cobalt/10 text-base">🛡️</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-black text-ink">LuxuryBandit Admin (house)</p>
+                <p className="text-[11px] font-bold text-ink/45">Looks you publish here go out under LuxuryBandit. To post as a curator, use “Act as” in Admin → Curators.</p>
+              </div>
+            </section>
+          )
+        )}
 
         {/* Credits — your allowance to prove yourself */}
         {isCurator && credits && (
