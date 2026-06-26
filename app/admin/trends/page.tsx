@@ -613,6 +613,26 @@ export default function AdminTrends() {
     setSavingNote("");
   };
   const loadMyLooks = () => fetch("/api/curator?mylooks=1", { headers: studioHeaders() }).then(r => r.json()).then((d: any) => setMyLooks(d.looks ?? [])).catch(() => {});
+
+  // My try-ons — the creator's own try-on generations (photo + optional video).
+  // These live in `state.generations` (separate from looks), so surface them here
+  // so a creator can find, download and post the videos they make.
+  const [myTryons, setMyTryons] = useState<{ id: string; lookId: string; imageUrl: string; videoUrl?: string; feed: boolean; lookName: string; createdAt: number }[]>([]);
+  const loadMyTryons = () => {
+    const id = getCuratorId();
+    if (!id) return Promise.resolve();
+    return fetch(`/api/try-this-look?curatorTryons=${encodeURIComponent(id)}`)
+      .then(r => r.json())
+      .then((d: { userGallery?: typeof myTryons }) => setMyTryons((d.userGallery ?? []).slice().sort((a, b) => b.createdAt - a.createdAt)))
+      .catch(() => {});
+  };
+  const [tryonFeedBusy, setTryonFeedBusy] = useState<string>("");
+  const toggleTryonFeed = async (genId: string, feed: boolean) => {
+    setTryonFeedBusy(genId);
+    setMyTryons(ts => ts.map(t => t.id === genId ? { ...t, feed } : t));
+    await fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "set-generation-feed", generationId: genId, feed }) }).catch(() => {});
+    setTryonFeedBusy("");
+  };
   // Edit a published look's brand (overrides name-based detection).
   const [brandDrafts, setBrandDrafts] = useState<Record<string, string>>({});
   const [savingBrand, setSavingBrand] = useState<string>("");
@@ -686,6 +706,7 @@ export default function AdminTrends() {
       if (getStoredPin() && !getCuratorId()) setMyFilters(DEFAULT_HOUSE_FILTERS);
     });
     void loadMyLooks();
+    void loadMyTryons();
   }, []);
 
   const toggleFilter = (tag: string) => {
@@ -1455,6 +1476,56 @@ export default function AdminTrends() {
               setCropTarget(null);
             }}
           />
+        )}
+
+        {/* My try-ons — the creator's own try-on photos + videos (separate from
+            looks). View, download, and post/unpost from the look's feed. */}
+        {myTryons.length > 0 && (
+          <section className="mt-5 rounded-lg border border-black/10 bg-white p-5 shadow-soft">
+            <div className="mb-4">
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-violet-700">My try-ons</span>
+                <span className="text-[11px] font-black uppercase tracking-[0.14em] text-ink/45">{myTryons.filter(t => t.videoUrl).length} with video · {myTryons.length} total</span>
+              </div>
+              <p className="mt-1.5 text-xs font-medium text-ink/50">Every try-on you make is saved here — nothing gets lost. Toggle <span className="font-black text-ink/70">In feed</span> to show/hide it on the look, download the file, or open it.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {myTryons.map((t) => (
+                <div key={t.id} className="overflow-hidden rounded-lg border border-black/10 bg-panel">
+                  <div className="relative aspect-[3/4] bg-black/5">
+                    {t.videoUrl ? (
+                      // eslint-disable-next-line jsx-a11y/media-has-caption
+                      <video src={t.videoUrl} poster={t.imageUrl || undefined} controls playsInline className="h-full w-full object-cover" />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={t.imageUrl} alt={t.lookName} className="h-full w-full object-cover" />
+                    )}
+                    {t.videoUrl && (
+                      <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">
+                        <Video className="h-2.5 w-2.5" /> Video
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-2">
+                    <p className="truncate text-[11px] font-bold text-ink/70">{t.lookName || "Try-on"}</p>
+                    <div className="mt-1.5 flex items-center justify-between gap-1">
+                      <button type="button"
+                        disabled={tryonFeedBusy === t.id}
+                        onClick={() => void toggleTryonFeed(t.id, !t.feed)}
+                        className={`flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-wide transition disabled:opacity-50 ${t.feed ? "bg-emerald-500 text-white" : "bg-black/10 text-ink/55"}`}>
+                        {tryonFeedBusy === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                        {t.feed ? "In feed" : "Hidden"}
+                      </button>
+                      <a href={t.videoUrl || t.imageUrl} download target="_blank" rel="noopener noreferrer"
+                        className="grid h-7 w-7 place-items-center rounded text-ink/55 transition hover:bg-black/5" title="Open / download">
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
         )}
 
         {/* Active online — the curator's published looks, with on/off */}

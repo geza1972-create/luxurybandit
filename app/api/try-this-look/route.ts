@@ -416,6 +416,7 @@ export async function GET(request: Request) {
           lookId: g.lookId,
           imageUrl: (g as any).imageUrl ?? "",
           videoUrl: (g as any).videoUrl ?? undefined,
+          feed: (g as any).feed !== false,
           customerName: (g as any).customerName ?? "",
           lookName: g.lookName ?? look?.name ?? "",
           storeName: g.storeName ?? look?.storeName ?? "",
