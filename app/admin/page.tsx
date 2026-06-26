@@ -187,12 +187,16 @@ export default function AdminPage() {
   // Impersonate a curator: set the local curator session so the Studio + try-on
   // run in their name (their x-curator-id → their credits & attribution). Opens
   // the Studio in a new tab; the admin session stays put in this tab.
-  const loginAs = (c: Curator, where: "studio" | "profile" = "studio") => {
+  const loginAs = (c: Curator, where: "studio" | "messages" | "feed" | "profile" = "studio") => {
     if (c.id === "house") return;
     try {
       window.localStorage.setItem("lb_curator", JSON.stringify({ id: c.id, firstName: c.firstName ?? "", email: c.email ?? "", style: c.style ?? "" }));
     } catch { /* ignore */ }
-    window.open(where === "studio" ? "/admin/trends" : `/curator/${c.id}`, "_blank");
+    const url = where === "studio" ? "/admin/trends"
+      : where === "messages" ? "/messages"
+      : where === "feed" ? "/stores"
+      : `/curator/${c.id}`;
+    window.open(url, "_blank");
   };
 
   // ── Look actions ──
@@ -499,16 +503,24 @@ export default function AdminPage() {
 
             <div className="grid gap-3 overflow-y-auto px-5 py-4">
               <div className="grid gap-2 rounded-xl border border-cobalt/25 bg-cobalt/[0.04] p-3">
-                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-cobalt"><LogIn className="h-3.5 w-3.5" /> Act as this curator</div>
-                <p className="text-[11px] font-bold text-ink/45">Opens the Studio signed in as {edit.firstName || "this curator"} — publishing, try-ons & credits run in their name. Your admin tab stays open.</p>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => loginAs(edit, "studio")}
-                    className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-black text-sm font-black text-white active:scale-95 transition">
-                    <LogIn className="h-4 w-4" /> Open Studio as {edit.firstName || "curator"}
+                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-cobalt"><LogIn className="h-3.5 w-3.5" /> Act as {edit.firstName || "this curator"}</div>
+                <p className="text-[11px] font-bold text-ink/45">Signs in as {edit.firstName || "this curator"} (new tab) — Studio, messages, comments, try-ons & credits all run in their name. Your admin tab stays open.</p>
+                <button type="button" onClick={() => loginAs(edit, "studio")}
+                  className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-black text-sm font-black text-white active:scale-95 transition">
+                  <LogIn className="h-4 w-4" /> Open Studio as {edit.firstName || "curator"}
+                </button>
+                <div className="grid grid-cols-3 gap-2">
+                  <button type="button" onClick={() => loginAs(edit, "messages")}
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-black/10 bg-white text-xs font-black text-ink active:scale-95 transition">
+                    Messages
+                  </button>
+                  <button type="button" onClick={() => loginAs(edit, "feed")}
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-black/10 bg-white text-xs font-black text-ink active:scale-95 transition">
+                    Comments
                   </button>
                   <button type="button" onClick={() => loginAs(edit, "profile")}
-                    className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-black/10 px-3 text-xs font-black text-ink active:scale-95 transition">
-                    Profile <ExternalLink className="h-3.5 w-3.5" />
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-black/10 bg-white text-xs font-black text-ink active:scale-95 transition">
+                    Profile
                   </button>
                 </div>
               </div>
