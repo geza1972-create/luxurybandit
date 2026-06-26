@@ -167,7 +167,7 @@ export type CuratorProfile = {
   photoPath?: string;         // storage path of the curator's photo
   photoUrl?: string;          // hydrated signed URL (read side only)
   instagram?: string;         // handle for promotion
-  status: "active" | "pending";
+  status: "active" | "pending" | "deactivated";
   createdAt: string;
   // Creator credits (communicated to creators as "credits", never money).
   // Missing credits → STARTER_CREDITS. See lib/curator-budget.ts.

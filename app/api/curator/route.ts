@@ -244,7 +244,23 @@ export async function POST(request: Request) {
     const state = await readTryThisLookState();
     const c = (state.curators ?? []).find(x => (x.email ?? "").trim().toLowerCase() === email) ?? null;
     if (!c) return NextResponse.json({ curator: null });
+    if (c.status === "deactivated") return jsonError("This account has been deactivated. Contact support.", 403);
     return NextResponse.json({ curator: { id: c.id, firstName: c.firstName, email: c.email, style: c.style } });
+  }
+
+  // Admin: activate / deactivate a curator account (deactivated = cannot sign in).
+  if (action === "set-curator-status") {
+    const adminPin = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim();
+    const isAdmin = adminPin && request.headers.get("x-try-look-admin-pin") === adminPin;
+    if (!isAdmin) return jsonError("Admin access required.", 401);
+    const id = String(payload.id ?? "").trim();
+    const next = payload.status === "deactivated" ? "deactivated" : "active";
+    const state = await readTryThisLookState();
+    const idx = (state.curators ?? []).findIndex(c => c.id === id);
+    if (idx < 0) return jsonError("Profile not found.", 404);
+    state.curators![idx] = { ...state.curators![idx], status: next };
+    await saveTryThisLookState(state);
+    return NextResponse.json({ ok: true, status: next });
   }
 
   // Activate/deactivate one of the curator's own looks (published on/off).
