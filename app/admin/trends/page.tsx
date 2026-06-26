@@ -1000,14 +1000,14 @@ export default function AdminTrends() {
           <button type="button" onClick={() => setMode(mode === "web" ? null : "web")}
             className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition active:scale-[0.99] ${mode === "web" ? "border-black bg-black text-white shadow-soft" : "border-black/12 bg-white text-ink hover:border-black/30"}`}>
             <Search className={`h-5 w-5 ${mode === "web" ? "text-white" : "text-ink/50"}`} />
-            <span className="text-sm font-black">Find products</span>
+            <span className="text-sm font-black">Find products online</span>
             <span className={`text-[11px] font-bold ${mode === "web" ? "text-white/70" : "text-ink/40"}`}>Search the web by your taste</span>
           </button>
           <button type="button" onClick={() => setMode(mode === "ai" ? null : "ai")}
             className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition active:scale-[0.99] ${mode === "ai" ? "border-black bg-black text-white shadow-soft" : "border-black/12 bg-white text-ink hover:border-black/30"}`}>
             <ImagePlus className={`h-5 w-5 ${mode === "ai" ? "text-white" : "text-ink/50"}`} />
             <span className="text-sm font-black">Create AI Fashion</span>
-            <span className={`text-[11px] font-bold ${mode === "ai" ? "text-white/70" : "text-ink/40"}`}>Garment + your photo → try-on</span>
+            <span className={`text-[11px] font-bold ${mode === "ai" ? "text-white/70" : "text-ink/40"}`}>Your photo on a model + garment → try-on</span>
           </button>
           <button type="button" onClick={() => setMode(mode === "link" ? null : "link")}
             className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition active:scale-[0.99] ${mode === "link" ? "border-black bg-black text-white shadow-soft" : "border-black/12 bg-white text-ink hover:border-black/30"}`}>
@@ -1126,42 +1126,51 @@ export default function AdminTrends() {
                 </div>
               </div>
             ) : (
-              <label className="group flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-black/15 bg-panel p-6 text-center transition cursor-pointer hover:border-black/30 hover:bg-black/[0.03]">
-                <ImagePlus className="h-6 w-6 text-ink/30" />
-                <span className="text-[11px] font-black text-ink/50">Your photo</span>
-                <span className="text-[10px] font-bold text-ink/30">tap to upload</span>
-                <input type="file" accept="image/*" className="sr-only"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) { setAiPersonFile(f); setAiResult(null); setAiError(""); } }} />
-              </label>
-            )}
-            {curatorPhotoUrl && !aiPersonFile && (
-              <button type="button"
-                onClick={async () => {
-                  try {
-                    const res = await fetch(curatorPhotoUrl);
-                    const blob = await res.blob();
-                    setAiPersonFile(new File([blob], "profile.jpg", { type: blob.type || "image/jpeg" }));
-                    setAiResult(null); setAiError("");
-                  } catch { setAiError("Couldn't load your profile photo."); }
-                }}
-                className="flex h-11 w-full items-center justify-center gap-3 rounded-lg bg-black text-sm font-black text-white transition active:bg-black/90">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={curatorPhotoUrl} alt="Profile" className="h-6 w-6 rounded-full object-cover" />
-                Use my profile photo
-              </button>
+              <div className="flex flex-col gap-2">
+                <span className="text-[11px] font-black uppercase tracking-[0.14em] text-ink/45">Model photo</span>
+                {curatorPhotoUrl && (
+                  <button type="button"
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(curatorPhotoUrl);
+                        const blob = await res.blob();
+                        setAiPersonFile(new File([blob], "profile.jpg", { type: blob.type || "image/jpeg" }));
+                        setAiResult(null); setAiError("");
+                      } catch { setAiError("Couldn't load your profile photo."); }
+                    }}
+                    className="flex h-11 w-full items-center justify-center gap-3 rounded-lg bg-black text-sm font-black text-white transition active:bg-black/90">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={curatorPhotoUrl} alt="Profile" className="h-6 w-6 rounded-full object-cover" />
+                    Use my profile photo
+                  </button>
+                )}
+                <label className="group flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-black/15 bg-panel p-6 text-center transition cursor-pointer hover:border-black/30 hover:bg-black/[0.03]">
+                  <ImagePlus className="h-6 w-6 text-ink/30" />
+                  <span className="text-[11px] font-black text-ink/50">{curatorPhotoUrl ? "Or upload another photo" : "Upload a photo"}</span>
+                  <span className="text-[10px] font-bold text-ink/30">tap to upload</span>
+                  <input type="file" accept="image/*" className="sr-only"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) { setAiPersonFile(f); setAiResult(null); setAiError(""); } }} />
+                </label>
+              </div>
             )}
 
-            {/* Garment photo — optional reference */}
+            {/* Garment photo or video — optional reference */}
             {aiGarmentFile ? (
               <div className="rounded-xl border border-black/12 bg-panel p-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={URL.createObjectURL(aiGarmentFile)} alt="Garment" className="mx-auto max-h-56 w-auto max-w-full rounded-lg object-contain" />
+                {aiGarmentFile.type.startsWith("video") ? (
+                  <video src={URL.createObjectURL(aiGarmentFile)} controls playsInline className="mx-auto max-h-56 w-auto max-w-full rounded-lg object-contain" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={URL.createObjectURL(aiGarmentFile)} alt="Garment" className="mx-auto max-h-56 w-auto max-w-full rounded-lg object-contain" />
+                )}
                 <p className="mt-2 truncate text-center text-[10px] font-bold text-ink/40">{aiGarmentFile.name}</p>
                 <div className="mt-2 flex gap-2">
-                  <button type="button" onClick={() => setCropTarget("garment")}
-                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-black/12 text-[11px] font-black text-ink/60 transition active:bg-black/5">
-                    <Crop className="h-3.5 w-3.5" /> Crop
-                  </button>
+                  {!aiGarmentFile.type.startsWith("video") && (
+                    <button type="button" onClick={() => setCropTarget("garment")}
+                      className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-black/12 text-[11px] font-black text-ink/60 transition active:bg-black/5">
+                      <Crop className="h-3.5 w-3.5" /> Crop
+                    </button>
+                  )}
                   <button type="button" onClick={() => { setAiGarmentFile(null); setAiResult(null); }}
                     className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-coral/30 text-[11px] font-black text-coral transition active:bg-coral/5">
                     <Trash2 className="h-3.5 w-3.5" /> Remove
@@ -1171,9 +1180,9 @@ export default function AdminTrends() {
             ) : (
               <label className="group flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-black/15 bg-panel p-6 text-center transition cursor-pointer hover:border-black/30 hover:bg-black/[0.03]">
                 <ImagePlus className="h-5 w-5 text-ink/30" />
-                <span className="text-[11px] font-black text-ink/50">Garment photo <span className="font-bold text-ink/30">· optional</span></span>
-                <span className="text-[10px] font-bold text-ink/30">add one to copy a specific item</span>
-                <input type="file" accept="image/*" className="sr-only"
+                <span className="text-[11px] font-black text-ink/50">Garment photo / video <span className="font-bold text-ink/30">· optional</span></span>
+                <span className="text-[10px] font-bold text-ink/30">add a photo or video to copy a specific item</span>
+                <input type="file" accept="image/*,video/*" className="sr-only"
                   onChange={e => { const f = e.target.files?.[0]; if (f) { setAiGarmentFile(f); setAiResult(null); setAiError(""); } }} />
               </label>
             )}
