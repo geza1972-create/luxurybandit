@@ -662,7 +662,9 @@ export default function AdminPage() {
                         : <span className="text-sm font-black text-ink">{g.name}</span>}
                       <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-cobalt/10 px-2.5 py-1 text-xs font-black text-cobalt"><UserPlus className="h-3.5 w-3.5" /> {g.followers.length}</span>
                     </div>
-                    <p className="mt-1 text-xs font-bold text-ink/55">{g.followers.join(", ")}</p>
+                    <p className="mt-1 line-clamp-2 text-xs font-bold text-ink/55">
+                      {g.followers.slice(0, 20).join(", ")}{g.followers.length > 20 ? ` +${g.followers.length - 20} more` : ""}
+                    </p>
                   </div>
                 ))}
               </div>

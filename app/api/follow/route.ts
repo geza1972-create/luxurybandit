@@ -50,7 +50,7 @@ export async function GET(request: Request) {
         id: f.id, createdAt: (f as any).createdAt, followeeType: f.followeeType, followeeSlug: f.followeeSlug,
         followeeName: followee ? `${(followee as any).firstName ?? ""} ${(followee as any).lastName ?? ""}`.trim() : f.followeeSlug,
         followeeCuratorId: followee?.id,
-        followerName: byId.get(rawFollower) || (f.followerId.startsWith("curator:") ? "Curator" : "Member"),
+        followerName: (f as any).followerName || byId.get(rawFollower) || (f.followerId.startsWith("curator:") ? "Curator" : "Member"),
         followerIsCurator: f.followerId.startsWith("curator:"),
       };
     });
