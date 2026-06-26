@@ -533,5 +533,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, credits: info });
   }
 
+  // Admin: give every curator a baseline follower count in one write. Varied so
+  // they don't all read the same number. min/max optional (defaults 112k–620k).
+  if (action === "boost-all-followers") {
+    const isAdmin = await isAdminRequest(request);
+    if (!isAdmin) return jsonError("Admin access required.", 401);
+    const min = Math.max(0, Math.floor(Number(payload.min) || 112000));
+    const max = Math.max(min, Math.floor(Number(payload.max) || 620000));
+    const state = await readTryThisLookState();
+    const curators = (state.curators ?? []).map(c => ({
+      ...c,
+      followerBoost: Math.round((min + Math.random() * (max - min)) / 100) * 100,
+    }));
+    await saveTryThisLookState({ ...state, curators });
+    return NextResponse.json({ ok: true, count: curators.length, min, max });
+  }
+
   return jsonError("Unknown action.");
 }
