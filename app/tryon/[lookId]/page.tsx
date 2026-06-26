@@ -321,6 +321,21 @@ export default function TryonPage() {
     }
   };
 
+  // Is THIS try-on a lingerie one (the look itself, or the chosen lingerie card)?
+  // Lingerie try-ons are NEVER auto-posted to the public A List and require an
+  // 18+/own-photo consent — they involve intimate imagery of an uploaded person.
+  const isLingerieTryon = () => {
+    if (!look) return false;
+    const p = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("alt") : null;
+    const i = p !== null && /^\d+$/.test(p) ? Number(p) : -1;
+    return look.lingerie === true || (i >= 0 && look.alternatives?.[i]?.lingerie === true);
+  };
+  const [lingerieConsent, setLingerieConsent] = useState(false);
+  useEffect(() => { try { setLingerieConsent(localStorage.getItem("lb_lingerie_consent") === "1"); } catch { /**/ } }, []);
+  const [showConsent, setShowConsent] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
+  const pendingPhotoRef = useRef<string | undefined>(undefined);
+
   // ── Generate ──
   // photoOverride lets callers (e.g. the resume-after-application flow) pass the
   // photo directly, avoiding a stale `userPhoto` closure right after setUserPhoto.
@@ -331,6 +346,12 @@ export default function TryonPage() {
     // result (optional), not before, to keep conversion high.
     if (!look) return;
     const photo = photoOverride ?? userPhoto;
+    // Lingerie gate: confirm 18+ & own photo before any intimate try-on.
+    if (isLingerieTryon() && !lingerieConsent) {
+      pendingPhotoRef.current = photo || undefined;
+      setShowConsent(true);
+      return;
+    }
     setError(null);
     setStep("generating");
     try {
@@ -408,7 +429,8 @@ export default function TryonPage() {
       // Post the try-on FIRST (so its generation is persisted), THEN start the video.
       // Running them in parallel raced the shared state save and lost the try-on.
       void (async () => {
-        if (showInFeed) await postToFeed(payload.image);
+        // Lingerie try-ons stay PRIVATE — never auto-posted to the public A List.
+        if (showInFeed && !isLingerieTryon()) await postToFeed(payload.image);
         await startTryonVideo(payload.image);
       })();
     } catch (err) {
@@ -526,6 +548,7 @@ export default function TryonPage() {
 
   // Toggle whether this try-on appears in the feed (consent).
   const toggleShowInFeed = async (next: boolean) => {
+    if (next && isLingerieTryon()) return; // lingerie is private — cannot be shared
     setShowInFeed(next);
     if (next && !sharedGenIdRef.current && resultImage) { await postToFeed(resultImage); return; }
     if (sharedGenIdRef.current) {
@@ -596,7 +619,7 @@ export default function TryonPage() {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "set-generation-name", generationId: sharedGenIdRef.current, customerName: name }),
         });
-      } else if (resultImage && showInFeed) {
+      } else if (resultImage && showInFeed && !isLingerieTryon()) {
         await postToFeed(resultImage);
         if (sharedGenIdRef.current) {
           await fetch("/api/try-this-look", {
@@ -932,8 +955,17 @@ export default function TryonPage() {
             )
           )}
 
-          {/* Show in feed — consent toggle (default on). Posts photo + video into
-              the look's feed carousel; off keeps it private to you. */}
+          {/* Show in feed — consent toggle. Lingerie try-ons are ALWAYS private and
+              can never be posted to the public A List (intimate imagery / consent). */}
+          {effectiveLingerie ? (
+            <div className="rounded-2xl border border-black/10 bg-black/[0.02] p-4 flex items-center gap-2.5">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/[0.06] text-base">🔒</span>
+              <div className="min-w-0">
+                <p className="text-sm font-black">Private — only you</p>
+                <p className="text-[12px] font-bold text-black/45">Lingerie try-ons are never posted publicly. Download or share it yourself.</p>
+              </div>
+            </div>
+          ) : (
           <div className="rounded-2xl border border-black/10 bg-black/[0.02] p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
@@ -967,6 +999,7 @@ export default function TryonPage() {
                 : "Hidden — only you can see this"}
             </p>
           </div>
+          )}
 
           {/* Try again */}
           <button onClick={() => { setResultImage(null); setUserPhoto(null); setVideoUrl(null); setVideoStatus("idle"); setVideoNote(null); setShowInFeed(true); sharedGenIdRef.current = ""; setSharedToGallery(false); setStep("upload"); }}
@@ -1160,6 +1193,34 @@ export default function TryonPage() {
                 Yes, use my profile photo
               </button>
               <button onClick={() => setShowPhotoConsent(false)}
+                className="flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold text-black/50 active:opacity-70">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Lingerie try-on: 18+ & own-photo consent gate (intimate imagery) */}
+      {showConsent && (
+        <>
+          <div className="fixed inset-0 z-[60] bg-black/55" onClick={() => { setShowConsent(false); setStep("confirm"); }} />
+          <div className="fixed inset-x-0 bottom-0 z-[61] rounded-t-2xl bg-white px-5 pt-5"
+            style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
+            <p className="text-base font-black text-black">Before this try-on</p>
+            <p className="mt-1 text-[13px] font-semibold leading-5 text-black/55">This is an intimate (lingerie) try-on. Please confirm:</p>
+            <label className="mt-3 flex items-start gap-2.5 cursor-pointer">
+              <input type="checkbox" checked={consentChecked} onChange={e => setConsentChecked(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0" />
+              <span className="text-[13px] font-bold text-black/75">I am at least <span className="text-black">18 years old</span> and the photo I use is <span className="text-black">of myself</span> — I will not upload anyone else&apos;s photo.</span>
+            </label>
+            <p className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-black/40">🔒 Lingerie try-ons stay private — never posted publicly.</p>
+            <div className="mt-4 grid gap-2">
+              <button type="button" disabled={!consentChecked}
+                onClick={() => { try { localStorage.setItem("lb_lingerie_consent", "1"); } catch { /**/ } setLingerieConsent(true); setShowConsent(false); void handleGenerate(pendingPhotoRef.current); }}
+                className="flex h-13 min-h-[52px] w-full items-center justify-center rounded-2xl bg-black text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
+                Agree &amp; continue
+              </button>
+              <button type="button" onClick={() => { setShowConsent(false); setStep("confirm"); }}
                 className="flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold text-black/50 active:opacity-70">
                 Cancel
               </button>
