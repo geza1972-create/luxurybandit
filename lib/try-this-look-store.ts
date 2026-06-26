@@ -607,7 +607,7 @@ async function writeTryThisLookState(state: TryThisLookState) {
     events: state.events.slice(0, 500),
     leads: state.leads.map(({ uploadedPhotoUrl, ...lead }) => lead).slice(0, 500),
     generations: state.generations.map(({ imageUrl, ...generation }) => generation).slice(0, 200),
-    comments: (state.comments ?? []).slice(0, 500),
+    comments: (state.comments ?? []).slice(0, 2000),
     follows: (state.follows ?? []).slice(0, 5000),
     messages: (state.messages ?? []).slice(0, 2000),
     curators: (state.curators ?? []).map(({ photoUrl, ...curator }) => curator).slice(0, 2000),

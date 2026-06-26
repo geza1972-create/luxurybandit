@@ -202,6 +202,45 @@ export async function POST(request: Request) {
     }
   }
 
+  // Admin: AI-reply a BATCH of comments in one go (concurrent generation, one save).
+  if (action === "bulk-comment-reply") {
+    if (!(await isAdminRequest(request))) return jsonError("Admin access required.", 401);
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return jsonError("ANTHROPIC_API_KEY missing.", 500);
+    const ids = Array.isArray((payload as any).ids) ? (payload as any).ids.map(String).slice(0, 40) : [];
+    if (!ids.length) return NextResponse.json({ replied: 0 });
+    const state = await readTryThisLookState();
+    const lookById = new Map(state.looks.map(l => [l.id, l]));
+    const curById = new Map((state.curators ?? []).map(c => [c.id, c]));
+    const targets = (state.comments ?? []).filter(c => ids.includes(c.id));
+    const client = new Anthropic({ apiKey });
+    const results = await Promise.all(targets.map(async (c) => {
+      const look = lookById.get(c.lookId);
+      const cur = (look as any)?.curatorId ? curById.get((look as any).curatorId) : undefined;
+      const curatorName = cur ? `${(cur as any).firstName ?? ""} ${(cur as any).lastName ?? ""}`.trim() : "LuxuryBandit";
+      const style = (cur as any)?.style ?? "";
+      const prompt =
+        `You are ${curatorName}, a fashion curator on LuxuryBandit${style ? ` (your style: ${style})` : ""}. ` +
+        `${(c as any).authorName || "Someone"} commented "${String((c as any).text ?? "").slice(0, 300)}" on your look "${look?.name ?? "a look"}". ` +
+        `Reply in FIRST PERSON as ${curatorName}: warm, on-brand, max 12 words, 1 emoji max, no hashtags, no quotation marks. Return ONLY the reply.`;
+      try {
+        const res = await client.messages.create({ model: SUGGEST_MODEL, max_tokens: 60, messages: [{ role: "user", content: prompt }] });
+        const reply = res.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map(b => b.text).join("").trim().replace(/^["']|["']$/g, "").slice(0, 200);
+        return reply ? { lookId: c.lookId, curatorName, reply } : null;
+      } catch { return null; }
+    }));
+    const now = new Date().toISOString();
+    let replied = 0;
+    if (!state.comments) state.comments = [];
+    for (const r of results) {
+      if (!r?.reply) continue;
+      state.comments.unshift({ id: `${Date.now()}-${crypto.randomUUID()}`, lookId: r.lookId, authorName: r.curatorName, text: r.reply, createdAt: now });
+      replied++;
+    }
+    await saveTryThisLookState(state);
+    return NextResponse.json({ replied });
+  }
+
   if (action === "apply") {
     const firstName = String(payload.firstName ?? "").trim();
     const lastName = String(payload.lastName ?? "").trim();

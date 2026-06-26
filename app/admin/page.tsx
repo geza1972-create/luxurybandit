@@ -249,8 +249,9 @@ export default function AdminPage() {
     } catch { setError("Network error."); }
     setSendingId("");
   };
-  // AI-reply ALL real (non-curator) comments automatically, as each look's curator.
-  // Admin posts → no WhatsApp. Click again to stop. Loops client-side (no timeout).
+  // AI-reply ALL real (non-curator) comments, as each look's curator. The server
+  // generates each 20-comment block in PARALLEL (one save per block) → fast. Admin
+  // posts → no WhatsApp. Click again to stop.
   const aiReplyAll = async () => {
     if (bulk.running) { stopBulk.current = true; return; }
     const slugN = (s?: string) => slugify(s ?? "");
@@ -258,16 +259,15 @@ export default function AdminPage() {
     if (!targets.length) { setError("Nothing to reply to."); return; }
     stopBulk.current = false; setError("");
     setBulk({ running: true, done: 0, total: targets.length });
-    for (let i = 0; i < targets.length; i++) {
+    const CHUNK = 20;
+    let done = 0;
+    for (let i = 0; i < targets.length; i += CHUNK) {
       if (stopBulk.current) break;
-      const c = targets[i];
-      try {
-        const cur = c.curatorId ? curatorById.get(c.curatorId) : undefined;
-        const g = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "comment-reply", curatorName: c.curatorName, style: cur?.style, lookName: c.lookName, commentText: c.text, authorName: c.authorName }) });
-        const gd = await g.json().catch(() => ({}));
-        if (gd.reply) await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "add-comment", lookId: c.lookId, text: gd.reply, authorName: c.curatorName || "LuxuryBandit" }) });
-      } catch { /* skip one */ }
-      setBulk(b => ({ ...b, done: i + 1 }));
+      const ids = targets.slice(i, i + CHUNK).map(c => c.id);
+      try { await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "bulk-comment-reply", ids }) }); }
+      catch { /* skip block */ }
+      done += ids.length;
+      setBulk(b => ({ ...b, done }));
     }
     setBulk(b => ({ ...b, running: false }));
     void load();

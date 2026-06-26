@@ -798,7 +798,7 @@ export async function POST(request: Request) {
         createdAt: now,
       });
       // Keep max 500 comments total
-      state.comments = state.comments.slice(0, 500);
+      state.comments = state.comments.slice(0, 2000);
       const updatedState = await saveTryThisLookState(state);
       const commentLook = state.looks.find(l => l.id === lookId);
       // Only notify for genuine public comments — never for admin/curator replies
