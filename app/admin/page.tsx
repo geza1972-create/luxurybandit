@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil } from "lucide-react";
+import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock } from "lucide-react";
 
 const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
 
@@ -31,6 +31,16 @@ type Look = {
 const fullName = (c: Curator) => [c.firstName, c.lastName].filter(Boolean).join(" ").trim() || "—";
 const initials = (c: Curator) => (`${c.firstName?.[0] ?? ""}${c.lastName?.[0] ?? ""}`.toUpperCase() || "?");
 const fmtDate = (s?: string) => { if (!s) return ""; try { return new Date(s).toLocaleDateString(); } catch { return ""; } };
+// Exact timestamp: date + HH:MM:SS, e.g. "25.06.2026, 14:32:07".
+const fmtTs = (s?: string) => {
+  if (!s) return "";
+  try {
+    return new Date(s).toLocaleString(undefined, {
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit",
+    });
+  } catch { return ""; }
+};
 
 export default function AdminPage() {
   const [pin, setPin] = useState("");
@@ -258,8 +268,9 @@ export default function AdminPage() {
                       {l.videoUrl && <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">Video</span>}
                     </div>
                     <div className="mt-1 truncate text-xs font-bold text-ink/55">
-                      <span className="text-ink/70">{l.curatorName ?? "—"}</span>{l.price ? ` · ${l.price}` : ""}{l.createdAt ? ` · ${fmtDate(l.createdAt)}` : ""}
+                      <span className="text-ink/70">{l.curatorName ?? "—"}</span>{l.price ? ` · ${l.price}` : ""}
                     </div>
+                    {l.createdAt && <div className="mt-1 flex items-center gap-1 truncate text-[11px] font-bold text-ink/40"><Clock className="h-3 w-3 shrink-0" /> {fmtTs(l.createdAt)}</div>}
                     {l.productNote && <p className="mt-1 line-clamp-2 text-xs font-medium leading-snug text-ink/45">{l.productNote}</p>}
                   </div>
                   <div className="flex shrink-0 flex-col items-center gap-1.5">
@@ -304,6 +315,7 @@ export default function AdminPage() {
                       {typeof c.credits === "number" && <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">{c.credits} cr</span>}
                       {c.brands && <span className="truncate rounded-full bg-cobalt/10 px-2 py-0.5 text-[10px] font-black text-cobalt">{c.brands.split(",")[0]}</span>}
                     </div>
+                    {c.createdAt && <div className="mt-1 flex items-center gap-1 truncate text-[11px] font-bold text-ink/40"><Clock className="h-3 w-3 shrink-0" /> {fmtTs(c.createdAt)}</div>}
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5" onClick={e => e.stopPropagation()}>
                     <span className="rounded-lg border border-black/10 px-2.5 py-1.5 text-[11px] font-black text-ink/60">Edit</span>
@@ -330,7 +342,7 @@ export default function AdminPage() {
               <div className="min-w-0 flex-1">
                 <div className="truncate text-base font-black">{fullName(edit)}</div>
                 <div className="text-[11px] font-bold text-ink/45">
-                  {edit.status ?? "active"} · {looksByCurator.get(edit.id) ?? 0} looks · {edit.credits ?? 0} cr{edit.createdAt ? ` · joined ${fmtDate(edit.createdAt)}` : ""}
+                  {edit.status ?? "active"} · {looksByCurator.get(edit.id) ?? 0} looks · {edit.credits ?? 0} cr{edit.createdAt ? ` · joined ${fmtTs(edit.createdAt)}` : ""}
                 </div>
               </div>
               <button type="button" onClick={() => setEdit(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10"><X className="h-4 w-4" /></button>
@@ -392,7 +404,8 @@ export default function AdminPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-black">{editLook.name}</div>
-                  <div className="truncate text-[11px] font-bold text-ink/45">{editLook.curatorName ?? "—"}{editLook.brand ? ` · ${editLook.brand}` : ""}{editLook.createdAt ? ` · ${fmtDate(editLook.createdAt)}` : ""}</div>
+                  <div className="truncate text-[11px] font-bold text-ink/45">{editLook.curatorName ?? "—"}{editLook.brand ? ` · ${editLook.brand}` : ""}</div>
+                  {editLook.createdAt && <div className="mt-0.5 flex items-center gap-1 text-[11px] font-bold text-ink/40"><Clock className="h-3 w-3" /> created {fmtTs(editLook.createdAt)}</div>}
                 </div>
                 <a href={`/look/${editLook.id}`} target="_blank" rel="noreferrer" className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-black/10 px-3 text-[11px] font-black text-ink active:scale-95 transition">
                   View live <ExternalLink className="h-3.5 w-3.5" />
