@@ -333,16 +333,19 @@ export default function TryonPage() {
     setError(null);
     setStep("generating");
     try {
-      // ?alt=N → try on a specific dupe alternative (its image is the garment).
+      // ?alt=N → try on EXACTLY the chosen card's product image (the garment),
+      // not the hero. Remote thumbnails are usually CORS-blocked, so we try the
+      // direct URL first then the same image via /api/img-proxy (server-side fetch)
+      // before ever falling back to the hero.
       const altParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("alt") : null;
       const altIdx = altParam !== null && /^\d+$/.test(altParam) ? Number(altParam) : -1;
       const altThumb = altIdx >= 0 ? look.alternatives?.[altIdx]?.thumbnail : undefined;
+      const altProxied = altThumb ? `/api/img-proxy?url=${encodeURIComponent(altThumb)}` : undefined;
       const garmentData = await firstValidImageDataUrl([
         altThumb,
-        look.garmentFrontImageUrl,
-        look.frontImageUrl,
-        look.imageUrl,
-        look.galleryImageUrls?.[0],
+        altProxied,
+        // Only fall back to the hero when no specific card was chosen.
+        ...(altThumb ? [] : [look.garmentFrontImageUrl, look.frontImageUrl, look.imageUrl, look.galleryImageUrls?.[0]]),
       ]);
       const coverageRule = "Coverage rule: the generated image must keep the person at least as covered as in the original photo. Never expose more skin, remove undergarments, or show less clothing than the input. No nudity; keep intimate areas (chest, groin, buttocks) covered at all times.";
       const prompt = photo
@@ -627,15 +630,23 @@ export default function TryonPage() {
     );
   }
 
+  // ?alt=N → the user picked a specific shop card; preview EXACTLY that product
+  // image (the garment they'll try on), not the hero. Proxy it so CORS-blocked
+  // CDN thumbnails still render.
+  const previewAltParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("alt") : null;
+  const previewAltIdx = previewAltParam !== null && /^\d+$/.test(previewAltParam) ? Number(previewAltParam) : -1;
+  const previewAltThumb = previewAltIdx >= 0 ? look.alternatives?.[previewAltIdx]?.thumbnail : undefined;
+
   // Use frontImageUrl for display — it always has a fresh signed URL.
   // garmentFrontImageUrl is for AI generation only (may be expired on legacy looks).
-  const garmentPreviewUrl = look.frontImageUrl ?? look.imageUrl ?? (look.galleryImageUrls?.[0] ?? "");
+  const garmentPreviewUrl = previewAltThumb || look.frontImageUrl || look.imageUrl || (look.galleryImageUrls?.[0] ?? "");
   // Garment image for AI generation is resolved at call time in handleGenerate
   // (firstValidImageDataUrl), with a validated fallback chain.
   const lookBackPath = `/look/${look.id}`;
 
-  // Fallback chain: garmentFrontImageUrl → frontImageUrl → imageUrl → galleryImageUrls[0]
+  // On error: a chosen card falls back to its proxied URL; otherwise the hero chain.
   const garmentFallbacks = [
+    previewAltThumb ? `/api/img-proxy?url=${encodeURIComponent(previewAltThumb)}` : undefined,
     look.frontImageUrl,
     look.imageUrl,
     ...(look.galleryImageUrls ?? []),
