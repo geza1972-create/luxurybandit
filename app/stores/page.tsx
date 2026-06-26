@@ -123,6 +123,16 @@ type Payload = {
   error?: string;
 };
 
+// A single horizontally-swipeable preview slide inside a feed post: the video then
+// the main photo. Dupes are NOT slides — they're fetched on demand via a button.
+type Slide = { kind: "video" | "image"; url: string };
+function buildSlides(imageUrl: string, videoUrl: string | undefined): Slide[] {
+  const slides: Slide[] = [];
+  if (videoUrl) slides.push({ kind: "video", url: videoUrl });
+  if (imageUrl) slides.push({ kind: "image", url: imageUrl });
+  return slides;
+}
+
 type CommunityItem = {
   id: string;
   lookId: string;
@@ -136,6 +146,7 @@ type CommunityItem = {
   storeName: string;
   storeSlug: string;
   curatorId?: string;
+  slides?: Slide[];
   createdAt: string;
 };
 
@@ -146,23 +157,55 @@ function CommunitySlide({ it, offset, verticalDrag, transition }: {
   const uname = it.customerName
     ? it.customerName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
     : "";
+  // Horizontal preview slides: video → main photo → each shoppable dupe.
+  const slides: Slide[] = (it.slides && it.slides.length)
+    ? it.slides
+    : [...(it.videoUrl ? [{ kind: "video" as const, url: it.videoUrl }] : []), { kind: "image" as const, url: it.imageUrl }];
+  const [hIdx, setHIdx] = useState(0);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const isCurrent = offset === 0;
+  // Play the video only when this reel post is the current one AND the video slide
+  // is the one on screen (swiping to a dupe photo pauses it).
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (isCurrent && slides[hIdx]?.kind === "video") { v.play().catch(() => {}); }
+    else { try { v.pause(); } catch { /**/ } }
+  }, [isCurrent, hIdx, slides]);
+  const onScroll = () => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const i = Math.round(el.scrollLeft / Math.max(1, el.clientWidth));
+    if (i !== hIdx) setHIdx(i);
+  };
   return (
     <div className="absolute inset-0 flex flex-col bg-black"
       style={{ transform: `translateY(calc(${offset * 100}% + ${verticalDrag}px))`, transition, willChange: "transform" }}>
       <div className="relative flex-1 overflow-hidden">
-        {it.videoUrl && offset === 0 ? (
-          // Active slide: play the try-on video (poster = its still while it loads).
-          <video src={it.videoUrl} poster={optImg(it.imageUrl, 1080)}
-            autoPlay muted loop playsInline preload="metadata"
-            className="h-full w-full object-cover object-top" />
-        ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={optImg(it.imageUrl, 1080)} alt={it.lookName} loading="lazy" decoding="async"
-            onError={(e) => { const im = e.currentTarget; if (im.src !== it.imageUrl) im.src = it.imageUrl; }}
-            className="h-full w-full object-cover object-top" />
-        )}
-        {it.videoUrl && (
-          <span className="absolute left-3 top-3 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white">Video</span>
+        <div ref={scrollerRef} onScroll={onScroll}
+          className="flex h-full w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {slides.map((s, i) => (
+            <div key={i} className="relative h-full w-full shrink-0 snap-center bg-black">
+              {s.kind === "video" ? (
+                <video ref={videoRef} src={s.url} poster={optImg(it.imageUrl, 1080)} muted loop playsInline preload="metadata"
+                  className="h-full w-full object-cover object-top" />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={optImg(s.url, 1080)} alt={it.lookName} loading="lazy" decoding="async"
+                  onError={(e) => { const im = e.currentTarget; if (im.src !== s.url) im.src = s.url; }}
+                  className="h-full w-full object-cover object-top" />
+              )}
+            </div>
+          ))}
+        </div>
+        {/* Slide dots — show how many previews there are + where you are */}
+        {slides.length > 1 && (
+          <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
+            {slides.map((_, i) => (
+              <span key={i} className={`h-1.5 rounded-full transition-all ${i === hIdx ? "w-5 bg-white" : "w-1.5 bg-white/45"}`} />
+            ))}
+          </div>
         )}
         <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black/50 to-transparent pointer-events-none" />
       </div>
@@ -189,6 +232,72 @@ function CommunitySlide({ it, offset, verticalDrag, transition }: {
             {it.storeName}
           </a>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── Comments bottom-sheet (used inside the reels feed) ──────────────────────
+type FeedComment = { id: string; text: string; authorName: string; createdAt: string };
+function CommentsSheet({ lookId, onClose }: { lookId: string; onClose: () => void }) {
+  useScrollLock();
+  const [comments, setComments] = useState<FeedComment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const load = () => fetch(`/api/try-this-look?comments=1&lookId=${encodeURIComponent(lookId)}`)
+    .then(r => r.json()).then((d: { comments?: FeedComment[] }) => setComments(d.comments ?? []))
+    .catch(() => {}).finally(() => setLoading(false));
+  useEffect(() => { void load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [lookId]);
+  const authorName = () => { try { return JSON.parse(localStorage.getItem("lb_curator") ?? "{}").firstName || "You"; } catch { return "You"; } };
+  const submit = async () => {
+    const t = text.trim();
+    if (!t || sending) return;
+    setSending(true);
+    // optimistic
+    const optimistic: FeedComment = { id: `tmp-${Date.now()}`, text: t, authorName: authorName(), createdAt: new Date().toISOString() };
+    setComments(prev => [optimistic, ...prev]);
+    setText("");
+    await fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "add-comment", lookId, text: t, authorName: authorName() }) }).catch(() => {});
+    setSending(false);
+    void load();
+  };
+  return (
+    <div className="fixed inset-0 z-[120] flex flex-col justify-end bg-black/50" onClick={onClose}>
+      <div className="flex max-h-[78dvh] flex-col rounded-t-2xl bg-white" onClick={e => e.stopPropagation()}
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <div className="flex items-center justify-between border-b border-black/8 px-4 py-3">
+          <span className="text-sm font-black text-black">Comments{comments.length ? ` · ${comments.length}` : ""}</span>
+          <button type="button" onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full text-black/40 active:bg-black/5"><X className="h-5 w-5" /></button>
+        </div>
+        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 overscroll-contain">
+          {loading ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-black/30" /></div>
+          ) : comments.length === 0 ? (
+            <p className="py-8 text-center text-sm font-bold text-black/35">No comments yet — be the first.</p>
+          ) : comments.map(c => (
+            <div key={c.id} className="flex gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(c.authorName || "Guest")}&backgroundColor=000000&fontColor=ffffff&fontSize=40`}
+                alt="" className="h-8 w-8 shrink-0 rounded-full bg-black/5" />
+              <div className="min-w-0">
+                <p className="text-xs font-black text-black">{c.authorName || "Guest"}</p>
+                <p className="text-sm text-black/80 leading-snug break-words">{c.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 border-t border-black/8 px-3 py-2.5">
+          <input value={text} onChange={e => setText(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") void submit(); }}
+            placeholder="Add a comment…" maxLength={500}
+            className="h-10 flex-1 rounded-full bg-black/[0.05] px-4 text-sm font-medium text-black placeholder:text-black/35 outline-none focus:bg-black/[0.08]" />
+          <button type="button" onClick={() => void submit()} disabled={sending || !text.trim()}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-black text-white disabled:opacity-30 active:scale-95">
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -222,6 +331,7 @@ function CommunityDetailView({
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignName, setAssignName] = useState("");
   const [assignWorking, setAssignWorking] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
 
   const isDraggingVertical = useRef(false);
   const verticalDragRef = useRef(0);
@@ -336,6 +446,12 @@ function CommunityDetailView({
           <Heart strokeWidth={2} className={`h-7 w-7 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] transition-transform ${isLiked ? "fill-red-500 text-red-500 scale-110" : "text-white"}`} />
           <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">{fmt(likeCount)}</span>
         </button>
+        {/* Comments */}
+        <button type="button" onClick={() => setCommentsOpen(true)}
+          className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
+          <MessageCircle strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
+          <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">{seedCommentCount(item.id)}</span>
+        </button>
         {/* Views */}
         <div className="flex flex-col items-center gap-[3px] pointer-events-none select-none">
           <svg className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -370,6 +486,14 @@ function CommunityDetailView({
           <Sparkles strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
           <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Try-on</span>
         </button>
+        {/* Shop the dupes — fetched on demand on the list page (as before) */}
+        {item.lookId && (
+          <button type="button" onClick={() => { onClose(); router.push(`${lookPath(item.lookName, item.lookId)}/details`); }}
+            className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
+            <ShoppingBag strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
+            <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Shop</span>
+          </button>
+        )}
       </div>
 
       {/* Top bar — always on top, not translated */}
@@ -428,6 +552,11 @@ function CommunityDetailView({
             </div>
           )}
         </div>
+      )}
+
+      {/* Comments sheet */}
+      {commentsOpen && item.lookId && (
+        <CommentsSheet lookId={item.lookId} onClose={() => setCommentsOpen(false)} />
       )}
     </div>
   );
@@ -1149,23 +1278,28 @@ function StoresPage() {
     const lookById = new Map(looks.map(l => [l.id, l]));
     const commById = new Map(communityItems.map(c => [c.id, c]));
     return visibleHistory.map((it): CommunityItem => {
-      if (it.kind === "tryon" && commById.has(it.id)) return commById.get(it.id)!;
-      const l = lookById.get(it.id);
-      return {
-        id: it.id,
-        lookId: it.kind === "look" ? it.id : (l?.id ?? ""),
-        imageUrl: it.videoPoster || it.thumb,
-        videoUrl: it.videoUrl,
-        thumbUrl: it.thumb,
-        customerName: it.kind === "tryon" ? (it.curatorName ?? "") : "",
-        lookName: it.name,
-        storeName: l?.storeName ?? "",
-        storeSlug: (l as { storeSlug?: string } | undefined)?.storeSlug ?? "",
-        brand: it.brand,
-        createdAt: it.createdAt,
-      };
+      const base: CommunityItem = (it.kind === "tryon" && commById.has(it.id))
+        ? commById.get(it.id)!
+        : {
+            id: it.id,
+            lookId: it.kind === "look" ? it.id : "",
+            imageUrl: it.videoPoster || it.thumb,
+            videoUrl: it.videoUrl,
+            thumbUrl: it.thumb,
+            customerName: it.kind === "tryon" ? (it.curatorName ?? "") : "",
+            lookName: it.name,
+            storeName: lookById.get(it.id)?.storeName ?? "",
+            storeSlug: lookById.get(it.id)?.storeSlug ?? "",
+            brand: it.brand,
+            createdAt: it.createdAt,
+          };
+      return { ...base, slides: buildSlides(base.imageUrl, base.videoUrl) };
     });
   }, [visibleHistory, looks, communityItems]);
+  // The community-only grid mapped with preview slides too.
+  const filteredCommunityAsReel = useMemo<CommunityItem[]>(() => {
+    return filteredCommunity.map(c => ({ ...c, slides: buildSlides(c.imageUrl, c.videoUrl) }));
+  }, [filteredCommunity]);
 
   // ── Default home = full-screen vertical feed (TikTok/IG style, newest first) ──
   // The legacy grid below is kept only for the search experience.
@@ -1547,7 +1681,7 @@ function StoresPage() {
                         onClick={() => {
                           if (selectMode) { toggleSelect(item.id); return; }
                           // Open the full-screen vertical scroll feed (reels) starting here.
-                          setReelItems(filteredCommunity); setCommunitySelectedIndex(itemIdx);
+                          setReelItems(filteredCommunityAsReel); setCommunitySelectedIndex(itemIdx);
                         }}
                         className={`relative aspect-square w-full overflow-hidden bg-black/5 transition-opacity active:opacity-80 block ${
                           selectMode && isSelected ? "opacity-60 ring-2 ring-inset ring-cobalt" : ""
