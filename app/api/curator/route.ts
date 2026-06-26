@@ -64,8 +64,11 @@ export async function GET(request: Request) {
       (email && (c.email ?? "").trim().toLowerCase() === email) || (sessionId && c.id === sessionId)
     ) ?? null;
     if (url.searchParams.get("mylooks") === "1") {
-      const looks = !curator ? [] : (state.looks ?? [])
-        .filter(l => (l as any).curatorId === curator.id)
+      // A curator sees their own looks. The house admin (PIN/email, no curator
+      // session) sees ALL looks — this is the master gallery below the studio.
+      const adminAll = !curator && (await isAdminRequest(request));
+      const looks = (!curator && !adminAll) ? [] : (state.looks ?? [])
+        .filter(l => adminAll || (l as any).curatorId === curator!.id)
         .map(l => ({ id: l.id, name: l.name, imageUrl: (l as any).frontImageUrl ?? l.imageUrl, published: l.published !== false, altCount: ((l as any).alternatives ?? []).length, note: (l as any).curatorNote ?? "", commentsOff: (l as any).commentsOff === true, videoUrl: (l as any).videoUrl ?? "", feedOrder: typeof (l as any).feedOrder === "number" ? (l as any).feedOrder : undefined }))
         .sort((a, b) => {
           const ao = typeof a.feedOrder === "number" ? a.feedOrder : Infinity;
