@@ -801,7 +801,9 @@ export async function POST(request: Request) {
       state.comments = state.comments.slice(0, 500);
       const updatedState = await saveTryThisLookState(state);
       const commentLook = state.looks.find(l => l.id === lookId);
-      notifyAdminWhatsApp(`💬 ${authorName} commented on "${commentLook?.name ?? "a look"}": "${text.slice(0, 80)}". ${ADMIN_URL}`);
+      // Only notify for genuine public comments — never for admin/curator replies
+      // posted from the admin inbox (would spam the admin's own WhatsApp).
+      if (!(await isAdmin(request))) notifyAdminWhatsApp(`💬 ${authorName} commented on "${commentLook?.name ?? "a look"}": "${text.slice(0, 80)}". ${ADMIN_URL}`);
       const lookComments = (updatedState.comments ?? []).filter(c => c.lookId === lookId);
       return NextResponse.json({ ok: true, comments: lookComments });
     }

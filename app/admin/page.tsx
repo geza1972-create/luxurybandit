@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus } from "lucide-react";
 import { signInWithPassword, getStoredAuthSession, saveAuthSession, signOut, resetPassword } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -76,6 +76,8 @@ export default function AdminPage() {
   const [comments, setComments] = useState<Cmt[]>([]);
   const [reply, setReply] = useState<Record<string, string>>({});
   const [sendingId, setSendingId] = useState("");
+  const [bulk, setBulk] = useState<{ running: boolean; done: number; total: number }>({ running: false, done: 0, total: 0 });
+  const stopBulk = useRef(false);
   const [curators, setCurators] = useState<Curator[]>([]);
   const [looks, setLooks] = useState<Look[]>([]);
   const [community, setCommunity] = useState<{ customerName?: string; curatorId?: string }[]>([]);
@@ -236,6 +238,41 @@ export default function AdminPage() {
     } catch { setError("Network error."); }
     setSendingId("");
   };
+  // AI-draft a reply for ONE comment → fill its input (user reviews & sends).
+  const aiSuggest = async (c: Cmt) => {
+    setSendingId(c.id + ":ai"); setError("");
+    try {
+      const cur = c.curatorId ? curatorById.get(c.curatorId) : undefined;
+      const r = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "comment-reply", curatorName: c.curatorName, style: cur?.style, lookName: c.lookName, commentText: c.text, authorName: c.authorName }) });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.reply) setReply(m => ({ ...m, [c.id]: d.reply })); else await fail(r, "AI reply failed");
+    } catch { setError("Network error."); }
+    setSendingId("");
+  };
+  // AI-reply ALL real (non-curator) comments automatically, as each look's curator.
+  // Admin posts → no WhatsApp. Click again to stop. Loops client-side (no timeout).
+  const aiReplyAll = async () => {
+    if (bulk.running) { stopBulk.current = true; return; }
+    const slugN = (s?: string) => slugify(s ?? "");
+    const targets = comments.filter(c => slugN(c.authorName) !== slugN(c.curatorName)); // skip curator replies
+    if (!targets.length) { setError("Nothing to reply to."); return; }
+    stopBulk.current = false; setError("");
+    setBulk({ running: true, done: 0, total: targets.length });
+    for (let i = 0; i < targets.length; i++) {
+      if (stopBulk.current) break;
+      const c = targets[i];
+      try {
+        const cur = c.curatorId ? curatorById.get(c.curatorId) : undefined;
+        const g = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "comment-reply", curatorName: c.curatorName, style: cur?.style, lookName: c.lookName, commentText: c.text, authorName: c.authorName }) });
+        const gd = await g.json().catch(() => ({}));
+        if (gd.reply) await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "add-comment", lookId: c.lookId, text: gd.reply, authorName: c.curatorName || "LuxuryBandit" }) });
+      } catch { /* skip one */ }
+      setBulk(b => ({ ...b, done: i + 1 }));
+    }
+    setBulk(b => ({ ...b, running: false }));
+    void load();
+  };
+
   // Reply to a message AS the curator who received it → back to the sender.
   // NB: send ONLY x-curator-id (no admin token), else the message route would
   // resolve the admin as the sender instead of the curator.
@@ -579,6 +616,16 @@ export default function AdminPage() {
 
             {inboxTab === "comments" && (
               <div className="mt-3 grid grid-cols-1 gap-2">
+                {comments.length > 0 && (
+                  <div className="flex items-center gap-2 rounded-xl border border-cobalt/25 bg-cobalt/[0.04] p-2.5">
+                    <Sparkles className="h-4 w-4 shrink-0 text-cobalt" />
+                    <p className="min-w-0 flex-1 text-[11px] font-bold text-ink/55">{bulk.running ? `Replying… ${bulk.done}/${bulk.total}` : "AI-reply every comment automatically, in each curator's voice (no WhatsApp)."}</p>
+                    <button type="button" onClick={() => void aiReplyAll()}
+                      className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-black active:scale-95 transition ${bulk.running ? "border border-red-300 bg-red-500 text-white" : "bg-black text-white"}`}>
+                      {bulk.running ? <><X className="h-3.5 w-3.5" /> Stop</> : <><Sparkles className="h-3.5 w-3.5" /> AI-reply all</>}
+                    </button>
+                  </div>
+                )}
                 {comments.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No comments yet.</p>}
                 {comments.map(c => (
                   <div key={c.id} className="rounded-xl border border-black/10 bg-white p-3">
@@ -594,6 +641,10 @@ export default function AdminPage() {
                         onKeyDown={e => { if (e.key === "Enter") void replyComment(c); }}
                         placeholder={`Reply as ${c.curatorName || "LuxuryBandit"}…`}
                         className="h-10 flex-1 rounded-lg border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt" />
+                      <button type="button" disabled={sendingId === c.id + ":ai"} onClick={() => void aiSuggest(c)} title="Draft with AI"
+                        className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-cobalt/30 bg-cobalt/5 px-3 text-xs font-black text-cobalt active:scale-95 transition disabled:opacity-40">
+                        {sendingId === c.id + ":ai" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="h-3.5 w-3.5" /> AI</>}
+                      </button>
                       <button type="button" disabled={sendingId === c.id || !(reply[c.id] ?? "").trim()} onClick={() => void replyComment(c)}
                         className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-black px-4 text-xs font-black text-white active:scale-95 transition disabled:opacity-40">
                         {sendingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> Reply</>}

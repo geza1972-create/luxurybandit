@@ -177,6 +177,31 @@ export async function POST(request: Request) {
     }
   }
 
+  // Admin: AI-draft a short reply to a comment, in the curator's voice.
+  if (action === "comment-reply") {
+    if (!(await isAdminRequest(request))) return jsonError("Admin access required.", 401);
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return jsonError("ANTHROPIC_API_KEY missing.", 500);
+    const curatorName = String(payload.curatorName ?? "").trim() || "the curator";
+    const style = String(payload.style ?? "").trim();
+    const lookName = String(payload.lookName ?? "").trim();
+    const commentText = String(payload.commentText ?? "").trim().slice(0, 400);
+    const author = String(payload.authorName ?? "").trim();
+    const client = new Anthropic({ apiKey });
+    const prompt =
+      `You are ${curatorName}, a fashion curator on LuxuryBandit${style ? ` (your style: ${style})` : ""}. ` +
+      `${author ? `${author} ` : "Someone "}commented "${commentText}" on your look "${lookName || "a look"}". ` +
+      `Reply in FIRST PERSON as ${curatorName}: warm, on-brand, max 12 words, no hashtags, no emojis-spam (1 emoji max), no quotation marks. ` +
+      `Return ONLY the reply text, nothing else.`;
+    try {
+      const res = await client.messages.create({ model: SUGGEST_MODEL, max_tokens: 60, messages: [{ role: "user", content: prompt }] });
+      const reply = res.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map(b => b.text).join("").trim().replace(/^["']|["']$/g, "").slice(0, 200);
+      return NextResponse.json({ reply });
+    } catch (error) {
+      return jsonError(error instanceof Error ? error.message : "AI reply failed.", 500);
+    }
+  }
+
   if (action === "apply") {
     const firstName = String(payload.firstName ?? "").trim();
     const lastName = String(payload.lastName ?? "").trim();
