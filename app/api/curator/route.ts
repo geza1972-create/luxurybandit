@@ -288,7 +288,10 @@ export async function POST(request: Request) {
       bio: String(payload.bio ?? "").trim() || undefined,
       instagram: String(payload.instagram ?? "").trim().replace(/^@/, "") || undefined,
       photoPath,
-      status: "active", // MVP: instant access, quality gated at publish (yes/no)
+      // Applications are NOT instant anymore: curators post public content (incl.
+      // lingerie), so each one is reviewed & ID-verified by the admin before going
+      // active. They cannot sign in or publish until approved.
+      status: "pending",
       createdAt: new Date().toISOString(),
       credits: STARTER_CREDITS, // starter grant to prove themselves
       creditLog: [{ at: new Date().toISOString(), credits: STARTER_CREDITS, label: "Starter credits" }],
@@ -308,7 +311,9 @@ export async function POST(request: Request) {
 
     notifyAdminWhatsApp(`👤 New curator: ${[firstName, lastName].filter(Boolean).join(" ")} (${email}). Review: ${ADMIN_URL}`);
 
-    return NextResponse.json({ id: curator.id, firstName: curator.firstName });
+    // No id returned → the front-end can't log them straight into the studio.
+    // They're pending until an admin approves (after ID verification).
+    return NextResponse.json({ pending: true, firstName: curator.firstName });
   }
 
   // Email-only sign in (fallback while Supabase email/magic-link isn't set up).
@@ -321,6 +326,7 @@ export async function POST(request: Request) {
     const c = (state.curators ?? []).find(x => (x.email ?? "").trim().toLowerCase() === email) ?? null;
     if (!c) return NextResponse.json({ curator: null });
     if (c.status === "deactivated") return jsonError("This account has been deactivated. Contact support.", 403);
+    if (c.status === "pending") return jsonError("Your application is under review. We'll email you once you're approved.", 403);
     return NextResponse.json({ curator: { id: c.id, firstName: c.firstName, email: c.email, style: c.style } });
   }
 

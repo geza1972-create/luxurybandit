@@ -570,6 +570,7 @@ export default function AdminPage() {
             {shownCurators.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No curators.</p>}
             {shownCurators.map(c => {
               const off = c.status === "deactivated";
+              const pending = c.status === "pending";
               const house = c.id === "house";
               return (
                 <div key={c.id} role={house ? undefined : "button"} tabIndex={house ? undefined : 0}
@@ -589,7 +590,9 @@ export default function AdminPage() {
                     <div className="truncate text-sm font-black text-ink">{house ? "Admin (house)" : fullName(c)}</div>
                     <div className="truncate text-xs font-bold text-ink/45">{house ? "Looks & try-ons with no curator" : (c.email ?? "—")}</div>
                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                      {!house && <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${off ? "bg-black/8 text-ink/50" : "bg-emerald-100 text-emerald-700"}`}>{off ? "Deactivated" : "Active"}</span>}
+                      {!house && (pending
+                        ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">Pending review</span>
+                        : <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${off ? "bg-black/8 text-ink/50" : "bg-emerald-100 text-emerald-700"}`}>{off ? "Deactivated" : "Active"}</span>)}
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${sortC === "looks" ? "bg-cobalt/10 text-cobalt" : "bg-black/5 text-ink/50"}`}>{looksByCurator.get(c.id) ?? 0} looks</span>
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${sortC === "tryons" ? "bg-cobalt/10 text-cobalt" : "bg-black/5 text-ink/50"}`}>{tryonsByCurator.get(c.id) ?? 0} try-ons</span>
                       {!house && typeof c.credits === "number" && <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">{c.credits} cr</span>}
@@ -600,8 +603,8 @@ export default function AdminPage() {
                   {!house && (
                     <div className="flex shrink-0 items-center gap-1.5" onClick={e => e.stopPropagation()}>
                       <span className="rounded-lg border border-black/10 px-2.5 py-1.5 text-[11px] font-black text-ink/60">Edit</span>
-                      <button type="button" disabled={busy === c.id} onClick={() => void setCuratorStatus(c.id, off ? "active" : "deactivated")} title={off ? "Activate" : "Deactivate"}
-                        className={`grid h-9 w-9 place-items-center rounded-lg border active:scale-95 transition ${off ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-black/10 text-ink/60"}`}>
+                      <button type="button" disabled={busy === c.id} onClick={() => void setCuratorStatus(c.id, (off || pending) ? "active" : "deactivated")} title={pending ? "Approve" : off ? "Activate" : "Deactivate"}
+                        className={`grid h-9 w-9 place-items-center rounded-lg border active:scale-95 transition ${(off || pending) ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-black/10 text-ink/60"}`}>
                         <Power className="h-4 w-4" />
                       </button>
                     </div>

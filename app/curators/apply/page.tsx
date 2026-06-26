@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Camera, Sparkles, Loader2, Check } from "lucide-react";
-import { sendMagicLink } from "@/lib/supabase-auth-client";
 import { TagField, PillRow, PhotoCropper, readPhotoFile } from "../taste-form";
 
 export default function CuratorApplyPage() {
@@ -49,6 +48,7 @@ export default function CuratorApplyPage() {
   const [mottoIdeas, setMottoIdeas] = useState<string[]>([]);
   const [suggesting, setSuggesting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [applied, setApplied] = useState(false);
   const [error, setError] = useState("");
 
   const onPickPhoto = async (file?: File) => {
@@ -103,16 +103,9 @@ export default function CuratorApplyPage() {
       });
       const data = await res.json();
       if (!res.ok || data.error) { setError(data.error || "Could not submit."); return; }
-      try {
-        localStorage.setItem("lb_curator", JSON.stringify({ id: data.id, firstName: data.firstName, email, style }));
-      } catch { /* ignore */ }
-      // Send a passwordless magic link so they can log back in later & verify
-      // their email (instant access this session via lb_curator above).
-      void sendMagicLink(email, `${firstName} ${lastName}`.trim()).catch(() => {});
-      // If they came here mid try-on, send them back to finish it; else AI Studio.
-      let resumeTo = "";
-      try { resumeTo = JSON.parse(sessionStorage.getItem("lb_resume_tryon") ?? "{}").returnTo ?? ""; } catch { /* ignore */ }
-      router.push(resumeTo && resumeTo.startsWith("/tryon/") ? resumeTo : "/studio");
+      // Applications are reviewed & ID-verified by the admin before going live —
+      // no instant access. Show a confirmation; they sign in once approved.
+      setApplied(true);
     } catch {
       setError("Could not submit.");
     } finally {
@@ -122,6 +115,25 @@ export default function CuratorApplyPage() {
 
   const field = "h-12 w-full rounded-xl border border-black/12 bg-black/[0.02] px-4 text-sm font-bold text-black outline-none focus:border-black placeholder:text-black/30";
   const label = "mb-1 block text-[11px] font-black uppercase tracking-wider text-black/45";
+
+  if (applied) {
+    return (
+      <div className="grid min-h-[100dvh] place-items-center bg-white px-6 text-center">
+        <div className="max-w-sm">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-100 text-2xl">✓</div>
+          <h1 className="mt-4 text-xl font-black text-black">Application received</h1>
+          <p className="mt-2 text-sm font-semibold leading-6 text-black/55">
+            Thanks{firstName ? `, ${firstName}` : ""}! Curators are reviewed and ID-verified before going live, so we keep the community safe.
+            We&apos;ll email you once you&apos;re approved — then you can sign in with your email and start curating.
+          </p>
+          <button type="button" onClick={() => router.push("/stores")}
+            className="mt-5 inline-flex h-12 items-center justify-center rounded-2xl bg-black px-6 text-sm font-black text-white active:scale-95 transition-transform">
+            Back to LuxuryBandit
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[100dvh] bg-white" style={{ paddingBottom: "calc(130px + env(safe-area-inset-bottom))" }}>
