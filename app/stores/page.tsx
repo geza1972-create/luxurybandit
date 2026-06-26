@@ -13,7 +13,7 @@ import { useScrollLock } from "@/lib/use-scroll-lock";
 import { lookPath } from "@/lib/look-slug";
 import HomeFeed from "@/components/HomeFeed";
 import { isAdminEmail } from "@/lib/is-admin-email";
-import { Bookmark, Heart, Home, Image as ImageIcon, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, Sparkles, Volume2, VolumeX, X } from "lucide-react";
+import { Bookmark, EyeOff, Heart, Home, Image as ImageIcon, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, Sparkles, Volume2, VolumeX, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -154,6 +154,7 @@ type CommunityItem = {
   storeSlug: string;
   curatorId?: string;
   slides?: Slide[];
+  kind?: "look" | "tryon"; // for the in-feed Hide action (unpublish look vs hide try-on)
   createdAt: string;
 };
 
@@ -338,6 +339,9 @@ function CommunityDetailView({
   onHide,
   onDelete,
   onAssign,
+  isAdmin,
+  myCuratorId,
+  onHideItem,
   router,
 }: {
   allItems: CommunityItem[];
@@ -348,6 +352,9 @@ function CommunityDetailView({
   onHide?: (id: string) => void;
   onDelete?: (id: string) => void;
   onAssign?: (id: string, customerName: string) => Promise<void>;
+  isAdmin?: boolean;
+  myCuratorId?: string;
+  onHideItem?: (item: CommunityItem) => void;
   router: ReturnType<typeof import("next/navigation").useRouter>;
 }) {
   const [currentIdx, setCurrentIdx] = useState(initialIndex);
@@ -526,6 +533,14 @@ function CommunityDetailView({
             className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
             <ShoppingBag strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
             <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)] text-center leading-tight">Change<br/>the look</span>
+          </button>
+        )}
+        {/* Hide — only for the owner of this content (or admin) */}
+        {onHideItem && (isAdmin || (!!myCuratorId && item.curatorId === myCuratorId)) && (
+          <button type="button" onClick={() => onHideItem(item)}
+            className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
+            <EyeOff strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
+            <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Hide</span>
           </button>
         )}
       </div>
@@ -1128,6 +1143,29 @@ function StoresPage() {
     setCommunitySelectedIndex(null);
   };
 
+  // Hide an item straight from the feed (owner of the content, or admin).
+  // Look → take it offline (unpublish). Try-on → remove it from the feed (feed:false).
+  const hideReelItem = async (item: CommunityItem) => {
+    if (item.kind === "look") {
+      if (!confirm("Diesen Look offline nehmen (aus dem Feed ausblenden)?")) return;
+      await fetch("/api/curator", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}), ...(myCuratorId ? { "x-curator-id": myCuratorId } : {}) },
+        body: JSON.stringify({ action: "toggle-look", lookId: item.lookId, published: false }),
+      }).catch(() => {});
+      setLooks(prev => prev.filter(l => l.id !== item.lookId));
+    } else {
+      if (!confirm("Diesen Try-on aus dem Feed ausblenden?")) return;
+      await fetch("/api/try-this-look", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "set-generation-feed", generationId: item.id, feed: false }),
+      }).catch(() => {});
+      setCommunityItems(prev => prev.filter(c => c.id !== item.id));
+    }
+    setCommunitySelectedIndex(null);
+    setReelItems(null);
+  };
+
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -1313,7 +1351,7 @@ function StoresPage() {
     const commById = new Map(communityItems.map(c => [c.id, c]));
     return visibleHistory.map((it): CommunityItem => {
       const base: CommunityItem = (it.kind === "tryon" && commById.has(it.id))
-        ? commById.get(it.id)!
+        ? { ...commById.get(it.id)!, kind: "tryon" }
         : {
             id: it.id,
             lookId: it.kind === "look" ? it.id : "",
@@ -1324,7 +1362,9 @@ function StoresPage() {
             lookName: it.name,
             storeName: lookById.get(it.id)?.storeName ?? "",
             storeSlug: lookById.get(it.id)?.storeSlug ?? "",
+            curatorId: lookById.get(it.id)?.curatorId,
             brand: it.brand,
+            kind: "look",
             createdAt: it.createdAt,
           };
       return { ...base, slides: buildSlides(base.imageUrl, base.videoUrl, base.userPhotoUrl) };
@@ -1332,7 +1372,7 @@ function StoresPage() {
   }, [visibleHistory, looks, communityItems]);
   // The community-only grid mapped with preview slides too.
   const filteredCommunityAsReel = useMemo<CommunityItem[]>(() => {
-    return filteredCommunity.map(c => ({ ...c, slides: buildSlides(c.imageUrl, c.videoUrl, c.userPhotoUrl) }));
+    return filteredCommunity.map(c => ({ ...c, kind: "tryon" as const, slides: buildSlides(c.imageUrl, c.videoUrl, c.userPhotoUrl) }));
   }, [filteredCommunity]);
 
   // ── Default home = full-screen vertical feed (TikTok/IG style, newest first) ──
@@ -2057,6 +2097,9 @@ function StoresPage() {
             await adminAction({ action: "assign-generation", id, customerName });
             setCommunityItems(prev => prev.map(i => i.id === id ? { ...i, customerName } : i));
           } : undefined}
+          isAdmin={isAdmin}
+          myCuratorId={myCuratorId}
+          onHideItem={hideReelItem}
           router={router}
         />
       )}
