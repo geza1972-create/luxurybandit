@@ -7,56 +7,15 @@ export const maxDuration = 120;
 const PV_BASE = "https://app-api.pixverse.ai/openapi/v2";
 const FASHN_RUN = process.env.FASHN_API_ENDPOINT ?? "https://api.fashn.ai/v1/run";
 const FASHN_STATUS = process.env.FASHN_STATUS_ENDPOINT ?? "https://api.fashn.ai/v1/status";
-// Video provider routing: fal.ai Kling Standard for everything (cheaper, great
-// fashion motion), EXCEPT lingerie/swim/intimate looks which use Pixverse (the
-// only provider that allows them). The chosen provider is encoded in the
-// pendingVideoId prefix ("fal:" / "pv:") so the GET poll stays provider-agnostic.
-const FAL_MODEL = "fal-ai/kling-video/v2.1/standard/image-to-video";
-const FAL_QUEUE = `https://queue.fal.run/${FAL_MODEL}`;
-const FAL_REQ = "https://queue.fal.run/fal-ai/kling-video/requests";
-const INTIMATE = /(slip|robe|kimono|swimsuit|maillot|one[- ]?piece|bodysuit|nightdress|chemise|lingerie|negligee|hunza|os[eé]ree|eres|la perla|fleur du mal|carine|intimissimi|triumph|calzedonia|hunkem[oö]ller|agent provocateur|wolford|bikini|bralette|corset)/i;
+// Video: Pixverse for ALL looks (best quality for fashion + the only provider that
+// also handles lingerie/swim). The pendingVideoId is prefixed "pv:" so the GET poll
+// stays consistent (legacy un-prefixed ids are also Pixverse).
 const trace = () => crypto.randomUUID();
 const FASHION_PROMPT =
   "Elegant high-fashion presentation. The subject stays mostly still with subtle, slow, gentle movement — a soft breath, a small natural sway. CRITICAL: the outfit must stay IDENTICAL — keep the exact same garment shape, cut, colour, fabric, pattern and details; do not redesign, restyle or change the clothing. Minimal camera motion, refined studio lighting. No text or logos.";
 const MUSIC = "Soft, elegant instrumental background music — a gentle, chic fashion soundtrack. ONLY music: absolutely no footsteps, no voices, no talking, no ambient or foley sound effects.";
 
 const slug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-
-// fal needs a public image URL; upload the source frame to our storage first.
-async function blobToPublicUrl(blob: Blob): Promise<string | null> {
-  try {
-    const buf = Buffer.from(await blob.arrayBuffer());
-    const mime = blob.type || "image/png";
-    const ext = mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : "jpg";
-    const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-    const path = await uploadTryThisLookBytes("uploads", ab, mime, ext);
-    return (await getSignedUrl(path, 60 * 60 * 24)) || (await getSignedUrl(path));
-  } catch { return null; }
-}
-
-// ── fal.ai Kling (everything except intimate) ──
-async function falStart(key: string, imageUrl: string): Promise<{ videoId?: string; error?: string }> {
-  const sub = await fetch(FAL_QUEUE, {
-    method: "POST", headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt: FASHION_PROMPT, image_url: imageUrl, duration: "5" }),
-  });
-  const j = (await sub.json().catch(() => null)) as { request_id?: string } | null;
-  if (!sub.ok || !j?.request_id) return { error: `fal submit failed: ${sub.status}` };
-  return { videoId: j.request_id };
-}
-async function falPoll(key: string, requestId: string): Promise<{ status: "done" | "failed" | "processing"; videoUrl?: string; error?: string }> {
-  const auth = { Authorization: `Key ${key}` };
-  const st = await fetch(`${FAL_REQ}/${requestId}/status`, { headers: auth }).then((r) => r.json()).catch(() => null);
-  const status = st?.status;
-  if (status === "IN_QUEUE" || status === "IN_PROGRESS") return { status: "processing" };
-  if (status !== "COMPLETED") return { status: "failed", error: `fal status ${status ?? "unknown"}` };
-  const res = await fetch(`${FAL_REQ}/${requestId}`, { headers: auth }).then((r) => r.json()).catch(() => null);
-  const url = res?.video?.url;
-  if (!url) return { status: "failed", error: "fal returned no video." };
-  let finalUrl: string = url;
-  try { finalUrl = await persistVideo(url); } catch (e) { console.error("[generate-look-video] fal persist failed:", e); }
-  return { status: "done", videoUrl: finalUrl };
-}
 
 // Find the curator's own existing try-on of this look (a "self-test"). Reusing it
 // as the video source avoids a fresh OpenAI try-on (which can fail / cost money).
@@ -261,44 +220,29 @@ export async function POST(request: Request) {
       srcBlob = await imgRes.blob();
     }
 
-    // 2) Choose provider: fal Kling for everything, Pixverse only for intimate
-    //    looks (the only provider that animates lingerie/swim). Prefix the stored
-    //    id with the provider so the GET poll routes correctly.
-    const intimate = INTIMATE.test(`${look.name ?? ""} ${(look as any).storeName ?? ""}`);
-    let videoId: string;
-
-    if (!intimate) {
-      const falKey = process.env.FAL_KEY?.trim();
-      if (!falKey) return NextResponse.json({ error: "FAL_KEY missing in .env.local." }, { status: 400 });
-      const imageUrl = await blobToPublicUrl(srcBlob);
-      if (!imageUrl) return NextResponse.json({ error: "Could not prepare the source frame." }, { status: 502 });
-      const r = await falStart(falKey, imageUrl);
-      if (r.error || !r.videoId) return NextResponse.json({ error: r.error ?? "fal start failed." }, { status: 502 });
-      videoId = `fal:${r.videoId}`;
-    } else {
-      const key = process.env.PIXVERSE_API_KEY?.trim();
-      if (!key) return NextResponse.json({ error: "PIXVERSE_API_KEY missing in .env.local." }, { status: 400 });
-      const form = new FormData();
-      form.append("image", srcBlob, "look.png");
-      const upRes = await fetch(`${PV_BASE}/image/upload`, { method: "POST", headers: pvHeaders(key), body: form });
-      const up = await upRes.json().catch(() => null);
-      if (up?.ErrCode !== 0 || !up?.Resp?.img_id) {
-        return NextResponse.json({ error: `Pixverse upload failed: ${up?.ErrMsg ?? upRes.status}` }, { status: 502 });
-      }
-      const genRes = await fetch(`${PV_BASE}/video/img/generate`, {
-        method: "POST",
-        headers: pvHeaders(key, true),
-        body: JSON.stringify({
-          duration: 5, img_id: up.Resp.img_id, model: "v5", motion_mode: "normal", quality: "720p", prompt: FASHION_PROMPT,
-          sound_effect_switch: true, sound_effect_content: MUSIC,
-        }),
-      });
-      const gen = await genRes.json().catch(() => null);
-      if (gen?.ErrCode !== 0 || !gen?.Resp?.video_id) {
-        return NextResponse.json({ error: `Pixverse generate failed: ${gen?.ErrMsg ?? genRes.status}` }, { status: 502 });
-      }
-      videoId = `pv:${String(gen.Resp.video_id)}`;
+    // 2) Animate the source frame with Pixverse (all looks).
+    const key = process.env.PIXVERSE_API_KEY?.trim();
+    if (!key) return NextResponse.json({ error: "PIXVERSE_API_KEY missing in .env.local." }, { status: 400 });
+    const form = new FormData();
+    form.append("image", srcBlob, "look.png");
+    const upRes = await fetch(`${PV_BASE}/image/upload`, { method: "POST", headers: pvHeaders(key), body: form });
+    const up = await upRes.json().catch(() => null);
+    if (up?.ErrCode !== 0 || !up?.Resp?.img_id) {
+      return NextResponse.json({ error: `Pixverse upload failed: ${up?.ErrMsg ?? upRes.status}` }, { status: 502 });
     }
+    const genRes = await fetch(`${PV_BASE}/video/img/generate`, {
+      method: "POST",
+      headers: pvHeaders(key, true),
+      body: JSON.stringify({
+        duration: 5, img_id: up.Resp.img_id, model: "v5", motion_mode: "normal", quality: "720p", prompt: FASHION_PROMPT,
+        sound_effect_switch: true, sound_effect_content: MUSIC,
+      }),
+    });
+    const gen = await genRes.json().catch(() => null);
+    if (gen?.ErrCode !== 0 || !gen?.Resp?.video_id) {
+      return NextResponse.json({ error: `Pixverse generate failed: ${gen?.ErrMsg ?? genRes.status}` }, { status: 502 });
+    }
+    const videoId = `pv:${String(gen.Resp.video_id)}`;
 
     (look as any).pendingVideoId = videoId;
     await saveTryThisLookState(state);
@@ -320,9 +264,9 @@ export async function GET(request: Request) {
 
   const raw = (look as any).pendingVideoId as string | undefined;
   if (!raw) {
-    // Self-heal: if the stored URL is still a (expiring) provider URL, copy it now.
+    // Self-heal: if the stored URL is still a (expiring) Pixverse URL, copy it now.
     const cur = (look as any).videoUrl as string | undefined;
-    if (cur && /(pixverse\.ai|fal\.media|fal\.run)/.test(cur)) {
+    if (cur && /pixverse\.ai/.test(cur)) {
       try {
         const finalUrl = await persistVideo(cur);
         (look as any).videoUrl = finalUrl;
@@ -333,14 +277,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ status: cur ? "done" : "idle", videoUrl: cur ?? null });
   }
 
-  // Provider from the prefix; legacy ids (no prefix) are Pixverse.
-  const isFal = raw.startsWith("fal:");
+  // All look videos are Pixverse; strip the "pv:" prefix (legacy ids have none).
   const id = raw.includes(":") ? raw.slice(raw.indexOf(":") + 1) : raw;
-  const key = (isFal ? process.env.FAL_KEY : process.env.PIXVERSE_API_KEY)?.trim();
-  if (!key) return NextResponse.json({ error: `${isFal ? "FAL_KEY" : "PIXVERSE_API_KEY"} missing.` }, { status: 400 });
+  const key = process.env.PIXVERSE_API_KEY?.trim();
+  if (!key) return NextResponse.json({ error: "PIXVERSE_API_KEY missing." }, { status: 400 });
 
   try {
-    const r = isFal ? await falPoll(key, id) : await pixversePoll(key, id);
+    const r = await pixversePoll(key, id);
     if (r.status === "done" && r.videoUrl) {
       (look as any).videoUrl = r.videoUrl;
       (look as any).videoCreatedAt = new Date().toISOString(); // for newest-first sorting
@@ -359,7 +302,7 @@ export async function GET(request: Request) {
   }
 }
 
-// Pixverse poll helper (used for intimate looks).
+// Pixverse poll helper.
 async function pixversePoll(key: string, id: string): Promise<{ status: "done" | "failed" | "processing"; videoUrl?: string; error?: string }> {
   const res = await fetch(`${PV_BASE}/video/result/${id}`, { headers: pvHeaders(key) });
   const d = await res.json().catch(() => null);

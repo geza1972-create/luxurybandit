@@ -5,24 +5,13 @@ import { chargeCredits, refundCredits, VIDEO_CREDITS } from "@/lib/curator-budge
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
-// Video provider routing: fal.ai Kling Standard for everything (cheap, great
-// fashion motion), EXCEPT lingerie/swim/intimate looks which use Pixverse (the
-// only provider that allows them). The chosen provider is encoded in the videoId
-// prefix ("fal:" / "pv:") so the client poll stays provider-agnostic.
+// Video: Pixverse for all try-on videos (best quality + handles lingerie/swim).
 const PV_BASE = "https://app-api.pixverse.ai/openapi/v2";
-const FAL_MODEL = "fal-ai/kling-video/v2.1/standard/image-to-video";
-const FAL_QUEUE = `https://queue.fal.run/${FAL_MODEL}`;
-// fal's queue status/result endpoints are keyed by the APP base, not the full
-// model path (e.g. .../fal-ai/kling-video/requests/<id>/status).
-const FAL_REQ = "https://queue.fal.run/fal-ai/kling-video/requests";
 const trace = () => crypto.randomUUID();
 const FASHION_PROMPT =
   "Elegant high-fashion presentation. The subject stays mostly still with subtle, slow, gentle movement — a soft breath, a small natural sway. CRITICAL: the outfit must stay IDENTICAL — keep the exact same garment shape, cut, colour, fabric, pattern and details; do not redesign, restyle or change the clothing. Minimal camera motion, refined studio lighting. No text or logos.";
 const MUSIC =
   "Soft, elegant instrumental background music — a gentle, chic fashion soundtrack. ONLY music: absolutely no footsteps, no voices, no talking, no ambient or foley sound effects.";
-
-// Looks Kling (and most providers) refuse to animate → route to Pixverse.
-const INTIMATE = /(slip|robe|kimono|swimsuit|maillot|one[- ]?piece|bodysuit|nightdress|chemise|lingerie|negligee|hunza|os[eé]ree|eres|la perla|fleur du mal|carine|intimissimi|triumph|calzedonia|hunkem[oö]ller|agent provocateur|wolford)/i;
 
 function pvHeaders(key: string, json = false): Record<string, string> {
   const h: Record<string, string> = { "API-KEY": key, "Ai-trace-id": trace() };
@@ -40,14 +29,13 @@ async function persistVideo(remoteUrl: string): Promise<string> {
   return signed;
 }
 
-async function lookOf(lookId: string): Promise<{ curatorId: string; intimate: boolean }> {
-  if (!lookId) return { curatorId: "", intimate: false };
+async function lookOf(lookId: string): Promise<{ curatorId: string }> {
+  if (!lookId) return { curatorId: "" };
   try {
     const state = await readTryThisLookState();
-    const look = state.looks.find((l) => l.id === lookId) as { curatorId?: string; name?: string; storeName?: string } | undefined;
-    const intimate = INTIMATE.test(`${look?.name ?? ""} ${look?.storeName ?? ""}`);
-    return { curatorId: String(look?.curatorId ?? ""), intimate };
-  } catch { return { curatorId: "", intimate: false }; }
+    const look = state.looks.find((l) => l.id === lookId) as { curatorId?: string } | undefined;
+    return { curatorId: String(look?.curatorId ?? "") };
+  } catch { return { curatorId: "" }; }
 }
 
 async function imageToBlob(image: string): Promise<Blob | null> {
@@ -63,21 +51,7 @@ async function imageToBlob(image: string): Promise<Blob | null> {
   } catch { return null; }
 }
 
-// fal needs a public image URL; data URLs are uploaded to our storage first.
-async function imageToUrl(image: string): Promise<string | null> {
-  try {
-    if (!image.startsWith("data:")) return image;
-    const [, b64] = image.split(",");
-    const mime = image.slice(5, image.indexOf(";")) || "image/png";
-    const ext = mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : "jpg";
-    const buf = Buffer.from(b64, "base64");
-    const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-    const path = await uploadTryThisLookBytes("uploads", ab, mime, ext);
-    return (await getSignedUrl(path, 60 * 60 * 24)) || (await getSignedUrl(path));
-  } catch { return null; }
-}
-
-// ── Pixverse (intimate looks) ──
+// ── Pixverse ──
 async function pixverseStart(key: string, image: string): Promise<{ videoId?: string; error?: string }> {
   const blob = await imageToBlob(image);
   if (!blob) return { error: "Could not read the try-on image." };
@@ -107,32 +81,6 @@ async function pixversePoll(key: string, id: string): Promise<{ status: "done" |
   return { status: "processing" };
 }
 
-// ── fal.ai Kling (everything else) ──
-async function falStart(key: string, image: string): Promise<{ videoId?: string; error?: string }> {
-  const imageUrl = await imageToUrl(image);
-  if (!imageUrl) return { error: "Could not read the try-on image." };
-  const sub = await fetch(FAL_QUEUE, {
-    method: "POST", headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt: FASHION_PROMPT, image_url: imageUrl, duration: "5" }),
-  });
-  const j = (await sub.json().catch(() => null)) as { request_id?: string } | null;
-  if (!sub.ok || !j?.request_id) return { error: `fal submit failed: ${sub.status}` };
-  return { videoId: j.request_id };
-}
-async function falPoll(key: string, requestId: string): Promise<{ status: "done" | "failed" | "processing"; videoUrl?: string; error?: string }> {
-  const auth = { Authorization: `Key ${key}` };
-  const st = await fetch(`${FAL_REQ}/${requestId}/status`, { headers: auth }).then((r) => r.json()).catch(() => null);
-  const status = st?.status;
-  if (status === "IN_QUEUE" || status === "IN_PROGRESS") return { status: "processing" };
-  if (status !== "COMPLETED") return { status: "failed", error: `fal status ${status ?? "unknown"}` };
-  const res = await fetch(`${FAL_REQ}/${requestId}`, { headers: auth }).then((r) => r.json()).catch(() => null);
-  const url = res?.video?.url;
-  if (!url) return { status: "failed", error: "fal returned no video." };
-  let finalUrl: string = url;
-  try { finalUrl = await persistVideo(url); } catch (e) { console.error("[video] fal persist failed:", e); }
-  return { status: "done", videoUrl: finalUrl };
-}
-
 // POST { lookId, image } → charge owner, start the right provider, return
 // { videoId: "<provider>:<id>", curatorId } for polling.
 export async function POST(request: Request) {
@@ -141,10 +89,9 @@ export async function POST(request: Request) {
   const image = String(body.image ?? "");
   if (!image) return NextResponse.json({ error: "image required." }, { status: 400 });
 
-  const { curatorId, intimate } = await lookOf(lookId);
-  const provider = intimate ? "pv" : "fal";
-  const key = (intimate ? process.env.PIXVERSE_API_KEY : process.env.FAL_KEY)?.trim();
-  if (!key) return NextResponse.json({ error: `${intimate ? "PIXVERSE_API_KEY" : "FAL_KEY"} missing.` }, { status: 400 });
+  const { curatorId } = await lookOf(lookId);
+  const key = process.env.PIXVERSE_API_KEY?.trim();
+  if (!key) return NextResponse.json({ error: "PIXVERSE_API_KEY missing." }, { status: 400 });
 
   if (curatorId) {
     const charge = await chargeCredits(curatorId, VIDEO_CREDITS, "try-on video");
@@ -153,9 +100,9 @@ export async function POST(request: Request) {
   const refund = () => { if (curatorId) void refundCredits(curatorId, VIDEO_CREDITS, "try-on video refund"); };
 
   try {
-    const r = intimate ? await pixverseStart(key, image) : await falStart(key, image);
+    const r = await pixverseStart(key, image);
     if (!r.videoId) { refund(); return NextResponse.json({ error: r.error ?? "Video start failed." }, { status: 502 }); }
-    return NextResponse.json({ ok: true, videoId: `${provider}:${r.videoId}`, curatorId, status: "processing" });
+    return NextResponse.json({ ok: true, videoId: `pv:${r.videoId}`, curatorId, status: "processing" });
   } catch (e) {
     refund();
     return NextResponse.json({ error: e instanceof Error ? e.message : "Video generation failed." }, { status: 500 });
@@ -170,13 +117,12 @@ export async function GET(request: Request) {
   const curatorId = url.searchParams.get("curatorId")?.trim() ?? "";
   if (!raw) return NextResponse.json({ error: "videoId required." }, { status: 400 });
 
-  const isFal = raw.startsWith("fal:");
-  const id = raw.includes(":") ? raw.slice(raw.indexOf(":") + 1) : raw; // tolerate legacy unprefixed (= pixverse)
-  const key = (isFal ? process.env.FAL_KEY : process.env.PIXVERSE_API_KEY)?.trim();
-  if (!key) return NextResponse.json({ error: `${isFal ? "FAL_KEY" : "PIXVERSE_API_KEY"} missing.` }, { status: 400 });
+  const id = raw.includes(":") ? raw.slice(raw.indexOf(":") + 1) : raw; // tolerate "pv:" prefix and legacy unprefixed
+  const key = process.env.PIXVERSE_API_KEY?.trim();
+  if (!key) return NextResponse.json({ error: "PIXVERSE_API_KEY missing." }, { status: 400 });
 
   try {
-    const r = isFal ? await falPoll(key, id) : await pixversePoll(key, id);
+    const r = await pixversePoll(key, id);
     if (r.status === "failed" && curatorId) void refundCredits(curatorId, VIDEO_CREDITS, "try-on video refund");
     return NextResponse.json(r);
   } catch (e) {
