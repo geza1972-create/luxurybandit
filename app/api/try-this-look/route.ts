@@ -384,7 +384,8 @@ export async function GET(request: Request) {
             thumbUrl: toThumbUrl((g as any).imageUrl ?? ""),
             videoUrl: (g as any).videoUrl ?? undefined,
             brand: detectBrand(g.lookName ?? look?.name, (look as any)?.productNote) ?? undefined,
-            // userPhotoUrl intentionally omitted — not needed for thumbnails, only for /post/[id] detail
+            // The original uploaded photo → the feed shows it as the "Before" slide.
+            userPhotoUrl: (g as any).userPhotoUrl ?? undefined,
             customerName: (g as any).customerName ?? "",
             curatorId: (g as any).curatorId ?? "",
             lookName: g.lookName ?? look?.name ?? "",

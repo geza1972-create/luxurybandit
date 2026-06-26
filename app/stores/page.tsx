@@ -13,7 +13,7 @@ import { useScrollLock } from "@/lib/use-scroll-lock";
 import { lookPath } from "@/lib/look-slug";
 import HomeFeed from "@/components/HomeFeed";
 import { isAdminEmail } from "@/lib/is-admin-email";
-import { Bookmark, Heart, Home, Image as ImageIcon, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, Sparkles, X } from "lucide-react";
+import { Bookmark, Heart, Home, Image as ImageIcon, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, Sparkles, Volume2, VolumeX, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -124,12 +124,19 @@ type Payload = {
 };
 
 // A single horizontally-swipeable preview slide inside a feed post: the video then
-// the main photo. Dupes are NOT slides — they're fetched on demand via a button.
-type Slide = { kind: "video" | "image"; url: string };
-function buildSlides(imageUrl: string, videoUrl: string | undefined): Slide[] {
+// the Before (uploaded photo) + After (result). Dupes are NOT slides — they're
+// fetched on demand via the Shop button.
+type Slide = { kind: "video" | "image"; url: string; label?: string };
+function buildSlides(imageUrl: string, videoUrl: string | undefined, userPhotoUrl?: string): Slide[] {
   const slides: Slide[] = [];
   if (videoUrl) slides.push({ kind: "video", url: videoUrl });
-  if (imageUrl) slides.push({ kind: "image", url: imageUrl });
+  if (userPhotoUrl) {
+    // Try-on with an original photo → show Before then After.
+    slides.push({ kind: "image", url: userPhotoUrl, label: "Before" });
+    if (imageUrl) slides.push({ kind: "image", url: imageUrl, label: "After" });
+  } else if (imageUrl) {
+    slides.push({ kind: "image", url: imageUrl });
+  }
   return slides;
 }
 
@@ -151,28 +158,34 @@ type CommunityItem = {
 };
 
 // ── Community slide (extracted to avoid component-inside-component) ──────────
-function CommunitySlide({ it, offset, verticalDrag, transition }: {
+function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleMute }: {
   it: CommunityItem; offset: number; verticalDrag: number; transition: string;
+  muted: boolean; onToggleMute: () => void;
 }) {
   const uname = it.customerName
     ? it.customerName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
     : "";
-  // Horizontal preview slides: video → main photo → each shoppable dupe.
+  // Horizontal preview slides: video → Before/After photos.
   const slides: Slide[] = (it.slides && it.slides.length)
     ? it.slides
     : [...(it.videoUrl ? [{ kind: "video" as const, url: it.videoUrl }] : []), { kind: "image" as const, url: it.imageUrl }];
   const [hIdx, setHIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const isCurrent = offset === 0;
-  // Play the video only when this reel post is the current one AND the video slide
-  // is the one on screen (swiping to a dupe photo pauses it).
+  const showingVideo = slides[hIdx]?.kind === "video";
+  // Play the video only when this post is current, the video slide is on screen,
+  // and the user hasn't tapped to pause it.
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    if (isCurrent && slides[hIdx]?.kind === "video") { v.play().catch(() => {}); }
+    v.muted = muted; // set the PROPERTY (React's `muted` prop alone is unreliable → blocks muted autoplay)
+    if (isCurrent && showingVideo && !paused) { v.play().catch(() => {}); }
     else { try { v.pause(); } catch { /**/ } }
-  }, [isCurrent, hIdx, slides]);
+  }, [isCurrent, showingVideo, paused, muted]);
+  // Reset to playing whenever this post leaves the screen, so it auto-plays next time.
+  useEffect(() => { if (!isCurrent) setPaused(false); }, [isCurrent]);
   const onScroll = () => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -188,13 +201,32 @@ function CommunitySlide({ it, offset, verticalDrag, transition }: {
           {slides.map((s, i) => (
             <div key={i} className="relative h-full w-full shrink-0 snap-center bg-black">
               {s.kind === "video" ? (
-                <video ref={videoRef} src={s.url} poster={optImg(it.imageUrl, 1080)} muted loop playsInline preload="metadata"
+                <video ref={videoRef} src={s.url} poster={optImg(it.imageUrl, 1080)} muted={muted} loop playsInline preload="metadata"
+                  onClick={() => setPaused(p => !p)}
                   className="h-full w-full object-cover object-top" />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={optImg(s.url, 1080)} alt={it.lookName} loading="lazy" decoding="async"
                   onError={(e) => { const im = e.currentTarget; if (im.src !== s.url) im.src = s.url; }}
                   className="h-full w-full object-cover object-top" />
+              )}
+              {/* Before / After label */}
+              {s.label && (
+                <span className="absolute left-3 top-12 rounded-full bg-black/55 px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wide text-white backdrop-blur">{s.label}</span>
+              )}
+              {/* Paused overlay (tap the video to play/pause) */}
+              {s.kind === "video" && isCurrent && paused && (
+                <button type="button" onClick={() => setPaused(false)} aria-label="Play"
+                  className="absolute inset-0 z-10 grid place-items-center bg-black/10">
+                  <Play className="h-16 w-16 fill-white/90 text-white/90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" />
+                </button>
+              )}
+              {/* Sound toggle (only on the video slide) */}
+              {s.kind === "video" && (
+                <button type="button" onClick={(e) => { e.stopPropagation(); onToggleMute(); }} aria-label={muted ? "Unmute" : "Mute"}
+                  className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90">
+                  {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                </button>
               )}
             </div>
           ))}
@@ -332,6 +364,7 @@ function CommunityDetailView({
   const [assignName, setAssignName] = useState("");
   const [assignWorking, setAssignWorking] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [muted, setMuted] = useState(true); // start muted so autoplay works; tap 🔊 for sound
 
   const isDraggingVertical = useRef(false);
   const verticalDragRef = useRef(0);
@@ -426,11 +459,11 @@ function CommunityDetailView({
       onWheel={onWheel}
     >
       {/* Prev slide */}
-      {prevItem && <CommunitySlide it={prevItem} offset={-1} verticalDrag={verticalDrag} transition={transition} />}
+      {prevItem && <CommunitySlide it={prevItem} offset={-1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} />}
       {/* Current slide */}
-      <CommunitySlide it={item} offset={0} verticalDrag={verticalDrag} transition={transition} />
+      <CommunitySlide it={item} offset={0} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} />
       {/* Next slide */}
-      {nextItem && <CommunitySlide it={nextItem} offset={1} verticalDrag={verticalDrag} transition={transition} />}
+      {nextItem && <CommunitySlide it={nextItem} offset={1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} />}
 
       {/* Right action column — always on top, not translated */}
       <div className="absolute right-2 z-20 flex flex-col items-center gap-5 pointer-events-auto"
@@ -484,7 +517,7 @@ function CommunityDetailView({
         <button type="button" onClick={() => { onClose(); router.push(`/look/${item.lookId}`); }}
           className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
           <Sparkles strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
-          <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Try-on</span>
+          <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Try on you</span>
         </button>
         {/* Shop the dupes — fetched on demand on the list page (as before) */}
         {item.lookId && (
@@ -1230,6 +1263,7 @@ function StoresPage() {
     const items: HItem[] = [];
     const lookById = new Map(looks.map((l) => [l.id, l]));
     for (const l of looks) {
+      if (!l.videoUrl) continue; // VIDEO-ONLY grid: skip static-image looks (curated look-videos stay)
       const thumb = l.frontImageUrl || l.imageUrl;
       // Poster only when it's a REAL model frame (never the floating product); else
       // the video tile shows the video's own first frame.
@@ -1241,6 +1275,7 @@ function StoresPage() {
       items.push({ key: `look-${l.id}`, kind: "look", id: l.id, thumb, videoUrl: l.videoUrl, videoPoster, aiCreated: l.aiCreated, brand: l.brand, createdAt: when, name: l.name, price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl });
     }
     for (const c of communityItems) {
+      if (!c.videoUrl) continue; // VIDEO-ONLY grid: skip try-ons that have no video
       // A try-on still IS a real model frame → use it as the video poster.
       const srcLook = lookById.get(c.lookId);
       items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, brand: c.brand, createdAt: c.createdAt ?? "", name: c.customerName || c.lookName, price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName });
@@ -1293,12 +1328,12 @@ function StoresPage() {
             brand: it.brand,
             createdAt: it.createdAt,
           };
-      return { ...base, slides: buildSlides(base.imageUrl, base.videoUrl) };
+      return { ...base, slides: buildSlides(base.imageUrl, base.videoUrl, base.userPhotoUrl) };
     });
   }, [visibleHistory, looks, communityItems]);
   // The community-only grid mapped with preview slides too.
   const filteredCommunityAsReel = useMemo<CommunityItem[]>(() => {
-    return filteredCommunity.map(c => ({ ...c, slides: buildSlides(c.imageUrl, c.videoUrl) }));
+    return filteredCommunity.map(c => ({ ...c, slides: buildSlides(c.imageUrl, c.videoUrl, c.userPhotoUrl) }));
   }, [filteredCommunity]);
 
   // ── Default home = full-screen vertical feed (TikTok/IG style, newest first) ──
