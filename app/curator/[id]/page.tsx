@@ -15,17 +15,27 @@ function viewerHeaders(): Record<string, string> {
 }
 
 type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; instagram?: string; style?: string; genderFocus?: string };
-type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
+type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
 type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string };
 
 const toSlug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 function optImg(url?: string, w = 600) { if (!url) return ""; if (url.startsWith("data:") || url.startsWith("blob:")) return url; return `/_next/image?url=${encodeURIComponent(url)}&w=${w}&q=70`; }
+// Map a currency value (symbol or ISO code, possibly empty) to a display symbol.
+// Missing/unknown currency defaults to "$" so prices never render bare ("from 55").
+function currencySymbol(c?: string): string {
+  const raw = (c ?? "").trim();
+  if (!raw) return "$";
+  if (/[$€£¥₹]/.test(raw)) return raw; // already a symbol
+  const map: Record<string, string> = { USD: "$", US: "$", CAD: "$", AUD: "$", EUR: "€", GBP: "£", JPY: "¥", INR: "₹" };
+  return map[raw.toUpperCase()] ?? "$";
+}
+
 function priceFrom(alts?: Look["alternatives"]): string | null {
   const v = (alts ?? []).filter(a => typeof a.priceValue === "number" && (a.priceValue as number) > 0);
   if (!v.length) return null;
   const by: Record<string, number[]> = {}; for (const a of v) { const c = a.currency ?? ""; (by[c] ??= []).push(a.priceValue as number); }
   const cur = Object.keys(by).sort((a, b) => by[b].length - by[a].length)[0];
-  const lo = Math.min(...by[cur]); return `from ${cur}${Number.isInteger(lo) ? lo : lo.toFixed(2)}`;
+  const lo = Math.min(...by[cur]); return `from ${currencySymbol(cur)}${Number.isInteger(lo) ? lo : lo.toFixed(2)}`;
 }
 
 export default function CuratorPublicPage() {
@@ -193,6 +203,10 @@ export default function CuratorPublicPage() {
                       <span className="absolute left-1.5 bottom-1.5 rounded-full bg-black px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">✦ Original</span>
                     ) : (
                       <span className="absolute left-1.5 bottom-1.5 rounded-full bg-white/85 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-black/70 backdrop-blur">Curated</span>
+                    )}
+                    {/* Look has a presentation video → play indicator (same as try-ons) */}
+                    {l.videoUrl && (
+                      <span className="pointer-events-none absolute inset-0 grid place-items-center"><Play className="h-10 w-10 fill-white text-white opacity-45 drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]" /></span>
                     )}
                   </div>
                   {from && <span className="px-2 pt-1 text-[10px] font-black text-ink">{from}</span>}
