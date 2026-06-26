@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut } from "lucide-react";
+import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn } from "lucide-react";
 import { signInWithPassword, getStoredAuthSession, saveAuthSession, signOut, resetPassword } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
 
@@ -182,6 +182,17 @@ export default function AdminPage() {
       else await fail(r, "Could not save curator");
     } catch { setError("Network error."); }
     setSaving(false);
+  };
+
+  // Impersonate a curator: set the local curator session so the Studio + try-on
+  // run in their name (their x-curator-id → their credits & attribution). Opens
+  // the Studio in a new tab; the admin session stays put in this tab.
+  const loginAs = (c: Curator, where: "studio" | "profile" = "studio") => {
+    if (c.id === "house") return;
+    try {
+      window.localStorage.setItem("lb_curator", JSON.stringify({ id: c.id, firstName: c.firstName ?? "", email: c.email ?? "", style: c.style ?? "" }));
+    } catch { /* ignore */ }
+    window.open(where === "studio" ? "/admin/trends" : `/curator/${c.id}`, "_blank");
   };
 
   // ── Look actions ──
@@ -487,6 +498,20 @@ export default function AdminPage() {
             </div>
 
             <div className="grid gap-3 overflow-y-auto px-5 py-4">
+              <div className="grid gap-2 rounded-xl border border-cobalt/25 bg-cobalt/[0.04] p-3">
+                <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-cobalt"><LogIn className="h-3.5 w-3.5" /> Act as this curator</div>
+                <p className="text-[11px] font-bold text-ink/45">Opens the Studio signed in as {edit.firstName || "this curator"} — publishing, try-ons & credits run in their name. Your admin tab stays open.</p>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => loginAs(edit, "studio")}
+                    className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-black text-sm font-black text-white active:scale-95 transition">
+                    <LogIn className="h-4 w-4" /> Open Studio as {edit.firstName || "curator"}
+                  </button>
+                  <button type="button" onClick={() => loginAs(edit, "profile")}
+                    className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-black/10 px-3 text-xs font-black text-ink active:scale-95 transition">
+                    Profile <ExternalLink className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
               <div className="flex items-end gap-2 rounded-xl bg-panel p-3">
                 <label className="grid flex-1 gap-1">
                   <span className="text-[11px] font-black uppercase tracking-wider text-ink/40">Credits</span>
