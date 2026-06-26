@@ -86,24 +86,6 @@ async function imageUrlToDataUrl(url: string): Promise<string> {
 // Crop a person photo to roughly the head + shoulders (drop the lower body). Used
 // before sending the photo to Pixverse reference mode so a revealing input (e.g. a
 // bikini selfie) doesn't trip moderation — and the face stays the clear reference.
-function cropToFace(src: string): Promise<string> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const cw = img.width;
-      const ch = Math.max(1, Math.round(img.height * 0.78)); // keep most of head+hair, trim only the lower (revealing) part
-      const canvas = document.createElement("canvas");
-      canvas.width = cw; canvas.height = ch;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) { resolve(src); return; }
-      ctx.drawImage(img, 0, 0, cw, ch, 0, 0, cw, ch);
-      try { resolve(canvas.toDataURL("image/jpeg", 0.9)); } catch { resolve(src); }
-    };
-    img.onerror = () => resolve(src);
-    img.src = src;
-  });
-}
-
 // Grab the first frame of a video as a still (the lingerie "Photo" tier — the photo
 // is a frame of the reference video, so no separate FASHN generation is needed).
 // Fetches via blob (object URL) so the canvas isn't CORS-tainted.
@@ -263,8 +245,9 @@ export default function TryonPage() {
         fr.onerror = reject;
         fr.readAsDataURL(blob);
       });
-      setUserPhoto(dataUrl);
-      setStep("confirm");
+      // Let the user frame it themselves (face/upper body) before trying on.
+      setCropSrc(dataUrl);
+      setStep("crop");
     } catch {
       setError("Couldn't load your profile photo. Upload one instead.");
     } finally {
@@ -385,11 +368,18 @@ export default function TryonPage() {
     const altProxied = altThumb ? `/api/img-proxy?url=${encodeURIComponent(altThumb)}` : undefined;
     let garmentData: string;
     try {
-      garmentData = await firstValidImageDataUrl([altThumb, altProxied, look.garmentFrontImageUrl, look.frontImageUrl, look.imageUrl]);
+      // When a specific shop card is chosen (?alt=N), use EXACTLY that product image
+      // — never silently fall back to the look's hero (that caused the wrong garment).
+      const candidates = altIdx >= 0
+        ? [altThumb, altProxied]
+        : [look.garmentFrontImageUrl, look.frontImageUrl, look.imageUrl];
+      garmentData = await firstValidImageDataUrl(candidates);
     } catch {
-      setError("Couldn't load the garment image. Try again."); setStep("confirm"); return;
+      setError("Couldn't load the selected product image. Pick the look again."); setStep("confirm"); return;
     }
-    const personCropped = await cropToFace(userPhoto);
+    // Use the photo EXACTLY as the user framed it in the crop step — no auto-crop.
+    // (We can't reliably guess where the face is; the user already chose the frame.)
+    const personCropped = userPhoto;
     setError(null);
     setResultImage(personCropped); // placeholder shown while the video renders
     setStep("result");
