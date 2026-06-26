@@ -1010,8 +1010,9 @@ export default function AdminTrends() {
           );
         })()}
 
-        {/* Choose how to create — one flow at a time, never both */}
-        <section className="mt-5 grid grid-cols-3 gap-3">
+        {/* Choose how to create — one flow at a time, never both. (Import-by-link
+            was removed for now — too fiddly; Find products + Create AI Fashion stay.) */}
+        <section className="mt-5 grid grid-cols-2 gap-3">
           <button type="button" onClick={() => setMode(mode === "web" ? null : "web")}
             className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition active:scale-[0.99] ${mode === "web" ? "border-black bg-black text-white shadow-soft" : "border-black/12 bg-white text-ink hover:border-black/30"}`}>
             <Search className={`h-5 w-5 ${mode === "web" ? "text-white" : "text-ink/50"}`} />
@@ -1023,12 +1024,6 @@ export default function AdminTrends() {
             <ImagePlus className={`h-5 w-5 ${mode === "ai" ? "text-white" : "text-ink/50"}`} />
             <span className="text-sm font-black">Create AI Fashion</span>
             <span className={`text-[11px] font-bold ${mode === "ai" ? "text-white/70" : "text-ink/40"}`}>Your photo on a model + garment → try-on</span>
-          </button>
-          <button type="button" onClick={() => setMode(mode === "link" ? null : "link")}
-            className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition active:scale-[0.99] ${mode === "link" ? "border-black bg-black text-white shadow-soft" : "border-black/12 bg-white text-ink hover:border-black/30"}`}>
-            <Link2 className={`h-5 w-5 ${mode === "link" ? "text-white" : "text-ink/50"}`} />
-            <span className="text-sm font-black">Import link</span>
-            <span className={`text-[11px] font-bold ${mode === "link" ? "text-white/70" : "text-ink/40"}`}>Paste a product link → look</span>
           </button>
         </section>
 
@@ -1105,30 +1100,6 @@ export default function AdminTrends() {
                 );
               })}
             </div>
-          </section>
-        )}
-
-        {/* Paste-a-link import — shown when the Import link tab is active. */}
-        {mode === "link" && (
-          <section className="mt-5 rounded-2xl border border-black/10 bg-white p-4 shadow-soft">
-            <div className="flex items-center gap-2">
-              <Link2 className="h-4 w-4 text-ink/50" />
-              <span className="text-[11px] font-black uppercase tracking-[0.14em] text-ink/45">Product links — one per line</span>
-            </div>
-            <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">Paste one or more product links. We import the image + price as a draft look you can publish.</p>
-            <textarea value={urls} onChange={(e) => setUrls(e.target.value)} rows={3}
-              placeholder="https://www.revolve.com/…  ·  https://allyfashion.com/…"
-              className="mt-3 w-full resize-y rounded-lg border border-black/10 bg-panel px-3.5 py-3 text-sm font-semibold text-ink outline-none focus:border-cobalt" />
-            <div className="mt-3">
-              <Btn onClick={runImport} disabled={importing || !urls.trim()} icon={importing ? undefined : Wand2}>
-                {importing ? <><Loader2 className="h-4 w-4 animate-spin" /> Importing…</> : "Import"}
-              </Btn>
-            </div>
-            {errors.length > 0 && (
-              <div className="mt-3 grid gap-1">
-                {errors.map((e, i) => <p key={i} className="text-xs font-bold text-coral">{e}</p>)}
-              </div>
-            )}
           </section>
         )}
 
