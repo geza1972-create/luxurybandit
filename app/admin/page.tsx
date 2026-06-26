@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock } from "lucide-react";
+import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown } from "lucide-react";
 
 const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
 
@@ -59,6 +59,11 @@ export default function AdminPage() {
   const [looks, setLooks] = useState<Look[]>([]);
   const [community, setCommunity] = useState<{ customerName?: string; curatorId?: string }[]>([]);
   const [sortC, setSortC] = useState<"looks" | "tryons" | "name">("looks");
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
+  const pickSort = (key: "looks" | "tryons" | "name") => {
+    if (sortC === key) setSortDir(d => (d === "desc" ? "asc" : "desc"));
+    else { setSortC(key); setSortDir("desc"); }
+  };
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
@@ -206,11 +211,12 @@ export default function AdminPage() {
   const shownCurators = useMemo(() => {
     const base = !q ? curators : curators.filter(c => `${fullName(c)} ${c.email ?? ""} ${c.brands ?? ""} ${c.style ?? ""}`.toLowerCase().includes(q));
     const arr = [...base];
-    if (sortC === "name") arr.sort((a, b) => fullName(a).localeCompare(fullName(b)));
-    else if (sortC === "tryons") arr.sort((a, b) => (tryonsByCurator.get(b.id) ?? 0) - (tryonsByCurator.get(a.id) ?? 0));
-    else arr.sort((a, b) => (looksByCurator.get(b.id) ?? 0) - (looksByCurator.get(a.id) ?? 0));
+    const dir = sortDir === "asc" ? 1 : -1; // desc by default: most / Z first
+    if (sortC === "name") arr.sort((a, b) => fullName(a).localeCompare(fullName(b)) * dir);
+    else if (sortC === "tryons") arr.sort((a, b) => ((tryonsByCurator.get(a.id) ?? 0) - (tryonsByCurator.get(b.id) ?? 0)) * dir);
+    else arr.sort((a, b) => ((looksByCurator.get(a.id) ?? 0) - (looksByCurator.get(b.id) ?? 0)) * dir);
     return arr;
-  }, [curators, q, sortC, looksByCurator, tryonsByCurator]);
+  }, [curators, q, sortC, sortDir, looksByCurator, tryonsByCurator]);
   const shownLooks = useMemo(() => {
     const base = !q ? looks : looks.filter(l => `${l.name} ${l.curatorName ?? ""} ${l.brand ?? ""} ${l.productNote ?? ""}`.toLowerCase().includes(q));
     return [...base].sort((a, b) => lookWhen(b).localeCompare(lookWhen(a))); // newest activity first — matches the frontend A List
@@ -331,9 +337,10 @@ export default function AdminPage() {
           <div className="mt-3 flex items-center gap-1.5">
             <span className="text-[11px] font-black uppercase tracking-wider text-ink/35">Sort</span>
             {([["looks", "Looks"], ["tryons", "Try-ons"], ["name", "Name"]] as const).map(([key, label]) => (
-              <button key={key} type="button" onClick={() => setSortC(key)}
-                className={`h-8 rounded-lg border px-3 text-xs font-black transition ${sortC === key ? "border-black bg-black text-white" : "border-black/10 text-ink/55"}`}>
+              <button key={key} type="button" onClick={() => pickSort(key)} title={sortC === key ? (sortDir === "desc" ? "Descending — tap to flip" : "Ascending — tap to flip") : "Sort"}
+                className={`inline-flex h-8 items-center gap-1 rounded-lg border px-3 text-xs font-black transition ${sortC === key ? "border-black bg-black text-white" : "border-black/10 text-ink/55"}`}>
                 {label}
+                {sortC === key && (sortDir === "desc" ? <ArrowDown className="h-3.5 w-3.5" /> : <ArrowUp className="h-3.5 w-3.5" />)}
               </button>
             ))}
           </div>
@@ -348,9 +355,10 @@ export default function AdminPage() {
                 <div key={c.id} role="button" tabIndex={0} onClick={() => { setEdit({ ...c }); setCreditsDraft(String(c.credits ?? "")); }}
                   onKeyDown={e => { if (e.key === "Enter") { setEdit({ ...c }); setCreditsDraft(String(c.credits ?? "")); } }}
                   className={`flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-xl border bg-white p-2.5 text-left active:scale-[0.99] transition ${off ? "border-black/10 opacity-70" : "border-black/10"}`}>
-                  <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-black/5 text-sm font-black text-ink/50">
+                  <a href={`/curator/${c.id}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} title="View profile in the frontend"
+                    className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-black/5 text-sm font-black text-ink/50 active:scale-95 transition">
                     {c.photoUrl ? <img src={c.photoUrl} alt="" className="h-full w-full object-cover" /> : initials(c)}
-                  </div>
+                  </a>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-black text-ink">{fullName(c)}</div>
                     <div className="truncate text-xs font-bold text-ink/45">{c.email ?? "—"}</div>
