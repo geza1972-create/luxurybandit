@@ -336,6 +336,7 @@ export default function TryonPage() {
   const [consentChecked, setConsentChecked] = useState(false);
   const pendingPhotoRef = useRef<string | undefined>(undefined);
   const [show360Note, setShow360Note] = useState(false); // 360° premium tier — UI ready, payment via Stripe pending
+  const [paidSoon, setPaidSoon] = useState<"" | "video" | "360">(""); // chosen paid video tier (awaiting Stripe)
 
   // ── Generate ──
   // photoOverride lets callers (e.g. the resume-after-application flow) pass the
@@ -432,7 +433,8 @@ export default function TryonPage() {
       void (async () => {
         // Lingerie try-ons stay PRIVATE — never auto-posted to the public A List.
         if (showInFeed && !isLingerieTryon()) await postToFeed(payload.image);
-        await startTryonVideo(payload.image);
+        // Video is no longer auto-generated — it's a separate PAID tier (Video /
+        // 360°) the user picks. The "Photo" tier produces just the try-on image.
       })();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed.");
@@ -917,16 +919,18 @@ export default function TryonPage() {
             )}
           </div>
 
-          {/* Download — photo + video */}
+          {/* Download — photo (+ video only once one has been generated) */}
           <div className="flex items-center gap-2">
             <button type="button" onClick={handleDownload}
               className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform">
-              <Download className="h-4 w-4" /> Photo
+              <Download className="h-4 w-4" /> Download photo
             </button>
+            {(videoStatus !== "idle" || videoUrl) && (
             <button type="button" onClick={handleDownloadVideo} disabled={videoStatus !== "done" || !videoUrl}
               className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform disabled:opacity-40">
               {videoStatus === "generating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />} Video
             </button>
+            )}
           </div>
 
           {/* 360° turnaround — premium tier (lingerie only). UI is here; the actual
@@ -1090,16 +1094,36 @@ export default function TryonPage() {
             </div>
           )}
 
-          {/* Buttons */}
+          {/* Choose what to create — Photo (the base try-on), Video, or 360°.
+              Photo generates now; the paid video tiers activate with checkout. */}
           <div className="grid gap-2">
-            <button onClick={() => void handleGenerate()}
-              className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-white text-base font-black text-black shadow-xl active:scale-95 transition-transform">
-              <Sparkles className="h-5 w-5 text-blue-600" />
-              Yes, try the look
-              <span className={`ml-auto rounded-full px-2 py-0.5 text-xs font-black ${effectiveLingerie ? "bg-black text-white" : "bg-emerald-100 text-emerald-700"}`}>{effectiveLingerie ? "$2.90" : "Free"}</span>
+            <button onClick={() => { setPaidSoon(""); void handleGenerate(); }}
+              className="flex h-14 w-full items-center gap-3 rounded-2xl bg-white px-4 text-black shadow-xl active:scale-95 transition-transform">
+              <Sparkles className="h-5 w-5 shrink-0 text-blue-600" />
+              <span className="text-base font-black">Photo</span>
+              <span className={`ml-auto rounded-full px-2.5 py-0.5 text-xs font-black ${effectiveLingerie ? "bg-black text-white" : "bg-emerald-100 text-emerald-700"}`}>{effectiveLingerie ? "$2.90" : "Free"}</span>
             </button>
+            <button onClick={() => setPaidSoon("video")}
+              className="flex h-14 w-full items-center gap-3 rounded-2xl bg-white/15 px-4 text-white backdrop-blur active:scale-95 transition-transform">
+              <Film className="h-5 w-5 shrink-0" />
+              <span className="text-base font-black">Video <span className="font-bold text-white/55">· 5s</span></span>
+              <span className="ml-auto rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-black">{effectiveLingerie ? "$4.90" : "$2.90"}</span>
+            </button>
+            {effectiveLingerie && (
+              <button onClick={() => setPaidSoon("360")}
+                className="flex h-14 w-full items-center gap-3 rounded-2xl bg-white/15 px-4 text-white backdrop-blur active:scale-95 transition-transform">
+                <RefreshCw className="h-5 w-5 shrink-0" />
+                <span className="text-base font-black">360° turnaround</span>
+                <span className="ml-auto rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-black">$7.90</span>
+              </button>
+            )}
+            {paidSoon && (
+              <p className="text-center text-[12px] font-bold text-white/75">
+                {paidSoon === "360" ? "360° video" : "Video"} comes very soon — activates at checkout. Tap <span className="text-white">Photo</span> to try it on now.
+              </p>
+            )}
             <button onClick={() => { setUserPhoto(null); fileInputRef.current?.click(); }}
-              className="flex h-12 w-full items-center justify-center rounded-2xl bg-white/20 text-sm font-black text-white backdrop-blur active:opacity-70">
+              className="mt-1 flex h-12 w-full items-center justify-center rounded-2xl bg-white/20 text-sm font-black text-white backdrop-blur active:opacity-70">
               Upload a different photo
             </button>
             <button onClick={() => router.push(lookBackPath)}
