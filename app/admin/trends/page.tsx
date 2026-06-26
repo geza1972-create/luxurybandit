@@ -517,7 +517,7 @@ export default function AdminTrends() {
   const [brandOpen, setBrandOpen] = useState(false);    // brand dropdown open
   const [pickedGarment, setPickedGarment] = useState(""); // target garment type
   const [credits, setCredits] = useState<{ credits: number; spent: number; earned: number } | null>(null);
-  const [costs, setCosts] = useState<{ tryon: number; search: number; starter: number } | null>(null);
+  const [costs, setCosts] = useState<{ tryon: number; search: number; starter: number; video?: number } | null>(null);
   const [justEarned, setJustEarned] = useState<{ label: string; credits: number }[]>([]);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   // Which creation mode the curator picked. They choose one first, then we show
@@ -1397,7 +1397,7 @@ export default function AdminTrends() {
                           ) : (
                             <button type="button" onClick={() => void generateLookVideo(l.id)} disabled={uploadingVideo === l.id}
                               className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-black/15 bg-panel px-2 py-1.5 text-[11px] font-black text-ink/55 hover:border-cobalt disabled:opacity-60">
-                              {uploadingVideo === l.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating video…</> : <><Video className="h-3.5 w-3.5" /> Generate AI video · 5s</>}
+                              {uploadingVideo === l.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating video…</> : <><Video className="h-3.5 w-3.5" /> Generate AI video · 5s · {costs?.video ?? 8} credits</>}
                             </button>
                           )}
                         </div>
@@ -1524,7 +1524,7 @@ export default function AdminTrends() {
             </div>
 
             <div className="mt-4 grid gap-2.5 text-sm font-semibold leading-relaxed text-ink/70">
-              <p>Using the studio costs credits — <span className="font-black text-ink">try-on {costs?.tryon ?? 2}</span>, <span className="font-black text-ink">web search {costs?.search ?? 1}</span>. You started with <span className="font-black text-ink">{costs?.starter ?? 30}</span> to prove yourself.</p>
+              <p>Using the studio costs credits — <span className="font-black text-ink">try-on {costs?.tryon ?? 2}</span>, <span className="font-black text-ink">web search {costs?.search ?? 1}</span>, <span className="font-black text-ink">AI video {costs?.video ?? 8}</span>. You started with <span className="font-black text-ink">{costs?.starter ?? 30}</span> to prove yourself.</p>
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3.5">
                 <p className="text-sm font-black text-emerald-700">Earn more — free</p>
                 <p className="mt-1 text-[13px] font-semibold leading-5 text-emerald-700/80">

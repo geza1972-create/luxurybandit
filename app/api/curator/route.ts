@@ -6,7 +6,7 @@ import {
   uploadTryThisLookImage,
   type CuratorProfile,
 } from "@/lib/try-this-look-store";
-import { setCuratorCredits, grantCredits, awardEngagementCredits, getCuratorCredits, STARTER_CREDITS, TRYON_CREDITS, SEARCH_CREDITS } from "@/lib/curator-budget";
+import { setCuratorCredits, grantCredits, awardEngagementCredits, getCuratorCredits, STARTER_CREDITS, TRYON_CREDITS, SEARCH_CREDITS, VIDEO_CREDITS } from "@/lib/curator-budget";
 import { notifyAdminWhatsApp, ADMIN_URL } from "@/lib/notify-admin";
 import { isAdminRequest } from "@/lib/admin-auth";
 
@@ -89,7 +89,7 @@ export async function GET(request: Request) {
       curator,
       credits,
       justEarned,
-      costs: { tryon: TRYON_CREDITS, search: SEARCH_CREDITS, starter: STARTER_CREDITS },
+      costs: { tryon: TRYON_CREDITS, search: SEARCH_CREDITS, starter: STARTER_CREDITS, video: VIDEO_CREDITS },
     });
   }
   return NextResponse.json({
