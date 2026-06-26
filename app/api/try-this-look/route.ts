@@ -370,9 +370,10 @@ export async function GET(request: Request) {
     // Global community feed — all recent public generations
     if (url.searchParams.get("community") === "1") {
       const lookById = new Map(state.looks.map(l => [l.id, l]));
-      // Discover archive — EVERY post on the portal, individually (not just a slice).
+      // Discover archive — every PUBLIC post (respect the creator's "In feed /
+      // Hidden" toggle: feed === false means hide it from the public grid too).
       const community = state.generations
-        .filter(g => (g as any).imageUrl && !(g as any).hidden)
+        .filter(g => (g as any).imageUrl && !(g as any).hidden && (g as any).feed !== false)
         .slice(0, 200)
         .map(g => {
           const look = lookById.get(g.lookId);
