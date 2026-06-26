@@ -64,9 +64,9 @@ async function imageToBlob(image: string): Promise<Blob | null> {
 // only — no lingerie/skin/lace — or Pixverse flags it. @Bild2 = the person whose
 // FACE/appearance must be preserved; @Bild1 = the outfit to put on them.
 const REF_PRESENT_PROMPT =
-  "@Bild2 presents the outfit from @Bild1. She stands upright in an elegant studio, soft premium lighting, with subtle natural movement — a gentle sway. Keep her face and appearance exactly as in @Bild2 and the outfit exactly as in @Bild1. Fluid, calm motion, photorealistic, high-end fashion catalogue look. No text or logos.";
+  "@person presents the @outfit in an elegant studio with soft premium lighting and subtle natural movement — a gentle sway. Keep @person face and appearance and the @outfit exactly the same. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.";
 const REF_TURNAROUND_PROMPT =
-  "@Bild2 presents the outfit from @Bild1: she stands upright in an elegant studio and turns slowly and smoothly through one full 360° — front, right side, back, left side, back to front. Static camera at hip height, soft premium lighting. Keep her face and appearance exactly as in @Bild2 and the outfit exactly as in @Bild1 throughout. Fluid, calm motion, photorealistic, high-end fashion catalogue look. No text or logos.";
+  "@person presents the @outfit and turns slowly and smoothly through one full 360° — front, right side, back, left side, back to front. Static camera at hip height, soft premium lighting. Keep @person face and appearance and the @outfit exactly the same throughout. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.";
 
 // ── Pixverse ──
 async function pixverseUpload(key: string, image: string): Promise<number | null> {
@@ -84,12 +84,26 @@ async function pixverseUpload(key: string, image: string): Promise<number | null
 async function pixverseStartReference(key: string, garment: string, person: string, turnaround: boolean): Promise<{ videoId?: string; error?: string }> {
   const [gId, pId] = await Promise.all([pixverseUpload(key, garment), pixverseUpload(key, person)]);
   if (!gId || !pId) return { error: "Pixverse upload failed (reference images)." };
-  const genRes = await fetch(`${PV_BASE}/video/img/generate`, {
+  // Fusion (reference-to-video): @person = the face to keep, @outfit = the garment.
+  const reqBody = {
+    image_references: [
+      { type: "subject", img_id: pId, ref_name: "person" },
+      { type: "subject", img_id: gId, ref_name: "outfit" },
+    ],
+    prompt: turnaround ? REF_TURNAROUND_PROMPT : REF_PRESENT_PROMPT,
+    model: "v4.5",
+    duration: turnaround ? 8 : 5,
+    quality: "720p",
+    aspect_ratio: "9:16",
+    sound_effect_switch: true,
+    sound_effect_content: MUSIC,
+  };
+  const genRes = await fetch(`${PV_BASE}/video/fusion/generate`, {
     method: "POST", headers: pvHeaders(key, true),
-    body: JSON.stringify({ duration: turnaround ? 10 : 5, img_ids: [gId, pId], model: "v6", quality: "720p", prompt: turnaround ? REF_TURNAROUND_PROMPT : REF_PRESENT_PROMPT, sound_effect_switch: true, sound_effect_content: MUSIC }),
+    body: JSON.stringify(reqBody),
   });
   const gen = await genRes.json().catch(() => null);
-  if (gen?.ErrCode !== 0 || !gen?.Resp?.video_id) return { error: `Pixverse reference generate failed: ${gen?.ErrMsg ?? genRes.status}` };
+  if (gen?.ErrCode !== 0 || !gen?.Resp?.video_id) return { error: `Pixverse fusion failed: ${gen?.ErrMsg ?? genRes.status}` };
   return { videoId: String(gen.Resp.video_id) };
 }
 
