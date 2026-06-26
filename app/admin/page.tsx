@@ -196,7 +196,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#fbfaf7] px-4 py-5 text-ink">
+    <main className="min-h-screen w-full overflow-x-hidden bg-[#fbfaf7] px-4 py-5 text-ink">
       <div className="mx-auto w-full max-w-3xl">
         <header className="flex items-center justify-between gap-3">
           <div>
@@ -235,13 +235,13 @@ export default function AdminPage() {
 
         {/* ── A List ── */}
         {tab === "looks" && (
-          <div className="mt-3 grid gap-2 pb-16">
+          <div className="mt-3 grid grid-cols-1 gap-2 pb-16">
             {shownLooks.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No listings.</p>}
             {shownLooks.map(l => {
               const live = l.published !== false;
               const img = l.frontImageUrl || l.imageUrl;
               return (
-                <div key={l.id} className={`flex gap-3 rounded-xl border bg-white p-2.5 ${live ? "border-black/10" : "border-black/10 opacity-70"}`}>
+                <div key={l.id} className={`flex min-w-0 gap-3 rounded-xl border bg-white p-2.5 ${live ? "border-black/10" : "border-black/10 opacity-70"}`}>
                   <a href={`/look/${l.id}`} target="_blank" rel="noreferrer" title="View live in the frontend"
                     className="group relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-black/5 active:scale-95 transition">
                     {img ? <img src={img} alt="" className="h-full w-full object-cover object-top" /> : <div className="grid h-full w-full place-items-center text-[10px] font-black text-ink/30">LB</div>}
@@ -262,14 +262,18 @@ export default function AdminPage() {
                     </div>
                     {l.productNote && <p className="mt-1 line-clamp-2 text-xs font-medium leading-snug text-ink/45">{l.productNote}</p>}
                   </div>
-                  <div className="flex shrink-0 flex-col items-stretch gap-1.5">
-                    <button type="button" onClick={() => setEditLook({ ...l })}
-                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-black/10 px-3 text-xs font-black text-ink active:scale-95 transition">
-                      <Pencil className="h-3.5 w-3.5" /> Edit
+                  <div className="flex shrink-0 flex-col items-center gap-1.5">
+                    <button type="button" disabled={busy === l.id} onClick={() => void setLookPublished(l.id, !live)} title={live ? "Deactivate" : "Activate"}
+                      className={`grid h-9 w-9 place-items-center rounded-lg border active:scale-95 transition ${live ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-black/10 text-ink/50"}`}>
+                      <Power className="h-4 w-4" />
+                    </button>
+                    <button type="button" onClick={() => setEditLook({ ...l })} title="Edit"
+                      className="grid h-9 w-9 place-items-center rounded-lg border border-black/10 text-ink/70 active:scale-95 transition">
+                      <Pencil className="h-4 w-4" />
                     </button>
                     <button type="button" disabled={busy === l.id} onClick={() => armOrRun(l.id, () => void deleteLook(l.id))} title="Delete"
-                      className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-black active:scale-95 transition ${confirmId === l.id ? "border-red-300 bg-red-500 text-white" : "border-black/10 text-red-500 hover:border-red-200"}`}>
-                      {confirmId === l.id ? "Sure?" : <><Trash2 className="h-3.5 w-3.5" /> Delete</>}
+                      className={`grid h-9 place-items-center rounded-lg border active:scale-95 transition ${confirmId === l.id ? "w-full px-1 border-red-300 bg-red-500 text-white" : "w-9 border-black/10 text-red-500 hover:border-red-200"}`}>
+                      {confirmId === l.id ? <span className="text-[10px] font-black">Sure?</span> : <Trash2 className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
@@ -280,14 +284,14 @@ export default function AdminPage() {
 
         {/* ── Curators ── */}
         {tab === "curators" && (
-          <div className="mt-3 grid gap-2 pb-16">
+          <div className="mt-3 grid grid-cols-1 gap-2 pb-16">
             {shownCurators.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No curators.</p>}
             {shownCurators.map(c => {
               const off = c.status === "deactivated";
               return (
                 <div key={c.id} role="button" tabIndex={0} onClick={() => { setEdit({ ...c }); setCreditsDraft(String(c.credits ?? "")); }}
                   onKeyDown={e => { if (e.key === "Enter") { setEdit({ ...c }); setCreditsDraft(String(c.credits ?? "")); } }}
-                  className={`flex w-full cursor-pointer items-center gap-3 rounded-xl border bg-white p-2.5 text-left active:scale-[0.99] transition ${off ? "border-black/10 opacity-70" : "border-black/10"}`}>
+                  className={`flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-xl border bg-white p-2.5 text-left active:scale-[0.99] transition ${off ? "border-black/10 opacity-70" : "border-black/10"}`}>
                   <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-black/5 text-sm font-black text-ink/50">
                     {c.photoUrl ? <img src={c.photoUrl} alt="" className="h-full w-full object-cover" /> : initials(c)}
                   </div>
