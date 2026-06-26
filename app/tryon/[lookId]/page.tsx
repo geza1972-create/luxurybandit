@@ -36,6 +36,17 @@ type Step = "upload" | "crop" | "confirm" | "generating" | "result" | "locked";
 // Shrink a (possibly multi-MB PNG) data URL to a compact JPEG before sending it
 // in a JSON body — Vercel rejects request bodies over ~4.5MB, which silently
 // dropped feed posts on production (worked locally where there's no such limit).
+// Turn a video failure into a clear, actionable note. Moderation blocks (and most
+// reference/lingerie failures) mean the portrait OR the product image is too
+// revealing — say so explicitly so the user knows what to change.
+function failureNote(err: string | undefined, isReference: boolean): string {
+  const moderation = !!err && /moderat|block|policy|guidelin|violat|flag|sensitive|nsfw|safety|content/i.test(err);
+  if (moderation || isReference) {
+    return "Generation blocked — your photo or the product image is likely too revealing. Use a more covered photo (face & upper body, clothed) and try again.";
+  }
+  return err || "Video couldn't be created — here's your photo.";
+}
+
 async function compressDataUrl(dataUrl: string, maxDim = 1080, quality = 0.85): Promise<string> {
   if (!dataUrl.startsWith("data:image/")) return dataUrl;
   try {
@@ -330,7 +341,13 @@ export default function TryonPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 402) { setVideoStatus("error"); setVideoNote("No credits left for a video — here's your photo."); return; }
-      if (!res.ok || !data.videoId) { setVideoStatus("error"); setVideoNote("Video couldn't be created — here's your photo."); return; }
+      // Reference (lingerie) failures are almost always moderation: the portrait or
+      // the product image is too revealing. Tell the user exactly what to fix.
+      if (!res.ok || !data.videoId) {
+        setVideoStatus("error");
+        setVideoNote(failureNote(data.error, !!ref));
+        return;
+      }
       // Poll until done / failed (~max 2.5 min).
       const videoId = String(data.videoId);
       const cid = String(data.curatorId ?? "");
@@ -350,7 +367,7 @@ export default function TryonPage() {
           }
           return p.videoUrl as string;
         }
-        if (p?.status === "failed") { stopProgress(0); setVideoStatus("error"); setVideoNote(p.error ?? "Video failed — here's your photo."); return; }
+        if (p?.status === "failed") { stopProgress(0); setVideoStatus("error"); setVideoNote(failureNote(p.error, !!ref)); return; }
       }
       stopProgress(0); setVideoStatus("error"); setVideoNote("Video is taking too long — here's your photo.");
     } catch {
