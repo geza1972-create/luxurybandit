@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const PROTECTED_PREFIXES = ["/admin", "/tools"];
+// /admin is NOT here: it gates itself with the admin PIN (client form + every
+// admin API verifies x-try-look-admin-pin server-side). HTTP Basic Auth broke in
+// embedded/in-app browsers (no login dialog → "Authentication required" wall).
+const PROTECTED_PREFIXES = ["/tools"];
 
 function requiresAuth(pathname: string) {
   return PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
@@ -51,8 +54,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/admin",
-    "/admin/:path*",
     "/tools",
     "/tools/:path*",
   ],
