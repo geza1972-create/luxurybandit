@@ -170,10 +170,6 @@ export default function CuratorPublicPage() {
 
       {/* Gallery — published trend looks + the curator's own try-ons (badged) */}
       <div className="mt-6 px-1">
-        <p className="px-4 pb-2 text-[11px] font-black uppercase tracking-[0.16em] text-black/40">
-          {looks.length} {looks.length === 1 ? "look" : "looks"}{tryons.length > 0 ? ` · ${tryons.length} try-on${tryons.length === 1 ? "" : "s"}` : ""}
-        </p>
-
         {looks.length === 0 && tryons.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-16 text-center">
             <ShoppingBag className="h-8 w-8 text-black/15" />
