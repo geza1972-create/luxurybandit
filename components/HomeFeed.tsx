@@ -64,7 +64,7 @@ function RailButton({ icon, label, active, onClick }: { icon: React.ReactNode; l
   );
 }
 
-function Slide({ look, onComment, muted, setMuted, index, onActive }: { look: FeedLook; onComment: (look: FeedLook) => void; muted: boolean; setMuted: (fn: (m: boolean) => boolean) => void; index: number; onActive: (i: number) => void }) {
+function Slide({ look, onComment, muted, setMuted, index, onActive, single = false }: { look: FeedLook; onComment: (look: FeedLook) => void; muted: boolean; setMuted: (fn: (m: boolean) => boolean) => void; index: number; onActive: (i: number) => void; single?: boolean }) {
   const router = useRouter();
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(look.likeCount ?? 0);
@@ -202,22 +202,29 @@ function Slide({ look, onComment, muted, setMuted, index, onActive }: { look: Fe
     else navigator.clipboard?.writeText(url).catch(() => {});
   };
 
+  // Curator + badge row. On the single-look page it moves BELOW the image so the
+  // page's fixed back button (top-left) doesn't sit on top of the logo/name/badge.
+  const headerBar = (
+    <div className={`z-20 flex items-center gap-2 bg-white px-3 ${single ? "pb-2 pt-3" : "pb-2 pr-14"}`} style={single ? undefined : { paddingTop: "calc(env(safe-area-inset-top) + 0.75rem)" }}>
+      <button type="button" onClick={() => look.curatorId && router.push(`/curator/${look.curatorId}`)}
+        className="flex min-w-0 items-center gap-2 active:opacity-80">
+        <span className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-black/10 bg-black/5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={look.curatorPhotoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(look.curatorName || "LB")}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
+        </span>
+        <span className="truncate text-sm font-black text-black">{look.curatorName || "LuxuryBandit"}</span>
+      </button>
+      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${look.aiCreated ? "bg-black text-white" : "bg-black/[0.06] text-black/60"}`}>
+        {look.aiCreated ? "✦ Original" : "Curated"}
+      </span>
+    </div>
+  );
+
   return (
     <section ref={sectionRef} className="relative flex h-[100dvh] w-full snap-start snap-always flex-col bg-white">
-      {/* ── Header bar (white) — curator + badge ABOVE the image, never over the face ── */}
-      <div className="z-20 flex items-center gap-2 bg-white px-3 pb-2 pr-14" style={{ paddingTop: "calc(env(safe-area-inset-top) + 0.75rem)" }}>
-        <button type="button" onClick={() => look.curatorId && router.push(`/curator/${look.curatorId}`)}
-          className="flex min-w-0 items-center gap-2 active:opacity-80">
-          <span className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-black/10 bg-black/5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={look.curatorPhotoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(look.curatorName || "LB")}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
-          </span>
-          <span className="truncate text-sm font-black text-black">{look.curatorName || "LuxuryBandit"}</span>
-        </button>
-        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${look.aiCreated ? "bg-black text-white" : "bg-black/[0.06] text-black/60"}`}>
-          {look.aiCreated ? "✦ Original" : "Curated"}
-        </span>
-      </div>
+      {/* ── Header bar (white) — curator + badge ABOVE the image (feed). On the single
+          look page it renders below the image instead (see white caption block). ── */}
+      {!single && headerBar}
 
       {/* ── Image area ── */}
       <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
@@ -238,27 +245,27 @@ function Slide({ look, onComment, muted, setMuted, index, onActive }: { look: Fe
                   <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
                     src={look.videoUrl} poster={look.videoPosterUrl || img} className="h-full w-full object-contain"
                     muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
-                  <span className="absolute left-3 top-3 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">{look.aiCreated ? "✦ AI video" : "Video"}</span>
+                  <span className={`absolute ${single ? "left-14" : "left-3"} top-3 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur`}>{look.aiCreated ? "✦ AI video" : "Video"}</span>
                 </div>
               ) : m.type === "cphoto" ? (
                 // Community try-on photo (someone wearing this look).
                 <div className="relative h-full w-full">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={m.url} alt={`${look.name} on ${m.name ?? "a member"}`} className="h-full w-full object-contain" />
-                  <span className="absolute left-3 top-3 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">{m.name ? `${m.name}'s try-on` : "Member try-on"}</span>
+                  <span className={`absolute ${single ? "left-14" : "left-3"} top-3 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur`}>{m.name ? `${m.name}'s try-on` : "Member try-on"}</span>
                 </div>
               ) : m.type === "cvideo" ? (
                 // Community try-on video — same sound handling as the curator video.
                 <div className="relative h-full w-full">
                   <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
                     src={m.url} className="h-full w-full bg-black object-contain" muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
-                  <span className="absolute left-3 top-3 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">{m.name ? `${m.name}'s video` : "Member video"}</span>
+                  <span className={`absolute ${single ? "left-14" : "left-3"} top-3 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur`}>{m.name ? `${m.name}'s video` : "Member video"}</span>
                 </div>
               ) : m.type === "image" ? (
                 <div className="relative h-full w-full">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={img} alt={look.name} className="h-full w-full object-contain" />
-                  <span className={`absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide backdrop-blur ${look.aiCreated ? "bg-black/70 text-white" : "bg-white/85 text-black/70"}`}>
+                  <span className={`absolute ${single ? "left-14" : "left-3"} top-3 z-10 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide backdrop-blur ${look.aiCreated ? "bg-black/70 text-white" : "bg-white/85 text-black/70"}`}>
                     {look.aiCreated ? "✦ Original" : "Curated"}
                   </span>
                 </div>
@@ -287,6 +294,10 @@ function Slide({ look, onComment, muted, setMuted, index, onActive }: { look: Fe
           <RailButton icon={<Send className="h-7 w-7" strokeWidth={2} />} label="Share" onClick={share} />
         </div>
       </div>
+
+      {/* Curator + badge — on the single look page this sits below the image, clear
+          of the page's fixed back button. */}
+      {single && <div className="shrink-0">{headerBar}</div>}
 
       {/* ── White caption + actions (Instagram-style, below the image) ── */}
       <div className="shrink-0 bg-white px-4 pt-2.5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4rem)" }}>
@@ -477,7 +488,7 @@ function CommentsSheet({ look, onClose }: { look: FeedLook; onClose: () => void 
   );
 }
 
-export default function HomeFeed({ looks }: { looks: FeedLook[] }) {
+export default function HomeFeed({ looks, single = false }: { looks: FeedLook[]; single?: boolean }) {
   const [commentsFor, setCommentsFor] = useState<FeedLook | null>(null);
   // One global sound switch for the whole feed. The audio is a single looping
   // soundtrack (drop your track at public/feed-music.mp3) — consistent across all
@@ -536,7 +547,7 @@ export default function HomeFeed({ looks }: { looks: FeedLook[] }) {
   return (
     <>
       <div className="h-[100dvh] w-full snap-y snap-mandatory overflow-y-scroll overscroll-contain bg-black [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {feed.map((look, i) => <Slide key={look.id} look={look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} index={i} onActive={handleActive} />)}
+        {feed.map((look, i) => <Slide key={look.id} look={look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} index={i} onActive={handleActive} single={single} />)}
       </div>
       {/* Slide-coupled feed soundtrack — shuffled /public mp3s, the track changes
           as you scroll and resumes where it left off. Only audio source (videos muted). */}

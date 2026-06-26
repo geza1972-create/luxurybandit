@@ -531,7 +531,7 @@ export default function LookPage() {
         style={{ top: "calc(env(safe-area-inset-top) + 0.6rem)" }}>
         <ChevronLeft className="h-5 w-5" />
       </button>
-      <HomeFeed looks={[look as unknown as FeedLook]} />
+      <HomeFeed looks={[look as unknown as FeedLook]} single />
     </div>
   );
 
