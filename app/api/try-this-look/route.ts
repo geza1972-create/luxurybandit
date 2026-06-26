@@ -856,6 +856,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, partnerStores: stores });
     }
 
+    // Admin-only: reassign a look to a curator (e.g. a look published before the
+    // act-as attribution fix that landed on the house account). Touches ONLY the
+    // owner — nothing else on the look changes.
+    if (payload.action === "set-look-curator") {
+      const lookId = String((payload as any).lookId ?? "").trim();
+      const curatorId = String((payload as any).curatorId ?? "").trim();
+      const state = await readTryThisLookState();
+      const look = state.looks.find(l => l.id === lookId);
+      if (!look) return NextResponse.json({ error: "Look not found." }, { status: 404 });
+      (look as any).curatorId = curatorId || undefined;
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, lookId, curatorId: curatorId || null });
+    }
+
     if (payload.action === "delete-curator") {
       const id = String((payload as any).id ?? "").trim();
       const all = String((payload as any).all ?? "") === "1";
