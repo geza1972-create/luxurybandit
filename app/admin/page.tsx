@@ -43,6 +43,13 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState<string>("");
+  const [confirmId, setConfirmId] = useState<string>(""); // armed delete (two-tap)
+
+  // Two-tap delete: first tap arms (shows "Delete?"), second tap within 3.5s deletes.
+  const armOrRun = (id: string, run: () => void) => {
+    if (confirmId === id) { setConfirmId(""); run(); }
+    else { setConfirmId(id); setTimeout(() => setConfirmId(c => (c === id ? "" : c)), 3500); }
+  };
 
   const headers = (p = pin) => ({ "Content-Type": "application/json", "x-try-look-admin-pin": p });
 
@@ -71,33 +78,47 @@ export default function AdminPage() {
 
   const signIn = () => { window.localStorage.setItem(ADMIN_PIN_KEY, pin); void load(pin); };
 
+  const fail = async (r: Response, fallback: string) => {
+    const d = await r.json().catch(() => ({}));
+    setError(d?.error || `${fallback} (${r.status})`);
+    setTimeout(() => setError(""), 4000);
+  };
+
   // ── Curator actions ──
   const setCuratorStatus = async (id: string, status: "active" | "deactivated") => {
-    setBusy(id);
+    setBusy(id); setError("");
     setCurators(cs => cs.map(c => c.id === id ? { ...c, status } : c));
-    await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "set-curator-status", id, status }) }).catch(() => {});
+    try {
+      const r = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "set-curator-status", id, status }) });
+      if (!r.ok) { setCurators(cs => cs.map(c => c.id === id ? { ...c, status: status === "active" ? "deactivated" : "active" } : c)); await fail(r, "Could not update curator"); }
+    } catch { setError("Network error."); }
     setBusy("");
   };
   const deleteCurator = async (id: string) => {
-    if (!window.confirm("Delete this curator account permanently? Their looks stay but lose their owner.")) return;
-    setBusy(id);
-    const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-curator", id }) });
-    if (r.ok) setCurators(cs => cs.filter(c => c.id !== id));
+    setBusy(id); setError("");
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-curator", id }) });
+      if (r.ok) setCurators(cs => cs.filter(c => c.id !== id)); else await fail(r, "Could not delete curator");
+    } catch { setError("Network error."); }
     setBusy("");
   };
 
   // ── Look actions ──
   const setLookPublished = async (id: string, published: boolean) => {
-    setBusy(id);
+    setBusy(id); setError("");
     setLooks(ls => ls.map(l => l.id === id ? { ...l, published } : l));
-    await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "toggle-look", lookId: id, published }) }).catch(() => {});
+    try {
+      const r = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "toggle-look", lookId: id, published }) });
+      if (!r.ok) { setLooks(ls => ls.map(l => l.id === id ? { ...l, published: !published } : l)); await fail(r, "Could not update listing"); }
+    } catch { setError("Network error."); }
     setBusy("");
   };
   const deleteLook = async (id: string) => {
-    if (!window.confirm("Delete this listing permanently?")) return;
-    setBusy(id);
-    const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-look", id }) });
-    if (r.ok) setLooks(ls => ls.filter(l => l.id !== id));
+    setBusy(id); setError("");
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-look", id }) });
+      if (r.ok) setLooks(ls => ls.filter(l => l.id !== id)); else await fail(r, "Could not delete listing");
+    } catch { setError("Network error."); }
     setBusy("");
   };
 
@@ -204,9 +225,10 @@ export default function AdminPage() {
                       className={`grid h-9 w-9 place-items-center rounded-lg border active:scale-95 transition ${live ? "border-black/10 text-ink/60" : "border-emerald-200 bg-emerald-50 text-emerald-600"}`}>
                       <Power className="h-4 w-4" />
                     </button>
-                    <button type="button" disabled={busy === l.id} onClick={() => void deleteLook(l.id)}
-                      title="Delete" className="grid h-9 w-9 place-items-center rounded-lg border border-black/10 text-ink/40 hover:border-red-200 hover:text-red-500 active:scale-95 transition">
-                      <Trash2 className="h-4 w-4" />
+                    <button type="button" disabled={busy === l.id} onClick={() => armOrRun(l.id, () => void deleteLook(l.id))}
+                      title="Delete"
+                      className={`grid h-9 place-items-center rounded-lg border active:scale-95 transition ${confirmId === l.id ? "w-auto px-2.5 border-red-300 bg-red-500 text-white" : "w-9 border-black/10 text-ink/40 hover:border-red-200 hover:text-red-500"}`}>
+                      {confirmId === l.id ? <span className="text-[11px] font-black">Delete?</span> : <Trash2 className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
@@ -241,9 +263,10 @@ export default function AdminPage() {
                       className={`grid h-9 w-9 place-items-center rounded-lg border active:scale-95 transition ${off ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-black/10 text-ink/60"}`}>
                       <Power className="h-4 w-4" />
                     </button>
-                    <button type="button" disabled={busy === c.id} onClick={() => void deleteCurator(c.id)}
-                      title="Delete" className="grid h-9 w-9 place-items-center rounded-lg border border-black/10 text-ink/40 hover:border-red-200 hover:text-red-500 active:scale-95 transition">
-                      <Trash2 className="h-4 w-4" />
+                    <button type="button" disabled={busy === c.id} onClick={() => armOrRun(c.id, () => void deleteCurator(c.id))}
+                      title="Delete"
+                      className={`grid h-9 place-items-center rounded-lg border active:scale-95 transition ${confirmId === c.id ? "w-auto px-2.5 border-red-300 bg-red-500 text-white" : "w-9 border-black/10 text-ink/40 hover:border-red-200 hover:text-red-500"}`}>
+                      {confirmId === c.id ? <span className="text-[11px] font-black">Delete?</span> : <Trash2 className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
