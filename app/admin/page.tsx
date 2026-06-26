@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles } from "lucide-react";
+import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil } from "lucide-react";
 
 const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
 
@@ -241,13 +241,14 @@ export default function AdminPage() {
               const live = l.published !== false;
               const img = l.frontImageUrl || l.imageUrl;
               return (
-                <div key={l.id} role="button" tabIndex={0} onClick={() => setEditLook({ ...l })}
-                  onKeyDown={e => { if (e.key === "Enter") setEditLook({ ...l }); }}
-                  className={`flex cursor-pointer gap-3 rounded-xl border bg-white p-2.5 active:scale-[0.99] transition ${live ? "border-black/10" : "border-black/10 opacity-70"}`}>
-                  <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-black/5">
+                <div key={l.id} className={`flex gap-3 rounded-xl border bg-white p-2.5 ${live ? "border-black/10" : "border-black/10 opacity-70"}`}>
+                  <a href={`/look/${l.id}`} target="_blank" rel="noreferrer" title="View live in the frontend"
+                    className="group relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-black/5 active:scale-95 transition">
                     {img ? <img src={img} alt="" className="h-full w-full object-cover object-top" /> : <div className="grid h-full w-full place-items-center text-[10px] font-black text-ink/30">LB</div>}
-                    {l.videoUrl && <PlayCircle className="absolute bottom-1 right-1 h-4 w-4 text-white drop-shadow" />}
-                  </div>
+                    {l.videoUrl
+                      ? <PlayCircle className="absolute bottom-1 right-1 h-4 w-4 text-white drop-shadow" />
+                      : <ExternalLink className="absolute bottom-1 right-1 h-4 w-4 text-white opacity-0 drop-shadow transition group-hover:opacity-100" />}
+                  </a>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-black text-ink">{l.name}</div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
@@ -261,14 +262,14 @@ export default function AdminPage() {
                     </div>
                     {l.productNote && <p className="mt-1 line-clamp-2 text-xs font-medium leading-snug text-ink/45">{l.productNote}</p>}
                   </div>
-                  <div className="flex shrink-0 flex-col items-center gap-1.5" onClick={e => e.stopPropagation()}>
-                    <button type="button" disabled={busy === l.id} onClick={() => void setLookPublished(l.id, !live)} title={live ? "Deactivate" : "Activate"}
-                      className={`grid h-9 w-9 place-items-center rounded-lg border active:scale-95 transition ${live ? "border-black/10 text-ink/60" : "border-emerald-200 bg-emerald-50 text-emerald-600"}`}>
-                      <Power className="h-4 w-4" />
+                  <div className="flex shrink-0 flex-col items-stretch gap-1.5">
+                    <button type="button" onClick={() => setEditLook({ ...l })}
+                      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-black/10 px-3 text-xs font-black text-ink active:scale-95 transition">
+                      <Pencil className="h-3.5 w-3.5" /> Edit
                     </button>
                     <button type="button" disabled={busy === l.id} onClick={() => armOrRun(l.id, () => void deleteLook(l.id))} title="Delete"
-                      className={`grid h-9 place-items-center rounded-lg border active:scale-95 transition ${confirmId === l.id ? "w-full px-1.5 border-red-300 bg-red-500 text-white" : "w-9 border-black/10 text-ink/40 hover:border-red-200 hover:text-red-500"}`}>
-                      {confirmId === l.id ? <span className="text-[10px] font-black">Sure?</span> : <Trash2 className="h-4 w-4" />}
+                      className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-black active:scale-95 transition ${confirmId === l.id ? "border-red-300 bg-red-500 text-white" : "border-black/10 text-red-500 hover:border-red-200"}`}>
+                      {confirmId === l.id ? "Sure?" : <><Trash2 className="h-3.5 w-3.5" /> Delete</>}
                     </button>
                   </div>
                 </div>
