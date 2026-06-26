@@ -524,7 +524,7 @@ function CommunityDetailView({
           <button type="button" onClick={() => { onClose(); router.push(`${lookPath(item.lookName, item.lookId)}/details`); }}
             className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
             <ShoppingBag strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
-            <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Shop</span>
+            <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)] text-center leading-tight">Change<br/>the look</span>
           </button>
         )}
       </div>
