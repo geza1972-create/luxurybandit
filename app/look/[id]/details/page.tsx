@@ -156,13 +156,22 @@ export default function LookDetailsPage() {
   const isSoldOut = look.inStock === false;
   const displayPrice = look.salePrice ?? look.price;
   const hero = look.frontImageUrl ?? look.imageUrl;
-  // The ladder is the on-demand dupes (DB cache or freshly generated), most
-  // expensive first.
-  const alts = [...(dupes ?? [])].sort((a, b) => {
-    const av = typeof a.priceValue === "number" && a.priceValue > 0 ? a.priceValue : -1;
-    const bv = typeof b.priceValue === "number" && b.priceValue > 0 ? b.priceValue : -1;
-    return bv - av;
-  });
+  // The ladder is the on-demand dupes, most expensive first — EXCEPT the injected
+  // lingerie upsell, which is pinned to the 2nd position regardless of its price.
+  const alts = (() => {
+    const all = [...(dupes ?? [])];
+    const byPrice = (a: typeof all[number], b: typeof all[number]) => {
+      const av = typeof a.priceValue === "number" && a.priceValue > 0 ? a.priceValue : -1;
+      const bv = typeof b.priceValue === "number" && b.priceValue > 0 ? b.priceValue : -1;
+      return bv - av;
+    };
+    const lingerie = all.find((a) => (a as { lingerie?: boolean }).lingerie);
+    const rest = all.filter((a) => !(a as { lingerie?: boolean }).lingerie).sort(byPrice);
+    if (!lingerie) return rest;
+    const out = [...rest];
+    out.splice(1, 0, lingerie); // 2nd position
+    return out;
+  })();
 
   return (
     <main className="min-h-[100dvh] bg-white pb-32">

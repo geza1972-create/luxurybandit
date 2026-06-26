@@ -34,6 +34,7 @@ export type TryThisLookLook = {
     price?: string;
     priceValue?: number;
     currency?: string;
+    lingerie?: boolean; // injected lingerie upsell card (try-on routes to FASHN, paid)
   }[];
   createdAt: string;
   imagePath?: string;
@@ -263,6 +264,10 @@ export type TryThisLookState = {
   follows?: Follow[];
   curators?: CuratorProfile[];
   partnerStores?: PartnerStore[];
+  // One reusable lingerie upsell product per colour (shared across looks, fetched
+  // once via SerpApi) — injected as the 2nd "Bandit the look" card so shoppers can
+  // try the model in lingerie. Keyed by colour name.
+  lingerieByColor?: Record<string, NonNullable<TryThisLookLook["alternatives"]>[number]>;
   brands?: string[];
   styles?: string[];
   colors?: string[];

@@ -377,7 +377,9 @@ export default function TryonPage() {
       //  • Lingerie/swim → FASHN directly (OpenAI would refuse or cover it up).
       //  • Normal apparel → OpenAI; only if OpenAI unexpectedly safety-blocks do we
       //    fall back to FASHN as a thin safety net.
-      const isLingerie = look.lingerie === true;
+      // Lingerie either because the LOOK is lingerie, or because the chosen shop
+      // card (?alt=N) is the injected lingerie upsell → FASHN in both cases.
+      const isLingerie = look.lingerie === true || (altIdx >= 0 && look.alternatives?.[altIdx]?.lingerie === true);
       let res: Response;
       let payload: { image?: string; error?: string; outOfCredits?: boolean };
       if (isLingerie) {
@@ -645,6 +647,8 @@ export default function TryonPage() {
   const previewAltParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("alt") : null;
   const previewAltIdx = previewAltParam !== null && /^\d+$/.test(previewAltParam) ? Number(previewAltParam) : -1;
   const previewAltThumb = previewAltIdx >= 0 ? look.alternatives?.[previewAltIdx]?.thumbnail : undefined;
+  // Lingerie if the look is lingerie OR the chosen shop card is the lingerie upsell.
+  const effectiveLingerie = look.lingerie === true || (previewAltIdx >= 0 && look.alternatives?.[previewAltIdx]?.lingerie === true);
 
   // Use frontImageUrl for display — it always has a fresh signed URL.
   // garmentFrontImageUrl is for AI generation only (may be expired on legacy looks).
@@ -1093,11 +1097,11 @@ export default function TryonPage() {
         <div className="w-full max-w-xs rounded-2xl border border-black/10 bg-black/[0.02] px-4 py-3 text-center">
           <p className="text-[13px] font-black text-black">A try-on photo <span className="text-black/40">+</span> an optional 5-second video</p>
           <div className="mt-1.5 flex items-center justify-center gap-1.5">
-            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black text-white ${look.lingerie ? "bg-black" : "bg-emerald-600"}`}>
-              Photo · {look.lingerie ? "$2.90" : "Free"}
+            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black text-white ${effectiveLingerie ? "bg-black" : "bg-emerald-600"}`}>
+              Photo · {effectiveLingerie ? "$2.90" : "Free"}
             </span>
             <span className="inline-flex items-center gap-1 rounded-full bg-black px-2.5 py-1 text-[11px] font-black text-white">
-              Video · {look.lingerie ? "$4.90" : "$2.90"}
+              Video · {effectiveLingerie ? "$4.90" : "$2.90"}
             </span>
           </div>
         </div>

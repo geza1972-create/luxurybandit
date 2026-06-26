@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { readTryThisLookState, saveTryThisLookState, getSignedUrl } from "@/lib/try-this-look-store";
+import { isIntimateName } from "@/lib/lingerie";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -53,6 +54,65 @@ function mapMatches(matches: any[], brand: string, lookText: string): Alt[] {
     .slice(0, 10);
 }
 
+// Fetch ONE shoppable lingerie piece in a given colour via Google Shopping. The
+// search query may freely say "lingerie" (it's a product search, not generation).
+async function fetchLingerieForColor(color: string, key: string): Promise<Alt | null> {
+  try {
+    const u = new URL("https://serpapi.com/search.json");
+    u.searchParams.set("engine", "google_shopping");
+    u.searchParams.set("q", `${color} lace bodysuit lingerie`);
+    u.searchParams.set("api_key", key);
+    const r = await fetch(u).then((x) => x.json()).catch(() => null);
+    const items: any[] = r?.shopping_results || [];
+    for (const m of items) {
+      const thumbnail = m.thumbnail;
+      const link = m.product_link || m.link;
+      if (!thumbnail || !link) continue;
+      return {
+        title: String(m.title ?? `${color} lingerie`).slice(0, 200),
+        link: String(link),
+        source: m.source ? String(m.source).slice(0, 80) : undefined,
+        thumbnail: String(thumbnail),
+        price: m.price ? String(m.price).replace(/\*/g, "").trim() : undefined,
+        priceValue: typeof m.extracted_price === "number" ? m.extracted_price : undefined,
+        currency: "$",
+        lingerie: true,
+      } as Alt;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+// Insert a colour-matched lingerie upsell card as the 2nd "Bandit the look" option,
+// so shoppers can try the model in lingerie (a paid try-on). Cost-minimal: one
+// lingerie product per colour is fetched once and reused across all looks.
+async function withLingerieSecond(
+  state: Awaited<ReturnType<typeof readTryThisLookState>>,
+  look: any,
+  idx: number,
+  baseAlts: Alt[],
+  key: string,
+): Promise<Alt[]> {
+  // A look that is ITSELF lingerie needs no lingerie upsell; skip (also saves a search).
+  if (look.lingerie === true || isIntimateName(`${look.name ?? ""} ${look.brand ?? ""} ${look.productNote ?? ""}`)) return baseAlts;
+  if (baseAlts.some((a) => a.lingerie)) return baseAlts; // already injected
+  const color = colorsIn(`${look.productNote ?? ""} ${look.name ?? ""}`)[0] || "black";
+  const cache = (state.lingerieByColor = state.lingerieByColor || {});
+  let item = cache[color] as Alt | undefined;
+  if (!item) {
+    const fetched = await fetchLingerieForColor(color, key);
+    if (!fetched) return baseAlts;
+    cache[color] = fetched;
+    item = fetched;
+  }
+  const next = [...baseAlts];
+  next.splice(1, 0, item); // 2nd position
+  look.alternatives = next;
+  state.looks[idx] = look;
+  await saveTryThisLookState(state);
+  return next;
+}
+
 export async function POST(request: Request) {
   const { lookId, force: forceReq } = (await request.json().catch(() => ({}))) as { lookId?: string; force?: boolean };
   if (!lookId) return NextResponse.json({ error: "lookId required." }, { status: 400 });
@@ -67,15 +127,17 @@ export async function POST(request: Request) {
   if (idx < 0) return NextResponse.json({ error: "Look not found." }, { status: 404 });
   const look = state.looks[idx] as any;
 
+  void FRESH_MS;
+  const key = process.env.SERPAPI_KEY?.trim();
+
   // Cache hit → free. Any look that already has alternatives (manually curated or
   // previously generated) is served from the DB; only EMPTY looks (or an admin
-  // force) trigger a paid search. So a look is searched at most once.
+  // force) trigger a paid Lens search. So the dupe search runs at most once.
   if (!force && Array.isArray(look.alternatives) && look.alternatives.length) {
-    return NextResponse.json({ alternatives: look.alternatives, cached: true });
+    const finalAlts = key ? await withLingerieSecond(state, look, idx, look.alternatives as Alt[], key) : look.alternatives;
+    return NextResponse.json({ alternatives: finalAlts, cached: true });
   }
-  void FRESH_MS;
 
-  const key = process.env.SERPAPI_KEY?.trim();
   if (!key) return NextResponse.json({ error: "SERPAPI_KEY missing." }, { status: 400 });
 
   // Public hero image URL for Lens
@@ -98,7 +160,9 @@ export async function POST(request: Request) {
     look.dupesFetchedAt = new Date().toISOString();
     state.looks[idx] = look;
     await saveTryThisLookState(state);
-    return NextResponse.json({ alternatives: alts, cached: false });
+    // Inject the colour-matched lingerie upsell at position 2 (colour-cached).
+    const finalAlts = await withLingerieSecond(state, look, idx, alts, key);
+    return NextResponse.json({ alternatives: finalAlts, cached: false });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Dupe search failed." }, { status: 500 });
   }
