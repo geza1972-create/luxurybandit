@@ -294,6 +294,7 @@ export async function GET(request: Request) {
           const curatorId = (look as any)?.curatorId ?? "";
           return {
             id: c.id, lookId: c.lookId, text: c.text, authorName: (c as any).authorName ?? "", createdAt: c.createdAt,
+            parentId: (c as any).parentId ?? undefined, replyToName: (c as any).replyToName ?? undefined,
             lookName: look?.name ?? "", curatorId, curatorName: nameById.get(curatorId) || "",
           };
         })

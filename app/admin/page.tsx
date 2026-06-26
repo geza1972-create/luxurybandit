@@ -43,7 +43,7 @@ const lookWhen = (l: Look) => {
 
 const slugify = (s?: string) => (s ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 type Msg = { id: string; text: string; createdAt: string; readAt?: string; fromUserId: string; fromName?: string; fromEmail?: string; toUserId: string; toName?: string; toIsCurator?: boolean };
-type Cmt = { id: string; lookId: string; text: string; authorName?: string; createdAt: string; lookName?: string; curatorId?: string; curatorName?: string };
+type Cmt = { id: string; lookId: string; text: string; authorName?: string; createdAt: string; lookName?: string; curatorId?: string; curatorName?: string; parentId?: string; replyToName?: string };
 
 const fullName = (c: Curator) => [c.firstName, c.lastName].filter(Boolean).join(" ").trim() || "—";
 const initials = (c: Curator) => (`${c.firstName?.[0] ?? ""}${c.lastName?.[0] ?? ""}`.toUpperCase() || "?");
@@ -76,6 +76,7 @@ export default function AdminPage() {
   const [comments, setComments] = useState<Cmt[]>([]);
   const [reply, setReply] = useState<Record<string, string>>({});
   const [sendingId, setSendingId] = useState("");
+  const [commentFilter, setCommentFilter] = useState<"new" | "all">("new");
   const [bulk, setBulk] = useState<{ running: boolean; done: number; total: number }>({ running: false, done: 0, total: 0 });
   const stopBulk = useRef(false);
   const [curators, setCurators] = useState<Curator[]>([]);
@@ -232,7 +233,7 @@ export default function AdminPage() {
     try {
       const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "add-comment", lookId: c.lookId, text, authorName: c.curatorName || "LuxuryBandit", parentId: c.id, replyToName: c.authorName }) });
       if (r.ok) {
-        setComments(cs => [{ id: `r-${Date.now()}`, lookId: c.lookId, text, authorName: c.curatorName, createdAt: new Date().toISOString(), lookName: c.lookName, curatorId: c.curatorId, curatorName: c.curatorName }, ...cs]);
+        setComments(cs => [{ id: `r-${Date.now()}`, lookId: c.lookId, text, authorName: c.curatorName, createdAt: new Date().toISOString(), lookName: c.lookName, curatorId: c.curatorId, curatorName: c.curatorName, parentId: c.id, replyToName: c.authorName }, ...cs]);
         setReply(m => ({ ...m, [c.id]: "" }));
       } else await fail(r, "Could not reply");
     } catch { setError("Network error."); }
@@ -254,9 +255,8 @@ export default function AdminPage() {
   // posts → no WhatsApp. Click again to stop.
   const aiReplyAll = async () => {
     if (bulk.running) { stopBulk.current = true; return; }
-    const slugN = (s?: string) => slugify(s ?? "");
-    const targets = comments.filter(c => slugN(c.authorName) !== slugN(c.curatorName)); // skip curator replies
-    if (!targets.length) { setError("Nothing to reply to."); return; }
+    const targets = newComments; // only unanswered originals (skips replies + already-answered)
+    if (!targets.length) { setError("Nothing new to reply to."); return; }
     stopBulk.current = false; setError("");
     setBulk({ running: true, done: 0, total: targets.length });
     const CHUNK = 20;
@@ -341,6 +341,16 @@ export default function AdminPage() {
   }, [looks]);
 
   const curatorById = useMemo(() => new Map(curators.map(c => [c.id, c])), [curators]);
+
+  // Comments: originals (no parentId) + which are already answered (have a reply).
+  const replyByParent = useMemo(() => {
+    const m = new Map<string, Cmt>();
+    for (const c of comments) if (c.parentId && !m.has(c.parentId)) m.set(c.parentId, c);
+    return m;
+  }, [comments]);
+  const originalComments = useMemo(() => comments.filter(c => !c.parentId), [comments]);
+  const newComments = useMemo(() => originalComments.filter(c => !replyByParent.has(c.id)), [originalComments, replyByParent]);
+  const shownComments = commentFilter === "new" ? newComments : originalComments;
 
   // Try-ons per curator: match the community post's curatorId, else its customerName
   // slug to a curator's full name.
@@ -476,7 +486,7 @@ export default function AdminPage() {
           </button>
           <button type="button" onClick={() => setTab("inbox")}
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "inbox" ? "bg-black text-white" : "text-ink/50"}`}>
-            <Inbox className="h-4 w-4" /> Inbox <span className="opacity-60">{comments.length + messages.length}</span>
+            <Inbox className="h-4 w-4" /> Inbox <span className="opacity-60">{newComments.length + messages.length}</span>
           </button>
         </div>
 
@@ -606,7 +616,7 @@ export default function AdminPage() {
         {tab === "inbox" && (
           <div className="mt-3 pb-16">
             <div className="flex flex-wrap items-center gap-1.5">
-              {([["comments", "Comments", comments.length], ["messages", "Messages", messages.length], ["likes", "Likes", totalLikes], ["followers", "Followers", follows.length]] as const).map(([key, label, n]) => (
+              {([["comments", "Comments", newComments.length], ["messages", "Messages", messages.length], ["likes", "Likes", totalLikes], ["followers", "Followers", follows.length]] as const).map(([key, label, n]) => (
                 <button key={key} type="button" onClick={() => setInboxTab(key)}
                   className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-black transition ${inboxTab === key ? "border-black bg-black text-white" : "border-black/10 text-ink/55"}`}>
                   {key === "comments" ? <MessageCircle className="h-3.5 w-3.5" /> : key === "messages" ? <Inbox className="h-3.5 w-3.5" /> : key === "likes" ? <Heart className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />} {label} <span className="opacity-60">{n}</span>
@@ -616,42 +626,58 @@ export default function AdminPage() {
 
             {inboxTab === "comments" && (
               <div className="mt-3 grid grid-cols-1 gap-2">
-                {comments.length > 0 && (
+                {newComments.length > 0 && (
                   <div className="flex items-center gap-2 rounded-xl border border-cobalt/25 bg-cobalt/[0.04] p-2.5">
                     <Sparkles className="h-4 w-4 shrink-0 text-cobalt" />
-                    <p className="min-w-0 flex-1 text-[11px] font-bold text-ink/55">{bulk.running ? `Replying… ${bulk.done}/${bulk.total}` : "AI-reply every comment automatically, in each curator's voice (no WhatsApp)."}</p>
+                    <p className="min-w-0 flex-1 text-[11px] font-bold text-ink/55">{bulk.running ? `Replying… ${bulk.done}/${bulk.total}` : `AI-reply the ${newComments.length} unanswered comment${newComments.length === 1 ? "" : "s"}, in each curator's voice (no WhatsApp).`}</p>
                     <button type="button" onClick={() => void aiReplyAll()}
                       className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-black active:scale-95 transition ${bulk.running ? "border border-red-300 bg-red-500 text-white" : "bg-black text-white"}`}>
-                      {bulk.running ? <><X className="h-3.5 w-3.5" /> Stop</> : <><Sparkles className="h-3.5 w-3.5" /> AI-reply all</>}
+                      {bulk.running ? <><X className="h-3.5 w-3.5" /> Stop</> : <><Sparkles className="h-3.5 w-3.5" /> AI-reply all new</>}
                     </button>
                   </div>
                 )}
-                {comments.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No comments yet.</p>}
-                {comments.map(c => (
-                  <div key={c.id} className="rounded-xl border border-black/10 bg-white p-3">
-                    <div className="text-xs font-bold text-ink/55">
-                      <span className="font-black text-ink">{c.authorName || "Anonymous"}</span> on{" "}
-                      <a href={`/look/${c.lookId}`} target="_blank" rel="noreferrer" className="font-black text-cobalt">{c.lookName || "a look"}</a>
-                      {c.curatorName ? <span className="text-ink/40"> · curator {c.curatorName}</span> : null}
-                      <span className="text-ink/35"> · {fmtTs(c.createdAt)}</span>
+                <div className="flex items-center gap-1.5">
+                  {([["new", `New (${newComments.length})`], ["all", `All (${originalComments.length})`]] as const).map(([k, label]) => (
+                    <button key={k} type="button" onClick={() => setCommentFilter(k)}
+                      className={`h-8 rounded-lg border px-3 text-xs font-black transition ${commentFilter === k ? "border-black bg-black text-white" : "border-black/10 text-ink/55"}`}>{label}</button>
+                  ))}
+                </div>
+                {shownComments.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">{commentFilter === "new" ? "All caught up — no new comments. 🎉" : "No comments yet."}</p>}
+                {shownComments.map(c => {
+                  const rep = replyByParent.get(c.id);
+                  return (
+                    <div key={c.id} className={`rounded-xl border bg-white p-3 ${rep ? "border-black/10" : "border-amber-300"}`}>
+                      <div className="flex flex-wrap items-center gap-x-1 text-xs font-bold text-ink/55">
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${rep ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>{rep ? "Answered" : "New"}</span>
+                        <span className="ml-1 font-black text-ink">{c.authorName || "Anonymous"}</span> on{" "}
+                        <a href={`/look/${c.lookId}`} target="_blank" rel="noreferrer" className="font-black text-cobalt">{c.lookName || "a look"}</a>
+                        <span className="text-ink/35"> · {fmtTs(c.createdAt)}</span>
+                      </div>
+                      <p className="mt-1 text-[13px] leading-snug text-ink">{c.text}</p>
+                      {rep ? (
+                        <div className="mt-2 flex items-start gap-2 rounded-lg bg-black/[0.03] px-3 py-2">
+                          <Send className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ink/40" />
+                          <p className="text-[12px] leading-snug text-ink/70"><span className="font-black text-ink">{rep.authorName || c.curatorName}</span> {rep.text}</p>
+                        </div>
+                      ) : (
+                        <div className="mt-2 flex gap-2">
+                          <input value={reply[c.id] ?? ""} onChange={e => setReply(m => ({ ...m, [c.id]: e.target.value }))}
+                            onKeyDown={e => { if (e.key === "Enter") void replyComment(c); }}
+                            placeholder={`Reply as ${c.curatorName || "LuxuryBandit"}…`}
+                            className="h-10 flex-1 rounded-lg border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt" />
+                          <button type="button" disabled={sendingId === c.id + ":ai"} onClick={() => void aiSuggest(c)} title="Draft with AI"
+                            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-cobalt/30 bg-cobalt/5 px-3 text-xs font-black text-cobalt active:scale-95 transition disabled:opacity-40">
+                            {sendingId === c.id + ":ai" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="h-3.5 w-3.5" /> AI</>}
+                          </button>
+                          <button type="button" disabled={sendingId === c.id || !(reply[c.id] ?? "").trim()} onClick={() => void replyComment(c)}
+                            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-black px-4 text-xs font-black text-white active:scale-95 transition disabled:opacity-40">
+                            {sendingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> Reply</>}
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <p className="mt-1 text-[13px] leading-snug text-ink">{c.text}</p>
-                    <div className="mt-2 flex gap-2">
-                      <input value={reply[c.id] ?? ""} onChange={e => setReply(m => ({ ...m, [c.id]: e.target.value }))}
-                        onKeyDown={e => { if (e.key === "Enter") void replyComment(c); }}
-                        placeholder={`Reply as ${c.curatorName || "LuxuryBandit"}…`}
-                        className="h-10 flex-1 rounded-lg border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt" />
-                      <button type="button" disabled={sendingId === c.id + ":ai"} onClick={() => void aiSuggest(c)} title="Draft with AI"
-                        className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-cobalt/30 bg-cobalt/5 px-3 text-xs font-black text-cobalt active:scale-95 transition disabled:opacity-40">
-                        {sendingId === c.id + ":ai" ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Sparkles className="h-3.5 w-3.5" /> AI</>}
-                      </button>
-                      <button type="button" disabled={sendingId === c.id || !(reply[c.id] ?? "").trim()} onClick={() => void replyComment(c)}
-                        className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-black px-4 text-xs font-black text-white active:scale-95 transition disabled:opacity-40">
-                        {sendingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> Reply</>}
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
