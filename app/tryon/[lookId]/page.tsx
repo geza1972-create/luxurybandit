@@ -335,6 +335,7 @@ export default function TryonPage() {
   const [showConsent, setShowConsent] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
   const pendingPhotoRef = useRef<string | undefined>(undefined);
+  const [show360Note, setShow360Note] = useState(false); // 360° premium tier — UI ready, payment via Stripe pending
 
   // ── Generate ──
   // photoOverride lets callers (e.g. the resume-after-application flow) pass the
@@ -928,6 +929,25 @@ export default function TryonPage() {
             </button>
           </div>
 
+          {/* 360° turnaround — premium tier (lingerie only). UI is here; the actual
+              paid generation activates with Stripe checkout. */}
+          {effectiveLingerie && (
+            <div className="rounded-2xl bg-gradient-to-br from-black to-black/80 p-3.5 text-white">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-1.5 text-sm font-black"><Sparkles className="h-4 w-4" /> 360° turnaround</p>
+                  <p className="mt-0.5 text-[12px] font-bold text-white/55">See the full look from every angle — front, sides &amp; back.</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-black">$7.90</span>
+              </div>
+              <button type="button" onClick={() => setShow360Note(true)}
+                className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-black text-black active:scale-95 transition-transform">
+                <RefreshCw className="h-4 w-4" /> Get the 360° video
+              </button>
+              {show360Note && <p className="mt-2 text-center text-[12px] font-bold text-white/70">Coming very soon — activates at checkout.</p>}
+            </div>
+          )}
+
           {/* Optional email capture (after the result) — for no-login QR/event
               try-ons. Soft lead: keep your look + join the community. */}
           {!authSession && !curatorId && (
@@ -1076,7 +1096,7 @@ export default function TryonPage() {
               className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-white text-base font-black text-black shadow-xl active:scale-95 transition-transform">
               <Sparkles className="h-5 w-5 text-blue-600" />
               Yes, try the look
-              <span className="ml-auto rounded-full bg-blue-100 px-2 py-0.5 text-xs font-black text-blue-600">2 credits</span>
+              <span className={`ml-auto rounded-full px-2 py-0.5 text-xs font-black ${effectiveLingerie ? "bg-black text-white" : "bg-emerald-100 text-emerald-700"}`}>{effectiveLingerie ? "$2.90" : "Free"}</span>
             </button>
             <button onClick={() => { setUserPhoto(null); fileInputRef.current?.click(); }}
               className="flex h-12 w-full items-center justify-center rounded-2xl bg-white/20 text-sm font-black text-white backdrop-blur active:opacity-70">
