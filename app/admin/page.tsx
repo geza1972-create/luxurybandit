@@ -36,6 +36,7 @@ const lookWhen = (l: Look) => {
   return v > c ? v : c;
 };
 
+const slugify = (s?: string) => (s ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 const fullName = (c: Curator) => [c.firstName, c.lastName].filter(Boolean).join(" ").trim() || "—";
 const initials = (c: Curator) => (`${c.firstName?.[0] ?? ""}${c.lastName?.[0] ?? ""}`.toUpperCase() || "?");
 const fmtDate = (s?: string) => { if (!s) return ""; try { return new Date(s).toLocaleDateString(); } catch { return ""; } };
@@ -56,6 +57,8 @@ export default function AdminPage() {
   const [tab, setTab] = useState<"looks" | "curators">("looks");
   const [curators, setCurators] = useState<Curator[]>([]);
   const [looks, setLooks] = useState<Look[]>([]);
+  const [community, setCommunity] = useState<{ customerName?: string; curatorId?: string }[]>([]);
+  const [sortC, setSortC] = useState<"looks" | "tryons" | "name">("looks");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
@@ -77,15 +80,18 @@ export default function AdminPage() {
     if (!p) return;
     setLoading(true); setError("");
     try {
-      const [cr, lr] = await Promise.all([
+      const [cr, lr, com] = await Promise.all([
         fetch("/api/try-this-look?curators=1", { headers: headers(p) }),
         fetch("/api/try-this-look?admin=1", { headers: headers(p) }),
+        fetch("/api/try-this-look?community=1"),
       ]);
       if (cr.status === 401 || lr.status === 401) { setError("Wrong PIN."); setAuthed(false); setLoading(false); return; }
       const cd = await cr.json().catch(() => ({}));
       const ld = await lr.json().catch(() => ({}));
+      const comd = await com.json().catch(() => ({}));
       setCurators(Array.isArray(cd.curators) ? cd.curators : []);
       setLooks(Array.isArray(ld.looks) ? ld.looks : []);
+      setCommunity(Array.isArray(comd.community) ? comd.community : []);
       setAuthed(true);
     } catch { setError("Could not load admin data."); }
     finally { setLoading(false); }
@@ -183,10 +189,28 @@ export default function AdminPage() {
     return m;
   }, [looks]);
 
+  // Try-ons per curator: match the community post's curatorId, else its customerName
+  // slug to a curator's full name.
+  const tryonsByCurator = useMemo(() => {
+    const ids = new Set(curators.map(c => c.id));
+    const slugToId = new Map(curators.map(c => [slugify(fullName(c)), c.id]));
+    const m = new Map<string, number>();
+    for (const item of community) {
+      const id = item.curatorId && ids.has(item.curatorId) ? item.curatorId : slugToId.get(slugify(item.customerName));
+      if (id) m.set(id, (m.get(id) ?? 0) + 1);
+    }
+    return m;
+  }, [community, curators]);
+
   const q = query.trim().toLowerCase();
-  const shownCurators = useMemo(() =>
-    !q ? curators : curators.filter(c => `${fullName(c)} ${c.email ?? ""} ${c.brands ?? ""} ${c.style ?? ""}`.toLowerCase().includes(q)),
-    [curators, q]);
+  const shownCurators = useMemo(() => {
+    const base = !q ? curators : curators.filter(c => `${fullName(c)} ${c.email ?? ""} ${c.brands ?? ""} ${c.style ?? ""}`.toLowerCase().includes(q));
+    const arr = [...base];
+    if (sortC === "name") arr.sort((a, b) => fullName(a).localeCompare(fullName(b)));
+    else if (sortC === "tryons") arr.sort((a, b) => (tryonsByCurator.get(b.id) ?? 0) - (tryonsByCurator.get(a.id) ?? 0));
+    else arr.sort((a, b) => (looksByCurator.get(b.id) ?? 0) - (looksByCurator.get(a.id) ?? 0));
+    return arr;
+  }, [curators, q, sortC, looksByCurator, tryonsByCurator]);
   const shownLooks = useMemo(() => {
     const base = !q ? looks : looks.filter(l => `${l.name} ${l.curatorName ?? ""} ${l.brand ?? ""} ${l.productNote ?? ""}`.toLowerCase().includes(q));
     return [...base].sort((a, b) => lookWhen(b).localeCompare(lookWhen(a))); // newest activity first — matches the frontend A List
@@ -304,7 +328,19 @@ export default function AdminPage() {
 
         {/* ── Curators ── */}
         {tab === "curators" && (
-          <div className="mt-3 grid grid-cols-1 gap-2 pb-16">
+          <div className="mt-3 flex items-center gap-1.5">
+            <span className="text-[11px] font-black uppercase tracking-wider text-ink/35">Sort</span>
+            {([["looks", "Looks"], ["tryons", "Try-ons"], ["name", "Name"]] as const).map(([key, label]) => (
+              <button key={key} type="button" onClick={() => setSortC(key)}
+                className={`h-8 rounded-lg border px-3 text-xs font-black transition ${sortC === key ? "border-black bg-black text-white" : "border-black/10 text-ink/55"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {tab === "curators" && (
+          <div className="mt-2 grid grid-cols-1 gap-2 pb-16">
             {shownCurators.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No curators.</p>}
             {shownCurators.map(c => {
               const off = c.status === "deactivated";
@@ -320,7 +356,8 @@ export default function AdminPage() {
                     <div className="truncate text-xs font-bold text-ink/45">{c.email ?? "—"}</div>
                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${off ? "bg-black/8 text-ink/50" : "bg-emerald-100 text-emerald-700"}`}>{off ? "Deactivated" : "Active"}</span>
-                      <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">{looksByCurator.get(c.id) ?? 0} looks</span>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${sortC === "looks" ? "bg-cobalt/10 text-cobalt" : "bg-black/5 text-ink/50"}`}>{looksByCurator.get(c.id) ?? 0} looks</span>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${sortC === "tryons" ? "bg-cobalt/10 text-cobalt" : "bg-black/5 text-ink/50"}`}>{tryonsByCurator.get(c.id) ?? 0} try-ons</span>
                       {typeof c.credits === "number" && <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">{c.credits} cr</span>}
                       {c.brands && <span className="truncate rounded-full bg-cobalt/10 px-2 py-0.5 text-[10px] font-black text-cobalt">{c.brands.split(",")[0]}</span>}
                     </div>
