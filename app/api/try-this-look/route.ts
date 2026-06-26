@@ -785,6 +785,8 @@ export async function POST(request: Request) {
       const lookId = String(payload.lookId ?? "").trim();
       const text = String(payload.text ?? "").trim().slice(0, 500);
       const authorName = String(payload.authorName ?? "").trim().slice(0, 60) || "Anonymous";
+      const parentId = String((payload as any).parentId ?? "").trim();
+      const replyToName = String((payload as any).replyToName ?? "").trim().slice(0, 60);
       if (!lookId || !text) return NextResponse.json({ error: "lookId and text required." }, { status: 400 });
       if ((state.looks.find(l => l.id === lookId) as any)?.commentsOff === true) {
         return NextResponse.json({ error: "Comments are turned off for this look." }, { status: 403 });
@@ -795,8 +797,10 @@ export async function POST(request: Request) {
         lookId,
         authorName,
         text,
+        ...(parentId ? { parentId } : {}),
+        ...(replyToName ? { replyToName } : {}),
         createdAt: now,
-      });
+      } as any);
       // Keep max 500 comments total
       state.comments = state.comments.slice(0, 2000);
       const updatedState = await saveTryThisLookState(state);

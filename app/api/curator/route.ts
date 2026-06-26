@@ -226,7 +226,7 @@ export async function POST(request: Request) {
       try {
         const res = await client.messages.create({ model: SUGGEST_MODEL, max_tokens: 60, messages: [{ role: "user", content: prompt }] });
         const reply = res.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map(b => b.text).join("").trim().replace(/^["']|["']$/g, "").slice(0, 200);
-        return reply ? { lookId: c.lookId, curatorName, reply } : null;
+        return reply ? { lookId: c.lookId, curatorName, reply, parentId: c.id, replyToName: (c as any).authorName ?? "" } : null;
       } catch { return null; }
     }));
     const now = new Date().toISOString();
@@ -234,7 +234,7 @@ export async function POST(request: Request) {
     if (!state.comments) state.comments = [];
     for (const r of results) {
       if (!r?.reply) continue;
-      state.comments.unshift({ id: `${Date.now()}-${crypto.randomUUID()}`, lookId: r.lookId, authorName: r.curatorName, text: r.reply, createdAt: now });
+      state.comments.unshift({ id: `${Date.now()}-${crypto.randomUUID()}`, lookId: r.lookId, authorName: r.curatorName, text: r.reply, parentId: r.parentId, replyToName: r.replyToName, createdAt: now } as any);
       replied++;
     }
     await saveTryThisLookState(state);

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import TryOnQR from "@/components/TryOnQR";
 
@@ -362,7 +362,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive }: { look: Fe
   );
 }
 
-type Comment = { id: string; authorName?: string; text: string; createdAt: string };
+type Comment = { id: string; authorName?: string; text: string; createdAt: string; parentId?: string; replyToName?: string };
 
 function timeAgo(iso: string): string {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
@@ -420,17 +420,37 @@ function CommentsSheet({ look, onClose }: { look: FeedLook; onClose: () => void 
           ) : comments.length === 0 ? (
             <p className="py-8 text-center text-sm font-bold text-black/35">No comments yet. Be the first.</p>
           ) : (
-            <div className="grid gap-3.5">
-              {comments.map(c => (
-                <div key={c.id} className="flex gap-2.5">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-black text-[11px] font-black text-white">{(c.authorName || "A").slice(0, 1).toUpperCase()}</span>
+            (() => {
+              // Thread: top-level comments, each with its replies nested below.
+              const repliesByParent = new Map<string, Comment[]>();
+              for (const c of comments) if (c.parentId) {
+                const a = repliesByParent.get(c.parentId) ?? []; a.push(c); repliesByParent.set(c.parentId, a);
+              }
+              const top = comments.filter(c => !c.parentId);
+              const Row = (c: Comment, reply: boolean) => (
+                <div key={c.id} className={`flex gap-2.5 ${reply ? "ml-9" : ""}`}>
+                  <span className={`grid shrink-0 place-items-center rounded-full font-black text-white ${reply ? "h-6 w-6 bg-black/60 text-[10px]" : "h-8 w-8 bg-black text-[11px]"}`}>{(c.authorName || "A").slice(0, 1).toUpperCase()}</span>
                   <div className="min-w-0">
+                    {reply && <span className="mb-0.5 inline-flex items-center gap-1 rounded-full bg-black/[0.04] px-1.5 py-0.5 text-[10px] font-black text-black/40"><CornerDownRight className="h-3 w-3" /> Reply{c.replyToName ? ` to ${c.replyToName}` : ""}</span>}
                     <p className="text-[13px] leading-snug text-black"><span className="font-black">{c.authorName || "Anonymous"}</span> {c.text}</p>
                     <span className="text-[11px] font-bold text-black/35">{timeAgo(c.createdAt)}</span>
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+              return (
+                <div className="grid gap-3.5">
+                  {top.map(c => {
+                    const reps = (repliesByParent.get(c.id) ?? []).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+                    return (
+                      <div key={c.id} className="grid gap-2.5">
+                        {Row(c, false)}
+                        {reps.map(r => Row(r, true))}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()
           )}
         </div>
         <div className="border-t border-black/8" style={{ paddingBottom: "max(0.625rem, env(safe-area-inset-bottom))" }}>

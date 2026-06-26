@@ -230,7 +230,7 @@ export default function AdminPage() {
     const text = (reply[c.id] || "").trim(); if (!text) return;
     setSendingId(c.id); setError("");
     try {
-      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "add-comment", lookId: c.lookId, text, authorName: c.curatorName || "LuxuryBandit" }) });
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "add-comment", lookId: c.lookId, text, authorName: c.curatorName || "LuxuryBandit", parentId: c.id, replyToName: c.authorName }) });
       if (r.ok) {
         setComments(cs => [{ id: `r-${Date.now()}`, lookId: c.lookId, text, authorName: c.curatorName, createdAt: new Date().toISOString(), lookName: c.lookName, curatorId: c.curatorId, curatorName: c.curatorName }, ...cs]);
         setReply(m => ({ ...m, [c.id]: "" }));
