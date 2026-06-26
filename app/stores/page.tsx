@@ -1059,9 +1059,9 @@ function StoresPage() {
   const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
   const [bulkAssignName, setBulkAssignName] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  // Feed (default) vs. grid overview — driven by ?view=grid so the bottom-nav
-  // Home toggle and the in-page controls stay in sync.
-  const showGrid = searchParams.get("view") === "grid";
+  // Home (the feed grid) is the DEFAULT landing. The A List (HomeFeed of look
+  // posts) is opt-in via ?view=alist. ?view=grid still maps to the grid too.
+  const showGrid = searchParams.get("view") !== "alist";
   const [brandFilter, setBrandFilter] = useState<string | null>(null);
   const [feedSelectMode, setFeedSelectMode] = useState(false);
   const [selectedLookIds, setSelectedLookIds] = useState<Set<string>>(new Set());
@@ -1074,16 +1074,20 @@ function StoresPage() {
       setFollowed(new Set(list));
     } catch { /**/ }
 
-    // Check auth state + admin
-    try {
-      const session = getStoredAuthSession();
-      setIsSignedIn(!!session);
-      if (isAdminEmail(session?.user?.email) || session?.user?.email?.toLowerCase() === "support@luxurybandit.com") {
-        setIsAdmin(true);
-        const storedPin = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "";
-        setAdminPin(storedPin);
-      }
-    } catch { /**/ }
+    // Check auth state + admin. Re-runnable so logging in WITHOUT a reload still
+    // grants admin moderation (e.g. the in-feed Hide button) — the panel login
+    // fires "luxurybandit-auth-updated" but used to only refresh isSignedIn.
+    const applyAuthState = () => {
+      try {
+        const session = getStoredAuthSession();
+        setIsSignedIn(!!session);
+        const email = session?.user?.email?.toLowerCase();
+        const admin = !!email && (isAdminEmail(email) || email === "support@luxurybandit.com");
+        setIsAdmin(admin);
+        if (admin) setAdminPin(localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "");
+      } catch { /**/ }
+    };
+    applyAuthState();
     try { setCommunityLikes(JSON.parse(localStorage.getItem("lb_gen_likes") ?? "{}")); } catch { /**/ }
 
     // Load saved model photo
@@ -1096,7 +1100,7 @@ function StoresPage() {
       }
     } catch { /**/ }
 
-    const onAuth = () => { try { setIsSignedIn(!!getStoredAuthSession()); } catch { /**/ } };
+    const onAuth = () => applyAuthState();
     window.addEventListener("luxurybandit-auth-updated", onAuth);
     return () => window.removeEventListener("luxurybandit-auth-updated", onAuth);
   }, []);
@@ -1148,11 +1152,23 @@ function StoresPage() {
   const hideReelItem = async (item: CommunityItem) => {
     if (item.kind === "look") {
       if (!confirm("Diesen Look offline nehmen (aus dem Feed ausblenden)?")) return;
-      await fetch("/api/curator", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}), ...(myCuratorId ? { "x-curator-id": myCuratorId } : {}) },
-        body: JSON.stringify({ action: "toggle-look", lookId: item.lookId, published: false }),
-      }).catch(() => {});
+      const token = getStoredAuthSession()?.access_token;
+      if (isAdmin) {
+        // Admin (PIN or admin-email session) → admin update-look. Send both the PIN
+        // and the Supabase Bearer token so it works without a stored Studio PIN.
+        await fetch("/api/try-this-look", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({ action: "update-look", id: item.lookId, published: false }),
+        }).catch(() => {});
+      } else {
+        // Owner curator → toggle their own look off.
+        await fetch("/api/curator", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...(myCuratorId ? { "x-curator-id": myCuratorId } : {}) },
+          body: JSON.stringify({ action: "toggle-look", lookId: item.lookId, published: false }),
+        }).catch(() => {});
+      }
       setLooks(prev => prev.filter(l => l.id !== item.lookId));
     } else {
       if (!confirm("Diesen Try-on aus dem Feed ausblenden?")) return;
@@ -1383,9 +1399,9 @@ function StoresPage() {
         <HomeFeed looks={looks} />
         {/* Floating controls (top-right): gallery/grid + search */}
         <div className="fixed right-3 z-30 flex items-center gap-2" style={{ top: "calc(env(safe-area-inset-top) + 0.6rem)" }}>
-          <button type="button" aria-label="Gallery" onClick={() => router.push("/stores?view=grid")}
+          <button type="button" aria-label="Home" onClick={() => router.push("/stores")}
             className="grid h-9 w-9 place-items-center rounded-full bg-black/35 text-white backdrop-blur active:scale-90 transition-transform">
-            <LayoutGrid className="h-4 w-4" />
+            <Home className="h-4 w-4" />
           </button>
           <button type="button" aria-label="Search"
             onClick={() => { setSearchOpen(true); setTimeout(() => searchInputRef.current?.focus(), 50); }}

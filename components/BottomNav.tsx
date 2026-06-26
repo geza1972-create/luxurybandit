@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, LayoutGrid, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play } from "lucide-react";
+import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession, signOut } from "@/lib/supabase-auth-client";
@@ -106,22 +106,22 @@ export default function BottomNav() {
     >
       <div className="mx-auto grid max-w-lg grid-cols-4 h-14">
 
-        {/* Feed + Discover — two separate tabs (no more toggle) */}
+        {/* Home (the feed grid, default) + The A List (HomeFeed look posts) */}
         {(() => {
           const onStores = pathname === "/stores";
-          const gridView = onStores && searchParams.get("view") === "grid";
-          const feedActive = onStores && !gridView;
+          const aListView = onStores && searchParams.get("view") === "alist";
+          const homeActive = onStores && !aListView;
           return (
             <>
               <button type="button" onClick={() => { setActive("home"); router.push("/stores"); }}
-                className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${feedActive ? "text-black" : "text-black/35"}`}>
+                className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${homeActive ? "text-black" : "text-black/35"}`}>
+                <Home className="h-5 w-5" />
+                <span className="text-[10px] font-bold">Home</span>
+              </button>
+              <button type="button" onClick={() => { setActive("home"); router.push("/stores?view=alist"); }}
+                className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${aListView ? "text-black" : "text-black/35"}`}>
                 <Play className="h-5 w-5" />
                 <span className="text-[10px] font-bold">The A List</span>
-              </button>
-              <button type="button" onClick={() => { setActive("home"); router.push("/stores?view=grid"); }}
-                className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${gridView ? "text-black" : "text-black/35"}`}>
-                <LayoutGrid className="h-5 w-5" />
-                <span className="text-[10px] font-bold">Curator Feeds</span>
               </button>
             </>
           );
