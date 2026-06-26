@@ -150,10 +150,20 @@ function CommunitySlide({ it, offset, verticalDrag, transition }: {
     <div className="absolute inset-0 flex flex-col bg-black"
       style={{ transform: `translateY(calc(${offset * 100}% + ${verticalDrag}px))`, transition, willChange: "transform" }}>
       <div className="relative flex-1 overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={optImg(it.imageUrl, 1080)} alt={it.lookName} loading="lazy" decoding="async"
-          onError={(e) => { const im = e.currentTarget; if (im.src !== it.imageUrl) im.src = it.imageUrl; }}
-          className="h-full w-full object-cover object-top" />
+        {it.videoUrl && offset === 0 ? (
+          // Active slide: play the try-on video (poster = its still while it loads).
+          <video src={it.videoUrl} poster={optImg(it.imageUrl, 1080)}
+            autoPlay muted loop playsInline preload="metadata"
+            className="h-full w-full object-cover object-top" />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={optImg(it.imageUrl, 1080)} alt={it.lookName} loading="lazy" decoding="async"
+            onError={(e) => { const im = e.currentTarget; if (im.src !== it.imageUrl) im.src = it.imageUrl; }}
+            className="h-full w-full object-cover object-top" />
+        )}
+        {it.videoUrl && (
+          <span className="absolute left-3 top-3 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white">Video</span>
+        )}
         <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black/50 to-transparent pointer-events-none" />
       </div>
       <div className="flex items-center gap-3 bg-black px-4 py-3" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
@@ -849,6 +859,9 @@ function StoresPage() {
   const [communityItems, setCommunityItems] = useState<CommunityItem[]>([]);
   const [communityLoading, setCommunityLoading] = useState(false);
   const [communitySelectedIndex, setCommunitySelectedIndex] = useState<number | null>(null);
+  // Items the full-screen scroll feed (reels) iterates over — set when opening it
+  // from a grid (so the same overlay works for both the history grid and community).
+  const [reelItems, setReelItems] = useState<CommunityItem[] | null>(null);
   const [communityLikes, setCommunityLikes] = useState<Record<string, boolean>>({});
   // "Mine" filter for signed-in creators — show only their own try-ons / trends
   const [myCuratorId, setMyCuratorId] = useState("");
@@ -1130,6 +1143,29 @@ function StoresPage() {
     if (q) items = items.filter(it => `${it.name} ${it.curatorName ?? ""} ${it.brand ?? ""}`.toLowerCase().includes(q));
     return items;
   }, [historyItems, brandFilter, query]);
+  // The visible grid mapped to the scroll-feed's item shape (looks + try-ons), so
+  // tapping any tile opens a full-screen vertical reels feed of exactly what's shown.
+  const visibleHistoryAsReel = useMemo<CommunityItem[]>(() => {
+    const lookById = new Map(looks.map(l => [l.id, l]));
+    const commById = new Map(communityItems.map(c => [c.id, c]));
+    return visibleHistory.map((it): CommunityItem => {
+      if (it.kind === "tryon" && commById.has(it.id)) return commById.get(it.id)!;
+      const l = lookById.get(it.id);
+      return {
+        id: it.id,
+        lookId: it.kind === "look" ? it.id : (l?.id ?? ""),
+        imageUrl: it.videoPoster || it.thumb,
+        videoUrl: it.videoUrl,
+        thumbUrl: it.thumb,
+        customerName: it.kind === "tryon" ? (it.curatorName ?? "") : "",
+        lookName: it.name,
+        storeName: l?.storeName ?? "",
+        storeSlug: (l as { storeSlug?: string } | undefined)?.storeSlug ?? "",
+        brand: it.brand,
+        createdAt: it.createdAt,
+      };
+    });
+  }, [visibleHistory, looks, communityItems]);
 
   // ── Default home = full-screen vertical feed (TikTok/IG style, newest first) ──
   // The legacy grid below is kept only for the search experience.
@@ -1332,10 +1368,10 @@ function StoresPage() {
               </div>
             )}
             <div className="grid grid-cols-3 gap-0.5">
-              {visibleHistory.map(it => (
+              {visibleHistory.map((it, idx) => (
                 <div key={it.key} className="flex flex-col">
                   <button type="button"
-                    onClick={() => router.push(it.kind === "look" ? lookPath(it.name, it.id) : `/post/${it.id}`)}
+                    onClick={() => { setReelItems(visibleHistoryAsReel); setCommunitySelectedIndex(idx); }}
                     className="relative aspect-square overflow-hidden bg-black/5 transition-opacity active:opacity-80">
                     {it.videoUrl ? (
                       // Video tile — show a real model frame: the model poster if we
@@ -1510,7 +1546,8 @@ function StoresPage() {
                       <button type="button"
                         onClick={() => {
                           if (selectMode) { toggleSelect(item.id); return; }
-                          router.push(`/post/${item.id}`);
+                          // Open the full-screen vertical scroll feed (reels) starting here.
+                          setReelItems(filteredCommunity); setCommunitySelectedIndex(itemIdx);
                         }}
                         className={`relative aspect-square w-full overflow-hidden bg-black/5 transition-opacity active:opacity-80 block ${
                           selectMode && isSelected ? "opacity-60 ring-2 ring-inset ring-cobalt" : ""
@@ -1835,19 +1872,19 @@ function StoresPage() {
       {showUserPanel && <UserPanel onClose={() => { setShowUserPanel(false); setSavedAutoOpen(false); }} openSaved={savedAutoOpen} />}
 
       {/* ── Community detail fullscreen ── */}
-      {communitySelectedIndex !== null && filteredCommunity.length > 0 && (
+      {communitySelectedIndex !== null && (reelItems ?? filteredCommunity).length > 0 && (
         <CommunityDetailView
-          allItems={filteredCommunity}
-          initialIndex={Math.min(communitySelectedIndex, filteredCommunity.length - 1)}
+          allItems={reelItems ?? filteredCommunity}
+          initialIndex={Math.min(communitySelectedIndex, (reelItems ?? filteredCommunity).length - 1)}
           likes={communityLikes}
-          onClose={() => setCommunitySelectedIndex(null)}
+          onClose={() => { setCommunitySelectedIndex(null); setReelItems(null); }}
           onLikeToggle={(id) => {
             const next = { ...communityLikes, [id]: !(communityLikes[id] ?? false) };
             setCommunityLikes(next);
             try { localStorage.setItem("lb_gen_likes", JSON.stringify(next)); } catch { /**/ }
           }}
-          onHide={isAdmin ? (id) => { const it = filteredCommunity.find(i => i.id === id); if (it) void hideCommunityItem(it); } : undefined}
-          onDelete={isAdmin ? (id) => { const it = filteredCommunity.find(i => i.id === id); if (it) void deleteCommunityItem(it); } : undefined}
+          onHide={isAdmin ? (id) => { const it = (reelItems ?? filteredCommunity).find(i => i.id === id); if (it) void hideCommunityItem(it); } : undefined}
+          onDelete={isAdmin ? (id) => { const it = (reelItems ?? filteredCommunity).find(i => i.id === id); if (it) void deleteCommunityItem(it); } : undefined}
           onAssign={isAdmin ? async (id, customerName) => {
             await adminAction({ action: "assign-generation", id, customerName });
             setCommunityItems(prev => prev.map(i => i.id === id ? { ...i, customerName } : i));

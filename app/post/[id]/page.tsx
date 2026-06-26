@@ -374,11 +374,6 @@ export default function PostPage() {
           </div>
         )}
 
-        {/* Large inline QR — scannable directly (e.g. projected on a wall) */}
-        {!post.creatorDeleted && (
-          <TryOnQR lookId={post.lookId} lookName={post.lookName} variant="inline" />
-        )}
-
         {/* Store link / deleted-creator note */}
         {post.creatorDeleted ? (
           <p className="flex items-center gap-2 text-xs font-bold text-black/40">
