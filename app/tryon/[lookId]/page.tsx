@@ -939,7 +939,7 @@ export default function TryonPage() {
             <div className="rounded-2xl bg-gradient-to-br from-black to-black/80 p-3.5 text-white">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="flex items-center gap-1.5 text-sm font-black"><Sparkles className="h-4 w-4" /> 360° turnaround</p>
+                  <p className="flex items-center gap-1.5 text-sm font-black"><Sparkles className="h-4 w-4" /> 360° turnaround <span className="font-bold text-white/55">· 10s</span></p>
                   <p className="mt-0.5 text-[12px] font-bold text-white/55">See the full look from every angle — front, sides &amp; back.</p>
                 </div>
                 <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-black">$7.90</span>
@@ -1074,11 +1074,6 @@ export default function TryonPage() {
             <p className="mt-1 text-sm font-bold text-white/70">You will be shown wearing this look</p>
           </div>
 
-          {/* Full-body reminder — the AI can only dress what's in frame */}
-          <div className="rounded-xl border border-amber-300/30 bg-amber-400/15 px-3 py-2.5 text-center">
-            <p className="text-xs font-black text-amber-100">For the whole outfit, use a full-body standing photo.</p>
-            <p className="mt-0.5 text-[11px] font-bold text-amber-100/70">A close-up only shows the part of the look that&apos;s in the photo.</p>
-          </div>
 
           {/* Error */}
           {error && (
@@ -1113,7 +1108,7 @@ export default function TryonPage() {
               <button onClick={() => setPaidSoon("360")}
                 className="flex h-14 w-full items-center gap-3 rounded-2xl bg-white/15 px-4 text-white backdrop-blur active:scale-95 transition-transform">
                 <RefreshCw className="h-5 w-5 shrink-0" />
-                <span className="text-base font-black">360° turnaround</span>
+                <span className="text-base font-black">360° turnaround <span className="font-bold text-white/55">· 10s</span></span>
                 <span className="ml-auto rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-black">$7.90</span>
               </button>
             )}
@@ -1173,12 +1168,9 @@ export default function TryonPage() {
             paid upsell — $2.90 (normal) / $4.90 (lingerie). */}
         <div className="w-full max-w-xs rounded-2xl border border-black/10 bg-black/[0.02] px-4 py-3 text-center">
           <p className="text-[13px] font-black text-black">A try-on photo <span className="text-black/40">+</span> an optional 5-second video</p>
-          <div className="mt-1.5 flex items-center justify-center gap-1.5">
-            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black text-white ${effectiveLingerie ? "bg-black" : "bg-emerald-600"}`}>
-              Photo · {effectiveLingerie ? "$2.90" : "Free"}
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-black px-2.5 py-1 text-[11px] font-black text-white">
-              Video · {effectiveLingerie ? "$4.90" : "$2.90"}
+          <div className="mt-1.5 flex items-center justify-center">
+            <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-black text-white ${effectiveLingerie ? "bg-black" : "bg-emerald-600"}`}>
+              {effectiveLingerie ? "up to $4.90" : "Free · up to $2.90"}
             </span>
           </div>
         </div>
