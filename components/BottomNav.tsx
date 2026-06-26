@@ -116,12 +116,12 @@ export default function BottomNav() {
               <button type="button" onClick={() => { setActive("home"); router.push("/stores"); }}
                 className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${feedActive ? "text-black" : "text-black/35"}`}>
                 <Play className="h-5 w-5" />
-                <span className="text-[10px] font-bold">Curator Feeds</span>
+                <span className="text-[10px] font-bold">The A List</span>
               </button>
               <button type="button" onClick={() => { setActive("home"); router.push("/stores?view=grid"); }}
                 className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${gridView ? "text-black" : "text-black/35"}`}>
                 <LayoutGrid className="h-5 w-5" />
-                <span className="text-[10px] font-bold">The A List</span>
+                <span className="text-[10px] font-bold">Curator Feeds</span>
               </button>
             </>
           );
