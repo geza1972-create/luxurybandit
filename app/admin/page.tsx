@@ -190,7 +190,7 @@ export default function AdminPage() {
 
   const looksByCurator = useMemo(() => {
     const m = new Map<string, number>();
-    for (const l of looks) if (l.curatorId) m.set(l.curatorId, (m.get(l.curatorId) ?? 0) + 1);
+    for (const l of looks) { const id = l.curatorId || "house"; m.set(id, (m.get(id) ?? 0) + 1); }
     return m;
   }, [looks]);
 
@@ -201,11 +201,16 @@ export default function AdminPage() {
     const slugToId = new Map(curators.map(c => [slugify(fullName(c)), c.id]));
     const m = new Map<string, number>();
     for (const item of community) {
-      const id = item.curatorId && ids.has(item.curatorId) ? item.curatorId : slugToId.get(slugify(item.customerName));
-      if (id) m.set(id, (m.get(id) ?? 0) + 1);
+      const id = (item.curatorId && ids.has(item.curatorId) ? item.curatorId : slugToId.get(slugify(item.customerName))) || "house";
+      m.set(id, (m.get(id) ?? 0) + 1);
     }
     return m;
   }, [community, curators]);
+
+  // Synthetic "Admin (house)" creator: aggregates all looks/try-ons with no real
+  // curator (admin-published, unassigned). Shown in the list, not editable.
+  const houseCurator = useMemo<Curator>(() => ({ id: "house", firstName: "Admin", lastName: "· house", status: "active" }), []);
+  const hasHouse = (looksByCurator.get("house") ?? 0) > 0 || (tryonsByCurator.get("house") ?? 0) > 0;
 
   const q = query.trim().toLowerCase();
   const shownCurators = useMemo(() => {
@@ -215,8 +220,9 @@ export default function AdminPage() {
     if (sortC === "name") arr.sort((a, b) => fullName(a).localeCompare(fullName(b)) * dir);
     else if (sortC === "tryons") arr.sort((a, b) => ((tryonsByCurator.get(a.id) ?? 0) - (tryonsByCurator.get(b.id) ?? 0)) * dir);
     else arr.sort((a, b) => ((looksByCurator.get(a.id) ?? 0) - (looksByCurator.get(b.id) ?? 0)) * dir);
-    return arr;
-  }, [curators, q, sortC, sortDir, looksByCurator, tryonsByCurator]);
+    // Admin/house entry pinned at the top (respects search).
+    return hasHouse && (!q || "admin house".includes(q)) ? [houseCurator, ...arr] : arr;
+  }, [curators, q, sortC, sortDir, looksByCurator, tryonsByCurator, hasHouse, houseCurator]);
   const shownLooks = useMemo(() => {
     const base = !q ? looks : looks.filter(l => `${l.name} ${l.curatorName ?? ""} ${l.brand ?? ""} ${l.productNote ?? ""}`.toLowerCase().includes(q));
     return [...base].sort((a, b) => lookWhen(b).localeCompare(lookWhen(a))); // newest activity first — matches the frontend A List
@@ -351,33 +357,42 @@ export default function AdminPage() {
             {shownCurators.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No curators.</p>}
             {shownCurators.map(c => {
               const off = c.status === "deactivated";
+              const house = c.id === "house";
               return (
-                <div key={c.id} role="button" tabIndex={0} onClick={() => { setEdit({ ...c }); setCreditsDraft(String(c.credits ?? "")); }}
-                  onKeyDown={e => { if (e.key === "Enter") { setEdit({ ...c }); setCreditsDraft(String(c.credits ?? "")); } }}
-                  className={`flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-xl border bg-white p-2.5 text-left active:scale-[0.99] transition ${off ? "border-black/10 opacity-70" : "border-black/10"}`}>
-                  <a href={`/curator/${c.id}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} title="View profile in the frontend"
-                    className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-black/5 text-sm font-black text-ink/50 active:scale-95 transition">
-                    {c.photoUrl ? <img src={c.photoUrl} alt="" className="h-full w-full object-cover" /> : initials(c)}
-                  </a>
+                <div key={c.id} role={house ? undefined : "button"} tabIndex={house ? undefined : 0}
+                  onClick={house ? undefined : () => { setEdit({ ...c }); setCreditsDraft(String(c.credits ?? "")); }}
+                  onKeyDown={house ? undefined : e => { if (e.key === "Enter") { setEdit({ ...c }); setCreditsDraft(String(c.credits ?? "")); } }}
+                  className={`flex w-full min-w-0 items-center gap-3 rounded-xl border bg-white p-2.5 text-left transition ${house ? "border-cobalt/30 bg-cobalt/[0.03]" : `cursor-pointer active:scale-[0.99] ${off ? "border-black/10 opacity-70" : "border-black/10"}`}`}>
+                  {house ? (
+                    <a href="/stores" target="_blank" rel="noreferrer" title="House looks in the frontend"
+                      className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-black text-[11px] font-black text-white active:scale-95 transition">LB</a>
+                  ) : (
+                    <a href={`/curator/${c.id}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} title="View profile in the frontend"
+                      className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-black/5 text-sm font-black text-ink/50 active:scale-95 transition">
+                      {c.photoUrl ? <img src={c.photoUrl} alt="" className="h-full w-full object-cover" /> : initials(c)}
+                    </a>
+                  )}
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-black text-ink">{fullName(c)}</div>
-                    <div className="truncate text-xs font-bold text-ink/45">{c.email ?? "—"}</div>
+                    <div className="truncate text-sm font-black text-ink">{house ? "Admin (house)" : fullName(c)}</div>
+                    <div className="truncate text-xs font-bold text-ink/45">{house ? "Looks & try-ons with no curator" : (c.email ?? "—")}</div>
                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${off ? "bg-black/8 text-ink/50" : "bg-emerald-100 text-emerald-700"}`}>{off ? "Deactivated" : "Active"}</span>
+                      {!house && <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${off ? "bg-black/8 text-ink/50" : "bg-emerald-100 text-emerald-700"}`}>{off ? "Deactivated" : "Active"}</span>}
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${sortC === "looks" ? "bg-cobalt/10 text-cobalt" : "bg-black/5 text-ink/50"}`}>{looksByCurator.get(c.id) ?? 0} looks</span>
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${sortC === "tryons" ? "bg-cobalt/10 text-cobalt" : "bg-black/5 text-ink/50"}`}>{tryonsByCurator.get(c.id) ?? 0} try-ons</span>
-                      {typeof c.credits === "number" && <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">{c.credits} cr</span>}
-                      {c.brands && <span className="truncate rounded-full bg-cobalt/10 px-2 py-0.5 text-[10px] font-black text-cobalt">{c.brands.split(",")[0]}</span>}
+                      {!house && typeof c.credits === "number" && <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">{c.credits} cr</span>}
+                      {!house && c.brands && <span className="truncate rounded-full bg-cobalt/10 px-2 py-0.5 text-[10px] font-black text-cobalt">{c.brands.split(",")[0]}</span>}
                     </div>
-                    {c.createdAt && <div className="mt-1 flex items-center gap-1 truncate text-[11px] font-bold text-ink/40"><Clock className="h-3 w-3 shrink-0" /> {fmtTs(c.createdAt)}</div>}
+                    {!house && c.createdAt && <div className="mt-1 flex items-center gap-1 truncate text-[11px] font-bold text-ink/40"><Clock className="h-3 w-3 shrink-0" /> {fmtTs(c.createdAt)}</div>}
                   </div>
-                  <div className="flex shrink-0 items-center gap-1.5" onClick={e => e.stopPropagation()}>
-                    <span className="rounded-lg border border-black/10 px-2.5 py-1.5 text-[11px] font-black text-ink/60">Edit</span>
-                    <button type="button" disabled={busy === c.id} onClick={() => void setCuratorStatus(c.id, off ? "active" : "deactivated")} title={off ? "Activate" : "Deactivate"}
-                      className={`grid h-9 w-9 place-items-center rounded-lg border active:scale-95 transition ${off ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-black/10 text-ink/60"}`}>
-                      <Power className="h-4 w-4" />
-                    </button>
-                  </div>
+                  {!house && (
+                    <div className="flex shrink-0 items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                      <span className="rounded-lg border border-black/10 px-2.5 py-1.5 text-[11px] font-black text-ink/60">Edit</span>
+                      <button type="button" disabled={busy === c.id} onClick={() => void setCuratorStatus(c.id, off ? "active" : "deactivated")} title={off ? "Activate" : "Deactivate"}
+                        className={`grid h-9 w-9 place-items-center rounded-lg border active:scale-95 transition ${off ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-black/10 text-ink/60"}`}>
+                        <Power className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
