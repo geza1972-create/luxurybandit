@@ -12,8 +12,11 @@ const FASHN_STATUS = process.env.FASHN_STATUS_ENDPOINT ?? "https://api.fashn.ai/
 // also handles lingerie/swim). The pendingVideoId is prefixed "pv:" so the GET poll
 // stays consistent (legacy un-prefixed ids are also Pixverse).
 const trace = () => crypto.randomUUID();
+// MODERATION RULE (esp. lingerie): keep the wording NEUTRAL & product-focused.
+// Pixverse flags prompts containing body/intimate words — NEVER use lingerie,
+// underwear, skin, body, lace, cleavage, revealing, sexy. Say "outfit / the piece".
 const FASHION_PROMPT =
-  "Elegant high-fashion presentation. The subject stays mostly still with subtle, slow, gentle movement — a soft breath, a small natural sway. CRITICAL: the outfit must stay IDENTICAL — keep the exact same garment shape, cut, colour, fabric, pattern and details; do not redesign, restyle or change the clothing. Minimal camera motion, refined studio lighting. No text or logos.";
+  "Elegant high-fashion catalogue presentation: the person presents the outfit with subtle, slow, natural movement — a soft sway or a gentle quarter turn. CRITICAL: keep the outfit IDENTICAL — the exact same shape, cut, colour, fabric, pattern and details; do not redesign, restyle or change it. Keep the person's appearance unchanged. Minimal, refined camera motion, soft premium studio lighting. No text or logos.";
 const MUSIC = "Soft, elegant instrumental background music — a gentle, chic fashion soundtrack. ONLY music: absolutely no footsteps, no voices, no talking, no ambient or foley sound effects.";
 
 const slug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
