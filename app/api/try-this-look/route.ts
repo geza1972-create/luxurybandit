@@ -283,6 +283,24 @@ export async function GET(request: Request) {
       return NextResponse.json({ look: serializeLook(look, genCount, state.partnerStores ?? [], state.curators ?? []), isDraft: look.published === false });
     }
 
+    // Admin: ALL comments across every look (for the admin inbox).
+    if (url.searchParams.get("allComments") === "1") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const lookById = new Map(state.looks.map(l => [l.id, l]));
+      const nameById = new Map((state.curators ?? []).map(c => [c.id, `${(c as any).firstName ?? ""} ${(c as any).lastName ?? ""}`.trim()]));
+      const comments = (state.comments ?? [])
+        .map(c => {
+          const look = lookById.get(c.lookId);
+          const curatorId = (look as any)?.curatorId ?? "";
+          return {
+            id: c.id, lookId: c.lookId, text: c.text, authorName: (c as any).authorName ?? "", createdAt: c.createdAt,
+            lookName: look?.name ?? "", curatorId, curatorName: nameById.get(curatorId) || "",
+          };
+        })
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      return NextResponse.json({ comments });
+    }
+
     // Public comments for a specific look
     const wantsComments = url.searchParams.get("comments") === "1";
     const commentLookId = url.searchParams.get("lookId") ?? "";

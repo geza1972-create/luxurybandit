@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn } from "lucide-react";
+import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send } from "lucide-react";
 import { signInWithPassword, getStoredAuthSession, saveAuthSession, signOut, resetPassword } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
 
@@ -39,6 +39,9 @@ const lookWhen = (l: Look) => {
 };
 
 const slugify = (s?: string) => (s ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+type Msg = { id: string; text: string; createdAt: string; readAt?: string; fromUserId: string; fromName?: string; fromEmail?: string; toUserId: string; toName?: string; toIsCurator?: boolean };
+type Cmt = { id: string; lookId: string; text: string; authorName?: string; createdAt: string; lookName?: string; curatorId?: string; curatorName?: string };
+
 const fullName = (c: Curator) => [c.firstName, c.lastName].filter(Boolean).join(" ").trim() || "—";
 const initials = (c: Curator) => (`${c.firstName?.[0] ?? ""}${c.lastName?.[0] ?? ""}`.toUpperCase() || "?");
 const fmtDate = (s?: string) => { if (!s) return ""; try { return new Date(s).toLocaleDateString(); } catch { return ""; } };
@@ -61,7 +64,12 @@ export default function AdminPage() {
   const [gateMode, setGateMode] = useState<"login" | "pin">("login");
   const [note, setNote] = useState("");
   const [authed, setAuthed] = useState(false);
-  const [tab, setTab] = useState<"looks" | "curators">("looks");
+  const [tab, setTab] = useState<"looks" | "curators" | "inbox">("looks");
+  const [inboxTab, setInboxTab] = useState<"comments" | "messages">("comments");
+  const [messages, setMessages] = useState<Msg[]>([]);
+  const [comments, setComments] = useState<Cmt[]>([]);
+  const [reply, setReply] = useState<Record<string, string>>({});
+  const [sendingId, setSendingId] = useState("");
   const [curators, setCurators] = useState<Curator[]>([]);
   const [looks, setLooks] = useState<Look[]>([]);
   const [community, setCommunity] = useState<{ customerName?: string; curatorId?: string }[]>([]);
@@ -96,18 +104,24 @@ export default function AdminPage() {
     if (!p && !t) return;
     setLoading(true); setError("");
     try {
-      const [cr, lr, com] = await Promise.all([
+      const [cr, lr, com, msg, cmt] = await Promise.all([
         fetch("/api/try-this-look?curators=1", { headers: headers(p, t) }),
         fetch("/api/try-this-look?admin=1", { headers: headers(p, t) }),
         fetch("/api/try-this-look?community=1"),
+        fetch("/api/messages?all=1", { headers: headers(p, t) }),
+        fetch("/api/try-this-look?allComments=1", { headers: headers(p, t) }),
       ]);
       if (cr.status === 401 || lr.status === 401) { setError("Wrong PIN."); setAuthed(false); setLoading(false); return; }
       const cd = await cr.json().catch(() => ({}));
       const ld = await lr.json().catch(() => ({}));
       const comd = await com.json().catch(() => ({}));
+      const msgd = await msg.json().catch(() => ({}));
+      const cmtd = await cmt.json().catch(() => ({}));
       setCurators(Array.isArray(cd.curators) ? cd.curators : []);
       setLooks(Array.isArray(ld.looks) ? ld.looks : []);
       setCommunity(Array.isArray(comd.community) ? comd.community : []);
+      setMessages(Array.isArray(msgd.messages) ? msgd.messages : []);
+      setComments(Array.isArray(cmtd.comments) ? cmtd.comments : []);
       setAuthed(true);
     } catch { setError("Could not load admin data."); }
     finally { setLoading(false); }
@@ -197,6 +211,37 @@ export default function AdminPage() {
       : where === "feed" ? "/stores"
       : `/curator/${c.id}`;
     window.open(url, "_blank");
+  };
+
+  // ── Inbox replies ──
+  // Reply to a comment AS the look's curator (authorName = their name).
+  const replyComment = async (c: Cmt) => {
+    const text = (reply[c.id] || "").trim(); if (!text) return;
+    setSendingId(c.id); setError("");
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "add-comment", lookId: c.lookId, text, authorName: c.curatorName || "LuxuryBandit" }) });
+      if (r.ok) {
+        setComments(cs => [{ id: `r-${Date.now()}`, lookId: c.lookId, text, authorName: c.curatorName, createdAt: new Date().toISOString(), lookName: c.lookName, curatorId: c.curatorId, curatorName: c.curatorName }, ...cs]);
+        setReply(m => ({ ...m, [c.id]: "" }));
+      } else await fail(r, "Could not reply");
+    } catch { setError("Network error."); }
+    setSendingId("");
+  };
+  // Reply to a message AS the curator who received it → back to the sender.
+  // NB: send ONLY x-curator-id (no admin token), else the message route would
+  // resolve the admin as the sender instead of the curator.
+  const replyMessage = async (m: Msg) => {
+    const text = (reply[m.id] || "").trim(); if (!text) return;
+    if (!m.toIsCurator) { setError("Can only reply as one of our curators."); return; }
+    setSendingId(m.id); setError("");
+    try {
+      const r = await fetch("/api/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-curator-id": m.toUserId }, body: JSON.stringify({ toUserId: m.fromUserId, text }) });
+      if (r.ok) {
+        setMessages(ms => [{ id: `r-${Date.now()}`, text, createdAt: new Date().toISOString(), readAt: new Date().toISOString(), fromUserId: m.toUserId, fromName: m.toName, toUserId: m.fromUserId, toName: m.fromName, toIsCurator: false }, ...ms]);
+        setReply(mm => ({ ...mm, [m.id]: "" }));
+      } else await fail(r, "Could not send");
+    } catch { setError("Network error."); }
+    setSendingId("");
   };
 
   // ── Look actions ──
@@ -354,21 +399,27 @@ export default function AdminPage() {
 
         <div className="mt-4 flex items-center gap-1 rounded-xl border border-black/10 bg-white p-1">
           <button type="button" onClick={() => setTab("looks")}
-            className={`flex h-10 flex-1 items-center justify-center gap-2 rounded-lg text-sm font-black transition ${tab === "looks" ? "bg-black text-white" : "text-ink/50"}`}>
-            <LayoutGrid className="h-4 w-4" /> A List <span className="opacity-60">({liveLooks}/{looks.length})</span>
+            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "looks" ? "bg-black text-white" : "text-ink/50"}`}>
+            <LayoutGrid className="h-4 w-4" /> A List <span className="opacity-60">{liveLooks}/{looks.length}</span>
           </button>
           <button type="button" onClick={() => setTab("curators")}
-            className={`flex h-10 flex-1 items-center justify-center gap-2 rounded-lg text-sm font-black transition ${tab === "curators" ? "bg-black text-white" : "text-ink/50"}`}>
-            <Users className="h-4 w-4" /> Curators <span className="opacity-60">({activeCurators}/{curators.length})</span>
+            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "curators" ? "bg-black text-white" : "text-ink/50"}`}>
+            <Users className="h-4 w-4" /> Curators <span className="opacity-60">{curators.length}</span>
+          </button>
+          <button type="button" onClick={() => setTab("inbox")}
+            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "inbox" ? "bg-black text-white" : "text-ink/50"}`}>
+            <Inbox className="h-4 w-4" /> Inbox <span className="opacity-60">{comments.length + messages.length}</span>
           </button>
         </div>
 
-        <div className="mt-3 flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3">
-          <Search className="h-4 w-4 text-ink/30" />
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder={tab === "looks" ? "Search by name, curator, brand…" : "Search by name, email, brand…"}
-            className="h-11 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-ink/30" />
-          {query && <button type="button" onClick={() => setQuery("")} className="text-xs font-black text-ink/40">Clear</button>}
-        </div>
+        {tab !== "inbox" && (
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3">
+            <Search className="h-4 w-4 text-ink/30" />
+            <input value={query} onChange={e => setQuery(e.target.value)} placeholder={tab === "looks" ? "Search by name, curator, brand…" : "Search by name, email, brand…"}
+              className="h-11 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-ink/30" />
+            {query && <button type="button" onClick={() => setQuery("")} className="text-xs font-black text-ink/40">Clear</button>}
+          </div>
+        )}
 
         {error && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-black text-red-600">{error}</p>}
 
@@ -480,6 +531,78 @@ export default function AdminPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* ── Inbox ── */}
+        {tab === "inbox" && (
+          <div className="mt-3 pb-16">
+            <div className="flex items-center gap-1.5">
+              {([["comments", "Comments", comments.length], ["messages", "Messages", messages.length]] as const).map(([key, label, n]) => (
+                <button key={key} type="button" onClick={() => setInboxTab(key)}
+                  className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-black transition ${inboxTab === key ? "border-black bg-black text-white" : "border-black/10 text-ink/55"}`}>
+                  {key === "comments" ? <MessageCircle className="h-3.5 w-3.5" /> : <Inbox className="h-3.5 w-3.5" />} {label} <span className="opacity-60">{n}</span>
+                </button>
+              ))}
+            </div>
+
+            {inboxTab === "comments" && (
+              <div className="mt-3 grid grid-cols-1 gap-2">
+                {comments.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No comments yet.</p>}
+                {comments.map(c => (
+                  <div key={c.id} className="rounded-xl border border-black/10 bg-white p-3">
+                    <div className="text-xs font-bold text-ink/55">
+                      <span className="font-black text-ink">{c.authorName || "Anonymous"}</span> on{" "}
+                      <a href={`/look/${c.lookId}`} target="_blank" rel="noreferrer" className="font-black text-cobalt">{c.lookName || "a look"}</a>
+                      {c.curatorName ? <span className="text-ink/40"> · curator {c.curatorName}</span> : null}
+                      <span className="text-ink/35"> · {fmtTs(c.createdAt)}</span>
+                    </div>
+                    <p className="mt-1 text-[13px] leading-snug text-ink">{c.text}</p>
+                    <div className="mt-2 flex gap-2">
+                      <input value={reply[c.id] ?? ""} onChange={e => setReply(m => ({ ...m, [c.id]: e.target.value }))}
+                        onKeyDown={e => { if (e.key === "Enter") void replyComment(c); }}
+                        placeholder={`Reply as ${c.curatorName || "LuxuryBandit"}…`}
+                        className="h-10 flex-1 rounded-lg border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt" />
+                      <button type="button" disabled={sendingId === c.id || !(reply[c.id] ?? "").trim()} onClick={() => void replyComment(c)}
+                        className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-black px-4 text-xs font-black text-white active:scale-95 transition disabled:opacity-40">
+                        {sendingId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> Reply</>}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {inboxTab === "messages" && (
+              <div className="mt-3 grid grid-cols-1 gap-2">
+                {messages.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No messages yet.</p>}
+                {messages.map(m => (
+                  <div key={m.id} className="rounded-xl border border-black/10 bg-white p-3">
+                    <div className="flex items-center gap-2 text-xs font-bold text-ink/55">
+                      <span className="font-black text-ink">{m.fromName || "Someone"}</span> →
+                      <span className="font-black text-ink">{m.toName || "—"}</span>
+                      <span className="text-ink/35"> · {fmtTs(m.createdAt)}</span>
+                      {!m.readAt && <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">new</span>}
+                    </div>
+                    <p className="mt-1 text-[13px] leading-snug text-ink">{m.text}</p>
+                    {m.toIsCurator ? (
+                      <div className="mt-2 flex gap-2">
+                        <input value={reply[m.id] ?? ""} onChange={e => setReply(mm => ({ ...mm, [m.id]: e.target.value }))}
+                          onKeyDown={e => { if (e.key === "Enter") void replyMessage(m); }}
+                          placeholder={`Reply as ${m.toName || "curator"}…`}
+                          className="h-10 flex-1 rounded-lg border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt" />
+                        <button type="button" disabled={sendingId === m.id || !(reply[m.id] ?? "").trim()} onClick={() => void replyMessage(m)}
+                          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-black px-4 text-xs font-black text-white active:scale-95 transition disabled:opacity-40">
+                          {sendingId === m.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> Reply</>}
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="mt-1.5 text-[11px] font-bold text-ink/35">Sent to a non-curator account — reply from their own inbox.</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

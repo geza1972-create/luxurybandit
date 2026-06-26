@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
 import { readTryThisLookState, saveTryThisLookState } from "@/lib/try-this-look-store";
+import { isAdminRequest } from "@/lib/admin-auth";
+import { notifyAdminWhatsApp, ADMIN_URL } from "@/lib/notify-admin";
 
 export const runtime = "nodejs";
 
@@ -46,6 +48,19 @@ async function findUserByUsername(username: string) {
 // ── GET /api/messages — inbox for authenticated user OR curator ───────────────
 export async function GET(request: Request) {
   const state = await readTryThisLookState();
+
+  // Admin: ALL messages across every curator (for the admin inbox).
+  if (new URL(request.url).searchParams.get("all") === "1") {
+    if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+    const nameById = new Map((state.curators ?? []).map((c) => [c.id, `${(c as any).firstName ?? ""} ${(c as any).lastName ?? ""}`.trim()]));
+    const messages = (state.messages ?? []).map((m) => ({
+      id: m.id, text: m.text, createdAt: m.createdAt, readAt: (m as any).readAt,
+      fromUserId: m.fromUserId, fromName: m.fromName, fromEmail: (m as any).fromEmail,
+      toUserId: m.toUserId, toName: nameById.get(m.toUserId) || m.toUsername || "",
+      toIsCurator: nameById.has(m.toUserId),
+    }));
+    return NextResponse.json({ messages });
+  }
 
   // Identity can come from a Supabase auth session OR a curator session header.
   const user = await getSellerFromRequest(request);
@@ -156,6 +171,8 @@ export async function POST(request: Request) {
   // Keep last 5000 messages
   if (state.messages.length > 5000) state.messages = state.messages.slice(0, 5000);
   await saveTryThisLookState(state);
+
+  notifyAdminWhatsApp(`✉️ New message from ${senderName} to ${recipientName}: "${text.slice(0, 80)}". ${ADMIN_URL}`);
 
   // ── Email notification (fire-and-forget) ──────────────────────────────────
   const notificationEmail = recipientMeta.notification_email ?? recipient.email;
