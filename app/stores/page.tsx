@@ -221,13 +221,6 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
                   <Play className="h-16 w-16 fill-white/90 text-white/90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" />
                 </button>
               )}
-              {/* Sound toggle (only on the video slide) */}
-              {s.kind === "video" && (
-                <button type="button" onClick={(e) => { e.stopPropagation(); onToggleMute(); }} aria-label={muted ? "Unmute" : "Mute"}
-                  className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90">
-                  {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-                </button>
-              )}
             </div>
           ))}
         </div>
@@ -468,6 +461,14 @@ function CommunityDetailView({
       {/* Right action column — always on top, not translated */}
       <div className="absolute right-2 z-20 flex flex-col items-center gap-5 pointer-events-auto"
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 5rem)" }}>
+        {/* Sound on/off */}
+        <button type="button" onClick={() => setMuted(m => !m)}
+          className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
+          {muted
+            ? <VolumeX strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
+            : <Volume2 strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />}
+          <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">{muted ? "Sound" : "On"}</span>
+        </button>
         {/* Home */}
         <a href="/stores" className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
           <Home strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
