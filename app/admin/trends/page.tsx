@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Check, ChevronUp, ChevronDown, Crop, ExternalLink, ImagePlus, Link2, Loader2, Plus, Search, Trash2, Video, Wand2, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronUp, ChevronDown, ClipboardPaste, Crop, ExternalLink, ImagePlus, Link2, Loader2, Plus, Search, Trash2, Video, Wand2, X } from "lucide-react";
 import { FASHION_BRANDS } from "@/lib/fashion-brands";
 
 // Garment types a curator can target the search with (select one, sorted A→Z list
@@ -598,6 +598,36 @@ export default function AdminTrends() {
     setSavingNote("");
   };
   const loadMyLooks = () => fetch("/api/curator?mylooks=1", { headers: studioHeaders() }).then(r => r.json()).then((d: any) => setMyLooks(d.looks ?? [])).catch(() => {});
+
+  // Use an image already on the clipboard (e.g. a screenshot) as the garment reference.
+  const useGarmentFile = (f: File) => { setAiGarmentFile(f); setAiResult(null); setAiError(""); };
+  const pasteGarmentFromClipboard = async () => {
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const type = item.types.find(t => t.startsWith("image/"));
+        if (type) {
+          const blob = await item.getType(type);
+          useGarmentFile(new File([blob], `screenshot.${type.split("/")[1] || "png"}`, { type }));
+          return;
+        }
+      }
+      setAiError("No image on the clipboard. Take a screenshot or copy an image first.");
+    } catch {
+      setAiError("Couldn't read the clipboard — paste with ⌘/Ctrl+V, or use Upload.");
+    }
+  };
+  // While the AI panel is open with no garment yet, ⌘/Ctrl+V drops a pasted image straight in.
+  useEffect(() => {
+    if (mode !== "ai" || aiGarmentFile) return;
+    const onPaste = (e: ClipboardEvent) => {
+      const f = Array.from(e.clipboardData?.files ?? []).find(file => file.type.startsWith("image/"));
+      if (f) { e.preventDefault(); useGarmentFile(f); }
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [mode, aiGarmentFile]);
+
   useEffect(() => { setStyle(""); }, []);
   useEffect(() => {
     fetch("/api/curator?me=1", { headers: studioHeaders() }).then(r => r.json()).then((d: { curator?: any; credits?: any; costs?: any; justEarned?: any[] }) => {
@@ -1178,13 +1208,19 @@ export default function AdminTrends() {
                 </div>
               </div>
             ) : (
-              <label className="group flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-black/15 bg-panel p-6 text-center transition cursor-pointer hover:border-black/30 hover:bg-black/[0.03]">
-                <ImagePlus className="h-5 w-5 text-ink/30" />
-                <span className="text-[11px] font-black text-ink/50">Garment photo / video <span className="font-bold text-ink/30">· optional</span></span>
-                <span className="text-[10px] font-bold text-ink/30">add a photo or video to copy a specific item</span>
-                <input type="file" accept="image/*,video/*" className="sr-only"
-                  onChange={e => { const f = e.target.files?.[0]; if (f) { setAiGarmentFile(f); setAiResult(null); setAiError(""); } }} />
-              </label>
+              <div className="flex flex-col gap-2">
+                <label className="group flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-black/15 bg-panel p-6 text-center transition cursor-pointer hover:border-black/30 hover:bg-black/[0.03]">
+                  <ImagePlus className="h-5 w-5 text-ink/30" />
+                  <span className="text-[11px] font-black text-ink/50">Garment photo / video <span className="font-bold text-ink/30">· optional</span></span>
+                  <span className="text-[10px] font-bold text-ink/30">add a photo or video to copy a specific item</span>
+                  <input type="file" accept="image/*,video/*" className="sr-only"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) { setAiGarmentFile(f); setAiResult(null); setAiError(""); } }} />
+                </label>
+                <button type="button" onClick={pasteGarmentFromClipboard}
+                  className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-black/12 bg-white text-[12px] font-black text-ink/60 transition active:bg-black/5 hover:border-black/30">
+                  <ClipboardPaste className="h-4 w-4" /> Paste screenshot <span className="font-bold text-ink/30">(⌘/Ctrl+V)</span>
+                </button>
+              </div>
             )}
           </div>
 
