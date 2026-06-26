@@ -104,6 +104,33 @@ function cropToFace(src: string): Promise<string> {
   });
 }
 
+// Grab the first frame of a video as a still (the lingerie "Photo" tier — the photo
+// is a frame of the reference video, so no separate FASHN generation is needed).
+// Fetches via blob (object URL) so the canvas isn't CORS-tainted.
+async function extractFirstFrame(videoUrl: string): Promise<string | null> {
+  try {
+    const blob = await (await fetch(videoUrl)).blob();
+    const objUrl = URL.createObjectURL(blob);
+    return await new Promise<string | null>((resolve) => {
+      const v = document.createElement("video");
+      v.muted = true; (v as HTMLVideoElement & { playsInline?: boolean }).playsInline = true;
+      v.onloadeddata = () => { try { v.currentTime = 0.05; } catch { resolve(null); } };
+      v.onseeked = () => {
+        try {
+          const c = document.createElement("canvas");
+          c.width = v.videoWidth; c.height = v.videoHeight;
+          const ctx = c.getContext("2d");
+          if (!ctx) { resolve(null); return; }
+          ctx.drawImage(v, 0, 0);
+          resolve(c.toDataURL("image/jpeg", 0.92));
+        } catch { resolve(null); } finally { URL.revokeObjectURL(objUrl); }
+      };
+      v.onerror = () => { URL.revokeObjectURL(objUrl); resolve(null); };
+      v.src = objUrl;
+    });
+  } catch { return null; }
+}
+
 // Try each candidate URL in order; return the first that yields a real image.
 async function firstValidImageDataUrl(urls: (string | undefined)[]): Promise<string> {
   // Allow same-origin relative URLs too (e.g. /api/img-proxy?... used to fetch
@@ -336,7 +363,7 @@ export default function TryonPage() {
               body: JSON.stringify({ action: "attach-generation-video", generationId: sharedGenIdRef.current, videoUrl: p.videoUrl }),
             }).catch(() => {});
           }
-          return;
+          return p.videoUrl as string;
         }
         if (p?.status === "failed") { stopProgress(0); setVideoStatus("error"); setVideoNote(p.error ?? "Video failed — here's your photo."); return; }
       }
@@ -348,7 +375,7 @@ export default function TryonPage() {
 
   // Lingerie video/360° via Pixverse REFERENCE mode (garment + person) — keeps the
   // face (FASHN's photo doesn't). Person photo is cropped to head+shoulders first.
-  const startReferenceVideo = async (turnaround: boolean) => {
+  const startReferenceVideo = async (turnaround: boolean, wantFrame = false) => {
     if (!look || !userPhoto) return;
     const altParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("alt") : null;
     const altIdx = altParam !== null && /^\d+$/.test(altParam) ? Number(altParam) : -1;
@@ -364,7 +391,12 @@ export default function TryonPage() {
     setError(null);
     setResultImage(personCropped); // placeholder shown while the video renders
     setStep("result");
-    await startTryonVideo("", turnaround, { garment: garmentData, person: personCropped });
+    const videoUrl = await startTryonVideo("", turnaround, { garment: garmentData, person: personCropped });
+    // Photo tier: use the first frame of the reference video as the still (no FASHN).
+    if (wantFrame && videoUrl) {
+      const frame = await extractFirstFrame(videoUrl);
+      if (frame) setResultImage(frame);
+    }
   };
 
   // Is THIS try-on a lingerie one (the look itself, or the chosen lingerie card)?
@@ -1133,7 +1165,7 @@ export default function TryonPage() {
           {/* Choose what to create — Photo (the base try-on), Video, or 360°.
               Photo generates now; the paid video tiers activate with checkout. */}
           <div className="grid gap-2">
-            <button onClick={() => { setPaidSoon(""); void handleGenerate(); }}
+            <button type="button" onClick={() => { setPaidSoon(""); if (effectiveLingerie && isStaff) void startReferenceVideo(false, true); else void handleGenerate(); }}
               className="flex h-14 w-full items-center gap-3 rounded-2xl bg-white px-4 text-black shadow-xl active:scale-95 transition-transform">
               <Sparkles className="h-5 w-5 shrink-0 text-blue-600" />
               <span className="text-base font-black">Photo</span>
