@@ -1082,8 +1082,8 @@ export default function TryonPage() {
         {/* What you get + cost (TRYON 2 + VIDEO 8 credits — keep in sync with curator-budget.ts) */}
         <div className="w-full max-w-xs rounded-2xl border border-black/10 bg-black/[0.02] px-4 py-3 text-center">
           <p className="text-[13px] font-black text-black">You'll get a try-on photo <span className="text-black/40">+</span> a 5-second video with music</p>
-          <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-black px-2.5 py-1 text-[11px] font-black text-white">
-            <Sparkles className="h-3 w-3" /> Costs 10 credits
+          <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-black text-white">
+            <Sparkles className="h-3 w-3" /> Free — no sign-up
           </p>
         </div>
 

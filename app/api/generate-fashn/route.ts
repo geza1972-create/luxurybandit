@@ -1,5 +1,4 @@
 import { completeReservation, getAccountId, refundReservation, reserveCredits } from "@/lib/billing";
-import { reserveAnonymousTryOnAttempt } from "@/lib/tryon-limit";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -70,12 +69,9 @@ export async function POST(request: Request) {
 
   const hasSelectedModelImage = modelImage instanceof File;
   const accountId = getAccountId(request);
-  if (mode === "fashion-model") {
-    const tryOnLimit = reserveAnonymousTryOnAttempt(accountId, visitorId, lookId);
-    if (!tryOnLimit.ok) {
-      return NextResponse.json({ error: tryOnLimit.error }, { status: 429 });
-    }
-  }
+  // Free-try-on phase: no per-visitor daily limit — we want to measure real
+  // demand (do shoppers click try-on?) before adding any cap or paywall.
+  void visitorId; void lookId;
   const creditAction = mode === "retouch-cutout"
     ? "retouch-cutout"
     : hasSelectedModelImage

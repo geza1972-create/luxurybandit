@@ -1,6 +1,5 @@
 import { completeReservation, getAccountId, refundReservation, reserveCredits } from "@/lib/billing";
 import { chargeCredits, refundCredits, TRYON_CREDITS } from "@/lib/curator-budget";
-import { readTryThisLookState } from "@/lib/try-this-look-store";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -44,25 +43,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: reservation.error, credits: reservation.status }, { status: 402 });
   }
 
-  // Per-creator budget: billed to the curator who owns the look, or directly to
-  // the requesting curator when generating standalone (studio "Create AI Fashion").
-  const lookId = String(formData.get("lookId") ?? "").trim();
-  const directCuratorId = String(formData.get("curatorId") ?? "").trim();
-  let ownerCuratorId = directCuratorId;
-  if (!ownerCuratorId && lookId) {
-    try {
-      const state = await readTryThisLookState();
-      ownerCuratorId = String((state.looks.find(l => l.id === lookId) as { curatorId?: string } | undefined)?.curatorId ?? "");
-    } catch { /* ignore */ }
-  }
-  if (ownerCuratorId) {
-    const charge = await chargeCredits(ownerCuratorId, TRYON_CREDITS, "try-on");
+  // Credits are charged ONLY for studio "Create AI Fashion" — i.e. when a curator
+  // generates their own content (curatorId present). End-user try-ons from a look
+  // page are FREE and never gated by the look owner's balance: we want to measure
+  // whether shoppers click try-on at all before adding any paywall.
+  const chargeCuratorId = String(formData.get("curatorId") ?? "").trim();
+  if (chargeCuratorId) {
+    const charge = await chargeCredits(chargeCuratorId, TRYON_CREDITS, "try-on");
     if (!charge.ok) {
       refundReservation(accountId, reservation.reservationId);
       return NextResponse.json({ error: "You're out of credits. Earn more by getting likes & try-ons on your looks — or buy credits to keep going.", outOfCredits: true, credits: charge.info }, { status: 402 });
     }
   }
-  const refundTryon = () => { if (ownerCuratorId) void refundCredits(ownerCuratorId, TRYON_CREDITS, "try-on refund"); };
+  const refundTryon = () => { if (chargeCuratorId) void refundCredits(chargeCuratorId, TRYON_CREDITS, "try-on refund"); };
 
   // Strict, full-coverage wording. The input photo may show swimwear or bare skin
   // (e.g. a beach profile pic); the OUTPUT must always be a fully-clothed editorial,

@@ -272,7 +272,7 @@ export default function LookDetailsPage() {
                     <button type="button"
                       onClick={() => router.push(`/tryon/${look.id}${altIdx >= 0 ? `?alt=${altIdx}` : ""}`)}
                       className="flex w-full items-center justify-center gap-1.5 rounded-full border border-black/15 bg-white px-3.5 py-2 text-[12px] font-black text-black active:scale-95 transition-transform">
-                      <Sparkles className="h-3.5 w-3.5" /> Try-on · 2 Credits
+                      <Sparkles className="h-3.5 w-3.5" /> Try-on · Free
                     </button>
                   </div>
                 </div>
@@ -303,7 +303,7 @@ export default function LookDetailsPage() {
               )}
               <button type="button" onClick={() => router.push(`/tryon/${look.id}`)}
                 className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-black/10 bg-black/5 text-sm font-black text-black active:scale-95 transition-transform">
-                <Sparkles className="h-4 w-4" /> Try This Look · 2 Credits
+                <Sparkles className="h-4 w-4" /> Try This Look · Free
               </button>
             </>
           ) : (
