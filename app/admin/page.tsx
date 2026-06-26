@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send } from "lucide-react";
+import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus } from "lucide-react";
 import { signInWithPassword, getStoredAuthSession, saveAuthSession, signOut, resetPassword } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
 
@@ -27,8 +27,11 @@ type Look = {
   price?: string; salePrice?: string; buyUrl?: string;
   brand?: string; productNote?: string; storeName?: string;
   aiCreated?: boolean; createdAt?: string; videoCreatedAt?: string;
+  likeCount?: number;
   alternatives?: unknown[];
 };
+
+type FollowRec = { id: string; createdAt?: string; followeeName?: string; followeeCuratorId?: string; followerName?: string; followerIsCurator?: boolean };
 
 // Same ordering key the public "The A List" uses: most recent activity first —
 // a fresh video beats the publish date.
@@ -65,7 +68,8 @@ export default function AdminPage() {
   const [note, setNote] = useState("");
   const [authed, setAuthed] = useState(false);
   const [tab, setTab] = useState<"looks" | "curators" | "inbox">("looks");
-  const [inboxTab, setInboxTab] = useState<"comments" | "messages">("comments");
+  const [inboxTab, setInboxTab] = useState<"comments" | "messages" | "likes" | "followers">("comments");
+  const [follows, setFollows] = useState<FollowRec[]>([]);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [comments, setComments] = useState<Cmt[]>([]);
   const [reply, setReply] = useState<Record<string, string>>({});
@@ -104,12 +108,13 @@ export default function AdminPage() {
     if (!p && !t) return;
     setLoading(true); setError("");
     try {
-      const [cr, lr, com, msg, cmt] = await Promise.all([
+      const [cr, lr, com, msg, cmt, fol] = await Promise.all([
         fetch("/api/try-this-look?curators=1", { headers: headers(p, t) }),
         fetch("/api/try-this-look?admin=1", { headers: headers(p, t) }),
         fetch("/api/try-this-look?community=1"),
         fetch("/api/messages?all=1", { headers: headers(p, t) }),
         fetch("/api/try-this-look?allComments=1", { headers: headers(p, t) }),
+        fetch("/api/follow?all=1", { headers: headers(p, t) }),
       ]);
       if (cr.status === 401 || lr.status === 401) { setError("Wrong PIN."); setAuthed(false); setLoading(false); return; }
       const cd = await cr.json().catch(() => ({}));
@@ -117,11 +122,13 @@ export default function AdminPage() {
       const comd = await com.json().catch(() => ({}));
       const msgd = await msg.json().catch(() => ({}));
       const cmtd = await cmt.json().catch(() => ({}));
+      const fold = await fol.json().catch(() => ({}));
       setCurators(Array.isArray(cd.curators) ? cd.curators : []);
       setLooks(Array.isArray(ld.looks) ? ld.looks : []);
       setCommunity(Array.isArray(comd.community) ? comd.community : []);
       setMessages(Array.isArray(msgd.messages) ? msgd.messages : []);
       setComments(Array.isArray(cmtd.comments) ? cmtd.comments : []);
+      setFollows(Array.isArray(fold.follows) ? fold.follows : []);
       setAuthed(true);
     } catch { setError("Could not load admin data."); }
     finally { setLoading(false); }
@@ -331,6 +338,21 @@ export default function AdminPage() {
   const liveLooks = looks.filter(l => l.published !== false).length;
   const activeCurators = curators.filter(c => c.status !== "deactivated").length;
 
+  // Likes: only a count per look (no per-user identities) → rank looks by likes.
+  const likedLooks = useMemo(() => looks.filter(l => (l.likeCount ?? 0) > 0).sort((a, b) => (b.likeCount ?? 0) - (a.likeCount ?? 0)), [looks]);
+  const totalLikes = useMemo(() => looks.reduce((s, l) => s + (l.likeCount ?? 0), 0), [looks]);
+  // Followers grouped per curator they follow.
+  const followersByCurator = useMemo(() => {
+    const m = new Map<string, { name: string; curatorId?: string; followers: string[] }>();
+    for (const f of follows) {
+      const key = f.followeeCuratorId || f.followeeName || "?";
+      const e = m.get(key) || { name: f.followeeName || "—", curatorId: f.followeeCuratorId, followers: [] };
+      e.followers.push(f.followerName || "Someone");
+      m.set(key, e);
+    }
+    return [...m.values()].sort((a, b) => b.followers.length - a.followers.length);
+  }, [follows]);
+
   if (!authed) {
     return (
       <main className="min-h-screen grid place-items-center bg-[#fbfaf7] px-4 text-ink">
@@ -537,11 +559,11 @@ export default function AdminPage() {
         {/* ── Inbox ── */}
         {tab === "inbox" && (
           <div className="mt-3 pb-16">
-            <div className="flex items-center gap-1.5">
-              {([["comments", "Comments", comments.length], ["messages", "Messages", messages.length]] as const).map(([key, label, n]) => (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {([["comments", "Comments", comments.length], ["messages", "Messages", messages.length], ["likes", "Likes", totalLikes], ["followers", "Followers", follows.length]] as const).map(([key, label, n]) => (
                 <button key={key} type="button" onClick={() => setInboxTab(key)}
                   className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-black transition ${inboxTab === key ? "border-black bg-black text-white" : "border-black/10 text-ink/55"}`}>
-                  {key === "comments" ? <MessageCircle className="h-3.5 w-3.5" /> : <Inbox className="h-3.5 w-3.5" />} {label} <span className="opacity-60">{n}</span>
+                  {key === "comments" ? <MessageCircle className="h-3.5 w-3.5" /> : key === "messages" ? <Inbox className="h-3.5 w-3.5" /> : key === "likes" ? <Heart className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />} {label} <span className="opacity-60">{n}</span>
                 </button>
               ))}
             </div>
@@ -599,6 +621,48 @@ export default function AdminPage() {
                     ) : (
                       <p className="mt-1.5 text-[11px] font-bold text-ink/35">Sent to a non-curator account — reply from their own inbox.</p>
                     )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {inboxTab === "likes" && (
+              <div className="mt-3 grid grid-cols-1 gap-2">
+                <p className="text-[11px] font-bold text-ink/45">{totalLikes} likes across {likedLooks.length} looks. Likes are anonymous (device-based) — no per-person list.</p>
+                {likedLooks.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No likes yet.</p>}
+                {likedLooks.map(l => {
+                  const img = l.frontImageUrl || l.imageUrl;
+                  return (
+                    <div key={l.id} className="flex items-center gap-3 rounded-xl border border-black/10 bg-white p-2.5">
+                      <a href={`/look/${l.id}`} target="_blank" rel="noreferrer" className="h-12 w-10 shrink-0 overflow-hidden rounded-lg bg-black/5">
+                        {img ? <img src={img} alt="" className="h-full w-full object-cover object-top" /> : null}
+                      </a>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-black text-ink">{l.name}</div>
+                        <div className="truncate text-xs font-bold text-ink/45">{l.curatorName ?? "—"}</div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-coral/10 px-3 py-1.5 text-sm font-black text-coral">
+                        <Heart className="h-4 w-4" fill="currentColor" /> {l.likeCount}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {inboxTab === "followers" && (
+              <div className="mt-3 grid grid-cols-1 gap-2">
+                <p className="text-[11px] font-bold text-ink/45">{follows.length} follows across {followersByCurator.length} curators.</p>
+                {followersByCurator.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No followers yet.</p>}
+                {followersByCurator.map((g, i) => (
+                  <div key={g.curatorId || i} className="rounded-xl border border-black/10 bg-white p-3">
+                    <div className="flex items-center gap-2">
+                      {g.curatorId
+                        ? <a href={`/curator/${g.curatorId}`} target="_blank" rel="noreferrer" className="text-sm font-black text-cobalt">{g.name}</a>
+                        : <span className="text-sm font-black text-ink">{g.name}</span>}
+                      <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-cobalt/10 px-2.5 py-1 text-xs font-black text-cobalt"><UserPlus className="h-3.5 w-3.5" /> {g.followers.length}</span>
+                    </div>
+                    <p className="mt-1 text-xs font-bold text-ink/55">{g.followers.join(", ")}</p>
                   </div>
                 ))}
               </div>

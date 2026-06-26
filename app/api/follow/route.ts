@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { readTryThisLookState, saveTryThisLookState, Follow } from "@/lib/try-this-look-store";
+import { isAdminRequest } from "@/lib/admin-auth";
+
+const nameSlug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +35,28 @@ async function getFollowerId(request: Request): Promise<string | null> {
 // Returns { followerCount, following } — `following` requires Bearer token
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+
+  // Admin: ALL follows, resolved to curator names (for the admin followers list).
+  if (searchParams.get("all") === "1") {
+    if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+    const state = await readTryThisLookState();
+    const curators = state.curators ?? [];
+    const bySlug = new Map(curators.map(c => [nameSlug(`${(c as any).firstName ?? ""} ${(c as any).lastName ?? ""}`), c]));
+    const byId = new Map(curators.map(c => [c.id, `${(c as any).firstName ?? ""} ${(c as any).lastName ?? ""}`.trim()]));
+    const follows = (state.follows ?? []).map(f => {
+      const followee = f.followeeType === "user" ? bySlug.get(f.followeeSlug) : undefined;
+      const rawFollower = f.followerId.startsWith("curator:") ? f.followerId.slice(8) : f.followerId;
+      return {
+        id: f.id, createdAt: (f as any).createdAt, followeeType: f.followeeType, followeeSlug: f.followeeSlug,
+        followeeName: followee ? `${(followee as any).firstName ?? ""} ${(followee as any).lastName ?? ""}`.trim() : f.followeeSlug,
+        followeeCuratorId: followee?.id,
+        followerName: byId.get(rawFollower) || (f.followerId.startsWith("curator:") ? "Curator" : "Member"),
+        followerIsCurator: f.followerId.startsWith("curator:"),
+      };
+    });
+    return NextResponse.json({ follows });
+  }
+
   const slug = searchParams.get("slug")?.trim().toLowerCase() ?? "";
   const type = (searchParams.get("type") ?? "user") as "user" | "store";
   if (!slug) return NextResponse.json({ error: "slug required" }, { status: 400 });
