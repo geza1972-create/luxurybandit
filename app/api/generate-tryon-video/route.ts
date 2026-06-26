@@ -65,8 +65,9 @@ async function imageToBlob(image: string): Promise<Blob | null> {
 // FACE/appearance must be preserved; @Bild1 = the outfit to put on them.
 const REF_PRESENT_PROMPT =
   "@person presents the @outfit in an elegant studio with soft premium lighting and subtle natural movement — a gentle sway. Keep @person face and appearance and the @outfit exactly the same. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.";
+// User's own validated 360° prompt (@person = the person, @outfit = the garment).
 const REF_TURNAROUND_PROMPT =
-  "@person presents the @outfit and turns slowly and smoothly through one full 360° — front, right side, back, left side, back to front. Static camera at hip height, soft premium lighting. Keep @person face and appearance and the @outfit exactly the same throughout. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.";
+  "@person präsentiert das Outfit aus @outfit und dreht sich langsam und gleichmäßig einmal komplett um 360° — von vorne über die rechte Seite zum Rücken, weiter über die linke Seite zurück nach vorne. Feste Kamera auf Hüfthöhe, weiches edles Licht. Ihr Aussehen und das Outfit bleiben die ganze Zeit exakt gleich. Fließende, ruhige Bewegung, fotorealistisch, hochwertiger Fashion-Katalog-Look.";
 
 // ── Pixverse ──
 async function pixverseUpload(key: string, image: string): Promise<number | null> {
@@ -91,8 +92,10 @@ async function pixverseStartReference(key: string, garment: string, person: stri
       { type: "subject", img_id: gId, ref_name: "outfit" },
     ],
     prompt: turnaround ? REF_TURNAROUND_PROMPT : REF_PRESENT_PROMPT,
-    model: "v4.5",
-    duration: turnaround ? 8 : 5,
+    // 360° turnaround uses V6 + 10s (user-validated for the rotation); the normal
+    // present video stays on V4.5/5s (proven good face + cheaper).
+    model: turnaround ? "v6" : "v4.5",
+    duration: turnaround ? 10 : 5,
     quality: "720p",
     aspect_ratio: "9:16",
     sound_effect_switch: true,

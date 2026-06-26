@@ -91,7 +91,7 @@ function cropToFace(src: string): Promise<string> {
     const img = new Image();
     img.onload = () => {
       const cw = img.width;
-      const ch = Math.max(1, Math.round(img.height * 0.52)); // keep top ~half
+      const ch = Math.max(1, Math.round(img.height * 0.78)); // keep most of head+hair, trim only the lower (revealing) part
       const canvas = document.createElement("canvas");
       canvas.width = cw; canvas.height = ch;
       const ctx = canvas.getContext("2d");
@@ -169,6 +169,8 @@ export default function TryonPage() {
   const [videoMuted, setVideoMuted] = useState(true);
   // Consent to show this try-on in the look's feed carousel (default on).
   const [showInFeed, setShowInFeed] = useState(true);
+  const showInFeedRef = useRef(true); // mirror so async saves read the latest toggle
+  useEffect(() => { showInFeedRef.current = showInFeed; }, [showInFeed]);
   const sharedGenIdRef = useRef<string>("");
   // Optional email capture AFTER the result (lead) — for no-login QR/event try-ons.
   const [leadEmail, setLeadEmail] = useState("");
@@ -392,14 +394,16 @@ export default function TryonPage() {
     setResultImage(personCropped); // placeholder shown while the video renders
     setStep("result");
     const videoUrl = await startTryonVideo("", turnaround, { garment: garmentData, person: personCropped });
-    // Photo tier: use the first frame of the reference video as the still (no FASHN).
+    // Photo still = first frame of the reference video (no FASHN). Time-boxed so a
+    // slow/blocked frame grab can NEVER stop the video from being saved.
     let frameImg = personCropped;
     if (videoUrl) {
-      const frame = await extractFirstFrame(videoUrl);
+      const frame = await Promise.race([extractFirstFrame(videoUrl), new Promise<null>(r => setTimeout(() => r(null), 8000))]);
       if (frame) { frameImg = frame; if (wantFrame) setResultImage(frame); }
     }
-    // Creator (staff): SAVE the video to the gallery so it's never lost — create a
-    // generation (their curatorId) and attach the video. Visibility = the feed toggle.
+    // Creator (staff): ALWAYS save the video to the gallery so it's never lost —
+    // create a generation (their curatorId) + attach the video. The feed toggle
+    // controls public visibility (saved either way).
     if (isStaff && videoUrl) {
       try {
         await postToFeed(frameImg);
@@ -624,7 +628,7 @@ export default function TryonPage() {
           customerName: name, userId: authSession?.user?.id ?? undefined,
           curatorId: curatorId || undefined,
           image: imageSmall, userPhotoImage: userPhotoSmall,
-          feed: true,
+          feed: showInFeedRef.current, // respect the toggle (creators can save without publishing)
         }),
       });
       const data = await res.json().catch(() => ({}));
