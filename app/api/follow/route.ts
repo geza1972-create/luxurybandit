@@ -63,9 +63,15 @@ export async function GET(request: Request) {
 
   const state = await readTryThisLookState();
   const follows = state.follows ?? [];
-  const followerCount = follows.filter(
+  const realFollowers = follows.filter(
     f => f.followeeSlug === slug && f.followeeType === type
   ).length;
+  // Curators carry an admin-set baseline (followerBoost) added to real follows,
+  // so we can show a realistic audience without storing millions of records.
+  const boost = type === "user"
+    ? Math.max(0, Math.floor(Number((state.curators ?? []).find(c => c.id === slug)?.followerBoost) || 0))
+    : 0;
+  const followerCount = realFollowers + boost;
 
   const followerId = await getFollowerId(request);
   const following = followerId

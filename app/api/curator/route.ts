@@ -498,6 +498,10 @@ export async function POST(request: Request) {
       ageFocus: str("ageFocus", cur.ageFocus),
       motto: str("motto", cur.motto),
       bio: str("bio", cur.bio),
+      // Baseline follower count — admin only (it's a presentation number).
+      followerBoost: isAdmin && payload.followerBoost !== undefined
+        ? Math.max(0, Math.floor(Number(payload.followerBoost) || 0))
+        : cur.followerBoost,
     };
     // Optional new photo
     const photo = String(payload.photo ?? "");

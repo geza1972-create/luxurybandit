@@ -169,6 +169,7 @@ export type CuratorProfile = {
   photoPath?: string;         // storage path of the curator's photo
   photoUrl?: string;          // hydrated signed URL (read side only)
   instagram?: string;         // handle for promotion
+  followerBoost?: number;     // baseline followers added to the real follow count (admin-set)
   status: "active" | "pending" | "deactivated";
   createdAt: string;
   // Creator credits (communicated to creators as "credits", never money).
