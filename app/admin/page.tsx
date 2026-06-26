@@ -301,6 +301,8 @@ export default function AdminPage() {
     return m;
   }, [looks]);
 
+  const curatorById = useMemo(() => new Map(curators.map(c => [c.id, c])), [curators]);
+
   // Try-ons per curator: match the community post's curatorId, else its customerName
   // slug to a curator's full name.
   const tryonsByCurator = useMemo(() => {
@@ -654,26 +656,25 @@ export default function AdminPage() {
               <div className="mt-3 grid grid-cols-1 gap-2">
                 <p className="text-[11px] font-bold text-ink/45">{follows.length} follows across {followersByCurator.length} curators.</p>
                 {followersByCurator.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No followers yet.</p>}
-                {followersByCurator.map((g, i) => (
-                  <div key={g.curatorId || i} className="rounded-xl border border-black/10 bg-white p-3">
-                    <div className="flex items-center gap-2">
-                      {g.curatorId
-                        ? <a href={`/curator/${g.curatorId}`} target="_blank" rel="noreferrer" className="text-sm font-black text-cobalt">{g.name}</a>
-                        : <span className="text-sm font-black text-ink">{g.name}</span>}
-                      <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-cobalt/10 px-2.5 py-1 text-xs font-black text-cobalt"><UserPlus className="h-3.5 w-3.5" /> {g.followers.length}</span>
+                {followersByCurator.map((g, i) => {
+                  const cur = g.curatorId ? curatorById.get(g.curatorId) : undefined;
+                  const ini = g.name.split(" ").map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase() || "?";
+                  return (
+                    <div key={g.curatorId || i} className="flex items-center gap-3 rounded-xl border border-black/10 bg-white p-3">
+                      <a href={g.curatorId ? `/curator/${g.curatorId}` : "#"} target="_blank" rel="noreferrer"
+                        className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-black/5 text-sm font-black text-ink/50">
+                        {cur?.photoUrl ? <img src={cur.photoUrl} alt={g.name} className="h-full w-full object-cover" /> : ini}
+                      </a>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-black text-ink">{g.name}</div>
+                        <div className="truncate text-xs font-bold text-ink/45">
+                          {g.followers.slice(0, 6).join(", ")}{g.followers.length > 6 ? ` +${g.followers.length - 6} more` : ""}
+                        </div>
+                      </div>
+                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-cobalt/10 px-2.5 py-1 text-xs font-black text-cobalt"><UserPlus className="h-3.5 w-3.5" /> {g.followers.length}</span>
                     </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                      {g.followers.slice(0, 10).map((n, idx) => (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img key={idx} loading="lazy" src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(n)}&backgroundColor=f1f0ec,e3e0d8`}
-                          alt={n} title={n} className="h-9 w-9 rounded-full border border-black/10 bg-black/5 object-cover" />
-                      ))}
-                      {g.followers.length > 10 && (
-                        <span className="grid h-9 min-w-9 place-items-center rounded-full bg-black/5 px-1.5 text-[10px] font-black text-ink/50">+{g.followers.length - 10}</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
