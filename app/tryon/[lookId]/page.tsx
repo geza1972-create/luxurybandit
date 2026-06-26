@@ -1088,12 +1088,18 @@ export default function TryonPage() {
           <p className="mt-1 text-sm text-black/50">Upload a photo and AI will dress you in this outfit</p>
         </div>
 
-        {/* What you get + cost (TRYON 2 + VIDEO 8 credits — keep in sync with curator-budget.ts) */}
+        {/* What you get + price. Photo: free (normal) / $2.90 (lingerie). Video: a
+            paid upsell — $2.90 (normal) / $4.90 (lingerie). */}
         <div className="w-full max-w-xs rounded-2xl border border-black/10 bg-black/[0.02] px-4 py-3 text-center">
-          <p className="text-[13px] font-black text-black">You'll get a try-on photo <span className="text-black/40">+</span> a 5-second video with music</p>
-          <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-black text-white">
-            <Sparkles className="h-3 w-3" /> Free — no sign-up
-          </p>
+          <p className="text-[13px] font-black text-black">A try-on photo <span className="text-black/40">+</span> an optional 5-second video</p>
+          <div className="mt-1.5 flex items-center justify-center gap-1.5">
+            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black text-white ${look.lingerie ? "bg-black" : "bg-emerald-600"}`}>
+              Photo · {look.lingerie ? "$2.90" : "Free"}
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-black px-2.5 py-1 text-[11px] font-black text-white">
+              Video · {look.lingerie ? "$4.90" : "$2.90"}
+            </span>
+          </div>
         </div>
 
         {/* Actions */}

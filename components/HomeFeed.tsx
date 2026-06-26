@@ -22,10 +22,11 @@ export type FeedLook = {
   communityTryOns?: { imageUrl: string; videoUrl?: string; name?: string }[];
   feedOrder?: number;
   aiCreated?: boolean;
+  lingerie?: boolean;
   commentsOff?: boolean;
   likeCount?: number;
   createdAt?: string;
-  alternatives?: { title?: string; link?: string; source?: string; thumbnail?: string; price?: string; priceValue?: number; currency?: string }[];
+  alternatives?: { title?: string; link?: string; source?: string; thumbnail?: string; price?: string; priceValue?: number; currency?: string; lingerie?: boolean }[];
   price?: string;
   salePrice?: string;
   buyUrl?: string;
@@ -360,7 +361,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         <div className="mt-2.5 flex items-center gap-2">
           <button type="button" onClick={() => router.push(tryOnHref)}
             className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform">
-            <Sparkles className="h-4 w-4" /> Try This Look · Free
+            <Sparkles className="h-4 w-4" /> Try This Look · {look.lingerie ? "$2.90" : "Free"}
           </button>
           <TryOnQR lookId={look.id} lookName={look.name} variant="icon" />
           <button type="button" onClick={() => router.push(`${detail}/details`)}

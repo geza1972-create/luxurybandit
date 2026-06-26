@@ -16,7 +16,8 @@ type Look = {
   availableSizes?: string[];
   productNote?: string;
   buyUrl?: string;
-  alternatives?: { title: string; link: string; source?: string; thumbnail: string; price?: string; priceValue?: number; currency?: string }[];
+  alternatives?: { title: string; link: string; source?: string; thumbnail: string; price?: string; priceValue?: number; currency?: string; lingerie?: boolean }[];
+  lingerie?: boolean;
   imageUrl: string;
   frontImageUrl?: string;
   curatorId?: string;
@@ -272,7 +273,7 @@ export default function LookDetailsPage() {
                     <button type="button"
                       onClick={() => router.push(`/tryon/${look.id}${altIdx >= 0 ? `?alt=${altIdx}` : ""}`)}
                       className="flex w-full items-center justify-center gap-1.5 rounded-full border border-black/15 bg-white px-3.5 py-2 text-[12px] font-black text-black active:scale-95 transition-transform">
-                      <Sparkles className="h-3.5 w-3.5" /> Try-on · Free
+                      <Sparkles className="h-3.5 w-3.5" /> Try-on · {a.lingerie ? "$2.90" : "Free"}
                     </button>
                   </div>
                 </div>
@@ -303,7 +304,7 @@ export default function LookDetailsPage() {
               )}
               <button type="button" onClick={() => router.push(`/tryon/${look.id}`)}
                 className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-black/10 bg-black/5 text-sm font-black text-black active:scale-95 transition-transform">
-                <Sparkles className="h-4 w-4" /> Try This Look · Free
+                <Sparkles className="h-4 w-4" /> Try This Look · {look.lingerie ? "$2.90" : "Free"}
               </button>
             </>
           ) : (
