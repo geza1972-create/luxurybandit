@@ -70,6 +70,8 @@ export default function AdminPage() {
   const [tab, setTab] = useState<"looks" | "curators" | "inbox">("looks");
   const [inboxTab, setInboxTab] = useState<"comments" | "messages" | "likes" | "followers">("comments");
   const [follows, setFollows] = useState<FollowRec[]>([]);
+  const [followerQ, setFollowerQ] = useState("");
+  const [followerDir, setFollowerDir] = useState<"desc" | "asc">("desc");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [comments, setComments] = useState<Cmt[]>([]);
   const [reply, setReply] = useState<Record<string, string>>({});
@@ -354,6 +356,11 @@ export default function AdminPage() {
     }
     return [...m.values()].sort((a, b) => b.followers.length - a.followers.length);
   }, [follows]);
+  const shownFollowers = useMemo(() => {
+    const fq = followerQ.trim().toLowerCase();
+    const base = fq ? followersByCurator.filter(g => g.name.toLowerCase().includes(fq)) : followersByCurator;
+    return [...base].sort((a, b) => (a.followers.length - b.followers.length) * (followerDir === "asc" ? 1 : -1));
+  }, [followersByCurator, followerQ, followerDir]);
 
   if (!authed) {
     return (
@@ -654,9 +661,22 @@ export default function AdminPage() {
 
             {inboxTab === "followers" && (
               <div className="mt-3 grid grid-cols-1 gap-2">
-                <p className="text-[11px] font-bold text-ink/45">{follows.length} follows across {followersByCurator.length} curators.</p>
-                {followersByCurator.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No followers yet.</p>}
-                {followersByCurator.map((g, i) => {
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-1 items-center gap-2 rounded-xl border border-black/10 bg-white px-3">
+                    <Search className="h-4 w-4 text-ink/30" />
+                    <input value={followerQ} onChange={e => setFollowerQ(e.target.value)} placeholder="Search creator…"
+                      className="h-10 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-ink/30" />
+                    {followerQ && <button type="button" onClick={() => setFollowerQ("")} className="text-xs font-black text-ink/40">Clear</button>}
+                  </div>
+                  <button type="button" onClick={() => setFollowerDir(d => d === "desc" ? "asc" : "desc")}
+                    title={followerDir === "desc" ? "Most followers first" : "Fewest followers first"}
+                    className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-black/10 bg-white px-3 text-xs font-black text-ink/60 active:scale-95 transition">
+                    Followers {followerDir === "desc" ? <ArrowDown className="h-3.5 w-3.5" /> : <ArrowUp className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+                <p className="text-[11px] font-bold text-ink/45">{follows.length} follows across {followersByCurator.length} curators{followerQ ? ` · ${shownFollowers.length} shown` : ""}.</p>
+                {shownFollowers.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No matches.</p>}
+                {shownFollowers.map((g, i) => {
                   const cur = g.curatorId ? curatorById.get(g.curatorId) : undefined;
                   const ini = g.name.split(" ").map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase() || "?";
                   return (
