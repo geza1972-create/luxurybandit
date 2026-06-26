@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Check, ChevronUp, ChevronDown, Crop, ExternalLink, ImagePlus, Loader2, Plus, Search, Trash2, Video, Wand2, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronUp, ChevronDown, Crop, ExternalLink, ImagePlus, Link2, Loader2, Plus, Search, Trash2, Video, Wand2, X } from "lucide-react";
 import { FASHION_BRANDS } from "@/lib/fashion-brands";
 
 // Garment types a curator can target the search with (select one, sorted A→Z list
@@ -522,7 +522,7 @@ export default function AdminTrends() {
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   // Which creation mode the curator picked. They choose one first, then we show
   // only that flow — never both at once.
-  const [mode, setMode] = useState<"web" | "ai" | null>(null);
+  const [mode, setMode] = useState<"web" | "ai" | "link" | null>(null);
   // AI Fashion generation state
   const [aiGarmentFile, setAiGarmentFile] = useState<File | null>(null);
   const [aiPersonFile, setAiPersonFile] = useState<File | null>(null);
@@ -897,7 +897,7 @@ export default function AdminTrends() {
         )}
 
         {/* Choose how to create — one flow at a time, never both */}
-        <section className="mt-5 grid grid-cols-2 gap-3">
+        <section className="mt-5 grid grid-cols-3 gap-3">
           <button type="button" onClick={() => setMode(mode === "web" ? null : "web")}
             className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition active:scale-[0.99] ${mode === "web" ? "border-black bg-black text-white shadow-soft" : "border-black/12 bg-white text-ink hover:border-black/30"}`}>
             <Search className={`h-5 w-5 ${mode === "web" ? "text-white" : "text-ink/50"}`} />
@@ -910,10 +910,40 @@ export default function AdminTrends() {
             <span className="text-sm font-black">Create AI Fashion</span>
             <span className={`text-[11px] font-bold ${mode === "ai" ? "text-white/70" : "text-ink/40"}`}>Garment + your photo → try-on</span>
           </button>
+          <button type="button" onClick={() => setMode(mode === "link" ? null : "link")}
+            className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition active:scale-[0.99] ${mode === "link" ? "border-black bg-black text-white shadow-soft" : "border-black/12 bg-white text-ink hover:border-black/30"}`}>
+            <Link2 className={`h-5 w-5 ${mode === "link" ? "text-white" : "text-ink/50"}`} />
+            <span className="text-sm font-black">Import link</span>
+            <span className={`text-[11px] font-bold ${mode === "link" ? "text-white/70" : "text-ink/40"}`}>Paste a product link → look</span>
+          </button>
         </section>
 
-        {/* Your taste = filters, grouped by category (used by both flows) */}
-        {mode && myFilters.length > 0 && (
+        {/* Paste-a-link import — shown when the Import link tab is active. */}
+        {mode === "link" && (
+          <section className="mt-5 rounded-2xl border border-black/10 bg-white p-4 shadow-soft">
+            <div className="flex items-center gap-2">
+              <Link2 className="h-4 w-4 text-ink/50" />
+              <span className="text-[11px] font-black uppercase tracking-[0.14em] text-ink/45">Product links — one per line</span>
+            </div>
+            <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">Paste one or more product links. We import the image + price as a draft look you can publish.</p>
+            <textarea value={urls} onChange={(e) => setUrls(e.target.value)} rows={3}
+              placeholder="https://www.revolve.com/…  ·  https://allyfashion.com/…"
+              className="mt-3 w-full resize-y rounded-lg border border-black/10 bg-panel px-3.5 py-3 text-sm font-semibold text-ink outline-none focus:border-cobalt" />
+            <div className="mt-3">
+              <Btn onClick={runImport} disabled={importing || !urls.trim()} icon={importing ? undefined : Wand2}>
+                {importing ? <><Loader2 className="h-4 w-4 animate-spin" /> Importing…</> : "Import"}
+              </Btn>
+            </div>
+            {errors.length > 0 && (
+              <div className="mt-3 grid gap-1">
+                {errors.map((e, i) => <p key={i} className="text-xs font-bold text-coral">{e}</p>)}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Your taste = filters, grouped by category (used by web + AI flows) */}
+        {(mode === "web" || mode === "ai") && myFilters.length > 0 && (
           <section className="mt-5 rounded-2xl border border-cobalt/20 bg-cobalt/[0.04] p-4">
             <div className="flex items-center justify-between gap-2">
               <p className="text-[11px] font-black uppercase tracking-[0.16em] text-cobalt">Your taste — tap to filter</p>
@@ -1408,26 +1438,6 @@ export default function AdminTrends() {
                 );
               })}
             </div>
-          </section>
-        )}
-
-        {/* Manual link import — admin only (curators discover by style) */}
-        {!isCurator && (
-          <section className="mt-5 rounded-lg border border-black/10 bg-white p-5 shadow-soft">
-            <span className="mb-1.5 block text-[11px] font-black uppercase tracking-[0.14em] text-ink/45">Produkt-Links (einer pro Zeile)</span>
-            <textarea value={urls} onChange={(e) => setUrls(e.target.value)} rows={3}
-              placeholder="https://www.revolve.com/…  ·  https://allyfashion.com/…"
-              className="w-full resize-y rounded-md border border-black/10 bg-panel px-3.5 py-3 text-sm font-semibold text-ink outline-none focus:border-cobalt" />
-            <div className="mt-3">
-              <Btn onClick={runImport} disabled={importing || !urls.trim()} icon={importing ? undefined : Wand2}>
-                {importing ? <><Loader2 className="h-4 w-4 animate-spin" /> Importiere…</> : "Importieren"}
-              </Btn>
-            </div>
-            {errors.length > 0 && (
-              <div className="mt-3 grid gap-1">
-                {errors.map((e, i) => <p key={i} className="text-xs font-bold text-coral">{e}</p>)}
-              </div>
-            )}
           </section>
         )}
 
