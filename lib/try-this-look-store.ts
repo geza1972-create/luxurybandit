@@ -6,6 +6,10 @@ export type TryThisLookLook = {
   campaignName?: string;
   // Explicit brand override. When set it wins over name-based brand detection.
   brand?: string;
+  // Lingerie/swimwear flag — set at creation (auto-detected or manual). Routes the
+  // try-on straight to FASHN and drives the paid pricing tier. When undefined the
+  // server falls back to name-based detection.
+  lingerie?: boolean;
   storeName?: string;
   storeSlug?: string;
   storeAddress?: string;

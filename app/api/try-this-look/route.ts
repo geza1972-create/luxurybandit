@@ -9,6 +9,7 @@ import {
 } from "@/lib/try-this-look-store";
 import { authorizeStudio } from "@/lib/studio-auth";
 import { tryOnGarment } from "@/lib/tryon";
+import { isIntimateName } from "@/lib/lingerie";
 import { notifyAdminWhatsApp, ADMIN_URL } from "@/lib/notify-admin";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { FASHION_BRANDS } from "@/lib/fashion-brands";
@@ -146,6 +147,10 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     curatorMotto: curator?.motto || undefined,
     productType: (look as any).productType ?? "real",
     brand: ((look as any).brand?.trim() || detectBrand(look.name, (look as any).productNote, (look as any).campaignName)) ?? undefined,
+    // Lingerie/swim: explicit flag wins; otherwise detect from name + brand + notes.
+    lingerie: typeof (look as any).lingerie === "boolean"
+      ? (look as any).lingerie
+      : isIntimateName([look.name, (look as any).brand, (look as any).campaignName, (look as any).productNote].filter(Boolean).join(" ")),
     aiCreated: (look as any).aiCreated === true,
     curatorNote: (look as any).curatorNote ?? undefined,
     commentsOff: (look as any).commentsOff === true,

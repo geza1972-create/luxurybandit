@@ -25,6 +25,7 @@ type Look = {
   price?: string; salePrice?: string; inStock?: boolean;
   imageUrl: string; frontImageUrl?: string; garmentFrontImageUrl?: string;
   galleryImageUrls?: string[];
+  lingerie?: boolean;
   alternatives?: { title: string; link: string; thumbnail: string; price?: string; source?: string }[];
 };
 
@@ -372,23 +373,31 @@ export default function TryonPage() {
         ? `user-${curatorBillingId}`
         : accountId.startsWith("user-") ? accountId : `visitor-${accountId || "anon"}`;
       const headers = { "x-shopcut-account-id": billingId };
-      // General apparel uses OpenAI (gpt-image). For fitted/lingerie-style garments
-      // OpenAI's classifier sometimes refuses ([sexual]); FASHN — a dedicated try-on
-      // model without that filter — is the fallback so the user still gets a result.
-      let res = await fetch("/api/generate-openai-tryon", { method: "POST", body: buildForm(), headers });
-      let payload = await res.json() as { image?: string; error?: string; outOfCredits?: boolean };
-      if (res.status === 402) { setError(payload.error ?? "You're out of credits. Earn more by getting likes & try-ons on your looks — or buy credits to keep going."); setStep("confirm"); return; }
-      const wasSafetyBlock = !res.ok && /safety|sexual/i.test(payload.error ?? "");
-      if (wasSafetyBlock) {
-        // Let the user know we're on the second engine + restart the progress bar so
-        // it doesn't sit frozen at the top during the (slower) FASHN pass.
-        setGenMessage("Fine-tuning this look for you…");
-        generationStartRef.current = Date.now();
-        setProgress(8);
-        // OpenAI refunds its own charge on failure; FASHN bills its own attempt.
+      // Engine routing decided UPFRONT from the look (no wasteful double-loop):
+      //  • Lingerie/swim → FASHN directly (OpenAI would refuse or cover it up).
+      //  • Normal apparel → OpenAI; only if OpenAI unexpectedly safety-blocks do we
+      //    fall back to FASHN as a thin safety net.
+      const isLingerie = look.lingerie === true;
+      let res: Response;
+      let payload: { image?: string; error?: string; outOfCredits?: boolean };
+      if (isLingerie) {
         res = await fetch("/api/generate-fashn", { method: "POST", body: buildForm(), headers });
-        payload = await res.json() as { image?: string; error?: string; outOfCredits?: boolean };
-        if (res.status === 402) { setError(payload.error ?? "You're out of credits. Earn more by getting likes & try-ons on your looks — or buy credits to keep going."); setStep("confirm"); return; }
+        payload = await res.json() as typeof payload;
+        if (res.status === 402) { setError(payload.error ?? "You're out of credits."); setStep("confirm"); return; }
+      } else {
+        res = await fetch("/api/generate-openai-tryon", { method: "POST", body: buildForm(), headers });
+        payload = await res.json() as typeof payload;
+        if (res.status === 402) { setError(payload.error ?? "You're out of credits."); setStep("confirm"); return; }
+        const wasSafetyBlock = !res.ok && /safety|sexual/i.test(payload.error ?? "");
+        if (wasSafetyBlock) {
+          // Rare: a "normal" look our classifier missed. Restart the bar + try FASHN.
+          setGenMessage("Fine-tuning this look for you…");
+          generationStartRef.current = Date.now();
+          setProgress(8);
+          res = await fetch("/api/generate-fashn", { method: "POST", body: buildForm(), headers });
+          payload = await res.json() as typeof payload;
+          if (res.status === 402) { setError(payload.error ?? "You're out of credits."); setStep("confirm"); return; }
+        }
       }
       if (!res.ok || !payload.image) throw new Error(payload.error ?? "Generation failed.");
       setResultImage(payload.image);

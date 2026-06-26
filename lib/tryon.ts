@@ -10,14 +10,11 @@
 //
 // garmentSrc and personSrc may be https URLs or data: URLs — fetch() handles both.
 
+import { isIntimateName } from "@/lib/lingerie";
+export { isIntimateName };
+
 const FASHN_RUN = process.env.FASHN_API_ENDPOINT ?? "https://api.fashn.ai/v1/run";
 const FASHN_STATUS = process.env.FASHN_STATUS_ENDPOINT ?? "https://api.fashn.ai/v1/status";
-
-// Lingerie / swimwear → skip OpenAI, go straight to FASHN.
-const INTIMATE_RE =
-  /lingerie|intimate|intimissimi|la perla|bralette|corset|bustier|teddy|babydoll|negligee|nightie|chemise|garter|suspender|thong|knicker|brief|panty|panties|underwear|bodysuit|swim|bikini|one-piece|one piece|monokini|tankini|bathing suit/i;
-
-export const isIntimateName = (text: string) => INTIMATE_RE.test(text || "");
 
 async function fetchBuf(src: string): Promise<{ buf: Buffer; type: string } | null> {
   try {
