@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readTryThisLookState, uploadTryThisLookBytes, getSignedUrl } from "@/lib/try-this-look-store";
 import { chargeCredits, refundCredits, VIDEO_CREDITS } from "@/lib/curator-budget";
+import { authorizeStudio } from "@/lib/studio-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -15,6 +16,11 @@ const FASHION_PROMPT =
   "Elegant high-fashion catalogue presentation: the person presents the outfit with subtle, slow, natural movement — a soft sway or a gentle quarter turn. CRITICAL: keep the outfit IDENTICAL — the exact same shape, cut, colour, fabric, pattern and details; do not redesign, restyle or change it. Keep the person's appearance unchanged. Minimal, refined camera motion, soft premium studio lighting. No text or logos.";
 const MUSIC =
   "Soft, elegant instrumental background music — a gentle, chic fashion soundtrack. ONLY music: absolutely no footsteps, no voices, no talking, no ambient or foley sound effects.";
+
+// 360° turnaround (premium tier). NEUTRAL wording only (no lingerie/skin/lace) or
+// Pixverse flags it. User-tested & confirmed working. 10s.
+const TURNAROUND_PROMPT =
+  "The woman in the image presents her outfit: she stands upright and turns slowly and smoothly through one full 360° — front, right side, back, left side, back to front. Static camera at hip height, soft premium studio lighting. Keep her appearance and her outfit exactly the same throughout. Fluid, calm motion, photorealistic, high-end fashion catalogue look.";
 
 function pvHeaders(key: string, json = false): Record<string, string> {
   const h: Record<string, string> = { "API-KEY": key, "Ai-trace-id": trace() };
@@ -55,7 +61,7 @@ async function imageToBlob(image: string): Promise<Blob | null> {
 }
 
 // ── Pixverse ──
-async function pixverseStart(key: string, image: string): Promise<{ videoId?: string; error?: string }> {
+async function pixverseStart(key: string, image: string, turnaround = false): Promise<{ videoId?: string; error?: string }> {
   const blob = await imageToBlob(image);
   if (!blob) return { error: "Could not read the try-on image." };
   const form = new FormData();
@@ -65,7 +71,7 @@ async function pixverseStart(key: string, image: string): Promise<{ videoId?: st
   if (up?.ErrCode !== 0 || !up?.Resp?.img_id) return { error: `Pixverse upload failed: ${up?.ErrMsg ?? upRes.status}` };
   const genRes = await fetch(`${PV_BASE}/video/img/generate`, {
     method: "POST", headers: pvHeaders(key, true),
-    body: JSON.stringify({ duration: 5, img_id: up.Resp.img_id, model: "v5", motion_mode: "normal", quality: "720p", prompt: FASHION_PROMPT, sound_effect_switch: true, sound_effect_content: MUSIC }),
+    body: JSON.stringify({ duration: turnaround ? 8 : 5, img_id: up.Resp.img_id, model: "v5", motion_mode: "normal", quality: "720p", prompt: turnaround ? TURNAROUND_PROMPT : FASHION_PROMPT, sound_effect_switch: true, sound_effect_content: MUSIC }),
   });
   const gen = await genRes.json().catch(() => null);
   if (gen?.ErrCode !== 0 || !gen?.Resp?.video_id) return { error: `Pixverse generate failed: ${gen?.ErrMsg ?? genRes.status}` };
@@ -87,23 +93,28 @@ async function pixversePoll(key: string, id: string): Promise<{ status: "done" |
 // POST { lookId, image } → charge owner, start the right provider, return
 // { videoId: "<provider>:<id>", curatorId } for polling.
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string };
+  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean };
   const lookId = String(body.lookId ?? "").trim();
   const image = String(body.image ?? "");
+  const turnaround = body.turnaround === true; // 360° tier
   if (!image) return NextResponse.json({ error: "image required." }, { status: 400 });
 
   const { curatorId } = await lookOf(lookId);
   const key = process.env.PIXVERSE_API_KEY?.trim();
   if (!key) return NextResponse.json({ error: "PIXVERSE_API_KEY missing." }, { status: 400 });
 
-  if (curatorId) {
+  // Staff (admin or an acting-as curator session, e.g. Szidonia) generate for FREE
+  // — no credit charge, no paywall. End-user charging comes with Stripe.
+  const staff = (await authorizeStudio(request)).ok;
+  const chargeOwner = !!curatorId && !staff;
+  if (chargeOwner) {
     const charge = await chargeCredits(curatorId, VIDEO_CREDITS, "try-on video");
     if (!charge.ok) return NextResponse.json({ error: "Not enough credits for a video.", outOfCredits: true, credits: charge.info }, { status: 402 });
   }
-  const refund = () => { if (curatorId) void refundCredits(curatorId, VIDEO_CREDITS, "try-on video refund"); };
+  const refund = () => { if (chargeOwner) void refundCredits(curatorId, VIDEO_CREDITS, "try-on video refund"); };
 
   try {
-    const r = await pixverseStart(key, image);
+    const r = await pixverseStart(key, image, turnaround);
     if (!r.videoId) { refund(); return NextResponse.json({ error: r.error ?? "Video start failed." }, { status: 502 }); }
     return NextResponse.json({ ok: true, videoId: `pv:${r.videoId}`, curatorId, status: "processing" });
   } catch (e) {

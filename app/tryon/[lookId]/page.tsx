@@ -272,7 +272,7 @@ export default function TryonPage() {
   // ── Try-on video ──
   // Animate the finished try-on still into a 5s music video (Pixverse). Auto-runs
   // when a result appears; costs credits (billed to the look's owner curator).
-  const startTryonVideo = async (image: string) => {
+  const startTryonVideo = async (image: string, turnaround = false) => {
     if (!look) return;
     setVideoStatus("generating");
     setVideoUrl(null);
@@ -288,8 +288,8 @@ export default function TryonPage() {
       const imageSmall = await compressDataUrl(image); // stay under Vercel's body limit
       const res = await fetch("/api/generate-tryon-video", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lookId: look.id, image: imageSmall }),
+        headers: { "Content-Type": "application/json", ...(staffCuratorId() ? { "x-curator-id": staffCuratorId() } : {}) },
+        body: JSON.stringify({ lookId: look.id, image: imageSmall, turnaround }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 402) { setVideoStatus("error"); setVideoNote("No credits left for a video — here's your photo."); return; }
@@ -335,13 +335,18 @@ export default function TryonPage() {
   const [showConsent, setShowConsent] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
   const pendingPhotoRef = useRef<string | undefined>(undefined);
+  const pendingTierRef = useRef<"photo" | "video" | "video360">("photo");
   const [show360Note, setShow360Note] = useState(false); // 360° premium tier — UI ready, payment via Stripe pending
   const [paidSoon, setPaidSoon] = useState<"" | "video" | "360">(""); // chosen paid video tier (awaiting Stripe)
+  // Staff = acting-as a curator (e.g. Szidonia) → all tiers generate FREE for them,
+  // no paywall. End-user charging arrives with Stripe.
+  const staffCuratorId = () => { try { return String(JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id ?? ""); } catch { return ""; } };
+  const isStaff = typeof window !== "undefined" && !!staffCuratorId();
 
   // ── Generate ──
   // photoOverride lets callers (e.g. the resume-after-application flow) pass the
   // photo directly, avoiding a stale `userPhoto` closure right after setUserPhoto.
-  const handleGenerate = async (photoOverride?: string) => {
+  const handleGenerate = async (photoOverride?: string, tier: "photo" | "video" | "video360" = "photo") => {
     // No login required — anyone (e.g. someone scanning a projected QR) can try a
     // look on. Abuse is capped by the per-device daily limit on the server; the
     // look's owner curator/brand pays the credits. We capture an email AFTER the
@@ -351,6 +356,7 @@ export default function TryonPage() {
     // Lingerie gate: confirm 18+ & own photo before any intimate try-on.
     if (isLingerieTryon() && !lingerieConsent) {
       pendingPhotoRef.current = photo || undefined;
+      pendingTierRef.current = tier;
       setShowConsent(true);
       return;
     }
@@ -433,8 +439,9 @@ export default function TryonPage() {
       void (async () => {
         // Lingerie try-ons stay PRIVATE — never auto-posted to the public A List.
         if (showInFeed && !isLingerieTryon()) await postToFeed(payload.image);
-        // Video is no longer auto-generated — it's a separate PAID tier (Video /
-        // 360°) the user picks. The "Photo" tier produces just the try-on image.
+        // Video runs only when the chosen tier asks for it (Video = 5s, 360° = turnaround).
+        if (tier === "video") await startTryonVideo(payload.image, false);
+        else if (tier === "video360") await startTryonVideo(payload.image, true);
       })();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed.");
@@ -942,13 +949,14 @@ export default function TryonPage() {
                   <p className="flex items-center gap-1.5 text-sm font-black"><Sparkles className="h-4 w-4" /> 360° turnaround <span className="font-bold text-white/55">· 10s</span></p>
                   <p className="mt-0.5 text-[12px] font-bold text-white/55">See the full look from every angle — front, sides &amp; back.</p>
                 </div>
-                <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-black">$7.90</span>
+                <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-black">{isStaff ? "Free" : "$7.90"}</span>
               </div>
-              <button type="button" onClick={() => setShow360Note(true)}
-                className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-black text-black active:scale-95 transition-transform">
-                <RefreshCw className="h-4 w-4" /> Get the 360° video
+              <button type="button" disabled={isStaff && videoStatus === "generating"}
+                onClick={() => { if (isStaff && resultImage) void startTryonVideo(resultImage, true); else setShow360Note(true); }}
+                className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-black text-black active:scale-95 transition-transform disabled:opacity-50">
+                {isStaff && videoStatus === "generating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Get the 360° video
               </button>
-              {show360Note && <p className="mt-2 text-center text-[12px] font-bold text-white/70">Coming very soon — activates at checkout.</p>}
+              {show360Note && !isStaff && <p className="mt-2 text-center text-[12px] font-bold text-white/70">Coming very soon — activates at checkout.</p>}
             </div>
           )}
 
@@ -1096,23 +1104,23 @@ export default function TryonPage() {
               className="flex h-14 w-full items-center gap-3 rounded-2xl bg-white px-4 text-black shadow-xl active:scale-95 transition-transform">
               <Sparkles className="h-5 w-5 shrink-0 text-blue-600" />
               <span className="text-base font-black">Photo</span>
-              <span className={`ml-auto rounded-full px-2.5 py-0.5 text-xs font-black ${effectiveLingerie ? "bg-black text-white" : "bg-emerald-100 text-emerald-700"}`}>{effectiveLingerie ? "$2.90" : "Free"}</span>
+              <span className={`ml-auto rounded-full px-2.5 py-0.5 text-xs font-black ${effectiveLingerie && !isStaff ? "bg-black text-white" : "bg-emerald-100 text-emerald-700"}`}>{isStaff ? "Free" : effectiveLingerie ? "$2.90" : "Free"}</span>
             </button>
-            <button onClick={() => setPaidSoon("video")}
+            <button onClick={() => { if (isStaff) { setPaidSoon(""); void handleGenerate(undefined, "video"); } else setPaidSoon("video"); }}
               className="flex h-14 w-full items-center gap-3 rounded-2xl bg-white/15 px-4 text-white backdrop-blur active:scale-95 transition-transform">
               <Film className="h-5 w-5 shrink-0" />
               <span className="text-base font-black">Video <span className="font-bold text-white/55">· 5s</span></span>
-              <span className="ml-auto rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-black">{effectiveLingerie ? "$4.90" : "$2.90"}</span>
+              <span className="ml-auto rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-black">{isStaff ? "Free" : effectiveLingerie ? "$4.90" : "$2.90"}</span>
             </button>
             {effectiveLingerie && (
-              <button onClick={() => setPaidSoon("360")}
+              <button onClick={() => { if (isStaff) { setPaidSoon(""); void handleGenerate(undefined, "video360"); } else setPaidSoon("360"); }}
                 className="flex h-14 w-full items-center gap-3 rounded-2xl bg-white/15 px-4 text-white backdrop-blur active:scale-95 transition-transform">
                 <RefreshCw className="h-5 w-5 shrink-0" />
                 <span className="text-base font-black">360° turnaround <span className="font-bold text-white/55">· 10s</span></span>
-                <span className="ml-auto rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-black">$7.90</span>
+                <span className="ml-auto rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-black">{isStaff ? "Free" : "$7.90"}</span>
               </button>
             )}
-            {paidSoon && (
+            {paidSoon && !isStaff && (
               <p className="text-center text-[12px] font-bold text-white/75">
                 {paidSoon === "360" ? "360° video" : "Video"} comes very soon — activates at checkout. Tap <span className="text-white">Photo</span> to try it on now.
               </p>
@@ -1170,7 +1178,7 @@ export default function TryonPage() {
           <p className="text-[13px] font-black text-black">Your try-on photo<span className="font-bold text-black/45"> — optional video after</span></p>
           <div className="mt-1.5 flex items-center justify-center">
             <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-black text-white ${effectiveLingerie ? "bg-black" : "bg-emerald-600"}`}>
-              Photo · {effectiveLingerie ? "$2.90" : "Free"}
+              Photo · {isStaff ? "Free" : effectiveLingerie ? "$2.90" : "Free"}
             </span>
           </div>
         </div>
@@ -1252,7 +1260,7 @@ export default function TryonPage() {
             <p className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-black/40">🔒 Lingerie try-ons stay private — never posted publicly.</p>
             <div className="mt-4 grid gap-2">
               <button type="button" disabled={!consentChecked}
-                onClick={() => { try { localStorage.setItem("lb_lingerie_consent", "1"); } catch { /**/ } setLingerieConsent(true); setShowConsent(false); void handleGenerate(pendingPhotoRef.current); }}
+                onClick={() => { try { localStorage.setItem("lb_lingerie_consent", "1"); } catch { /**/ } setLingerieConsent(true); setShowConsent(false); void handleGenerate(pendingPhotoRef.current, pendingTierRef.current); }}
                 className="flex h-13 min-h-[52px] w-full items-center justify-center rounded-2xl bg-black text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
                 Agree &amp; continue
               </button>
