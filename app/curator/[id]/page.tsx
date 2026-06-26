@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Instagram, Loader2, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play } from "lucide-react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
@@ -173,29 +173,6 @@ export default function CuratorPublicPage() {
         <p className="px-4 pb-2 text-[11px] font-black uppercase tracking-[0.16em] text-black/40">
           {looks.length} {looks.length === 1 ? "look" : "looks"}{tryons.length > 0 ? ` · ${tryons.length} try-on${tryons.length === 1 ? "" : "s"}` : ""}
         </p>
-
-        {/* Badge legend — explains what the labels mean (only the ones present) */}
-        {(() => {
-          const fn = profile.firstName || name;
-          const hasOriginal = looks.some(l => l.aiCreated);
-          const hasCurated = looks.some(l => !l.aiCreated);
-          const hasTryon = tryons.length > 0;
-          const rows: { badge: ReactNode; text: string }[] = [];
-          if (hasOriginal) rows.push({ badge: <span className="rounded-full bg-black px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">✦ Original</span>, text: `An AI fashion look ${fn} created.` });
-          if (hasCurated) rows.push({ badge: <span className="rounded-full bg-black/[0.06] px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-black/60">Curated</span>, text: `A real product ${fn} hand-picked for you.` });
-          if (hasTryon) rows.push({ badge: <span className="rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">Try-on</span>, text: `${fn} tried this look on.` });
-          if (!rows.length) return null;
-          return (
-            <div className="mx-4 mb-3 grid gap-1.5 rounded-xl border border-black/8 bg-black/[0.015] px-3 py-2.5">
-              {rows.map((r, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="shrink-0">{r.badge}</span>
-                  <span className="text-[11px] font-medium text-black/55">{r.text}</span>
-                </div>
-              ))}
-            </div>
-          );
-        })()}
 
         {looks.length === 0 && tryons.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-16 text-center">
