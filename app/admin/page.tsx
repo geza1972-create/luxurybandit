@@ -22,7 +22,8 @@ type Look = {
   id: string; name: string; published?: boolean;
   frontImageUrl?: string; imageUrl?: string; videoUrl?: string;
   curatorName?: string; curatorId?: string;
-  price?: string; brand?: string; productNote?: string; storeName?: string;
+  price?: string; salePrice?: string; buyUrl?: string;
+  brand?: string; productNote?: string; storeName?: string;
   aiCreated?: boolean; createdAt?: string;
   alternatives?: unknown[];
 };
@@ -43,6 +44,8 @@ export default function AdminPage() {
   const [busy, setBusy] = useState("");
   const [confirmId, setConfirmId] = useState("");
   const [edit, setEdit] = useState<Curator | null>(null); // curator being edited
+  const [editLook, setEditLook] = useState<Look | null>(null); // listing being edited
+  const [creditsDraft, setCreditsDraft] = useState(""); // credits input in curator sheet
   const [saving, setSaving] = useState(false);
 
   const headers = (p = pin) => ({ "Content-Type": "application/json", "x-try-look-admin-pin": p });
@@ -126,7 +129,32 @@ export default function AdminPage() {
     setBusy(id); setError("");
     try {
       const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-look", id }) });
-      if (r.ok) setLooks(ls => ls.filter(l => l.id !== id)); else await fail(r, "Could not delete listing");
+      if (r.ok) { setLooks(ls => ls.filter(l => l.id !== id)); setEditLook(null); } else await fail(r, "Could not delete listing");
+    } catch { setError("Network error."); }
+    setBusy("");
+  };
+  const saveLook = async () => {
+    if (!editLook) return;
+    setSaving(true); setError("");
+    const patch = { name: editLook.name, price: editLook.price ?? "", salePrice: editLook.salePrice ?? "", productNote: editLook.productNote ?? "", storeName: editLook.storeName ?? "", buyUrl: editLook.buyUrl ?? "" };
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "update-look", id: editLook.id, ...patch }) });
+      if (r.ok) { setLooks(ls => ls.map(l => l.id === editLook.id ? { ...l, ...patch } : l)); setEditLook(null); }
+      else await fail(r, "Could not save listing");
+    } catch { setError("Network error."); }
+    setSaving(false);
+  };
+
+  // Curator credits (admin set-credits)
+  const saveCredits = async () => {
+    if (!edit) return;
+    const n = Number(creditsDraft);
+    if (!Number.isFinite(n)) { setError("Credits must be a number."); return; }
+    setBusy(edit.id); setError("");
+    try {
+      const r = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "set-credits", id: edit.id, credits: n }) });
+      if (r.ok) { setCurators(cs => cs.map(c => c.id === edit.id ? { ...c, credits: n } : c)); setEdit(e => e && { ...e, credits: n }); }
+      else await fail(r, "Could not set credits");
     } catch { setError("Network error."); }
     setBusy("");
   };
@@ -213,7 +241,9 @@ export default function AdminPage() {
               const live = l.published !== false;
               const img = l.frontImageUrl || l.imageUrl;
               return (
-                <div key={l.id} className={`flex gap-3 rounded-xl border bg-white p-2.5 ${live ? "border-black/10" : "border-black/10 opacity-70"}`}>
+                <div key={l.id} role="button" tabIndex={0} onClick={() => setEditLook({ ...l })}
+                  onKeyDown={e => { if (e.key === "Enter") setEditLook({ ...l }); }}
+                  className={`flex cursor-pointer gap-3 rounded-xl border bg-white p-2.5 active:scale-[0.99] transition ${live ? "border-black/10" : "border-black/10 opacity-70"}`}>
                   <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-black/5">
                     {img ? <img src={img} alt="" className="h-full w-full object-cover object-top" /> : <div className="grid h-full w-full place-items-center text-[10px] font-black text-ink/30">LB</div>}
                     {l.videoUrl && <PlayCircle className="absolute bottom-1 right-1 h-4 w-4 text-white drop-shadow" />}
@@ -231,7 +261,7 @@ export default function AdminPage() {
                     </div>
                     {l.productNote && <p className="mt-1 line-clamp-2 text-xs font-medium leading-snug text-ink/45">{l.productNote}</p>}
                   </div>
-                  <div className="flex shrink-0 flex-col items-center gap-1.5">
+                  <div className="flex shrink-0 flex-col items-center gap-1.5" onClick={e => e.stopPropagation()}>
                     <button type="button" disabled={busy === l.id} onClick={() => void setLookPublished(l.id, !live)} title={live ? "Deactivate" : "Activate"}
                       className={`grid h-9 w-9 place-items-center rounded-lg border active:scale-95 transition ${live ? "border-black/10 text-ink/60" : "border-emerald-200 bg-emerald-50 text-emerald-600"}`}>
                       <Power className="h-4 w-4" />
@@ -254,8 +284,8 @@ export default function AdminPage() {
             {shownCurators.map(c => {
               const off = c.status === "deactivated";
               return (
-                <div key={c.id} role="button" tabIndex={0} onClick={() => setEdit({ ...c })}
-                  onKeyDown={e => { if (e.key === "Enter") setEdit({ ...c }); }}
+                <div key={c.id} role="button" tabIndex={0} onClick={() => { setEdit({ ...c }); setCreditsDraft(String(c.credits ?? "")); }}
+                  onKeyDown={e => { if (e.key === "Enter") { setEdit({ ...c }); setCreditsDraft(String(c.credits ?? "")); } }}
                   className={`flex w-full cursor-pointer items-center gap-3 rounded-xl border bg-white p-2.5 text-left active:scale-[0.99] transition ${off ? "border-black/10 opacity-70" : "border-black/10"}`}>
                   <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-black/5 text-sm font-black text-ink/50">
                     {c.photoUrl ? <img src={c.photoUrl} alt="" className="h-full w-full object-cover" /> : initials(c)}
@@ -302,6 +332,18 @@ export default function AdminPage() {
             </div>
 
             <div className="grid gap-3 overflow-y-auto px-5 py-4">
+              <div className="flex items-end gap-2 rounded-xl bg-panel p-3">
+                <label className="grid flex-1 gap-1">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-ink/40">Credits</span>
+                  <input type="number" value={creditsDraft} onChange={e => setCreditsDraft(e.target.value)}
+                    className="h-10 w-full rounded-lg border border-black/10 bg-white px-3 text-sm font-black text-ink outline-none focus:border-cobalt" />
+                </label>
+                <button type="button" disabled={busy === edit.id || creditsDraft === String(edit.credits ?? "")} onClick={() => void saveCredits()}
+                  className="h-10 shrink-0 rounded-lg bg-black px-4 text-xs font-black text-white active:scale-95 transition disabled:opacity-40">
+                  {busy === edit.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Set credits"}
+                </button>
+                <span className="pb-2.5 text-[11px] font-bold text-ink/40">spent {edit.creditsSpent ?? 0}</span>
+              </div>
               <Field2 label="First name" v={edit.firstName} on={v => setEdit(e => e && { ...e, firstName: v })} label2="Last name" v2={edit.lastName} on2={v => setEdit(e => e && { ...e, lastName: v })} />
               <Field label="Email" v={edit.email} on={v => setEdit(e => e && { ...e, email: v })} />
               <Field2 label="Phone" v={edit.phone} on={v => setEdit(e => e && { ...e, phone: v })} label2="Instagram" v2={edit.instagram} on2={v => setEdit(e => e && { ...e, instagram: v })} />
@@ -330,6 +372,57 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* ── Listing edit sheet ── */}
+      {editLook && (() => {
+        const live = editLook.published !== false;
+        const img = editLook.frontImageUrl || editLook.imageUrl;
+        return (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" onClick={e => { if (e.target === e.currentTarget) setEditLook(null); }}>
+            <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl">
+              <div className="flex items-center gap-3 border-b border-black/10 px-5 py-4">
+                <div className="relative h-14 w-12 shrink-0 overflow-hidden rounded-lg bg-black/5">
+                  {img ? <img src={img} alt="" className="h-full w-full object-cover object-top" /> : <div className="grid h-full w-full place-items-center text-[10px] font-black text-ink/30">LB</div>}
+                  {editLook.videoUrl && <PlayCircle className="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 text-white drop-shadow" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-black">{editLook.name}</div>
+                  <div className="truncate text-[11px] font-bold text-ink/45">{editLook.curatorName ?? "—"}{editLook.brand ? ` · ${editLook.brand}` : ""}{editLook.createdAt ? ` · ${fmtDate(editLook.createdAt)}` : ""}</div>
+                </div>
+                <a href={`/look/${editLook.id}`} target="_blank" rel="noreferrer" className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-black/10 px-3 text-[11px] font-black text-ink active:scale-95 transition">
+                  View live <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+                <button type="button" onClick={() => setEditLook(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10"><X className="h-4 w-4" /></button>
+              </div>
+
+              <div className="grid gap-3 overflow-y-auto px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => { void setLookPublished(editLook.id, !live); setEditLook(e => e && { ...e, published: !live }); }}
+                    className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-black active:scale-95 transition ${live ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-black/10 text-ink/60"}`}>
+                    <Power className="h-3.5 w-3.5" /> {live ? "Live — tap to deactivate" : "Off — tap to activate"}
+                  </button>
+                </div>
+                <Field label="Name" v={editLook.name} on={v => setEditLook(e => e && { ...e, name: v })} />
+                <Field2 label="Price" v={editLook.price} on={v => setEditLook(e => e && { ...e, price: v })} label2="Sale price" v2={editLook.salePrice} on2={v => setEditLook(e => e && { ...e, salePrice: v })} />
+                <Area label="Description" v={editLook.productNote} on={v => setEditLook(e => e && { ...e, productNote: v })} />
+                <Field label="Store / brand name" v={editLook.storeName} on={v => setEditLook(e => e && { ...e, storeName: v })} />
+                <Field label="Buy URL" v={editLook.buyUrl} on={v => setEditLook(e => e && { ...e, buyUrl: v })} />
+              </div>
+
+              <div className="flex items-center gap-2 border-t border-black/10 px-5 py-4">
+                <button type="button" disabled={busy === editLook.id} onClick={() => armOrRun(editLook.id, () => void deleteLook(editLook.id))}
+                  className={`h-11 rounded-xl border px-3 text-xs font-black active:scale-95 transition ${confirmId === editLook.id ? "border-red-300 bg-red-500 text-white" : "border-black/10 text-red-500"}`}>
+                  {confirmId === editLook.id ? "Tap to confirm" : "Delete"}
+                </button>
+                <button type="button" onClick={() => setEditLook(null)} className="ml-auto h-11 rounded-xl border border-black/10 px-4 text-sm font-black text-ink/60 active:scale-95 transition">Cancel</button>
+                <button type="button" disabled={saving} onClick={() => void saveLook()} className="flex h-11 items-center gap-2 rounded-xl bg-black px-5 text-sm font-black text-white active:scale-95 transition disabled:opacity-50">
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </main>
   );
 }
