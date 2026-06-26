@@ -98,11 +98,10 @@ function priceRange(alts?: Look["alternatives"]): string | null {
   const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
   return lo === hi ? `${cur}${fmt(lo)}` : `${cur}${fmt(hi)}–${cur}${fmt(lo)}`;
 }
-// Price to show on a feed card: the range when we have shop options, else the
-// look's own price (formatted with a $ if it's a bare number — fixes "from 1190").
+// Price to show on a feed card: the look's OWN price only. The dupe-derived
+// "luxe→budget" range is NEVER shown here — it's revealed on demand (Bandit the
+// look), never from the cached shop-options list.
 function feedPrice(look: Look): string | null {
-  const range = priceRange(look.alternatives);
-  if (range) return range;
   const raw = String(look.salePrice ?? look.price ?? "").trim();
   if (!raw) return null;
   return /^[\d.,]+$/.test(raw) ? `$${raw}` : raw;

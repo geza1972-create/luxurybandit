@@ -110,8 +110,10 @@ function Slide({ look, onComment, muted, setMuted, index, onActive }: { look: Fe
     ...communityPhotos,
     ...(look.videoUrl ? [{ type: "video" as const }] : []),
     { type: "image" as const },
-    ...shopAlts.map(a => ({ type: "product" as const, alt: a })),
+    // Shop options are NOT shown in the feed (no product slides, no list). The
+    // dupes are fetched on demand only when the user taps "Bandit the look!".
   ];
+  void shopAlts;
   // How many people have tried this look on (distinct names, else photo count).
   const tryOnPeople = new Set(community.map(c => c.name).filter(Boolean)).size || community.length;
   const firstTryOnIdx = media.findIndex(m => m.type === "cphoto" || m.type === "cvideo");
@@ -260,15 +262,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive }: { look: Fe
                     {look.aiCreated ? "✦ Original" : "Curated"}
                   </span>
                 </div>
-              ) : (
-                // Shop option slide — product photo only; title + "Shop now" live in
-                // the white area below (so they never cover the model).
-                <div className="relative h-full w-full bg-white">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.alt.thumbnail} alt={m.alt.title || "Product"} className="absolute inset-0 h-full w-full object-contain" />
-                  <span className="absolute left-3 bottom-3 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">Shop option</span>
-                </div>
-              )}
+              ) : null}
             </div>
           ))}
         </div>
@@ -304,26 +298,13 @@ function Slide({ look, onComment, muted, setMuted, index, onActive }: { look: Fe
             ))}
           </div>
         )}
-        {/* Shop-option buy card (on white) — only when that slide is active */}
-        {activeProduct && (
-          <div className="mb-2 flex items-center gap-3 rounded-2xl border border-black/10 bg-black/[0.02] p-2.5">
-            <div className="min-w-0 flex-1">
-              <p className="line-clamp-1 text-[13px] font-black text-black">{activeProduct.title || "Shop this piece"}</p>
-              <p className="mt-0.5 truncate text-[12px] font-bold text-black/45">{[activeProduct.source, activeProduct.price].filter(Boolean).join(" · ")}</p>
-            </div>
-            <a href={activeProduct.link} target="_blank" rel="noopener noreferrer"
-              className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
-              Shop now →
-            </a>
-          </div>
-        )}
         {/* Main product image → its own buy card so the user knows what they see:
             "Shop now" when there's a shop link, otherwise a simple Details link. */}
         {am?.type === "image" && (
           <div className="mb-2 flex items-center gap-3 rounded-2xl border border-black/10 bg-black/[0.02] p-2.5">
             <div className="min-w-0 flex-1">
               <p className="line-clamp-1 text-[13px] font-black text-black">{look.name}</p>
-              <p className="mt-0.5 truncate text-[12px] font-bold text-black/45">{[look.storeName, look.salePrice || look.price || range].filter(Boolean).join(" · ") || "The original piece"}</p>
+              <p className="mt-0.5 truncate text-[12px] font-bold text-black/45">{[look.storeName, look.salePrice || look.price].filter(Boolean).join(" · ") || "The original piece"}</p>
             </div>
             {look.buyUrl ? (
               <a href={look.buyUrl} target="_blank" rel="noopener noreferrer"
@@ -348,7 +329,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive }: { look: Fe
             {expanded ? "less" : "more"}
           </button>
         )}
-        <p className="mt-1 truncate text-[12px] font-bold text-black/45">{look.name}{range ? ` · ${range}` : ""}</p>
+        <p className="mt-1 truncate text-[12px] font-bold text-black/45">{look.name}</p>
         {/* Social proof — how many people tried this look on (tap → their try-ons) */}
         {tryOnPeople > 0 && firstTryOnIdx >= 0 && (
           <button type="button" onClick={() => scrollToSlide(firstTryOnIdx)}
