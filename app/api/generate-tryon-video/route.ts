@@ -60,7 +60,39 @@ async function imageToBlob(image: string): Promise<Blob | null> {
   } catch { return null; }
 }
 
+// Reference-mode prompts (@Bild1 = garment, @Bild2 = the person). NEUTRAL wording
+// only — no lingerie/skin/lace — or Pixverse flags it. @Bild2 = the person whose
+// FACE/appearance must be preserved; @Bild1 = the outfit to put on them.
+const REF_PRESENT_PROMPT =
+  "@Bild2 presents the outfit from @Bild1. She stands upright in an elegant studio, soft premium lighting, with subtle natural movement — a gentle sway. Keep her face and appearance exactly as in @Bild2 and the outfit exactly as in @Bild1. Fluid, calm motion, photorealistic, high-end fashion catalogue look. No text or logos.";
+const REF_TURNAROUND_PROMPT =
+  "@Bild2 presents the outfit from @Bild1: she stands upright in an elegant studio and turns slowly and smoothly through one full 360° — front, right side, back, left side, back to front. Static camera at hip height, soft premium lighting. Keep her face and appearance exactly as in @Bild2 and the outfit exactly as in @Bild1 throughout. Fluid, calm motion, photorealistic, high-end fashion catalogue look. No text or logos.";
+
 // ── Pixverse ──
+async function pixverseUpload(key: string, image: string): Promise<number | null> {
+  const blob = await imageToBlob(image);
+  if (!blob) return null;
+  const form = new FormData();
+  form.append("image", blob, "img.png");
+  const upRes = await fetch(`${PV_BASE}/image/upload`, { method: "POST", headers: pvHeaders(key), body: form });
+  const up = await upRes.json().catch(() => null);
+  return (up?.ErrCode === 0 && up?.Resp?.img_id) ? up.Resp.img_id : null;
+}
+
+// Reference mode: dress the person (@Bild2) in the garment (@Bild1) AND animate, in
+// one step — keeps the face (FASHN's photo doesn't). Used for lingerie video/360°.
+async function pixverseStartReference(key: string, garment: string, person: string, turnaround: boolean): Promise<{ videoId?: string; error?: string }> {
+  const [gId, pId] = await Promise.all([pixverseUpload(key, garment), pixverseUpload(key, person)]);
+  if (!gId || !pId) return { error: "Pixverse upload failed (reference images)." };
+  const genRes = await fetch(`${PV_BASE}/video/img/generate`, {
+    method: "POST", headers: pvHeaders(key, true),
+    body: JSON.stringify({ duration: turnaround ? 10 : 5, img_ids: [gId, pId], model: "v6", quality: "720p", prompt: turnaround ? REF_TURNAROUND_PROMPT : REF_PRESENT_PROMPT, sound_effect_switch: true, sound_effect_content: MUSIC }),
+  });
+  const gen = await genRes.json().catch(() => null);
+  if (gen?.ErrCode !== 0 || !gen?.Resp?.video_id) return { error: `Pixverse reference generate failed: ${gen?.ErrMsg ?? genRes.status}` };
+  return { videoId: String(gen.Resp.video_id) };
+}
+
 async function pixverseStart(key: string, image: string, turnaround = false): Promise<{ videoId?: string; error?: string }> {
   const blob = await imageToBlob(image);
   if (!blob) return { error: "Could not read the try-on image." };
@@ -93,11 +125,16 @@ async function pixversePoll(key: string, id: string): Promise<{ status: "done" |
 // POST { lookId, image } → charge owner, start the right provider, return
 // { videoId: "<provider>:<id>", curatorId } for polling.
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean };
+  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean; garment?: string; person?: string };
   const lookId = String(body.lookId ?? "").trim();
   const image = String(body.image ?? "");
   const turnaround = body.turnaround === true; // 360° tier
-  if (!image) return NextResponse.json({ error: "image required." }, { status: 400 });
+  // Reference mode (lingerie): garment + person photo → Pixverse dresses + animates
+  // in one step, keeping the face. Falls back to single-image when not provided.
+  const garment = String(body.garment ?? "");
+  const person = String(body.person ?? "");
+  const reference = !!garment && !!person;
+  if (!image && !reference) return NextResponse.json({ error: "image required." }, { status: 400 });
 
   const { curatorId } = await lookOf(lookId);
   const key = process.env.PIXVERSE_API_KEY?.trim();
@@ -114,7 +151,9 @@ export async function POST(request: Request) {
   const refund = () => { if (chargeOwner) void refundCredits(curatorId, VIDEO_CREDITS, "try-on video refund"); };
 
   try {
-    const r = await pixverseStart(key, image, turnaround);
+    const r = reference
+      ? await pixverseStartReference(key, garment, person, turnaround)
+      : await pixverseStart(key, image, turnaround);
     if (!r.videoId) { refund(); return NextResponse.json({ error: r.error ?? "Video start failed." }, { status: 502 }); }
     return NextResponse.json({ ok: true, videoId: `pv:${r.videoId}`, curatorId, status: "processing" });
   } catch (e) {

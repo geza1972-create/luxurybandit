@@ -83,6 +83,27 @@ async function imageUrlToDataUrl(url: string): Promise<string> {
   });
 }
 
+// Crop a person photo to roughly the head + shoulders (drop the lower body). Used
+// before sending the photo to Pixverse reference mode so a revealing input (e.g. a
+// bikini selfie) doesn't trip moderation — and the face stays the clear reference.
+function cropToFace(src: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const cw = img.width;
+      const ch = Math.max(1, Math.round(img.height * 0.52)); // keep top ~half
+      const canvas = document.createElement("canvas");
+      canvas.width = cw; canvas.height = ch;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(src); return; }
+      ctx.drawImage(img, 0, 0, cw, ch, 0, 0, cw, ch);
+      try { resolve(canvas.toDataURL("image/jpeg", 0.9)); } catch { resolve(src); }
+    };
+    img.onerror = () => resolve(src);
+    img.src = src;
+  });
+}
+
 // Try each candidate URL in order; return the first that yields a real image.
 async function firstValidImageDataUrl(urls: (string | undefined)[]): Promise<string> {
   // Allow same-origin relative URLs too (e.g. /api/img-proxy?... used to fetch
@@ -274,7 +295,7 @@ export default function TryonPage() {
   // ── Try-on video ──
   // Animate the finished try-on still into a 5s music video (Pixverse). Auto-runs
   // when a result appears; costs credits (billed to the look's owner curator).
-  const startTryonVideo = async (image: string, turnaround = false) => {
+  const startTryonVideo = async (image: string, turnaround = false, ref?: { garment: string; person: string }) => {
     if (!look) return;
     setVideoStatus("generating");
     setVideoUrl(null);
@@ -287,11 +308,13 @@ export default function TryonPage() {
     }, 600);
     const stopProgress = (final: number) => { if (videoProgressRef.current) clearInterval(videoProgressRef.current); setVideoProgress(final); };
     try {
-      const imageSmall = await compressDataUrl(image); // stay under Vercel's body limit
+      // Reference mode (lingerie): send garment + person; else the single still.
+      const refSmall = ref ? { garment: await compressDataUrl(ref.garment), person: await compressDataUrl(ref.person) } : null;
+      const imageSmall = ref ? "" : await compressDataUrl(image); // stay under Vercel's body limit
       const res = await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(staffCuratorId() ? { "x-curator-id": staffCuratorId() } : {}) },
-        body: JSON.stringify({ lookId: look.id, image: imageSmall, turnaround }),
+        body: JSON.stringify({ lookId: look.id, image: imageSmall, turnaround, ...(refSmall ?? {}) }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 402) { setVideoStatus("error"); setVideoNote("No credits left for a video — here's your photo."); return; }
@@ -321,6 +344,27 @@ export default function TryonPage() {
     } catch {
       stopProgress(0); setVideoStatus("error"); setVideoNote("Video couldn't be created — here's your photo.");
     }
+  };
+
+  // Lingerie video/360° via Pixverse REFERENCE mode (garment + person) — keeps the
+  // face (FASHN's photo doesn't). Person photo is cropped to head+shoulders first.
+  const startReferenceVideo = async (turnaround: boolean) => {
+    if (!look || !userPhoto) return;
+    const altParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("alt") : null;
+    const altIdx = altParam !== null && /^\d+$/.test(altParam) ? Number(altParam) : -1;
+    const altThumb = altIdx >= 0 ? look.alternatives?.[altIdx]?.thumbnail : undefined;
+    const altProxied = altThumb ? `/api/img-proxy?url=${encodeURIComponent(altThumb)}` : undefined;
+    let garmentData: string;
+    try {
+      garmentData = await firstValidImageDataUrl([altThumb, altProxied, look.garmentFrontImageUrl, look.frontImageUrl, look.imageUrl]);
+    } catch {
+      setError("Couldn't load the garment image. Try again."); setStep("confirm"); return;
+    }
+    const personCropped = await cropToFace(userPhoto);
+    setError(null);
+    setResultImage(personCropped); // placeholder shown while the video renders
+    setStep("result");
+    await startTryonVideo("", turnaround, { garment: garmentData, person: personCropped });
   };
 
   // Is THIS try-on a lingerie one (the look itself, or the chosen lingerie card)?
@@ -941,7 +985,7 @@ export default function TryonPage() {
                 <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-black">{isStaff ? "Free" : "$7.90"}</span>
               </div>
               <button type="button" disabled={isStaff && videoStatus === "generating"}
-                onClick={() => { if (isStaff && resultImage) void startTryonVideo(resultImage, true); else setShow360Note(true); }}
+                onClick={() => { if (isStaff) void startReferenceVideo(true); else setShow360Note(true); }}
                 className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-black text-black active:scale-95 transition-transform disabled:opacity-50">
                 {isStaff && videoStatus === "generating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Get the 360° video
               </button>
@@ -1095,14 +1139,14 @@ export default function TryonPage() {
               <span className="text-base font-black">Photo</span>
               <span className={`ml-auto rounded-full px-2.5 py-0.5 text-xs font-black ${effectiveLingerie && !isStaff ? "bg-black text-white" : "bg-emerald-100 text-emerald-700"}`}>{isStaff ? "Free" : effectiveLingerie ? "$2.90" : "Free"}</span>
             </button>
-            <button type="button" onClick={() => { if (isStaff) { setPaidSoon(""); void handleGenerate(undefined, "video"); } else setPaidSoon("video"); }}
+            <button type="button" onClick={() => { if (isStaff) { setPaidSoon(""); if (effectiveLingerie) void startReferenceVideo(false); else void handleGenerate(undefined, "video"); } else setPaidSoon("video"); }}
               className="flex h-14 w-full items-center gap-3 rounded-2xl bg-white/15 px-4 text-white backdrop-blur active:scale-95 transition-transform">
               <Film className="h-5 w-5 shrink-0" />
               <span className="text-base font-black">Video <span className="font-bold text-white/55">· 5s</span></span>
               <span className="ml-auto rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-black">{isStaff ? "Free" : effectiveLingerie ? "$4.90" : "$2.90"}</span>
             </button>
             {effectiveLingerie && (
-              <button onClick={() => { if (isStaff) { setPaidSoon(""); void handleGenerate(undefined, "video360"); } else setPaidSoon("360"); }}
+              <button type="button" onClick={() => { if (isStaff) { setPaidSoon(""); void startReferenceVideo(true); } else setPaidSoon("360"); }}
                 className="flex h-14 w-full items-center gap-3 rounded-2xl bg-white/15 px-4 text-white backdrop-blur active:scale-95 transition-transform">
                 <RefreshCw className="h-5 w-5 shrink-0" />
                 <span className="text-base font-black">360° turnaround <span className="font-bold text-white/55">· 10s</span></span>
