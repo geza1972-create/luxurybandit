@@ -11,6 +11,16 @@ import { FASHION_BRANDS } from "@/lib/fashion-brands";
 const GARMENT_TYPES = ["Dress", "Gown", "Maxi dress", "Mini dress", "Skirt", "Trousers", "Jeans", "Jacket", "Blazer", "Coat", "Top", "Blouse", "Bodysuit", "Jumpsuit", "Co-ord set", "Knitwear", "Swimsuit", "Lingerie"];
 const BRAND_OPTIONS = [...new Set(FASHION_BRANDS)].sort((a, b) => a.localeCompare(b));
 
+// Default "house" taste for the LuxuryBandit admin (PIN/email, not acting as a
+// specific curator). Keeps the studio form fully usable — favourite brands,
+// styles, colours — without a curator session. Curators see their own saved taste.
+const DEFAULT_HOUSE_FILTERS: { label: string; tags: string[] }[] = [
+  { label: "Brands", tags: ["Dolce & Gabbana", "Versace", "Bottega Veneta", "Saint Laurent", "Gucci", "Prada", "Mugler", "Jimmy Choo", "Manolo Blahnik", "Loro Piana", "Max Mara", "Tom Ford", "Valentino", "Chloé"] },
+  { label: "Style", tags: ["Elegant", "Minimal", "Statement", "Romantic", "Edgy", "Classic"] },
+  { label: "Colors", tags: ["Black", "White", "Red", "Beige", "Gold", "Navy"] },
+  { label: "Price", tags: ["Luxury", "Premium", "Mid-range"] },
+];
+
 const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
 const STORE_NAME = "LuxuryBandit";
 const STORE_SLUG = "luxurybandit";
@@ -651,8 +661,15 @@ export default function AdminTrends() {
         ].filter(g => g.tags.length);
         setMyFilters(groups);
         // Default: nothing selected — the curator taps to pick what they want.
+      } else if (getStoredPin() && !getCuratorId()) {
+        // House admin (PIN, not acting as a curator) — load the default house taste
+        // so brands/styles still show in the form. Curators keep their own taste.
+        setMyFilters(DEFAULT_HOUSE_FILTERS);
       }
-    }).catch(() => {});
+    }).catch(() => {
+      // Network/Supabase hiccup — still give the house admin a usable form.
+      if (getStoredPin() && !getCuratorId()) setMyFilters(DEFAULT_HOUSE_FILTERS);
+    });
     void loadMyLooks();
   }, []);
 
