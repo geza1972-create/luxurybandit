@@ -7,6 +7,7 @@ import {
   type CuratorProfile,
 } from "@/lib/try-this-look-store";
 import { setCuratorCredits, grantCredits, awardEngagementCredits, getCuratorCredits, STARTER_CREDITS, TRYON_CREDITS, SEARCH_CREDITS } from "@/lib/curator-budget";
+import { notifyAdminWhatsApp, ADMIN_URL } from "@/lib/notify-admin";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -231,6 +232,8 @@ export async function POST(request: Request) {
     const occasions = mergeTags(state.occasions ?? [], curator.occasions ?? "");
 
     await saveTryThisLookState({ ...state, curators, brands, styles, colors, fabrics, occasions });
+
+    notifyAdminWhatsApp(`👤 New curator: ${[firstName, lastName].filter(Boolean).join(" ")} (${email}). Review: ${ADMIN_URL}`);
 
     return NextResponse.json({ id: curator.id, firstName: curator.firstName });
   }

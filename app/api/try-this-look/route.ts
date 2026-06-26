@@ -9,6 +9,7 @@ import {
 } from "@/lib/try-this-look-store";
 import { authorizeStudio } from "@/lib/studio-auth";
 import { tryOnGarment } from "@/lib/tryon";
+import { notifyAdminWhatsApp, ADMIN_URL } from "@/lib/notify-admin";
 import { FASHION_BRANDS } from "@/lib/fashion-brands";
 import { NextResponse } from "next/server";
 
@@ -568,6 +569,7 @@ export async function POST(request: Request) {
       if (look) {
         (look as any).likeCount = Math.max(0, ((look as any).likeCount ?? 0) + delta);
         await saveTryThisLookState(state);
+        if ((payload as any).liked) notifyAdminWhatsApp(`❤️ New like on "${look.name}" (${(look as any).likeCount} total). ${ADMIN_URL}`);
       }
       return NextResponse.json({ likeCount: (look as any)?.likeCount ?? 0 });
     }
@@ -622,6 +624,10 @@ export async function POST(request: Request) {
       });
 
       const updatedState = await saveTryThisLookState(state);
+
+      const leadLook = state.looks.find(l => l.id === lookId);
+      notifyAdminWhatsApp(`📩 New lead${customerName ? ` from ${customerName}` : ""}${phone ? ` (${phone})` : email ? ` (${email})` : instagram ? ` (@${instagram})` : ""} on "${leadLook?.name ?? "a look"}"${selectedSize ? ` · size ${selectedSize}` : ""}. ${ADMIN_URL}`);
+
       return NextResponse.json(ps(updatedState));
     }
 
@@ -717,8 +723,7 @@ export async function POST(request: Request) {
       if (waPhone && waKey) {
         const customerName = String(payload.customerName ?? "").trim();
         const lookName = activeLook.name ?? "";
-        const adminUrl = "https://luxurybandit.com/admin/looks";
-        const msg = `🛍️ New try-on${customerName ? ` by ${customerName}` : ""} on "${lookName}". Review: ${adminUrl}`;
+        const msg = `🛍️ New try-on${customerName ? ` by ${customerName}` : ""} on "${lookName}". Review: ${ADMIN_URL}`;
         fetch(`https://api.callmebot.com/whatsapp.php?phone=${waPhone}&text=${encodeURIComponent(msg)}&apikey=${waKey}`)
           .catch(() => {}); // fire-and-forget, never blocks the response
       }
@@ -779,6 +784,8 @@ export async function POST(request: Request) {
       // Keep max 500 comments total
       state.comments = state.comments.slice(0, 500);
       const updatedState = await saveTryThisLookState(state);
+      const commentLook = state.looks.find(l => l.id === lookId);
+      notifyAdminWhatsApp(`💬 ${authorName} commented on "${commentLook?.name ?? "a look"}": "${text.slice(0, 80)}". ${ADMIN_URL}`);
       const lookComments = (updatedState.comments ?? []).filter(c => c.lookId === lookId);
       return NextResponse.json({ ok: true, comments: lookComments });
     }
