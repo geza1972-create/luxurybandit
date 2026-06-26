@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { readTryThisLookState, saveTryThisLookState, uploadTryThisLookBytes, uploadTryThisLookImage, getSignedUrl } from "@/lib/try-this-look-store";
+import { chargeCredits, refundCredits, VIDEO_CREDITS } from "@/lib/curator-budget";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -220,14 +221,23 @@ export async function POST(request: Request) {
       srcBlob = await imgRes.blob();
     }
 
-    // 2) Animate the source frame with Pixverse (all looks).
+    // 2) Charge the look's curator for the video (credits) before generating.
+    const ownerId = String((look as any).curatorId ?? "");
+    const charge = await chargeCredits(ownerId, VIDEO_CREDITS, "look video");
+    if (!charge.ok) {
+      return NextResponse.json({ error: "Not enough credits to generate a video.", outOfCredits: true, credits: charge.info }, { status: 402 });
+    }
+    const refund = () => { if (ownerId) void refundCredits(ownerId, VIDEO_CREDITS, "look video refund"); };
+
+    // 3) Animate the source frame with Pixverse (all looks).
     const key = process.env.PIXVERSE_API_KEY?.trim();
-    if (!key) return NextResponse.json({ error: "PIXVERSE_API_KEY missing in .env.local." }, { status: 400 });
+    if (!key) { refund(); return NextResponse.json({ error: "PIXVERSE_API_KEY missing in .env.local." }, { status: 400 }); }
     const form = new FormData();
     form.append("image", srcBlob, "look.png");
     const upRes = await fetch(`${PV_BASE}/image/upload`, { method: "POST", headers: pvHeaders(key), body: form });
     const up = await upRes.json().catch(() => null);
     if (up?.ErrCode !== 0 || !up?.Resp?.img_id) {
+      refund();
       return NextResponse.json({ error: `Pixverse upload failed: ${up?.ErrMsg ?? upRes.status}` }, { status: 502 });
     }
     const genRes = await fetch(`${PV_BASE}/video/img/generate`, {
@@ -240,13 +250,21 @@ export async function POST(request: Request) {
     });
     const gen = await genRes.json().catch(() => null);
     if (gen?.ErrCode !== 0 || !gen?.Resp?.video_id) {
+      refund();
       return NextResponse.json({ error: `Pixverse generate failed: ${gen?.ErrMsg ?? genRes.status}` }, { status: 502 });
     }
     const videoId = `pv:${String(gen.Resp.video_id)}`;
 
-    (look as any).pendingVideoId = videoId;
-    await saveTryThisLookState(state);
-    return NextResponse.json({ ok: true, videoId, status: "processing" });
+    // Re-read fresh state so the charge above (which saved separately) isn't
+    // clobbered, then apply this request's video fields and save once.
+    const fresh = await readTryThisLookState();
+    const fl = fresh.looks.find(l => l.id === lookId);
+    if (fl) {
+      (fl as any).pendingVideoId = videoId;
+      if ((look as any).videoPosterUrl) (fl as any).videoPosterUrl = (look as any).videoPosterUrl;
+    }
+    await saveTryThisLookState(fresh);
+    return NextResponse.json({ ok: true, videoId, status: "processing", credits: charge.info });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Video generation failed." }, { status: 500 });
   }
@@ -294,6 +312,8 @@ export async function GET(request: Request) {
     if (r.status === "failed") {
       (look as any).pendingVideoId = undefined;
       await saveTryThisLookState(state);
+      const ownerId = String((look as any).curatorId ?? "");
+      if (ownerId) void refundCredits(ownerId, VIDEO_CREDITS, "look video refund");
       return NextResponse.json({ status: "failed", error: r.error ?? "Generation failed." });
     }
     return NextResponse.json({ status: "processing" });
