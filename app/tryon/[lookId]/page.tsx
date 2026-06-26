@@ -1164,13 +1164,13 @@ export default function TryonPage() {
           <p className="mt-1 text-sm text-black/50">Upload a photo and AI will dress you in this outfit</p>
         </div>
 
-        {/* What you get + price. Photo: free (normal) / $2.90 (lingerie). Video: a
-            paid upsell — $2.90 (normal) / $4.90 (lingerie). */}
+        {/* This step prices only the PHOTO. The optional video / 360° (and their
+            prices) are chosen at the next step's tier menu. */}
         <div className="w-full max-w-xs rounded-2xl border border-black/10 bg-black/[0.02] px-4 py-3 text-center">
-          <p className="text-[13px] font-black text-black">A try-on photo <span className="text-black/40">+</span> an optional 5-second video</p>
+          <p className="text-[13px] font-black text-black">Your try-on photo<span className="font-bold text-black/45"> — optional video after</span></p>
           <div className="mt-1.5 flex items-center justify-center">
             <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-black text-white ${effectiveLingerie ? "bg-black" : "bg-emerald-600"}`}>
-              {effectiveLingerie ? "up to $4.90" : "Free · up to $2.90"}
+              Photo · {effectiveLingerie ? "$2.90" : "Free"}
             </span>
           </div>
         </div>
