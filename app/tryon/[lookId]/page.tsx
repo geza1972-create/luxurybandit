@@ -393,9 +393,21 @@ export default function TryonPage() {
     setStep("result");
     const videoUrl = await startTryonVideo("", turnaround, { garment: garmentData, person: personCropped });
     // Photo tier: use the first frame of the reference video as the still (no FASHN).
-    if (wantFrame && videoUrl) {
+    let frameImg = personCropped;
+    if (videoUrl) {
       const frame = await extractFirstFrame(videoUrl);
-      if (frame) setResultImage(frame);
+      if (frame) { frameImg = frame; if (wantFrame) setResultImage(frame); }
+    }
+    // Creator (staff): SAVE the video to the gallery so it's never lost — create a
+    // generation (their curatorId) and attach the video. Visibility = the feed toggle.
+    if (isStaff && videoUrl) {
+      try {
+        await postToFeed(frameImg);
+        if (sharedGenIdRef.current) {
+          await fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "attach-generation-video", generationId: sharedGenIdRef.current, videoUrl }) });
+        }
+      } catch { /* keep the result even if save fails */ }
     }
   };
 
@@ -503,7 +515,7 @@ export default function TryonPage() {
       // Running them in parallel raced the shared state save and lost the try-on.
       void (async () => {
         // Lingerie try-ons stay PRIVATE — never auto-posted to the public A List.
-        if (showInFeed && !isLingerieTryon()) await postToFeed(payload.image);
+        if (showInFeed && (!isLingerieTryon() || isStaff)) await postToFeed(payload.image);
         // Video runs only when the chosen tier asks for it (Video = 5s, 360° = turnaround).
         if (tier === "video") await startTryonVideo(payload.image, false);
         else if (tier === "video360") await startTryonVideo(payload.image, true);
@@ -623,7 +635,7 @@ export default function TryonPage() {
 
   // Toggle whether this try-on appears in the feed (consent).
   const toggleShowInFeed = async (next: boolean) => {
-    if (next && isLingerieTryon()) return; // lingerie is private — cannot be shared
+    if (next && isLingerieTryon() && !isStaff) return; // lingerie is private for end-users; creators (staff) may post
     setShowInFeed(next);
     if (next && !sharedGenIdRef.current && resultImage) { await postToFeed(resultImage); return; }
     if (sharedGenIdRef.current) {
@@ -694,7 +706,7 @@ export default function TryonPage() {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "set-generation-name", generationId: sharedGenIdRef.current, customerName: name }),
         });
-      } else if (resultImage && showInFeed && !isLingerieTryon()) {
+      } else if (resultImage && showInFeed && (!isLingerieTryon() || isStaff)) {
         await postToFeed(resultImage);
         if (sharedGenIdRef.current) {
           await fetch("/api/try-this-look", {
@@ -1052,9 +1064,9 @@ export default function TryonPage() {
             )
           )}
 
-          {/* Show in feed — consent toggle. Lingerie try-ons are ALWAYS private and
-              can never be posted to the public A List (intimate imagery / consent). */}
-          {effectiveLingerie ? (
+          {/* Show in feed. Lingerie is private for anonymous end-users; a creator
+              (staff/curator like Szidonia) may save & post their own content. */}
+          {effectiveLingerie && !isStaff ? (
             <div className="rounded-2xl border border-black/10 bg-black/[0.02] p-4 flex items-center gap-2.5">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/[0.06] text-base">🔒</span>
               <div className="min-w-0">
