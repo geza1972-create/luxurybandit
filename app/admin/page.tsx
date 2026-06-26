@@ -24,8 +24,16 @@ type Look = {
   curatorName?: string; curatorId?: string;
   price?: string; salePrice?: string; buyUrl?: string;
   brand?: string; productNote?: string; storeName?: string;
-  aiCreated?: boolean; createdAt?: string;
+  aiCreated?: boolean; createdAt?: string; videoCreatedAt?: string;
   alternatives?: unknown[];
+};
+
+// Same ordering key the public "The A List" uses: most recent activity first —
+// a fresh video beats the publish date.
+const lookWhen = (l: Look) => {
+  const v = l.videoCreatedAt ?? "";
+  const c = l.createdAt ?? "";
+  return v > c ? v : c;
 };
 
 const fullName = (c: Curator) => [c.firstName, c.lastName].filter(Boolean).join(" ").trim() || "—";
@@ -179,9 +187,10 @@ export default function AdminPage() {
   const shownCurators = useMemo(() =>
     !q ? curators : curators.filter(c => `${fullName(c)} ${c.email ?? ""} ${c.brands ?? ""} ${c.style ?? ""}`.toLowerCase().includes(q)),
     [curators, q]);
-  const shownLooks = useMemo(() =>
-    !q ? looks : looks.filter(l => `${l.name} ${l.curatorName ?? ""} ${l.brand ?? ""} ${l.productNote ?? ""}`.toLowerCase().includes(q)),
-    [looks, q]);
+  const shownLooks = useMemo(() => {
+    const base = !q ? looks : looks.filter(l => `${l.name} ${l.curatorName ?? ""} ${l.brand ?? ""} ${l.productNote ?? ""}`.toLowerCase().includes(q));
+    return [...base].sort((a, b) => lookWhen(b).localeCompare(lookWhen(a))); // newest activity first — matches the frontend A List
+  }, [looks, q]);
 
   const liveLooks = looks.filter(l => l.published !== false).length;
   const activeCurators = curators.filter(c => c.status !== "deactivated").length;
