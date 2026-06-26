@@ -1,4 +1,5 @@
 import { completeReservation, getAccountId, refundReservation, reserveCredits } from "@/lib/billing";
+import { chargeCredits, getCuratorCredits, TRYON_CREDITS } from "@/lib/curator-budget";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -72,6 +73,19 @@ export async function POST(request: Request) {
   // Free-try-on phase: no per-visitor daily limit — we want to measure real
   // demand (do shoppers click try-on?) before adding any cap or paywall.
   void visitorId; void lookId;
+
+  // Studio "Create AI Fashion" (lingerie route) charges the curator credits, just
+  // like the OpenAI path. End-user try-ons send no curatorId → free. We pre-check
+  // the balance here and only deduct after a successful generation.
+  const chargeCuratorId = String(formData.get("curatorId") ?? "").trim();
+  if (chargeCuratorId) {
+    const bal = await getCuratorCredits(chargeCuratorId);
+    if (bal && bal.enabled && bal.credits < TRYON_CREDITS) {
+      return NextResponse.json({ error: "You're out of credits.", outOfCredits: true, credits: bal }, { status: 402 });
+    }
+  }
+  const chargeOnSuccess = async () => { if (chargeCuratorId) await chargeCredits(chargeCuratorId, TRYON_CREDITS, "try-on"); };
+
   const creditAction = mode === "retouch-cutout"
     ? "retouch-cutout"
     : hasSelectedModelImage
@@ -170,6 +184,7 @@ export async function POST(request: Request) {
       }
 
       if (typeof output === "string" && output.startsWith("data:image/")) {
+        await chargeOnSuccess();
         return NextResponse.json({
           image: output,
           credits: completeReservation(accountId, reservation.reservationId)
@@ -184,6 +199,7 @@ export async function POST(request: Request) {
         }
 
         const imageBytes = Buffer.from(await imageResponse.arrayBuffer());
+        await chargeOnSuccess();
         return NextResponse.json({
           image: `data:image/png;base64,${imageBytes.toString("base64")}`,
           credits: completeReservation(accountId, reservation.reservationId)

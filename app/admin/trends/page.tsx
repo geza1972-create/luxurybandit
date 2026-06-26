@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, Check, ChevronUp, ChevronDown, ClipboardPaste, Crop, ExternalLink, ImagePlus, Link2, Loader2, Plus, Search, Trash2, Video, Wand2, X } from "lucide-react";
 import { FASHION_BRANDS } from "@/lib/fashion-brands";
+import { isIntimateName } from "@/lib/lingerie";
 
 // Garment types a curator can target the search with (select one, sorted A→Z list
 // in the dropdown). Keeps the search focused on a real category.
@@ -538,6 +539,9 @@ export default function AdminTrends() {
   const [aiGarmentFile, setAiGarmentFile] = useState<File | null>(null);
   const [aiPersonFile, setAiPersonFile] = useState<File | null>(null);
   const [aiPrompt, setAiPrompt] = useState("");
+  // Lingerie/swim creation → route to FASHN (OpenAI would refuse/cover it up).
+  // Auto-detected from the picked garment/brand/taste; the curator can override.
+  const [aiLingerieManual, setAiLingerieManual] = useState<boolean | null>(null);
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiResult, setAiResult] = useState<string | null>(null);
   const [aiError, setAiError] = useState("");
@@ -1267,6 +1271,20 @@ export default function AdminTrends() {
           <input type="text" placeholder="Optional: add scene, background, mood…" value={aiPrompt} onChange={e => setAiPrompt(e.target.value)}
             className="mt-2 w-full rounded-lg border border-black/10 bg-panel px-3 py-2 text-[12px] font-bold text-ink placeholder:text-ink/30 focus:outline-none focus:ring-2 focus:ring-cobalt/30" />
 
+          {/* Lingerie / swim → uses FASHN (OpenAI won't do revealing pieces). Auto-detected
+              from garment/brand; toggle to force on/off. */}
+          {(() => {
+            const auto = isIntimateName([pickedGarment, pickedBrand, ...activeTags].join(" "));
+            const on = aiLingerieManual ?? auto;
+            return (
+              <button type="button" onClick={() => setAiLingerieManual(on ? false : true)}
+                className="mt-2 flex w-full items-center justify-between rounded-lg border border-black/10 bg-panel px-3 py-2 text-[12px] font-black text-ink/70">
+                <span>Lingerie / swimwear {aiLingerieManual === null && auto ? <span className="font-bold text-ink/40">· auto-detected</span> : null}</span>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${on ? "bg-black text-white" : "bg-black/10 text-ink/50"}`}>{on ? "On · FASHN" : "Off"}</span>
+              </button>
+            );
+          })()}
+
           {/* Generate button */}
           <button type="button"
             disabled={!aiPersonFile || aiGenerating}
@@ -1297,9 +1315,19 @@ export default function AdminTrends() {
                 const safeTags = activeTags.filter(t => !BLOCKED_STYLE_TERMS.test(t));
                 const tasteHint = safeTags.length ? `Style it to match: ${safeTags.join(", ")}.` : "";
                 const fullPrompt = [tasteHint, aiPrompt.trim()].filter(Boolean).join(" ");
-                if (fullPrompt) fd.append("prompt", fullPrompt);
+                // Lingerie/swim → FASHN (OpenAI refuses or covers it up). Auto-detected
+                // from the picked garment/brand/taste; the manual toggle overrides.
+                const lingerie = aiLingerieManual ?? isIntimateName([pickedGarment, pickedBrand, ...activeTags].join(" "));
                 fd.append("curatorId", getCuratorId());
-                const res = await fetch("/api/generate-openai-tryon", { method: "POST", body: fd });
+                let res: Response;
+                if (lingerie) {
+                  fd.append("mode", "fashion-model");
+                  fd.append("prompt", fullPrompt || "Tasteful editorial fashion photo of the person wearing the garment, clean studio lighting.");
+                  res = await fetch("/api/generate-fashn", { method: "POST", body: fd });
+                } else {
+                  if (fullPrompt) fd.append("prompt", fullPrompt);
+                  res = await fetch("/api/generate-openai-tryon", { method: "POST", body: fd });
+                }
                 const data = await res.json();
                 if (data.credits) setCredits(data.credits);
                 if (!res.ok || !data.image) { setAiError(data.error ?? "Generation failed."); return; }
