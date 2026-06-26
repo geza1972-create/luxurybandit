@@ -975,35 +975,58 @@ export default function AdminTrends() {
           </section>
         )}
 
-        {/* Your taste = filters, grouped by category — shown FIRST so you pick taste, then an action below */}
-        {myFilters.length > 0 && (
+        {/* Favourite brands ONLY — quick pick above the tools. Everything else
+            (brand search, garment, style, colours…) lives below the tools. */}
+        {(() => {
+          const fav = myFilters.find((g) => g.label === "Brands");
+          if (!fav || !fav.tags.length) return null;
+          return (
+            <section className="mt-5 rounded-2xl border border-cobalt/20 bg-cobalt/[0.04] p-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-cobalt">Favourite brands — tap to filter</p>
+                <a href="/curators/profile" className="shrink-0 text-[11px] font-black text-cobalt hover:underline">+ Add / edit →</a>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {fav.tags.map((tag) => {
+                  const active = pickedBrand === tag;
+                  return (
+                    <button key={tag} type="button" onClick={() => setPickedBrand(active ? "" : tag)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-black transition ${active ? "bg-black text-white" : "border border-black/12 bg-white text-ink/45 hover:border-black"}`}>{tag}</button>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })()}
+
+        {/* Choose how to create — one flow at a time, never both */}
+        <section className="mt-5 grid grid-cols-3 gap-3">
+          <button type="button" onClick={() => setMode(mode === "web" ? null : "web")}
+            className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition active:scale-[0.99] ${mode === "web" ? "border-black bg-black text-white shadow-soft" : "border-black/12 bg-white text-ink hover:border-black/30"}`}>
+            <Search className={`h-5 w-5 ${mode === "web" ? "text-white" : "text-ink/50"}`} />
+            <span className="text-sm font-black">Find products online</span>
+            <span className={`text-[11px] font-bold ${mode === "web" ? "text-white/70" : "text-ink/40"}`}>Search the web by your taste</span>
+          </button>
+          <button type="button" onClick={() => setMode(mode === "ai" ? null : "ai")}
+            className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition active:scale-[0.99] ${mode === "ai" ? "border-black bg-black text-white shadow-soft" : "border-black/12 bg-white text-ink hover:border-black/30"}`}>
+            <ImagePlus className={`h-5 w-5 ${mode === "ai" ? "text-white" : "text-ink/50"}`} />
+            <span className="text-sm font-black">Create AI Fashion</span>
+            <span className={`text-[11px] font-bold ${mode === "ai" ? "text-white/70" : "text-ink/40"}`}>Your photo on a model + garment → try-on</span>
+          </button>
+          <button type="button" onClick={() => setMode(mode === "link" ? null : "link")}
+            className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition active:scale-[0.99] ${mode === "link" ? "border-black bg-black text-white shadow-soft" : "border-black/12 bg-white text-ink hover:border-black/30"}`}>
+            <Link2 className={`h-5 w-5 ${mode === "link" ? "text-white" : "text-ink/50"}`} />
+            <span className="text-sm font-black">Import link</span>
+            <span className={`text-[11px] font-bold ${mode === "link" ? "text-white/70" : "text-ink/40"}`}>Paste a product link → look</span>
+          </button>
+        </section>
+
+        {/* The rest of the taste filters — brand search, garment & style. Below the
+            tools, shown once Find products / Create AI Fashion is active. */}
+        {(mode === "web" || mode === "ai") && myFilters.length > 0 && (
           <section className="mt-5 rounded-2xl border border-cobalt/20 bg-cobalt/[0.04] p-4">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-cobalt">Your taste — tap to filter</p>
-              <a href="/curators/profile" className="shrink-0 text-[11px] font-black text-cobalt hover:underline">+ Add / edit →</a>
-            </div>
-            <p className="mt-1 text-xs font-semibold leading-5 text-ink/55">Tap the ones you want to style the look, then pick an action below.</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-cobalt">Refine — brand · garment · style</p>
             <div className="mt-3 grid gap-3">
-              {/* Favourite brands (the curator's saved taste) — shown FIRST as a quick
-                  pick that fills the Brand dropdown below. */}
-              {(() => {
-                const fav = myFilters.find((g) => g.label === "Brands");
-                if (!fav) return null;
-                return (
-                  <div>
-                    <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-ink/35">Favourite brands</span>
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {fav.tags.map((tag) => {
-                        const active = pickedBrand === tag;
-                        return (
-                          <button key={tag} type="button" onClick={() => setPickedBrand(active ? "" : tag)}
-                            className={`rounded-full px-3 py-1.5 text-xs font-black transition ${active ? "bg-black text-white" : "border border-black/12 bg-white text-ink/45 hover:border-black"}`}>{tag}</button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })()}
               {/* Brand — searchable dropdown; pick from the official list or add one */}
               <div>
                 <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-ink/35">Brand</span>
@@ -1053,7 +1076,7 @@ export default function AdminTrends() {
                 </div>
               </div>
               {myFilters.map((g) => {
-                // Brands are rendered above (as "Favourite brands"); skip here.
+                // Brands are shown above the tools (as "Favourite brands"); skip here.
                 if (g.label === "Brands") return null;
                 return (
                   <div key={g.label}>
@@ -1073,28 +1096,6 @@ export default function AdminTrends() {
             </div>
           </section>
         )}
-
-        {/* Choose how to create — one flow at a time, never both */}
-        <section className="mt-5 grid grid-cols-3 gap-3">
-          <button type="button" onClick={() => setMode(mode === "web" ? null : "web")}
-            className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition active:scale-[0.99] ${mode === "web" ? "border-black bg-black text-white shadow-soft" : "border-black/12 bg-white text-ink hover:border-black/30"}`}>
-            <Search className={`h-5 w-5 ${mode === "web" ? "text-white" : "text-ink/50"}`} />
-            <span className="text-sm font-black">Find products online</span>
-            <span className={`text-[11px] font-bold ${mode === "web" ? "text-white/70" : "text-ink/40"}`}>Search the web by your taste</span>
-          </button>
-          <button type="button" onClick={() => setMode(mode === "ai" ? null : "ai")}
-            className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition active:scale-[0.99] ${mode === "ai" ? "border-black bg-black text-white shadow-soft" : "border-black/12 bg-white text-ink hover:border-black/30"}`}>
-            <ImagePlus className={`h-5 w-5 ${mode === "ai" ? "text-white" : "text-ink/50"}`} />
-            <span className="text-sm font-black">Create AI Fashion</span>
-            <span className={`text-[11px] font-bold ${mode === "ai" ? "text-white/70" : "text-ink/40"}`}>Your photo on a model + garment → try-on</span>
-          </button>
-          <button type="button" onClick={() => setMode(mode === "link" ? null : "link")}
-            className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition active:scale-[0.99] ${mode === "link" ? "border-black bg-black text-white shadow-soft" : "border-black/12 bg-white text-ink hover:border-black/30"}`}>
-            <Link2 className={`h-5 w-5 ${mode === "link" ? "text-white" : "text-ink/50"}`} />
-            <span className="text-sm font-black">Import link</span>
-            <span className={`text-[11px] font-bold ${mode === "link" ? "text-white/70" : "text-ink/40"}`}>Paste a product link → look</span>
-          </button>
-        </section>
 
         {/* Paste-a-link import — shown when the Import link tab is active. */}
         {mode === "link" && (
