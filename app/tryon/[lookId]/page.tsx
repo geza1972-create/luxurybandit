@@ -710,6 +710,35 @@ export default function TryonPage() {
 
   // Shared auth modal — used by the main view AND the locked teaser step (both
   // return early, so it must be rendered in each place it can be opened).
+  // Shared so it renders from BOTH the confirm step (tier buttons) and the result
+  // view — otherwise the gate fires but the modal isn't in the current step's tree.
+  const consentModal = showConsent ? (
+    <>
+      <div className="fixed inset-0 z-[60] bg-black/55" onClick={() => { setShowConsent(false); }} />
+      <div className="fixed inset-x-0 bottom-0 z-[61] rounded-t-2xl bg-white px-5 pt-5"
+        style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
+        <p className="text-base font-black text-black">Before this try-on</p>
+        <p className="mt-1 text-[13px] font-semibold leading-5 text-black/55">This is an intimate (lingerie) try-on. Please confirm:</p>
+        <label className="mt-3 flex items-start gap-2.5 cursor-pointer">
+          <input type="checkbox" checked={consentChecked} onChange={e => setConsentChecked(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0" />
+          <span className="text-[13px] font-bold text-black/75">I am at least <span className="text-black">18 years old</span> and the photo I use is <span className="text-black">of myself</span> — I will not upload anyone else&apos;s photo.</span>
+        </label>
+        <p className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-black/40">🔒 Lingerie try-ons stay private — never posted publicly.</p>
+        <div className="mt-4 grid gap-2">
+          <button type="button" disabled={!consentChecked}
+            onClick={() => { try { localStorage.setItem("lb_lingerie_consent", "1"); } catch { /**/ } setLingerieConsent(true); setShowConsent(false); void handleGenerate(pendingPhotoRef.current, pendingTierRef.current); }}
+            className="flex h-13 min-h-[52px] w-full items-center justify-center rounded-2xl bg-black text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
+            Agree &amp; continue
+          </button>
+          <button type="button" onClick={() => { setShowConsent(false); }}
+            className="flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold text-black/50 active:opacity-70">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </>
+  ) : null;
+
   const authModal = showAuth ? (
     <>
       <div className="fixed inset-0 z-[60] bg-black/50" onClick={() => setShowAuth(false)} />
@@ -1106,7 +1135,7 @@ export default function TryonPage() {
               <span className="text-base font-black">Photo</span>
               <span className={`ml-auto rounded-full px-2.5 py-0.5 text-xs font-black ${effectiveLingerie && !isStaff ? "bg-black text-white" : "bg-emerald-100 text-emerald-700"}`}>{isStaff ? "Free" : effectiveLingerie ? "$2.90" : "Free"}</span>
             </button>
-            <button onClick={() => { if (isStaff) { setPaidSoon(""); void handleGenerate(undefined, "video"); } else setPaidSoon("video"); }}
+            <button type="button" onClick={() => { if (isStaff) { setPaidSoon(""); void handleGenerate(undefined, "video"); } else setPaidSoon("video"); }}
               className="flex h-14 w-full items-center gap-3 rounded-2xl bg-white/15 px-4 text-white backdrop-blur active:scale-95 transition-transform">
               <Film className="h-5 w-5 shrink-0" />
               <span className="text-base font-black">Video <span className="font-bold text-white/55">· 5s</span></span>
@@ -1138,6 +1167,7 @@ export default function TryonPage() {
 
         {/* Hidden file input */}
         <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFilePick} />
+        {consentModal}
       </div>
     );
   }
@@ -1245,33 +1275,7 @@ export default function TryonPage() {
         </>
       )}
 
-      {/* Lingerie try-on: 18+ & own-photo consent gate (intimate imagery) */}
-      {showConsent && (
-        <>
-          <div className="fixed inset-0 z-[60] bg-black/55" onClick={() => { setShowConsent(false); setStep("confirm"); }} />
-          <div className="fixed inset-x-0 bottom-0 z-[61] rounded-t-2xl bg-white px-5 pt-5"
-            style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
-            <p className="text-base font-black text-black">Before this try-on</p>
-            <p className="mt-1 text-[13px] font-semibold leading-5 text-black/55">This is an intimate (lingerie) try-on. Please confirm:</p>
-            <label className="mt-3 flex items-start gap-2.5 cursor-pointer">
-              <input type="checkbox" checked={consentChecked} onChange={e => setConsentChecked(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0" />
-              <span className="text-[13px] font-bold text-black/75">I am at least <span className="text-black">18 years old</span> and the photo I use is <span className="text-black">of myself</span> — I will not upload anyone else&apos;s photo.</span>
-            </label>
-            <p className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-black/40">🔒 Lingerie try-ons stay private — never posted publicly.</p>
-            <div className="mt-4 grid gap-2">
-              <button type="button" disabled={!consentChecked}
-                onClick={() => { try { localStorage.setItem("lb_lingerie_consent", "1"); } catch { /**/ } setLingerieConsent(true); setShowConsent(false); void handleGenerate(pendingPhotoRef.current, pendingTierRef.current); }}
-                className="flex h-13 min-h-[52px] w-full items-center justify-center rounded-2xl bg-black text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
-                Agree &amp; continue
-              </button>
-              <button type="button" onClick={() => { setShowConsent(false); setStep("confirm"); }}
-                className="flex h-12 w-full items-center justify-center rounded-2xl text-sm font-bold text-black/50 active:opacity-70">
-                Cancel
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      {consentModal}
 
       {/* Auth modal */}
       {authModal}
