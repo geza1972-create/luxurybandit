@@ -10,6 +10,7 @@ import {
 import { authorizeStudio } from "@/lib/studio-auth";
 import { tryOnGarment } from "@/lib/tryon";
 import { notifyAdminWhatsApp, ADMIN_URL } from "@/lib/notify-admin";
+import { isAdminRequest } from "@/lib/admin-auth";
 import { FASHION_BRANDS } from "@/lib/fashion-brands";
 import { NextResponse } from "next/server";
 
@@ -51,11 +52,8 @@ function toThumbUrl(url: string, width = 160): string {
 // Allow large JSON bodies for gallery uploads with multiple base64 images
 export const maxDuration = 60;
 
-function isAdmin(request: Request) {
-  const configuredPin = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim();
-  if (!configuredPin) return process.env.NODE_ENV !== "production";
-  return request.headers.get("x-try-look-admin-pin") === configuredPin;
-}
+// Admin = PIN header (fallback) OR a valid Supabase admin session (email allowlist).
+const isAdmin = (request: Request) => isAdminRequest(request);
 
 function normalizeSlug(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
@@ -258,7 +256,7 @@ export async function GET(request: Request) {
     const lookSlug = url.searchParams.get("look") ?? "";
     const wantsAdminData = url.searchParams.get("admin") === "1";
     const state = await readTryThisLookState();
-    if (wantsAdminData && !isAdmin(request)) {
+    if (wantsAdminData && !(await isAdmin(request))) {
       return NextResponse.json({ error: "Admin access required." }, { status: 401 });
     }
     // Partner stores — read by the studio (curators) and the admin manager.
@@ -273,7 +271,7 @@ export async function GET(request: Request) {
     }
     // Admin: list curators (for management/cleanup).
     if (url.searchParams.get("curators") === "1") {
-      if (!isAdmin(request)) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
       return NextResponse.json({ curators: state.curators ?? [] });
     }
     // Preview a specific look by ID — bypasses published filter (anyone with the URL can preview)
@@ -535,7 +533,7 @@ export async function POST(request: Request) {
 
     const state = await readTryThisLookState();
     const now = new Date().toISOString();
-    const adminRequest = isAdmin(request);
+    const adminRequest = (await isAdmin(request));
     const ps = (s: typeof state) => publicState(s, "", "", adminRequest);
 
     if (payload.action === "event") {
@@ -632,7 +630,7 @@ export async function POST(request: Request) {
     }
 
     if (payload.action === "update-lead-status") {
-      if (!isAdmin(request)) {
+      if (!(await isAdmin(request))) {
         return NextResponse.json({ error: "Admin access required." }, { status: 401 });
       }
       const leadId = String(payload.id ?? "");
@@ -657,7 +655,7 @@ export async function POST(request: Request) {
     }
 
     if (payload.action === "delete-lead") {
-      if (!isAdmin(request)) {
+      if (!(await isAdmin(request))) {
         return NextResponse.json({ error: "Admin access required." }, { status: 401 });
       }
       const leadId = String(payload.id ?? "");
@@ -795,7 +793,7 @@ export async function POST(request: Request) {
     const studioAuth = payload.action === "upload-look"
       ? await authorizeStudio(request)
       : { ok: false as const };
-    if (!isAdmin(request) && !studioAuth.ok) {
+    if (!(await isAdmin(request)) && !studioAuth.ok) {
       return NextResponse.json({ error: "Admin access required." }, { status: 401 });
     }
 
@@ -1367,7 +1365,7 @@ export async function POST(request: Request) {
 
     // ── Bulk delete (atomic, avoids parallel race condition) ─────────────────
     if (payload.action === "bulk-delete-generations") {
-      if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
       const ids = new Set((Array.isArray(payload.ids) ? payload.ids : []).map(String));
       const toDelete = state.generations.filter(g => ids.has(g.id));
       // Also purge ghost entries (no imageUrl) while we're here
@@ -1380,7 +1378,7 @@ export async function POST(request: Request) {
 
     // ── Bulk hide (atomic) ───────────────────────────────────────────────────
     if (payload.action === "bulk-hide-generations") {
-      if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
       const ids = new Set((Array.isArray(payload.ids) ? payload.ids : []).map(String));
       state.generations.forEach(g => { if (ids.has(g.id)) (g as any).hidden = true; });
       const updatedState = await saveTryThisLookState(state);
@@ -1407,7 +1405,7 @@ export async function POST(request: Request) {
     }
 
     if (payload.action === "hide-generation" || payload.action === "unhide-generation") {
-      if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
       const generationId = String(payload.id ?? "");
       const gen = state.generations.find(g => g.id === generationId);
       if (!gen) return NextResponse.json({ error: "Generated image was not found." }, { status: 404 });
@@ -1422,7 +1420,7 @@ export async function POST(request: Request) {
     }
 
     if (payload.action === "assign-generation") {
-      if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
       const generationId = String(payload.id ?? "");
       const gen = state.generations.find(g => g.id === generationId);
       if (!gen) return NextResponse.json({ error: "Generated image was not found." }, { status: 404 });
@@ -1434,7 +1432,7 @@ export async function POST(request: Request) {
 
     // ── Bulk reassign generations from one customer name to another ──────────
     if (payload.action === "bulk-reassign-generations") {
-      if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
       const fromName = String(payload.fromName ?? "").trim();
       const toName = String(payload.toName ?? "").trim();
       if (!fromName || !toName) return NextResponse.json({ error: "fromName and toName required." }, { status: 400 });
@@ -1490,7 +1488,7 @@ export async function POST(request: Request) {
 
     // ── Auth user management (admin only) ────────────────────────────────────
     if (payload.action === "delete-auth-user" || payload.action === "ban-auth-user" || payload.action === "unban-auth-user") {
-      if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
       const userId = String(payload.userId ?? "").trim();
       if (!userId) return NextResponse.json({ error: "userId required." }, { status: 400 });
       const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/^["']|["']$/g, "");
@@ -1528,7 +1526,7 @@ export async function POST(request: Request) {
 
     // ── Delete all data for a community user (admin only) ───────────────────
     if (payload.action === "delete-user-data") {
-      if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
       const userSlug = String(payload.userSlug ?? "").trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
       if (!userSlug) return NextResponse.json({ error: "userSlug required." }, { status: 400 });
       const toDelete = state.generations.filter(g => {
@@ -1672,7 +1670,7 @@ export async function POST(request: Request) {
 
     // ── Batch-categorize all looks via OpenAI ────────────────────────────────
     if (payload.action === "batch-categorize") {
-      if (!isAdmin(request)) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
       const apiKey = process.env.OPENAI_API_KEY;
       if (!apiKey) return NextResponse.json({ error: "OPENAI_API_KEY not configured." }, { status: 500 });
 

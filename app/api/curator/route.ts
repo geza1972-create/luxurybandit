@@ -8,6 +8,7 @@ import {
 } from "@/lib/try-this-look-store";
 import { setCuratorCredits, grantCredits, awardEngagementCredits, getCuratorCredits, STARTER_CREDITS, TRYON_CREDITS, SEARCH_CREDITS } from "@/lib/curator-budget";
 import { notifyAdminWhatsApp, ADMIN_URL } from "@/lib/notify-admin";
+import { isAdminRequest } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -253,8 +254,7 @@ export async function POST(request: Request) {
 
   // Admin: activate / deactivate a curator account (deactivated = cannot sign in).
   if (action === "set-curator-status") {
-    const adminPin = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim();
-    const isAdmin = adminPin && request.headers.get("x-try-look-admin-pin") === adminPin;
+    const isAdmin = await isAdminRequest(request);
     if (!isAdmin) return jsonError("Admin access required.", 401);
     const id = String(payload.id ?? "").trim();
     const next = payload.status === "deactivated" ? "deactivated" : "active";
@@ -273,8 +273,7 @@ export async function POST(request: Request) {
     const state = await readTryThisLookState();
     const look = state.looks.find(l => l.id === lookId);
     if (!look) return jsonError("Look not found.", 404);
-    const adminPin = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim();
-    const isAdmin = adminPin && request.headers.get("x-try-look-admin-pin") === adminPin;
+    const isAdmin = await isAdminRequest(request);
     const sessionId = request.headers.get("x-curator-id")?.trim();
     const tokenEmail = await emailFromToken(request);
     const owner = (state.curators ?? []).find(c => c.id === (look as any).curatorId);
@@ -291,8 +290,7 @@ export async function POST(request: Request) {
     const state = await readTryThisLookState();
     const look = state.looks.find(l => l.id === lookId);
     if (!look) return jsonError("Look not found.", 404);
-    const adminPin = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim();
-    const isAdmin = adminPin && request.headers.get("x-try-look-admin-pin") === adminPin;
+    const isAdmin = await isAdminRequest(request);
     const sessionId = request.headers.get("x-curator-id")?.trim();
     const tokenEmail = await emailFromToken(request);
     const owner = (state.curators ?? []).find(c => c.id === (look as any).curatorId);
@@ -313,8 +311,7 @@ export async function POST(request: Request) {
     const state = await readTryThisLookState();
     const look = state.looks.find(l => l.id === lookId);
     if (!look) return jsonError("Look not found.", 404);
-    const adminPin = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim();
-    const isAdmin = adminPin && request.headers.get("x-try-look-admin-pin") === adminPin;
+    const isAdmin = await isAdminRequest(request);
     const sessionId = request.headers.get("x-curator-id")?.trim();
     const tokenEmail = await emailFromToken(request);
     const owner = (state.curators ?? []).find(c => c.id === (look as any).curatorId);
@@ -333,8 +330,7 @@ export async function POST(request: Request) {
     const state = await readTryThisLookState();
     const look = state.looks.find(l => l.id === lookId);
     if (!look) return jsonError("Look not found.", 404);
-    const adminPin = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim();
-    const isAdmin = adminPin && request.headers.get("x-try-look-admin-pin") === adminPin;
+    const isAdmin = await isAdminRequest(request);
     const sessionId = request.headers.get("x-curator-id")?.trim();
     const tokenEmail = await emailFromToken(request);
     const owner = (state.curators ?? []).find(c => c.id === (look as any).curatorId);
@@ -351,8 +347,7 @@ export async function POST(request: Request) {
     const order = Array.isArray((payload as any).order) ? (payload as any).order.map((x: any) => String(x)) : [];
     if (!order.length) return jsonError("Order is empty.");
     const state = await readTryThisLookState();
-    const adminPin = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim();
-    const isAdmin = adminPin && request.headers.get("x-try-look-admin-pin") === adminPin;
+    const isAdmin = await isAdminRequest(request);
     const sessionId = request.headers.get("x-curator-id")?.trim();
     const tokenEmail = await emailFromToken(request);
     let assigned = 0;
@@ -379,8 +374,7 @@ export async function POST(request: Request) {
 
     // Authorized if: admin PIN, OR a verified token whose email matches, OR the
     // matching curator-session header (their own id from this device).
-    const adminPin = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim();
-    const isAdmin = adminPin && request.headers.get("x-try-look-admin-pin") === adminPin;
+    const isAdmin = await isAdminRequest(request);
     const tokenEmail = await emailFromToken(request);
     const ownsBySession = request.headers.get("x-curator-id") === id;
     const ownsByToken = tokenEmail && tokenEmail === (cur.email ?? "").trim().toLowerCase();
@@ -434,8 +428,7 @@ export async function POST(request: Request) {
   }
 
   if (action === "set-credits") {
-    const adminPin = process.env.TRY_THIS_LOOK_ADMIN_PIN?.trim();
-    const isAdmin = adminPin && request.headers.get("x-try-look-admin-pin") === adminPin;
+    const isAdmin = await isAdminRequest(request);
     if (!isAdmin) return jsonError("Admin access required.", 401);
     const id = String(payload.id ?? "").trim();
     if (!id) return jsonError("Missing curator id.");

@@ -3,7 +3,9 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown } from "lucide-react";
+import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut } from "lucide-react";
+import { signInWithPassword, getStoredAuthSession, saveAuthSession, signOut, resetPassword } from "@/lib/supabase-auth-client";
+import { isAdminEmail } from "@/lib/is-admin-email";
 
 const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
 
@@ -53,6 +55,11 @@ const fmtTs = (s?: string) => {
 
 export default function AdminPage() {
   const [pin, setPin] = useState("");
+  const [token, setToken] = useState(""); // Supabase admin access token
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [gateMode, setGateMode] = useState<"login" | "pin">("login");
+  const [note, setNote] = useState("");
   const [authed, setAuthed] = useState(false);
   const [tab, setTab] = useState<"looks" | "curators">("looks");
   const [curators, setCurators] = useState<Curator[]>([]);
@@ -74,20 +81,24 @@ export default function AdminPage() {
   const [creditsDraft, setCreditsDraft] = useState(""); // credits input in curator sheet
   const [saving, setSaving] = useState(false);
 
-  const headers = (p = pin) => ({ "Content-Type": "application/json", "x-try-look-admin-pin": p });
+  const headers = (p = pin, t = token): Record<string, string> => ({
+    "Content-Type": "application/json",
+    ...(t ? { Authorization: `Bearer ${t}` } : {}),
+    ...(p ? { "x-try-look-admin-pin": p } : {}),
+  });
 
   const armOrRun = (id: string, run: () => void) => {
     if (confirmId === id) { setConfirmId(""); run(); }
     else { setConfirmId(id); setTimeout(() => setConfirmId(c => (c === id ? "" : c)), 3500); }
   };
 
-  const load = async (p = pin) => {
-    if (!p) return;
+  const load = async (p = pin, t = token) => {
+    if (!p && !t) return;
     setLoading(true); setError("");
     try {
       const [cr, lr, com] = await Promise.all([
-        fetch("/api/try-this-look?curators=1", { headers: headers(p) }),
-        fetch("/api/try-this-look?admin=1", { headers: headers(p) }),
+        fetch("/api/try-this-look?curators=1", { headers: headers(p, t) }),
+        fetch("/api/try-this-look?admin=1", { headers: headers(p, t) }),
         fetch("/api/try-this-look?community=1"),
       ]);
       if (cr.status === 401 || lr.status === 401) { setError("Wrong PIN."); setAuthed(false); setLoading(false); return; }
@@ -103,11 +114,40 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
+    const session = getStoredAuthSession();
+    if (session?.access_token && isAdminEmail(session.user?.email)) {
+      setToken(session.access_token);
+      void load("", session.access_token);
+      return;
+    }
     const stored = window.localStorage.getItem(ADMIN_PIN_KEY) ?? "";
-    if (stored) { setPin(stored); void load(stored); }
+    if (stored) { setPin(stored); setGateMode("pin"); void load(stored); }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const signIn = () => { window.localStorage.setItem(ADMIN_PIN_KEY, pin); void load(pin); };
+  const signInPin = () => { window.localStorage.setItem(ADMIN_PIN_KEY, pin); void load(pin, ""); };
+
+  const signInEmail = async () => {
+    setLoading(true); setError(""); setNote("");
+    try {
+      const session = await signInWithPassword(email.trim().toLowerCase(), password);
+      if (!session?.access_token || !isAdminEmail(session.user?.email)) {
+        signOut(); setError("This account is not an admin."); setLoading(false); return;
+      }
+      setToken(session.access_token);
+      await load("", session.access_token);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Login failed."); setLoading(false);
+    }
+  };
+
+  const logout = () => { signOut(); window.localStorage.removeItem(ADMIN_PIN_KEY); setToken(""); setPin(""); setAuthed(false); };
+
+  const forgot = async () => {
+    if (!email.trim()) { setError("Enter your email first."); return; }
+    setNote(""); setError("");
+    try { await resetPassword(email.trim().toLowerCase()); setNote("Password reset email sent."); }
+    catch { setError("Could not send reset email."); }
+  };
 
   const fail = async (r: Response, fallback: string) => {
     const d = await r.json().catch(() => ({}));
@@ -237,13 +277,39 @@ export default function AdminPage() {
         <div className="w-full max-w-sm rounded-2xl border border-black/10 bg-white p-6 shadow-soft">
           <div className="text-xs font-black uppercase tracking-[0.18em] text-cobalt">LuxuryBandit</div>
           <h1 className="mt-1 text-2xl font-black">Admin</h1>
-          <p className="mt-1 text-sm font-bold text-ink/50">Enter the admin PIN to continue.</p>
-          <input value={pin} onChange={e => setPin(e.target.value)} type="password" placeholder="Admin PIN"
-            onKeyDown={e => { if (e.key === "Enter") signIn(); }}
-            className="mt-4 h-12 w-full rounded-xl border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt" />
-          <button type="button" onClick={signIn} className="mt-3 h-12 w-full rounded-xl bg-black text-sm font-black text-white active:scale-95 transition">
-            {loading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Enter"}
-          </button>
+
+          {gateMode === "login" ? (
+            <>
+              <p className="mt-1 text-sm font-bold text-ink/50">Sign in with your admin email & password.</p>
+              <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Email" autoComplete="username"
+                className="mt-4 h-12 w-full rounded-xl border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt" />
+              <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Password" autoComplete="current-password"
+                onKeyDown={e => { if (e.key === "Enter") void signInEmail(); }}
+                className="mt-2 h-12 w-full rounded-xl border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt" />
+              <button type="button" onClick={() => void signInEmail()} disabled={loading} className="mt-3 h-12 w-full rounded-xl bg-black text-sm font-black text-white active:scale-95 transition disabled:opacity-50">
+                {loading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Sign in"}
+              </button>
+              <div className="mt-3 flex items-center justify-between text-[11px] font-black">
+                <button type="button" onClick={() => void forgot()} className="text-ink/45 underline">Forgot password</button>
+                <button type="button" onClick={() => { setGateMode("pin"); setError(""); }} className="text-ink/45 underline">Use admin PIN</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="mt-1 text-sm font-bold text-ink/50">Enter the admin PIN.</p>
+              <input value={pin} onChange={e => setPin(e.target.value)} type="password" placeholder="Admin PIN"
+                onKeyDown={e => { if (e.key === "Enter") signInPin(); }}
+                className="mt-4 h-12 w-full rounded-xl border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt" />
+              <button type="button" onClick={signInPin} className="mt-3 h-12 w-full rounded-xl bg-black text-sm font-black text-white active:scale-95 transition">
+                {loading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Enter"}
+              </button>
+              <div className="mt-3 text-right text-[11px] font-black">
+                <button type="button" onClick={() => { setGateMode("login"); setError(""); }} className="text-ink/45 underline">Use email & password</button>
+              </div>
+            </>
+          )}
+
+          {note && <p className="mt-3 text-center text-xs font-black text-emerald-600">{note}</p>}
           {error && <p className="mt-3 text-center text-xs font-black text-red-500">{error}</p>}
         </div>
       </main>
@@ -262,8 +328,11 @@ export default function AdminPage() {
             <a href="/admin/trends" className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-black/10 bg-white px-3 text-xs font-black text-ink active:scale-95 transition">
               Studio <ExternalLink className="h-3.5 w-3.5" />
             </a>
-            <button type="button" onClick={() => void load()} className="grid h-10 w-10 place-items-center rounded-xl border border-black/10 bg-white active:scale-95 transition">
+            <button type="button" onClick={() => void load()} title="Refresh" className="grid h-10 w-10 place-items-center rounded-xl border border-black/10 bg-white active:scale-95 transition">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            </button>
+            <button type="button" onClick={logout} title="Sign out" className="grid h-10 w-10 place-items-center rounded-xl border border-black/10 bg-white text-ink/60 active:scale-95 transition">
+              <LogOut className="h-4 w-4" />
             </button>
           </div>
         </header>
