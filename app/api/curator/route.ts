@@ -69,12 +69,17 @@ export async function GET(request: Request) {
       const adminAll = !curator && (await isAdminRequest(request));
       const looks = (!curator && !adminAll) ? [] : (state.looks ?? [])
         .filter(l => adminAll || (l as any).curatorId === curator!.id)
-        .map(l => ({ id: l.id, name: l.name, imageUrl: (l as any).frontImageUrl ?? l.imageUrl, published: l.published !== false, altCount: ((l as any).alternatives ?? []).length, note: (l as any).curatorNote ?? "", commentsOff: (l as any).commentsOff === true, videoUrl: (l as any).videoUrl ?? "", brand: (l as any).brand ?? "", description: (l as any).productNote ?? "", feedOrder: typeof (l as any).feedOrder === "number" ? (l as any).feedOrder : undefined }))
+        // Manual order (feedOrder) wins where set; everything else newest-first so
+        // the look you just created lands at the TOP of the gallery.
         .sort((a, b) => {
-          const ao = typeof a.feedOrder === "number" ? a.feedOrder : Infinity;
-          const bo = typeof b.feedOrder === "number" ? b.feedOrder : Infinity;
-          return ao - bo; // explicit feed order first; unordered keep their place
-        });
+          const ao = typeof (a as any).feedOrder === "number" ? (a as any).feedOrder : null;
+          const bo = typeof (b as any).feedOrder === "number" ? (b as any).feedOrder : null;
+          if (ao !== null && bo !== null) return ao - bo;
+          if (ao !== null) return 1;   // a is manually ordered, b is new → new first
+          if (bo !== null) return -1;  // b is manually ordered, a is new → new first
+          return String((b as any).createdAt ?? "").localeCompare(String((a as any).createdAt ?? "")); // newest first
+        })
+        .map(l => ({ id: l.id, name: l.name, imageUrl: (l as any).frontImageUrl ?? l.imageUrl, published: l.published !== false, altCount: ((l as any).alternatives ?? []).length, note: (l as any).curatorNote ?? "", commentsOff: (l as any).commentsOff === true, videoUrl: (l as any).videoUrl ?? "", brand: (l as any).brand ?? "", description: (l as any).productNote ?? "", feedOrder: typeof (l as any).feedOrder === "number" ? (l as any).feedOrder : undefined }));
       return NextResponse.json({ looks });
     }
     // Earn-as-you-prove-yourself: tally this creator's engagement and grant any
