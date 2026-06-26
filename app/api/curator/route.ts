@@ -69,7 +69,7 @@ export async function GET(request: Request) {
       const adminAll = !curator && (await isAdminRequest(request));
       const looks = (!curator && !adminAll) ? [] : (state.looks ?? [])
         .filter(l => adminAll || (l as any).curatorId === curator!.id)
-        .map(l => ({ id: l.id, name: l.name, imageUrl: (l as any).frontImageUrl ?? l.imageUrl, published: l.published !== false, altCount: ((l as any).alternatives ?? []).length, note: (l as any).curatorNote ?? "", commentsOff: (l as any).commentsOff === true, videoUrl: (l as any).videoUrl ?? "", feedOrder: typeof (l as any).feedOrder === "number" ? (l as any).feedOrder : undefined }))
+        .map(l => ({ id: l.id, name: l.name, imageUrl: (l as any).frontImageUrl ?? l.imageUrl, published: l.published !== false, altCount: ((l as any).alternatives ?? []).length, note: (l as any).curatorNote ?? "", commentsOff: (l as any).commentsOff === true, videoUrl: (l as any).videoUrl ?? "", brand: (l as any).brand ?? "", description: (l as any).productNote ?? "", feedOrder: typeof (l as any).feedOrder === "number" ? (l as any).feedOrder : undefined }))
         .sort((a, b) => {
           const ao = typeof a.feedOrder === "number" ? a.feedOrder : Infinity;
           const bo = typeof b.feedOrder === "number" ? b.feedOrder : Infinity;
@@ -372,6 +372,27 @@ export async function POST(request: Request) {
   }
 
   // Curator's personal note/thoughts on their own look (shown on the frontend).
+  // Owner/admin edits a published look's brand, name and/or description.
+  // Only the fields present in the payload are touched.
+  if (action === "update-look-meta") {
+    const lookId = String(payload.lookId ?? "").trim();
+    const state = await readTryThisLookState();
+    const look = state.looks.find(l => l.id === lookId);
+    if (!look) return jsonError("Look not found.", 404);
+    const isAdmin = await isAdminRequest(request);
+    const sessionId = request.headers.get("x-curator-id")?.trim();
+    const tokenEmail = await emailFromToken(request);
+    const owner = (state.curators ?? []).find(c => c.id === (look as any).curatorId);
+    const ownsBySession = !!sessionId && sessionId === (look as any).curatorId;
+    const ownsByToken = !!tokenEmail && !!owner && (owner.email ?? "").trim().toLowerCase() === tokenEmail;
+    if (!isAdmin && !ownsBySession && !ownsByToken) return jsonError("Not allowed.", 403);
+    if (typeof payload.brand === "string") (look as any).brand = payload.brand.trim() || undefined;
+    if (typeof payload.name === "string" && payload.name.trim()) (look as any).name = payload.name.trim().slice(0, 140);
+    if (typeof payload.productNote === "string") (look as any).productNote = payload.productNote.trim().slice(0, 800) || undefined;
+    await saveTryThisLookState(state);
+    return NextResponse.json({ ok: true, brand: (look as any).brand ?? "", name: look.name, productNote: (look as any).productNote ?? "" });
+  }
+
   if (action === "update-look-note") {
     const lookId = String(payload.lookId ?? "").trim();
     const note = String(payload.note ?? "").trim().slice(0, 600);

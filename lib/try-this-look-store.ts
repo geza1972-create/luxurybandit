@@ -4,6 +4,8 @@ export type TryThisLookLook = {
   id: string;
   name: string;
   campaignName?: string;
+  // Explicit brand override. When set it wins over name-based brand detection.
+  brand?: string;
   storeName?: string;
   storeSlug?: string;
   storeAddress?: string;

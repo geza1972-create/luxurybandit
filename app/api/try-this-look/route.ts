@@ -145,7 +145,7 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     curatorPhotoUrl: curator?.photoUrl || undefined,
     curatorMotto: curator?.motto || undefined,
     productType: (look as any).productType ?? "real",
-    brand: detectBrand(look.name, (look as any).productNote, (look as any).campaignName) ?? undefined,
+    brand: ((look as any).brand?.trim() || detectBrand(look.name, (look as any).productNote, (look as any).campaignName)) ?? undefined,
     aiCreated: (look as any).aiCreated === true,
     curatorNote: (look as any).curatorNote ?? undefined,
     commentsOff: (look as any).commentsOff === true,

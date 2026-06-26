@@ -203,7 +203,7 @@ function storeNameFromUrl(url: string): string {
   } catch { return "Shop"; }
 }
 
-async function callPublish(draft: Draft, name: string, price: string, brandQueries?: string[], guaranteedAlt?: any, modelImage?: string): Promise<{ altCount: number }> {
+async function callPublish(draft: Draft, name: string, price: string, brandQueries?: string[], guaranteedAlt?: any, modelImage?: string, description?: string): Promise<{ altCount: number }> {
   // An AI-generated look has no source shop URL. Its shop "Vorschläge" come from TWO
   // sources merged: (1) brand-aware text search so real on-brand pieces (e.g. Tom
   // Ford) show up, then (2) a reverse-image search for visually similar dupes across
@@ -240,7 +240,8 @@ async function callPublish(draft: Draft, name: string, price: string, brandQueri
         },
       ];
   }
-  const productNote = await callDescribe(name);
+  // Use the curator's own description when they wrote one; otherwise auto-write.
+  const productNote = (description && description.trim()) ? description.trim() : await callDescribe(name);
   const main = draft.imageDataUrl;
   const res = await fetch("/api/try-this-look", {
     method: "POST",
@@ -547,7 +548,7 @@ export default function AdminTrends() {
   const [aiFindingGarment, setAiFindingGarment] = useState(false);
   const [curatorPhotoUrl, setCuratorPhotoUrl] = useState<string | null>(null);
   const [cropTarget, setCropTarget] = useState<"person" | "garment" | null>(null);
-  const [aiGenerations, setAiGenerations] = useState<{ id: string; image: string; prompt: string; name: string; selected: boolean; garmentProduct?: any }[]>(() => {
+  const [aiGenerations, setAiGenerations] = useState<{ id: string; image: string; prompt: string; name: string; description?: string; selected: boolean; garmentProduct?: any }[]>(() => {
     if (typeof window === "undefined") return [];
     try { return JSON.parse(localStorage.getItem("lb_ai_generations") ?? "[]"); } catch { return []; }
   });
@@ -556,7 +557,7 @@ export default function AdminTrends() {
     try { localStorage.setItem("lb_ai_generations", JSON.stringify(aiGenerations)); }
     catch { /* quota exceeded — keep in-memory only */ }
   }, [aiGenerations]);
-  const [myLooks, setMyLooks] = useState<{ id: string; name: string; imageUrl: string; published: boolean; altCount: number; note?: string; commentsOff?: boolean; videoUrl?: string }[]>([]);
+  const [myLooks, setMyLooks] = useState<{ id: string; name: string; imageUrl: string; published: boolean; altCount: number; note?: string; commentsOff?: boolean; videoUrl?: string; brand?: string; description?: string }[]>([]);
   const [uploadingVideo, setUploadingVideo] = useState<string>("");
   const toggleLookComments = async (lookId: string, commentsOff: boolean) => {
     setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, commentsOff } : l));
@@ -608,6 +609,16 @@ export default function AdminTrends() {
     setSavingNote("");
   };
   const loadMyLooks = () => fetch("/api/curator?mylooks=1", { headers: studioHeaders() }).then(r => r.json()).then((d: any) => setMyLooks(d.looks ?? [])).catch(() => {});
+  // Edit a published look's brand (overrides name-based detection).
+  const [brandDrafts, setBrandDrafts] = useState<Record<string, string>>({});
+  const [savingBrand, setSavingBrand] = useState<string>("");
+  const saveLookBrand = async (lookId: string) => {
+    const brand = (brandDrafts[lookId] ?? "").trim();
+    setSavingBrand(lookId);
+    await fetch("/api/curator", { method: "POST", headers: studioHeaders(), body: JSON.stringify({ action: "update-look-meta", lookId, brand }) }).catch(() => {});
+    setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, brand } : l));
+    setSavingBrand("");
+  };
 
   // Use an image already on the clipboard (e.g. a screenshot) as the garment reference.
   const useGarmentFile = (f: File) => { setAiGarmentFile(f); setAiResult(null); setAiError(""); };
@@ -871,7 +882,7 @@ export default function AdminTrends() {
         id: gen.id, name,
         price: "", sourceUrl: "", imageUrl: "", imageDataUrl: gen.image,
       };
-      try { await callPublish(draft, draft.name, "", brandQueriesFromPrompt(gen.prompt), gen.garmentProduct); ok++; publishedIds.push(gen.id); }
+      try { await callPublish(draft, draft.name, "", brandQueriesFromPrompt(gen.prompt), gen.garmentProduct, undefined, (gen.description ?? "").trim()); ok++; publishedIds.push(gen.id); }
       catch { /* skip failed item */ }
       setPublishProgress((p) => ({ ...p, done: p.done + 1 }));
     }
@@ -1412,9 +1423,14 @@ export default function AdminTrends() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={gen.image} alt="AI generation" className="h-20 w-16 rounded object-cover flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <input type="text" placeholder="Describe this look (e.g. 'Evening Gown - Black Silk')" value={gen.name}
+                      <input type="text" placeholder="Name this look (e.g. 'Evening Gown - Black Silk')" value={gen.name}
                         onChange={e => setAiGenerations(prev => prev.map(g => g.id === gen.id ? { ...g, name: e.target.value } : g))}
                         className="w-full text-sm font-bold text-ink bg-transparent border-b border-black/10 px-0 py-1 focus:outline-none focus:border-black/30" />
+                      <textarea placeholder="Description (shown to shoppers). Leave empty to auto-write one." value={gen.description ?? ""}
+                        onClick={e => e.stopPropagation()}
+                        onChange={e => setAiGenerations(prev => prev.map(g => g.id === gen.id ? { ...g, description: e.target.value } : g))}
+                        rows={2} maxLength={800}
+                        className="mt-1.5 w-full resize-none rounded-md border border-black/10 bg-white px-2 py-1.5 text-[11px] leading-snug text-ink/80 outline-none focus:border-cobalt placeholder:text-ink/35" />
                       {gen.prompt && <p className="mt-1 text-[10px] font-bold text-ink/40 line-clamp-2">{gen.prompt}</p>}
                     </div>
                   </div>
@@ -1507,6 +1523,25 @@ export default function AdminTrends() {
                               {savingNote === l.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save note"}
                             </button>
                           )}
+                          {/* Brand — overrides the brand auto-detected from the name */}
+                          {(() => {
+                            const bd = brandDrafts[l.id] ?? l.brand ?? "";
+                            const bdirty = bd.trim() !== (l.brand ?? "").trim();
+                            return (
+                              <div className="mt-1.5">
+                                <input type="text" value={bd}
+                                  onChange={(e) => setBrandDrafts(d => ({ ...d, [l.id]: e.target.value }))}
+                                  placeholder="Brand (e.g. Balmain)"
+                                  className="w-full rounded-md border border-black/10 bg-panel px-2 py-1.5 text-[11px] font-bold text-ink/80 outline-none focus:border-cobalt placeholder:font-bold placeholder:text-ink/30" />
+                                {bdirty && (
+                                  <button type="button" onClick={() => void saveLookBrand(l.id)} disabled={savingBrand === l.id}
+                                    className="mt-1 flex h-7 w-full items-center justify-center gap-1.5 rounded-md bg-cobalt text-[11px] font-black text-white disabled:opacity-50">
+                                    {savingBrand === l.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save brand"}
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })()}
                           {/* Comments on/off for this look */}
                           <button type="button" onClick={() => void toggleLookComments(l.id, !l.commentsOff)}
                             className="mt-1.5 flex w-full items-center justify-between rounded-md bg-panel px-2 py-1.5 text-[11px] font-black text-ink/60">
