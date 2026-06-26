@@ -1263,7 +1263,6 @@ function StoresPage() {
     const items: HItem[] = [];
     const lookById = new Map(looks.map((l) => [l.id, l]));
     for (const l of looks) {
-      if (!l.videoUrl) continue; // VIDEO-ONLY grid: skip static-image looks (curated look-videos stay)
       const thumb = l.frontImageUrl || l.imageUrl;
       // Poster only when it's a REAL model frame (never the floating product); else
       // the video tile shows the video's own first frame.
@@ -1275,7 +1274,6 @@ function StoresPage() {
       items.push({ key: `look-${l.id}`, kind: "look", id: l.id, thumb, videoUrl: l.videoUrl, videoPoster, aiCreated: l.aiCreated, brand: l.brand, createdAt: when, name: l.name, price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl });
     }
     for (const c of communityItems) {
-      if (!c.videoUrl) continue; // VIDEO-ONLY grid: skip try-ons that have no video
       // A try-on still IS a real model frame → use it as the video poster.
       const srcLook = lookById.get(c.lookId);
       items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, brand: c.brand, createdAt: c.createdAt ?? "", name: c.customerName || c.lookName, price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName });
