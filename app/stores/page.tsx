@@ -1291,8 +1291,8 @@ function StoresPage() {
                 </p>
                 <div className="mt-3 grid gap-1.5">
                   {[
-                    [<Sparkles key="i" className="h-4 w-4 text-cobalt" />, "Make a try-on", "Any look, on you, in seconds — photo + video."],
                     [<ShoppingBag key="i" className="h-4 w-4 text-cobalt" />, "Bandit the look", "From the real luxury piece down to the best dupe."],
+                    [<Sparkles key="i" className="h-4 w-4 text-cobalt" />, "Make a try-on", "Any look, on you, in seconds — photo + video."],
                     [<Heart key="i" className="h-4 w-4 text-cobalt" />, "Join the community", "Become a curator, build a following — and earn."],
                   ].map(([icon, title, text], i) => (
                     <div key={i} className="flex items-start gap-2.5">
