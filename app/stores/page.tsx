@@ -370,6 +370,11 @@ function CommunityDetailView({
   const verticalDragRef = useRef(0);
   const wheelCooldown = useRef(false);
   const touchStartY = useRef<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  // The slides are positioned in % of the container; the drag/snap math must use the
+  // SAME unit (the container's real px height) — window.innerHeight differs on mobile
+  // (address bar), which left a gap showing the grid behind while scrolling.
+  const slideH = () => containerRef.current?.clientHeight || (typeof window !== "undefined" ? window.innerHeight : 800);
 
   const item = allItems[currentIdx];
   const prevItem = allItems.length > 1 ? allItems[(currentIdx - 1 + allItems.length) % allItems.length] : null;
@@ -429,10 +434,11 @@ function CommunityDetailView({
     if (!isDraggingVertical.current) return;
     isDraggingVertical.current = false;
     const finalDrag = verticalDragRef.current;
-    const threshold = window.innerHeight * 0.2;
+    const h = slideH();
+    const threshold = h * 0.2;
     if (Math.abs(finalDrag) >= threshold && allItems.length > 1) {
-      if (finalDrag < 0) snapTo((currentIdx + 1) % allItems.length, -window.innerHeight);
-      else snapTo((currentIdx - 1 + allItems.length) % allItems.length, window.innerHeight);
+      if (finalDrag < 0) snapTo((currentIdx + 1) % allItems.length, -h);
+      else snapTo((currentIdx - 1 + allItems.length) % allItems.length, h);
     } else {
       setVerticalSnapping(true); setVerticalDrag(0);
       setTimeout(() => setVerticalSnapping(false), 280);
@@ -444,7 +450,7 @@ function CommunityDetailView({
     if (wheelCooldown.current || verticalSnapping || allItems.length <= 1) return;
     const goNext = e.deltaY > 0;
     const newIdx = goNext ? (currentIdx + 1) % allItems.length : (currentIdx - 1 + allItems.length) % allItems.length;
-    snapTo(newIdx, goNext ? -window.innerHeight : window.innerHeight);
+    snapTo(newIdx, goNext ? -slideH() : slideH());
     wheelCooldown.current = true;
     setTimeout(() => { wheelCooldown.current = false; }, 700);
   };
@@ -452,7 +458,8 @@ function CommunityDetailView({
   const transition = verticalSnapping ? "transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)" : "none";
 
   return (
-    <div className="fixed inset-0 z-[100] overflow-hidden bg-black"
+    <div ref={containerRef} className="fixed inset-0 z-[100] overflow-hidden bg-black overscroll-none"
+      style={{ height: "100dvh" }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
