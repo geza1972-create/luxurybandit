@@ -48,6 +48,22 @@ export default function BottomNav() {
           .catch(() => {});
       } else {
         setCuratorCredits(null);
+        // Signed in via Supabase but no curator session yet? If that email belongs to
+        // a curator, adopt it — so a signed-in curator isn't asked to "sign in as
+        // curator" again and "Curator studio" routes them to /studio (not the login).
+        const email = getStoredAuthSession()?.user?.email;
+        if (email) {
+          fetch("/api/curator", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "signin", email }) })
+            .then(r => r.ok ? r.json() : null)
+            .then(d => {
+              if (d?.curator?.id) {
+                try { localStorage.setItem("lb_curator", JSON.stringify(d.curator)); } catch { /**/ }
+                try { window.dispatchEvent(new Event("luxurybandit-auth-updated")); } catch { /**/ }
+                setIsCurator(true);
+              }
+            })
+            .catch(() => {});
+        }
       }
     } catch { setIsCurator(false); setCuratorCredits(null); }
   }, [pathname, showProfileMenu]);

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, Check, ChevronUp, ChevronDown, ClipboardPaste, Crop, ExternalLink, ImagePlus, Link2, Loader2, Lock, Plus, Search, Trash2, Video, Wand2, X } from "lucide-react";
 import { FASHION_BRANDS } from "@/lib/fashion-brands";
 import { isIntimateName } from "@/lib/lingerie";
+import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 // Garment types a curator can target the search with (select one, sorted A→Z list
 // in the dropdown). Keeps the search focused on a real category.
@@ -494,6 +495,30 @@ function PinGate({ onSaved }: { onSaved: (pin: string) => void }) {
 
 export default function AdminTrends() {
   const [pin, setPin] = useState<string>(getStoredPin());
+  // Before gating, try to adopt a curator session from a signed-in Supabase email,
+  // so a curator who's already signed in isn't asked to "sign in as curator" again.
+  const [authResolving, setAuthResolving] = useState(true);
+  const [, forceAuthRefresh] = useState(0);
+  useEffect(() => {
+    if (getCuratorId() || getStoredPin()) { setAuthResolving(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const email = getStoredAuthSession()?.user?.email;
+        if (email) {
+          const res = await fetch("/api/curator", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "signin", email }) });
+          const d = res.ok ? await res.json() : null;
+          if (!cancelled && d?.curator?.id) {
+            try { localStorage.setItem("lb_curator", JSON.stringify(d.curator)); } catch { /**/ }
+            try { window.dispatchEvent(new Event("luxurybandit-auth-updated")); } catch { /**/ }
+            forceAuthRefresh(n => n + 1);
+          }
+        }
+      } catch { /**/ }
+      if (!cancelled) setAuthResolving(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
   const [urls, setUrls] = useState("");
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [importing, setImporting] = useState(false);
@@ -733,8 +758,12 @@ export default function AdminTrends() {
   };
 
   // Curators reach this tool via /studio with a session (no admin PIN). Only
-  // gate behind the PIN when there's neither a PIN nor a curator session.
-  if (!pin && !getCuratorId()) return <PinGate onSaved={setPin} />;
+  // gate behind the PIN when there's neither a PIN nor a curator session — and
+  // only after we've tried to adopt a curator session from a signed-in email.
+  if (!pin && !getCuratorId()) {
+    if (authResolving) return <div className="grid min-h-[100dvh] place-items-center bg-white"><Loader2 className="h-6 w-6 animate-spin text-ink/40" /></div>;
+    return <PinGate onSaved={setPin} />;
+  }
 
   // A curator session present without an admin PIN → curator-facing chrome.
   const isCurator = !pin && !!getCuratorId();
