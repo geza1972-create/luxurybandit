@@ -1,8 +1,8 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { ChevronLeft, Heart, Send, MessageCircle, UserPlus, UserCheck, Loader2, X, Store, Sparkles, EyeOff, Trash2 } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { ChevronLeft, Heart, Send, MessageCircle, UserPlus, UserCheck, Loader2, X, Store, Sparkles, EyeOff, Trash2, Info } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import TryOnQR from "@/components/TryOnQR";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
@@ -91,6 +91,19 @@ export default function PostPage() {
   const [adminPin, setAdminPin] = useState("");
   useEffect(() => { try { setAdminPin(localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""); } catch { /**/ } }, []);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [infoData, setInfoData] = useState<Record<string, any> | null>(null);
+  const [infoLoading, setInfoLoading] = useState(false);
+  const openInfo = async () => {
+    if (!post) return;
+    setInfoOpen(true); setInfoData(null); setInfoLoading(true);
+    try {
+      const res = await fetch(`/api/try-this-look?postInfo=${encodeURIComponent(post.id)}`, { headers: modHeaders() });
+      const d = res.ok ? await res.json() : null;
+      setInfoData(d?.info ?? null);
+    } catch { setInfoData(null); }
+    setInfoLoading(false);
+  };
   const [modWorking, setModWorking] = useState(false);
   const [curators, setCurators] = useState<{ id: string; firstName?: string; lastName?: string; photoUrl?: string }[]>([]);
   const isAdminUser = !!adminPin || isAdminEmail(session?.user?.email);
@@ -353,6 +366,70 @@ export default function PostPage() {
         </div>
       )}
 
+      {/* Info / history sheet — public; same provenance as the reels feed */}
+      {infoOpen && (
+        <div className="fixed inset-0 z-[120] flex flex-col justify-end bg-black/50" onClick={() => setInfoOpen(false)}>
+          <div className="flex max-h-[78dvh] flex-col rounded-t-2xl bg-white" onClick={e => e.stopPropagation()} style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+            <div className="flex items-center justify-between border-b border-black/8 px-4 py-3">
+              <span className="flex items-center gap-2 text-sm font-black text-black"><Info className="h-4 w-4" /> Post info & history</span>
+              <button type="button" onClick={() => setInfoOpen(false)} className="grid h-8 w-8 place-items-center rounded-full text-black/40 active:bg-black/5"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
+              {infoLoading ? (
+                <div className="flex items-center justify-center py-10 text-black/40"><Loader2 className="h-5 w-5 animate-spin" /></div>
+              ) : !infoData ? (
+                <p className="py-8 text-center text-sm font-bold text-black/35">No info found.</p>
+              ) : (() => {
+                const d = infoData;
+                const isLook = d.kind === "look";
+                const fmt = (iso: any) => { if (!iso) return "—"; try { return new Date(iso).toLocaleString("en-US", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return String(iso); } };
+                const typeLabel = isLook
+                  ? (d.aiCreated ? "AI-Studio look (AI-generated)" : `Curated look${d.productType === "real" ? " · real product" : ""}`)
+                  : (d.hadUserPhoto ? "Try-on (own photo uploaded)" : "Try-on (AI render, no own photo)");
+                const mediaLabel = d.media === "video" ? (isLook ? "With video" : (d.videoKind === "video360" ? "AI-Video 360°" : "AI-Video")) : (isLook ? "Image only" : "AI-Picture");
+                const Row = ({ k, v }: { k: string; v: ReactNode }) => (
+                  <div className="flex items-start justify-between gap-4 border-b border-black/5 py-2.5">
+                    <span className="shrink-0 text-[12px] font-bold uppercase tracking-wide text-black/40">{k}</span>
+                    <span className="min-w-0 text-right text-[13px] font-semibold text-black">{v}</span>
+                  </div>
+                );
+                return (
+                  <div>
+                    <div className="mb-3 flex items-center gap-2">
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide ${isLook ? "bg-violet-100 text-violet-700" : "bg-sky-100 text-sky-700"}`}>{isLook ? "Look" : "Try-on"}</span>
+                      <span className="rounded-full bg-black/8 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-black/60">{mediaLabel}</span>
+                      {!isLook && d.media === "video" && !d.genKindKnown && (
+                        <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-amber-700" title="Created before tier tracking — the exact video tier (360°?) wasn't saved.">Tier not recorded</span>
+                      )}
+                    </div>
+                    <Row k="Created" v={fmt(d.createdAt)} />
+                    <Row k="By" v={<span>{d.who || "—"}{d.isCurator && <span className="ml-1.5 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-black text-emerald-700">CURATOR</span>}</span>} />
+                    <Row k="Type" v={typeLabel} />
+                    <Row k="Media" v={mediaLabel} />
+                    {isLook ? (
+                      <>
+                        {d.brand && <Row k="Brand" v={d.brand} />}
+                        {d.price && <Row k="Price" v={d.price} />}
+                        <Row k="Try-ons" v={String(d.tryOns ?? 0)} />
+                        <Row k="Likes" v={String(d.likes ?? 0)} />
+                        {d.media === "video" && d.videoCreatedAt && <Row k="Video created" v={fmt(d.videoCreatedAt)} />}
+                        {d.status && <Row k="Status" v={String(d.status)} />}
+                      </>
+                    ) : (
+                      <>
+                        <Row k="Look" v={d.lookName || "—"} />
+                        {d.source && <Row k="Source" v={String(d.source)} />}
+                        {d.status && <Row k="Status" v={String(d.status)} />}
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Post image(s) */}
       <div className="relative bg-black/5">
         {post.userPhotoUrl ? (
@@ -374,11 +451,22 @@ export default function PostPage() {
             <img src={post.imageUrl} alt={post.lookName} className="h-full w-full object-cover object-top" />
           </div>
         )}
+        {/* AI Picture label (Info) — on a still post (no video). Whole label is clickable. */}
+        {!post.videoUrl && (
+          <button type="button" onClick={() => void openInfo()} title="Info / history"
+            className="absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70">
+            <Sparkles className="h-3 w-3" />AI Picture <span className="ml-0.5 inline-flex items-center gap-0.5 opacity-80"><Info className="h-2.5 w-2.5" />(Info)</span>
+          </button>
+        )}
         {/* Try-on video (when one was generated for this try-on) */}
         {post.videoUrl && (
           <div className="relative mt-0.5 max-h-[75dvh] w-full overflow-hidden bg-black">
             <video src={post.videoUrl} className="mx-auto h-full max-h-[75dvh] w-full object-contain" controls loop playsInline muted autoPlay />
-            <div className="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white">Video</div>
+            {/* AI-Video label (Info) — whole label is clickable, opens the history sheet. */}
+            <button type="button" onClick={() => void openInfo()} title="Info / history"
+              className="absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70">
+              <Sparkles className="h-3 w-3" />AI-Video <span className="ml-0.5 inline-flex items-center gap-0.5 opacity-80"><Info className="h-2.5 w-2.5" />(Info)</span>
+            </button>
           </div>
         )}
       </div>
