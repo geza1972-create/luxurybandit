@@ -275,13 +275,13 @@ export default function BottomNav() {
                 <button type="button" onClick={() => void handleSignOut()}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
                   <LogOut className="h-5 w-5 text-red-400 shrink-0" />
-                  <span className="text-sm font-black text-red-500">Abmelden</span>
+                  <span className="text-sm font-black text-red-500">Sign out</span>
                 </button>
               ) : (
                 <button type="button" onClick={() => navigate("/stores?panel=account")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
                   <User className="h-5 w-5 text-black/50 shrink-0" />
-                  <span className="text-sm font-black text-black">Anmelden</span>
+                  <span className="text-sm font-black text-black">Sign in</span>
                 </button>
               )}
             </div>

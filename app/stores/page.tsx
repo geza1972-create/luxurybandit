@@ -682,7 +682,7 @@ function CommunityDetailView({
           {/* Info now lives on the AI-Video / AI Picture label (top-left) — see CommunitySlide. */}
           {/* Hide (owner/admin) — orange, next to delete */}
           {onHideItem && (isAdmin || (!!myCuratorId && item.curatorId === myCuratorId)) && (
-            <button type="button" onClick={() => onHideItem(item)} title="Ausblenden"
+            <button type="button" onClick={() => onHideItem(item)} title="Hide"
               className="grid h-10 w-10 place-items-center rounded-full bg-amber-400/85 backdrop-blur text-white active:opacity-70">
               <EyeOff className="h-5 w-5" />
             </button>
@@ -698,7 +698,7 @@ function CommunityDetailView({
           )}
           {/* Assign to a creator (admin) — look sets its curator, try-on sets the poster. */}
           {onAssign && (
-            <button type="button" onClick={() => setAssignOpen(true)} title="Zuweisen"
+            <button type="button" onClick={() => setAssignOpen(true)} title="Assign"
               className="grid h-10 w-10 place-items-center rounded-full bg-black/55 backdrop-blur text-white active:opacity-70">
               <UserPlus className="h-5 w-5" />
             </button>
@@ -950,7 +950,7 @@ function SavedLooksList({ defaultOpen = false }: { defaultOpen?: boolean }) {
       {open && (
         <div className="border-t border-black/8 px-4 py-3">
           {loading ? (
-            <p className="text-xs font-bold text-ink/40 py-2">Lädt…</p>
+            <p className="text-xs font-bold text-ink/40 py-2">Loading…</p>
           ) : looks.length === 0 ? (
             <p className="text-xs font-bold text-ink/40 py-2">Nothing saved yet.</p>
           ) : (
@@ -1382,11 +1382,11 @@ function StoresPage() {
 
   const deleteCommunityItem = async (item: CommunityItem) => {
     if (item.kind === "look") {
-      if (!confirm("Look permanent löschen?")) return;
+      if (!confirm("Permanently delete this look?")) return;
       await adminAction({ action: "delete-look", id: item.lookId || item.id });
       setLooks(prev => prev.filter(l => l.id !== (item.lookId || item.id)));
     } else {
-      if (!confirm("Beitrag permanent löschen?")) return;
+      if (!confirm("Permanently delete this post?")) return;
       await adminAction({ action: "delete-generation", id: item.id });
       setCommunityItems(prev => prev.filter(i => i.id !== item.id));
     }
@@ -1409,7 +1409,7 @@ function StoresPage() {
   // Look → take it offline (unpublish). Try-on → remove it from the feed (feed:false).
   const hideReelItem = async (item: CommunityItem) => {
     if (item.kind === "look") {
-      if (!confirm("Diesen Look offline nehmen (aus dem Feed ausblenden)?")) return;
+      if (!confirm("Take this look offline (hide it from the feeds)?")) return;
       const token = getStoredAuthSession()?.access_token;
       if (isAdmin) {
         // Admin (PIN or admin-email session) → admin update-look. Send both the PIN
@@ -1429,7 +1429,7 @@ function StoresPage() {
       }
       setLooks(prev => prev.filter(l => l.id !== item.lookId));
     } else {
-      if (!confirm("Diesen Try-on aus dem Feed ausblenden?")) return;
+      if (!confirm("Hide this try-on from the feed?")) return;
       // Send admin creds so an admin hide also DEACTIVATES it (curator can't re-enable).
       const token = getStoredAuthSession()?.access_token;
       await fetch("/api/try-this-look", {
@@ -1488,7 +1488,7 @@ function StoresPage() {
 
   const bulkDeleteLooks = async () => {
     if (!selectedLookIds.size) return;
-    if (!confirm(`${selectedLookIds.size} Looks permanent löschen?`)) return;
+    if (!confirm(`Permanently delete ${selectedLookIds.size} looks?`)) return;
     setFeedBulkWorking(true);
     await Promise.all([...selectedLookIds].map(id => adminAction({ action: "delete-look", id })));
     setLooks(prev => prev.filter(l => !selectedLookIds.has(l.id)));
@@ -1507,7 +1507,7 @@ function StoresPage() {
 
   const bulkDelete = async () => {
     if (!selectedIds.size) return;
-    if (!confirm(`${selectedIds.size} Beiträge permanent löschen?`)) return;
+    if (!confirm(`Permanently delete ${selectedIds.size} posts?`)) return;
     setBulkWorking(true);
     await adminAction({ action: "bulk-delete-generations", ids: [...selectedIds] });
     setCommunityItems(prev => prev.filter(i => !selectedIds.has(i.id)));
@@ -2120,7 +2120,7 @@ function StoresPage() {
             {!communityLoading && communityItems.length > 0 && filteredCommunity.length === 0 && (
               <div className="flex flex-col items-center gap-3 py-16 text-center px-6">
                 <span className="text-3xl">🔍</span>
-                <p className="text-sm font-black text-black/40">Keine Ergebnisse für „{query}"</p>
+                <p className="text-sm font-black text-black/40">No results for “{query}”</p>
               </div>
             )}
             {!communityLoading && filteredCommunity.length > 0 && (
@@ -2142,7 +2142,7 @@ function StoresPage() {
                         <button type="button" disabled={bulkWorking || !bulkAssignName.trim()}
                           onClick={() => void bulkAssign()}
                           className="h-9 rounded-xl bg-cobalt px-3 text-xs font-black text-white disabled:opacity-40 active:opacity-70">
-                          {bulkWorking ? "…" : `Zuweisen (${selectedIds.size})`}
+                          {bulkWorking ? "…" : `Assign (${selectedIds.size})`}
                         </button>
                         <button type="button" onClick={() => setBulkAssignOpen(false)}
                           className="h-9 w-9 grid place-items-center rounded-xl bg-black/5 text-black/50 active:opacity-70">
@@ -2153,7 +2153,7 @@ function StoresPage() {
                     {/* Action row */}
                     <div className="flex items-center justify-between px-3 py-2">
                       <span className="text-xs font-bold text-black/40">
-                        {selectMode ? `${selectedIds.size} ausgewählt` : `${filteredCommunity.length}${query ? ` von ${communityItems.length}` : ""} Beiträge`}
+                        {selectMode ? `${selectedIds.size} selected` : `${filteredCommunity.length}${query ? ` of ${communityItems.length}` : ""} posts`}
                       </span>
                       <div className="flex items-center gap-2">
                         {selectMode && selectedIds.size > 0 && (
@@ -2161,11 +2161,11 @@ function StoresPage() {
                             <button type="button" disabled={bulkWorking}
                               onClick={() => { setBulkAssignName(""); setBulkAssignOpen(v => !v); }}
                               className="rounded-full bg-cobalt px-3 py-1.5 text-[11px] font-black text-white disabled:opacity-50 active:opacity-70">
-                              Zuweisen
+                              Assign
                             </button>
                             <button type="button" disabled={bulkWorking} onClick={() => void bulkHide()}
                               className="rounded-full bg-amber-400 px-3 py-1.5 text-[11px] font-black text-white disabled:opacity-50 active:opacity-70">
-                              {bulkWorking ? "…" : "Ausblenden"}
+                              {bulkWorking ? "…" : "Hide"}
                             </button>
                             <button type="button" disabled={bulkWorking} onClick={() => void bulkDelete()}
                               className="rounded-full bg-red-500 px-3 py-1.5 text-[11px] font-black text-white disabled:opacity-50 active:opacity-70">
@@ -2336,7 +2336,7 @@ function StoresPage() {
                     <>
                       <button type="button" disabled={feedBulkWorking} onClick={() => void bulkHideLooks()}
                         className="rounded-full bg-amber-400 px-3 py-1.5 text-[11px] font-black text-white disabled:opacity-50 active:opacity-70 shrink-0">
-                        {feedBulkWorking ? "…" : `Ausblenden (${selectedLookIds.size})`}
+                        {feedBulkWorking ? "…" : `Hide (${selectedLookIds.size})`}
                       </button>
                       <button type="button" disabled={feedBulkWorking} onClick={() => void bulkDeleteLooks()}
                         className="rounded-full bg-red-500 px-3 py-1.5 text-[11px] font-black text-white disabled:opacity-50 active:opacity-70 shrink-0">

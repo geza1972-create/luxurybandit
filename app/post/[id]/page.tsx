@@ -122,7 +122,7 @@ export default function PostPage() {
     router.back();
   };
   const doDelete = async () => {
-    if (!post || !confirm("Diesen Beitrag permanent löschen?")) return;
+    if (!post || !confirm("Permanently delete this post?")) return;
     await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "delete-generation", id: post.id }) }).catch(() => {});
     router.back();
   };
@@ -308,13 +308,13 @@ export default function PostPage() {
         {/* Staff moderation: hide (owner/admin) · delete + assign (admin) */}
         {isStaff && (
           <div className="flex items-center gap-1.5">
-            <button type="button" onClick={() => void doHide()} title="Ausblenden"
+            <button type="button" onClick={() => void doHide()} title="Hide"
               className="grid h-9 w-9 place-items-center rounded-full bg-amber-400/90 text-white active:opacity-70"><EyeOff className="h-4 w-4" /></button>
             {isAdminUser && (
               <>
-                <button type="button" onClick={() => void doDelete()} title="Löschen"
+                <button type="button" onClick={() => void doDelete()} title="Delete"
                   className="grid h-9 w-9 place-items-center rounded-full bg-red-500/90 text-white active:opacity-70"><Trash2 className="h-4 w-4" /></button>
-                <button type="button" onClick={() => setAssignOpen(true)} title="Zuweisen"
+                <button type="button" onClick={() => setAssignOpen(true)} title="Assign"
                   className="grid h-9 w-9 place-items-center rounded-full bg-black/70 text-white active:opacity-70"><UserPlus className="h-4 w-4" /></button>
               </>
             )}
