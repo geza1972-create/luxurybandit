@@ -446,6 +446,7 @@ export async function GET(request: Request) {
           imageUrl: (g as any).imageUrl ?? "",
           videoUrl: (g as any).videoUrl ?? undefined,
           feed: (g as any).feed !== false,
+          lockedByAdmin: !!(g as any).lockedByAdmin,
           customerName: (g as any).customerName ?? "",
           lookName: g.lookName ?? look?.name ?? "",
           storeName: g.storeName ?? look?.storeName ?? "",
@@ -823,7 +824,19 @@ export async function POST(request: Request) {
       const genId = String(payload.generationId ?? "").trim();
       const gen = state.generations.find(g => g.id === genId);
       if (!gen) return NextResponse.json({ error: "Generation not found." }, { status: 404 });
-      (gen as any).feed = payload.feed !== false;
+      const admin = await isAdmin(request);
+      const wantFeed = payload.feed !== false;
+      // Admin "deactivation" lock: once an admin deactivates a try-on it stays
+      // hidden and the curator cannot re-enable it — only an admin can lift it.
+      if ((gen as any).lockedByAdmin && !admin) {
+        return NextResponse.json(
+          { error: "This try-on was deactivated by an admin and can only be reactivated by an admin." },
+          { status: 403 },
+        );
+      }
+      (gen as any).feed = wantFeed;
+      // An admin hiding it sets the lock; an admin showing it clears the lock.
+      if (admin) (gen as any).lockedByAdmin = !wantFeed;
       await saveTryThisLookState(state);
       return NextResponse.json({ ok: true });
     }

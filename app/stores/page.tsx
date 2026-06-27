@@ -1270,8 +1270,11 @@ function StoresPage() {
       setLooks(prev => prev.filter(l => l.id !== item.lookId));
     } else {
       if (!confirm("Diesen Try-on aus dem Feed ausblenden?")) return;
+      // Send admin creds so an admin hide also DEACTIVATES it (curator can't re-enable).
+      const token = getStoredAuthSession()?.access_token;
       await fetch("/api/try-this-look", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(myCuratorId ? { "x-curator-id": myCuratorId } : {}) },
         body: JSON.stringify({ action: "set-generation-feed", generationId: item.id, feed: false }),
       }).catch(() => {});
       setCommunityItems(prev => prev.filter(c => c.id !== item.id));

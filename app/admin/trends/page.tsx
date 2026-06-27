@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Check, ChevronUp, ChevronDown, ClipboardPaste, Crop, ExternalLink, ImagePlus, Link2, Loader2, Plus, Search, Trash2, Video, Wand2, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronUp, ChevronDown, ClipboardPaste, Crop, ExternalLink, ImagePlus, Link2, Loader2, Lock, Plus, Search, Trash2, Video, Wand2, X } from "lucide-react";
 import { FASHION_BRANDS } from "@/lib/fashion-brands";
 import { isIntimateName } from "@/lib/lingerie";
 
@@ -617,7 +617,7 @@ export default function AdminTrends() {
   // My try-ons — the creator's own try-on generations (photo + optional video).
   // These live in `state.generations` (separate from looks), so surface them here
   // so a creator can find, download and post the videos they make.
-  const [myTryons, setMyTryons] = useState<{ id: string; lookId: string; imageUrl: string; videoUrl?: string; feed: boolean; lookName: string; createdAt: number }[]>([]);
+  const [myTryons, setMyTryons] = useState<{ id: string; lookId: string; imageUrl: string; videoUrl?: string; feed: boolean; lockedByAdmin?: boolean; lookName: string; createdAt: number }[]>([]);
   const loadMyTryons = () => {
     const id = getCuratorId();
     if (!id) return Promise.resolve();
@@ -626,11 +626,20 @@ export default function AdminTrends() {
       .then((d: { userGallery?: typeof myTryons }) => setMyTryons((d.userGallery ?? []).slice().sort((a, b) => b.createdAt - a.createdAt)))
       .catch(() => {});
   };
+  const studioIsAdmin = (): boolean => !!getStoredPin();
   const [tryonFeedBusy, setTryonFeedBusy] = useState<string>("");
   const toggleTryonFeed = async (genId: string, feed: boolean) => {
     setTryonFeedBusy(genId);
-    setMyTryons(ts => ts.map(t => t.id === genId ? { ...t, feed } : t));
-    await fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "set-generation-feed", generationId: genId, feed }) }).catch(() => {});
+    const prev = myTryons;
+    // Send admin headers so an admin in the studio can lift an admin-deactivation.
+    setMyTryons(ts => ts.map(t => t.id === genId ? { ...t, feed, lockedByAdmin: studioIsAdmin() ? !feed : t.lockedByAdmin } : t));
+    try {
+      const res = await fetch("/api/try-this-look", { method: "POST", headers: studioHeaders(), body: JSON.stringify({ action: "set-generation-feed", generationId: genId, feed }) });
+      if (!res.ok) {
+        setMyTryons(prev); // server refused (e.g. admin-deactivated) → revert
+        if (res.status === 403) alert("This try-on was deactivated by an admin and can only be reactivated by an admin.");
+      }
+    } catch { setMyTryons(prev); }
     setTryonFeedBusy("");
   };
   // Edit a published look's brand (overrides name-based detection).
@@ -1509,13 +1518,20 @@ export default function AdminTrends() {
                   <div className="p-2">
                     <p className="truncate text-[11px] font-bold text-ink/70">{t.lookName || "Try-on"}</p>
                     <div className="mt-1.5 flex items-center justify-between gap-1">
-                      <button type="button"
-                        disabled={tryonFeedBusy === t.id}
-                        onClick={() => void toggleTryonFeed(t.id, !t.feed)}
-                        className={`flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-wide transition disabled:opacity-50 ${t.feed ? "bg-emerald-500 text-white" : "bg-black/10 text-ink/55"}`}>
-                        {tryonFeedBusy === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
-                        {t.feed ? "In feed" : "Hidden"}
-                      </button>
+                      {t.lockedByAdmin && !studioIsAdmin() ? (
+                        <span className="flex items-center gap-1 rounded-full bg-rose-100 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-rose-600" title="Deactivated by an admin — only an admin can reactivate it.">
+                          <Lock className="h-3 w-3" /> Deactivated
+                        </span>
+                      ) : (
+                        <button type="button"
+                          disabled={tryonFeedBusy === t.id}
+                          onClick={() => void toggleTryonFeed(t.id, !t.feed)}
+                          title={t.lockedByAdmin ? "Admin-deactivated — reactivating as admin" : undefined}
+                          className={`flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-wide transition disabled:opacity-50 ${t.feed ? "bg-emerald-500 text-white" : t.lockedByAdmin ? "bg-rose-100 text-rose-600" : "bg-black/10 text-ink/55"}`}>
+                          {tryonFeedBusy === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : t.lockedByAdmin ? <Lock className="h-3 w-3" /> : null}
+                          {t.feed ? "In feed" : t.lockedByAdmin ? "Deactivated" : "Hidden"}
+                        </button>
+                      )}
                       <a href={t.videoUrl || t.imageUrl} download target="_blank" rel="noopener noreferrer"
                         className="grid h-7 w-7 place-items-center rounded text-ink/55 transition hover:bg-black/5" title="Open / download">
                         <ExternalLink className="h-3.5 w-3.5" />
