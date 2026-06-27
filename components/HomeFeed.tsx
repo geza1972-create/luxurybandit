@@ -259,7 +259,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                     src={look.videoUrl} poster={look.videoPosterUrl || img} className="h-full w-full object-contain"
                     muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
-                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70`}>{look.aiCreated ? "✦ AI video" : "Video"}<span className="ml-0.5 inline-flex items-center gap-0.5 opacity-85"><Info className="h-3 w-3" />(Info)</span></button>
+                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{look.aiCreated ? "✦ AI video" : "Video"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
                 </div>
               ) : m.type === "cphoto" ? (
                 // Community try-on photo (someone wearing this look).
@@ -267,7 +267,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={m.url} alt={`${look.name} on ${m.name ?? "a member"}`} className="h-full w-full object-contain" />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
-                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70`}>{m.name ? `${m.name}'s try-on` : "Member try-on"}<span className="ml-0.5 inline-flex items-center gap-0.5 opacity-85"><Info className="h-3 w-3" />(Info)</span></button>
+                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{m.name ? `${m.name}'s try-on` : "Member try-on"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
                 </div>
               ) : m.type === "cvideo" ? (
                 // Community try-on video — same sound handling as the curator video.
@@ -275,15 +275,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
                     src={m.url} className="h-full w-full bg-black object-contain" muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
-                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70`}>{m.name ? `${m.name}'s video` : "Member video"}<span className="ml-0.5 inline-flex items-center gap-0.5 opacity-85"><Info className="h-3 w-3" />(Info)</span></button>
+                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{m.name ? `${m.name}'s video` : "Member video"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
                 </div>
               ) : m.type === "image" ? (
                 <div className="relative h-full w-full">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={img} alt={look.name} className="h-full w-full object-contain" />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
-                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide backdrop-blur active:opacity-70 ${look.aiCreated ? "bg-black/70 text-white" : "bg-white/85 text-black/70"}`}>
-                    {look.aiCreated ? "✦ Original" : "Curated"}<span className="ml-0.5 inline-flex items-center gap-0.5 opacity-80"><Info className="h-3 w-3" />(Info)</span>
+                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide backdrop-blur transition active:opacity-70 ${look.aiCreated ? "bg-black/70 text-white hover:bg-black/85" : "bg-white/85 text-black/70 hover:bg-white"}`}>
+                    {look.aiCreated ? "✦ Original" : "Curated"}<Info className="ml-1 h-3 w-3 opacity-80" />
                   </button>
                 </div>
               ) : null}

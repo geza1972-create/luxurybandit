@@ -454,8 +454,8 @@ export default function PostPage() {
         {/* AI Picture label (Info) — on a still post (no video). Whole label is clickable. */}
         {!post.videoUrl && (
           <button type="button" onClick={() => void openInfo()} title="Info / history"
-            className="absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70">
-            <Sparkles className="h-3 w-3" />AI Picture <span className="ml-0.5 inline-flex items-center gap-0.5 opacity-80"><Info className="h-2.5 w-2.5" />(Info)</span>
+            className="absolute left-2 top-2 z-10 flex items-center gap-1 cursor-pointer rounded-full bg-black/55 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70">
+            <Sparkles className="h-3 w-3" />AI Picture <Info className="ml-0.5 h-3 w-3 opacity-90" />
           </button>
         )}
         {/* Try-on video (when one was generated for this try-on) */}
@@ -464,8 +464,8 @@ export default function PostPage() {
             <video src={post.videoUrl} className="mx-auto h-full max-h-[75dvh] w-full object-contain" controls loop playsInline muted autoPlay />
             {/* AI-Video label (Info) — whole label is clickable, opens the history sheet. */}
             <button type="button" onClick={() => void openInfo()} title="Info / history"
-              className="absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70">
-              <Sparkles className="h-3 w-3" />AI-Video <span className="ml-0.5 inline-flex items-center gap-0.5 opacity-80"><Info className="h-2.5 w-2.5" />(Info)</span>
+              className="absolute left-2 top-2 z-10 flex items-center gap-1 cursor-pointer rounded-full bg-black/55 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70">
+              <Sparkles className="h-3 w-3" />AI-Video <Info className="ml-0.5 h-3 w-3 opacity-90" />
             </button>
           </div>
         )}

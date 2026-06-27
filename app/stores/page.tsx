@@ -250,7 +250,7 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
                       <button type="button" onClick={onInfo} title="Info / history"
                         onPointerDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}
                         style={{ touchAction: "manipulation" }}
-                        className="absolute right-2 top-12 z-20 flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70"><Sparkles className="h-2.5 w-2.5" />After <span className="inline-flex items-center gap-0.5 opacity-80"><Info className="h-2.5 w-2.5" />(Info)</span></button>
+                        className="absolute right-2 top-12 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/55 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70"><Sparkles className="h-2.5 w-2.5" />After <Info className="ml-0.5 h-2.5 w-2.5 opacity-90" /></button>
                     ) : (
                       <span className="absolute right-2 top-12 flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur"><Sparkles className="h-2.5 w-2.5" />After</span>
                     )}
@@ -281,10 +281,10 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
             <button type="button" onClick={onInfo} title="Info / history"
               onPointerDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
-              className="absolute left-3 top-3 z-20 flex items-center gap-1 rounded-full bg-black/55 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70"
+              className="absolute left-3 top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/55 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70"
               style={{ top: "max(0.75rem, calc(env(safe-area-inset-top) + 0.25rem))", touchAction: "manipulation" }}>
               <Sparkles className="h-3.5 w-3.5" />{slides[hIdx].kind === "video" ? "AI-Video" : "AI Picture"}
-              <span className="ml-0.5 inline-flex items-center gap-0.5 opacity-85"><Info className="h-3 w-3" />(Info)</span>
+              <Info className="ml-1 h-3.5 w-3.5 opacity-90" />
             </button>
           ) : (
             <span className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur"
