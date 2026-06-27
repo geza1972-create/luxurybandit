@@ -522,10 +522,10 @@ function CommunityDetailView({
             : <Volume2 strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />}
           <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">{muted ? "Sound" : "On"}</span>
         </button>
-        {/* Grid overview — closes the reels (overlay) or routes to the grid (landing) */}
+        {/* Home / overview — closes the reels (overlay) or routes to the grid (landing) */}
         <button type="button" onClick={onClose} className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
-          <LayoutGrid strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
-          <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Grid</span>
+          <Home strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
+          <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Home</span>
         </button>
       </div>
 
