@@ -166,10 +166,13 @@ export default function BottomNav() {
       const meta = (session?.user as any)?.user_metadata ?? {};
       const username = meta?.username ?? meta?.full_name ?? session?.user?.email?.split("@")[0] ?? "";
       const slug = username.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-      // A curator session (localStorage) counts as signed in even without a Supabase session.
+      // A curator session (localStorage) counts as signed in even without a Supabase
+      // session. The Studio admin PIN (entered in the studio) also counts as signed in.
       const curator = (() => { try { return JSON.parse(localStorage.getItem("lb_curator") ?? "{}"); } catch { return {}; } })();
-      const signedIn = !!session || !!curator?.id;
-      const displayName = (curator?.firstName || meta?.full_name || username || curator?.email?.split("@")[0] || "").trim();
+      const adminPin = (() => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } })();
+      const isPinAdmin = !!adminPin && !session && !curator?.id;
+      const signedIn = !!session || !!curator?.id || !!adminPin;
+      const displayName = (curator?.firstName || meta?.full_name || username || curator?.email?.split("@")[0] || (isPinAdmin ? "Admin" : "")).trim();
       const displayEmail = curator?.email || session?.user?.email || "";
 
       const navigate = (href: string) => {
@@ -179,6 +182,7 @@ export default function BottomNav() {
       const handleSignOut = async () => {
         setShowProfileMenu(false);
         try { localStorage.removeItem("lb_curator"); } catch { /**/ }
+        try { localStorage.removeItem("luxurybandit-try-look-admin-pin"); } catch { /**/ }
         setIsCurator(false);
         await signOut();
         router.push("/stores");
@@ -205,7 +209,7 @@ export default function BottomNav() {
                 {signedIn ? (
                   <p className="flex items-center gap-1 truncate text-[11px] font-bold text-emerald-600">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    {curator?.id ? "Signed in as curator" : "Signed in"}{displayEmail ? ` · ${displayEmail}` : ""}
+                    {curator?.id ? "Signed in as curator" : isPinAdmin ? "Admin (PIN)" : "Signed in"}{displayEmail ? ` · ${displayEmail}` : ""}
                   </p>
                 ) : (
                   <p className="truncate text-[11px] font-bold text-black/40">Sign in to save & curate</p>

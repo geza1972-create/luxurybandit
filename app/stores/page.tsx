@@ -1093,9 +1093,13 @@ function StoresPage() {
         const session = getStoredAuthSession();
         setIsSignedIn(!!session);
         const email = session?.user?.email?.toLowerCase();
-        const admin = !!email && (isAdminEmail(email) || email === "support@luxurybandit.com");
+        // Admin = the Studio PIN is stored (entered in the studio) OR an admin-email
+        // Supabase session. The PIN alone is enough for in-feed moderation; the server
+        // re-validates it on the actual action.
+        const pin = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "";
+        const admin = !!pin || (!!email && (isAdminEmail(email) || email === "support@luxurybandit.com"));
         setIsAdmin(admin);
-        if (admin) setAdminPin(localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "");
+        if (admin) setAdminPin(pin);
       } catch { /**/ }
     };
     applyAuthState();
