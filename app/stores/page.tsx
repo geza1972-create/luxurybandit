@@ -426,6 +426,7 @@ function CommunityDetailView({
   const isDraggingVertical = useRef(false);
   const verticalDragRef = useRef(0);
   const wheelCooldown = useRef(false);
+  const wheelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStartY = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   // The slides are positioned in % of the container; the drag/snap math must use the
@@ -504,12 +505,16 @@ function CommunityDetailView({
 
   const onWheel = (e: React.WheelEvent) => {
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-    if (wheelCooldown.current || verticalSnapping || allItems.length <= 1) return;
+    if (allItems.length <= 1) return;
+    // A single trackpad flick fires a long burst of wheel events (momentum). Keep the
+    // lock alive until the burst STOPS for 160ms, so one flick = one step (no auto-scroll).
+    if (wheelTimer.current) clearTimeout(wheelTimer.current);
+    wheelTimer.current = setTimeout(() => { wheelCooldown.current = false; }, 160);
+    if (wheelCooldown.current || verticalSnapping) return;
+    wheelCooldown.current = true;
     const goNext = e.deltaY > 0;
     const newIdx = goNext ? (currentIdx + 1) % allItems.length : (currentIdx - 1 + allItems.length) % allItems.length;
     snapTo(newIdx, goNext ? -slideH() : slideH());
-    wheelCooldown.current = true;
-    setTimeout(() => { wheelCooldown.current = false; }, 700);
   };
 
   const transition = verticalSnapping ? "transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)" : "none";
