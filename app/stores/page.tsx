@@ -161,9 +161,10 @@ type CommunityItem = {
 };
 
 // ── Community slide (extracted to avoid component-inside-component) ──────────
-function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleMute, onHome }: {
+function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleMute, onHome, isStaff, onMakeVideo, makingVideoLookId }: {
   it: CommunityItem; offset: number; verticalDrag: number; transition: string;
   muted: boolean; onToggleMute: () => void; onHome: () => void;
+  isStaff?: boolean; onMakeVideo?: (lookId: string) => void; makingVideoLookId?: string;
 }) {
   const uname = it.customerName
     ? it.customerName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
@@ -253,6 +254,11 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
             </div>
           ))}
         </div>
+        {/* AI content label (top-left) */}
+        <span className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur"
+          style={{ top: "max(0.75rem, calc(env(safe-area-inset-top) + 0.25rem))" }}>
+          <Sparkles className="h-3 w-3" />{it.videoUrl ? "AI-Video" : "AI Picture"}
+        </span>
         {/* Slide dots — show how many previews there are + where you are */}
         {slides.length > 1 && (
           <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
@@ -266,11 +272,19 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
       <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/60 via-black/20 to-transparent px-4 pt-12" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
         {/* ── The two core money buttons over the image ── */}
         {it.lookId && (
-          <div className="mb-2.5 flex items-center justify-center gap-2.5">
+          <div className="mb-2.5 flex flex-wrap items-center justify-center gap-2.5">
             <a href={`/tryon/${it.lookId}`}
               className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-white/80 px-5 text-sm font-black text-black backdrop-blur-md active:scale-95 transition-transform">
               <Sparkles className="h-4 w-4" /> Try on you
             </a>
+            {/* Make AI-Video — staff only, on AI-picture posts (no video yet) */}
+            {isStaff && !it.videoUrl && onMakeVideo && (
+              <button type="button" disabled={makingVideoLookId === it.lookId} onClick={() => onMakeVideo(it.lookId)}
+                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/30 bg-violet-600/80 px-5 text-sm font-black text-white backdrop-blur-md active:scale-95 transition-transform disabled:opacity-60">
+                {makingVideoLookId === it.lookId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {makingVideoLookId === it.lookId ? "Generating…" : "Make AI-Video"}
+              </button>
+            )}
             <a href={`${lookPath(it.lookName, it.lookId)}/details`}
               className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/30 bg-black/35 px-5 text-sm font-black text-white backdrop-blur-md active:scale-95 transition-transform">
               <ShoppingBag className="h-4 w-4" /> Bandit the look
@@ -398,6 +412,8 @@ function CommunityDetailView({
   isAdmin,
   myCuratorId,
   onHideItem,
+  onMakeVideo,
+  makingVideoLookId,
   router,
 }: {
   allItems: CommunityItem[];
@@ -412,6 +428,8 @@ function CommunityDetailView({
   isAdmin?: boolean;
   myCuratorId?: string;
   onHideItem?: (item: CommunityItem) => void;
+  onMakeVideo?: (lookId: string) => void;
+  makingVideoLookId?: string;
   router: ReturnType<typeof import("next/navigation").useRouter>;
 }) {
   const [currentIdx, setCurrentIdx] = useState(initialIndex);
@@ -528,11 +546,11 @@ function CommunityDetailView({
       onWheel={onWheel}
     >
       {/* Prev slide */}
-      {prevItem && <CommunitySlide it={prevItem} offset={-1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} />}
+      {prevItem && <CommunitySlide it={prevItem} offset={-1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} isStaff={!!isAdmin || !!myCuratorId} onMakeVideo={onMakeVideo} makingVideoLookId={makingVideoLookId} />}
       {/* Current slide */}
-      <CommunitySlide it={item} offset={0} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} />
+      <CommunitySlide it={item} offset={0} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} isStaff={!!isAdmin || !!myCuratorId} onMakeVideo={onMakeVideo} makingVideoLookId={makingVideoLookId} />
       {/* Next slide */}
-      {nextItem && <CommunitySlide it={nextItem} offset={1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} />}
+      {nextItem && <CommunitySlide it={nextItem} offset={1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} isStaff={!!isAdmin || !!myCuratorId} onMakeVideo={onMakeVideo} makingVideoLookId={makingVideoLookId} />}
 
       {/* Bottom-left: Sound on/off */}
       <button type="button" onClick={() => setMuted(m => !m)}
@@ -1247,6 +1265,27 @@ function StoresPage() {
     setReelItems(null);
   };
 
+  // Staff: turn an AI-picture look into an AI-video (Pixverse) from the feed.
+  const [makingVideoLookId, setMakingVideoLookId] = useState("");
+  const makeLookVideo = async (lookId: string) => {
+    if (!lookId || makingVideoLookId) return;
+    const headers: Record<string, string> = { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}), ...(myCuratorId ? { "x-curator-id": myCuratorId } : {}) };
+    setMakingVideoLookId(lookId);
+    try {
+      const start = await fetch("/api/generate-look-video", { method: "POST", headers, body: JSON.stringify({ lookId }) });
+      const sd = await start.json().catch(() => ({}));
+      if (!start.ok || !sd.videoId) { alert(sd.error ?? "Could not start the video."); setMakingVideoLookId(""); return; }
+      for (let i = 0; i < 100; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        const pr = await fetch(`/api/generate-look-video?lookId=${encodeURIComponent(lookId)}`, { headers });
+        const pd = await pr.json().catch(() => ({}));
+        if (pd.status === "done" && pd.videoUrl) { setLooks(ls => ls.map(l => l.id === lookId ? { ...l, videoUrl: pd.videoUrl } : l)); break; }
+        if (pd.status === "failed") { alert(pd.error ?? "Video generation failed."); break; }
+      }
+    } catch { /**/ }
+    setMakingVideoLookId("");
+  };
+
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -1503,6 +1542,8 @@ function StoresPage() {
         isAdmin={isAdmin}
         myCuratorId={myCuratorId}
         onHideItem={hideReelItem}
+        onMakeVideo={makeLookVideo}
+        makingVideoLookId={makingVideoLookId}
         router={router}
       />
     );
@@ -2233,6 +2274,8 @@ function StoresPage() {
           isAdmin={isAdmin}
           myCuratorId={myCuratorId}
           onHideItem={hideReelItem}
+        onMakeVideo={makeLookVideo}
+        makingVideoLookId={makingVideoLookId}
           router={router}
         />
       )}
