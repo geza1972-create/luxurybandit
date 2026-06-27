@@ -153,6 +153,8 @@ type CommunityItem = {
   storeName: string;
   storeSlug: string;
   curatorId?: string;
+  curatorName?: string;
+  curatorPhotoUrl?: string;
   slides?: Slide[];
   kind?: "look" | "tryon"; // for the in-feed Hide action (unpublish look vs hide try-on)
   createdAt: string;
@@ -166,6 +168,32 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
   const uname = it.customerName
     ? it.customerName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
     : "";
+  // The creator shown at the bottom: the person who tried it on, else the curator.
+  const creatorName = (it.customerName || it.curatorName || "").trim();
+  const creatorSlug = creatorName ? creatorName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") : "";
+  const [following, setFollowing] = useState(false);
+  useEffect(() => {
+    try { const l = JSON.parse(localStorage.getItem("lb_following") ?? "[]"); setFollowing(Array.isArray(l) && l.includes(creatorSlug)); } catch { /**/ }
+  }, [creatorSlug]);
+  const toggleFollow = (e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    if (!creatorSlug) return;
+    const next = !following;
+    setFollowing(next);
+    try {
+      const l = JSON.parse(localStorage.getItem("lb_following") ?? "[]") as string[];
+      const nl = next ? [...new Set([...l, creatorSlug])] : l.filter(s => s !== creatorSlug);
+      localStorage.setItem("lb_following", JSON.stringify(nl));
+    } catch { /**/ }
+    try {
+      const sess = getStoredAuthSession();
+      const cur = (() => { try { return JSON.parse(localStorage.getItem("lb_curator") ?? "{}"); } catch { return {}; } })();
+      const h: Record<string, string> = { "Content-Type": "application/json" };
+      if (sess?.access_token) h.Authorization = `Bearer ${sess.access_token}`;
+      else if (cur?.id) h["x-curator-id"] = cur.id;
+      fetch("/api/follow", { method: "POST", headers: h, body: JSON.stringify({ slug: creatorSlug, type: "user" }) }).catch(() => {});
+    } catch { /**/ }
+  };
   // Horizontal preview slides: video → Before/After photos.
   const slides: Slide[] = (it.slides && it.slides.length)
     ? it.slides
@@ -236,27 +264,38 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
         <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black/50 to-transparent pointer-events-none" />
       </div>
       <div className="flex items-center gap-3 bg-black px-4 py-3" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
-        {uname ? (
-          <a href={`/u/${uname}`} className="flex items-center gap-2 min-w-0 flex-1">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(it.customerName)}&backgroundColor=ffffff&fontColor=000000&fontSize=40`}
-              alt={it.customerName} className="h-9 w-9 shrink-0 rounded-full bg-white/10 object-cover" />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-black text-white">{it.customerName}</p>
-              {it.lookName && <p className="truncate text-[11px] font-bold text-white/50">{it.lookName}</p>}
-            </div>
-          </a>
+        {creatorName ? (
+          <>
+            <a href={creatorSlug ? `/u/${creatorSlug}` : "#"} className="flex items-center gap-2 min-w-0 flex-1">
+              {it.curatorPhotoUrl
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={it.curatorPhotoUrl} alt={creatorName} className="h-9 w-9 shrink-0 rounded-full bg-white/10 object-cover" />
+                // eslint-disable-next-line @next/next/no-img-element
+                : <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(creatorName)}&backgroundColor=ffffff&fontColor=000000&fontSize=40`}
+                    alt={creatorName} className="h-9 w-9 shrink-0 rounded-full bg-white/10 object-cover" />}
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black text-white">{creatorName}</p>
+                {it.lookName && <p className="truncate text-[11px] font-bold text-white/50">{it.lookName}{it.storeName ? ` · ${it.storeName}` : ""}</p>}
+              </div>
+            </a>
+            <button type="button" onClick={toggleFollow}
+              className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-black transition active:scale-95 ${following ? "border border-white/35 text-white/80" : "bg-white text-black"}`}>
+              {following ? "Following" : "Follow"}
+            </button>
+          </>
         ) : (
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-black text-white">{it.lookName}</p>
-            {it.storeName && <p className="truncate text-[11px] font-bold text-white/50">{it.storeName}</p>}
-          </div>
-        )}
-        {it.storeName && (
-          <a href={it.storeSlug ? `/store/${it.storeSlug}` : "#"}
-            className="shrink-0 rounded-full border border-white/20 px-3 py-1.5 text-xs font-black text-white/70">
-            {it.storeName}
-          </a>
+          <>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-black text-white">{it.lookName}</p>
+              {it.storeName && <p className="truncate text-[11px] font-bold text-white/50">{it.storeName}</p>}
+            </div>
+            {it.storeName && (
+              <a href={it.storeSlug ? `/store/${it.storeSlug}` : "#"}
+                className="shrink-0 rounded-full border border-white/20 px-3 py-1.5 text-xs font-black text-white/70">
+                {it.storeName}
+              </a>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -1399,6 +1438,8 @@ function StoresPage() {
             storeName: lookById.get(it.id)?.storeName ?? "",
             storeSlug: lookById.get(it.id)?.storeSlug ?? "",
             curatorId: lookById.get(it.id)?.curatorId,
+            curatorName: it.curatorName,
+            curatorPhotoUrl: it.curatorPhoto,
             brand: it.brand,
             kind: "look",
             createdAt: it.createdAt,
