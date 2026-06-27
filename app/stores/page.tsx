@@ -130,12 +130,10 @@ type Slide = { kind: "video" | "image" | "compare"; url: string; beforeUrl?: str
 function buildSlides(imageUrl: string, videoUrl: string | undefined, userPhotoUrl?: string): Slide[] {
   const slides: Slide[] = [];
   if (videoUrl) slides.push({ kind: "video", url: videoUrl });
-  if (userPhotoUrl && imageUrl) {
-    // Try-on with the original photo → Before (upload) + After (AI) in ONE split slide.
-    slides.push({ kind: "compare", url: imageUrl, beforeUrl: userPhotoUrl });
-  } else if (imageUrl) {
-    slides.push({ kind: "image", url: imageUrl });
-  }
+  // 1) the generated (After) image on its own — the hero of the post.
+  if (imageUrl) slides.push({ kind: "image", url: imageUrl });
+  // 2) then the Before | After split (only when there's an uploaded Before photo).
+  if (userPhotoUrl && imageUrl) slides.push({ kind: "compare", url: imageUrl, beforeUrl: userPhotoUrl });
   return slides;
 }
 
