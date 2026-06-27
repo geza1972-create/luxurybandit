@@ -588,7 +588,6 @@ export default function AdminPage() {
                           className={`flex flex-1 items-center justify-center rounded-full px-2 py-1 text-[10px] font-black transition ${p.feed ? "bg-black/[0.07] text-ink/60" : "bg-emerald-500 text-white"}`}>
                           {p.feed ? "Hide" : "Activate"}
                         </button>
-                        <button type="button" onClick={() => openRename(p)} className="grid h-7 w-7 place-items-center rounded text-ink/50 transition hover:bg-black/5" title="Rename"><Pencil className="h-3.5 w-3.5" /></button>
                         <a href={`/post/${p.id}`} target="_blank" rel="noopener noreferrer" className="grid h-7 w-7 place-items-center rounded text-ink/50 transition hover:bg-black/5" title="Open"><ExternalLink className="h-3.5 w-3.5" /></a>
                         <button type="button" onClick={() => void deletePost(p)} className="grid h-7 w-7 place-items-center rounded text-coral transition hover:bg-coral/10" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
                       </div>
