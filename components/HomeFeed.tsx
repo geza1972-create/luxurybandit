@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import TryOnQR from "@/components/TryOnQR";
 
@@ -74,6 +74,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [clamped, setClamped] = useState(false);
   const [active, setActive] = useState(0);
   const [inView, setInView] = useState(false);
+  const [vidFailed, setVidFailed] = useState(false); // autoplay blocked → show a Play button
   const [infoOpen, setInfoOpen] = useState(false);
   const [infoData, setInfoData] = useState<Record<string, any> | null>(null);
   const [infoLoading, setInfoLoading] = useState(false);
@@ -171,7 +172,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         // Videos always play silent — the feed soundtrack is the only audio, so
         // baked-in per-clip music (Pixverse) never clashes with it.
         v.muted = true;
-        void v.play().catch(() => {});
+        v.play().then(() => setVidFailed(false)).catch(() => setVidFailed(true));
       } else {
         v.pause();
         v.muted = true;
@@ -290,6 +291,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             </div>
           ))}
         </div>
+
+        {/* Play overlay — if autoplay was blocked, let the user start the video. */}
+        {(media[active]?.type === "video" || media[active]?.type === "cvideo") && vidFailed && (
+          <button type="button" aria-label="Play"
+            onClick={() => { const v = videoRefs.current[active]; if (v) { v.muted = true; v.play().then(() => setVidFailed(false)).catch(() => {}); } }}
+            className="absolute inset-0 z-10 grid place-items-center bg-black/10">
+            <Play className="h-16 w-16 fill-white/90 text-white/90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" />
+          </button>
+        )}
 
         {/* Mute toggle — shown whenever the active carousel slide is a video */}
         {(media[active]?.type === "video" || media[active]?.type === "cvideo") && (

@@ -200,23 +200,33 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
     ? it.slides
     : [...(it.videoUrl ? [{ kind: "video" as const, url: it.videoUrl }] : []), { kind: "image" as const, url: it.imageUrl }];
   const [hIdx, setHIdx] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [paused, setPaused] = useState(false);   // user explicitly tapped to pause
+  const [playFailed, setPlayFailed] = useState(false); // autoplay was blocked / not ready
   const [soon, setSoon] = useState(false); // non-staff tapped Make AI-Video (paid, pending Stripe)
   const scrollerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const isCurrent = offset === 0;
   const showingVideo = slides[hIdx]?.kind === "video";
-  // Play the video only when this post is current, the video slide is on screen,
-  // and the user hasn't tapped to pause it.
+  // Try to (auto)play the current video. If the browser blocks it we flag it so a
+  // Play button appears instead of a silently-frozen frame.
+  const attemptPlay = () => {
+    const v = videoRef.current;
+    if (!v || !isCurrent || !showingVideo || paused) return;
+    v.muted = muted; // set the PROPERTY (React's `muted` prop alone is unreliable → blocks muted autoplay)
+    v.play().then(() => setPlayFailed(false)).catch(() => setPlayFailed(true));
+  };
+  // Play when this post is current + the video slide is on screen + not user-paused.
+  // Retried from the video's onCanPlay/onLoadedData (see below) so a not-yet-ready
+  // video still starts after a scroll.
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    v.muted = muted; // set the PROPERTY (React's `muted` prop alone is unreliable → blocks muted autoplay)
-    if (isCurrent && showingVideo && !paused) { v.play().catch(() => {}); }
+    v.muted = muted;
+    if (isCurrent && showingVideo && !paused) attemptPlay();
     else { try { v.pause(); } catch { /**/ } }
-  }, [isCurrent, showingVideo, paused, muted]);
+  }, [isCurrent, showingVideo, paused, muted]); // eslint-disable-line react-hooks/exhaustive-deps
   // Reset to playing whenever this post leaves the screen, so it auto-plays next time.
-  useEffect(() => { if (!isCurrent) setPaused(false); }, [isCurrent]);
+  useEffect(() => { if (!isCurrent) { setPaused(false); setPlayFailed(false); } }, [isCurrent]);
   const onScroll = () => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -234,6 +244,8 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
               {s.kind === "video" ? (
                 <video ref={videoRef} src={s.url} poster={optImg(it.imageUrl, 1080)} muted={muted} loop playsInline preload="metadata"
                   onClick={() => setPaused(p => !p)}
+                  onCanPlay={attemptPlay} onLoadedData={attemptPlay}
+                  onPlay={() => setPlayFailed(false)}
                   className="h-full w-full object-cover object-top" />
               ) : s.kind === "compare" ? (
                 // Before (upload, no AI label) | After (AI result) side by side
@@ -262,9 +274,10 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
                   onError={(e) => { const im = e.currentTarget; if (im.src !== s.url) im.src = s.url; }}
                   className="h-full w-full object-cover object-top" />
               )}
-              {/* Paused overlay (tap the video to play/pause) */}
-              {s.kind === "video" && isCurrent && paused && (
-                <button type="button" onClick={() => setPaused(false)} aria-label="Play"
+              {/* Play overlay — shown when the user paused OR autoplay was blocked. */}
+              {s.kind === "video" && isCurrent && (paused || playFailed) && (
+                <button type="button" aria-label="Play"
+                  onClick={() => { setPaused(false); setPlayFailed(false); const v = videoRef.current; if (v) { v.muted = muted; v.play().catch(() => {}); } }}
                   className="absolute inset-0 z-10 grid place-items-center bg-black/10">
                   <Play className="h-16 w-16 fill-white/90 text-white/90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" />
                 </button>
