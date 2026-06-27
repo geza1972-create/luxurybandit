@@ -1702,7 +1702,10 @@ function StoresPage() {
     const out: { title?: string; link?: string; source?: string; thumbnail: string; price?: string; lingerie?: boolean; lookId: string; altIdx: number }[] = [];
     const seen = new Set<string>();
     for (const l of brandLooks) {
+      const lookIsLingerie = !!(l as any).lingerie;
       (((l as any).alternatives ?? []) as any[]).forEach((a, idx) => {
+        // Drop the old injected lingerie "upsell" on non-lingerie looks (confusing).
+        if (a?.lingerie && !lookIsLingerie) return;
         const thumbnail = a?.thumbnail ?? "";
         const link = a?.link ?? "";
         if (!thumbnail || (link && seen.has(link))) return;

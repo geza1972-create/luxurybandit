@@ -93,6 +93,10 @@ async function withLingerieSecond(
   baseAlts: Alt[],
   key: string,
 ): Promise<Alt[]> {
+  // DISABLED (product decision): the lingerie upsell on a non-lingerie look (e.g. a
+  // floral Versace shirt) is irrelevant & confusing. No longer injected. (Re-enable by
+  // removing this line.) Existing baked-in lingerie alts are filtered out at render.
+  return baseAlts;
   // A look that is ITSELF lingerie needs no lingerie upsell; skip (also saves a search).
   if (look.lingerie === true || isIntimateName(`${look.name ?? ""} ${look.brand ?? ""} ${look.productNote ?? ""}`)) return baseAlts;
   if (baseAlts.some((a) => a.lingerie)) return baseAlts; // already injected

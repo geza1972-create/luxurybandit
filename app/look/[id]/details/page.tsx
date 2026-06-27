@@ -165,12 +165,10 @@ export default function LookDetailsPage() {
       const bv = typeof b.priceValue === "number" && b.priceValue > 0 ? b.priceValue : -1;
       return bv - av;
     };
-    const lingerie = all.find((a) => (a as { lingerie?: boolean }).lingerie);
-    const rest = all.filter((a) => !(a as { lingerie?: boolean }).lingerie).sort(byPrice);
-    if (!lingerie) return rest;
-    const out = [...rest];
-    out.splice(1, 0, lingerie); // 2nd position
-    return out;
+    // Lingerie items only belong on a lingerie look. On a regular look the old
+    // injected lingerie "upsell" is irrelevant & confusing → drop it.
+    if (!look.lingerie) return all.filter((a) => !(a as { lingerie?: boolean }).lingerie).sort(byPrice);
+    return all.sort(byPrice);
   })();
 
   return (
