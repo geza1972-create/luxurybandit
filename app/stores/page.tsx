@@ -123,17 +123,16 @@ type Payload = {
   error?: string;
 };
 
-// A single horizontally-swipeable preview slide inside a feed post: the video then
-// the Before (uploaded photo) + After (result). Dupes are NOT slides — they're
-// fetched on demand via the Shop button.
-type Slide = { kind: "video" | "image"; url: string; label?: string };
+// A single horizontally-swipeable preview slide: the video, then for a try-on a
+// "compare" slide with the uploaded Before photo + the AI After result side by side.
+// (The Before is the user's upload — NOT AI — so it gets no AI label.)
+type Slide = { kind: "video" | "image" | "compare"; url: string; beforeUrl?: string };
 function buildSlides(imageUrl: string, videoUrl: string | undefined, userPhotoUrl?: string): Slide[] {
   const slides: Slide[] = [];
   if (videoUrl) slides.push({ kind: "video", url: videoUrl });
-  if (userPhotoUrl) {
-    // Try-on with an original photo → show Before then After.
-    slides.push({ kind: "image", url: userPhotoUrl, label: "Before" });
-    if (imageUrl) slides.push({ kind: "image", url: imageUrl, label: "After" });
+  if (userPhotoUrl && imageUrl) {
+    // Try-on with the original photo → Before (upload) + After (AI) in ONE split slide.
+    slides.push({ kind: "compare", url: imageUrl, beforeUrl: userPhotoUrl });
   } else if (imageUrl) {
     slides.push({ kind: "image", url: imageUrl });
   }
@@ -234,15 +233,25 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
                 <video ref={videoRef} src={s.url} poster={optImg(it.imageUrl, 1080)} muted={muted} loop playsInline preload="metadata"
                   onClick={() => setPaused(p => !p)}
                   className="h-full w-full object-cover object-top" />
+              ) : s.kind === "compare" ? (
+                // Before (upload, no AI label) | After (AI result) side by side
+                <div className="flex h-full w-full">
+                  <div className="relative h-full w-1/2 overflow-hidden border-r border-white/25">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={optImg(s.beforeUrl || "", 640)} alt="Before" onError={(e) => { const im = e.currentTarget; if (s.beforeUrl && im.src !== s.beforeUrl) im.src = s.beforeUrl; }} className="h-full w-full object-cover object-top" />
+                    <span className="absolute left-2 top-12 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">Before</span>
+                  </div>
+                  <div className="relative h-full w-1/2 overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={optImg(s.url, 640)} alt="After" onError={(e) => { const im = e.currentTarget; if (im.src !== s.url) im.src = s.url; }} className="h-full w-full object-cover object-top" />
+                    <span className="absolute right-2 top-12 flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur"><Sparkles className="h-2.5 w-2.5" />After</span>
+                  </div>
+                </div>
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={optImg(s.url, 1080)} alt={it.lookName} loading="lazy" decoding="async"
                   onError={(e) => { const im = e.currentTarget; if (im.src !== s.url) im.src = s.url; }}
                   className="h-full w-full object-cover object-top" />
-              )}
-              {/* Before / After label */}
-              {s.label && (
-                <span className="absolute left-3 top-12 rounded-full bg-black/55 px-2.5 py-0.5 text-[11px] font-black uppercase tracking-wide text-white backdrop-blur">{s.label}</span>
               )}
               {/* Paused overlay (tap the video to play/pause) */}
               {s.kind === "video" && isCurrent && paused && (
@@ -254,11 +263,14 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
             </div>
           ))}
         </div>
-        {/* AI content label (top-left) */}
-        <span className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur"
-          style={{ top: "max(0.75rem, calc(env(safe-area-inset-top) + 0.25rem))" }}>
-          <Sparkles className="h-3 w-3" />{slides[hIdx]?.kind === "video" ? "AI-Video" : "AI Picture"}
-        </span>
+        {/* AI content label (top-left). Hidden on the compare slide — it mixes the
+            uploaded Before (not AI) with the AI After, each labelled on its own half. */}
+        {(slides[hIdx]?.kind === "video" || slides[hIdx]?.kind === "image") && (
+          <span className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur"
+            style={{ top: "max(0.75rem, calc(env(safe-area-inset-top) + 0.25rem))" }}>
+            <Sparkles className="h-3 w-3" />{slides[hIdx].kind === "video" ? "AI-Video" : "AI Picture"}
+          </span>
+        )}
         {/* Slide dots — show how many previews there are + where you are */}
         {slides.length > 1 && (
           <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
@@ -1427,7 +1439,7 @@ function StoresPage() {
 
   // Discover = ONE mixed archive: looks, curator videos AND try-ons, by timestamp.
   const historyItems = useMemo(() => {
-    type HItem = { key: string; kind: "look" | "tryon"; id: string; lookId: string; thumb: string; videoUrl?: string; videoPoster?: string; aiCreated?: boolean; brand?: string; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string };
+    type HItem = { key: string; kind: "look" | "tryon"; id: string; lookId: string; thumb: string; videoUrl?: string; videoPoster?: string; hasBefore?: boolean; aiCreated?: boolean; brand?: string; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string };
     const items: HItem[] = [];
     const lookById = new Map(looks.map((l) => [l.id, l]));
     for (const l of looks) {
@@ -1444,18 +1456,18 @@ function StoresPage() {
     for (const c of communityItems) {
       // A try-on still IS a real model frame → use it as the video poster.
       const srcLook = lookById.get(c.lookId);
-      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, brand: c.brand, createdAt: c.createdAt ?? "", name: c.customerName || c.lookName, price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName });
+      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, hasBefore: !!c.userPhotoUrl, brand: c.brand, createdAt: c.createdAt ?? "", name: c.customerName || c.lookName, price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName });
     }
     items.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
-    // Dedupe by look so the same product never repeats in the feed (a look + its
-    // try-ons all share a lookId). Keep ONE per look: prefer one with a video, else
-    // the newest. Then re-sort newest-first.
+    // Dedupe by look so the same product never repeats (a look + its try-ons share a
+    // lookId). Keep the BEST representative: prefer a video, then a Before/After try-on,
+    // then the newest. Then re-sort newest-first.
+    const score = (it: HItem) => (it.videoUrl ? 2 : 0) + (it.hasBefore ? 1 : 0);
     const byLook = new Map<string, HItem>();
     for (const it of items) {
       const key = it.lookId || it.key;
       const cur = byLook.get(key);
-      if (!cur) byLook.set(key, it);
-      else if (!cur.videoUrl && it.videoUrl) byLook.set(key, it);
+      if (!cur || score(it) > score(cur)) byLook.set(key, it);
     }
     return [...byLook.values()].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   }, [looks, communityItems]);
