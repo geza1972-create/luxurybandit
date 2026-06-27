@@ -438,7 +438,7 @@ function CommunityDetailView({
   onLikeToggle: (id: string) => void;
   onHide?: (id: string) => void;
   onDelete?: (id: string) => void;
-  onAssign?: (id: string, customerName: string) => Promise<void>;
+  onAssign?: (item: CommunityItem, curatorId: string, curatorName: string) => Promise<void>;
   curators?: { id: string; firstName?: string; lastName?: string; photoUrl?: string }[];
   isAdmin?: boolean;
   myCuratorId?: string;
@@ -639,8 +639,8 @@ function CommunityDetailView({
               <EyeOff className="h-5 w-5" />
             </button>
           )}
-          {/* Delete (admin, try-ons) — red */}
-          {onDelete && item.kind !== "look" && (
+          {/* Delete (admin) — red. Looks delete the whole look; try-ons delete the post. */}
+          {onDelete && (
             <button type="button" onClick={() => onDelete(item.id)} title="Delete"
               className="grid h-10 w-10 place-items-center rounded-full bg-red-500/85 backdrop-blur text-white active:opacity-70">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -648,8 +648,8 @@ function CommunityDetailView({
               </svg>
             </button>
           )}
-          {/* Assign this try-on to a creator (admin) */}
-          {onAssign && item.kind !== "look" && (
+          {/* Assign to a creator (admin) — look sets its curator, try-on sets the poster. */}
+          {onAssign && (
             <button type="button" onClick={() => setAssignOpen(true)} title="Zuweisen"
               className="grid h-10 w-10 place-items-center rounded-full bg-black/55 backdrop-blur text-white active:opacity-70">
               <UserPlus className="h-5 w-5" />
@@ -674,7 +674,7 @@ function CommunityDetailView({
                 const name = [c.firstName, c.lastName].filter(Boolean).join(" ").trim() || "Creator";
                 return (
                   <button key={c.id} type="button" disabled={assignWorking}
-                    onClick={async () => { setAssignWorking(true); await onAssign(item.id, name); setAssignWorking(false); setAssignOpen(false); }}
+                    onClick={async () => { setAssignWorking(true); await onAssign(item, c.id, name); setAssignWorking(false); setAssignOpen(false); }}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition active:bg-black/5 disabled:opacity-50">
                     {c.photoUrl
                       // eslint-disable-next-line @next/next/no-img-element
@@ -682,7 +682,7 @@ function CommunityDetailView({
                       // eslint-disable-next-line @next/next/no-img-element
                       : <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=000000&fontColor=ffffff&fontSize=40`} alt={name} className="h-10 w-10 shrink-0 rounded-full bg-black/5" />}
                     <span className="min-w-0 flex-1 truncate text-sm font-black text-black">{name}</span>
-                    {item.customerName === name && <span className="text-[11px] font-black text-emerald-600">current</span>}
+                    {(item.kind === "look" ? item.curatorId === c.id : item.customerName === name) && <span className="text-[11px] font-black text-emerald-600">current</span>}
                   </button>
                 );
               })}
@@ -1239,10 +1239,28 @@ function StoresPage() {
   };
 
   const deleteCommunityItem = async (item: CommunityItem) => {
-    if (!confirm("Beitrag permanent löschen?")) return;
-    await adminAction({ action: "delete-generation", id: item.id });
-    setCommunityItems(prev => prev.filter(i => i.id !== item.id));
+    if (item.kind === "look") {
+      if (!confirm("Look permanent löschen?")) return;
+      await adminAction({ action: "delete-look", id: item.lookId || item.id });
+      setLooks(prev => prev.filter(l => l.id !== (item.lookId || item.id)));
+    } else {
+      if (!confirm("Beitrag permanent löschen?")) return;
+      await adminAction({ action: "delete-generation", id: item.id });
+      setCommunityItems(prev => prev.filter(i => i.id !== item.id));
+    }
     setCommunitySelectedIndex(null);
+    setReelItems(null);
+  };
+
+  // Assign an item to a creator. Look → set its curator; try-on → set the poster name.
+  const assignCommunityItem = async (item: CommunityItem, curatorId: string, curatorName: string) => {
+    if (item.kind === "look") {
+      await adminAction({ action: "set-look-curator", lookId: item.lookId || item.id, curatorId });
+      setLooks(prev => prev.map(l => l.id === (item.lookId || item.id) ? { ...l, curatorId } as typeof l : l));
+    } else {
+      await adminAction({ action: "assign-generation", id: item.id, customerName: curatorName });
+      setCommunityItems(prev => prev.map(i => i.id === item.id ? { ...i, customerName: curatorName } : i));
+    }
   };
 
   // Hide an item straight from the feed (owner of the content, or admin).
@@ -1552,10 +1570,7 @@ function StoresPage() {
           try { localStorage.setItem("lb_gen_likes", JSON.stringify(next)); } catch { /**/ }
         }}
         onDelete={isAdmin ? (id) => { const it = visibleHistoryAsReel.find(i => i.id === id); if (it) void deleteCommunityItem(it); } : undefined}
-        onAssign={isAdmin ? async (id, customerName) => {
-          await adminAction({ action: "assign-generation", id, customerName });
-          setCommunityItems(prev => prev.map(i => i.id === id ? { ...i, customerName } : i));
-        } : undefined}
+        onAssign={isAdmin ? assignCommunityItem : undefined}
         curators={assignCurators}
         isAdmin={isAdmin}
         myCuratorId={myCuratorId}
@@ -2283,11 +2298,8 @@ function StoresPage() {
             try { localStorage.setItem("lb_gen_likes", JSON.stringify(next)); } catch { /**/ }
           }}
           onHide={isAdmin ? (id) => { const it = (reelItems ?? filteredCommunity).find(i => i.id === id); if (it) void hideCommunityItem(it); } : undefined}
-          onDelete={isAdmin ? (id) => { const it = (reelItems ?? filteredCommunity).find(i => i.id === id); if (it) void deleteCommunityItem(it); } : undefined}
-          onAssign={isAdmin ? async (id, customerName) => {
-            await adminAction({ action: "assign-generation", id, customerName });
-            setCommunityItems(prev => prev.map(i => i.id === id ? { ...i, customerName } : i));
-          } : undefined}
+          onDelete={isAdmin ? (id) => { const it = (reelItems ?? filteredCommunity).find(i => i.id === id) ?? visibleHistoryAsReel.find(i => i.id === id); if (it) void deleteCommunityItem(it); } : undefined}
+          onAssign={isAdmin ? assignCommunityItem : undefined}
           curators={assignCurators}
           isAdmin={isAdmin}
           myCuratorId={myCuratorId}
