@@ -95,6 +95,14 @@ export default function BottomNav() {
     return () => clearInterval(iv);
   }, []);
 
+  // The feed moved Messages + Account into its TOP header; the Account icon there
+  // opens this same profile sheet via a custom event (the sheet logic lives here).
+  useEffect(() => {
+    const open = () => setShowProfileMenu(true);
+    window.addEventListener("lb-open-account", open);
+    return () => window.removeEventListener("lb-open-account", open);
+  }, []);
+
   // Hide on admin, auth, and standalone pages
   if (
     pathname.startsWith("/admin") ||
@@ -114,8 +122,13 @@ export default function BottomNav() {
       active === tab ? "text-black" : "text-black/35"
     }`;
 
+  // On the feed (/stores) the nav lives in the TOP header instead — hide the bottom
+  // bar there (the profile sheet below still renders + opens via the lb-open-account event).
+  const hideBar = pathname === "/stores";
+
   return (
     <>
+    {!hideBar && (
     <nav
       className="fixed bottom-0 inset-x-0 z-50 border-t border-black/10 bg-white/95 backdrop-blur-md"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
@@ -166,6 +179,7 @@ export default function BottomNav() {
 
       </div>
     </nav>
+    )}
 
     {/* Profile menu sheet */}
     {showProfileMenu && (() => {

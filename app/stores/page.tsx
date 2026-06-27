@@ -13,7 +13,7 @@ import { useScrollLock } from "@/lib/use-scroll-lock";
 import { lookPath } from "@/lib/look-slug";
 import HomeFeed from "@/components/HomeFeed";
 import { isAdminEmail } from "@/lib/is-admin-email";
-import { Bookmark, EyeOff, Heart, Home, Image as ImageIcon, Info, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, Sparkles, UserPlus, Volume2, VolumeX, X } from "lucide-react";
+import { Bookmark, EyeOff, Heart, Home, Image as ImageIcon, Info, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, Sparkles, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -1821,14 +1821,6 @@ function StoresPage() {
 
           {/* Right icons */}
           <div className="flex items-center gap-2">
-            {/* Back to the full-screen feed */}
-            <button type="button"
-              onClick={() => { router.push("/stores"); setSearchOpen(false); setQuery(""); }}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-black/12 bg-black/4 text-black/50 hover:text-black transition"
-              aria-label="Feed">
-              <Home className="h-4 w-4" />
-            </button>
-
             {/* Search toggle */}
             <button type="button"
               onClick={() => { setSearchOpen(v => !v); if (!searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50); else setQuery(""); }}
@@ -1845,6 +1837,19 @@ function StoresPage() {
               <Instagram className="h-4 w-4" />
             </a>
 
+            {/* Messages — moved up from the (removed) bottom bar */}
+            <button type="button" onClick={() => router.push("/messages")}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-black/12 bg-black/4 text-black/50 hover:text-black transition"
+              aria-label="Messages">
+              <MessageCircle className="h-4 w-4" />
+            </button>
+
+            {/* Account — opens the profile sheet (lives in BottomNav, via event) */}
+            <button type="button" onClick={() => window.dispatchEvent(new Event("lb-open-account"))}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-black/12 bg-black/4 text-black/50 hover:text-black transition"
+              aria-label="Account">
+              <User className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
