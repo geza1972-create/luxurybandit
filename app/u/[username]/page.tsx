@@ -87,7 +87,16 @@ export default function UserGalleryPage() {
     ]).then(([gallery, prof, followData]) => {
       setItems((gallery.userGallery ?? []) as GalleryItem[]);
       if (prof) setProfile(prof as ProfileData);
-      else setProfile({ userId: "", username, displayName: gallery.displayName ?? username });
+      // No seller profile → fall back to the curator's data (bio/photo/links) that
+      // ?username= now resolves, so curator profiles show their bio.
+      else setProfile({
+        userId: "", username,
+        displayName: gallery.displayName ?? username,
+        bio: gallery.bio ?? null,
+        avatarUrl: gallery.photoUrl ?? undefined,
+        website: gallery.website ?? undefined,
+        instagram: gallery.instagram ?? undefined,
+      } as ProfileData);
       setFollowing((followData as { following: boolean }).following ?? false);
       setFollowerCount((followData as { followerCount: number }).followerCount ?? 0);
     }).catch(() => {

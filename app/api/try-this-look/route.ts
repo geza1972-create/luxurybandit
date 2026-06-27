@@ -452,8 +452,18 @@ export async function GET(request: Request) {
           createdAt: g.createdAt,
         };
       });
-      const displayName = matched[0] ? ((matched[0] as any).customerName ?? filterUsername) : filterUsername;
-      return NextResponse.json({ userGallery, displayName });
+      // Resolve a matching curator account so the profile can show their bio/photo/links.
+      const cur = (state.curators ?? []).find(c => normalizeSlug([c.firstName, c.lastName].filter(Boolean).join(" ")) === querySlug);
+      const displayName = cur ? [cur.firstName, cur.lastName].filter(Boolean).join(" ") : (matched[0] ? ((matched[0] as any).customerName ?? filterUsername) : filterUsername);
+      return NextResponse.json({
+        userGallery,
+        displayName,
+        bio: (cur as any)?.bio || (cur as any)?.motto || null,
+        photoUrl: (cur as any)?.photoUrl || null,
+        website: (cur as any)?.website || null,
+        instagram: (cur as any)?.instagram || null,
+        curatorId: cur?.id || null,
+      });
     }
 
     if (!wantsAdminData) return NextResponse.json(publicState(state, storeSlug, lookSlug));
