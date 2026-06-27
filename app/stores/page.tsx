@@ -1383,7 +1383,7 @@ function StoresPage() {
 
   // Discover = ONE mixed archive: looks, curator videos AND try-ons, by timestamp.
   const historyItems = useMemo(() => {
-    type HItem = { key: string; kind: "look" | "tryon"; id: string; thumb: string; videoUrl?: string; videoPoster?: string; aiCreated?: boolean; brand?: string; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string };
+    type HItem = { key: string; kind: "look" | "tryon"; id: string; lookId: string; thumb: string; videoUrl?: string; videoPoster?: string; aiCreated?: boolean; brand?: string; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string };
     const items: HItem[] = [];
     const lookById = new Map(looks.map((l) => [l.id, l]));
     for (const l of looks) {
@@ -1395,18 +1395,25 @@ function StoresPage() {
       // date. Fall back to the timestamp embedded in the video filename for older ones.
       const videoTs = l.videoCreatedAt || tsFromVideoUrl(l.videoUrl) || "";
       const when = videoTs > (l.createdAt ?? "") ? videoTs : (l.createdAt ?? "");
-      items.push({ key: `look-${l.id}`, kind: "look", id: l.id, thumb, videoUrl: l.videoUrl, videoPoster, aiCreated: l.aiCreated, brand: l.brand, createdAt: when, name: l.name, price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl });
+      items.push({ key: `look-${l.id}`, kind: "look", id: l.id, lookId: l.id, thumb, videoUrl: l.videoUrl, videoPoster, aiCreated: l.aiCreated, brand: l.brand, createdAt: when, name: l.name, price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl });
     }
     for (const c of communityItems) {
       // A try-on still IS a real model frame → use it as the video poster.
       const srcLook = lookById.get(c.lookId);
-      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, brand: c.brand, createdAt: c.createdAt ?? "", name: c.customerName || c.lookName, price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName });
+      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, brand: c.brand, createdAt: c.createdAt ?? "", name: c.customerName || c.lookName, price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName });
     }
     items.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
-    // "The A List" = everything that was generated — both the published looks
-    // (now always a model wearing the piece) AND the community try-ons — so the
-    // curator can see the full output at a glance.
-    return items;
+    // Dedupe by look so the same product never repeats in the feed (a look + its
+    // try-ons all share a lookId). Keep ONE per look: prefer one with a video, else
+    // the newest. Then re-sort newest-first.
+    const byLook = new Map<string, HItem>();
+    for (const it of items) {
+      const key = it.lookId || it.key;
+      const cur = byLook.get(key);
+      if (!cur) byLook.set(key, it);
+      else if (!cur.videoUrl && it.videoUrl) byLook.set(key, it);
+    }
+    return [...byLook.values()].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   }, [looks, communityItems]);
 
   // Distinct curators with content (looks or try-ons) — for the header count.
