@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus } from "lucide-react";
+import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus, Video } from "lucide-react";
 import { signInWithPassword, getStoredAuthSession, saveAuthSession, signOut, resetPassword } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
 
@@ -422,6 +422,30 @@ export default function AdminPage() {
     setRenaming(null);
     await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "assign-generation", id: p.id, customerName }) }).catch(() => {});
   };
+  // Admin: animate an image-only post — generate a try-on video from its still and
+  // attach it to the post (free for staff). Pixverse takes a few minutes.
+  const [videoBusy, setVideoBusy] = useState<string>("");
+  const makePostVideo = async (p: AdminPost) => {
+    if (p.videoUrl || videoBusy) return;
+    setVideoBusy(p.id);
+    try {
+      const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: headers(), body: JSON.stringify({ lookId: p.lookId, image: p.imageUrl }) }).then(r => r.json());
+      if (!start?.videoId) throw new Error(start?.error || "Could not start the video.");
+      let videoUrl = "";
+      for (let i = 0; i < 90; i++) {
+        await new Promise(r => setTimeout(r, 5000));
+        const poll = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || "")}`).then(r => r.json());
+        if (poll.status === "done" && poll.videoUrl) { videoUrl = poll.videoUrl; break; }
+        if (poll.status === "failed") throw new Error("Generation failed.");
+      }
+      if (!videoUrl) throw new Error("Timed out — try again.");
+      await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "attach-generation-video", generationId: p.id, videoUrl }) });
+      setPosts(ps => ps.map(x => x.id === p.id ? { ...x, videoUrl } : x));
+    } catch (e) {
+      alert("Video generation failed: " + (e instanceof Error ? e.message : "error"));
+    }
+    setVideoBusy("");
+  };
   const shownPosts = useMemo(() => {
     return posts.filter(p => {
       if (q && !`${p.customerName} ${p.lookName}`.toLowerCase().includes(q)) return false;
@@ -588,6 +612,12 @@ export default function AdminPage() {
                           className={`flex flex-1 items-center justify-center rounded-full px-2 py-1 text-[10px] font-black transition ${p.feed ? "bg-black/[0.07] text-ink/60" : "bg-emerald-500 text-white"}`}>
                           {p.feed ? "Hide" : "Activate"}
                         </button>
+                        {!p.videoUrl && (
+                          <button type="button" disabled={!!videoBusy} onClick={() => void makePostVideo(p)}
+                            className="grid h-7 w-7 place-items-center rounded text-cobalt transition hover:bg-cobalt/10 disabled:opacity-40" title="Generate a video from this image">
+                            {videoBusy === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
+                          </button>
+                        )}
                         <a href={`/post/${p.id}`} target="_blank" rel="noopener noreferrer" className="grid h-7 w-7 place-items-center rounded text-ink/50 transition hover:bg-black/5" title="Open"><ExternalLink className="h-3.5 w-3.5" /></a>
                         <button type="button" onClick={() => void deletePost(p)} className="grid h-7 w-7 place-items-center rounded text-coral transition hover:bg-coral/10" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
                       </div>
