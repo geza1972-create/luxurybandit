@@ -406,9 +406,18 @@ export default function AdminPage() {
     await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "set-generation-feed", generationId: p.id, feed }) }).catch(() => {});
   };
   const deletePost = async (p: AdminPost) => {
-    if (!confirm("Diesen Post permanent löschen?")) return;
+    if (!confirm("Permanently delete this post?")) return;
     setPosts(ps => ps.filter(x => x.id !== p.id));
     await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-generation", id: p.id }) }).catch(() => {});
+  };
+  // Rename a post (set the displayed name) — e.g. turn an "Anonymous" try-on into a
+  // named one before bringing it back into the feeds.
+  const renamePost = async (p: AdminPost) => {
+    const input = window.prompt("Display name for this post (e.g. a curator's name):", p.customerName || "");
+    if (input === null) return; // cancelled
+    const customerName = input.trim();
+    setPosts(ps => ps.map(x => x.id === p.id ? { ...x, customerName } : x));
+    await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "assign-generation", id: p.id, customerName }) }).catch(() => {});
   };
   const shownPosts = useMemo(() => {
     return posts.filter(p => {
@@ -564,13 +573,19 @@ export default function AdminPage() {
                       {p.videoUrl && <span className="absolute right-1.5 top-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">Video</span>}
                     </div>
                     <div className="p-2">
-                      <p className="truncate text-[11px] font-black text-ink">{p.customerName || "—"}</p>
+                      <button type="button" onClick={() => void renamePost(p)} title="Rename"
+                        className="flex w-full items-center gap-1 text-left">
+                        <span className="truncate text-[11px] font-black text-ink">{p.customerName || "Anonymous"}</span>
+                        <Pencil className="h-3 w-3 shrink-0 text-ink/30" />
+                      </button>
                       <p className="truncate text-[10px] font-bold text-ink/40">{p.lookName || "Try-on"} · {new Date(p.createdAt).toLocaleDateString()}</p>
                       <div className="mt-1.5 flex items-center gap-1">
                         <button type="button" onClick={() => void togglePostFeed(p)}
+                          title={p.feed ? "Hide from the feeds" : "Activate — show in the feeds & reels"}
                           className={`flex flex-1 items-center justify-center rounded-full px-2 py-1 text-[10px] font-black transition ${p.feed ? "bg-black/[0.07] text-ink/60" : "bg-emerald-500 text-white"}`}>
-                          {p.feed ? "Hide" : "Show"}
+                          {p.feed ? "Hide" : "Activate"}
                         </button>
+                        <button type="button" onClick={() => void renamePost(p)} className="grid h-7 w-7 place-items-center rounded text-ink/50 transition hover:bg-black/5" title="Rename"><Pencil className="h-3.5 w-3.5" /></button>
                         <a href={`/post/${p.id}`} target="_blank" rel="noopener noreferrer" className="grid h-7 w-7 place-items-center rounded text-ink/50 transition hover:bg-black/5" title="Open"><ExternalLink className="h-3.5 w-3.5" /></a>
                         <button type="button" onClick={() => void deletePost(p)} className="grid h-7 w-7 place-items-center rounded text-coral transition hover:bg-coral/10" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
                       </div>
