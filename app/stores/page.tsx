@@ -1272,8 +1272,8 @@ function StoresPage() {
   // Home = the full-screen scrolling reels feed (DEFAULT landing). ?view=grid =
   // the 3-col grid overview. ?view=alist = The A List (HomeFeed of look posts).
   const view = searchParams.get("view");
-  const showAList = view === "alist";
-  const showGrid = view === "grid";
+  const showAList = false; // The A List was removed — one feed now (legacy ?view=alist → grid)
+  const showGrid = view === "grid" || view === "alist";
   // Account/Saved deep links open over the grid, not the immersive reels.
   const showReels = !showAList && !showGrid && !searchParams.get("panel"); // default
   const [brandFilter, setBrandFilter] = useState<string | null>(null);
@@ -1654,6 +1654,9 @@ function StoresPage() {
   }, [historyItems]);
   const visibleHistory = useMemo(() => {
     let items = brandFilter ? historyItems.filter(it => it.brand === brandFilter) : historyItems;
+    // Feed shows what PEOPLE generate (try-ons, image or video) + curator look VIDEOS.
+    // Never a flat product/clothing still — those are "Kleidungsstücke", not content.
+    items = items.filter(it => it.kind === "tryon" || !!it.videoUrl);
     const q = query.trim().toLowerCase();
     if (q) items = items.filter(it => `${it.name} ${it.curatorName ?? ""} ${it.brand ?? ""}`.toLowerCase().includes(q));
     return items;

@@ -122,24 +122,15 @@ export default function BottomNav() {
     >
       <div className="mx-auto grid max-w-lg grid-cols-4 h-14">
 
-        {/* Home (the feed grid, default) + The A List (HomeFeed look posts) */}
+        {/* Home — the single feed (The A List was removed; one feed now) */}
         {(() => {
-          const onStores = pathname === "/stores";
-          const aListView = onStores && searchParams.get("view") === "alist";
-          const homeActive = onStores && !aListView;
+          const homeActive = pathname === "/stores";
           return (
-            <>
-              <button type="button" onClick={() => { setActive("home"); router.push("/stores?view=grid"); }}
-                className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${homeActive ? "text-black" : "text-black/35"}`}>
-                <Home className="h-5 w-5" />
-                <span className="text-[10px] font-bold">Home</span>
-              </button>
-              <button type="button" onClick={() => { setActive("home"); router.push("/stores?view=alist"); }}
-                className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${aListView ? "text-black" : "text-black/35"}`}>
-                <Play className="h-5 w-5" />
-                <span className="text-[10px] font-bold">The A List</span>
-              </button>
-            </>
+            <button type="button" onClick={() => { setActive("home"); router.push("/stores?view=grid"); }}
+              className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${homeActive ? "text-black" : "text-black/35"}`}>
+              <Home className="h-5 w-5" />
+              <span className="text-[10px] font-bold">Home</span>
+            </button>
           );
         })()}
 
