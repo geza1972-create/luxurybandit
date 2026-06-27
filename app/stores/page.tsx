@@ -257,7 +257,7 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
         {/* AI content label (top-left) */}
         <span className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur"
           style={{ top: "max(0.75rem, calc(env(safe-area-inset-top) + 0.25rem))" }}>
-          <Sparkles className="h-3 w-3" />{it.videoUrl ? "AI-Video" : "AI Picture"}
+          <Sparkles className="h-3 w-3" />{slides[hIdx]?.kind === "video" ? "AI-Video" : "AI Picture"}
         </span>
         {/* Slide dots — show how many previews there are + where you are */}
         {slides.length > 1 && (
