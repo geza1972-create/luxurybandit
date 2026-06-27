@@ -673,10 +673,12 @@ function CommunityDetailView({
         </button>
       </div>
 
-      {/* Top bar — always on top, not translated */}
-      <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-end p-4 pointer-events-auto"
+      {/* Top bar — always on top, not translated. The container is click-through
+          (pointer-events-none) so it doesn't swallow taps on the AI label below it;
+          only the button group itself is interactive. */}
+      <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-end p-4 pointer-events-none"
         style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 pointer-events-auto">
           {/* Info now lives on the AI-Video / AI Picture label (top-left) — see CommunitySlide. */}
           {/* Hide (owner/admin) — orange, next to delete */}
           {onHideItem && (isAdmin || (!!myCuratorId && item.curatorId === myCuratorId)) && (
