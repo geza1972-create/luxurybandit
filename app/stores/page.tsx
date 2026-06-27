@@ -295,7 +295,7 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
             {!it.videoUrl && onMakeVideo && (
               <button type="button" disabled={makingVideoLookId === it.lookId}
                 onClick={() => { if (isStaff) onMakeVideo(it.lookId); else { setSoon(true); setTimeout(() => setSoon(false), 2500); } }}
-                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/30 bg-violet-600/80 px-5 text-sm font-black text-white backdrop-blur-md active:scale-95 transition-transform disabled:opacity-60">
+                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-white/80 px-5 text-sm font-black text-black backdrop-blur-md active:scale-95 transition-transform disabled:opacity-60">
                 {makingVideoLookId === it.lookId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 {makingVideoLookId === it.lookId ? "Generating…" : soon ? "Soon · paid" : "Make AI-Video"}
               </button>
