@@ -86,7 +86,7 @@ export default function AdminPage() {
   const [curators, setCurators] = useState<Curator[]>([]);
   const [looks, setLooks] = useState<Look[]>([]);
   const [community, setCommunity] = useState<{ customerName?: string; curatorId?: string }[]>([]);
-  const [sortC, setSortC] = useState<"looks" | "tryons" | "name">("looks");
+  const [sortC, setSortC] = useState<"new" | "looks" | "tryons" | "name">("new");
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const pickSort = (key: "looks" | "tryons" | "name") => {
     if (sortC === key) setSortDir(d => (d === "desc" ? "asc" : "desc"));
@@ -378,8 +378,9 @@ export default function AdminPage() {
   const shownCurators = useMemo(() => {
     const base = !q ? curators : curators.filter(c => `${fullName(c)} ${c.email ?? ""} ${c.brands ?? ""} ${c.style ?? ""}`.toLowerCase().includes(q));
     const arr = [...base];
-    const dir = sortDir === "asc" ? 1 : -1; // desc by default: most / Z first
-    if (sortC === "name") arr.sort((a, b) => fullName(a).localeCompare(fullName(b)) * dir);
+    const dir = sortDir === "asc" ? 1 : -1; // desc by default: newest / most / Z first
+    if (sortC === "new") arr.sort((a, b) => (String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? ""))) * dir);
+    else if (sortC === "name") arr.sort((a, b) => fullName(a).localeCompare(fullName(b)) * dir);
     else if (sortC === "tryons") arr.sort((a, b) => ((tryonsByCurator.get(a.id) ?? 0) - (tryonsByCurator.get(b.id) ?? 0)) * dir);
     else arr.sort((a, b) => ((looksByCurator.get(a.id) ?? 0) - (looksByCurator.get(b.id) ?? 0)) * dir);
     // Admin/house entry pinned at the top (respects search).
@@ -635,7 +636,7 @@ export default function AdminPage() {
         {tab === "curators" && (
           <div className="mt-3 flex items-center gap-1.5">
             <span className="text-[11px] font-black uppercase tracking-wider text-ink/35">Sort</span>
-            {([["looks", "Looks"], ["tryons", "Try-ons"], ["name", "Name"]] as const).map(([key, label]) => (
+            {([["new", "Newest"], ["looks", "Looks"], ["tryons", "Try-ons"], ["name", "Name"]] as const).map(([key, label]) => (
               <button key={key} type="button" onClick={() => pickSort(key)} title={sortC === key ? (sortDir === "desc" ? "Descending — tap to flip" : "Ascending — tap to flip") : "Sort"}
                 className={`inline-flex h-8 items-center gap-1 rounded-lg border px-3 text-xs font-black transition ${sortC === key ? "border-black bg-black text-white" : "border-black/10 text-ink/55"}`}>
                 {label}
