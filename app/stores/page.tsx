@@ -263,40 +263,56 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
         )}
         <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black/50 to-transparent pointer-events-none" />
       </div>
-      <div className="flex items-center gap-3 bg-black px-4 py-3" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
-        {creatorName ? (
-          <>
-            <a href={creatorSlug ? `/u/${creatorSlug}` : "#"} className="flex items-center gap-2 min-w-0 flex-1">
-              {it.curatorPhotoUrl
-                // eslint-disable-next-line @next/next/no-img-element
-                ? <img src={it.curatorPhotoUrl} alt={creatorName} className="h-9 w-9 shrink-0 rounded-full bg-white/10 object-cover" />
-                // eslint-disable-next-line @next/next/no-img-element
-                : <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(creatorName)}&backgroundColor=ffffff&fontColor=000000&fontSize=40`}
-                    alt={creatorName} className="h-9 w-9 shrink-0 rounded-full bg-white/10 object-cover" />}
-              <div className="min-w-0">
-                <p className="truncate text-sm font-black text-white">{creatorName}</p>
-                {it.lookName && <p className="truncate text-[11px] font-bold text-white/50">{it.lookName}{it.storeName ? ` · ${it.storeName}` : ""}</p>}
-              </div>
+      <div className="bg-black px-4 pt-2.5" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+        {/* ── The two core money buttons — Try on you · Bandit the look ── */}
+        {it.lookId && (
+          <div className="mb-2.5 flex items-center gap-2">
+            <a href={`/tryon/${it.lookId}`}
+              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full bg-white text-sm font-black text-black shadow-lg active:scale-95 transition-transform">
+              <Sparkles className="h-4 w-4" /> Try on you
             </a>
-            <button type="button" onClick={toggleFollow}
-              className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-black transition active:scale-95 ${following ? "border border-white/35 text-white/80" : "bg-white text-black"}`}>
-              {following ? "Following" : "Follow"}
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-black text-white">{it.lookName}</p>
-              {it.storeName && <p className="truncate text-[11px] font-bold text-white/50">{it.storeName}</p>}
-            </div>
-            {it.storeName && (
-              <a href={it.storeSlug ? `/store/${it.storeSlug}` : "#"}
-                className="shrink-0 rounded-full border border-white/20 px-3 py-1.5 text-xs font-black text-white/70">
-                {it.storeName}
-              </a>
-            )}
-          </>
+            <a href={`${lookPath(it.lookName, it.lookId)}/details`}
+              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full border border-white/25 bg-black text-sm font-black text-white shadow-lg active:scale-95 transition-transform">
+              <ShoppingBag className="h-4 w-4" /> Bandit the look
+            </a>
+          </div>
         )}
+        {/* ── Creator + Follow ── */}
+        <div className="flex items-center gap-3">
+          {creatorName ? (
+            <>
+              <a href={creatorSlug ? `/u/${creatorSlug}` : "#"} className="flex items-center gap-2 min-w-0 flex-1">
+                {it.curatorPhotoUrl
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={it.curatorPhotoUrl} alt={creatorName} className="h-9 w-9 shrink-0 rounded-full bg-white/10 object-cover" />
+                  // eslint-disable-next-line @next/next/no-img-element
+                  : <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(creatorName)}&backgroundColor=ffffff&fontColor=000000&fontSize=40`}
+                      alt={creatorName} className="h-9 w-9 shrink-0 rounded-full bg-white/10 object-cover" />}
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-black text-white">{creatorName}</p>
+                  {it.lookName && <p className="truncate text-[11px] font-bold text-white/50">{it.lookName}{it.storeName ? ` · ${it.storeName}` : ""}</p>}
+                </div>
+              </a>
+              <button type="button" onClick={toggleFollow}
+                className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-black transition active:scale-95 ${following ? "border border-white/35 text-white/80" : "bg-white text-black"}`}>
+                {following ? "Following" : "Follow"}
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-black text-white">{it.lookName}</p>
+                {it.storeName && <p className="truncate text-[11px] font-bold text-white/50">{it.storeName}</p>}
+              </div>
+              {it.storeName && (
+                <a href={it.storeSlug ? `/store/${it.storeSlug}` : "#"}
+                  className="shrink-0 rounded-full border border-white/20 px-3 py-1.5 text-xs font-black text-white/70">
+                  {it.storeName}
+                </a>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -513,7 +529,7 @@ function CommunityDetailView({
 
       {/* Bottom-left controls: Sound + Grid */}
       <div className="absolute left-3 z-20 flex items-center gap-4 pointer-events-auto"
-        style={{ bottom: "calc(env(safe-area-inset-bottom) + 5rem)" }}>
+        style={{ bottom: "calc(env(safe-area-inset-bottom) + 7.5rem)" }}>
         {/* Sound on/off */}
         <button type="button" onClick={() => setMuted(m => !m)}
           className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
@@ -531,7 +547,7 @@ function CommunityDetailView({
 
       {/* Right action column — always on top, not translated */}
       <div className="absolute right-2 z-20 flex flex-col items-center gap-5 pointer-events-auto"
-        style={{ bottom: "calc(env(safe-area-inset-bottom) + 5rem)" }}>
+        style={{ bottom: "calc(env(safe-area-inset-bottom) + 7.5rem)" }}>
         {/* Like */}
         <button type="button" onClick={() => onLikeToggle(item.id)}
           className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
@@ -572,20 +588,6 @@ function CommunityDetailView({
           <Send strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
           <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Share</span>
         </button>
-        {/* Try this look */}
-        <button type="button" onClick={() => { onClose(); router.push(`/look/${item.lookId}`); }}
-          className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
-          <Sparkles strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
-          <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Try on you</span>
-        </button>
-        {/* Shop the dupes — fetched on demand on the list page (as before) */}
-        {item.lookId && (
-          <button type="button" onClick={() => { onClose(); router.push(`${lookPath(item.lookName, item.lookId)}/details`); }}
-            className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
-            <ShoppingBag strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
-            <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)] text-center leading-tight">Change<br/>the look</span>
-          </button>
-        )}
         {/* Hide — only for the owner of this content (or admin) */}
         {onHideItem && (isAdmin || (!!myCuratorId && item.curatorId === myCuratorId)) && (
           <button type="button" onClick={() => onHideItem(item)}
