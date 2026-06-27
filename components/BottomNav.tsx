@@ -113,7 +113,7 @@ export default function BottomNav() {
           const homeActive = onStores && !aListView;
           return (
             <>
-              <button type="button" onClick={() => { setActive("home"); router.push("/stores"); }}
+              <button type="button" onClick={() => { setActive("home"); router.push("/stores?view=grid"); }}
                 className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${homeActive ? "text-black" : "text-black/35"}`}>
                 <Home className="h-5 w-5" />
                 <span className="text-[10px] font-bold">Home</span>
