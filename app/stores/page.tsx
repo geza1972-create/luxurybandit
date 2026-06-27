@@ -205,6 +205,14 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
   const videoRef = useRef<HTMLVideoElement>(null);
   const isCurrent = offset === 0;
   const showingVideo = slides[hIdx]?.kind === "video";
+  // The 3 reels slides (prev/current/next) are reused as you scroll, so reset the
+  // horizontal slide back to the first one whenever the POST changes — otherwise a
+  // post you scroll to opens on slide 2 (the one you'd swiped to on the previous post).
+  useEffect(() => {
+    setHIdx(0);
+    const el = scrollerRef.current;
+    if (el) el.scrollLeft = 0;
+  }, [it.id]);
   // Try to (auto)play the current video. If the browser blocks it we flag it so a
   // Play button appears instead of a silently-frozen frame.
   const attemptPlay = () => {
