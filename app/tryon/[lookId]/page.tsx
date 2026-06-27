@@ -381,17 +381,23 @@ export default function TryonPage() {
   // face (FASHN's photo doesn't). Person photo is cropped to head+shoulders first.
   const startReferenceVideo = async (turnaround: boolean, wantFrame = false) => {
     if (!look || !userPhoto) return;
-    const altParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("alt") : null;
+    const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+    const garmentParam = params.get("garment");
+    const garmentUrl = garmentParam ? decodeURIComponent(garmentParam) : "";
+    const garmentProxied = garmentUrl ? `/api/img-proxy?url=${encodeURIComponent(garmentUrl)}` : undefined;
+    const altParam = params.get("alt");
     const altIdx = altParam !== null && /^\d+$/.test(altParam) ? Number(altParam) : -1;
     const altThumb = altIdx >= 0 ? look.alternatives?.[altIdx]?.thumbnail : undefined;
     const altProxied = altThumb ? `/api/img-proxy?url=${encodeURIComponent(altThumb)}` : undefined;
     let garmentData: string;
     try {
-      // When a specific shop card is chosen (?alt=N), use EXACTLY that product image
-      // — never silently fall back to the look's hero (that caused the wrong garment).
-      const candidates = altIdx >= 0
-        ? [altThumb, altProxied]
-        : [look.garmentFrontImageUrl, look.frontImageUrl, look.imageUrl];
+      // When a specific product is chosen (?garment=url or ?alt=N), use EXACTLY that
+      // image — never silently fall back to the look's hero (wrong-garment bug).
+      const candidates = garmentUrl
+        ? [garmentUrl, garmentProxied]
+        : altIdx >= 0
+          ? [altThumb, altProxied]
+          : [look.garmentFrontImageUrl, look.frontImageUrl, look.imageUrl];
       garmentData = await firstValidImageDataUrl(candidates);
     } catch {
       setError("Couldn't load the selected product image. Pick the look again."); setStep("confirm"); return;
@@ -458,15 +464,21 @@ export default function TryonPage() {
       // not the hero. Remote thumbnails are usually CORS-blocked, so we try the
       // direct URL first then the same image via /api/img-proxy (server-side fetch)
       // before ever falling back to the hero.
-      const altParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("alt") : null;
+      const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+      // ?garment=<encoded url> → try on an arbitrary external product image (used by
+      // the brand storefront's live results that aren't tied to a stored look).
+      const garmentParam = params.get("garment");
+      const garmentUrl = garmentParam ? decodeURIComponent(garmentParam) : "";
+      const garmentProxied = garmentUrl ? `/api/img-proxy?url=${encodeURIComponent(garmentUrl)}` : undefined;
+      const altParam = params.get("alt");
       const altIdx = altParam !== null && /^\d+$/.test(altParam) ? Number(altParam) : -1;
       const altThumb = altIdx >= 0 ? look.alternatives?.[altIdx]?.thumbnail : undefined;
       const altProxied = altThumb ? `/api/img-proxy?url=${encodeURIComponent(altThumb)}` : undefined;
       const garmentData = await firstValidImageDataUrl([
-        altThumb,
-        altProxied,
-        // Only fall back to the hero when no specific card was chosen.
-        ...(altThumb ? [] : [look.garmentFrontImageUrl, look.frontImageUrl, look.imageUrl, look.galleryImageUrls?.[0]]),
+        garmentUrl, garmentProxied,
+        altThumb, altProxied,
+        // Only fall back to the hero when no specific product was chosen.
+        ...(garmentUrl || altThumb ? [] : [look.garmentFrontImageUrl, look.frontImageUrl, look.imageUrl, look.galleryImageUrls?.[0]]),
       ]);
       const coverageRule = "Coverage rule: the generated image must keep the person at least as covered as in the original photo. Never expose more skin, remove undergarments, or show less clothing than the input. No nudity; keep intimate areas (chest, groin, buttocks) covered at all times.";
       const prompt = photo

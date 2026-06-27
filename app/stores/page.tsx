@@ -1691,6 +1691,45 @@ function StoresPage() {
     return filteredCommunity.map(c => ({ ...c, kind: "tryon" as const, slides: buildSlides(c.imageUrl, c.videoUrl, c.userPhotoUrl) }));
   }, [filteredCommunity]);
 
+  // ── "More {brand} to try on" — products shown as a list below the curated grid.
+  // Stored first (free: each look's saved shop alternatives, try-on via ?alt=N),
+  // then optional live Google-Shopping results loaded on demand (?garment=url).
+  const brandLooks = useMemo(
+    () => (brandFilter ? looks.filter(l => (l as any).brand === brandFilter || new RegExp(brandFilter.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i").test((l as any).name ?? "")) : []),
+    [brandFilter, looks],
+  );
+  const brandStoredProducts = useMemo(() => {
+    const out: { title?: string; link?: string; source?: string; thumbnail: string; price?: string; lingerie?: boolean; lookId: string; altIdx: number }[] = [];
+    const seen = new Set<string>();
+    for (const l of brandLooks) {
+      (((l as any).alternatives ?? []) as any[]).forEach((a, idx) => {
+        const thumbnail = a?.thumbnail ?? "";
+        const link = a?.link ?? "";
+        if (!thumbnail || (link && seen.has(link))) return;
+        if (link) seen.add(link);
+        out.push({ title: a.title, link, source: a.source, thumbnail, price: a.price, lingerie: a.lingerie, lookId: l.id, altIdx: idx });
+      });
+    }
+    return out;
+  }, [brandLooks]);
+  const brandRepLookId = brandLooks[0]?.id ?? "";
+  const [liveProducts, setLiveProducts] = useState<{ title?: string; link?: string; source?: string; thumbnail: string; price?: string }[]>([]);
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [liveLoadedBrand, setLiveLoadedBrand] = useState<string | null>(null);
+  useEffect(() => { setLiveProducts([]); setLiveLoadedBrand(null); }, [brandFilter]);
+  const loadMoreBrand = async () => {
+    if (!brandFilter) return;
+    setLiveLoading(true);
+    try {
+      const d = await fetch(`/api/brand-shop?brand=${encodeURIComponent(brandFilter)}`).then(r => r.json());
+      // Drop live items we already show as stored dupes (same link).
+      const storedLinks = new Set(brandStoredProducts.map(p => p.link).filter(Boolean));
+      setLiveProducts((Array.isArray(d.items) ? d.items : []).filter((i: any) => i.thumbnail && !storedLinks.has(i.link)));
+    } catch { setLiveProducts([]); }
+    setLiveLoadedBrand(brandFilter);
+    setLiveLoading(false);
+  };
+
   // ── DEFAULT HOME = full-screen vertical reels feed (TikTok/IG style) ──
   if (!searchOpen && showReels) {
     if (!visibleHistoryAsReel.length) {
@@ -1968,6 +2007,59 @@ function StoresPage() {
             </div>
             {brandFilter && visibleHistory.length === 0 && (
               <p className="py-16 text-center text-sm font-black text-black/40">Nothing from {brandFilter} yet.</p>
+            )}
+
+            {/* More {brand} to try on — a shoppable list (stored dupes + live results) */}
+            {brandFilter && (
+              <div className="px-4 pt-6 pb-4">
+                <div className="mb-3 flex items-center gap-2 border-t border-black/10 pt-5 text-[11px] font-black uppercase tracking-[0.14em] text-black/40">
+                  <ShoppingBag className="h-3.5 w-3.5" /> More {brandFilter} to try on
+                </div>
+                <div className="grid gap-2.5">
+                  {[
+                    ...brandStoredProducts.map(p => ({ ...p, tryHref: `/tryon/${p.lookId}?alt=${p.altIdx}` })),
+                    ...liveProducts.map(p => ({ ...p, lingerie: false, tryHref: brandRepLookId ? `/tryon/${brandRepLookId}?garment=${encodeURIComponent(p.thumbnail)}` : "" })),
+                  ].map((a, i) => (
+                    <div key={a.link || `x${i}`} className="flex w-full min-w-0 gap-3 rounded-2xl border border-black/10 bg-white p-2.5">
+                      <a href={a.link || undefined} target="_blank" rel="noopener noreferrer sponsored" className="shrink-0 active:scale-95 transition-transform">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={a.thumbnail} alt=""
+                          onError={(e) => { const el = e.currentTarget; if (!el.dataset.proxied) { el.dataset.proxied = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(a.thumbnail)}`; } }}
+                          className="h-28 w-24 rounded-xl bg-black/5 object-cover" />
+                      </a>
+                      <div className="flex min-w-0 flex-1 flex-col gap-2 py-0.5">
+                        <div className="min-w-0">
+                          <p className="line-clamp-2 text-sm font-black text-black">{a.title || a.source || "Product"}</p>
+                          {a.source && <p className="mt-0.5 truncate text-[11px] font-bold text-black/40">{a.source}</p>}
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-base font-black text-ink">{a.price || "—"}</span>
+                          {a.link && (
+                            <a href={a.link} target="_blank" rel="noopener noreferrer sponsored"
+                              className="flex shrink-0 items-center gap-1.5 rounded-full bg-black px-4 py-1.5 text-[12px] font-black text-white active:scale-95 transition-transform">
+                              <ShoppingBag className="h-3.5 w-3.5" /> Shop now
+                            </a>
+                          )}
+                        </div>
+                        {a.tryHref && (
+                          <button type="button" onClick={() => router.push(a.tryHref)}
+                            className="flex w-full items-center justify-center gap-1.5 rounded-full border border-black/15 bg-white px-3.5 py-2 text-[12px] font-black text-black active:scale-95 transition-transform">
+                            <Sparkles className="h-3.5 w-3.5" /> Try on · {a.lingerie ? "$2.90" : "Free"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {liveLoadedBrand !== brandFilter ? (
+                  <button type="button" onClick={() => void loadMoreBrand()} disabled={liveLoading}
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-black/15 bg-white px-4 py-2.5 text-sm font-black text-black active:scale-95 transition disabled:opacity-50">
+                    {liveLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Load more {brandFilter}
+                  </button>
+                ) : liveProducts.length === 0 && brandStoredProducts.length === 0 ? (
+                  <p className="mt-3 text-center text-[12px] font-bold text-black/35">No more {brandFilter} products found.</p>
+                ) : null}
+              </div>
             )}
           </>
           )
