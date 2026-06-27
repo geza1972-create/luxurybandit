@@ -200,6 +200,7 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
     : [...(it.videoUrl ? [{ kind: "video" as const, url: it.videoUrl }] : []), { kind: "image" as const, url: it.imageUrl }];
   const [hIdx, setHIdx] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [soon, setSoon] = useState(false); // non-staff tapped Make AI-Video (paid, pending Stripe)
   const scrollerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const isCurrent = offset === 0;
@@ -289,12 +290,14 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
               className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-white/80 px-5 text-sm font-black text-black backdrop-blur-md active:scale-95 transition-transform">
               <Sparkles className="h-4 w-4" /> Try on you
             </a>
-            {/* Make AI-Video — staff only, on AI-picture posts (no video yet) */}
-            {isStaff && !it.videoUrl && onMakeVideo && (
-              <button type="button" disabled={makingVideoLookId === it.lookId} onClick={() => onMakeVideo(it.lookId)}
+            {/* Make AI-Video — on AI-picture posts (no video yet). Everyone sees it;
+                staff generate now (free), others get a 'Soon' (paid, pending Stripe). */}
+            {!it.videoUrl && onMakeVideo && (
+              <button type="button" disabled={makingVideoLookId === it.lookId}
+                onClick={() => { if (isStaff) onMakeVideo(it.lookId); else { setSoon(true); setTimeout(() => setSoon(false), 2500); } }}
                 className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/30 bg-violet-600/80 px-5 text-sm font-black text-white backdrop-blur-md active:scale-95 transition-transform disabled:opacity-60">
                 {makingVideoLookId === it.lookId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {makingVideoLookId === it.lookId ? "Generating…" : "Make AI-Video"}
+                {makingVideoLookId === it.lookId ? "Generating…" : soon ? "Soon · paid" : "Make AI-Video"}
               </button>
             )}
             <a href={`${lookPath(it.lookName, it.lookId)}/details`}
