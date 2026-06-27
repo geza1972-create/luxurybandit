@@ -165,6 +165,8 @@ export default function TryonPage() {
   const showInFeedRef = useRef(true); // mirror so async saves read the latest toggle
   useEffect(() => { showInFeedRef.current = showInFeed; }, [showInFeed]);
   const sharedGenIdRef = useRef<string>("");
+  // Which tier produced the current result (recorded on the saved generation for history).
+  const lastGenKindRef = useRef<"photo" | "video" | "video360">("photo");
   // Optional email capture AFTER the result (lead) — for no-login QR/event try-ons.
   const [leadEmail, setLeadEmail] = useState("");
   const [leadSending, setLeadSending] = useState(false);
@@ -447,6 +449,7 @@ export default function TryonPage() {
     // look's owner curator/brand pays the credits. We capture an email AFTER the
     // result (optional), not before, to keep conversion high.
     if (!look) return;
+    lastGenKindRef.current = tier; // remember the tier so the saved generation records it
     const photo = photoOverride ?? userPhoto;
     setError(null);
     setStep("generating");
@@ -635,6 +638,7 @@ export default function TryonPage() {
           customerName: name, userId: authSession?.user?.id ?? undefined,
           curatorId: curatorId || undefined,
           image: imageSmall, userPhotoImage: userPhotoSmall,
+          genKind: lastGenKindRef.current, // photo | video | video360 (for the post-info history)
           feed: showInFeedRef.current, // respect the toggle (creators can save without publishing)
         }),
       });

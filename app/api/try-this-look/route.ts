@@ -279,6 +279,75 @@ export async function GET(request: Request) {
       if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
       return NextResponse.json({ curators: state.curators ?? [] });
     }
+    // Admin: provenance / history for a single feed post (a generation OR a look).
+    // Powers the ℹ️ Info sheet in the reels feed — who made it, when, what kind.
+    if (url.searchParams.get("postInfo")) {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const pid = String(url.searchParams.get("postInfo")).trim();
+      const curators = state.curators ?? [];
+      const curName = (cid?: string) => {
+        const c = curators.find(x => x.id === cid);
+        return c ? [c.firstName, c.lastName].filter(Boolean).join(" ").trim() : "";
+      };
+      const gen = (state.generations ?? []).find(g => g.id === pid);
+      if (gen) {
+        const g = gen as any;
+        const kindRaw = g.genKind as ("photo" | "video" | "video360" | undefined);
+        const media = g.videoUrl ? "video" : "picture";
+        // videoKind: exact when captured (genKind), else best-effort from videoUrl.
+        const videoKind = g.videoUrl ? (kindRaw === "video360" ? "video360" : "video") : null;
+        return NextResponse.json({
+          info: {
+            kind: "tryon",
+            createdAt: g.createdAt ?? null,
+            who: g.customerName || curName(g.curatorId) || "Guest",
+            curatorName: curName(g.curatorId) || null,
+            isCurator: !!g.curatorId,
+            media,
+            videoKind,                       // "video" | "video360" | null
+            genKindKnown: !!kindRaw,          // false → tier wasn't recorded (older post)
+            hadUserPhoto: !!g.userPhotoUrl,   // a real photo upload (vs a pure AI render)
+            source: g.visitorId || null,      // e.g. "shopcut-main", "admin-…"
+            lookId: g.lookId || null,
+            lookName: g.lookName || "",
+            storeName: g.storeName || "",
+            feed: g.feed !== false,
+            lockedByAdmin: !!g.lockedByAdmin,
+            hidden: !!g.hidden,
+          },
+        });
+      }
+      const look = state.looks.find(l => l.id === pid);
+      if (look) {
+        const l = look as any;
+        const tryOns = Array.isArray(l.communityTryOns) ? l.communityTryOns.length : (l.generationCount ?? 0);
+        return NextResponse.json({
+          info: {
+            kind: "look",
+            createdAt: l.createdAt ?? null,
+            who: l.curatorName || curName(l.curatorId) || "House",
+            curatorName: l.curatorName || curName(l.curatorId) || null,
+            isCurator: !!l.curatorId,
+            aiCreated: !!l.aiCreated,          // made in the AI Studio (AI Cloud) vs sourced
+            productType: l.productType || null, // "real" = real sourced product
+            media: l.videoUrl ? "video" : "picture",
+            videoCreatedAt: l.videoCreatedAt ?? null,
+            lingerie: !!l.lingerie,
+            brand: l.brand || null,
+            price: l.price || null,
+            buyUrl: l.buyUrl || null,
+            likes: l.likeCount ?? 0,
+            tryOns,
+            published: l.published !== false,
+            lookId: l.id,
+            lookName: l.name || "",
+            storeName: l.storeName || "",
+          },
+        });
+      }
+      return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    }
+
     // Admin: ALL posts (generations) incl. hidden — for the admin posts grid.
     if (url.searchParams.get("adminPosts") === "1") {
       if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
@@ -767,6 +836,10 @@ export async function POST(request: Request) {
         curatorId: String(payload.curatorId ?? "").trim() || undefined,
         imagePath,
         userPhotoPath,
+        // Which try-on tier produced this (for the post-info history): photo | video | video360.
+        genKind: (["photo", "video", "video360"].includes(String(payload.genKind))
+          ? String(payload.genKind)
+          : "photo") as "photo" | "video" | "video360",
         // Consent to show this try-on in the look's feed carousel (default on).
         feed: payload.feed !== false,
         createdAt: now

@@ -13,10 +13,10 @@ import { useScrollLock } from "@/lib/use-scroll-lock";
 import { lookPath } from "@/lib/look-slug";
 import HomeFeed from "@/components/HomeFeed";
 import { isAdminEmail } from "@/lib/is-admin-email";
-import { Bookmark, EyeOff, Heart, Home, Image as ImageIcon, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, Sparkles, UserPlus, Volume2, VolumeX, X } from "lucide-react";
+import { Bookmark, EyeOff, Heart, Home, Image as ImageIcon, Info, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, Sparkles, UserPlus, Volume2, VolumeX, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 // Serve Supabase images via Next.js' image optimizer (right-sized WebP) instead
 // of full-resolution PNGs. Non-Supabase/empty URLs pass through unchanged.
@@ -423,6 +423,7 @@ function CommunityDetailView({
   onHide,
   onDelete,
   onAssign,
+  onInfo,
   curators,
   isAdmin,
   myCuratorId,
@@ -439,6 +440,7 @@ function CommunityDetailView({
   onHide?: (id: string) => void;
   onDelete?: (id: string) => void;
   onAssign?: (item: CommunityItem, curatorId: string, curatorName: string) => Promise<void>;
+  onInfo?: (item: CommunityItem) => Promise<Record<string, unknown> | null>;
   curators?: { id: string; firstName?: string; lastName?: string; photoUrl?: string }[];
   isAdmin?: boolean;
   myCuratorId?: string;
@@ -455,6 +457,15 @@ function CommunityDetailView({
   const [assignWorking, setAssignWorking] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [muted, setMuted] = useState(true); // start muted so autoplay works; tap 🔊 for sound
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [infoData, setInfoData] = useState<Record<string, unknown> | null>(null);
+  const [infoLoading, setInfoLoading] = useState(false);
+  const openInfo = async () => {
+    if (!onInfo) return;
+    setInfoOpen(true); setInfoData(null); setInfoLoading(true);
+    try { setInfoData(await onInfo(item)); } catch { setInfoData(null); }
+    setInfoLoading(false);
+  };
 
   const isDraggingVertical = useRef(false);
   const verticalDragRef = useRef(0);
@@ -632,6 +643,13 @@ function CommunityDetailView({
       <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-end p-4 pointer-events-auto"
         style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}>
         <div className="flex items-center gap-2">
+          {/* Info / history (admin) — who made it, when, what kind */}
+          {onInfo && isAdmin && (
+            <button type="button" onClick={openInfo} title="Info / Verlauf"
+              className="grid h-10 w-10 place-items-center rounded-full bg-black/55 backdrop-blur text-white active:opacity-70">
+              <Info className="h-5 w-5" />
+            </button>
+          )}
           {/* Hide (owner/admin) — orange, next to delete */}
           {onHideItem && (isAdmin || (!!myCuratorId && item.curatorId === myCuratorId)) && (
             <button type="button" onClick={() => onHideItem(item)} title="Ausblenden"
@@ -694,6 +712,77 @@ function CommunityDetailView({
       {/* Comments sheet */}
       {commentsOpen && item.lookId && (
         <CommentsSheet lookId={item.lookId} onClose={() => setCommentsOpen(false)} />
+      )}
+
+      {/* Info / history sheet (admin) — provenance of this post */}
+      {onInfo && infoOpen && (
+        <div className="fixed inset-0 z-[120] flex flex-col justify-end bg-black/50" onClick={() => setInfoOpen(false)}>
+          <div className="flex max-h-[78dvh] flex-col rounded-t-2xl bg-white" onClick={e => e.stopPropagation()}
+            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+            <div className="flex items-center justify-between border-b border-black/8 px-4 py-3">
+              <span className="flex items-center gap-2 text-sm font-black text-black"><Info className="h-4 w-4" /> Post-Info & Verlauf</span>
+              <button type="button" onClick={() => setInfoOpen(false)} className="grid h-8 w-8 place-items-center rounded-full text-black/40 active:bg-black/5"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
+              {infoLoading ? (
+                <div className="flex items-center justify-center py-10 text-black/40"><Loader2 className="h-5 w-5 animate-spin" /></div>
+              ) : !infoData ? (
+                <p className="py-8 text-center text-sm font-bold text-black/35">Keine Infos gefunden.</p>
+              ) : (() => {
+                const d = infoData as Record<string, any>;
+                const isLook = d.kind === "look";
+                const fmt = (iso: any) => {
+                  if (!iso) return "—";
+                  try { return new Date(iso).toLocaleString("de-DE", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return String(iso); }
+                };
+                // Human label for the generation type.
+                const typeLabel = isLook
+                  ? (d.aiCreated ? "AI-Studio Look (KI-generiert)" : `Kuratierter Look${d.productType === "real" ? " · echtes Produkt" : ""}`)
+                  : (d.hadUserPhoto ? "Try-on (eigenes Foto hochgeladen)" : "Try-on (AI-Render, ohne eigenes Foto)");
+                const mediaLabel = d.media === "video"
+                  ? (isLook ? "Mit Video" : (d.videoKind === "video360" ? "AI-Video 360°" : "AI-Video"))
+                  : (isLook ? "Nur Bild" : "AI-Picture");
+                const Row = ({ k, v }: { k: string; v: ReactNode }) => (
+                  <div className="flex items-start justify-between gap-4 border-b border-black/5 py-2.5">
+                    <span className="shrink-0 text-[12px] font-bold uppercase tracking-wide text-black/40">{k}</span>
+                    <span className="min-w-0 text-right text-[13px] font-semibold text-black">{v}</span>
+                  </div>
+                );
+                return (
+                  <div>
+                    <div className="mb-3 flex items-center gap-2">
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide ${isLook ? "bg-violet-100 text-violet-700" : "bg-sky-100 text-sky-700"}`}>{isLook ? "Look" : "Try-on"}</span>
+                      <span className="rounded-full bg-black/8 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-black/60">{mediaLabel}</span>
+                      {!isLook && d.media === "video" && !d.genKindKnown && (
+                        <span className="rounded-full bg-amber-100 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-amber-700" title="Vor dem Tracking erstellt — genaue Video-Stufe (360°?) wurde nicht gespeichert.">Stufe n. erfasst</span>
+                      )}
+                    </div>
+                    <Row k="Erstellt" v={fmt(d.createdAt)} />
+                    <Row k="Von" v={<span>{d.who || "—"}{d.isCurator && <span className="ml-1.5 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-black text-emerald-700">CURATOR</span>}</span>} />
+                    <Row k="Art" v={typeLabel} />
+                    <Row k="Medium" v={mediaLabel} />
+                    {isLook ? (
+                      <>
+                        {d.brand && <Row k="Marke" v={d.brand} />}
+                        {d.price && <Row k="Preis" v={d.price} />}
+                        <Row k="Try-ons" v={String(d.tryOns ?? 0)} />
+                        <Row k="Likes" v={String(d.likes ?? 0)} />
+                        {d.media === "video" && d.videoCreatedAt && <Row k="Video erstellt" v={fmt(d.videoCreatedAt)} />}
+                        <Row k="Status" v={d.published ? "Veröffentlicht" : "Offline"} />
+                      </>
+                    ) : (
+                      <>
+                        <Row k="Look" v={d.lookName || "—"} />
+                        {d.source && <Row k="Quelle" v={String(d.source)} />}
+                        <Row k="Status" v={d.lockedByAdmin ? "Deaktiviert (Admin)" : d.hidden ? "Gelöscht/Versteckt" : d.feed ? "Im Feed" : "Ausgeblendet"} />
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -1232,6 +1321,19 @@ function StoresPage() {
     });
   };
 
+  // Admin: fetch provenance/history for a post (look or try-on) for the Info sheet.
+  const fetchPostInfo = async (item: CommunityItem): Promise<Record<string, unknown> | null> => {
+    try {
+      const token = getStoredAuthSession()?.access_token;
+      const res = await fetch(`/api/try-this-look?postInfo=${encodeURIComponent(item.id)}`, {
+        headers: { ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      if (!res.ok) return null;
+      const d = await res.json();
+      return (d?.info as Record<string, unknown>) ?? null;
+    } catch { return null; }
+  };
+
   const hideCommunityItem = async (item: CommunityItem) => {
     await adminAction({ action: "hide-generation", id: item.id });
     setCommunityItems(prev => prev.filter(i => i.id !== item.id));
@@ -1571,6 +1673,7 @@ function StoresPage() {
         }}
         onDelete={isAdmin ? (id) => { const it = visibleHistoryAsReel.find(i => i.id === id); if (it) void deleteCommunityItem(it); } : undefined}
         onAssign={isAdmin ? assignCommunityItem : undefined}
+        onInfo={isAdmin ? fetchPostInfo : undefined}
         curators={assignCurators}
         isAdmin={isAdmin}
         myCuratorId={myCuratorId}
@@ -2300,6 +2403,7 @@ function StoresPage() {
           onHide={isAdmin ? (id) => { const it = (reelItems ?? filteredCommunity).find(i => i.id === id); if (it) void hideCommunityItem(it); } : undefined}
           onDelete={isAdmin ? (id) => { const it = (reelItems ?? filteredCommunity).find(i => i.id === id) ?? visibleHistoryAsReel.find(i => i.id === id); if (it) void deleteCommunityItem(it); } : undefined}
           onAssign={isAdmin ? assignCommunityItem : undefined}
+          onInfo={isAdmin ? fetchPostInfo : undefined}
           curators={assignCurators}
           isAdmin={isAdmin}
           myCuratorId={myCuratorId}
