@@ -608,7 +608,7 @@ function CommunityDetailView({
               </svg>
             </button>
           )}
-          {onDelete && (
+          {onDelete && item.kind !== "look" && (
             <button type="button" onClick={() => onDelete(item.id)} title="Delete"
               className="grid h-10 w-10 place-items-center rounded-full bg-red-500/80 backdrop-blur text-white active:opacity-70">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -1493,6 +1493,7 @@ function StoresPage() {
           setCommunityLikes(next);
           try { localStorage.setItem("lb_gen_likes", JSON.stringify(next)); } catch { /**/ }
         }}
+        onDelete={isAdmin ? (id) => { const it = visibleHistoryAsReel.find(i => i.id === id); if (it) void deleteCommunityItem(it); } : undefined}
         onAssign={isAdmin ? async (id, customerName) => {
           await adminAction({ action: "assign-generation", id, customerName });
           setCommunityItems(prev => prev.map(i => i.id === id ? { ...i, customerName } : i));
