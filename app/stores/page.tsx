@@ -161,9 +161,9 @@ type CommunityItem = {
 };
 
 // ── Community slide (extracted to avoid component-inside-component) ──────────
-function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleMute }: {
+function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleMute, onHome }: {
   it: CommunityItem; offset: number; verticalDrag: number; transition: string;
-  muted: boolean; onToggleMute: () => void;
+  muted: boolean; onToggleMute: () => void; onHome: () => void;
 }) {
   const uname = it.customerName
     ? it.customerName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
@@ -263,16 +263,20 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
         )}
         <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black/50 to-transparent pointer-events-none" />
       </div>
-      <div className="bg-black px-4 pt-2.5" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
-        {/* ── The two core money buttons — Try on you · Bandit the look ── */}
+      <div className="bg-gradient-to-t from-black/55 via-black/20 to-transparent px-4 pt-10" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+        {/* ── 3 buttons over the image: Home · Try on you · Bandit the look ── */}
         {it.lookId && (
           <div className="mb-2.5 flex items-center justify-center gap-2.5">
+            <button type="button" onClick={onHome}
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-black/35 text-white backdrop-blur-md active:scale-95 transition-transform">
+              <Home className="h-5 w-5" />
+            </button>
             <a href={`/tryon/${it.lookId}`}
-              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-white px-5 text-sm font-black text-black shadow-lg active:scale-95 transition-transform">
+              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-white/80 px-5 text-sm font-black text-black backdrop-blur-md active:scale-95 transition-transform">
               <Sparkles className="h-4 w-4" /> Try on you
             </a>
             <a href={`${lookPath(it.lookName, it.lookId)}/details`}
-              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/25 bg-black px-5 text-sm font-black text-white shadow-lg active:scale-95 transition-transform">
+              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/30 bg-black/35 px-5 text-sm font-black text-white backdrop-blur-md active:scale-95 transition-transform">
               <ShoppingBag className="h-4 w-4" /> Bandit the look
             </a>
           </div>
@@ -523,11 +527,11 @@ function CommunityDetailView({
       onWheel={onWheel}
     >
       {/* Prev slide */}
-      {prevItem && <CommunitySlide it={prevItem} offset={-1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} />}
+      {prevItem && <CommunitySlide it={prevItem} offset={-1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} />}
       {/* Current slide */}
-      <CommunitySlide it={item} offset={0} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} />
+      <CommunitySlide it={item} offset={0} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} />
       {/* Next slide */}
-      {nextItem && <CommunitySlide it={nextItem} offset={1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} />}
+      {nextItem && <CommunitySlide it={nextItem} offset={1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} />}
 
       {/* Top-left: Sound on/off */}
       <button type="button" onClick={() => setMuted(m => !m)}
@@ -538,14 +542,6 @@ function CommunityDetailView({
           : <Volume2 strokeWidth={2} className="h-5 w-5 text-white" />}
       </button>
 
-      {/* Bottom-left: Home / overview */}
-      <div className="absolute left-3 z-20 flex items-center gap-4 pointer-events-auto"
-        style={{ bottom: "calc(env(safe-area-inset-bottom) + 7.5rem)" }}>
-        <button type="button" onClick={onClose} className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
-          <Home strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
-          <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Home</span>
-        </button>
-      </div>
 
       {/* Right action column — always on top, not translated */}
       <div className="absolute right-2 z-20 flex flex-col items-center gap-5 pointer-events-auto"
