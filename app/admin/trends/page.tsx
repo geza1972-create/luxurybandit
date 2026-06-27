@@ -621,7 +621,7 @@ export default function AdminTrends() {
   const loadMyTryons = () => {
     const id = getCuratorId();
     if (!id) return Promise.resolve();
-    return fetch(`/api/try-this-look?curatorTryons=${encodeURIComponent(id)}`)
+    return fetch(`/api/try-this-look?curatorTryons=${encodeURIComponent(id)}&manage=1`)
       .then(r => r.json())
       .then((d: { userGallery?: typeof myTryons }) => setMyTryons((d.userGallery ?? []).slice().sort((a, b) => b.createdAt - a.createdAt)))
       .catch(() => {});

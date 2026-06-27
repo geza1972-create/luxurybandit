@@ -403,10 +403,14 @@ export async function GET(request: Request) {
     // legacy self-tests still appear. Exposes the try-on video when present.
     const curatorTryonsId = url.searchParams.get("curatorTryons") ?? "";
     if (curatorTryonsId) {
+      // manage=1 (the studio "My try-ons") sees ALL incl. hidden (to toggle them);
+      // the PUBLIC profile excludes feed:false (Hidden) so they don't leak publicly.
+      const manage = url.searchParams.get("manage") === "1";
       const cur = (state.curators ?? []).find(c => c.id === curatorTryonsId);
       const nameSlug = cur ? normalizeSlug([cur.firstName, cur.lastName].filter(Boolean).join(" ")) : "";
       const matched = state.generations.filter(g => {
         if (g.visitorId?.startsWith("admin-") || (g as any).hidden) return false;
+        if (!manage && (g as any).feed === false) return false;
         if ((g as any).curatorId === curatorTryonsId) return true;
         return nameSlug && normalizeSlug((g as any).customerName ?? "") === nameSlug;
       });
@@ -434,7 +438,8 @@ export async function GET(request: Request) {
       const querySlug = normalizeSlug(filterUsername);
       const matched = state.generations.filter(g => {
         const name = (g as any).customerName ?? "";
-        return name && normalizeSlug(name) === querySlug && !g.visitorId?.startsWith("admin-") && !(g as any).hidden;
+        // Public profile → exclude Hidden (feed:false) try-ons so they don't leak.
+        return name && normalizeSlug(name) === querySlug && !g.visitorId?.startsWith("admin-") && !(g as any).hidden && (g as any).feed !== false;
       });
       const lookById = new Map(state.looks.map(l => [l.id, l]));
       const userGallery = matched.map(g => {
