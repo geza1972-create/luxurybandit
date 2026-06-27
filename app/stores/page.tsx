@@ -248,7 +248,9 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
                     <img src={optImg(s.url, 640)} alt="After" onError={(e) => { const im = e.currentTarget; if (im.src !== s.url) im.src = s.url; }} className="h-full w-full object-cover object-top" />
                     {onInfo ? (
                       <button type="button" onClick={onInfo} title="Info / history"
-                        className="absolute right-2 top-12 flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70"><Sparkles className="h-2.5 w-2.5" />After <span className="inline-flex items-center gap-0.5 opacity-80"><Info className="h-2.5 w-2.5" />(Info)</span></button>
+                        onPointerDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}
+                        style={{ touchAction: "manipulation" }}
+                        className="absolute right-2 top-12 z-20 flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70"><Sparkles className="h-2.5 w-2.5" />After <span className="inline-flex items-center gap-0.5 opacity-80"><Info className="h-2.5 w-2.5" />(Info)</span></button>
                     ) : (
                       <span className="absolute right-2 top-12 flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur"><Sparkles className="h-2.5 w-2.5" />After</span>
                     )}
@@ -274,12 +276,15 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
             uploaded Before (not AI) with the AI After, each labelled on its own half. */}
         {(slides[hIdx]?.kind === "video" || slides[hIdx]?.kind === "image") && (
           onInfo ? (
-            // Admin: the label itself opens the post info/history sheet.
+            // The label itself opens the post info/history sheet (whole pill clickable).
+            // stopPropagation on pointer/touch start so a tap never turns into a swipe.
             <button type="button" onClick={onInfo} title="Info / history"
-              className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70"
-              style={{ top: "max(0.75rem, calc(env(safe-area-inset-top) + 0.25rem))" }}>
-              <Sparkles className="h-3 w-3" />{slides[hIdx].kind === "video" ? "AI-Video" : "AI Picture"}
-              <span className="ml-0.5 inline-flex items-center gap-0.5 opacity-80"><Info className="h-2.5 w-2.5" />(Info)</span>
+              onPointerDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+              className="absolute left-3 top-3 z-20 flex items-center gap-1 rounded-full bg-black/55 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70"
+              style={{ top: "max(0.75rem, calc(env(safe-area-inset-top) + 0.25rem))", touchAction: "manipulation" }}>
+              <Sparkles className="h-3.5 w-3.5" />{slides[hIdx].kind === "video" ? "AI-Video" : "AI Picture"}
+              <span className="ml-0.5 inline-flex items-center gap-0.5 opacity-85"><Info className="h-3 w-3" />(Info)</span>
             </button>
           ) : (
             <span className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur"
@@ -1047,6 +1052,7 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
       }
       localStorage.setItem("lb_curator", JSON.stringify({ id: data.curator.id, firstName: data.curator.firstName, email: data.curator.email, style: data.curator.style }));
       setCurator(data.curator);
+      try { window.dispatchEvent(new Event("luxurybandit-auth-updated")); } catch { /**/ }
     } catch {
       setError("Sign-in failed. Please try again.");
     } finally {
@@ -1282,6 +1288,9 @@ function StoresPage() {
         const admin = !!pin || (!!email && (isAdminEmail(email) || email === "support@luxurybandit.com"));
         setIsAdmin(admin);
         if (admin) setAdminPin(pin);
+        // Keep the curator identity in sync too — otherwise a stale id keeps "recognising"
+        // a curator (Hide button etc.) after they signed out, while the nav shows signed-out.
+        try { setMyCuratorId(JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id ?? ""); } catch { setMyCuratorId(""); }
       } catch { /**/ }
     };
     applyAuthState();
@@ -1299,7 +1308,13 @@ function StoresPage() {
 
     const onAuth = () => applyAuthState();
     window.addEventListener("luxurybandit-auth-updated", onAuth);
-    return () => window.removeEventListener("luxurybandit-auth-updated", onAuth);
+    window.addEventListener("storage", onAuth);   // cross-tab sign-in/out
+    window.addEventListener("focus", onAuth);      // returning from the Studio/login
+    return () => {
+      window.removeEventListener("luxurybandit-auth-updated", onAuth);
+      window.removeEventListener("storage", onAuth);
+      window.removeEventListener("focus", onAuth);
+    };
   }, []);
 
   // React to bottom-nav deep links whenever search params change
