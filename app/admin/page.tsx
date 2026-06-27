@@ -72,6 +72,9 @@ export default function AdminPage() {
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [postsLoaded, setPostsLoaded] = useState(false);
   const [postDateFrom, setPostDateFrom] = useState("");
+  const [renaming, setRenaming] = useState<AdminPost | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const openRename = (p: AdminPost) => { setRenaming(p); setRenameValue(p.customerName || ""); };
   const [inboxTab, setInboxTab] = useState<"comments" | "messages" | "likes" | "followers">("comments");
   const [follows, setFollows] = useState<FollowRec[]>([]);
   const [followerQ, setFollowerQ] = useState("");
@@ -410,13 +413,13 @@ export default function AdminPage() {
     setPosts(ps => ps.filter(x => x.id !== p.id));
     await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-generation", id: p.id }) }).catch(() => {});
   };
-  // Rename a post (set the displayed name) — e.g. turn an "Anonymous" try-on into a
-  // named one before bringing it back into the feeds.
-  const renamePost = async (p: AdminPost) => {
-    const input = window.prompt("Display name for this post (e.g. a curator's name):", p.customerName || "");
-    if (input === null) return; // cancelled
-    const customerName = input.trim();
+  // Rename a post (set the displayed name) — opens an inline modal (window.prompt is
+  // blocked in many in-app webviews, which made the pencil button look dead).
+  const saveRename = async () => {
+    const p = renaming; if (!p) return;
+    const customerName = renameValue.trim();
     setPosts(ps => ps.map(x => x.id === p.id ? { ...x, customerName } : x));
+    setRenaming(null);
     await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "assign-generation", id: p.id, customerName }) }).catch(() => {});
   };
   const shownPosts = useMemo(() => {
@@ -573,7 +576,7 @@ export default function AdminPage() {
                       {p.videoUrl && <span className="absolute right-1.5 top-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">Video</span>}
                     </div>
                     <div className="p-2">
-                      <button type="button" onClick={() => void renamePost(p)} title="Rename"
+                      <button type="button" onClick={() => openRename(p)} title="Rename"
                         className="flex w-full items-center gap-1 text-left">
                         <span className="truncate text-[11px] font-black text-ink">{p.customerName || "Anonymous"}</span>
                         <Pencil className="h-3 w-3 shrink-0 text-ink/30" />
@@ -585,7 +588,7 @@ export default function AdminPage() {
                           className={`flex flex-1 items-center justify-center rounded-full px-2 py-1 text-[10px] font-black transition ${p.feed ? "bg-black/[0.07] text-ink/60" : "bg-emerald-500 text-white"}`}>
                           {p.feed ? "Hide" : "Activate"}
                         </button>
-                        <button type="button" onClick={() => void renamePost(p)} className="grid h-7 w-7 place-items-center rounded text-ink/50 transition hover:bg-black/5" title="Rename"><Pencil className="h-3.5 w-3.5" /></button>
+                        <button type="button" onClick={() => openRename(p)} className="grid h-7 w-7 place-items-center rounded text-ink/50 transition hover:bg-black/5" title="Rename"><Pencil className="h-3.5 w-3.5" /></button>
                         <a href={`/post/${p.id}`} target="_blank" rel="noopener noreferrer" className="grid h-7 w-7 place-items-center rounded text-ink/50 transition hover:bg-black/5" title="Open"><ExternalLink className="h-3.5 w-3.5" /></a>
                         <button type="button" onClick={() => void deletePost(p)} className="grid h-7 w-7 place-items-center rounded text-coral transition hover:bg-coral/10" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
                       </div>
@@ -594,6 +597,24 @@ export default function AdminPage() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Rename modal — inline edit (window.prompt is blocked in many webviews) */}
+        {renaming && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-6" onClick={() => setRenaming(null)}>
+            <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
+              <p className="text-sm font-black text-ink">Rename post</p>
+              <p className="mt-0.5 text-xs font-bold text-ink/45">Shown as the poster name. Clear it to make it Anonymous again.</p>
+              <input autoFocus value={renameValue} onChange={e => setRenameValue(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") void saveRename(); if (e.key === "Escape") setRenaming(null); }}
+                placeholder="e.g. a curator's name"
+                className="mt-3 h-11 w-full rounded-xl border border-black/15 px-3 text-sm font-bold text-ink outline-none focus:border-black" />
+              <div className="mt-4 flex items-center justify-end gap-2">
+                <button type="button" onClick={() => setRenaming(null)} className="rounded-full px-4 py-2 text-xs font-black text-ink/55 active:bg-black/5">Cancel</button>
+                <button type="button" onClick={() => void saveRename()} className="rounded-full bg-black px-5 py-2 text-xs font-black text-white active:scale-95 transition">Save</button>
+              </div>
+            </div>
           </div>
         )}
 
