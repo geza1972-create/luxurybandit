@@ -1625,17 +1625,19 @@ function StoresPage() {
       items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, hasBefore: !!c.userPhotoUrl, brand: c.brand, createdAt: c.createdAt ?? "", name: c.customerName || c.lookName, price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName });
     }
     items.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
-    // Dedupe by look so the same product never repeats (a look + its try-ons share a
-    // lookId). Keep the BEST representative: prefer a video, then a Before/After try-on,
-    // then the newest. Then re-sort newest-first.
+    // Dedupe only the LOOK tiles by look (one tile per product, prefer the video).
+    // EVERY community try-on keeps its own tile — so different people's try-ons
+    // (Denisa, Anonymous, …) all show; they are not collapsed into the look.
     const score = (it: HItem) => (it.videoUrl ? 2 : 0) + (it.hasBefore ? 1 : 0);
     const byLook = new Map<string, HItem>();
+    const tryons: HItem[] = [];
     for (const it of items) {
+      if (it.kind === "tryon") { tryons.push(it); continue; }
       const key = it.lookId || it.key;
       const cur = byLook.get(key);
       if (!cur || score(it) > score(cur)) byLook.set(key, it);
     }
-    return [...byLook.values()].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    return [...byLook.values(), ...tryons].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   }, [looks, communityItems]);
 
   // Distinct curators with content (looks or try-ons) — for the header count.
