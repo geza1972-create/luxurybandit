@@ -279,6 +279,29 @@ export async function GET(request: Request) {
       if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
       return NextResponse.json({ curators: state.curators ?? [] });
     }
+    // Admin: ALL posts (generations) incl. hidden — for the admin posts grid.
+    if (url.searchParams.get("adminPosts") === "1") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const lookById = new Map(state.looks.map(l => [l.id, l]));
+      const posts = (state.generations ?? [])
+        .filter(g => !(g as any).hidden) // hard-deleted stay out; feed:false (Hidden) is INCLUDED
+        .map(g => {
+          const look = lookById.get(g.lookId);
+          return {
+            id: g.id,
+            lookId: g.lookId,
+            imageUrl: (g as any).imageUrl ?? "",
+            videoUrl: (g as any).videoUrl ?? undefined,
+            customerName: (g as any).customerName ?? "",
+            curatorId: (g as any).curatorId ?? "",
+            lookName: g.lookName ?? look?.name ?? "",
+            feed: (g as any).feed !== false,
+            createdAt: g.createdAt,
+          };
+        })
+        .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+      return NextResponse.json({ posts });
+    }
     // Preview a specific look by ID — bypasses published filter (anyone with the URL can preview)
     const previewLookId = url.searchParams.get("previewId") ?? "";
     if (previewLookId) {

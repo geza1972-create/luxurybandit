@@ -67,7 +67,11 @@ export default function AdminPage() {
   const [gateMode, setGateMode] = useState<"login" | "pin">("login");
   const [note, setNote] = useState("");
   const [authed, setAuthed] = useState(false);
-  const [tab, setTab] = useState<"looks" | "curators" | "inbox">("looks");
+  const [tab, setTab] = useState<"looks" | "curators" | "inbox" | "posts">("looks");
+  type AdminPost = { id: string; lookId: string; imageUrl: string; videoUrl?: string; customerName: string; curatorId: string; lookName: string; feed: boolean; createdAt: string };
+  const [posts, setPosts] = useState<AdminPost[]>([]);
+  const [postsLoaded, setPostsLoaded] = useState(false);
+  const [postDateFrom, setPostDateFrom] = useState("");
   const [inboxTab, setInboxTab] = useState<"comments" | "messages" | "likes" | "followers">("comments");
   const [follows, setFollows] = useState<FollowRec[]>([]);
   const [followerQ, setFollowerQ] = useState("");
@@ -386,6 +390,33 @@ export default function AdminPage() {
     return [...base].sort((a, b) => lookWhen(b).localeCompare(lookWhen(a))); // newest activity first — matches the frontend A List
   }, [looks, q]);
 
+  // ── Posts tab: load all generations (incl. hidden), search by name + date ──
+  useEffect(() => {
+    if (tab !== "posts" || postsLoaded) return;
+    fetch("/api/try-this-look?adminPosts=1", { headers: headers() })
+      .then(r => r.ok ? r.json() : { posts: [] })
+      .then((d: { posts?: AdminPost[] }) => { setPosts(d.posts ?? []); setPostsLoaded(true); })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, postsLoaded]);
+  const togglePostFeed = async (p: AdminPost) => {
+    const feed = !p.feed;
+    setPosts(ps => ps.map(x => x.id === p.id ? { ...x, feed } : x));
+    await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "set-generation-feed", generationId: p.id, feed }) }).catch(() => {});
+  };
+  const deletePost = async (p: AdminPost) => {
+    if (!confirm("Diesen Post permanent löschen?")) return;
+    setPosts(ps => ps.filter(x => x.id !== p.id));
+    await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-generation", id: p.id }) }).catch(() => {});
+  };
+  const shownPosts = useMemo(() => {
+    return posts.filter(p => {
+      if (q && !`${p.customerName} ${p.lookName}`.toLowerCase().includes(q)) return false;
+      if (postDateFrom && String(p.createdAt).slice(0, 10) < postDateFrom) return false;
+      return true;
+    });
+  }, [posts, q, postDateFrom]);
+
   const liveLooks = looks.filter(l => l.published !== false).length;
   const activeCurators = curators.filter(c => c.status !== "deactivated").length;
 
@@ -484,6 +515,10 @@ export default function AdminPage() {
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "curators" ? "bg-black text-white" : "text-ink/50"}`}>
             <Users className="h-4 w-4" /> Curators <span className="opacity-60">{curators.length}</span>
           </button>
+          <button type="button" onClick={() => setTab("posts")}
+            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "posts" ? "bg-black text-white" : "text-ink/50"}`}>
+            <PlayCircle className="h-4 w-4" /> Posts {postsLoaded && <span className="opacity-60">{posts.length}</span>}
+          </button>
           <button type="button" onClick={() => setTab("inbox")}
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "inbox" ? "bg-black text-white" : "text-ink/50"}`}>
             <Inbox className="h-4 w-4" /> Inbox <span className="opacity-60">{newComments.length + messages.length}</span>
@@ -491,15 +526,60 @@ export default function AdminPage() {
         </div>
 
         {tab !== "inbox" && (
-          <div className="mt-3 flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3">
-            <Search className="h-4 w-4 text-ink/30" />
-            <input value={query} onChange={e => setQuery(e.target.value)} placeholder={tab === "looks" ? "Search by name, curator, brand…" : "Search by name, email, brand…"}
-              className="h-11 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-ink/30" />
-            {query && <button type="button" onClick={() => setQuery("")} className="text-xs font-black text-ink/40">Clear</button>}
+          <div className="mt-3 flex items-center gap-2">
+            <div className="flex flex-1 items-center gap-2 rounded-xl border border-black/10 bg-white px-3">
+              <Search className="h-4 w-4 text-ink/30" />
+              <input value={query} onChange={e => setQuery(e.target.value)} placeholder={tab === "posts" ? "Search by name or look…" : tab === "looks" ? "Search by name, curator, brand…" : "Search by name, email, brand…"}
+                className="h-11 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-ink/30" />
+              {query && <button type="button" onClick={() => setQuery("")} className="text-xs font-black text-ink/40">Clear</button>}
+            </div>
+            {tab === "posts" && (
+              <input type="date" value={postDateFrom} onChange={e => setPostDateFrom(e.target.value)} title="From date"
+                className="h-11 shrink-0 rounded-xl border border-black/10 bg-white px-3 text-sm font-bold text-ink/70 outline-none" />
+            )}
           </div>
         )}
 
         {error && <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-black text-red-600">{error}</p>}
+
+        {/* ── Posts (all generations, incl. hidden) ── */}
+        {tab === "posts" && (
+          <div className="mt-3 pb-16">
+            <p className="mb-3 text-[11px] font-bold text-ink/40">{shownPosts.length} posts{(query || postDateFrom) ? " (filtered)" : ""}. Hidden ones are dimmed — tap Show to bring one back into the feeds.</p>
+            {!postsLoaded ? (
+              <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-ink/30" /></div>
+            ) : shownPosts.length === 0 ? (
+              <p className="py-12 text-center text-sm font-bold text-ink/35">No posts.</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+                {shownPosts.map(p => (
+                  <div key={p.id} className={`overflow-hidden rounded-lg border border-black/10 bg-white transition ${p.feed ? "" : "opacity-60"}`}>
+                    <div className="relative aspect-[3/4] bg-black/5">
+                      {p.videoUrl
+                        ? <video src={p.videoUrl} poster={p.imageUrl || undefined} muted playsInline preload="metadata" className="h-full w-full object-cover object-top" />
+                        // eslint-disable-next-line @next/next/no-img-element
+                        : <img src={p.imageUrl} alt={p.lookName} className="h-full w-full object-cover object-top" />}
+                      {!p.feed && <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">Hidden</span>}
+                      {p.videoUrl && <span className="absolute right-1.5 top-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">Video</span>}
+                    </div>
+                    <div className="p-2">
+                      <p className="truncate text-[11px] font-black text-ink">{p.customerName || "—"}</p>
+                      <p className="truncate text-[10px] font-bold text-ink/40">{p.lookName || "Try-on"} · {new Date(p.createdAt).toLocaleDateString()}</p>
+                      <div className="mt-1.5 flex items-center gap-1">
+                        <button type="button" onClick={() => void togglePostFeed(p)}
+                          className={`flex flex-1 items-center justify-center rounded-full px-2 py-1 text-[10px] font-black transition ${p.feed ? "bg-black/[0.07] text-ink/60" : "bg-emerald-500 text-white"}`}>
+                          {p.feed ? "Hide" : "Show"}
+                        </button>
+                        <a href={`/post/${p.id}`} target="_blank" rel="noopener noreferrer" className="grid h-7 w-7 place-items-center rounded text-ink/50 transition hover:bg-black/5" title="Open"><ExternalLink className="h-3.5 w-3.5" /></a>
+                        <button type="button" onClick={() => void deletePost(p)} className="grid h-7 w-7 place-items-center rounded text-coral transition hover:bg-coral/10" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── A List ── */}
         {tab === "looks" && (
