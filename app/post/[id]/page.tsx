@@ -2,10 +2,11 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ChevronLeft, Heart, Send, MessageCircle, UserPlus, UserCheck, Loader2, X, Store, Sparkles } from "lucide-react";
+import { ChevronLeft, Heart, Send, MessageCircle, UserPlus, UserCheck, Loader2, X, Store, Sparkles, EyeOff, Trash2 } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import TryOnQR from "@/components/TryOnQR";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
+import { isAdminEmail } from "@/lib/is-admin-email";
 
 type Post = {
   id: string;
@@ -85,6 +86,40 @@ export default function PostPage() {
     catch { /**/ }
   }, []);
   const isSignedIn = !!session || !!curatorSession?.id;
+
+  // ── Staff moderation (admin or the owner curator): hide / delete / assign ──
+  const [adminPin, setAdminPin] = useState("");
+  useEffect(() => { try { setAdminPin(localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""); } catch { /**/ } }, []);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [modWorking, setModWorking] = useState(false);
+  const [curators, setCurators] = useState<{ id: string; firstName?: string; lastName?: string; photoUrl?: string }[]>([]);
+  const isAdminUser = !!adminPin || isAdminEmail(session?.user?.email);
+  const isStaff = isAdminUser || (!!curatorSession?.id && !!post && curatorSession.id === post.curatorId);
+  const modHeaders = () => ({ "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}), ...(curatorSession?.id ? { "x-curator-id": curatorSession.id } : {}), ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) });
+  useEffect(() => {
+    if (!assignOpen || curators.length || !isAdminUser) return;
+    fetch("/api/try-this-look?curators=1", { headers: { ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}) } })
+      .then(r => r.ok ? r.json() : { curators: [] })
+      .then((d: { curators?: typeof curators }) => setCurators((d.curators ?? []).slice().sort((a, b) => (a.firstName ?? "").localeCompare(b.firstName ?? ""))))
+      .catch(() => {});
+  }, [assignOpen, isAdminUser, adminPin, curators.length]);
+  const doHide = async () => {
+    if (!post) return;
+    await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "set-generation-feed", generationId: post.id, feed: false }) }).catch(() => {});
+    router.back();
+  };
+  const doDelete = async () => {
+    if (!post || !confirm("Diesen Beitrag permanent löschen?")) return;
+    await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "delete-generation", id: post.id }) }).catch(() => {});
+    router.back();
+  };
+  const doAssign = async (customerName: string) => {
+    if (!post) return;
+    setModWorking(true);
+    await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "assign-generation", id: post.id, customerName }) }).catch(() => {});
+    setModWorking(false); setAssignOpen(false);
+    setPost(p => p ? { ...p, customerName } : p);
+  };
 
   useEffect(() => {
     if (!postId) return;
@@ -257,8 +292,23 @@ export default function PostPage() {
             <p className="text-[10px] font-bold text-black/40">{timeAgo(post.createdAt)} · {followerCount} followers</p>
           </div>
         </a>
+        {/* Staff moderation: hide (owner/admin) · delete + assign (admin) */}
+        {isStaff && (
+          <div className="flex items-center gap-1.5">
+            <button type="button" onClick={() => void doHide()} title="Ausblenden"
+              className="grid h-9 w-9 place-items-center rounded-full bg-amber-400/90 text-white active:opacity-70"><EyeOff className="h-4 w-4" /></button>
+            {isAdminUser && (
+              <>
+                <button type="button" onClick={() => void doDelete()} title="Löschen"
+                  className="grid h-9 w-9 place-items-center rounded-full bg-red-500/90 text-white active:opacity-70"><Trash2 className="h-4 w-4" /></button>
+                <button type="button" onClick={() => setAssignOpen(true)} title="Zuweisen"
+                  className="grid h-9 w-9 place-items-center rounded-full bg-black/70 text-white active:opacity-70"><UserPlus className="h-4 w-4" /></button>
+              </>
+            )}
+          </div>
+        )}
         {/* Follow */}
-        {!isOwn && (
+        {!isOwn && !isStaff && (
           <button type="button" onClick={() => void handleFollow()} disabled={followLoading}
             className={`flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-black transition active:scale-95 disabled:opacity-50 ${
               following ? "border border-black/20 bg-white text-black/60" : "bg-black text-white"
@@ -270,6 +320,38 @@ export default function PostPage() {
           </button>
         )}
       </header>
+
+      {/* Assign-to-creator picker (admin) */}
+      {assignOpen && (
+        <div className="fixed inset-0 z-[120] flex flex-col justify-end bg-black/50" onClick={() => setAssignOpen(false)}>
+          <div className="flex max-h-[72dvh] flex-col rounded-t-2xl bg-white" onClick={e => e.stopPropagation()} style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+            <div className="flex items-center justify-between border-b border-black/8 px-4 py-3">
+              <span className="text-sm font-black text-black">Assign to creator</span>
+              <button type="button" onClick={() => setAssignOpen(false)} className="grid h-8 w-8 place-items-center rounded-full text-black/40 active:bg-black/5"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="flex-1 space-y-1 overflow-y-auto p-2 overscroll-contain">
+              {curators.length === 0 ? (
+                <p className="py-8 text-center text-sm font-bold text-black/35">No creators loaded.</p>
+              ) : curators.map(c => {
+                const name = [c.firstName, c.lastName].filter(Boolean).join(" ").trim() || "Creator";
+                return (
+                  <button key={c.id} type="button" disabled={modWorking}
+                    onClick={() => void doAssign(name)}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition active:bg-black/5 disabled:opacity-50">
+                    {c.photoUrl
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={c.photoUrl} alt={name} className="h-10 w-10 shrink-0 rounded-full object-cover bg-black/5" />
+                      // eslint-disable-next-line @next/next/no-img-element
+                      : <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=000000&fontColor=ffffff&fontSize=40`} alt={name} className="h-10 w-10 shrink-0 rounded-full bg-black/5" />}
+                    <span className="min-w-0 flex-1 truncate text-sm font-black text-black">{name}</span>
+                    {post.customerName === name && <span className="text-[11px] font-black text-emerald-600">current</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Post image(s) */}
       <div className="relative bg-black/5">
