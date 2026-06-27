@@ -279,10 +279,12 @@ export async function GET(request: Request) {
       if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
       return NextResponse.json({ curators: state.curators ?? [] });
     }
-    // Admin: provenance / history for a single feed post (a generation OR a look).
+    // Provenance / history for a single feed post (a generation OR a look).
     // Powers the ℹ️ Info sheet in the reels feed — who made it, when, what kind.
+    // PUBLIC: everyone may see the provenance. Internal moderation fields
+    // (source/visitorId, feed status) are only included for admins.
     if (url.searchParams.get("postInfo")) {
-      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const admin = await isAdmin(request);
       const pid = String(url.searchParams.get("postInfo")).trim();
       const curators = state.curators ?? [];
       const curName = (cid?: string) => {
@@ -307,13 +309,13 @@ export async function GET(request: Request) {
             videoKind,                       // "video" | "video360" | null
             genKindKnown: !!kindRaw,          // false → tier wasn't recorded (older post)
             hadUserPhoto: !!g.userPhotoUrl,   // a real photo upload (vs a pure AI render)
-            source: g.visitorId || null,      // e.g. "shopcut-main", "admin-…"
-            lookId: g.lookId || null,
             lookName: g.lookName || "",
             storeName: g.storeName || "",
-            feed: g.feed !== false,
-            lockedByAdmin: !!g.lockedByAdmin,
-            hidden: !!g.hidden,
+            // Admin-only moderation internals:
+            ...(admin ? {
+              source: g.visitorId || null,    // e.g. "shopcut-main", "admin-…"
+              status: g.lockedByAdmin ? "Deactivated (admin)" : g.hidden ? "Deleted/Hidden" : g.feed !== false ? "In feed" : "Hidden",
+            } : {}),
           },
         });
       }
@@ -338,10 +340,9 @@ export async function GET(request: Request) {
             buyUrl: l.buyUrl || null,
             likes: l.likeCount ?? 0,
             tryOns,
-            published: l.published !== false,
-            lookId: l.id,
             lookName: l.name || "",
             storeName: l.storeName || "",
+            ...(admin ? { status: l.published !== false ? "Published" : "Offline" } : {}),
           },
         });
       }

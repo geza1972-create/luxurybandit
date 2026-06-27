@@ -590,7 +590,7 @@ function CommunityDetailView({
       {/* Prev slide */}
       {prevItem && <CommunitySlide it={prevItem} offset={-1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} isStaff={!!isAdmin || !!myCuratorId} onMakeVideo={onMakeVideo} makingVideoLookId={makingVideoLookId} />}
       {/* Current slide */}
-      <CommunitySlide it={item} offset={0} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} isStaff={!!isAdmin || !!myCuratorId} onMakeVideo={onMakeVideo} makingVideoLookId={makingVideoLookId} onInfo={isAdmin && onInfo ? openInfo : undefined} />
+      <CommunitySlide it={item} offset={0} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} isStaff={!!isAdmin || !!myCuratorId} onMakeVideo={onMakeVideo} makingVideoLookId={makingVideoLookId} onInfo={openInfo} />
       {/* Next slide */}
       {nextItem && <CommunitySlide it={nextItem} offset={1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} isStaff={!!isAdmin || !!myCuratorId} onMakeVideo={onMakeVideo} makingVideoLookId={makingVideoLookId} />}
 
@@ -778,13 +778,13 @@ function CommunityDetailView({
                         <Row k="Try-ons" v={String(d.tryOns ?? 0)} />
                         <Row k="Likes" v={String(d.likes ?? 0)} />
                         {d.media === "video" && d.videoCreatedAt && <Row k="Video created" v={fmt(d.videoCreatedAt)} />}
-                        <Row k="Status" v={d.published ? "Published" : "Offline"} />
+                        {d.status && <Row k="Status" v={String(d.status)} />}
                       </>
                     ) : (
                       <>
                         <Row k="Look" v={d.lookName || "—"} />
                         {d.source && <Row k="Source" v={String(d.source)} />}
-                        <Row k="Status" v={d.lockedByAdmin ? "Deactivated (admin)" : d.hidden ? "Deleted/Hidden" : d.feed ? "In feed" : "Hidden"} />
+                        {d.status && <Row k="Status" v={String(d.status)} />}
                       </>
                     )}
                   </div>
@@ -1683,7 +1683,7 @@ function StoresPage() {
         }}
         onDelete={isAdmin ? (id) => { const it = visibleHistoryAsReel.find(i => i.id === id); if (it) void deleteCommunityItem(it); } : undefined}
         onAssign={isAdmin ? assignCommunityItem : undefined}
-        onInfo={isAdmin ? fetchPostInfo : undefined}
+        onInfo={fetchPostInfo}
         curators={assignCurators}
         isAdmin={isAdmin}
         myCuratorId={myCuratorId}
@@ -2413,7 +2413,7 @@ function StoresPage() {
           onHide={isAdmin ? (id) => { const it = (reelItems ?? filteredCommunity).find(i => i.id === id); if (it) void hideCommunityItem(it); } : undefined}
           onDelete={isAdmin ? (id) => { const it = (reelItems ?? filteredCommunity).find(i => i.id === id) ?? visibleHistoryAsReel.find(i => i.id === id); if (it) void deleteCommunityItem(it); } : undefined}
           onAssign={isAdmin ? assignCommunityItem : undefined}
-          onInfo={isAdmin ? fetchPostInfo : undefined}
+          onInfo={fetchPostInfo}
           curators={assignCurators}
           isAdmin={isAdmin}
           myCuratorId={myCuratorId}
