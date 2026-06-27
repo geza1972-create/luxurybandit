@@ -728,9 +728,18 @@ export default function SellerDashboardPage() {
 
   useEffect(() => {
     const s = getStoredAuthSession();
-    // No buyer/seller session (e.g. a curator/admin, or a signed-out visitor) →
-    // bounce to the login instead of hanging forever on the loading spinner.
-    if (!s?.access_token) { setLoading(false); router.replace("/seller/login"); return; }
+    // No buyer/seller session → route by who they actually are, so we don't trap
+    // admins/curators at a seller login they can't pass (they have no seller account).
+    if (!s?.access_token) {
+      setLoading(false);
+      let pin = "", curatorId = "";
+      try { pin = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { /**/ }
+      try { curatorId = (JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id as string) ?? ""; } catch { /**/ }
+      if (pin) router.replace("/admin");
+      else if (curatorId) router.replace("/studio");
+      else router.replace("/seller/login");
+      return;
+    }
     setSession(s);
     loadData(s.access_token);
     // eslint-disable-next-line react-hooks/exhaustive-deps
