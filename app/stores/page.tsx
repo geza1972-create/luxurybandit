@@ -476,11 +476,11 @@ function CommunityDetailView({
             : <Volume2 strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />}
           <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">{muted ? "Sound" : "On"}</span>
         </button>
-        {/* Home */}
-        <a href="/stores" className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
-          <Home strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
-          <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Home</span>
-        </a>
+        {/* Grid overview — closes the reels (overlay) or routes to the grid (landing) */}
+        <button type="button" onClick={onClose} className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
+          <LayoutGrid strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
+          <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Grid</span>
+        </button>
         {/* Like */}
         <button type="button" onClick={() => onLikeToggle(item.id)}
           className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
@@ -1059,9 +1059,13 @@ function StoresPage() {
   const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
   const [bulkAssignName, setBulkAssignName] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  // Home (the feed grid) is the DEFAULT landing. The A List (HomeFeed of look
-  // posts) is opt-in via ?view=alist. ?view=grid still maps to the grid too.
-  const showGrid = searchParams.get("view") !== "alist";
+  // Home = the full-screen scrolling reels feed (DEFAULT landing). ?view=grid =
+  // the 3-col grid overview. ?view=alist = The A List (HomeFeed of look posts).
+  const view = searchParams.get("view");
+  const showAList = view === "alist";
+  const showGrid = view === "grid";
+  // Account/Saved deep links open over the grid, not the immersive reels.
+  const showReels = !showAList && !showGrid && !searchParams.get("panel"); // default
   const [brandFilter, setBrandFilter] = useState<string | null>(null);
   const [feedSelectMode, setFeedSelectMode] = useState(false);
   const [selectedLookIds, setSelectedLookIds] = useState<Set<string>>(new Set());
@@ -1245,16 +1249,16 @@ function StoresPage() {
     setBulkWorking(false);
   };
 
-  // Load community try-ons for the merged Discover grid (and search/community tab)
+  // Load community try-ons — needed for the reels landing AND the grid. Load once.
   useEffect(() => {
-    if ((typeFilter !== "community" && !searchOpen && !showGrid) || communityItems.length > 0) return;
+    if (communityItems.length > 0) return;
     setCommunityLoading(true);
     fetch("/api/try-this-look?community=1")
       .then(r => r.json())
       .then((p: { community?: CommunityItem[] }) => setCommunityItems(p.community ?? []))
       .catch(() => {})
       .finally(() => setCommunityLoading(false));
-  }, [typeFilter, communityItems.length, searchOpen, showGrid]);
+  }, [communityItems.length]);
 
   useEffect(() => {
     fetch("/api/try-this-look")
@@ -1391,13 +1395,40 @@ function StoresPage() {
     return filteredCommunity.map(c => ({ ...c, kind: "tryon" as const, slides: buildSlides(c.imageUrl, c.videoUrl, c.userPhotoUrl) }));
   }, [filteredCommunity]);
 
-  // ── Default home = full-screen vertical feed (TikTok/IG style, newest first) ──
-  // The legacy grid below is kept only for the search experience.
-  if (!searchOpen && !showGrid) {
+  // ── DEFAULT HOME = full-screen vertical reels feed (TikTok/IG style) ──
+  if (!searchOpen && showReels) {
+    if (!visibleHistoryAsReel.length) {
+      return (
+        <div className="grid min-h-dvh place-items-center bg-black" style={{ maxWidth: "100vw" }}>
+          <Loader2 className="h-7 w-7 animate-spin text-white/40" />
+        </div>
+      );
+    }
+    return (
+      <CommunityDetailView
+        allItems={visibleHistoryAsReel}
+        initialIndex={0}
+        likes={communityLikes}
+        onClose={() => router.push("/stores?view=grid")}
+        onLikeToggle={(id) => {
+          const next = { ...communityLikes, [id]: !(communityLikes[id] ?? false) };
+          setCommunityLikes(next);
+          try { localStorage.setItem("lb_gen_likes", JSON.stringify(next)); } catch { /**/ }
+        }}
+        isAdmin={isAdmin}
+        myCuratorId={myCuratorId}
+        onHideItem={hideReelItem}
+        router={router}
+      />
+    );
+  }
+
+  // ── The A List = HomeFeed of look posts (?view=alist) ──
+  if (!searchOpen && showAList) {
     return (
       <div className="min-h-dvh bg-black" style={{ maxWidth: "100vw" }}>
         <HomeFeed looks={looks} />
-        {/* Floating controls (top-right): gallery/grid + search */}
+        {/* Floating controls (top-right): home + search */}
         <div className="fixed right-3 z-30 flex items-center gap-2" style={{ top: "calc(env(safe-area-inset-top) + 0.6rem)" }}>
           <button type="button" aria-label="Home" onClick={() => router.push("/stores")}
             className="grid h-9 w-9 place-items-center rounded-full bg-black/35 text-white backdrop-blur active:scale-90 transition-transform">
