@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import TryOnQR from "@/components/TryOnQR";
 
@@ -74,6 +74,18 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [clamped, setClamped] = useState(false);
   const [active, setActive] = useState(0);
   const [inView, setInView] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [infoData, setInfoData] = useState<Record<string, any> | null>(null);
+  const [infoLoading, setInfoLoading] = useState(false);
+  const openLookInfo = async () => {
+    setInfoOpen(true); setInfoData(null); setInfoLoading(true);
+    try {
+      const pin = (() => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } })();
+      const res = await fetch(`/api/try-this-look?postInfo=${encodeURIComponent(look.id)}`, { headers: pin ? { "x-try-look-admin-pin": pin } : {} });
+      setInfoData(res.ok ? (await res.json())?.info ?? null : null);
+    } catch { setInfoData(null); }
+    setInfoLoading(false);
+  };
   // All videos in this slide's carousel (curator + community), keyed by slide index.
   const videoRefs = useRef<Record<number, HTMLVideoElement>>({});
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -246,29 +258,33 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
                     src={look.videoUrl} poster={look.videoPosterUrl || img} className="h-full w-full object-contain"
                     muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
-                  <span className={`absolute ${single ? "left-14" : "left-3"} top-3 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur`}>{look.aiCreated ? "✦ AI video" : "Video"}</span>
+                  <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
+                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70`}>{look.aiCreated ? "✦ AI video" : "Video"}<span className="ml-0.5 inline-flex items-center gap-0.5 opacity-85"><Info className="h-3 w-3" />(Info)</span></button>
                 </div>
               ) : m.type === "cphoto" ? (
                 // Community try-on photo (someone wearing this look).
                 <div className="relative h-full w-full">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={m.url} alt={`${look.name} on ${m.name ?? "a member"}`} className="h-full w-full object-contain" />
-                  <span className={`absolute ${single ? "left-14" : "left-3"} top-3 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur`}>{m.name ? `${m.name}'s try-on` : "Member try-on"}</span>
+                  <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
+                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70`}>{m.name ? `${m.name}'s try-on` : "Member try-on"}<span className="ml-0.5 inline-flex items-center gap-0.5 opacity-85"><Info className="h-3 w-3" />(Info)</span></button>
                 </div>
               ) : m.type === "cvideo" ? (
                 // Community try-on video — same sound handling as the curator video.
                 <div className="relative h-full w-full">
                   <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
                     src={m.url} className="h-full w-full bg-black object-contain" muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
-                  <span className={`absolute ${single ? "left-14" : "left-3"} top-3 z-10 rounded-full bg-black/60 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur`}>{m.name ? `${m.name}'s video` : "Member video"}</span>
+                  <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
+                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70`}>{m.name ? `${m.name}'s video` : "Member video"}<span className="ml-0.5 inline-flex items-center gap-0.5 opacity-85"><Info className="h-3 w-3" />(Info)</span></button>
                 </div>
               ) : m.type === "image" ? (
                 <div className="relative h-full w-full">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={img} alt={look.name} className="h-full w-full object-contain" />
-                  <span className={`absolute ${single ? "left-14" : "left-3"} top-3 z-10 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide backdrop-blur ${look.aiCreated ? "bg-black/70 text-white" : "bg-white/85 text-black/70"}`}>
-                    {look.aiCreated ? "✦ Original" : "Curated"}
-                  </span>
+                  <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
+                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide backdrop-blur active:opacity-70 ${look.aiCreated ? "bg-black/70 text-white" : "bg-white/85 text-black/70"}`}>
+                    {look.aiCreated ? "✦ Original" : "Curated"}<span className="ml-0.5 inline-flex items-center gap-0.5 opacity-80"><Info className="h-3 w-3" />(Info)</span>
+                  </button>
                 </div>
               ) : null}
             </div>
@@ -370,6 +386,67 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           </button>
         </div>
       </div>
+
+      {/* Info / history sheet — public provenance for this look */}
+      {infoOpen && (
+        <div className="fixed inset-0 z-[120] flex flex-col justify-end bg-black/50" onClick={() => setInfoOpen(false)}>
+          <div className="flex max-h-[78dvh] flex-col rounded-t-2xl bg-white text-left" onClick={e => e.stopPropagation()} style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+            <div className="flex items-center justify-between border-b border-black/8 px-4 py-3">
+              <span className="flex items-center gap-2 text-sm font-black text-black"><Info className="h-4 w-4" /> Post info & history</span>
+              <button type="button" onClick={() => setInfoOpen(false)} className="grid h-8 w-8 place-items-center rounded-full text-black/40 active:bg-black/5"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
+              {infoLoading ? (
+                <div className="flex items-center justify-center py-10 text-black/40"><Loader2 className="h-5 w-5 animate-spin" /></div>
+              ) : !infoData ? (
+                <p className="py-8 text-center text-sm font-bold text-black/35">No info found.</p>
+              ) : (() => {
+                const d = infoData;
+                const isLook = d.kind === "look";
+                const fmt = (iso: any) => { if (!iso) return "—"; try { return new Date(iso).toLocaleString("en-US", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return String(iso); } };
+                const typeLabel = isLook
+                  ? (d.aiCreated ? "AI-Studio look (AI-generated)" : `Curated look${d.productType === "real" ? " · real product" : ""}`)
+                  : (d.hadUserPhoto ? "Try-on (own photo uploaded)" : "Try-on (AI render, no own photo)");
+                const mediaLabel = d.media === "video" ? (isLook ? "With video" : (d.videoKind === "video360" ? "AI-Video 360°" : "AI-Video")) : (isLook ? "Image only" : "AI-Picture");
+                const Row = ({ k, v }: { k: string; v: ReactNode }) => (
+                  <div className="flex items-start justify-between gap-4 border-b border-black/5 py-2.5">
+                    <span className="shrink-0 text-[12px] font-bold uppercase tracking-wide text-black/40">{k}</span>
+                    <span className="min-w-0 text-right text-[13px] font-semibold text-black">{v}</span>
+                  </div>
+                );
+                return (
+                  <div>
+                    <div className="mb-3 flex items-center gap-2">
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide ${isLook ? "bg-violet-100 text-violet-700" : "bg-sky-100 text-sky-700"}`}>{isLook ? "Look" : "Try-on"}</span>
+                      <span className="rounded-full bg-black/8 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-black/60">{mediaLabel}</span>
+                    </div>
+                    <Row k="Created" v={fmt(d.createdAt)} />
+                    <Row k="By" v={<span>{d.who || "—"}{d.isCurator && <span className="ml-1.5 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-black text-emerald-700">CURATOR</span>}</span>} />
+                    <Row k="Type" v={typeLabel} />
+                    <Row k="Media" v={mediaLabel} />
+                    {isLook ? (
+                      <>
+                        {d.brand && <Row k="Brand" v={d.brand} />}
+                        {d.price && <Row k="Price" v={d.price} />}
+                        <Row k="Try-ons" v={String(d.tryOns ?? 0)} />
+                        <Row k="Likes" v={String(d.likes ?? 0)} />
+                        {d.media === "video" && d.videoCreatedAt && <Row k="Video created" v={fmt(d.videoCreatedAt)} />}
+                        {d.status && <Row k="Status" v={String(d.status)} />}
+                      </>
+                    ) : (
+                      <>
+                        <Row k="Look" v={d.lookName || "—"} />
+                        {d.source && <Row k="Source" v={String(d.source)} />}
+                        {d.status && <Row k="Status" v={String(d.status)} />}
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
