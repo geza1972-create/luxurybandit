@@ -13,7 +13,7 @@ import { useScrollLock } from "@/lib/use-scroll-lock";
 import { lookPath } from "@/lib/look-slug";
 import HomeFeed from "@/components/HomeFeed";
 import { isAdminEmail } from "@/lib/is-admin-email";
-import { Bookmark, EyeOff, Heart, Home, Image as ImageIcon, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, Sparkles, Volume2, VolumeX, X } from "lucide-react";
+import { Bookmark, EyeOff, Heart, Home, Image as ImageIcon, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, Sparkles, UserPlus, Volume2, VolumeX, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -266,13 +266,13 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
       <div className="bg-black px-4 pt-2.5" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
         {/* ── The two core money buttons — Try on you · Bandit the look ── */}
         {it.lookId && (
-          <div className="mb-2.5 flex items-center gap-2">
+          <div className="mb-2.5 flex items-center justify-center gap-2.5">
             <a href={`/tryon/${it.lookId}`}
-              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full bg-white text-sm font-black text-black shadow-lg active:scale-95 transition-transform">
+              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-white px-5 text-sm font-black text-black shadow-lg active:scale-95 transition-transform">
               <Sparkles className="h-4 w-4" /> Try on you
             </a>
             <a href={`${lookPath(it.lookName, it.lookId)}/details`}
-              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full border border-white/25 bg-black text-sm font-black text-white shadow-lg active:scale-95 transition-transform">
+              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/25 bg-black px-5 text-sm font-black text-white shadow-lg active:scale-95 transition-transform">
               <ShoppingBag className="h-4 w-4" /> Bandit the look
             </a>
           </div>
@@ -394,6 +394,7 @@ function CommunityDetailView({
   onHide,
   onDelete,
   onAssign,
+  curators,
   isAdmin,
   myCuratorId,
   onHideItem,
@@ -407,6 +408,7 @@ function CommunityDetailView({
   onHide?: (id: string) => void;
   onDelete?: (id: string) => void;
   onAssign?: (id: string, customerName: string) => Promise<void>;
+  curators?: { id: string; firstName?: string; lastName?: string; photoUrl?: string }[];
   isAdmin?: boolean;
   myCuratorId?: string;
   onHideItem?: (item: CommunityItem) => void;
@@ -527,18 +529,18 @@ function CommunityDetailView({
       {/* Next slide */}
       {nextItem && <CommunitySlide it={nextItem} offset={1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} />}
 
-      {/* Bottom-left controls: Sound + Grid */}
+      {/* Top-left: Sound on/off */}
+      <button type="button" onClick={() => setMuted(m => !m)}
+        className="absolute left-3 z-20 grid h-10 w-10 place-items-center rounded-full bg-black/40 backdrop-blur active:scale-90 transition-transform pointer-events-auto"
+        style={{ top: "max(1rem, env(safe-area-inset-top))" }}>
+        {muted
+          ? <VolumeX strokeWidth={2} className="h-5 w-5 text-white" />
+          : <Volume2 strokeWidth={2} className="h-5 w-5 text-white" />}
+      </button>
+
+      {/* Bottom-left: Home / overview */}
       <div className="absolute left-3 z-20 flex items-center gap-4 pointer-events-auto"
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 7.5rem)" }}>
-        {/* Sound on/off */}
-        <button type="button" onClick={() => setMuted(m => !m)}
-          className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
-          {muted
-            ? <VolumeX strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
-            : <Volume2 strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />}
-          <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">{muted ? "Sound" : "On"}</span>
-        </button>
-        {/* Home / overview — closes the reels (overlay) or routes to the grid (landing) */}
         <button type="button" onClick={onClose} className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
           <Home strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
           <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Home</span>
@@ -618,6 +620,13 @@ function CommunityDetailView({
               </svg>
             </button>
           )}
+          {/* Assign this try-on to a creator (admin) — top, next to hide/delete */}
+          {onAssign && item.kind !== "look" && (
+            <button type="button" onClick={() => setAssignOpen(true)} title="Zuweisen"
+              className="grid h-10 w-10 place-items-center rounded-full bg-black/55 backdrop-blur text-white active:opacity-70">
+              <UserPlus className="h-5 w-5" />
+            </button>
+          )}
           <button type="button" onClick={() => { onClose(); router.push(`/look/${item.lookId}`); }}
             className="flex h-10 items-center gap-2 rounded-full bg-black/50 backdrop-blur px-4 text-sm font-black text-white active:opacity-70">
             <Sparkles className="h-4 w-4" />
@@ -626,33 +635,36 @@ function CommunityDetailView({
         </div>
       </div>
 
-      {/* Admin assign panel */}
-      {onAssign && (
-        <div className="absolute inset-x-0 bottom-0 z-20" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-          {assignOpen ? (
-            <div className="flex items-center gap-2 bg-black/90 px-4 py-3 border-t border-white/10">
-              <input type="text" value={assignName} onChange={e => setAssignName(e.target.value)}
-                placeholder="Name oder E-Mail…"
-                className="flex-1 h-10 rounded-xl bg-white/10 px-3 text-sm font-bold text-white placeholder:text-white/30 outline-none focus:bg-white/15"
-                autoFocus />
-              <button type="button" disabled={assignWorking || !assignName.trim()}
-                onClick={async () => { setAssignWorking(true); await onAssign(item.id, assignName.trim()); setAssignWorking(false); setAssignOpen(false); }}
-                className="h-10 rounded-xl bg-cobalt px-4 text-sm font-black text-white disabled:opacity-40 active:opacity-70">
-                {assignWorking ? "…" : "Speichern"}
-              </button>
-              <button type="button" onClick={() => setAssignOpen(false)}
-                className="h-10 w-10 grid place-items-center rounded-xl bg-white/10 text-white active:opacity-70">
-                <X className="h-4 w-4" />
-              </button>
+      {/* Assign-to-creator picker (admin) — pick from the list of creators by name + photo */}
+      {onAssign && assignOpen && (
+        <div className="fixed inset-0 z-[120] flex flex-col justify-end bg-black/50" onClick={() => setAssignOpen(false)}>
+          <div className="flex max-h-[72dvh] flex-col rounded-t-2xl bg-white" onClick={e => e.stopPropagation()}
+            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+            <div className="flex items-center justify-between border-b border-black/8 px-4 py-3">
+              <span className="text-sm font-black text-black">Assign to creator</span>
+              <button type="button" onClick={() => setAssignOpen(false)} className="grid h-8 w-8 place-items-center rounded-full text-black/40 active:bg-black/5"><X className="h-5 w-5" /></button>
             </div>
-          ) : (
-            <div className="flex justify-end bg-black/90 px-4 py-2 border-t border-white/10">
-              <button type="button" onClick={() => { setAssignName(item.customerName ?? ""); setAssignOpen(true); }}
-                className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-black text-white/70 active:opacity-70">
-                Zuweisen
-              </button>
+            <div className="flex-1 space-y-1 overflow-y-auto p-2 overscroll-contain">
+              {(curators ?? []).length === 0 ? (
+                <p className="py-8 text-center text-sm font-bold text-black/35">No creators loaded.</p>
+              ) : (curators ?? []).map(c => {
+                const name = [c.firstName, c.lastName].filter(Boolean).join(" ").trim() || "Creator";
+                return (
+                  <button key={c.id} type="button" disabled={assignWorking}
+                    onClick={async () => { setAssignWorking(true); await onAssign(item.id, name); setAssignWorking(false); setAssignOpen(false); }}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition active:bg-black/5 disabled:opacity-50">
+                    {c.photoUrl
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={c.photoUrl} alt={name} className="h-10 w-10 shrink-0 rounded-full object-cover bg-black/5" />
+                      // eslint-disable-next-line @next/next/no-img-element
+                      : <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=000000&fontColor=ffffff&fontSize=40`} alt={name} className="h-10 w-10 shrink-0 rounded-full bg-black/5" />}
+                    <span className="min-w-0 flex-1 truncate text-sm font-black text-black">{name}</span>
+                    {item.customerName === name && <span className="text-[11px] font-black text-emerald-600">current</span>}
+                  </button>
+                );
+              })}
             </div>
-          )}
+          </div>
         </div>
       )}
 
@@ -1106,6 +1118,8 @@ function StoresPage() {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminPin, setAdminPin] = useState("");
+  // Creators list (admin) for the in-feed "Assign to creator" picker (name + photo).
+  const [assignCurators, setAssignCurators] = useState<{ id: string; firstName?: string; lastName?: string; photoUrl?: string }[]>([]);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkWorking, setBulkWorking] = useState(false);
@@ -1306,6 +1320,15 @@ function StoresPage() {
     setBulkWorking(false);
   };
 
+  // Admin: load the creators list for the in-feed "Assign to creator" picker.
+  useEffect(() => {
+    if (!isAdmin) return;
+    fetch("/api/try-this-look?curators=1", { headers: { ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}) } })
+      .then(r => r.ok ? r.json() : { curators: [] })
+      .then((d: { curators?: typeof assignCurators }) => setAssignCurators((d.curators ?? []).slice().sort((a, b) => (a.firstName ?? "").localeCompare(b.firstName ?? ""))))
+      .catch(() => {});
+  }, [isAdmin, adminPin]);
+
   // Load community try-ons — needed for the reels landing AND the grid. Load once.
   useEffect(() => {
     if (communityItems.length > 0) return;
@@ -1474,6 +1497,11 @@ function StoresPage() {
           setCommunityLikes(next);
           try { localStorage.setItem("lb_gen_likes", JSON.stringify(next)); } catch { /**/ }
         }}
+        onAssign={isAdmin ? async (id, customerName) => {
+          await adminAction({ action: "assign-generation", id, customerName });
+          setCommunityItems(prev => prev.map(i => i.id === id ? { ...i, customerName } : i));
+        } : undefined}
+        curators={assignCurators}
         isAdmin={isAdmin}
         myCuratorId={myCuratorId}
         onHideItem={hideReelItem}
@@ -2203,6 +2231,7 @@ function StoresPage() {
             await adminAction({ action: "assign-generation", id, customerName });
             setCommunityItems(prev => prev.map(i => i.id === id ? { ...i, customerName } : i));
           } : undefined}
+          curators={assignCurators}
           isAdmin={isAdmin}
           myCuratorId={myCuratorId}
           onHideItem={hideReelItem}
