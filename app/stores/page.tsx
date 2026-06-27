@@ -472,8 +472,8 @@ function CommunityDetailView({
       {/* Next slide */}
       {nextItem && <CommunitySlide it={nextItem} offset={1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} />}
 
-      {/* Right action column — always on top, not translated */}
-      <div className="absolute right-2 z-20 flex flex-col items-center gap-5 pointer-events-auto"
+      {/* Bottom-left controls: Sound + Grid */}
+      <div className="absolute left-3 z-20 flex items-center gap-4 pointer-events-auto"
         style={{ bottom: "calc(env(safe-area-inset-bottom) + 5rem)" }}>
         {/* Sound on/off */}
         <button type="button" onClick={() => setMuted(m => !m)}
@@ -488,6 +488,11 @@ function CommunityDetailView({
           <LayoutGrid strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
           <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Grid</span>
         </button>
+      </div>
+
+      {/* Right action column — always on top, not translated */}
+      <div className="absolute right-2 z-20 flex flex-col items-center gap-5 pointer-events-auto"
+        style={{ bottom: "calc(env(safe-area-inset-bottom) + 5rem)" }}>
         {/* Like */}
         <button type="button" onClick={() => onLikeToggle(item.id)}
           className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
