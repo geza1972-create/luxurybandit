@@ -37,7 +37,10 @@ function mapMatches(matches: any[], brand: string, lookText: string): Alt[] {
   const brandWord = (brand || "").trim().split(/\s+/)[0]?.toLowerCase() || "";
   const lookColors = colorsIn(lookText);
   return (matches || [])
-    .filter((m) => m?.link && m?.thumbnail && m?.price?.extracted_value)
+    // Require only a link + image. Previously we also required a parsed price, which
+    // dropped MOST Google Lens visual matches (SerpApi rarely extracts a price) → the
+    // "finds nothing" problem. Keep price-less look-alikes too (Shop now still works).
+    .filter((m) => m?.link && m?.thumbnail)
     .filter((m) => !(brandWord && `${m.source ?? ""} ${m.title ?? ""}`.toLowerCase().includes(brandWord))) // drop the original itself
     .filter((m) => colorOk(String(m.title ?? ""), lookColors)) // colour must not clash
     .filter((m) => (seen.has(m.link) ? false : seen.add(m.link)))
@@ -50,8 +53,9 @@ function mapMatches(matches: any[], brand: string, lookText: string): Alt[] {
       priceValue: typeof m.price?.extracted_value === "number" ? m.price.extracted_value : undefined,
       currency: m.price?.currency || "$",
     }))
+    // Priced items first (luxe→budget), then the price-less visual matches.
     .sort((a, b) => (b.priceValue ?? -1) - (a.priceValue ?? -1))
-    .slice(0, 10);
+    .slice(0, 16);
 }
 
 // Fetch ONE shoppable lingerie piece in a given colour via Google Shopping. The
