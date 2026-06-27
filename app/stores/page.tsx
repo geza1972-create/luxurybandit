@@ -529,10 +529,10 @@ function CommunityDetailView({
       {/* Next slide */}
       {nextItem && <CommunitySlide it={nextItem} offset={1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} />}
 
-      {/* Top-left: Sound on/off */}
+      {/* Bottom-left: Sound on/off */}
       <button type="button" onClick={() => setMuted(m => !m)}
         className="absolute left-3 z-20 grid h-10 w-10 place-items-center rounded-full bg-black/40 backdrop-blur active:scale-90 transition-transform pointer-events-auto"
-        style={{ top: "max(1rem, env(safe-area-inset-top))" }}>
+        style={{ bottom: "calc(env(safe-area-inset-bottom) + 7.5rem)" }}>
         {muted
           ? <VolumeX strokeWidth={2} className="h-5 w-5 text-white" />
           : <Volume2 strokeWidth={2} className="h-5 w-5 text-white" />}
