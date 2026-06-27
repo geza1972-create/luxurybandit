@@ -222,9 +222,9 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
     if (i !== hIdx) setHIdx(i);
   };
   return (
-    <div className="absolute inset-0 flex flex-col bg-black"
+    <div className="absolute inset-0 bg-black"
       style={{ transform: `translateY(calc(${offset * 100}% + ${verticalDrag}px))`, transition, willChange: "transform" }}>
-      <div className="relative flex-1 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden">
         <div ref={scrollerRef} onScroll={onScroll}
           className="flex h-full w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {slides.map((s, i) => (
@@ -263,14 +263,10 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
         )}
         <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black/50 to-transparent pointer-events-none" />
       </div>
-      <div className="bg-gradient-to-t from-black/55 via-black/20 to-transparent px-4 pt-10" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
-        {/* ── 3 buttons over the image: Home · Try on you · Bandit the look ── */}
+      <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/60 via-black/20 to-transparent px-4 pt-12" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+        {/* ── The two core money buttons over the image ── */}
         {it.lookId && (
           <div className="mb-2.5 flex items-center justify-center gap-2.5">
-            <button type="button" onClick={onHome}
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-black/35 text-white backdrop-blur-md active:scale-95 transition-transform">
-              <Home className="h-5 w-5" />
-            </button>
             <a href={`/tryon/${it.lookId}`}
               className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-white/80 px-5 text-sm font-black text-black backdrop-blur-md active:scale-95 transition-transform">
               <Sparkles className="h-4 w-4" /> Try on you
@@ -586,48 +582,41 @@ function CommunityDetailView({
           <Send strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
           <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Share</span>
         </button>
-        {/* Hide — only for the owner of this content (or admin) */}
-        {onHideItem && (isAdmin || (!!myCuratorId && item.curatorId === myCuratorId)) && (
-          <button type="button" onClick={() => onHideItem(item)}
-            className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
-            <EyeOff strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
-            <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Hide</span>
-          </button>
-        )}
+        {/* Home / overview — under Share */}
+        <button type="button" onClick={onClose}
+          className="flex flex-col items-center gap-[3px] active:scale-90 transition-transform">
+          <Home strokeWidth={2} className="h-7 w-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]" />
+          <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">Home</span>
+        </button>
       </div>
 
       {/* Top bar — always on top, not translated */}
       <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-end p-4 pointer-events-auto"
         style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}>
         <div className="flex items-center gap-2">
-          {onHide && (
-            <button type="button" onClick={() => onHide(item.id)} title="Ausblenden"
-              className="grid h-10 w-10 place-items-center rounded-full bg-amber-400/80 backdrop-blur text-white active:opacity-70">
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-              </svg>
+          {/* Hide (owner/admin) — orange, next to delete */}
+          {onHideItem && (isAdmin || (!!myCuratorId && item.curatorId === myCuratorId)) && (
+            <button type="button" onClick={() => onHideItem(item)} title="Ausblenden"
+              className="grid h-10 w-10 place-items-center rounded-full bg-amber-400/85 backdrop-blur text-white active:opacity-70">
+              <EyeOff className="h-5 w-5" />
             </button>
           )}
+          {/* Delete (admin, try-ons) — red */}
           {onDelete && item.kind !== "look" && (
             <button type="button" onClick={() => onDelete(item.id)} title="Delete"
-              className="grid h-10 w-10 place-items-center rounded-full bg-red-500/80 backdrop-blur text-white active:opacity-70">
+              className="grid h-10 w-10 place-items-center rounded-full bg-red-500/85 backdrop-blur text-white active:opacity-70">
               <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
               </svg>
             </button>
           )}
-          {/* Assign this try-on to a creator (admin) — top, next to hide/delete */}
+          {/* Assign this try-on to a creator (admin) */}
           {onAssign && item.kind !== "look" && (
             <button type="button" onClick={() => setAssignOpen(true)} title="Zuweisen"
               className="grid h-10 w-10 place-items-center rounded-full bg-black/55 backdrop-blur text-white active:opacity-70">
               <UserPlus className="h-5 w-5" />
             </button>
           )}
-          <button type="button" onClick={() => { onClose(); router.push(`/look/${item.lookId}`); }}
-            className="flex h-10 items-center gap-2 rounded-full bg-black/50 backdrop-blur px-4 text-sm font-black text-white active:opacity-70">
-            <Sparkles className="h-4 w-4" />
-            Try this look
-          </button>
         </div>
       </div>
 
