@@ -728,7 +728,9 @@ export default function SellerDashboardPage() {
 
   useEffect(() => {
     const s = getStoredAuthSession();
-    if (!s?.access_token) { router.push("/seller/login"); return; }
+    // No buyer/seller session (e.g. a curator/admin, or a signed-out visitor) →
+    // bounce to the login instead of hanging forever on the loading spinner.
+    if (!s?.access_token) { setLoading(false); router.replace("/seller/login"); return; }
     setSession(s);
     loadData(s.access_token);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -847,6 +849,10 @@ export default function SellerDashboardPage() {
       </div>
     );
   }
+
+  // No session → we've already kicked off a redirect to /seller/login; render
+  // nothing (don't fall through to the data-dependent UI with null data).
+  if (!session) return null;
 
   // No store linked — show full profile page for community users / admin
   if (!data?.store && error) {
