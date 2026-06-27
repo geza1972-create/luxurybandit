@@ -160,10 +160,11 @@ type CommunityItem = {
 };
 
 // ── Community slide (extracted to avoid component-inside-component) ──────────
-function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleMute, onHome, isStaff, onMakeVideo, makingVideoLookId }: {
+function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleMute, onHome, isStaff, onMakeVideo, makingVideoLookId, onInfo }: {
   it: CommunityItem; offset: number; verticalDrag: number; transition: string;
   muted: boolean; onToggleMute: () => void; onHome: () => void;
   isStaff?: boolean; onMakeVideo?: (lookId: string) => void; makingVideoLookId?: string;
+  onInfo?: () => void; // admin: open the post-info/history sheet (label becomes the trigger)
 }) {
   const uname = it.customerName
     ? it.customerName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
@@ -245,7 +246,12 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
                   <div className="relative h-full w-1/2 overflow-hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={optImg(s.url, 640)} alt="After" onError={(e) => { const im = e.currentTarget; if (im.src !== s.url) im.src = s.url; }} className="h-full w-full object-cover object-top" />
-                    <span className="absolute right-2 top-12 flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur"><Sparkles className="h-2.5 w-2.5" />After</span>
+                    {onInfo ? (
+                      <button type="button" onClick={onInfo} title="Info / history"
+                        className="absolute right-2 top-12 flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70"><Sparkles className="h-2.5 w-2.5" />After <span className="inline-flex items-center gap-0.5 opacity-80"><Info className="h-2.5 w-2.5" />(Info)</span></button>
+                    ) : (
+                      <span className="absolute right-2 top-12 flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur"><Sparkles className="h-2.5 w-2.5" />After</span>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -267,10 +273,20 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
         {/* AI content label (top-left). Hidden on the compare slide — it mixes the
             uploaded Before (not AI) with the AI After, each labelled on its own half. */}
         {(slides[hIdx]?.kind === "video" || slides[hIdx]?.kind === "image") && (
-          <span className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur"
-            style={{ top: "max(0.75rem, calc(env(safe-area-inset-top) + 0.25rem))" }}>
-            <Sparkles className="h-3 w-3" />{slides[hIdx].kind === "video" ? "AI-Video" : "AI Picture"}
-          </span>
+          onInfo ? (
+            // Admin: the label itself opens the post info/history sheet.
+            <button type="button" onClick={onInfo} title="Info / history"
+              className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur active:opacity-70"
+              style={{ top: "max(0.75rem, calc(env(safe-area-inset-top) + 0.25rem))" }}>
+              <Sparkles className="h-3 w-3" />{slides[hIdx].kind === "video" ? "AI-Video" : "AI Picture"}
+              <span className="ml-0.5 inline-flex items-center gap-0.5 opacity-80"><Info className="h-2.5 w-2.5" />(Info)</span>
+            </button>
+          ) : (
+            <span className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur"
+              style={{ top: "max(0.75rem, calc(env(safe-area-inset-top) + 0.25rem))" }}>
+              <Sparkles className="h-3 w-3" />{slides[hIdx].kind === "video" ? "AI-Video" : "AI Picture"}
+            </span>
+          )
         )}
         {/* Slide dots — show how many previews there are + where you are */}
         {slides.length > 1 && (
@@ -574,7 +590,7 @@ function CommunityDetailView({
       {/* Prev slide */}
       {prevItem && <CommunitySlide it={prevItem} offset={-1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} isStaff={!!isAdmin || !!myCuratorId} onMakeVideo={onMakeVideo} makingVideoLookId={makingVideoLookId} />}
       {/* Current slide */}
-      <CommunitySlide it={item} offset={0} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} isStaff={!!isAdmin || !!myCuratorId} onMakeVideo={onMakeVideo} makingVideoLookId={makingVideoLookId} />
+      <CommunitySlide it={item} offset={0} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} isStaff={!!isAdmin || !!myCuratorId} onMakeVideo={onMakeVideo} makingVideoLookId={makingVideoLookId} onInfo={isAdmin && onInfo ? openInfo : undefined} />
       {/* Next slide */}
       {nextItem && <CommunitySlide it={nextItem} offset={1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} isStaff={!!isAdmin || !!myCuratorId} onMakeVideo={onMakeVideo} makingVideoLookId={makingVideoLookId} />}
 
@@ -643,13 +659,7 @@ function CommunityDetailView({
       <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-end p-4 pointer-events-auto"
         style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}>
         <div className="flex items-center gap-2">
-          {/* Info / history (admin) — who made it, when, what kind */}
-          {onInfo && isAdmin && (
-            <button type="button" onClick={openInfo} title="Info / history"
-              className="grid h-10 w-10 place-items-center rounded-full bg-black/55 backdrop-blur text-white active:opacity-70">
-              <Info className="h-5 w-5" />
-            </button>
-          )}
+          {/* Info now lives on the AI-Video / AI Picture label (top-left) — see CommunitySlide. */}
           {/* Hide (owner/admin) — orange, next to delete */}
           {onHideItem && (isAdmin || (!!myCuratorId && item.curatorId === myCuratorId)) && (
             <button type="button" onClick={() => onHideItem(item)} title="Ausblenden"
