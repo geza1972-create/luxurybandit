@@ -607,7 +607,9 @@ async function writeTryThisLookState(state: TryThisLookState) {
       ...state,
       generations: mergeNewerById(state.generations as any, latest.generations as any) as any,
       comments: unionById((state.comments ?? []) as any, (latest.comments ?? []) as any) as any,
-      leads: unionById((state.leads ?? []) as any, (latest.leads ?? []) as any) as any,
+      // Leads CAN be deleted in the admin → use mergeNewerById (like generations) so a
+      // deletion isn't resurrected by the read-merge, while concurrent new leads survive.
+      leads: mergeNewerById((state.leads ?? []) as any, (latest.leads ?? []) as any) as any,
       messages: unionById((state.messages ?? []) as any, (latest.messages ?? []) as any) as any,
     };
   }

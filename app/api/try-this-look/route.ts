@@ -12,6 +12,7 @@ import { tryOnGarment } from "@/lib/tryon";
 import { isIntimateName } from "@/lib/lingerie";
 import { notifyAdminWhatsApp, ADMIN_URL } from "@/lib/notify-admin";
 import { isAdminRequest } from "@/lib/admin-auth";
+import { sendCuratorInviteEmail } from "@/lib/curator-invite-email";
 import { FASHION_BRANDS } from "@/lib/fashion-brands";
 import { NextResponse } from "next/server";
 
@@ -726,6 +727,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Name, phone, email, or Instagram handle is required." }, { status: 400 });
       }
 
+      // Only invite a given email once (across all its prior leads).
+      const alreadyInvited = !!email && state.leads.some(l => (l.email ?? "").toLowerCase() === email.toLowerCase() && (l as any).curatorInviteSent);
+
       state.leads.unshift({
         id: `${Date.now()}-${crypto.randomUUID()}`,
         lookId,
@@ -757,10 +761,17 @@ export async function POST(request: Request) {
         utmCampaign: String(payload.utmCampaign ?? "").trim() || undefined
       });
 
+      // The free try-on is the entry point — capture the email AND nudge them to
+      // become a (paid) curator, once per email. Mark the lead before saving so the
+      // dedupe survives; the send itself never throws (no-ops without RESEND_API_KEY).
+      if (email) (state.leads[0] as any).curatorInviteSent = true;
+
       const updatedState = await saveTryThisLookState(state);
 
       const leadLook = state.looks.find(l => l.id === lookId);
       notifyAdminWhatsApp(`📩 New lead${customerName ? ` from ${customerName}` : ""}${phone ? ` (${phone})` : email ? ` (${email})` : instagram ? ` (@${instagram})` : ""} on "${leadLook?.name ?? "a look"}"${selectedSize ? ` · size ${selectedSize}` : ""}. ${ADMIN_URL}`);
+
+      if (email && !alreadyInvited) await sendCuratorInviteEmail(email, customerName);
 
       return NextResponse.json(ps(updatedState));
     }
