@@ -103,8 +103,11 @@ export default function CuratorApplyPage() {
       });
       const data = await res.json();
       if (!res.ok || data.error) { setError(data.error || "Could not submit."); return; }
-      // Applications are reviewed & ID-verified by the admin before going live —
-      // no instant access. Show a confirmation; they sign in once approved.
+      // Auto-approved for now → log them straight in so they can start curating.
+      if (data.curator?.id) {
+        try { localStorage.setItem("lb_curator", JSON.stringify(data.curator)); } catch { /**/ }
+        try { window.dispatchEvent(new Event("luxurybandit-auth-updated")); } catch { /**/ }
+      }
       setApplied(true);
     } catch {
       setError("Could not submit.");
@@ -121,13 +124,16 @@ export default function CuratorApplyPage() {
       <div className="grid min-h-[100dvh] place-items-center bg-white px-6 text-center">
         <div className="max-w-sm">
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-100 text-2xl">✓</div>
-          <h1 className="mt-4 text-xl font-black text-black">Application received</h1>
+          <h1 className="mt-4 text-xl font-black text-black">You&apos;re in{firstName ? `, ${firstName}` : ""}!</h1>
           <p className="mt-2 text-sm font-semibold leading-6 text-black/55">
-            Thanks{firstName ? `, ${firstName}` : ""}! Curators are reviewed and ID-verified before going live, so we keep the community safe.
-            We&apos;ll email you once you&apos;re approved — then you can sign in with your email and start curating.
+            Your curator account is active. Head to the Studio to create your first look — or sign in any time with your email.
           </p>
-          <button type="button" onClick={() => router.push("/stores")}
+          <button type="button" onClick={() => router.push("/studio")}
             className="mt-5 inline-flex h-12 items-center justify-center rounded-2xl bg-black px-6 text-sm font-black text-white active:scale-95 transition-transform">
+            Go to Studio →
+          </button>
+          <button type="button" onClick={() => router.push("/stores")}
+            className="mt-2 inline-flex h-11 items-center justify-center rounded-2xl px-6 text-sm font-black text-black/55 active:scale-95 transition-transform">
             Back to LuxuryBandit
           </button>
         </div>

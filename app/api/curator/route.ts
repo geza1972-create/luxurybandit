@@ -288,10 +288,10 @@ export async function POST(request: Request) {
       bio: String(payload.bio ?? "").trim() || undefined,
       instagram: String(payload.instagram ?? "").trim().replace(/^@/, "") || undefined,
       photoPath,
-      // Applications are NOT instant anymore: curators post public content (incl.
-      // lingerie), so each one is reviewed & ID-verified by the admin before going
-      // active. They cannot sign in or publish until approved.
-      status: "pending",
+      // TEMPORARY (admin choice): new curators are AUTO-APPROVED for now — they go
+      // straight to "active" and can sign in / publish immediately. Flip this back to
+      // "pending" to re-enable manual review & ID verification.
+      status: "active",
       createdAt: new Date().toISOString(),
       credits: STARTER_CREDITS, // starter grant to prove themselves
       creditLog: [{ at: new Date().toISOString(), credits: STARTER_CREDITS, label: "Starter credits" }],
@@ -309,11 +309,15 @@ export async function POST(request: Request) {
 
     await saveTryThisLookState({ ...state, curators, brands, styles, colors, fabrics, occasions });
 
-    notifyAdminWhatsApp(`👤 New curator: ${[firstName, lastName].filter(Boolean).join(" ")} (${email}). Review: ${ADMIN_URL}`);
+    notifyAdminWhatsApp(`👤 New curator (auto-approved): ${[firstName, lastName].filter(Boolean).join(" ")} (${email}). ${ADMIN_URL}`);
 
-    // No id returned → the front-end can't log them straight into the studio.
-    // They're pending until an admin approves (after ID verification).
-    return NextResponse.json({ pending: true, firstName: curator.firstName });
+    // Auto-approved → return the curator so the front-end can log them straight into
+    // the studio. (Re-enable review by setting status:"pending" above and dropping this.)
+    return NextResponse.json({
+      approved: true,
+      firstName: curator.firstName,
+      curator: { id: curator.id, firstName: curator.firstName, email: curator.email, style: curator.style ?? "" },
+    });
   }
 
   // Email-only sign in (fallback while Supabase email/magic-link isn't set up).
