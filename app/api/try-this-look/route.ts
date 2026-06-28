@@ -2,6 +2,7 @@ import {
   deleteTryThisLookImage,
   getActiveTryThisLook,
   getActiveTryThisLooks,
+  getSignedUrl,
   readTryThisLookState,
   saveTryThisLookState,
   uploadTryThisLookImage,
@@ -914,7 +915,9 @@ export async function POST(request: Request) {
           .catch(() => {}); // fire-and-forget, never blocks the response
       }
 
-      return NextResponse.json({ ...ps(updatedState), generationId });
+      // Signed URL of the just-saved try-on so the client can show it in the email.
+      const imageUrl = await getSignedUrl(imagePath).catch(() => "");
+      return NextResponse.json({ ...ps(updatedState), generationId, imageUrl });
     }
 
     // Attach a finished try-on video to a gallery generation (best-effort, from the

@@ -180,6 +180,8 @@ export default function TryonPage() {
   const showInFeedRef = useRef(true); // mirror so async saves read the latest toggle
   useEffect(() => { showInFeedRef.current = showInFeed; }, [showInFeed]);
   const sharedGenIdRef = useRef<string>("");
+  // Public (signed) URL of the posted try-on — used to show the image in the email.
+  const sharedImageUrlRef = useRef<string>("");
   // Which tier produced the current result (recorded on the saved generation for history).
   const lastGenKindRef = useRef<"photo" | "video" | "video360">("photo");
   // The pending generation (held while the anonymous visitor is at the email gate —
@@ -593,6 +595,20 @@ export default function TryonPage() {
       void (async () => {
         // Lingerie try-ons stay PRIVATE — never auto-posted to the public A List.
         if (showInFeed && (!isLingerieTryon() || isStaff)) await postToFeed(payload.image);
+        // Email the look + a sign-in link to the gate email — app-controlled via Resend
+        // (Supabase's own magic-link email is disabled on this project). Anonymous funnel
+        // visitors only; logged-in users & staff already have a session.
+        if (ownerEmailRef.current && !authSession && !isStaff) {
+          void fetch("/api/send-look-link", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: ownerEmailRef.current,
+              lookName: look?.name,
+              imageUrl: sharedImageUrlRef.current || undefined,
+              redirectTo: `${window.location.origin}/auth/confirm`,
+            }),
+          }).catch(() => {});
+        }
         // Video runs only when the chosen tier asks for it (Video = 5s, 360° = turnaround).
         if (tier === "video") await startTryonVideo(payload.image, false);
         else if (tier === "video360") await startTryonVideo(payload.image, true);
@@ -708,6 +724,8 @@ export default function TryonPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (data?.generationId) sharedGenIdRef.current = String(data.generationId);
+      // Signed URL of the just-posted try-on (returned by the generation action) → email.
+      if (data?.imageUrl) sharedImageUrlRef.current = String(data.imageUrl);
       setSharedToGallery(true);
     } catch { /**/ } finally { setIsSharing(false); }
   };
