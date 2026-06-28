@@ -149,6 +149,17 @@ export default function TryonPage() {
 
   const [look, setLook] = useState<Look | null>(null);
   const [isLoadingLook, setIsLoadingLook] = useState(true);
+  // Cross-sell: other looks to try on next (shown on the result step).
+  const [moreLooks, setMoreLooks] = useState<{ id: string; name: string; img: string; price?: string }[]>([]);
+  useEffect(() => {
+    fetch("/api/try-this-look").then(r => r.json()).then((d: any) => {
+      const all = (d.looks ?? d.activeLooks ?? []) as any[];
+      setMoreLooks(all
+        .filter(l => l.id !== lookId && (l.frontImageUrl || l.imageUrl))
+        .slice(0, 12)
+        .map(l => ({ id: l.id, name: l.name, img: l.frontImageUrl || l.imageUrl, price: l.salePrice || l.price })));
+    }).catch(() => {});
+  }, [lookId]);
 
   const [step, setStep] = useState<Step>("upload");
   const [cropSrc, setCropSrc] = useState<string | null>(null);
@@ -1156,39 +1167,57 @@ export default function TryonPage() {
             </div>
           ) : (
           <div className="rounded-2xl border border-black/10 bg-black/[0.02] p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-black">Share your look &amp; win ✨</p>
-                <p className="text-[12px] font-bold text-black/45">Post your {videoUrl ? "photo & video " : "photo "}to the community — the most-liked looks win credits.<span className="text-emerald-600">*</span></p>
-              </div>
-              <button type="button" role="switch" aria-checked={showInFeed}
-                onClick={() => void toggleShowInFeed(!showInFeed)}
-                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${showInFeed ? "bg-emerald-500" : "bg-black/20"}`}>
-                <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${showInFeed ? "left-[1.375rem]" : "left-0.5"}`} />
-              </button>
+            <div className="min-w-0">
+              <p className="text-sm font-black">Share your look &amp; win ✨</p>
+              <p className="text-[12px] font-bold text-black/45">Post your {videoUrl ? "photo & video " : "photo "}to the community — the most-liked looks win credits.<span className="text-emerald-600">*</span></p>
             </div>
-            {showInFeed && (
-              <div className="flex items-center gap-2">
+            {showInFeed ? (
+              <div className="flex items-center justify-between gap-2 rounded-xl bg-emerald-50 px-3 py-2.5">
+                <p className="flex items-center gap-1.5 text-[12px] font-black text-emerald-700">
+                  {isSharing ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Posting…</> : <><Send className="h-3.5 w-3.5" /> Posted to the community</>}
+                </p>
+                <button type="button" onClick={() => void toggleShowInFeed(false)} className="text-[12px] font-black text-black/45 active:opacity-70">Remove</button>
+              </div>
+            ) : (
+              <>
                 <input
                   value={shareNameInput}
                   onChange={e => { setShareNameInput(e.target.value); setNameSaved(false); }}
-                  onKeyDown={e => { if (e.key === "Enter") void saveName(); }}
                   placeholder="Your name (shown on your post)"
-                  className="h-11 flex-1 rounded-xl border border-black/15 px-3 text-sm outline-none focus:border-black"
+                  className="h-11 w-full rounded-xl border border-black/15 px-3 text-sm outline-none focus:border-black"
                 />
-                <button type="button" onClick={() => void saveName()} disabled={nameSaving || !shareNameInput.trim()}
-                  className="flex h-11 shrink-0 items-center justify-center rounded-xl bg-black px-4 text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
-                  {nameSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : nameSaved ? "✓ Saved" : "Save"}
+                <button type="button" disabled={isSharing}
+                  onClick={async () => { await toggleShowInFeed(true); if (shareNameInput.trim()) await saveName(); }}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-black text-sm font-black text-white active:scale-95 transition-transform disabled:opacity-50">
+                  {isSharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Publish this
                 </button>
-              </div>
+                <p className="text-center text-[11px] font-bold leading-snug text-black/40">
+                  By publishing you agree to our <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline">Terms</a> &amp; <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>.
+                </p>
+              </>
             )}
-            <p className="flex items-center gap-1.5 text-[11px] font-bold text-black/40">
-              {isSharing ? <><Loader2 className="h-3 w-3 animate-spin" /> Posting…</>
-                : showInFeed ? <><Send className="h-3 w-3" /> {sharedToGallery ? "Posted to the feed" : "Will be posted"}</>
-                : "Hidden — only you can see this"}
-            </p>
             <p className="text-[11px] font-bold leading-snug text-black/35"><span className="text-emerald-600">*</span> The more likes your look gets, the more credits you earn — spend them on more try-ons &amp; videos.</p>
           </div>
+          )}
+
+          {/* Cross-sell — other looks to try on next */}
+          {moreLooks.length > 0 && (
+            <div>
+              <p className="mb-2 text-sm font-black text-black">Try these looks too ✨</p>
+              <div className="flex gap-2.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {moreLooks.map(l => (
+                  <button key={l.id} type="button" onClick={() => router.push(`/tryon/${l.id}`)}
+                    className="w-28 shrink-0 text-left active:scale-95 transition-transform">
+                    <div className="aspect-[3/4] overflow-hidden rounded-xl border border-black/10 bg-black/[0.03]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={l.img} alt={l.name} loading="lazy" className="h-full w-full object-cover object-top" />
+                    </div>
+                    <p className="mt-1 line-clamp-1 text-[11px] font-black text-black">{l.name}</p>
+                    {l.price && <p className="text-[10px] font-bold text-black/45">{l.price}</p>}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* Download — secondary (the name/feed step above is the primary action) */}
