@@ -173,11 +173,11 @@ export default function TryonPage() {
   const [videoNote, setVideoNote] = useState<string | null>(null);
   const [videoMuted, setVideoMuted] = useState(true);
   // Consent to show this try-on in the look's feed carousel (default on).
-  // CONSENT: a normal visitor's try-on is NEVER auto-posted publicly. Default OFF;
-  // they must opt in with the "Share your look" toggle. (Staff/curators default ON
-  // below — they deliberately create feed content.)
-  const [showInFeed, setShowInFeed] = useState(false);
-  const showInFeedRef = useRef(false); // mirror so async saves read the latest toggle
+  // CONSENT: proceeding past the confirm step (which clearly says the look will be
+  // posted, with a "No, cancel" out) publishes it — and they can Remove it anytime
+  // on the result. Lingerie stays private regardless.
+  const [showInFeed, setShowInFeed] = useState(true);
+  const showInFeedRef = useRef(true); // mirror so async saves read the latest toggle
   useEffect(() => { showInFeedRef.current = showInFeed; }, [showInFeed]);
   const sharedGenIdRef = useRef<string>("");
   // Which tier produced the current result (recorded on the saved generation for history).
@@ -1242,7 +1242,7 @@ export default function TryonPage() {
           </div>
 
           {/* Try again */}
-          <button onClick={() => { setResultImage(null); setUserPhoto(null); setVideoUrl(null); setVideoStatus("idle"); setVideoNote(null); setShowInFeed(isStaff); sharedGenIdRef.current = ""; setSharedToGallery(false); setStep("upload"); }}
+          <button onClick={() => { setResultImage(null); setUserPhoto(null); setVideoUrl(null); setVideoStatus("idle"); setVideoNote(null); setShowInFeed(true); sharedGenIdRef.current = ""; setSharedToGallery(false); setStep("upload"); }}
             className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-black/15 text-sm font-black active:opacity-70">
             <RefreshCw className="h-4 w-4" /> Try a different photo
           </button>
@@ -1283,8 +1283,10 @@ export default function TryonPage() {
             <ChevronLeft className="h-5 w-5" />
           </button>
 
-          {/* Cross-sell up top, then a spacer pushes the main content to the bottom */}
-          <div className="pt-12">{crossSellRow(true)}</div>
+          {/* Cross-sell up top, then a spacer pushes the main content to the bottom.
+              pt-20 clears the absolute Back button (top-12 + h-10 ≈ 88px) so it never
+              sits on top of the "Try these looks too" title. */}
+          <div className="pt-20">{crossSellRow(true)}</div>
           <div className="flex-1" />
 
           {/* Title — ABOVE the two images (aspirational, not technical) */}
@@ -1353,6 +1355,16 @@ export default function TryonPage() {
             {paidSoon && !isStaff && (
               <p className="text-center text-[12px] font-bold text-white/75">
                 {paidSoon === "360" ? "360° video" : "Video"} comes very soon — activates at checkout. Tap <span className="text-white">Photo</span> to try it on now.
+              </p>
+            )}
+            {/* Consent BEFORE generating: tell the user that continuing publishes their
+                look to the community (they can Remove it later), with "No, cancel" as the
+                clear opt-out. Hidden when it won't be posted (lingerie for end-users). */}
+            {showInFeed && (!effectiveLingerie || isStaff) && (
+              <p className="px-2 text-center text-[11px] leading-snug font-medium text-white/65">
+                By continuing, your try-on is shared to the community so you can win credits — you can remove it anytime. You agree to our{" "}
+                <a href="/terms" className="font-bold text-white/85 underline">Terms</a> &{" "}
+                <a href="/privacy" className="font-bold text-white/85 underline">Privacy</a>.
               </p>
             )}
             <button onClick={() => router.push(lookBackPath)}
