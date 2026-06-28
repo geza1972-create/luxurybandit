@@ -2,12 +2,12 @@
 // try-on (the entry point). Uses Resend; silently no-ops if RESEND_API_KEY is unset
 // so it can never break the lead capture. Mirrors the welcome-email styling.
 
+import { sendEmail } from "@/lib/email-send";
+
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://luxurybandit.com").replace(/\/$/, "");
 
 export async function sendCuratorInviteEmail(email: string, name?: string): Promise<{ ok: boolean; skipped?: boolean }> {
-  const resendKey = process.env.RESEND_API_KEY;
   const to = (email ?? "").trim();
-  if (!resendKey) return { ok: true, skipped: true }; // not configured → no-op
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return { ok: false };
 
   const greeting = name ? `Hi ${name}` : "Hi there";
@@ -63,19 +63,6 @@ export async function sendCuratorInviteEmail(email: string, name?: string): Prom
 </body>
 </html>`;
 
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: "LuxuryBandit <support@luxurybandit.com>",
-        to: [to],
-        subject: "You just styled a look — become a LuxuryBandit curator 🖤",
-        html,
-      }),
-    });
-    return { ok: res.ok };
-  } catch {
-    return { ok: false };
-  }
+  const sent = await sendEmail({ to, subject: "You just styled a look — become a LuxuryBandit curator 🖤", html });
+  return { ok: sent.ok, skipped: sent.skipped ? true : undefined };
 }

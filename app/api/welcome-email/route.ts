@@ -1,14 +1,9 @@
 import { NextResponse } from "next/server";
+import { sendEmail } from "@/lib/email-send";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const resendKey = process.env.RESEND_API_KEY;
-  if (!resendKey) {
-    // Silently skip if not configured — don't break signup
-    return NextResponse.json({ ok: true, skipped: true });
-  }
-
   const body = await request.json() as { email?: string; name?: string };
   const email = String(body.email ?? "").trim();
   const name = String(body.name ?? "").trim();
@@ -86,24 +81,7 @@ export async function POST(request: Request) {
 </body>
 </html>`;
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${resendKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: "LuxuryBandit <support@luxurybandit.com>",
-      to: [email],
-      subject: "Welcome to LuxuryBandit 🖤",
-      html,
-    }),
-  });
-
-  if (!res.ok) {
-    const p = await res.json().catch(() => ({})) as { message?: string };
-    return NextResponse.json({ error: p.message ?? "Failed to send." }, { status: 500 });
-  }
-
-  return NextResponse.json({ ok: true });
+  const sent = await sendEmail({ to: email, subject: "Welcome to LuxuryBandit 🖤", html });
+  if (!sent.ok) return NextResponse.json({ error: sent.error ?? "Failed to send." }, { status: 500 });
+  return NextResponse.json({ ok: true, via: sent.via });
 }

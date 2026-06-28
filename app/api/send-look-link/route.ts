@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sendEmail } from "@/lib/email-send";
 
 export const runtime = "nodejs";
 
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/^["']|["']$/g, "").replace(/\/$/, "") ?? "";
   const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
-  const resendKey = (process.env.RESEND_API_KEY ?? "").trim();
+  const hasMailer = !!((process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) || process.env.RESEND_API_KEY);
 
   if (!supabaseUrl || !serviceKey) {
     return NextResponse.json({ ok: true, skipped: "no-supabase-admin" });
@@ -47,8 +48,9 @@ export async function POST(request: Request) {
   }
   if (!actionLink) return NextResponse.json({ error: "No sign-in link returned." }, { status: 502 });
 
-  // 2) Deliver it ourselves via Resend. No key → skip silently (e.g. local dev).
-  if (!resendKey) return NextResponse.json({ ok: true, skipped: "no-resend", linkGenerated: true });
+  // 2) Deliver it ourselves (SMTP mailbox preferred, Resend fallback). No mailer
+  //    configured → skip silently (e.g. local dev).
+  if (!hasMailer) return NextResponse.json({ ok: true, skipped: "no-mailer", linkGenerated: true });
 
   const lookName = String(body.lookName ?? "").trim();
   const imageUrl = String(body.imageUrl ?? "").trim();
@@ -83,19 +85,7 @@ export async function POST(request: Request) {
   </td></tr></table>
 </body></html>`;
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: "LuxuryBandit <support@luxurybandit.com>",
-      to: [email],
-      subject: "Your look is ready ✨ — sign in to see it",
-      html,
-    }),
-  });
-  if (!res.ok) {
-    const p = (await res.json().catch(() => ({}))) as { message?: string };
-    return NextResponse.json({ error: p.message ?? "Failed to send." }, { status: 500 });
-  }
-  return NextResponse.json({ ok: true, sent: true });
+  const sent = await sendEmail({ to: email, subject: "Your look is ready ✨ — sign in to see it", html });
+  if (!sent.ok) return NextResponse.json({ error: sent.error ?? "Failed to send." }, { status: 500 });
+  return NextResponse.json({ ok: true, sent: true, via: sent.via });
 }
