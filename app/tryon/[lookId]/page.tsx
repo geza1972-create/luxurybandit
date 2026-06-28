@@ -1314,9 +1314,9 @@ export default function TryonPage() {
         <div className="flex w-full max-w-sm items-center justify-center gap-2.5">
           {/* The look */}
           <div className="flex-1">
-            <div className="aspect-[3/4] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-lg">
+            <div className="aspect-[3/4] overflow-hidden rounded-2xl border border-black/10 bg-black/[0.03] shadow-lg">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-contain" onError={onGarmentError} />
+              <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-cover object-top" onError={onGarmentError} />
             </div>
             <p className="mt-1.5 text-center text-[11px] font-black uppercase tracking-[0.12em] text-black/40">The look</p>
           </div>
