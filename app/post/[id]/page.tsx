@@ -271,9 +271,10 @@ export default function PostPage() {
   );
 
   if (notFound || !post) return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-white">
-      <p className="text-sm font-black text-black/30">Post not found</p>
-      <button type="button" onClick={() => router.back()} className="text-xs font-black underline text-black/40">Go back</button>
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-white px-6 text-center">
+      <p className="text-sm font-black text-black/30">This post is no longer available</p>
+      {/* A deleted post has no history to go 'back' to → send them to the feed. */}
+      <button type="button" onClick={() => router.replace("/stores")} className="flex h-11 items-center justify-center rounded-full bg-black px-6 text-sm font-black text-white active:scale-95 transition-transform">Back to feed</button>
     </div>
   );
 
