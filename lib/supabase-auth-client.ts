@@ -73,6 +73,18 @@ export function saveAuthSession(session: SupabaseAuthSession | null) {
     return null;
   }
 
+  // A fresh sign-in as a Supabase user (Google/Facebook/password/link) invalidates a
+  // LEFTOVER curator session that belongs to a DIFFERENT person — otherwise the new
+  // user lands in that curator's profile/studio (identity bleed). Same-email curator
+  // sessions are kept (the curator just signed in another way).
+  try {
+    const cur = JSON.parse(window.localStorage.getItem("lb_curator") ?? "{}");
+    const email = session.user?.email?.toLowerCase();
+    if (cur?.email && email && String(cur.email).toLowerCase() !== email) {
+      window.localStorage.removeItem("lb_curator");
+    }
+  } catch { /* ignore */ }
+
   window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
   window.dispatchEvent(new Event("luxurybandit-auth-updated"));
   return session;
