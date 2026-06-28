@@ -772,22 +772,18 @@ export default function TryonPage() {
   // ── Email GATE: reveal the result after the visitor drops their email ──
   // Captures the email (lead) AND creates a passwordless account (magic link), then
   // reveals the result. Never blocks the reveal if a network call fails.
-  const revealWithEmail = async () => {
+  const revealWithEmail = () => {
     const email = gateEmail.trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !look) return;
-    setGateSending(true);
-    try {
-      // 1) capture the email as a lead (+ fires the "become a curator" invite server-side)
-      await fetch("/api/try-this-look", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "lead", email, lookId: look.id, lookName: look.name, leadSource: "tryon", marketingConsent: true, visitorId: accountId || "anon" }),
-      }).catch(() => {});
-      // 2) create a passwordless account + email a magic sign-in link (best-effort)
-      await sendMagicLink(email).catch(() => {});
-    } catch { /* never block the reveal */ }
+    // Reveal INSTANTLY — never make the visitor wait on a network call. The email
+    // capture (lead) + passwordless account (magic link) run in the background.
     setGatePassed(true);
-    setGateSending(false);
     setStep("result");
+    void fetch("/api/try-this-look", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "lead", email, lookId: look.id, lookName: look.name, leadSource: "tryon", marketingConsent: true, visitorId: accountId || "anon" }),
+    }).catch(() => {});
+    void sendMagicLink(email).catch(() => {});
   };
 
   // ─── Loading ───
