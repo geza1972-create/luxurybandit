@@ -32,7 +32,12 @@ function LoginForm() {
   const [linkSent, setLinkSent] = useState(false);
   const [linkLoading, setLinkLoading] = useState(false);
 
-  const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth/confirm` : "";
+  // Where to land after sign-in (e.g. back to the studio). Only internal paths.
+  const rawReturn = params.get("returnTo") ?? "";
+  const returnPath = rawReturn.startsWith("/") && !rawReturn.startsWith("//") ? rawReturn : "/user/myaccount";
+  const redirectTo = typeof window !== "undefined"
+    ? `${window.location.origin}/auth/confirm${rawReturn ? `?returnTo=${encodeURIComponent(returnPath)}` : ""}`
+    : "";
 
   const handlePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,11 +48,11 @@ function LoginForm() {
     try {
       if (mode === "signup") {
         const { session, confirmationRequired } = await signUpWithPassword(email.trim(), password, name.trim() || undefined);
-        if (session) { window.location.href = "/user/myaccount"; return; }
+        if (session) { window.location.href = returnPath; return; }
         if (confirmationRequired) { setError("Account created — check your email to confirm, then sign in."); setMode("signin"); return; }
       } else {
         await signInWithPassword(email.trim(), password);
-        window.location.href = "/user/myaccount";
+        window.location.href = returnPath;
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");

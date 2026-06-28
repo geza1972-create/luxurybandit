@@ -86,8 +86,30 @@ export function saveAuthSession(session: SupabaseAuthSession | null) {
   } catch { /* ignore */ }
 
   window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+  // Bridge the two identity systems: if this email belongs to a curator, mirror it
+  // into lb_curator so the studio & curator UI recognise them — ONE login, role
+  // auto-detected (no separate "curator sign in").
+  if (session.user?.email) void syncCuratorByEmail(session.user.email);
   window.dispatchEvent(new Event("luxurybandit-auth-updated"));
   return session;
+}
+
+// Look up a curator by email and mirror it into lb_curator (fire-and-forget).
+async function syncCuratorByEmail(email: string) {
+  try {
+    const res = await fetch("/api/curator", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "signin", email }),
+    });
+    const data = await res.json().catch(() => ({})) as { curator?: { id: string; firstName?: string; email?: string; style?: string } };
+    if (data?.curator?.id) {
+      window.localStorage.setItem("lb_curator", JSON.stringify({
+        id: data.curator.id, firstName: data.curator.firstName, email: data.curator.email, style: data.curator.style,
+      }));
+      window.dispatchEvent(new Event("luxurybandit-auth-updated"));
+    }
+  } catch { /* ignore — not a curator, or offline */ }
 }
 
 export async function signInWithPassword(email: string, password: string) {

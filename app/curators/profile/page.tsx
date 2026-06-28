@@ -97,6 +97,17 @@ export default function CuratorProfilePage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // ONE login: a visitor who isn't signed in at all goes to the unified login and
+  // returns here. (If they ARE signed in but not a curator, we show a Become-a-curator
+  // prompt below instead.)
+  useEffect(() => {
+    if (loading || curatorId) return;
+    let hasSession = false;
+    try { hasSession = !!getStoredAuthSession(); } catch { /**/ }
+    try { hasSession = hasSession || !!JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id; } catch { /**/ }
+    if (!hasSession) router.replace("/seller/login?returnTo=/curators/profile");
+  }, [loading, curatorId, router]);
+
   const onPickPhoto = async (file?: File) => {
     if (!file) return;
     setPhotoError("");
@@ -165,35 +176,27 @@ export default function CuratorProfilePage() {
     return <main className="grid min-h-[100dvh] place-items-center bg-white"><Loader2 className="h-6 w-6 animate-spin text-black/30" /></main>;
   }
 
-  // Not identified → sign-in (magic link)
+  // Not a curator. Either we're redirecting to the unified login (no session) or the
+  // signed-in account simply isn't a curator yet → invite them to become one.
   if (!curatorId) {
+    const signedIn = (() => { try { return !!getStoredAuthSession(); } catch { return false; } })();
+    if (!signedIn) {
+      return <main className="grid min-h-[100dvh] place-items-center bg-white"><Loader2 className="h-6 w-6 animate-spin text-black/30" /></main>;
+    }
     return (
       <main className="flex min-h-[100dvh] flex-col bg-white">
         <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/8 bg-white/95 px-4 py-3 backdrop-blur">
           <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10"><ArrowLeft className="h-4 w-4" /></button>
-          <p className="text-sm font-black text-black">Curator sign in</p>
+          <p className="text-sm font-black text-black">Curator studio</p>
         </div>
-        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6">
-          {linkSent ? (
-            <div className="text-center">
-              <div className="mb-3 text-4xl">📬</div>
-              <p className="text-lg font-black text-black">Check your email</p>
-              <p className="mt-1 text-sm font-medium text-black/55">We sent a sign-in link to <span className="font-black text-black">{signinEmail}</span>. Tap it to log in.</p>
-            </div>
-          ) : (
-            <>
-              <h1 className="text-2xl font-black text-black">Sign in to your studio</h1>
-              <p className="mt-1 text-sm font-medium text-black/55">Enter the email you signed up with. No password needed.</p>
-              <input type="email" value={signinEmail} onChange={e => setSigninEmail(e.target.value)} placeholder="you@email.com"
-                onKeyDown={e => { if (e.key === "Enter") void sendLink(); }} className={`${field} mt-5`} />
-              {error && <p className="mt-2 text-xs font-bold text-red-500">{error}</p>}
-              <button type="button" onClick={() => void sendLink()} disabled={sending || !signinEmail.trim()}
-                className="mt-3 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-black px-4 py-3.5 text-sm font-black text-white disabled:opacity-50 active:scale-95 transition-transform">
-                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Sign in
-              </button>
-              <a href="/curators" className="mt-4 text-center text-xs font-black text-cobalt">New here? Become a curator →</a>
-            </>
-          )}
+        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 text-center">
+          <div className="mb-3 text-4xl">✨</div>
+          <h1 className="text-2xl font-black text-black">You&apos;re not a curator yet</h1>
+          <p className="mt-1 text-sm font-medium text-black/55">You&apos;re signed in, but this account doesn&apos;t have a curator profile. Become a curator to open your studio — it&apos;s free.</p>
+          <a href="/curators" className="mt-5 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-black px-4 py-3.5 text-sm font-black text-white active:scale-95 transition-transform">
+            <Sparkles className="h-4 w-4" /> Become a curator
+          </a>
+          <a href="/stores" className="mt-3 text-center text-xs font-black text-black/40">Back to the feed</a>
         </div>
       </main>
     );
