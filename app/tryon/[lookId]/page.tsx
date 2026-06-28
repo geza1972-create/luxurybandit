@@ -701,7 +701,7 @@ export default function TryonPage() {
     setIsSharing(true);
     try {
       const meta = (authSession?.user as any)?.user_metadata ?? {};
-      const name = shareNameInput.trim() || curatorName || meta.username || meta.full_name || "Anonymous";
+      const name = shareNameInput.trim() || curatorName || meta.username || meta.full_name || "LuxuryBandit member";
       // Compress before sending so the JSON body stays under Vercel's ~4.5MB limit.
       const [imageSmall, userPhotoSmall] = await Promise.all([
         compressDataUrl(image),
@@ -1047,11 +1047,16 @@ export default function TryonPage() {
             </div>
             <p className="mt-3 text-2xl font-black text-black">Your look is ready ✨</p>
             <p className="mt-1.5 text-sm font-bold text-black/55">Enter your email to reveal yourself wearing this look — it&apos;s free, and we&apos;ll save it for you.</p>
+            <input type="text" value={shareNameInput}
+              onChange={e => setShareNameInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") void revealWithEmail(); }}
+              placeholder="Your name (shown on your look)"
+              className="mt-4 h-13 w-full rounded-2xl border-2 border-black/15 bg-black/[0.02] px-4 py-3.5 text-base font-bold text-black placeholder:text-black/35 outline-none focus:border-black" />
             <input type="email" inputMode="email" autoFocus value={gateEmail}
               onChange={e => setGateEmail(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") void revealWithEmail(); }}
               placeholder="you@email.com"
-              className="mt-4 h-13 w-full rounded-2xl border-2 border-black/15 bg-black/[0.02] px-4 py-3.5 text-base font-bold text-black placeholder:text-black/35 outline-none focus:border-black" />
+              className="mt-2.5 h-13 w-full rounded-2xl border-2 border-black/15 bg-black/[0.02] px-4 py-3.5 text-base font-bold text-black placeholder:text-black/35 outline-none focus:border-black" />
             <button onClick={() => void revealWithEmail()}
               disabled={!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(gateEmail.trim())}
               className="mt-2.5 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-black py-3.5 text-base font-black text-white active:scale-95 transition-transform disabled:opacity-30">
