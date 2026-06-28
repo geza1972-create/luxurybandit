@@ -1303,48 +1303,53 @@ export default function TryonPage() {
 
       {/* Look preview + upload — scrollable so the action buttons are always reachable */}
       <div className="flex-1 overflow-y-auto flex flex-col items-center px-6 py-5 gap-5">
-        {/* Look image */}
-        <div className="w-36 aspect-[3/4] shrink-0 rounded-2xl overflow-hidden border border-black/10 shadow-lg bg-white">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-contain" onError={onGarmentError} />
-        </div>
-
         {/* Instructions */}
         <div className="text-center">
           <p className="text-xl font-black">Try this look on you</p>
-          <p className="mt-1 text-sm text-black/50">Upload a photo and AI will dress you in this outfit</p>
+          <p className="mt-1 text-sm text-black/50">Add your photo and AI dresses you in this outfit</p>
         </div>
 
-        {/* This step prices only the PHOTO. The optional video / 360° (and their
-            prices) are chosen at the next step's tier menu. */}
-        <div className="w-full max-w-xs rounded-2xl border border-black/10 bg-black/[0.02] px-4 py-3 text-center">
-          <p className="text-[13px] font-black text-black">Your try-on photo<span className="font-bold text-black/45"> — optional video after</span></p>
-          <div className="mt-1.5 flex items-center justify-center">
-            <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-black text-white ${effectiveLingerie ? "bg-black" : "bg-emerald-600"}`}>
-              Photo · {isStaff ? "Free" : effectiveLingerie ? "$2.90" : "Free"}
-            </span>
+        {/* The look + YOUR photo placeholder, side by side — makes the try-on obvious.
+            The placeholder IS the upload target. */}
+        <div className="flex w-full max-w-sm items-center justify-center gap-2.5">
+          {/* The look */}
+          <div className="flex-1">
+            <div className="aspect-[3/4] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-lg">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-contain" onError={onGarmentError} />
+            </div>
+            <p className="mt-1.5 text-center text-[11px] font-black uppercase tracking-[0.12em] text-black/40">The look</p>
+          </div>
+          {/* + connector */}
+          <span className="shrink-0 pb-5 text-2xl font-black text-black/20">+</span>
+          {/* Your photo = upload placeholder */}
+          <div className="flex-1">
+            <button onClick={() => fileInputRef.current?.click()}
+              className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-black/25 bg-black/[0.02] px-2 text-center transition active:scale-95 hover:border-black/45">
+              <span className="grid h-11 w-11 place-items-center rounded-full bg-black text-white shadow-lg"><ImagePlus className="h-5 w-5" /></span>
+              <span className="text-sm font-black leading-tight text-black">Upload your photo</span>
+              <span className="text-[11px] font-bold leading-tight text-black/40">Tap to add a full-body photo</span>
+            </button>
+            <p className="mt-1.5 text-center text-[11px] font-black uppercase tracking-[0.12em] text-black/40">You</p>
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex w-full max-w-xs flex-col items-center gap-2.5">
-          {/* Profile photo (creators) — primary when available */}
-          {curatorPhotoUrl && (
-            <button onClick={onUseProfilePhoto} disabled={loadingProfilePhoto}
-              className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-black text-white text-base font-black shadow-xl active:scale-95 transition-transform disabled:opacity-50">
-              {loadingProfilePhoto ? <Loader2 className="h-5 w-5 animate-spin" /> : (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img src={curatorPhotoUrl} alt="" className="h-7 w-7 rounded-full object-cover border border-white/40" />
-              )}
-              Use my profile photo
-            </button>
-          )}
-          <button onClick={() => fileInputRef.current?.click()}
-            className={`flex h-14 w-full items-center justify-center gap-3 rounded-2xl text-base font-black active:scale-95 transition-transform ${curatorPhotoUrl ? "border-2 border-black/10 bg-white text-black" : "bg-black text-white shadow-xl"}`}>
-            <ImagePlus className="h-5 w-5" />
-            Upload {curatorPhotoUrl ? "another" : "your"} photo
+        {/* Price pill — the photo; optional video/360° priced at the next step. */}
+        <span className={`inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-[12px] font-black text-white ${effectiveLingerie ? "bg-black" : "bg-emerald-600"}`}>
+          Photo · {isStaff ? "Free" : effectiveLingerie ? "$2.90" : "Free"}<span className="font-bold opacity-70"> · optional video after</span>
+        </span>
+
+        {/* Profile photo (creators) — alternative to uploading */}
+        {curatorPhotoUrl && (
+          <button onClick={onUseProfilePhoto} disabled={loadingProfilePhoto}
+            className="flex h-12 w-full max-w-sm items-center justify-center gap-3 rounded-2xl border-2 border-black/10 bg-white text-sm font-black text-black active:scale-95 transition-transform disabled:opacity-50">
+            {loadingProfilePhoto ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={curatorPhotoUrl} alt="" className="h-7 w-7 rounded-full object-cover border border-black/15" />
+            )}
+            Use my profile photo instead
           </button>
-        </div>
+        )}
 
         {/* Tips */}
         <div className="w-full max-w-xs rounded-xl border border-black/8 bg-black/[0.03] p-4">
