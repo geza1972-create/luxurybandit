@@ -954,54 +954,41 @@ export default function TryonPage() {
   if (step === "locked") {
     return (
       <div className="fixed inset-0 z-50 flex flex-col bg-black">
-        {/* Exit — never a dead end: go back to pick a different photo / cancel */}
+        {/* Blurred teaser background */}
+        <div className="absolute inset-0 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={userPhoto || garmentPreviewUrl} alt="" className="h-full w-full object-cover object-top blur-2xl scale-125" onError={onGarmentError} />
+          <div className="absolute inset-0 bg-black/65" />
+        </div>
+        {/* Back — never a dead end */}
         <button onClick={() => { pendingGenerateRef.current = false; setStep("confirm"); }} aria-label="Back"
-          className="absolute top-12 left-4 z-10 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur active:scale-90 transition-transform">
+          className="absolute top-12 left-4 z-20 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur active:scale-90 transition-transform">
           <ChevronLeft className="h-5 w-5" />
         </button>
-        {/* Blurred teaser of the result */}
-        <div className="relative flex-1 overflow-hidden">
-          {userPhoto ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={userPhoto} alt="" className="h-full w-full object-cover object-top blur-2xl scale-125" />
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={garmentPreviewUrl} alt="" className="h-full w-full object-cover blur-2xl scale-125" onError={onGarmentError} />
-          )}
-          <div className="absolute inset-0 bg-black/40" />
-          {/* Small sharp garment chip so they see what it's about */}
-          <div className="absolute left-1/2 top-6 -translate-x-1/2 h-20 w-16 overflow-hidden rounded-xl border-2 border-white/40 shadow-lg">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-cover" onError={onGarmentError} />
-          </div>
-          {/* Center lock + copy */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
-            <div className="grid h-16 w-16 place-items-center rounded-full bg-white/15 backdrop-blur">
-              <Lock className="h-7 w-7 text-white" />
+        {/* CENTERED WHITE CARD — the email field is the clear, high-contrast focus */}
+        <div className="relative z-10 flex flex-1 items-center justify-center px-5" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+          <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center shadow-2xl">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-black text-white">
+              <Sparkles className="h-6 w-6" />
             </div>
-            <p className="mt-4 text-xl font-black text-white">Your look is ready ✨</p>
-            <p className="mt-1.5 max-w-xs text-sm font-bold text-white/70">Enter your email to reveal yourself wearing this look — it&apos;s free, and we&apos;ll save it for you.</p>
-          </div>
-        </div>
-        {/* Email gate */}
-        <div className="px-5 pt-4" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
-          <div className="flex items-center gap-2">
+            <p className="mt-3 text-2xl font-black text-black">Your look is ready ✨</p>
+            <p className="mt-1.5 text-sm font-bold text-black/55">Enter your email to reveal yourself wearing this look — it&apos;s free, and we&apos;ll save it for you.</p>
             <input type="email" inputMode="email" autoFocus value={gateEmail}
               onChange={e => setGateEmail(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") void revealWithEmail(); }}
               placeholder="you@email.com"
-              className="h-13 flex-1 rounded-2xl border border-white/20 bg-white/10 px-4 py-3.5 text-sm font-bold text-white placeholder:text-white/40 outline-none focus:border-white/50" />
+              className="mt-4 h-13 w-full rounded-2xl border-2 border-black/15 bg-black/[0.02] px-4 py-3.5 text-base font-bold text-black placeholder:text-black/35 outline-none focus:border-black" />
+            <button onClick={() => void revealWithEmail()}
+              disabled={!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(gateEmail.trim())}
+              className="mt-2.5 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-black py-3.5 text-base font-black text-white active:scale-95 transition-transform disabled:opacity-30">
+              <Sparkles className="h-4 w-4" /> Reveal my look
+            </button>
+            <p className="mt-2.5 text-[11px] font-bold text-black/40">We&apos;ll email your look + a link to your free account. No spam.</p>
+            <button onClick={() => { pendingGenerateRef.current = false; setUserPhoto(null); setStep("upload"); }}
+              className="mt-1 flex h-10 w-full items-center justify-center text-sm font-black text-black/50 active:opacity-70">
+              Use a different photo
+            </button>
           </div>
-          <button onClick={() => void revealWithEmail()}
-            disabled={gateSending || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(gateEmail.trim())}
-            className="mt-2.5 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-white py-3.5 text-sm font-black text-black active:scale-95 transition-transform disabled:opacity-40">
-            {gateSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Reveal my look
-          </button>
-          <p className="mt-2 text-center text-[11px] font-bold text-white/40">We&apos;ll email your look + a link to your free account. No spam.</p>
-          <button onClick={() => { pendingGenerateRef.current = false; setUserPhoto(null); setStep("upload"); }}
-            className="mt-2 flex h-10 w-full items-center justify-center text-sm font-black text-white/55 active:opacity-70">
-            Use a different photo
-          </button>
         </div>
         {authModal}
       </div>
@@ -1221,10 +1208,10 @@ export default function TryonPage() {
             <ChevronLeft className="h-5 w-5" />
           </button>
 
-          {/* Title — ABOVE the two images */}
+          {/* Title — ABOVE the two images (aspirational, not technical) */}
           <div className="text-center">
-            <p className="text-xl font-black text-white [text-shadow:0_2px_8px_#000]">Send this to AI?</p>
-            <p className="mt-1 text-sm font-bold text-white/70">You&apos;ll be shown wearing this look</p>
+            <p className="text-2xl font-black text-white [text-shadow:0_2px_8px_#000]">See yourself in this look ✨</p>
+            <p className="mt-1 text-sm font-bold text-white/75">Your free AI try-on — ready in seconds</p>
           </div>
 
           {/* Side by side */}
