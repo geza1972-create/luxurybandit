@@ -1129,18 +1129,20 @@ export default function TryonPage() {
             )}
           </div>
 
-          {/* Turn it into a video — paid upsell (free for staff) */}
-          {!effectiveLingerie && videoStatus === "idle" && !videoUrl && (
+          {/* Turn it into a video — paid upsell (free for staff). Shown for EVERY look
+              (lingerie too, at the lingerie price); for lingerie the 360° card below is
+              an ADDITIONAL premium option, not a replacement. */}
+          {videoStatus === "idle" && !videoUrl && (
             <div className="rounded-2xl bg-gradient-to-br from-black to-black/80 p-3.5 text-white">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="flex items-center gap-1.5 text-sm font-black"><Film className="h-4 w-4" /> Want a video of this? <span className="font-bold text-white/55">· 5s</span></p>
                   <p className="mt-0.5 text-[12px] font-bold text-white/55">Bring your look to life — a 5-second clip to post &amp; share.</p>
                 </div>
-                <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-black">{isStaff ? "Free" : "$2.90"}</span>
+                <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-black">{isStaff ? "Free" : effectiveLingerie ? "$4.90" : "$2.90"}</span>
               </div>
               <button type="button"
-                onClick={() => { if (isStaff && resultImage) void startTryonVideo(resultImage, false); else setPaidSoon("video"); }}
+                onClick={() => { if (isStaff) { if (effectiveLingerie) void startReferenceVideo(false); else if (resultImage) void startTryonVideo(resultImage, false); } else setPaidSoon("video"); }}
                 className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-black text-black active:scale-95 transition-transform">
                 <Film className="h-4 w-4" /> Make it a video
               </button>
@@ -1148,8 +1150,8 @@ export default function TryonPage() {
             </div>
           )}
 
-          {/* 360° turnaround — premium tier (lingerie only). UI is here; the actual
-              paid generation activates with Stripe checkout. */}
+          {/* 360° turnaround — premium tier (lingerie only), IN ADDITION to the video
+              card above. UI is here; the paid generation activates with Stripe checkout. */}
           {effectiveLingerie && (
             <div className="rounded-2xl bg-gradient-to-br from-black to-black/80 p-3.5 text-white">
               <div className="flex items-center justify-between gap-2">

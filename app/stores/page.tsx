@@ -1542,16 +1542,27 @@ function StoresPage() {
       .catch(() => {});
   }, [isAdmin, adminPin]);
 
-  // Load community try-ons — needed for the reels landing AND the grid. Load once.
+  // Load community try-ons — needed for the reels landing AND the grid. Load on mount,
+  // then REFRESH when the tab regains focus/visibility so a try-on the user just
+  // generated (in the funnel / another tab) shows up at the top without a hard reload.
   useEffect(() => {
-    if (communityItems.length > 0) return;
-    setCommunityLoading(true);
-    fetch("/api/try-this-look?community=1")
-      .then(r => r.json())
-      .then((p: { community?: CommunityItem[] }) => setCommunityItems(p.community ?? []))
-      .catch(() => {})
-      .finally(() => setCommunityLoading(false));
-  }, [communityItems.length]);
+    let alive = true;
+    const load = (showSpinner: boolean) => {
+      if (showSpinner) setCommunityLoading(true);
+      fetch("/api/try-this-look?community=1")
+        .then(r => r.json())
+        .then((p: { community?: CommunityItem[] }) => { if (alive && p.community) setCommunityItems(p.community); })
+        .catch(() => {})
+        .finally(() => { if (showSpinner) setCommunityLoading(false); });
+    };
+    load(communityItems.length === 0); // spinner only on the very first load
+    const onFocus = () => load(false);
+    const onVisible = () => { if (document.visibilityState === "visible") load(false); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { alive = false; window.removeEventListener("focus", onFocus); document.removeEventListener("visibilitychange", onVisible); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     fetch("/api/try-this-look")
