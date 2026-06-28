@@ -624,42 +624,6 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save changes"}
         </button>
 
-        {/* Looks / Store section */}
-        <section className="rounded-2xl border border-black/8 bg-white overflow-hidden">
-          <div className="px-4 py-3 border-b border-black/6 flex items-center justify-between">
-            <p className="text-xs font-black uppercase tracking-widest text-black/30">My looks</p>
-            {storeSlug && (
-              <a href="/user/myaccount" className="text-xs font-black text-black underline underline-offset-2">Manage store →</a>
-            )}
-          </div>
-          {storeSlug === null ? (
-            <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-black/20" /></div>
-          ) : storeSlug ? (
-            <div className="px-4 py-5 text-center grid gap-3">
-              <p className="text-sm font-bold text-black/50">Your store is live at</p>
-              <a href={`/store/${storeSlug}`} target="_blank" rel="noopener noreferrer"
-                className="text-sm font-black text-black underline underline-offset-2">
-                luxurybandit.com/store/{storeSlug}
-              </a>
-              <a href="/user/myaccount"
-                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-black text-sm font-black text-white active:scale-95 transition-transform">
-                Open seller dashboard →
-              </a>
-            </div>
-          ) : (
-            <div className="p-4 grid gap-3">
-              <p className="text-sm font-bold text-black/50">You don't have a store yet. Create one to start selling.</p>
-              <input type="text" value={newStoreName} onChange={e => setNewStoreName(e.target.value)}
-                placeholder="Shop name (e.g. Szidi Vintage)"
-                className="h-11 w-full rounded-xl border border-black/10 bg-black/[0.03] px-4 text-sm font-bold text-black placeholder:text-black/30 outline-none focus:border-black" />
-              {storeErr && <p className="text-xs font-bold text-red-500">{storeErr}</p>}
-              <button type="button" onClick={handleCreateStore} disabled={creatingStore || !newStoreName.trim()}
-                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-black text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
-                {creatingStore ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create my store →"}
-              </button>
-            </div>
-          )}
-        </section>
 
         {/* Messages link */}
         <a href="/messages"
