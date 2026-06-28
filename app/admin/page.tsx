@@ -592,10 +592,12 @@ export default function AdminPage() {
                 {shownPosts.map(p => (
                   <div key={p.id} className={`overflow-hidden rounded-lg border border-black/10 bg-white transition ${p.feed ? "" : "opacity-60"}`}>
                     <div className="relative aspect-[3/4] bg-black/5">
-                      {p.videoUrl
-                        ? <video src={p.videoUrl} poster={p.imageUrl || undefined} muted playsInline preload="metadata" className="h-full w-full object-cover object-top" />
+                      {/* Always a still here — rendering ~90 <video> elements at once froze
+                          the grid. The Video badge marks clips; open the post to play. */}
+                      {p.imageUrl
                         // eslint-disable-next-line @next/next/no-img-element
-                        : <img src={p.imageUrl} alt={p.lookName} className="h-full w-full object-cover object-top" />}
+                        ? <img src={p.imageUrl} alt={p.lookName} loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
+                        : <video src={p.videoUrl} muted playsInline preload="none" className="h-full w-full object-cover object-top" />}
                       {!p.feed && <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">Hidden</span>}
                       {p.videoUrl && <span className="absolute right-1.5 top-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">Video</span>}
                     </div>

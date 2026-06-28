@@ -8,6 +8,7 @@ import {
   getStoredAuthSession,
   signInWithPassword,
   signUpWithPassword,
+  sendMagicLink,
   resetPassword,
   type SupabaseAuthSession,
 } from "@/lib/supabase-auth-client";
@@ -171,6 +172,11 @@ export default function TryonPage() {
   const [leadEmail, setLeadEmail] = useState("");
   const [leadSending, setLeadSending] = useState(false);
   const [leadDone, setLeadDone] = useState(false);
+  // Email GATE: anonymous visitors must drop their email to reveal the result (the
+  // Instagram-ad funnel). Once passed, further generations show the result directly.
+  const [gatePassed, setGatePassed] = useState(false);
+  const [gateEmail, setGateEmail] = useState("");
+  const [gateSending, setGateSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [elapsedSec, setElapsedSec] = useState(0);
@@ -536,7 +542,10 @@ export default function TryonPage() {
       if (!res.ok || !payload.image) throw new Error(payload.error ?? "Generation failed.");
       setResultImage(payload.image);
       setProgress(100);
-      setStep("result");
+      // Anonymous visitor (Instagram-ad funnel) → gate the reveal behind their email
+      // so we capture it + create their account. Logged-in users / staff skip it.
+      const needsGate = !authSession && !curatorId && !isStaff && !gatePassed;
+      setStep(needsGate ? "locked" : "result");
       // Post the try-on FIRST (so its generation is persisted), THEN start the video.
       // Running them in parallel raced the shared state save and lost the try-on.
       void (async () => {
@@ -760,6 +769,27 @@ export default function TryonPage() {
     } catch { /* ignore */ } finally { setLeadSending(false); }
   };
 
+  // ── Email GATE: reveal the result after the visitor drops their email ──
+  // Captures the email (lead) AND creates a passwordless account (magic link), then
+  // reveals the result. Never blocks the reveal if a network call fails.
+  const revealWithEmail = async () => {
+    const email = gateEmail.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !look) return;
+    setGateSending(true);
+    try {
+      // 1) capture the email as a lead (+ fires the "become a curator" invite server-side)
+      await fetch("/api/try-this-look", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "lead", email, lookId: look.id, lookName: look.name, leadSource: "tryon", marketingConsent: true, visitorId: accountId || "anon" }),
+      }).catch(() => {});
+      // 2) create a passwordless account + email a magic sign-in link (best-effort)
+      await sendMagicLink(email).catch(() => {});
+    } catch { /* never block the reveal */ }
+    setGatePassed(true);
+    setGateSending(false);
+    setStep("result");
+  };
+
   // ─── Loading ───
   if (isLoadingLook) {
     return (
@@ -934,18 +964,27 @@ export default function TryonPage() {
             <div className="grid h-16 w-16 place-items-center rounded-full bg-white/15 backdrop-blur">
               <Lock className="h-7 w-7 text-white" />
             </div>
-            <p className="mt-4 text-xl font-black text-white">Your look is ready</p>
-            <p className="mt-1.5 max-w-xs text-sm font-bold text-white/70">Sign in to reveal yourself wearing this look — it&apos;s free.</p>
+            <p className="mt-4 text-xl font-black text-white">Your look is ready ✨</p>
+            <p className="mt-1.5 max-w-xs text-sm font-bold text-white/70">Enter your email to reveal yourself wearing this look — it&apos;s free, and we&apos;ll save it for you.</p>
           </div>
         </div>
-        {/* Actions */}
+        {/* Email gate */}
         <div className="px-5 pt-4" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
-          <button onClick={() => setShowAuth(true)}
-            className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-white py-3.5 text-sm font-black text-black active:scale-95 transition-transform">
-            <Sparkles className="h-4 w-4" /> Sign in to reveal
+          <div className="flex items-center gap-2">
+            <input type="email" inputMode="email" autoFocus value={gateEmail}
+              onChange={e => setGateEmail(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") void revealWithEmail(); }}
+              placeholder="you@email.com"
+              className="h-13 flex-1 rounded-2xl border border-white/20 bg-white/10 px-4 py-3.5 text-sm font-bold text-white placeholder:text-white/40 outline-none focus:border-white/50" />
+          </div>
+          <button onClick={() => void revealWithEmail()}
+            disabled={gateSending || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(gateEmail.trim())}
+            className="mt-2.5 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-white py-3.5 text-sm font-black text-black active:scale-95 transition-transform disabled:opacity-40">
+            {gateSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Reveal my look
           </button>
+          <p className="mt-2 text-center text-[11px] font-bold text-white/40">We&apos;ll email your look + a link to your free account. No spam.</p>
           <button onClick={() => { pendingGenerateRef.current = false; setStep("confirm"); }}
-            className="mt-2 flex h-11 w-full items-center justify-center text-sm font-black text-white/50">
+            className="mt-1.5 flex h-10 w-full items-center justify-center text-sm font-black text-white/40">
             Back
           </button>
         </div>
@@ -1065,8 +1104,8 @@ export default function TryonPage() {
           )}
 
           {/* Optional email capture (after the result) — for no-login QR/event
-              try-ons. Soft lead: keep your look + join the community. */}
-          {!authSession && !curatorId && (
+              try-ons. Hidden once the email GATE already captured it. */}
+          {!authSession && !curatorId && !gatePassed && (
             leadDone ? (
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center">
                 <p className="text-sm font-black text-emerald-700">✓ Sent! Check your inbox to save your look.</p>
