@@ -1303,10 +1303,10 @@ export default function TryonPage() {
 
       {/* Look preview + upload — scrollable so the action buttons are always reachable */}
       <div className="flex-1 overflow-y-auto flex flex-col items-center px-6 py-5 gap-5">
-        {/* Instructions */}
+        {/* Instructions — price folded into the title (the pill looked like a button) */}
         <div className="text-center">
-          <p className="text-xl font-black">Try this look on you</p>
-          <p className="mt-1 text-sm text-black/50">Add your photo and AI dresses you in this outfit</p>
+          <p className="text-xl font-black">Try this look on you · <span className={effectiveLingerie && !isStaff ? "text-black" : "text-emerald-600"}>{isStaff ? "Free" : effectiveLingerie ? "$2.90" : "Free"}</span></p>
+          <p className="mt-1 text-sm text-black/50">Add your photo and AI dresses you in this outfit — optional video after</p>
         </div>
 
         {/* The look + YOUR photo placeholder, side by side — makes the try-on obvious.
@@ -1333,11 +1333,6 @@ export default function TryonPage() {
             <p className="mt-1.5 text-center text-[11px] font-black uppercase tracking-[0.12em] text-black/40">You</p>
           </div>
         </div>
-
-        {/* Price pill — the photo; optional video/360° priced at the next step. */}
-        <span className={`inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-[12px] font-black text-white ${effectiveLingerie ? "bg-black" : "bg-emerald-600"}`}>
-          Photo · {isStaff ? "Free" : effectiveLingerie ? "$2.90" : "Free"}<span className="font-bold opacity-70"> · optional video after</span>
-        </span>
 
         {/* Profile photo (creators) — alternative to uploading */}
         {curatorPhotoUrl && (
