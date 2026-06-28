@@ -655,20 +655,21 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
           ) : (
             <div className="grid grid-cols-3 gap-px bg-black/8">
               {tryOns.map(t => (
-                <div key={t.id} className="relative aspect-[3/4] bg-black/5 overflow-hidden group">
+                <div key={t.id} className="relative aspect-[3/4] bg-black/5 overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={t.imageUrl} alt={t.lookName} className="h-full w-full object-cover object-top" />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors" />
+                  {/* Delete is ALWAYS visible — hover-only didn't work on touch/Safari. */}
                   <button
                     type="button"
                     onClick={() => void handleDeleteTryOn(t.id)}
                     disabled={deletingId === t.id}
-                    className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                    aria-label="Delete try-on"
+                    className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full bg-black/75 text-white shadow-lg backdrop-blur active:scale-90 transition-transform disabled:opacity-50"
                     title="Delete"
                   >
-                    {deletingId === t.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    {deletingId === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                   </button>
-                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
                     <p className="text-[10px] font-black text-white truncate">{t.lookName}</p>
                   </div>
                 </div>
