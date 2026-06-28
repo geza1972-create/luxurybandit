@@ -162,8 +162,11 @@ export default function TryonPage() {
   const [videoNote, setVideoNote] = useState<string | null>(null);
   const [videoMuted, setVideoMuted] = useState(true);
   // Consent to show this try-on in the look's feed carousel (default on).
-  const [showInFeed, setShowInFeed] = useState(true);
-  const showInFeedRef = useRef(true); // mirror so async saves read the latest toggle
+  // CONSENT: a normal visitor's try-on is NEVER auto-posted publicly. Default OFF;
+  // they must opt in with the "Share your look" toggle. (Staff/curators default ON
+  // below — they deliberately create feed content.)
+  const [showInFeed, setShowInFeed] = useState(false);
+  const showInFeedRef = useRef(false); // mirror so async saves read the latest toggle
   useEffect(() => { showInFeedRef.current = showInFeed; }, [showInFeed]);
   const sharedGenIdRef = useRef<string>("");
   // Which tier produced the current result (recorded on the saved generation for history).
@@ -234,6 +237,7 @@ export default function TryonPage() {
       const c = JSON.parse(localStorage.getItem("lb_curator") ?? "{}");
       if (c?.id) {
         setCuratorId(c.id);
+        setShowInFeed(true); // staff/curators deliberately create feed content → default ON
         // Pre-fill the "share to gallery" name from the session right away (editable).
         if (c.firstName) setShareNameInput((prev) => prev || c.firstName);
         fetch(`/api/curator?profile=${encodeURIComponent(c.id)}`)
@@ -1202,7 +1206,7 @@ export default function TryonPage() {
           </div>
 
           {/* Try again */}
-          <button onClick={() => { setResultImage(null); setUserPhoto(null); setVideoUrl(null); setVideoStatus("idle"); setVideoNote(null); setShowInFeed(true); sharedGenIdRef.current = ""; setSharedToGallery(false); setStep("upload"); }}
+          <button onClick={() => { setResultImage(null); setUserPhoto(null); setVideoUrl(null); setVideoStatus("idle"); setVideoNote(null); setShowInFeed(isStaff); sharedGenIdRef.current = ""; setSharedToGallery(false); setStep("upload"); }}
             className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-black/15 text-sm font-black active:opacity-70">
             <RefreshCw className="h-4 w-4" /> Try a different photo
           </button>
