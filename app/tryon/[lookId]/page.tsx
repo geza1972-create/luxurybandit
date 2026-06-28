@@ -453,6 +453,7 @@ export default function TryonPage() {
   };
   const [show360Note, setShow360Note] = useState(false); // 360° premium tier — UI ready, payment via Stripe pending
   const [paidSoon, setPaidSoon] = useState<"" | "video" | "360">(""); // chosen paid video tier (awaiting Stripe)
+  const [photoBig, setPhotoBig] = useState(false); // tap the result photo → fullscreen
   // Staff = acting-as a curator (e.g. Szidonia) → all tiers generate FREE for them,
   // no paywall. End-user charging arrives with Stripe.
   const staffCuratorId = () => { try { return String(JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id ?? ""); } catch { return ""; } };
@@ -1052,11 +1053,13 @@ export default function TryonPage() {
             <p className="rounded-2xl border border-black/10 bg-black/[0.02] px-4 py-3 text-center text-[12px] font-bold text-black/45">{videoNote}</p>
           )}
 
-          {/* Result photo */}
+          {/* Result photo — tap to view fullscreen */}
           <div className="relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={resultImage} alt="Your try-on result" className="max-h-[58dvh] w-full rounded-2xl border border-black/10 object-contain shadow-lg" />
+            <img src={resultImage} alt="Your try-on result" onClick={() => setPhotoBig(true)}
+              className="max-h-[58dvh] w-full cursor-zoom-in rounded-2xl border border-black/10 object-contain shadow-lg active:opacity-90" />
             <span className="absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">Photo</span>
+            <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur">Tap to enlarge</span>
             {/* Persistent video-loading bar ON the photo so the video isn't missed */}
             {videoStatus === "generating" && (
               <div className="absolute inset-x-0 bottom-0 rounded-b-2xl bg-black/75 px-4 py-3 backdrop-blur">
@@ -1070,6 +1073,25 @@ export default function TryonPage() {
               </div>
             )}
           </div>
+
+          {/* Turn it into a video — paid upsell (free for staff) */}
+          {!effectiveLingerie && videoStatus === "idle" && !videoUrl && (
+            <div className="rounded-2xl bg-gradient-to-br from-black to-black/80 p-3.5 text-white">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-1.5 text-sm font-black"><Film className="h-4 w-4" /> Want a video of this? <span className="font-bold text-white/55">· 5s</span></p>
+                  <p className="mt-0.5 text-[12px] font-bold text-white/55">Bring your look to life — a 5-second clip to post &amp; share.</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-black">{isStaff ? "Free" : "$2.90"}</span>
+              </div>
+              <button type="button"
+                onClick={() => { if (isStaff && resultImage) void startTryonVideo(resultImage, false); else setPaidSoon("video"); }}
+                className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-black text-black active:scale-95 transition-transform">
+                <Film className="h-4 w-4" /> Make it a video
+              </button>
+              {paidSoon === "video" && !isStaff && <p className="mt-2 text-center text-[12px] font-bold text-white/70">Coming very soon — activates at checkout.</p>}
+            </div>
+          )}
 
           {/* 360° turnaround — premium tier (lingerie only). UI is here; the actual
               paid generation activates with Stripe checkout. */}
@@ -1185,6 +1207,18 @@ export default function TryonPage() {
             <RefreshCw className="h-4 w-4" /> Try a different photo
           </button>
         </div>
+
+        {/* Fullscreen photo — tap anywhere to close */}
+        {photoBig && resultImage && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95" onClick={() => setPhotoBig(false)}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={resultImage} alt="Your try-on result" className="max-h-[100dvh] w-full object-contain" />
+            <button type="button" aria-label="Close" onClick={() => setPhotoBig(false)}
+              className="absolute right-4 top-12 grid h-10 w-10 place-items-center rounded-full bg-white/15 text-white backdrop-blur active:scale-90">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        )}
       </div>
     );
   }
