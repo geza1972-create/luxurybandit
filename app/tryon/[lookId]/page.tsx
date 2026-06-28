@@ -196,6 +196,9 @@ export default function TryonPage() {
   const [gatePassed, setGatePassed] = useState(false);
   const [gateEmail, setGateEmail] = useState("");
   const [gateSending, setGateSending] = useState(false);
+  // The email this try-on belongs to (gate email, or the logged-in account's email).
+  // Saved on the generation so the owner can find + delete it from their account.
+  const ownerEmailRef = useRef("");
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [elapsedSec, setElapsedSec] = useState(0);
@@ -233,6 +236,7 @@ export default function TryonPage() {
     setAccountId(getClientAccountId());
     const session = getStoredAuthSession();
     setAuthSession(session);
+    if (session?.user?.email) ownerEmailRef.current = String(session.user.email).trim().toLowerCase();
 
     // If user has a saved model photo (from "✨ Foto nutzen"), pre-load it into confirm step
     try {
@@ -340,8 +344,17 @@ export default function TryonPage() {
   // ── Crop confirmed ──
   const handleCropConfirm = (croppedDataUrl: string) => {
     setUserPhoto(croppedDataUrl);
+    // Persist so picking another look (cross-sell) keeps the photo — no re-upload.
+    try { sessionStorage.setItem("lb_model_image", croppedDataUrl); } catch { /**/ }
     setCropSrc(null);
     setStep("confirm");
+  };
+
+  // Discard the uploaded photo (X / "use a different photo") — also clear the
+  // persisted copy so a fresh look starts at the upload step, not pre-filled.
+  const discardPhoto = () => {
+    setUserPhoto(null);
+    try { sessionStorage.removeItem("lb_model_image"); } catch { /**/ }
   };
 
   // ── Try-on video ──
@@ -686,6 +699,7 @@ export default function TryonPage() {
           visitorId: accountId || "anon",
           lookName: look.name, storeName: look.storeName,
           customerName: name, userId: authSession?.user?.id ?? undefined,
+          ownerEmail: ownerEmailRef.current || authSession?.user?.email || undefined,
           curatorId: curatorId || undefined,
           image: imageSmall, userPhotoImage: userPhotoSmall,
           genKind: lastGenKindRef.current, // photo | video | video360 (for the post-info history)
@@ -804,6 +818,8 @@ export default function TryonPage() {
   const revealWithEmail = () => {
     const email = gateEmail.trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !look) return;
+    // Bind the upcoming try-on to this email so it shows in the account they create.
+    ownerEmailRef.current = email.toLowerCase();
     // Capture the email (lead) + create a passwordless account — in the background.
     void fetch("/api/try-this-look", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -1024,7 +1040,7 @@ export default function TryonPage() {
               <Sparkles className="h-4 w-4" /> Reveal my look
             </button>
             <p className="mt-2.5 text-[11px] font-bold text-black/40">We&apos;ll email your look + a link to your free account. No spam.</p>
-            <button onClick={() => { pendingGenerateRef.current = false; setUserPhoto(null); setStep("upload"); }}
+            <button onClick={() => { pendingGenerateRef.current = false; discardPhoto(); setStep("upload"); }}
               className="mt-1 flex h-10 w-full items-center justify-center text-sm font-black text-black/50 active:opacity-70">
               Use a different photo
             </button>
@@ -1242,7 +1258,7 @@ export default function TryonPage() {
           </div>
 
           {/* Try again */}
-          <button onClick={() => { setResultImage(null); setUserPhoto(null); setVideoUrl(null); setVideoStatus("idle"); setVideoNote(null); setShowInFeed(true); sharedGenIdRef.current = ""; setSharedToGallery(false); setStep("upload"); }}
+          <button onClick={() => { setResultImage(null); discardPhoto(); setVideoUrl(null); setVideoStatus("idle"); setVideoNote(null); setShowInFeed(true); sharedGenIdRef.current = ""; setSharedToGallery(false); setStep("upload"); }}
             className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-black/15 text-sm font-black active:opacity-70">
             <RefreshCw className="h-4 w-4" /> Try a different photo
           </button>
@@ -1307,7 +1323,7 @@ export default function TryonPage() {
               <img src={userPhoto} alt="Your photo" className="h-full w-full object-cover object-top" />
               {/* Delete this photo → back to upload to pick another */}
               <button type="button" aria-label="Remove photo"
-                onClick={() => { setUserPhoto(null); setStep("upload"); }}
+                onClick={() => { discardPhoto(); setStep("upload"); }}
                 className="absolute right-1.5 top-1.5 grid h-8 w-8 place-items-center rounded-full bg-black/55 text-white backdrop-blur active:scale-90 transition-transform">
                 <X className="h-4 w-4" />
               </button>

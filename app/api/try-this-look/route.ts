@@ -528,6 +528,40 @@ export async function GET(request: Request) {
       return NextResponse.json({ userGallery, displayName: cur ? [cur.firstName, cur.lastName].filter(Boolean).join(" ") : "" });
     }
 
+    // A logged-in user's OWN try-ons, bound by email at generation time (incl. the
+    // Instagram-funnel ones that never got an alias, and Hidden/unpublished ones —
+    // it's their own account). Auth required: we never list a gallery by guessed email.
+    if (url.searchParams.get("mine") === "1") {
+      const token = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+      if (!token) return NextResponse.json({ mine: [] });
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/\/$/, "") ?? "";
+      const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "").trim();
+      const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, { headers: { apikey: anonKey, Authorization: `Bearer ${token}` } });
+      if (!userRes.ok) return NextResponse.json({ mine: [] });
+      const u = await userRes.json() as { email?: string };
+      const email = (u.email ?? "").trim().toLowerCase();
+      if (!email) return NextResponse.json({ mine: [] });
+      const lookById = new Map(state.looks.map(l => [l.id, l]));
+      const mine = state.generations
+        .filter(g => String((g as any).ownerEmail ?? "").trim().toLowerCase() === email)
+        .map(g => {
+          const look = lookById.get(g.lookId);
+          return {
+            id: g.id,
+            lookId: g.lookId,
+            imageUrl: (g as any).imageUrl ?? "",
+            userPhotoUrl: (g as any).userPhotoUrl ?? undefined,
+            customerName: (g as any).customerName ?? "",
+            lookName: g.lookName ?? look?.name ?? "",
+            storeName: g.storeName ?? look?.storeName ?? "",
+            lookThumbUrl: look?.frontImageUrl ?? look?.imageUrl ?? "",
+            published: (g as any).feed !== false && !(g as any).hidden,
+            createdAt: g.createdAt,
+          };
+        });
+      return NextResponse.json({ mine });
+    }
+
     const filterUsername = url.searchParams.get("username") ?? "";
     if (filterUsername) {
       const querySlug = normalizeSlug(filterUsername);
@@ -845,6 +879,9 @@ export async function POST(request: Request) {
         lookName: String(payload.lookName ?? "").trim() || activeLook.name,
         customerName: String(payload.customerName ?? "").trim() || undefined,
         userId: String(payload.userId ?? "").trim() || undefined,
+        // The email this try-on belongs to (the gate email / logged-in email). Lets the
+        // owner find + delete it from their account later, even if they never set an alias.
+        ownerEmail: String(payload.ownerEmail ?? "").trim().toLowerCase() || undefined,
         curatorId: String(payload.curatorId ?? "").trim() || undefined,
         imagePath,
         userPhotoPath,
@@ -1741,12 +1778,17 @@ export async function POST(request: Request) {
       const userJson = await userRes.json() as { user_metadata?: { username?: string; full_name?: string }; email?: string };
       const ownerAlias = (userJson.user_metadata?.username ?? userJson.user_metadata?.full_name ?? "").trim();
       const ownerSlug = ownerAlias.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
-      if (!ownerSlug) return NextResponse.json({ error: "No alias set on this account." }, { status: 403 });
+      const ownerEmail = (userJson.email ?? "").trim().toLowerCase();
 
       const gen = state.generations.find(g => g.id === generationId);
       if (!gen) return NextResponse.json({ error: "Not found." }, { status: 404 });
+      // Owner if the alias matches the try-on's name OR the email it was generated under
+      // (funnel try-ons are email-bound and have no alias).
       const genSlug = String((gen as any).customerName ?? "").trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
-      if (genSlug !== ownerSlug) return NextResponse.json({ error: "Not your image." }, { status: 403 });
+      const genEmail = String((gen as any).ownerEmail ?? "").trim().toLowerCase();
+      const byAlias = !!ownerSlug && genSlug === ownerSlug;
+      const byEmail = !!ownerEmail && genEmail === ownerEmail;
+      if (!byAlias && !byEmail) return NextResponse.json({ error: "Not your image." }, { status: 403 });
 
       state.generations = state.generations.filter(g => g.id !== generationId);
       await deleteTryThisLookImage(gen.imagePath);

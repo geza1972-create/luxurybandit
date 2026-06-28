@@ -288,6 +288,20 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
       .then(r => r.json())
       .then((p: any) => { if (typeof p.credits === "number") setCredits(p.credits); })
       .catch(() => {});
+    // My try-ons bound to this account by EMAIL (the Instagram-funnel ones that never
+    // got an alias, incl. unpublished). Merged with the alias-based gallery below.
+    setTryOnsLoading(true);
+    fetch("/api/try-this-look?mine=1", { headers: { Authorization: `Bearer ${s.access_token}` } })
+      .then(r => r.json())
+      .then((p: any) => {
+        const mine = (p.mine ?? []) as TryOnItem[];
+        if (mine.length) setTryOns(prev => {
+          const seen = new Set(prev.map(t => t.id));
+          return [...prev, ...mine.filter(t => !seen.has(t.id))];
+        });
+      })
+      .catch(() => {})
+      .finally(() => setTryOnsLoading(false));
     // Messages inbox
     setMessagesLoading(true);
     fetch("/api/messages", { headers: { Authorization: `Bearer ${s.access_token}` } })
@@ -315,7 +329,13 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
         setTryOnsLoading(true);
         fetch(`/api/try-this-look?username=${encodeURIComponent(slug)}`)
           .then(r => r.json())
-          .then((p: any) => setTryOns((p.userGallery ?? []) as TryOnItem[]))
+          .then((p: any) => {
+            const gallery = (p.userGallery ?? []) as TryOnItem[];
+            setTryOns(prev => {
+              const seen = new Set(prev.map(t => t.id));
+              return [...prev, ...gallery.filter(t => !seen.has(t.id))];
+            });
+          })
           .catch(() => {})
           .finally(() => setTryOnsLoading(false));
       }
@@ -666,10 +686,8 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
           </div>
           {tryOnsLoading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-black/20" /></div>
-          ) : !userSlug ? (
-            <p className="px-4 py-6 text-center text-sm font-bold text-black/30">Set a name/alias above to see your try-ons.</p>
           ) : tryOns.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm font-bold text-black/30">No try-ons yet.</p>
+            <p className="px-4 py-6 text-center text-sm font-bold text-black/30">{userSlug ? "No try-ons yet." : "No try-ons yet. Try a look to see it here."}</p>
           ) : (
             <div className="grid grid-cols-3 gap-px bg-black/8">
               {tryOns.map(t => (
