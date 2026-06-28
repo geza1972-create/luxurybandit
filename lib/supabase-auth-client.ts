@@ -129,6 +129,19 @@ export async function sendMagicLink(email: string, displayName?: string) {
   await authFetch(path, { method: "POST", body: JSON.stringify({ email, create_user: true, data }) });
 }
 
+// Social sign-in (Google / Facebook). Redirects the browser to Supabase's OAuth
+// authorize endpoint; after the provider dance Supabase redirects back to
+// `redirectTo` with the session in the URL hash, which /auth/confirm parses & saves.
+// Requires the provider to be enabled in Supabase (Auth → Providers) with valid
+// OAuth credentials — otherwise the provider returns an error page.
+export function signInWithOAuth(provider: "google" | "facebook", redirectTo: string) {
+  const { url } = getSupabaseAuthConfig();
+  const u = new URL(`${url}/auth/v1/authorize`);
+  u.searchParams.set("provider", provider);
+  u.searchParams.set("redirect_to", redirectTo);
+  window.location.href = u.toString();
+}
+
 export function signOut() {
   saveAuthSession(null);
 }

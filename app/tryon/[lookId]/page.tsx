@@ -10,6 +10,7 @@ import {
   signUpWithPassword,
   sendMagicLink,
   resetPassword,
+  signInWithOAuth,
   type SupabaseAuthSession,
 } from "@/lib/supabase-auth-client";
 import { useParams, useRouter } from "next/navigation";
@@ -629,17 +630,21 @@ export default function TryonPage() {
     try { resume = JSON.parse(sessionStorage.getItem("lb_resume_tryon") ?? "null"); } catch { /* ignore */ }
     if (!resume || resume.lookId !== look.id) return;
     const isCurator = (() => { try { return !!JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id; } catch { return false; } })();
-    if (!isCurator) return; // application not completed yet
+    // Resume once the visitor is authenticated — either they finished the curator
+    // application (isCurator) OR they signed in via Google/Facebook (authSession).
+    if (!isCurator && !authSession) return;
     resumedRef.current = true;
     try { sessionStorage.removeItem("lb_resume_tryon"); } catch { /**/ }
-    if (resume.userPhoto) {
-      setUserPhoto(resume.userPhoto);
+    let photo = resume.userPhoto;
+    if (!photo) { try { photo = sessionStorage.getItem("lb_model_image") ?? ""; } catch { /**/ } }
+    if (photo) {
+      setUserPhoto(photo);
       // Pass the photo explicitly so generation doesn't race the state update.
-      void handleGenerate(resume.userPhoto);
+      void handleGenerate(photo);
     } else {
       setStep("confirm"); // no photo saved → they re-pick, but stay on this look
     }
-  }, [look]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [look, authSession]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Curator sign-in (email only, no password — our only login) ──
   const handleCuratorSignin = async () => {
@@ -850,6 +855,18 @@ export default function TryonPage() {
     void handleGenerate(a?.photoOverride, a?.tier ?? "photo", true);
   };
 
+  // Reveal via Google/Facebook: save where to resume, then bounce through OAuth.
+  // On return, /auth/confirm signs them in and sends them back here; the resume
+  // effect picks up the saved photo and runs the generation (now authenticated).
+  const gateOAuth = (provider: "google" | "facebook") => {
+    if (!look) return;
+    let photo = userPhoto ?? "";
+    try { if (!photo) photo = sessionStorage.getItem("lb_model_image") ?? ""; } catch { /**/ }
+    try { sessionStorage.setItem("lb_resume_tryon", JSON.stringify({ lookId: look.id, userPhoto: photo, returnTo: `/tryon/${look.id}` })); } catch { /**/ }
+    const returnTo = `/tryon/${look.id}`;
+    signInWithOAuth(provider, `${window.location.origin}/auth/confirm?returnTo=${encodeURIComponent(returnTo)}`);
+  };
+
   // Cross-sell carousel — other looks to try on next. Reused on the result, confirm
   // and generating steps (dark=true for the dark steps). items-start keeps every card
   // top-aligned so none look "shifted".
@@ -1046,7 +1063,25 @@ export default function TryonPage() {
               <Sparkles className="h-6 w-6" />
             </div>
             <p className="mt-3 text-2xl font-black text-black">Your look is ready ✨</p>
-            <p className="mt-1.5 text-sm font-bold text-black/55">Enter your email to reveal yourself wearing this look — it&apos;s free, and we&apos;ll save it for you.</p>
+            <p className="mt-1.5 text-sm font-bold text-black/55">Sign in to reveal yourself wearing this look — it&apos;s free, and we&apos;ll save it for you.</p>
+            {/* Fastest: one-tap social sign-in. On return the try-on resumes & generates. */}
+            <div className="mt-4 grid gap-2.5">
+              <button type="button" onClick={() => gateOAuth("google")}
+                className="flex h-13 w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-black/12 bg-white py-3.5 text-base font-black text-black active:scale-95 transition-transform">
+                <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                Continue with Google
+              </button>
+              <button type="button" onClick={() => gateOAuth("facebook")}
+                className="flex h-13 w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-black/12 bg-white py-3.5 text-base font-black text-black active:scale-95 transition-transform">
+                <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true"><path fill="#1877F2" d="M24 12c0-6.63-5.37-12-12-12S0 5.37 0 12c0 5.99 4.39 10.95 10.13 11.85v-8.38H7.08V12h3.05V9.36c0-3.01 1.79-4.67 4.53-4.67 1.31 0 2.69.23 2.69.23v2.95h-1.51c-1.49 0-1.96.93-1.96 1.88V12h3.33l-.53 3.47h-2.8v8.38C19.61 22.95 24 17.99 24 12z"/></svg>
+                Continue with Facebook
+              </button>
+            </div>
+            <div className="my-4 flex items-center gap-3">
+              <div className="h-px flex-1 bg-black/10" />
+              <span className="text-[11px] font-black uppercase tracking-wider text-black/30">or with email</span>
+              <div className="h-px flex-1 bg-black/10" />
+            </div>
             <input type="text" value={shareNameInput}
               onChange={e => setShareNameInput(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") void revealWithEmail(); }}

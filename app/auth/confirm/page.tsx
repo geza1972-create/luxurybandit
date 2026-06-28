@@ -35,7 +35,14 @@ export default function ConfirmPage() {
         };
         saveAuthSession(session);
         setStatus("success");
-        setTimeout(() => router.push("/stores"), 2500);
+        // Return to where sign-in started (e.g. the funnel that triggered OAuth) so the
+        // try-on can resume. Falls back to the feed. Only internal paths allowed.
+        let dest = "/stores";
+        try {
+          const rt = new URLSearchParams(window.location.search).get("returnTo");
+          if (rt && rt.startsWith("/") && !rt.startsWith("//")) dest = rt;
+        } catch { /**/ }
+        setTimeout(() => router.push(dest), 1200);
       } catch {
         setStatus("error");
       }
