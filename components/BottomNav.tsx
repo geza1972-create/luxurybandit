@@ -109,7 +109,8 @@ export default function BottomNav() {
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/seller/login") ||
     pathname.startsWith("/seller/register") ||
-    pathname.startsWith("/curators/apply")
+    pathname.startsWith("/curators/apply") ||
+    pathname.startsWith("/tryon") // focused try-on funnel — no bottom nav (it cut off content)
   ) return null;
 
   const go = (tab: Tab, href: string) => {

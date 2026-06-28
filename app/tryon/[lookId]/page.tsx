@@ -906,9 +906,9 @@ export default function TryonPage() {
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 gap-8 px-6">
         {/* Side by side preview */}
         <div className="flex items-center gap-4 w-full max-w-xs">
-          <div className="flex-1 aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/30 bg-white">
+          <div className="flex-1 aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/30 bg-black/20">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-contain" onError={onGarmentError} />
+            <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-cover object-top" onError={onGarmentError} />
           </div>
           <ArrowRight className="h-8 w-8 text-white/60 shrink-0" />
           <div className="flex-1 aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/30 relative">
@@ -940,6 +940,11 @@ export default function TryonPage() {
   if (step === "locked") {
     return (
       <div className="fixed inset-0 z-50 flex flex-col bg-black">
+        {/* Exit — never a dead end: go back to pick a different photo / cancel */}
+        <button onClick={() => { pendingGenerateRef.current = false; setStep("confirm"); }} aria-label="Back"
+          className="absolute top-12 left-4 z-10 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white backdrop-blur active:scale-90 transition-transform">
+          <ChevronLeft className="h-5 w-5" />
+        </button>
         {/* Blurred teaser of the result */}
         <div className="relative flex-1 overflow-hidden">
           {userPhoto ? (
@@ -979,9 +984,9 @@ export default function TryonPage() {
             {gateSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Reveal my look
           </button>
           <p className="mt-2 text-center text-[11px] font-bold text-white/40">We&apos;ll email your look + a link to your free account. No spam.</p>
-          <button onClick={() => { pendingGenerateRef.current = false; setStep("confirm"); }}
-            className="mt-1.5 flex h-10 w-full items-center justify-center text-sm font-black text-white/40">
-            Back
+          <button onClick={() => { pendingGenerateRef.current = false; setUserPhoto(null); setStep("upload"); }}
+            className="mt-2 flex h-10 w-full items-center justify-center text-sm font-black text-white/55 active:opacity-70">
+            Use a different photo
           </button>
         </div>
         {authModal}
@@ -1062,20 +1067,6 @@ export default function TryonPage() {
                   <div className="h-full rounded-full bg-white transition-[width] duration-500" style={{ width: `${Math.min(100, Math.round(videoProgress))}%` }} />
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Download — photo (+ video only once one has been generated) */}
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={handleDownload}
-              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform">
-              <Download className="h-4 w-4" /> Download photo
-            </button>
-            {(videoStatus !== "idle" || videoUrl) && (
-            <button type="button" onClick={handleDownloadVideo} disabled={videoStatus !== "done" || !videoUrl}
-              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform disabled:opacity-40">
-              {videoStatus === "generating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />} Video
-            </button>
             )}
           </div>
 
@@ -1172,6 +1163,20 @@ export default function TryonPage() {
           </div>
           )}
 
+          {/* Download — secondary (the name/feed step above is the primary action) */}
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={handleDownload}
+              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform">
+              <Download className="h-4 w-4" /> Download photo
+            </button>
+            {(videoStatus !== "idle" || videoUrl) && (
+            <button type="button" onClick={handleDownloadVideo} disabled={videoStatus !== "done" || !videoUrl}
+              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform disabled:opacity-40">
+              {videoStatus === "generating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />} Video
+            </button>
+            )}
+          </div>
+
           {/* Try again */}
           <button onClick={() => { setResultImage(null); setUserPhoto(null); setVideoUrl(null); setVideoStatus("idle"); setVideoNote(null); setShowInFeed(true); sharedGenIdRef.current = ""; setSharedToGallery(false); setStep("upload"); }}
             className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-black/15 text-sm font-black active:opacity-70">
@@ -1202,6 +1207,12 @@ export default function TryonPage() {
             <ChevronLeft className="h-5 w-5" />
           </button>
 
+          {/* Title — ABOVE the two images */}
+          <div className="text-center">
+            <p className="text-xl font-black text-white [text-shadow:0_2px_8px_#000]">Send this to AI?</p>
+            <p className="mt-1 text-sm font-bold text-white/70">You&apos;ll be shown wearing this look</p>
+          </div>
+
           {/* Side by side */}
           <div className="flex items-center gap-4">
             <div className="flex-1 aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/60 bg-black/20 shadow-2xl">
@@ -1219,12 +1230,6 @@ export default function TryonPage() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-          </div>
-
-          {/* Message */}
-          <div className="text-center">
-            <p className="text-lg font-black text-white [text-shadow:0_2px_8px_#000]">Send this photo to AI?</p>
-            <p className="mt-1 text-sm font-bold text-white/70">You will be shown wearing this look</p>
           </div>
 
 
