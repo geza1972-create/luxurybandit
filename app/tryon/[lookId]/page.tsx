@@ -1208,9 +1208,9 @@ export default function TryonPage() {
 
           {/* Side by side */}
           <div className="flex items-center gap-4">
-            <div className="flex-1 aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/60 bg-white shadow-2xl">
+            <div className="flex-1 aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/60 bg-black/20 shadow-2xl">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-contain" onError={onGarmentError} />
+              <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-cover object-top" onError={onGarmentError} />
             </div>
             <ArrowRight className="h-8 w-8 text-white drop-shadow-lg shrink-0" />
             <div className="flex-1 aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/30 shadow-2xl">
