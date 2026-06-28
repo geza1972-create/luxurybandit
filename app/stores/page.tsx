@@ -2534,16 +2534,6 @@ function StoresPage() {
         )}
       </main>
 
-      {/* Bottom CTA */}
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-black/8 bg-white/95 px-4 py-3 backdrop-blur">
-        <p className="text-center text-[11px] font-bold text-black/35">
-          Selling vintage &amp; luxury?{" "}
-          <a href="/seller/register" className="font-black text-black underline underline-offset-2">
-            Start selling →
-          </a>
-        </p>
-      </div>
-
       {/* Merkliste panel */}
       {showMerkliste && <MerklistePanel onClose={() => setShowMerkliste(false)} />}
 
