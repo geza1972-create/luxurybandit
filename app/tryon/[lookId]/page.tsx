@@ -168,6 +168,11 @@ export default function TryonPage() {
   const sharedGenIdRef = useRef<string>("");
   // Which tier produced the current result (recorded on the saved generation for history).
   const lastGenKindRef = useRef<"photo" | "video" | "video360">("photo");
+  // The pending generation (held while the anonymous visitor is at the email gate —
+  // we DON'T spend AI credits until they submit their email). + a flag for the fast
+  // "fake" loading shown before the gate (no real API call yet).
+  const pendingGenRef = useRef<{ photoOverride?: string; tier: "photo" | "video" | "video360" } | null>(null);
+  const fakeGenRef = useRef(false);
   // Optional email capture AFTER the result (lead) — for no-login QR/event try-ons.
   const [leadEmail, setLeadEmail] = useState("");
   const [leadSending, setLeadSending] = useState(false);
@@ -295,7 +300,8 @@ export default function TryonPage() {
       timerRef.current = setInterval(() => {
         const sec = (Date.now() - (generationStartRef.current ?? Date.now())) / 1000;
         setElapsedSec(Math.floor(sec));
-        setProgress(Math.min(92, 5 + sec * 3.2));
+        // Fake pre-gate loading fills fast; the real generation fills steadily.
+        setProgress(fakeGenRef.current ? Math.min(96, sec * 38) : Math.min(92, 5 + sec * 3.2));
       }, 500);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -455,13 +461,22 @@ export default function TryonPage() {
   // ── Generate ──
   // photoOverride lets callers (e.g. the resume-after-application flow) pass the
   // photo directly, avoiding a stale `userPhoto` closure right after setUserPhoto.
-  const handleGenerate = async (photoOverride?: string, tier: "photo" | "video" | "video360" = "photo") => {
-    // No login required — anyone (e.g. someone scanning a projected QR) can try a
-    // look on. Abuse is capped by the per-device daily limit on the server; the
-    // look's owner curator/brand pays the credits. We capture an email AFTER the
-    // result (optional), not before, to keep conversion high.
+  const handleGenerate = async (photoOverride?: string, tier: "photo" | "video" | "video360" = "photo", force = false) => {
     if (!look) return;
     lastGenKindRef.current = tier; // remember the tier so the saved generation records it
+    // EMAIL GATE FIRST (Instagram-ad funnel): for an anonymous visitor we show a quick
+    // "creating your look" loading and then ask for their email — and only spend AI
+    // credits AFTER they submit it (in revealWithEmail → handleGenerate(..., force)).
+    // Logged-in users / staff (and the forced post-email call) generate immediately.
+    const anonymous = !authSession && !curatorId && !isStaff;
+    if (anonymous && !gatePassed && !force) {
+      pendingGenRef.current = { photoOverride, tier };
+      fakeGenRef.current = true;
+      setError(null);
+      setStep("generating"); // FAKE loading — no API call, no credits
+      window.setTimeout(() => { fakeGenRef.current = false; setStep("locked"); }, 2800);
+      return;
+    }
     const photo = photoOverride ?? userPhoto;
     setError(null);
     setStep("generating");
@@ -542,10 +557,8 @@ export default function TryonPage() {
       if (!res.ok || !payload.image) throw new Error(payload.error ?? "Generation failed.");
       setResultImage(payload.image);
       setProgress(100);
-      // Anonymous visitor (Instagram-ad funnel) → gate the reveal behind their email
-      // so we capture it + create their account. Logged-in users / staff skip it.
-      const needsGate = !authSession && !curatorId && !isStaff && !gatePassed;
-      setStep(needsGate ? "locked" : "result");
+      // The email gate already happened BEFORE this generation, so just show the result.
+      setStep("result");
       // Post the try-on FIRST (so its generation is persisted), THEN start the video.
       // Running them in parallel raced the shared state save and lost the try-on.
       void (async () => {
@@ -775,15 +788,16 @@ export default function TryonPage() {
   const revealWithEmail = () => {
     const email = gateEmail.trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !look) return;
-    // Reveal INSTANTLY — never make the visitor wait on a network call. The email
-    // capture (lead) + passwordless account (magic link) run in the background.
-    setGatePassed(true);
-    setStep("result");
+    // Capture the email (lead) + create a passwordless account — in the background.
     void fetch("/api/try-this-look", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "lead", email, lookId: look.id, lookName: look.name, leadSource: "tryon", marketingConsent: true, visitorId: accountId || "anon" }),
     }).catch(() => {});
     void sendMagicLink(email).catch(() => {});
+    // NOW run the REAL generation (credits are only spent AFTER the email is captured).
+    setGatePassed(true);
+    const a = pendingGenRef.current;
+    void handleGenerate(a?.photoOverride, a?.tier ?? "photo", true);
   };
 
   // ─── Loading ───
