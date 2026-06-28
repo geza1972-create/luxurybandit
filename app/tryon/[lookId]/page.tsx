@@ -1213,9 +1213,15 @@ export default function TryonPage() {
               <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-cover object-top" onError={onGarmentError} />
             </div>
             <ArrowRight className="h-8 w-8 text-white drop-shadow-lg shrink-0" />
-            <div className="flex-1 aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/30 shadow-2xl">
+            <div className="relative flex-1 aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/30 shadow-2xl">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={userPhoto} alt="Your photo" className="h-full w-full object-cover object-top" />
+              {/* Delete this photo → back to upload to pick another */}
+              <button type="button" aria-label="Remove photo"
+                onClick={() => { setUserPhoto(null); setStep("upload"); }}
+                className="absolute right-1.5 top-1.5 grid h-8 w-8 place-items-center rounded-full bg-black/55 text-white backdrop-blur active:scale-90 transition-transform">
+                <X className="h-4 w-4" />
+              </button>
             </div>
           </div>
 
@@ -1268,10 +1274,6 @@ export default function TryonPage() {
                 {paidSoon === "360" ? "360° video" : "Video"} comes very soon — activates at checkout. Tap <span className="text-white">Photo</span> to try it on now.
               </p>
             )}
-            <button onClick={() => { setUserPhoto(null); fileInputRef.current?.click(); }}
-              className="mt-1 flex h-12 w-full items-center justify-center rounded-2xl bg-white/20 text-sm font-black text-white backdrop-blur active:opacity-70">
-              Upload a different photo
-            </button>
             <button onClick={() => router.push(lookBackPath)}
               className="flex h-12 w-full items-center justify-center rounded-2xl bg-white/10 text-sm font-bold text-white/70 active:opacity-70">
               No, cancel
