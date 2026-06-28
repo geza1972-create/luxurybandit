@@ -1132,8 +1132,8 @@ export default function TryonPage() {
           <div className="rounded-2xl border border-black/10 bg-black/[0.02] p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-sm font-black">Show in the look's feed</p>
-                <p className="text-[12px] font-bold text-black/45">Your photo {videoUrl ? "& video " : ""}appears on this look so others see it worn.</p>
+                <p className="text-sm font-black">Share your look &amp; win ✨</p>
+                <p className="text-[12px] font-bold text-black/45">Post your {videoUrl ? "photo & video " : "photo "}to the community — the most-liked looks win credits.<span className="text-emerald-600">*</span></p>
               </div>
               <button type="button" role="switch" aria-checked={showInFeed}
                 onClick={() => void toggleShowInFeed(!showInFeed)}
@@ -1147,7 +1147,7 @@ export default function TryonPage() {
                   value={shareNameInput}
                   onChange={e => { setShareNameInput(e.target.value); setNameSaved(false); }}
                   onKeyDown={e => { if (e.key === "Enter") void saveName(); }}
-                  placeholder="Your name (shown on the post)"
+                  placeholder="Your name (shown on your post)"
                   className="h-11 flex-1 rounded-xl border border-black/15 px-3 text-sm outline-none focus:border-black"
                 />
                 <button type="button" onClick={() => void saveName()} disabled={nameSaving || !shareNameInput.trim()}
@@ -1161,6 +1161,7 @@ export default function TryonPage() {
                 : showInFeed ? <><Send className="h-3 w-3" /> {sharedToGallery ? "Posted to the feed" : "Will be posted"}</>
                 : "Hidden — only you can see this"}
             </p>
+            <p className="text-[11px] font-bold leading-snug text-black/35"><span className="text-emerald-600">*</span> The more likes your look gets, the more credits you earn — spend them on more try-ons &amp; videos.</p>
           </div>
           )}
 
