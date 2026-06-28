@@ -679,7 +679,7 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
         </a>
 
         {/* Try-on gallery */}
-        <section className="rounded-2xl border border-black/8 bg-white overflow-hidden">
+        <section id="my-tryons" className="scroll-mt-20 rounded-2xl border border-black/8 bg-white overflow-hidden">
           <div className="px-4 py-3 border-b border-black/6 flex items-center justify-between">
             <p className="text-xs font-black uppercase tracking-widest text-black/30">My try-ons</p>
             {tryOns.length > 0 && <span className="text-xs font-black text-black/40">{tryOns.length}</span>}

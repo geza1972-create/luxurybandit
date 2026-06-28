@@ -269,9 +269,11 @@ export default function BottomNav() {
                 <Bookmark className="h-5 w-5 text-black/50 shrink-0" />
                 <span className="text-sm font-black text-black">Saved</span>
               </button>
-              {/* My try ons → public profile */}
-              {slug && (
-                <button type="button" onClick={() => navigate(`/${slug}`)}
+              {/* My try ons → the account dashboard, which lists the user's try-ons
+                  (bound by email, incl. funnel ones) with view/download/delete. The
+                  public profile (/[slug]) only works for curators, so don't route there. */}
+              {signedIn && !curator?.id && (
+                <button type="button" onClick={() => navigate("/user/myaccount#my-tryons")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
                   <ImageIcon className="h-5 w-5 text-black/50 shrink-0" />
                   <span className="text-sm font-black text-black">My try ons</span>
