@@ -1252,7 +1252,7 @@ export default function TryonPage() {
             <button type="button" onClick={() => { setPaidSoon(""); if (effectiveLingerie && isStaff) void startReferenceVideo(false, true); else void handleGenerate(); }}
               className="flex h-14 w-full items-center gap-3 rounded-2xl bg-white px-4 text-black shadow-xl active:scale-95 transition-transform">
               <Sparkles className="h-5 w-5 shrink-0 text-blue-600" />
-              <span className="text-base font-black">Photo</span>
+              <span className="text-base font-black">See me in this look</span>
               <span className={`ml-auto rounded-full px-2.5 py-0.5 text-xs font-black ${effectiveLingerie && !isStaff ? "bg-black text-white" : "bg-emerald-100 text-emerald-700"}`}>{isStaff ? "Free" : effectiveLingerie ? "$2.90" : "Free"}</span>
             </button>
             <button type="button" onClick={() => { if (isStaff) { setPaidSoon(""); if (effectiveLingerie) void startReferenceVideo(false); else void handleGenerate(undefined, "video"); } else setPaidSoon("video"); }}
