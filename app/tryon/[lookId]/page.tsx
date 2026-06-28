@@ -816,6 +816,28 @@ export default function TryonPage() {
     void handleGenerate(a?.photoOverride, a?.tier ?? "photo", true);
   };
 
+  // Cross-sell carousel — other looks to try on next. Reused on the result, confirm
+  // and generating steps (dark=true for the dark steps). items-start keeps every card
+  // top-aligned so none look "shifted".
+  const crossSellRow = (dark: boolean) => moreLooks.length === 0 ? null : (
+    <div className="w-full max-w-md">
+      <p className={`mb-2 text-sm font-black ${dark ? "text-white" : "text-black"}`}>Try these looks too ✨</p>
+      <div className="flex items-start gap-2.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {moreLooks.map(l => (
+          <button key={l.id} type="button" onClick={() => router.push(`/tryon/${l.id}`)}
+            className="w-24 shrink-0 text-left active:scale-95 transition-transform">
+            <div className={`aspect-[3/4] overflow-hidden rounded-xl border ${dark ? "border-white/15 bg-white/5" : "border-black/10 bg-black/[0.03]"}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={l.img} alt={l.name} loading="lazy" className="h-full w-full object-cover object-top" />
+            </div>
+            <p className={`mt-1 line-clamp-1 text-[11px] font-black ${dark ? "text-white" : "text-black"}`}>{l.name}</p>
+            <p className={`text-[10px] font-bold ${dark ? "text-white/50" : "text-black/45"}`}>{l.price || " "}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   // ─── Loading ───
   if (isLoadingLook) {
     return (
@@ -962,6 +984,8 @@ export default function TryonPage() {
           <p className="text-lg font-black text-white">{genMessage}</p>
           <p className="mt-1 text-sm font-bold text-white/60">{elapsedSec}s — please wait</p>
         </div>
+        {/* Cross-sell while they wait */}
+        <div className="mt-2 w-full max-w-md px-5">{crossSellRow(true)}</div>
       </div>
     );
   }
@@ -1201,24 +1225,7 @@ export default function TryonPage() {
           )}
 
           {/* Cross-sell — other looks to try on next */}
-          {moreLooks.length > 0 && (
-            <div>
-              <p className="mb-2 text-sm font-black text-black">Try these looks too ✨</p>
-              <div className="flex gap-2.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {moreLooks.map(l => (
-                  <button key={l.id} type="button" onClick={() => router.push(`/tryon/${l.id}`)}
-                    className="w-28 shrink-0 text-left active:scale-95 transition-transform">
-                    <div className="aspect-[3/4] overflow-hidden rounded-xl border border-black/10 bg-black/[0.03]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={l.img} alt={l.name} loading="lazy" className="h-full w-full object-cover object-top" />
-                    </div>
-                    <p className="mt-1 line-clamp-1 text-[11px] font-black text-black">{l.name}</p>
-                    {l.price && <p className="text-[10px] font-bold text-black/45">{l.price}</p>}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {crossSellRow(false)}
 
           {/* Download — secondary (the name/feed step above is the primary action) */}
           <div className="flex items-center gap-2">
@@ -1275,6 +1282,10 @@ export default function TryonPage() {
             className="absolute top-12 left-4 grid h-10 w-10 place-items-center rounded-full bg-black/30 text-white">
             <ChevronLeft className="h-5 w-5" />
           </button>
+
+          {/* Cross-sell up top, then a spacer pushes the main content to the bottom */}
+          <div className="pt-12">{crossSellRow(true)}</div>
+          <div className="flex-1" />
 
           {/* Title — ABOVE the two images (aspirational, not technical) */}
           <div className="text-center">
