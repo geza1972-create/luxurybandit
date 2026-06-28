@@ -56,36 +56,46 @@ export async function POST(request: Request) {
   const imageUrl = String(body.imageUrl ?? "").trim();
   const safeImg = /^https?:\/\//.test(imageUrl) ? imageUrl : "";
 
+  // Two contexts share this magic-link mailer: the funnel ("your look is ready") and
+  // a plain passwordless sign-in from the login page (no look attached).
+  const isLogin = !lookName && !safeImg;
+  const headerTitle = isLogin ? "Sign in to LuxuryBandit" : "Your look is ready ✨";
+  const bodyHeading = isLogin ? "Here's your sign-in link." : `Here's you${lookName ? ` in <strong>${lookName}</strong>` : " in this look"}.`;
+  const bodyText = isLogin
+    ? "Tap below to sign in to your LuxuryBandit account — view, download or delete your try-ons, and try on more looks. No password needed."
+    : "We saved it to your free LuxuryBandit account. Tap below to sign in — you can view, download or delete your try-ons anytime, and try on more looks.";
+  const buttonText = isLogin ? "Sign in →" : "Sign in &amp; see my look →";
+  const footerNote = isLogin ? "You requested a sign-in link." : "You're receiving this because you created a try-on.";
+  const subject = isLogin ? "Sign in to LuxuryBandit" : "Your look is ready ✨ — sign in to see it";
+
   const html = `<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="color-scheme" content="light"/><meta name="supported-color-schemes" content="light"/><title>Your look is ready</title><style>:root{color-scheme:light;supported-color-schemes:light}</style></head>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="color-scheme" content="light"/><meta name="supported-color-schemes" content="light"/><title>${headerTitle}</title><style>:root{color-scheme:light;supported-color-schemes:light}</style></head>
 <body style="margin:0;padding:0;background:#f5f4f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f4f0;padding:40px 16px;"><tr><td align="center">
     <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
       <tr><td style="background:#000;padding:28px 40px;text-align:center;">
         <p style="margin:0;font-size:11px;font-weight:900;letter-spacing:0.2em;color:#fff;text-transform:uppercase;">LuxuryBandit</p>
-        <p style="margin:6px 0 0;font-size:22px;font-weight:900;color:#fff;">Your look is ready ✨</p>
+        <p style="margin:6px 0 0;font-size:22px;font-weight:900;color:#fff;">${headerTitle}</p>
       </td></tr>
       ${safeImg ? `<tr><td style="padding:0;"><img src="${safeImg}" alt="Your try-on" width="520" style="display:block;width:100%;height:auto;"/></td></tr>` : ""}
       <tr><td style="padding:32px 40px;">
-        <p style="margin:0 0 16px;font-size:16px;font-weight:700;color:#111;">Here's you${lookName ? ` in <strong>${lookName}</strong>` : " in this look"}.</p>
-        <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#555;">
-          We saved it to your free LuxuryBandit account. Tap below to sign in — you can view, download or delete your try-ons anytime, and try on more looks.
-        </p>
+        <p style="margin:0 0 16px;font-size:16px;font-weight:700;color:#111;">${bodyHeading}</p>
+        <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#555;">${bodyText}</p>
         <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
           <a href="${actionLink}" style="display:inline-block;background:#000;color:#fff;text-decoration:none;font-size:13px;font-weight:900;letter-spacing:0.05em;padding:14px 36px;border-radius:100px;">
-            Sign in &amp; see my look →
+            ${buttonText}
           </a>
         </td></tr></table>
         <p style="margin:22px 0 0;font-size:12px;line-height:1.6;color:#999;text-align:center;">This link signs you in — don't share it. It expires after a short while; just request a new one if it lapses.</p>
       </td></tr>
       <tr><td style="padding:20px 40px 32px;border-top:1px solid #f0f0f0;text-align:center;">
-        <p style="margin:0;font-size:11px;color:#bbb;line-height:1.6;">LuxuryBandit · <a href="https://luxurybandit.com" style="color:#bbb;">luxurybandit.com</a><br/>You're receiving this because you created a try-on.</p>
+        <p style="margin:0;font-size:11px;color:#bbb;line-height:1.6;">LuxuryBandit · <a href="https://luxurybandit.com" style="color:#bbb;">luxurybandit.com</a><br/>${footerNote}</p>
       </td></tr>
     </table>
   </td></tr></table>
 </body></html>`;
 
-  const sent = await sendEmail({ to: email, subject: "Your look is ready ✨ — sign in to see it", html });
+  const sent = await sendEmail({ to: email, subject, html });
   if (!sent.ok) return NextResponse.json({ error: sent.error ?? "Failed to send." }, { status: 500 });
   return NextResponse.json({ ok: true, sent: true, via: sent.via });
 }
