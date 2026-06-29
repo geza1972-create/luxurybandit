@@ -363,6 +363,9 @@ export default function AdminPage() {
   }, [looks]);
 
   const curatorById = useMemo(() => new Map(curators.map(c => [c.id, c])), [curators]);
+  // Each look's effective category (explicit or auto-inferred) — used to filter posts
+  // (try-ons) by the category of the look they were generated on.
+  const lookCatById = useMemo(() => new Map(looks.map(l => [l.id, l.category ?? categorizeLook(l)])), [looks]);
 
   // Comments: originals (no parentId) + which are already answered (have a reply).
   const replyByParent = useMemo(() => {
@@ -466,9 +469,10 @@ export default function AdminPage() {
     return posts.filter(p => {
       if (q && !`${p.customerName} ${p.lookName}`.toLowerCase().includes(q)) return false;
       if (postDateFrom && String(p.createdAt).slice(0, 10) < postDateFrom) return false;
+      if (lookCatFilter && lookCatById.get(p.lookId) !== lookCatFilter) return false;
       return true;
     });
-  }, [posts, q, postDateFrom]);
+  }, [posts, q, postDateFrom, lookCatFilter, lookCatById]);
 
   const liveLooks = looks.filter(l => l.published !== false).length;
   const activeCurators = curators.filter(c => c.status !== "deactivated").length;
@@ -598,7 +602,26 @@ export default function AdminPage() {
         {/* ── Posts (all generations, incl. hidden) ── */}
         {tab === "posts" && (
           <div className="mt-3 pb-16">
-            <p className="mb-3 text-[11px] font-bold text-ink/40">{shownPosts.length} posts{(query || postDateFrom) ? " (filtered)" : ""}. Hidden ones are dimmed — tap Show to bring one back into the feeds.</p>
+            {/* Category filter chips — by the category of the look each post was made on. */}
+            {(() => {
+              const counts = new Map<LookCategory, number>();
+              for (const p of posts) { const c = lookCatById.get(p.lookId); if (c) counts.set(c, (counts.get(c) ?? 0) + 1); }
+              return (
+                <div className="mb-3 flex flex-wrap gap-1.5">
+                  <button type="button" onClick={() => setLookCatFilter(null)}
+                    className={`rounded-full px-3 py-1 text-[11px] font-black transition ${lookCatFilter === null ? "bg-ink text-white" : "bg-black/5 text-ink/55 hover:bg-black/10"}`}>
+                    Alle <span className="opacity-60">{posts.length}</span>
+                  </button>
+                  {LOOK_CATEGORIES.map(c => (
+                    <button key={c.slug} type="button" onClick={() => setLookCatFilter(c.slug)}
+                      className={`rounded-full px-3 py-1 text-[11px] font-black transition ${lookCatFilter === c.slug ? "bg-ink text-white" : "bg-black/5 text-ink/55 hover:bg-black/10"}`}>
+                      {c.slug === "boudoir" ? "🔒 " : ""}{c.label} <span className="opacity-60">{counts.get(c.slug) ?? 0}</span>
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
+            <p className="mb-3 text-[11px] font-bold text-ink/40">{shownPosts.length} posts{(query || postDateFrom || lookCatFilter) ? " (filtered)" : ""}. Hidden ones are dimmed — tap Show to bring one back into the feeds.</p>
             {!postsLoaded ? (
               <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-ink/30" /></div>
             ) : shownPosts.length === 0 ? (
