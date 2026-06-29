@@ -205,7 +205,7 @@ function storeNameFromUrl(url: string): string {
   } catch { return "Shop"; }
 }
 
-async function callPublish(draft: Draft, name: string, price: string, brandQueries?: string[], guaranteedAlt?: any, modelImage?: string, description?: string): Promise<{ altCount: number }> {
+async function callPublish(draft: Draft, name: string, price: string, brandQueries?: string[], guaranteedAlt?: any, modelImage?: string, description?: string, lingerie?: boolean): Promise<{ altCount: number }> {
   // An AI-generated look has no source shop URL. Its shop "Vorschläge" come from TWO
   // sources merged: (1) brand-aware text search so real on-brand pieces (e.g. Tom
   // Ford) show up, then (2) a reverse-image search for visually similar dupes across
@@ -258,6 +258,7 @@ async function callPublish(draft: Draft, name: string, price: string, brandQueri
       alternatives,
       productType: "real",
       aiCreated: isAiLook,    // AI Fashion creation vs curated web find — drives the badge
+      lingerie: lingerie === true ? true : undefined, // creator-set; forces private + paid tier
       published: true,
       image: main,            // real product photo = main display (no AI hero)
       frontImage: main,
@@ -406,6 +407,7 @@ function CropModal({ file, onCancel, onApply }: { file: File; onCancel: () => vo
 function DraftCard({ draft, onRemove }: { draft: Draft; onRemove: () => void }) {
   const [name, setName] = useState(draft.name);
   const [price, setPrice] = useState(draft.price);
+  const [lingerie, setLingerie] = useState(false);
   const [status, setStatus] = useState<"idle" | "publishing" | "done" | "error">("idle");
   const [error, setError] = useState("");
   const [altCount, setAltCount] = useState(0);
@@ -414,7 +416,7 @@ function DraftCard({ draft, onRemove }: { draft: Draft; onRemove: () => void }) 
     setStatus("publishing");
     setError("");
     try {
-      const { altCount } = await callPublish(draft, name.trim() || "Trend Look", price.trim());
+      const { altCount } = await callPublish(draft, name.trim() || "Trend Look", price.trim(), undefined, undefined, undefined, undefined, lingerie);
       setAltCount(altCount);
       setStatus("done");
     } catch (e) {
@@ -444,6 +446,12 @@ function DraftCard({ draft, onRemove }: { draft: Draft; onRemove: () => void }) 
           className="inline-flex w-fit items-center gap-1.5 text-xs font-black text-cobalt hover:underline">
           <ExternalLink className="h-3.5 w-3.5" /> Quelle / Affiliate-Link
         </a>
+        {/* Creator decides — Lingerie/Swimwear forces try-ons private (never public) + paid tier. */}
+        <label className="flex cursor-pointer items-center gap-2 rounded-md border border-black/10 bg-panel px-3 py-2.5">
+          <input type="checkbox" checked={lingerie} onChange={(e) => setLingerie(e.target.checked)} disabled={status === "done"}
+            className="h-4 w-4 cursor-pointer accent-black" />
+          <span className="text-sm font-bold text-ink">🔒 Lingerie / Swimwear <span className="font-medium text-ink/50">— try-ons stay private</span></span>
+        </label>
 
         {status === "done" ? (
           <div className="grid gap-1.5 rounded-md border border-green-200 bg-green-50 px-3 py-2.5">

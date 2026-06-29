@@ -1197,6 +1197,9 @@ export async function POST(request: Request) {
         hashtags: hashtags || undefined,
         productType,
         aiCreated: aiCreated || undefined,
+        // Creator-set Lingerie/Swimwear flag (explicit; overrides auto-detection and
+        // forces the look's try-ons private + paid tier). Only stored when true.
+        lingerie: payload.lingerie === true ? true : undefined,
         // The look image is already a model wearing the piece → the video can
         // animate it directly (no second try-on in generate-look-video).
         modelReady: modelReady || undefined,
