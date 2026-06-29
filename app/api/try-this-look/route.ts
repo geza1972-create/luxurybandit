@@ -155,6 +155,9 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     locationDupes: Array.isArray((look as any).locationDupes)
       ? (look as any).locationDupes.map((a: any) => ({ ...a, link: wrap(a.link) }))
       : undefined,
+    // Reel source images (admin-only) — the clothes + location used for the searches.
+    clothesImageUrl: (look as any).clothesImageUrl || undefined,
+    locationImageUrl: (look as any).locationImageUrl || undefined,
     curatorId: (look as any).curatorId,
     curatorName: curatorName || undefined,
     curatorPhotoUrl: curator?.photoUrl || undefined,
@@ -1446,6 +1449,13 @@ export async function POST(request: Request) {
       const garmentBackImagePath = payload.garmentBackImage?.startsWith("data:image/")
         ? await uploadTryThisLookImage("looks", payload.garmentBackImage)
         : undefined;
+      // Reel source images (clothes + location) — stored so they can be edited & re-searched.
+      const clothesImagePath = (payload as any).clothesImage?.startsWith("data:image/")
+        ? await uploadTryThisLookImage("uploads", (payload as any).clothesImage)
+        : undefined;
+      const locationImagePath = (payload as any).locationImage?.startsWith("data:image/")
+        ? await uploadTryThisLookImage("uploads", (payload as any).locationImage)
+        : undefined;
       const galleryImagePaths = Array.isArray(payload.galleryImages) && payload.galleryImages.length
         ? await Promise.all(
             payload.galleryImages
@@ -1564,6 +1574,8 @@ export async function POST(request: Request) {
           hashtags: hashtags || undefined,
           productType,
           ...(backImagePath ? { backImagePath } : {}),
+          ...(clothesImagePath ? { clothesImagePath, clothesImageUrl: undefined } : {}),
+          ...(locationImagePath ? { locationImagePath, locationImageUrl: undefined } : {}),
           ...(garmentFrontImagePath ? { garmentFrontImagePath } : {}),
           ...(garmentBackImagePath ? { garmentBackImagePath } : {}),
           ...(payload.keepGalleryIndexes || keepGalleryImageUrls !== null || keepGalleryPaths !== null || galleryImagePaths ? { galleryImagePaths: nextGalleryImagePaths } : {})

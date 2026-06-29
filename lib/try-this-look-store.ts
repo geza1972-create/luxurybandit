@@ -460,6 +460,11 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
     if (gfPath) allPaths.push(gfPath);
     const gbPath = (look as any).garmentBackImagePath ?? extractPathFromUrl((look as any).garmentBackImageUrl);
     if (gbPath) allPaths.push(gbPath);
+    // Reel source images (clothes + location) — admin-only, used for the dupe searches.
+    const clPath = (look as any).clothesImagePath ?? extractPathFromUrl((look as any).clothesImageUrl);
+    if (clPath) allPaths.push(clPath);
+    const locPath = (look as any).locationImagePath ?? extractPathFromUrl((look as any).locationImageUrl);
+    if (locPath) allPaths.push(locPath);
     for (const p of look.galleryImagePaths ?? []) if (p) allPaths.push(p);
   }
   for (const gen of state.generations) {
@@ -492,6 +497,8 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
       (look as any).garmentBackImagePath ?? extractPathFromUrl((look as any).garmentBackImageUrl),
       (look as any).garmentBackImageUrl
     ),
+    clothesImageUrl: s((look as any).clothesImagePath ?? extractPathFromUrl((look as any).clothesImageUrl), (look as any).clothesImageUrl),
+    locationImageUrl: s((look as any).locationImagePath ?? extractPathFromUrl((look as any).locationImageUrl), (look as any).locationImageUrl),
     galleryImageUrls: look.galleryImagePaths?.length
       ? look.galleryImagePaths.map(p => signed.get(p) ?? "").filter(Boolean)
       : (look.galleryImageUrls ?? []).map(u => {

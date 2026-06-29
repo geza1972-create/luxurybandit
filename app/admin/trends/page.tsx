@@ -676,8 +676,28 @@ export default function AdminTrends() {
     try { localStorage.setItem("lb_ai_generations", JSON.stringify(aiGenerations)); }
     catch { /* quota exceeded — keep in-memory only */ }
   }, [aiGenerations]);
-  const [myLooks, setMyLooks] = useState<{ id: string; name: string; imageUrl: string; published: boolean; altCount: number; locationCount?: number; note?: string; commentsOff?: boolean; videoUrl?: string; brand?: string; category?: string; description?: string }[]>([]);
+  type SerpItem = { title?: string; link: string; source?: string; thumbnail: string; price?: string; priceValue?: number; currency?: string };
+  const [myLooks, setMyLooks] = useState<{ id: string; name: string; imageUrl: string; published: boolean; altCount: number; locationCount?: number; alternatives?: SerpItem[]; locationDupes?: SerpItem[]; clothesImageUrl?: string; locationImageUrl?: string; note?: string; commentsOff?: boolean; videoUrl?: string; brand?: string; category?: string; description?: string }[]>([]);
   const [editingLookId, setEditingLookId] = useState<string | null>(null); // open the edit sheet for one look
+  // Edit-sheet curation state (one look at a time): re-upload source images, run the
+  // SerpApi search, and tick which results show in the reel's "Bandit the look".
+  const [editClothesFile, setEditClothesFile] = useState<File | null>(null);
+  const [editLocationFile, setEditLocationFile] = useState<File | null>(null);
+  const [editLocationQuery, setEditLocationQuery] = useState("");
+  const [clothesCands, setClothesCands] = useState<SerpItem[]>([]);
+  const [clothesSel, setClothesSel] = useState<Set<string>>(new Set());
+  const [clothesSearching, setClothesSearching] = useState(false);
+  const [locCands, setLocCands] = useState<SerpItem[]>([]);
+  const [locSel, setLocSel] = useState<Set<string>>(new Set());
+  const [locSearching, setLocSearching] = useState(false);
+  const [editSaving, setEditSaving] = useState("");
+  const openEdit = (l: { id: string; alternatives?: SerpItem[]; locationDupes?: SerpItem[] }) => {
+    setEditingLookId(l.id);
+    setEditClothesFile(null); setEditLocationFile(null); setEditLocationQuery("");
+    setClothesCands(l.alternatives ?? []); setClothesSel(new Set((l.alternatives ?? []).map(a => a.link)));
+    setLocCands(l.locationDupes ?? []); setLocSel(new Set((l.locationDupes ?? []).map(a => a.link)));
+  };
+  const dedupeByLink = (items: SerpItem[]) => { const seen = new Set<string>(); return items.filter(i => i.link && i.thumbnail && (seen.has(i.link) ? false : seen.add(i.link))); };
   const [uploadingVideo, setUploadingVideo] = useState<string>("");
   const toggleLookComments = async (lookId: string, commentsOff: boolean) => {
     setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, commentsOff } : l));
@@ -778,12 +798,14 @@ export default function AdminTrends() {
         if (reelLocationQuery.trim()) { try { locationDupes = await callPlaceSearch(reelLocationQuery); } catch { /**/ } }
         if (!locationDupes.length && reelLocationFile) { try { locationDupes = await callDupes("", await fileToDataUrl(reelLocationFile)); } catch { /**/ } }
       }
-      if (alternatives.length || locationDupes.length) {
-        setReelStep("Treffer speichern…");
+      if (alternatives.length || locationDupes.length || reelClothesFile || reelLocationFile) {
+        setReelStep("Treffer & Bilder speichern…");
         await fetch("/api/try-this-look", { method: "POST", headers: studioHeaders(), body: JSON.stringify({
           action: "update-look", id: lookId,
           ...(alternatives.length ? { alternatives } : {}),
           ...(locationDupes.length ? { locationDupes } : {}),
+          ...(reelClothesFile ? { clothesImage: await fileToDataUrl(reelClothesFile) } : {}),
+          ...(reelLocationFile ? { locationImage: await fileToDataUrl(reelLocationFile) } : {}),
         }) }).catch(() => {});
       }
       const locNote = triedLocation && !locationDupes.length ? " · keine Orte gefunden (Suchbegriff eingeben?)" : locationDupes.length ? ` · ${locationDupes.length} Orte` : "";
@@ -848,6 +870,39 @@ export default function AdminTrends() {
   const setMyLookCategory = async (lookId: string, category: LookCategory) => {
     setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, category } : l));
     await fetch("/api/try-this-look", { method: "POST", headers: studioHeaders(), body: JSON.stringify({ action: "update-look", id: lookId, category }) }).catch(() => {});
+  };
+  // Run the SerpApi search for the look's clothes (or location) and add the hits as
+  // tickable candidates (newly found ones are pre-checked).
+  const runClothesSearch = async (l: { clothesImageUrl?: string }) => {
+    setClothesSearching(true);
+    try {
+      const found = editClothesFile ? await callDupes("", await fileToDataUrl(editClothesFile)) : l.clothesImageUrl ? await callDupes(l.clothesImageUrl) : [];
+      setClothesCands(prev => dedupeByLink([...prev, ...found]));
+      setClothesSel(prev => { const n = new Set(prev); found.forEach((f: SerpItem) => n.add(f.link)); return n; });
+    } catch { /**/ }
+    setClothesSearching(false);
+  };
+  const runLocationSearch = async (l: { locationImageUrl?: string }) => {
+    setLocSearching(true);
+    try {
+      const found = editLocationQuery.trim() ? await callPlaceSearch(editLocationQuery) : editLocationFile ? await callDupes("", await fileToDataUrl(editLocationFile)) : l.locationImageUrl ? await callDupes(l.locationImageUrl) : [];
+      setLocCands(prev => dedupeByLink([...prev, ...found]));
+      setLocSel(prev => { const n = new Set(prev); found.forEach((f: SerpItem) => n.add(f.link)); return n; });
+    } catch { /**/ }
+    setLocSearching(false);
+  };
+  // Save the edit-sheet curation: the ticked clothes → alternatives, ticked places →
+  // locationDupes, plus any replaced source images.
+  const saveEditLists = async (lookId: string) => {
+    setEditSaving(lookId);
+    const alternatives = clothesCands.filter(c => clothesSel.has(c.link)).slice(0, 16);
+    const locationDupes = locCands.filter(c => locSel.has(c.link)).slice(0, 12);
+    const body: any = { action: "update-look", id: lookId, alternatives, locationDupes };
+    if (editClothesFile) { try { body.clothesImage = await fileToDataUrl(editClothesFile); } catch { /**/ } }
+    if (editLocationFile) { try { body.locationImage = await fileToDataUrl(editLocationFile); } catch { /**/ } }
+    await fetch("/api/try-this-look", { method: "POST", headers: studioHeaders(), body: JSON.stringify(body) }).catch(() => {});
+    setMyLooks(ls => ls.map(l => l.id === lookId ? { ...l, alternatives, locationDupes, altCount: alternatives.length, locationCount: locationDupes.length } : l));
+    setEditSaving("");
   };
 
   // Use an image already on the clipboard (e.g. a screenshot) as the garment reference.
@@ -1867,7 +1922,7 @@ export default function AdminTrends() {
                         <button type="button" onClick={() => void moveLook(l.id, 1)} disabled={idx === myLooks.length - 1} aria-label="Move down"
                           className="grid h-3.5 w-7 place-items-center rounded-b-md bg-black/5 text-ink/50 disabled:opacity-25 active:bg-black/10"><ChevronDown className="h-3.5 w-3.5" /></button>
                       </div>
-                      <button type="button" onClick={() => setEditingLookId(l.id)}
+                      <button type="button" onClick={() => openEdit(l)}
                         className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-black py-1.5 text-[11px] font-black text-white transition active:scale-95">
                         <Pencil className="h-3 w-3" /> Bearbeiten
                       </button>
@@ -1943,10 +1998,74 @@ export default function AdminTrends() {
                               {LOOK_CATEGORIES.map(c => <option key={c.slug} value={c.slug}>{c.slug === "boudoir" ? "🔒 " : ""}{c.label}</option>)}
                             </select>
                           </div>
-                          {/* Shop-dupes / escapes counts so you know the funnel is filled. */}
-                          {(l.altCount > 0 || (l.locationCount ?? 0) > 0) && (
-                            <p className="mt-1.5 text-[10px] font-bold text-ink/40">{l.altCount} ähnliche Looks{(l.locationCount ?? 0) > 0 ? ` · ${l.locationCount} Orte` : ""}</p>
-                          )}
+                          {/* ── Klamotten: source image + search + tick which dupes show ── */}
+                          <div className="mt-3 rounded-lg border border-black/10 p-2.5">
+                            <p className="text-[11px] font-black uppercase tracking-wide text-ink/45">Klamotten · ähnliche Looks</p>
+                            <div className="mt-1.5 flex items-center gap-2">
+                              {(editClothesFile || l.clothesImageUrl) ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={editClothesFile ? URL.createObjectURL(editClothesFile) : l.clothesImageUrl} alt="" className="h-12 w-12 rounded-md object-cover" />
+                              ) : <div className="grid h-12 w-12 place-items-center rounded-md bg-black/5 text-[9px] font-bold text-ink/30">kein Bild</div>}
+                              <label className="cursor-pointer rounded-md border border-black/15 px-2 py-1 text-[11px] font-black text-ink/60 hover:border-cobalt">
+                                Bild ändern
+                                <input type="file" accept="image/*" className="sr-only" onChange={e => { const f = e.target.files?.[0]; if (f) setEditClothesFile(f); }} />
+                              </label>
+                              <button type="button" onClick={() => void runClothesSearch(l)} disabled={clothesSearching}
+                                className="ml-auto rounded-md bg-cobalt px-2.5 py-1 text-[11px] font-black text-white disabled:opacity-50">
+                                {clothesSearching ? <Loader2 className="h-3 w-3 animate-spin" /> : "Suchen"}
+                              </button>
+                            </div>
+                            {clothesCands.length > 0 && (
+                              <div className="mt-2 grid grid-cols-3 gap-1.5">
+                                {clothesCands.map((c) => (
+                                  <button key={c.link} type="button" onClick={() => setClothesSel(s => { const n = new Set(s); n.has(c.link) ? n.delete(c.link) : n.add(c.link); return n; })}
+                                    className={`relative overflow-hidden rounded-md border-2 ${clothesSel.has(c.link) ? "border-cobalt" : "border-transparent opacity-60"}`}>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={c.thumbnail} alt="" className="aspect-square w-full object-cover" />
+                                    {clothesSel.has(c.link) && <span className="absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-full bg-cobalt text-[9px] text-white">✓</span>}
+                                    {c.price && <span className="absolute bottom-0 inset-x-0 bg-black/60 px-1 text-[8px] font-black text-white">{c.price}</span>}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {/* ── Location: keyword/image + search + tick which places show ── */}
+                          <div className="mt-2 rounded-lg border border-black/10 p-2.5">
+                            <p className="text-[11px] font-black uppercase tracking-wide text-ink/45">Location · ähnliche Orte</p>
+                            <div className="mt-1.5 flex items-center gap-2">
+                              {(editLocationFile || l.locationImageUrl) ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={editLocationFile ? URL.createObjectURL(editLocationFile) : l.locationImageUrl} alt="" className="h-12 w-12 rounded-md object-cover" />
+                              ) : <div className="grid h-12 w-12 place-items-center rounded-md bg-black/5 text-[9px] font-bold text-ink/30">kein Bild</div>}
+                              <label className="cursor-pointer rounded-md border border-black/15 px-2 py-1 text-[11px] font-black text-ink/60 hover:border-cobalt">
+                                Bild ändern
+                                <input type="file" accept="image/*" className="sr-only" onChange={e => { const f = e.target.files?.[0]; if (f) setEditLocationFile(f); }} />
+                              </label>
+                              <button type="button" onClick={() => void runLocationSearch(l)} disabled={locSearching}
+                                className="ml-auto rounded-md bg-cobalt px-2.5 py-1 text-[11px] font-black text-white disabled:opacity-50">
+                                {locSearching ? <Loader2 className="h-3 w-3 animate-spin" /> : "Suchen"}
+                              </button>
+                            </div>
+                            <input value={editLocationQuery} onChange={e => setEditLocationQuery(e.target.value)}
+                              placeholder="Suchbegriff, z. B. „Ibiza Klippen-Villa Pool“"
+                              className="mt-1.5 h-8 w-full rounded-md border border-black/10 bg-panel px-2 text-[11px] font-semibold text-ink outline-none focus:border-cobalt" />
+                            {locCands.length > 0 && (
+                              <div className="mt-2 grid grid-cols-3 gap-1.5">
+                                {locCands.map((c) => (
+                                  <button key={c.link} type="button" onClick={() => setLocSel(s => { const n = new Set(s); n.has(c.link) ? n.delete(c.link) : n.add(c.link); return n; })}
+                                    className={`relative overflow-hidden rounded-md border-2 ${locSel.has(c.link) ? "border-cobalt" : "border-transparent opacity-60"}`}>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={c.thumbnail} alt="" className="aspect-square w-full object-cover" />
+                                    {locSel.has(c.link) && <span className="absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-full bg-cobalt text-[9px] text-white">✓</span>}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <button type="button" onClick={() => void saveEditLists(l.id)} disabled={editSaving === l.id}
+                            className="mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-md bg-emerald-600 text-[12px] font-black text-white disabled:opacity-50">
+                            {editSaving === l.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : `Auswahl speichern (${clothesSel.size} Looks · ${locSel.size} Orte)`}
+                          </button>
                           {/* Comments on/off for this look */}
                           <button type="button" onClick={() => void toggleLookComments(l.id, !l.commentsOff)}
                             className="mt-1.5 flex w-full items-center justify-between rounded-md bg-panel px-2 py-1.5 text-[11px] font-black text-ink/60">
