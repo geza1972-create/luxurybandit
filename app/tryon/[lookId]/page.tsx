@@ -1393,20 +1393,19 @@ export default function TryonPage() {
           <div className="absolute inset-0 bg-black/50" />
         </div>
 
-        {/* Content */}
-        <div className="relative z-10 flex flex-col min-h-screen px-5 pt-14 gap-6 justify-end"
-          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 5rem)" }}>
+        {/* Content — flows from the top and scrolls if taller than the screen, so the
+            CTA + consent line below the images are never cut off. */}
+        <div className="relative z-10 flex flex-col min-h-screen px-5 pt-14 gap-6"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 2rem)" }}>
           {/* Back */}
           <button onClick={() => setStep("upload")}
             className="absolute top-12 left-4 grid h-10 w-10 place-items-center rounded-full bg-black/30 text-white">
             <ChevronLeft className="h-5 w-5" />
           </button>
 
-          {/* Cross-sell up top, then a spacer pushes the main content to the bottom.
-              pt-20 clears the absolute Back button (top-12 + h-10 ≈ 88px) so it never
-              sits on top of the "Try these looks too" title. */}
+          {/* Cross-sell up top. pt-20 clears the absolute Back button (top-12 + h-10 ≈
+              88px) so it never sits on top of the "Try these looks too" title. */}
           <div className="pt-20">{crossSellRow(true)}</div>
-          <div className="flex-1" />
 
           {/* Title — ABOVE the two images (aspirational, not technical) */}
           <div className="text-center">
