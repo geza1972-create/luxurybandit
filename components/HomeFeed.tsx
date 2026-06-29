@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import TryOnQR from "@/components/TryOnQR";
+import { getStoredAuthSession } from "@/lib/supabase-auth-client";
+import { isAdminEmail } from "@/lib/is-admin-email";
 
 export type FeedLook = {
   id: string;
@@ -76,6 +78,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [inView, setInView] = useState(false);
   const [vidFailed, setVidFailed] = useState(false); // autoplay blocked → show a Play button
   const [infoOpen, setInfoOpen] = useState(false);
+  // Who-tried-this-on is a business secret → only the admin sees the named list.
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    try {
+      const pin = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "";
+      const email = getStoredAuthSession()?.user?.email?.toLowerCase();
+      setIsAdmin(!!pin || (!!email && (isAdminEmail(email) || email === "support@luxurybandit.com")));
+    } catch { /**/ }
+  }, []);
   const [infoData, setInfoData] = useState<Record<string, any> | null>(null);
   const [infoLoading, setInfoLoading] = useState(false);
   const openLookInfo = async () => {
@@ -336,13 +347,23 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             ))}
           </div>
         )}
-        {/* Who recreated this look — the community try-ons, as a list. Replaces the old
-            "Shop now" buy card (shopping still happens via "Bandit the look!" below). */}
-        {single && (
+        <p ref={captionRef} className={`text-[13px] leading-snug text-black ${expanded ? "" : "line-clamp-2"}`}>
+          <span className="text-black/45">{look.aiCreated ? "Created by " : "Curated by "}</span>
+          <button type="button" onClick={() => look.curatorId && router.push(`/curator/${look.curatorId}`)} className="font-black">{look.curatorName || "LuxuryBandit"}</button>
+          {caption ? <> — {caption}</> : null}
+        </p>
+        {clamped && (
+          <button type="button" onClick={() => setExpanded(e => !e)} className="mt-0.5 text-[12px] font-bold text-black/40">
+            {expanded ? "less" : "more"}
+          </button>
+        )}
+        {/* Who recreated this look — ADMIN ONLY (business secret). Sits under the
+            caption. Replaces the old "Shop now" card; shopping is via "Bandit the look!". */}
+        {single && isAdmin && (
           community.length > 0 ? (
-            <div className="mb-2 rounded-2xl border border-black/10 bg-black/[0.02] p-2.5">
+            <div className="mt-2 rounded-2xl border border-black/10 bg-black/[0.02] p-2.5">
               <p className="mb-2 px-0.5 text-[11px] font-black uppercase tracking-wide text-black/40">
-                {community.length} {community.length === 1 ? "person tried this on" : "people tried this on"}
+                Admin · {community.length} {community.length === 1 ? "person tried this on" : "people tried this on"}
               </p>
               <div className="flex flex-col gap-1.5">
                 {community.slice(0, 12).map((c, i) => {
@@ -367,20 +388,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               </div>
             </div>
           ) : (
-            <p className="mb-2 px-0.5 text-[12px] font-bold text-black/40">Be the first to try this look on you ✨</p>
+            <p className="mt-2 px-0.5 text-[12px] font-bold text-black/40">Admin · no try-ons yet</p>
           )
         )}
-        <p ref={captionRef} className={`text-[13px] leading-snug text-black ${expanded ? "" : "line-clamp-2"}`}>
-          <span className="text-black/45">{look.aiCreated ? "Created by " : "Curated by "}</span>
-          <button type="button" onClick={() => look.curatorId && router.push(`/curator/${look.curatorId}`)} className="font-black">{look.curatorName || "LuxuryBandit"}</button>
-          {caption ? <> — {caption}</> : null}
-        </p>
-        {clamped && (
-          <button type="button" onClick={() => setExpanded(e => !e)} className="mt-0.5 text-[12px] font-bold text-black/40">
-            {expanded ? "less" : "more"}
-          </button>
-        )}
-        <p className="mt-1 truncate text-[12px] font-bold text-black/45">{look.name}</p>
         {/* Social proof — how many people tried this look on (tap → their try-ons) */}
         {tryOnPeople > 0 && firstTryOnIdx >= 0 && (
           <button type="button" onClick={() => scrollToSlide(firstTryOnIdx)}
