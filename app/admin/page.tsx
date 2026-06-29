@@ -725,12 +725,15 @@ export default function AdminPage() {
               return (
                 <div key={l.id} className={`flex min-w-0 gap-3 rounded-xl border bg-white p-2.5 ${live ? "border-black/10" : "border-black/10 opacity-70"}`}>
                   <a href={`/look/${l.id}`} target="_blank" rel="noreferrer" title="View live in the frontend"
-                    className="group relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-black/5 active:scale-95 transition">
+                    className="group relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-black/[0.04] to-black/[0.10] active:scale-95 transition">
+                    {/* Soft branded placeholder behind — shown if there's no media or the
+                        signed URL has expired (media hides itself on error, never a broken icon). */}
+                    <span className="pointer-events-none absolute inset-0 grid place-items-center text-[11px] font-black tracking-wide text-ink/25">LB</span>
                     {img
-                      ? <img src={img} alt="" className="h-full w-full object-cover object-top" />
+                      ? <img src={img} alt="" onError={e => { e.currentTarget.style.display = "none"; }} className="relative h-full w-full object-cover object-top" />
                       : l.videoUrl
-                        ? <video src={l.videoUrl} muted playsInline preload="metadata" className="h-full w-full object-cover object-top" />
-                        : <div className="grid h-full w-full place-items-center text-[10px] font-black text-ink/30">LB</div>}
+                        ? <video src={l.videoUrl} muted playsInline preload="metadata" onError={e => { e.currentTarget.style.display = "none"; }} className="relative h-full w-full object-cover object-top" />
+                        : null}
                     {l.videoUrl
                       ? <PlayCircle className="absolute bottom-1 right-1 h-4 w-4 text-white drop-shadow" />
                       : <ExternalLink className="absolute bottom-1 right-1 h-4 w-4 text-white opacity-0 drop-shadow transition group-hover:opacity-100" />}
