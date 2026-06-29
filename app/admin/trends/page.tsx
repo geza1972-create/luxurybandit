@@ -1440,6 +1440,7 @@ export default function AdminTrends() {
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={c.thumbnail} alt="" className="aspect-square w-full object-cover" />
                         {reelLocSel.has(c.link) && <span className="absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-full bg-cobalt text-[9px] text-white">✓</span>}
+                        {c.price && <span className="absolute bottom-0 inset-x-0 bg-black/60 px-0.5 text-[7px] font-black text-white">{c.price}</span>}
                       </button>
                     ))}
                   </div>
@@ -2147,6 +2148,7 @@ export default function AdminTrends() {
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img src={c.thumbnail} alt="" className="aspect-square w-full object-cover" />
                                     {locSel.has(c.link) && <span className="absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-full bg-cobalt text-[9px] text-white">✓</span>}
+                                    {c.price && <span className="absolute bottom-0 inset-x-0 bg-black/60 px-0.5 text-[7px] font-black text-white">{c.price}</span>}
                                   </button>
                                 ))}
                               </div>
