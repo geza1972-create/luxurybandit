@@ -202,6 +202,7 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
   const [hIdx, setHIdx] = useState(0);
   const [paused, setPaused] = useState(false);   // user explicitly tapped to pause
   const [playFailed, setPlayFailed] = useState(false); // autoplay was blocked / not ready
+  const [buffering, setBuffering] = useState(false); // video still loading → show a spinner
   const [soon, setSoon] = useState(false); // non-staff tapped Make AI-Video (paid, pending Stripe)
   const scrollerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -212,6 +213,7 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
   // post you scroll to opens on slide 2 (the one you'd swiped to on the previous post).
   useEffect(() => {
     setHIdx(0);
+    setBuffering(false);
     const el = scrollerRef.current;
     if (el) el.scrollLeft = 0;
   }, [it.id]);
@@ -234,7 +236,7 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
     else { try { v.pause(); } catch { /**/ } }
   }, [isCurrent, showingVideo, paused, muted]); // eslint-disable-line react-hooks/exhaustive-deps
   // Reset to playing whenever this post leaves the screen, so it auto-plays next time.
-  useEffect(() => { if (!isCurrent) { setPaused(false); setPlayFailed(false); } }, [isCurrent]);
+  useEffect(() => { if (!isCurrent) { setPaused(false); setPlayFailed(false); setBuffering(false); } }, [isCurrent]);
   const onScroll = () => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -256,7 +258,11 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
                   // metadata (it's already been watched).
                   preload={offset >= 0 ? "auto" : "metadata"}
                   onClick={() => setPaused(p => !p)}
-                  onCanPlay={attemptPlay} onLoadedData={attemptPlay}
+                  onWaiting={() => setBuffering(true)}
+                  onStalled={() => setBuffering(true)}
+                  onCanPlay={() => { setBuffering(false); attemptPlay(); }}
+                  onLoadedData={() => { setBuffering(false); attemptPlay(); }}
+                  onPlaying={() => { setBuffering(false); setPlayFailed(false); }}
                   onPlay={() => setPlayFailed(false)}
                   className="h-full w-full object-cover object-top" />
               ) : s.kind === "compare" ? (
@@ -293,6 +299,16 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
                   className="absolute inset-0 z-10 grid place-items-center bg-black/10">
                   <Play className="h-16 w-16 fill-white/90 text-white/90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" />
                 </button>
+              )}
+              {/* Buffering spinner — so a still-loading video reads as "loading", not
+                  "end of feed". Shown only while the current video is actually waiting. */}
+              {s.kind === "video" && isCurrent && buffering && !paused && !playFailed && (
+                <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center">
+                  <div className="flex flex-col items-center gap-2 rounded-2xl bg-black/35 px-5 py-4 backdrop-blur-sm">
+                    <Loader2 className="h-8 w-8 animate-spin text-white" />
+                    <span className="text-[11px] font-black text-white/90">Loading…</span>
+                  </div>
+                </div>
               )}
             </div>
           ))}
