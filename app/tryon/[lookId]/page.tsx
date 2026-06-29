@@ -1417,13 +1417,12 @@ export default function TryonPage() {
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 2rem)" }}>
           {/* Back */}
           <button onClick={() => setStep("upload")}
-            className="absolute top-12 left-4 grid h-10 w-10 place-items-center rounded-full bg-black/30 text-white">
+            className="absolute top-5 left-4 grid h-10 w-10 place-items-center rounded-full bg-black/30 text-white">
             <ChevronLeft className="h-5 w-5" />
           </button>
 
-          {/* Cross-sell up top — sits just below the absolute Back button (top-12 + h-10
-              ≈ 88px). pt-12 keeps a small clearance without a big gap. */}
-          <div className="pt-12">{crossSellRow(true)}</div>
+          {/* Cross-sell up top — sits just below the Back button (top-5 + h-10 ≈ 60px). */}
+          <div className="pt-4">{crossSellRow(true)}</div>
 
           {/* Title — ABOVE the two images (aspirational, not technical) */}
           <div className="text-center">
