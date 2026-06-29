@@ -94,6 +94,28 @@ function studioHeaders(): Record<string, string> {
   };
 }
 
+// Grab the first frame of a video file as a JPEG data URL — used as the look's
+// poster/cover when a curator uploads an own reel (so the post has a still too).
+function videoFirstFrame(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const v = document.createElement("video");
+    v.preload = "metadata"; v.muted = true; (v as any).playsInline = true; v.src = url;
+    const fail = () => { URL.revokeObjectURL(url); reject(new Error("Konnte kein Vorschaubild aus dem Video lesen.")); };
+    v.onloadeddata = () => { try { v.currentTime = Math.min(0.1, (v.duration || 1) / 2); } catch { fail(); } };
+    v.onseeked = () => {
+      try {
+        const c = document.createElement("canvas");
+        c.width = v.videoWidth || 720; c.height = v.videoHeight || 1280;
+        c.getContext("2d")?.drawImage(v, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL("image/jpeg", 0.85));
+      } catch { fail(); }
+    };
+    v.onerror = fail;
+  });
+}
+
 type Draft = {
   id: string;
   name: string;
@@ -594,7 +616,14 @@ export default function AdminTrends() {
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   // Which creation mode the curator picked. They choose one first, then we show
   // only that flow — never both at once.
-  const [mode, setMode] = useState<"web" | "ai" | "link" | null>(null);
+  const [mode, setMode] = useState<"web" | "ai" | "link" | "reel" | null>(null);
+  // Upload-reel tool state (post an own finished video as a feed funnel post)
+  const [reelFile, setReelFile] = useState<File | null>(null);
+  const [reelDesc, setReelDesc] = useState("");
+  const [reelCategory, setReelCategory] = useState<LookCategory>("after-dark");
+  const [reelBusy, setReelBusy] = useState(false);
+  const [reelMsg, setReelMsg] = useState("");
+  const [reelErr, setReelErr] = useState("");
   // AI Fashion generation state
   const [aiGarmentFile, setAiGarmentFile] = useState<File | null>(null);
   const [aiPersonFile, setAiPersonFile] = useState<File | null>(null);
@@ -663,23 +692,53 @@ export default function AdminTrends() {
     try { await fetch("/api/upload-look-video", { method: "POST", headers: { "x-curator-id": getCuratorId() }, body: fd }); setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, videoUrl: "" } : l)); } catch { /**/ }
     setUploadingVideo("");
   };
-  // Upload an OWN finished video (e.g. a Pixverse reel made outside the app) as the
-  // look's feed video. Same endpoint as the AI flow; just a file instead of generation.
-  const uploadOwnVideo = async (lookId: string, file: File) => {
-    if (!file.type.startsWith("video/")) { alert("Bitte eine Videodatei (z. B. MP4) wählen."); return; }
-    if (file.size > 50 * 1024 * 1024) { alert("Video zu groß (max 50 MB)."); return; }
-    setUploadingVideo(lookId);
+  // The "Reel hochladen" tool: take an own finished video (e.g. a Pixverse reel) and
+  // post it as a NEW feed look — a funnel post (Try-on / Bandit). Creates the look
+  // (poster = the video's first frame, description = public title, category), then
+  // attaches the video. Never uses a brand product photo → licensing-safe.
+  const publishReel = async () => {
+    setReelErr(""); setReelMsg("");
+    if (!reelFile) { setReelErr("Bitte ein Video (MP4) wählen."); return; }
+    if (!reelFile.type.startsWith("video/")) { setReelErr("Bitte eine Videodatei (MP4) wählen."); return; }
+    if (reelFile.size > 50 * 1024 * 1024) { setReelErr("Video zu groß (max 50 MB)."); return; }
+    if (!reelDesc.trim()) { setReelErr("Bitte eine kurze Beschreibung (öffentlicher Titel) eingeben."); return; }
+    const brands = findBrandsInText(reelDesc);
+    if (brands.length > 0 && !confirm(`Achtung: Markenname in der Beschreibung (${brands.join(", ")}). Als Curator solltest du den entfernen (Lizenz). Trotzdem posten?`)) return;
+    setReelBusy(true);
     try {
+      const poster = await videoFirstFrame(reelFile);
+      // 1) create the look (funnel post) with the poster as the safe still
+      const r1 = await fetch("/api/try-this-look", { method: "POST", headers: studioHeaders(), body: JSON.stringify({
+        action: "upload-look",
+        name: reelDesc.trim().slice(0, 80) || "Reel",
+        productNote: reelDesc.trim(),
+        category: reelCategory,
+        lingerie: reelCategory === "boudoir" ? true : undefined,
+        productType: "real",
+        aiCreated: false,
+        published: true,
+        image: poster,
+        frontImage: poster,
+        curatorId: getCuratorId(),
+      }) });
+      const d1 = await r1.json();
+      const lookId = d1.lookId || d1.look?.id;
+      if (!r1.ok || !lookId) { setReelErr(d1.error ?? "Look konnte nicht angelegt werden."); setReelBusy(false); return; }
+      // 2) attach the video
       const fd = new FormData();
       fd.append("lookId", lookId);
       fd.append("curatorId", getCuratorId());
-      fd.append("video", file);
-      const r = await fetch("/api/upload-look-video", { method: "POST", headers: { "x-try-look-admin-pin": getStoredPin(), "x-curator-id": getCuratorId() }, body: fd });
-      const d = await r.json();
-      if (!r.ok || !d.videoUrl) alert(d.error ?? "Upload fehlgeschlagen.");
-      else setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, videoUrl: d.videoUrl } : l));
-    } catch { alert("Netzwerkfehler beim Upload."); }
-    setUploadingVideo("");
+      fd.append("video", reelFile);
+      const r2 = await fetch("/api/upload-look-video", { method: "POST", headers: { "x-try-look-admin-pin": getStoredPin(), "x-curator-id": getCuratorId() }, body: fd });
+      const d2 = await r2.json();
+      if (!r2.ok || !d2.videoUrl) { setReelErr(d2.error ?? "Video-Upload fehlgeschlagen (Look wurde angelegt)."); setReelBusy(false); return; }
+      setReelMsg("Reel ist live im Feed ✨");
+      setReelFile(null); setReelDesc("");
+      void fetch("/api/curator?mylooks=1", { headers: studioHeaders() }).then(r => r.json()).then((d: any) => setMyLooks(d.looks ?? [])).catch(() => {});
+    } catch (e) {
+      setReelErr(e instanceof Error ? e.message : "Upload fehlgeschlagen.");
+    }
+    setReelBusy(false);
   };
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [savingNote, setSavingNote] = useState<string>("");
@@ -1141,7 +1200,59 @@ export default function AdminTrends() {
             <span className="text-sm font-black">Create AI Fashion</span>
             <span className={`text-[11px] font-bold ${mode === "ai" ? "text-white/70" : "text-ink/40"}`}>Your photo on a model + garment → try-on</span>
           </button>
+          {/* Upload an own finished reel (e.g. from Pixverse) as a feed funnel post. */}
+          <button type="button" onClick={() => setMode(mode === "reel" ? null : "reel")}
+            className={`col-span-2 flex items-center gap-2 rounded-xl border p-4 text-left transition active:scale-[0.99] ${mode === "reel" ? "border-black bg-black text-white shadow-soft" : "border-black/12 bg-white text-ink hover:border-black/30"}`}>
+            <Upload className={`h-5 w-5 shrink-0 ${mode === "reel" ? "text-white" : "text-ink/50"}`} />
+            <span className="min-w-0">
+              <span className="block text-sm font-black">Reel hochladen</span>
+              <span className={`block text-[11px] font-bold ${mode === "reel" ? "text-white/70" : "text-ink/40"}`}>Eigenes Video (MP4) → Feed-Post mit Try-on / Bandit</span>
+            </span>
+          </button>
         </section>
+
+        {/* Reel-upload panel */}
+        {mode === "reel" && (
+          <section className="mt-4 rounded-2xl border border-black/10 bg-white p-5 shadow-soft">
+            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-cobalt">Reel hochladen</p>
+            <p className="mt-1 text-[12px] font-medium text-ink/50">Lade dein fertiges Video (z. B. aus Pixverse) hoch. Es wird ein Feed-Post in deinem Namen — mit „Try This Look" + „Bandit the look".</p>
+            <div className="mt-3 grid gap-3">
+              <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-black/15 bg-panel p-6 text-center transition hover:border-black/30 hover:bg-black/[0.03]">
+                <Upload className="h-5 w-5 text-ink/30" />
+                <span className="text-[12px] font-black text-ink/60">{reelFile ? reelFile.name : "Video wählen · MP4 · max 50 MB"}</span>
+                <span className="text-[10px] font-bold text-ink/30">Hochformat (9:16) wirkt am besten</span>
+                <input type="file" accept="video/*" className="sr-only" disabled={reelBusy}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) { setReelFile(f); setReelErr(""); setReelMsg(""); } }} />
+              </label>
+              <div className="grid gap-1.5">
+                <span className="text-[11px] font-black uppercase tracking-[0.14em] text-ink/40">Beschreibung <span className="font-bold text-ink/30">· öffentlicher Titel</span></span>
+                <textarea value={reelDesc} onChange={e => setReelDesc(e.target.value)} disabled={reelBusy}
+                  placeholder="z. B. Silbernes Slip-Dress für laue Sommernächte…"
+                  className="min-h-20 rounded-md border border-black/10 bg-panel p-3 text-sm font-semibold text-ink outline-none focus:border-cobalt disabled:opacity-60" />
+                {(() => { const b = findBrandsInText(reelDesc); return b.length > 0 ? (
+                  <p className="rounded-md bg-amber-50 px-2.5 py-1.5 text-[11px] font-bold leading-snug text-amber-700">⚠️ Markenname erkannt: <span className="font-black">{b.join(", ")}</span>. Als Curator bitte entfernen (Lizenz).</p>
+                ) : null; })()}
+              </div>
+              <div className="grid gap-1.5">
+                <span className="text-[11px] font-black uppercase tracking-[0.14em] text-ink/40">Kategorie</span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {LOOK_CATEGORIES.map((c) => (
+                    <button key={c.slug} type="button" disabled={reelBusy} onClick={() => setReelCategory(c.slug)}
+                      className={`rounded-md border px-3 py-2 text-left text-sm font-bold transition disabled:opacity-60 ${reelCategory === c.slug ? "border-black bg-black text-white" : "border-black/10 bg-panel text-ink hover:border-black/30"}`}>
+                      {c.slug === "boudoir" ? "🔒 " : ""}{c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {reelErr && <p className="text-xs font-bold text-coral">{reelErr}</p>}
+              {reelMsg && <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-xs font-black text-green-700">{reelMsg}</p>}
+              <button type="button" onClick={() => void publishReel()} disabled={reelBusy}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-black text-sm font-black text-white active:scale-[0.99] transition disabled:opacity-50">
+                {reelBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Wird gepostet…</> : <><Upload className="h-4 w-4" /> Reel in den Feed posten</>}
+              </button>
+            </div>
+          </section>
+        )}
 
         {/* The rest of the taste filters — brand search, garment & style. Below the
             tools, shown once Find products / Create AI Fashion is active. */}
@@ -1728,13 +1839,6 @@ export default function AdminTrends() {
                               {uploadingVideo === l.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating video…</> : <><Video className="h-3.5 w-3.5" /> Generate AI video · 5s · {costs?.video ?? 8} credits</>}
                             </button>
                           )}
-                          {/* Upload an OWN finished reel (e.g. from Pixverse). Always available —
-                              replaces the current video when one already exists. */}
-                          <label className={`mt-1.5 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-black/15 bg-panel px-2 py-1.5 text-[11px] font-black text-ink/55 hover:border-cobalt ${uploadingVideo === l.id ? "pointer-events-none opacity-60" : ""}`}>
-                            <Upload className="h-3.5 w-3.5" /> {l.videoUrl ? "Eigenes Video ersetzen" : "Eigenes Video hochladen"} · MP4 · max 50 MB
-                            <input type="file" accept="video/*" className="sr-only" disabled={uploadingVideo === l.id}
-                              onChange={e => { const f = e.target.files?.[0]; if (f) void uploadOwnVideo(l.id, f); e.currentTarget.value = ""; }} />
-                          </label>
                         </div>
                       );
                     })()}
