@@ -755,11 +755,11 @@ export default function TryonPage() {
           curatorId: curatorId || undefined,
           image: imageSmall, userPhotoImage: userPhotoSmall,
           genKind: lastGenKindRef.current, // photo | video | video360 (for the post-info history)
-          // Public only if the user chose Public AND it's NOT lingerie/swimwear (those
-          // can never be published — not even by staff). Otherwise saved privately.
-          feed: showInFeedRef.current && !isLingerieTryon(),
+          // Public only if chosen Public AND (not lingerie OR a creator/admin). End-user
+          // lingerie try-ons stay private; staff/creators MAY publish lingerie to the feed.
+          feed: showInFeedRef.current && (!isLingerieTryon() || isStaff),
           // Provable active consents (verbatim wording + timestamp).
-          publishConsent: showInFeedRef.current && !isLingerieTryon() && !!consentRef.current?.publishText,
+          publishConsent: showInFeedRef.current && (!isLingerieTryon() || isStaff) && !!consentRef.current?.publishText,
           consentTimestamp: consentRef.current?.at,
           consentText: consentRef.current?.publishText || undefined,
           rightsConsent: !!consentRef.current?.rightsText,
@@ -776,7 +776,7 @@ export default function TryonPage() {
 
   // Toggle whether this try-on appears in the feed (consent).
   const toggleShowInFeed = async (next: boolean) => {
-    if (next && isLingerieTryon()) return; // lingerie/swimwear try-ons can NEVER be published (incl. staff)
+    if (next && isLingerieTryon() && !isStaff) return; // end-user lingerie stays private; creators/admin may publish
     setShowInFeed(next);
     if (next && !sharedGenIdRef.current && resultImage) { await postToFeed(resultImage); return; }
     if (sharedGenIdRef.current) {
@@ -847,7 +847,7 @@ export default function TryonPage() {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "set-generation-name", generationId: sharedGenIdRef.current, customerName: name }),
         });
-      } else if (resultImage && showInFeed && !isLingerieTryon()) {
+      } else if (resultImage && showInFeed && (!isLingerieTryon() || isStaff)) {
         await postToFeed(resultImage);
         if (sharedGenIdRef.current) {
           await fetch("/api/try-this-look", {
@@ -1352,7 +1352,7 @@ export default function TryonPage() {
 
           {/* Show in feed. Lingerie is private for anonymous end-users; a creator
               (staff/curator like Szidonia) may save & post their own content. */}
-          {effectiveLingerie ? (
+          {effectiveLingerie && !isStaff ? (
             <div className="rounded-2xl border border-black/10 bg-black/[0.02] p-4 flex items-center gap-2.5">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/[0.06] text-base">🔒</span>
               <div className="min-w-0">

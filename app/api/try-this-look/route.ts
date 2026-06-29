@@ -1503,6 +1503,9 @@ export async function POST(request: Request) {
           discountLabel: discountLabel || undefined,
           dealEndsAt: dealEndsAt || undefined,
           inStock: inStock || undefined,
+          // Creator/admin-set Lingerie/Swimwear flag (retroactively markable). Store the
+          // EXPLICIT boolean so the toggle wins both ways (off overrides auto-detection).
+          lingerie: hasField("lingerie") ? payload.lingerie === true : (look as any).lingerie,
           published: typeof payload.published === "boolean" ? payload.published : existingLook.published,
           // Admin may reassign the owning curator (e.g. distribute seeded looks).
           ...(adminRequest && typeof payload.curatorId === "string" && payload.curatorId.trim()

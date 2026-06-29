@@ -32,6 +32,7 @@ type Look = {
   dealEndsAt?: string;
   inStock?: boolean;
   published?: boolean;
+  lingerie?: boolean;
   availabilityNote?: string;
   deliveryTime?: string;
   productNote?: string;
@@ -1675,6 +1676,21 @@ export default function AdminLooksPage() {
     }
   };
 
+  const toggleLingerie = async (look: Look) => {
+    setIsSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const next = !look.lingerie;
+      await callAdminAction({ action: "update-look", id: look.id, lingerie: next });
+      setMessage(`"${look.name}" ${next ? "marked as Lingerie/Swimwear (try-ons private)" : "unmarked as Lingerie"}.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const deleteLook = async (look: Look) => {
     setDeleteConfirm(look);
   };
@@ -2971,6 +2987,17 @@ export default function AdminLooksPage() {
                         Mark as available
                       </button>
                     )}
+
+                    {/* 4b. LINGERIE / SWIMWEAR — creator/admin flag; forces try-ons private + paid tier */}
+                    <button
+                      type="button"
+                      disabled={isSaving}
+                      onClick={() => void toggleLingerie(look)}
+                      className={`inline-flex h-10 items-center justify-center gap-2 rounded-md px-3 text-xs font-black disabled:cursor-wait disabled:opacity-50 ${look.lingerie ? "bg-black text-white" : "bg-black/[0.06] text-ink/60"}`}
+                      title="Toggle Lingerie/Swimwear (try-ons stay private; paid tier)"
+                    >
+                      🔒 {look.lingerie ? "Lingerie ✓" : "Lingerie"}
+                    </button>
 
                     {/* 5. TOOLS */}
                     {!isEditing && (
