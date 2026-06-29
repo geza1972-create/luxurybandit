@@ -755,11 +755,11 @@ export default function TryonPage() {
           curatorId: curatorId || undefined,
           image: imageSmall, userPhotoImage: userPhotoSmall,
           genKind: lastGenKindRef.current, // photo | video | video360 (for the post-info history)
-          // Public only if the user chose Public AND it's allowed (lingerie stays private
-          // for end-users). Otherwise saved privately (account only).
-          feed: showInFeedRef.current && (!isLingerieTryon() || isStaff),
+          // Public only if the user chose Public AND it's NOT lingerie/swimwear (those
+          // can never be published — not even by staff). Otherwise saved privately.
+          feed: showInFeedRef.current && !isLingerieTryon(),
           // Provable active consents (verbatim wording + timestamp).
-          publishConsent: showInFeedRef.current && (!isLingerieTryon() || isStaff) && !!consentRef.current?.publishText,
+          publishConsent: showInFeedRef.current && !isLingerieTryon() && !!consentRef.current?.publishText,
           consentTimestamp: consentRef.current?.at,
           consentText: consentRef.current?.publishText || undefined,
           rightsConsent: !!consentRef.current?.rightsText,
@@ -776,7 +776,7 @@ export default function TryonPage() {
 
   // Toggle whether this try-on appears in the feed (consent).
   const toggleShowInFeed = async (next: boolean) => {
-    if (next && isLingerieTryon() && !isStaff) return; // lingerie is private for end-users; creators (staff) may post
+    if (next && isLingerieTryon()) return; // lingerie/swimwear try-ons can NEVER be published (incl. staff)
     setShowInFeed(next);
     if (next && !sharedGenIdRef.current && resultImage) { await postToFeed(resultImage); return; }
     if (sharedGenIdRef.current) {
@@ -847,7 +847,7 @@ export default function TryonPage() {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "set-generation-name", generationId: sharedGenIdRef.current, customerName: name }),
         });
-      } else if (resultImage && showInFeed && (!isLingerieTryon() || isStaff)) {
+      } else if (resultImage && showInFeed && !isLingerieTryon()) {
         await postToFeed(resultImage);
         if (sharedGenIdRef.current) {
           await fetch("/api/try-this-look", {
@@ -881,7 +881,7 @@ export default function TryonPage() {
     const email = gateEmail.trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !look) return;
     if (!rightsConsent || !shareNameInput.trim()) return; // name + rights attestation required
-    const isPublic = visibility === "public";
+    const isPublic = visibility === "public" && !effectiveLingerie; // lingerie is never public
     // Record consents (verbatim wording + timestamp). Publish consent only when the
     // user actively chose "Public"; rights consent always.
     consentRef.current = { at: new Date().toISOString(), publishText: isPublic ? PUBLISH_CONSENT_TEXT : "", rightsText: RIGHTS_CONSENT_TEXT };
@@ -1134,22 +1134,25 @@ export default function TryonPage() {
                 I confirm I am the person in the photo, or I have their permission, and I have the right to use this photo.
               </span>
             </label>
-            {/* Who can see it — Public (= consent to publish) or Only me (account only). */}
+            {/* Who can see it — Public (= consent to publish) or Only me (account only).
+                Lingerie/swimwear can NEVER be public: forced to "Only me", Public disabled. */}
             <p className="mt-3 mb-1.5 text-left text-[11px] font-black uppercase tracking-wider text-black/40">Who can see this?</p>
             <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-black/[0.05] p-1">
-              <button type="button" onClick={() => setVisibility("public")}
-                className={`flex h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-black transition ${visibility === "public" ? "bg-black text-white shadow" : "text-black/55"}`}>
+              <button type="button" disabled={effectiveLingerie} onClick={() => setVisibility("public")}
+                className={`flex h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-black transition disabled:opacity-30 ${(visibility === "public" && !effectiveLingerie) ? "bg-black text-white shadow" : "text-black/55"}`}>
                 <Sparkles className="h-4 w-4" /> Public
               </button>
               <button type="button" onClick={() => setVisibility("private")}
-                className={`flex h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-black transition ${visibility === "private" ? "bg-black text-white shadow" : "text-black/55"}`}>
+                className={`flex h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-black transition ${(visibility === "private" || effectiveLingerie) ? "bg-black text-white shadow" : "text-black/55"}`}>
                 🔒 Only me
               </button>
             </div>
             <p className="mt-1.5 text-left text-[11px] font-bold leading-snug text-black/45">
-              {visibility === "public"
-                ? "Public means you agree this image may be shared to the LuxuryBandit community. You can remove it anytime."
-                : "Only you can see this in your account. You can publish it later if you change your mind."}
+              {effectiveLingerie
+                ? "Lingerie & swimwear stay private — only you can see this in your account. It can't be published to the community."
+                : visibility === "public"
+                  ? "Public means you agree this image may be shared to the LuxuryBandit community. You can remove it anytime."
+                  : "Only you can see this in your account. You can publish it later if you change your mind."}
             </p>
 
             {/* STEP 2 — sign in. All methods DISABLED until the rights box is ticked, so
@@ -1346,7 +1349,7 @@ export default function TryonPage() {
 
           {/* Show in feed. Lingerie is private for anonymous end-users; a creator
               (staff/curator like Szidonia) may save & post their own content. */}
-          {effectiveLingerie && !isStaff ? (
+          {effectiveLingerie ? (
             <div className="rounded-2xl border border-black/10 bg-black/[0.02] p-4 flex items-center gap-2.5">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/[0.06] text-base">🔒</span>
               <div className="min-w-0">
