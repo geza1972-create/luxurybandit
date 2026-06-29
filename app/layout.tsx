@@ -24,12 +24,18 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {children}
-        {/* Suspense so BottomNav's useSearchParams doesn't force CSR bailout on
-            statically-prerendered pages (e.g. 404) — required for the prod build. */}
-        <Suspense fallback={null}>
-          <BottomNav />
-        </Suspense>
+        {/* The app is designed mobile-only. On desktop we render it inside a centered
+            phone-width frame. The frame uses `transform` so that descendant
+            `position: fixed` elements (reels, modals, bottom nav) are contained by the
+            frame instead of spanning the whole wide viewport. On phones it's full-width. */}
+        <div className="lb-frame">
+          {children}
+          {/* Suspense so BottomNav's useSearchParams doesn't force CSR bailout on
+              statically-prerendered pages (e.g. 404) — required for the prod build. */}
+          <Suspense fallback={null}>
+            <BottomNav />
+          </Suspense>
+        </div>
       </body>
     </html>
   );

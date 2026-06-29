@@ -11,6 +11,30 @@
   box-sizing: border-box;
 }
 
+/* Mobile-only app shown on desktop: center it in a phone-width frame.
+   On phones (<900px) the frame is a no-op (full width, no transform). */
+.lb-frame {
+  width: 100%;
+}
+@media (min-width: 900px) {
+  body {
+    background: #2a2a2e; /* desktop backdrop around the phone frame */
+  }
+  .lb-frame {
+    position: relative;
+    width: 440px;
+    max-width: 100vw;
+    min-height: 100dvh;
+    margin: 0 auto;
+    overflow: hidden;
+    background: #fbfaf7;
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.45);
+    /* Establishes the containing block so descendant position:fixed elements
+       (full-screen reels, modals, bottom nav) stay inside the 440px frame. */
+    transform: translateZ(0);
+  }
+}
+
 ::view-transition-group(*),
 ::view-transition-old(*),
 ::view-transition-new(*) {
