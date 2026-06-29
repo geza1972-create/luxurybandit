@@ -1765,9 +1765,11 @@ function StoresPage() {
   }, [looks, communityItems]);
 
   // The base feed: what PEOPLE generate (try-ons, image or video) + curator look
-  // VIDEOS. Never a flat product/clothing still — those are "Kleidungsstücke".
+  // VIDEOS. Never a flat product/clothing still — those are "Kleidungsstücke" —
+  // EXCEPT Boudoir: its looks show even without a video (user directive). Boudoir is
+  // login-gated and hidden from "All", so flat lingerie look-tiles stay contained.
   const feedItems = useMemo(
-    () => historyItems.filter(it => it.kind === "tryon" || !!it.videoUrl),
+    () => historyItems.filter(it => it.kind === "tryon" || !!it.videoUrl || it.category === "boudoir"),
     [historyItems],
   );
   // Category chips — only the editorial categories that actually have content. Boudoir
