@@ -663,57 +663,15 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
           )}
         </a>
 
-        {/* Try-on gallery */}
-        <section id="my-tryons" className="scroll-mt-20 rounded-2xl border border-black/8 bg-white overflow-hidden">
-          <div className="px-4 py-3 border-b border-black/6 flex items-center justify-between">
-            <p className="text-xs font-black uppercase tracking-widest text-black/30">My try-ons</p>
-            {tryOns.length > 0 && <span className="text-xs font-black text-black/40">{tryOns.length}</span>}
-          </div>
-          {tryOnsLoading ? (
-            <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-black/20" /></div>
-          ) : tryOns.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm font-bold text-black/30">{userSlug ? "No try-ons yet." : "No try-ons yet. Try a look to see it here."}</p>
-          ) : (
-            <div className="grid grid-cols-3 gap-px bg-black/8">
-              {tryOns.map(t => (
-                <div key={t.id} className="relative aspect-[3/4] bg-black/5 overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={t.imageUrl} alt={t.lookName} className={`h-full w-full object-cover object-top ${t.published === false ? "opacity-50" : ""}`} />
-                  {/* Always-visible controls (hover-only didn't work on touch/Safari):
-                      hide/show in the public feed, and delete. */}
-                  <div className="absolute right-2 top-2 flex gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => void handleToggleTryOnFeed(t.id, t.published === false)}
-                      disabled={togglingId === t.id}
-                      aria-label={t.published === false ? "Show in feed" : "Hide from feed"}
-                      className="grid h-9 w-9 place-items-center rounded-full bg-black/75 text-white shadow-lg backdrop-blur active:scale-90 transition-transform disabled:opacity-50"
-                      title={t.published === false ? "Show in feed" : "Hide from feed"}
-                    >
-                      {togglingId === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : t.published === false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteTryOn(t.id)}
-                      disabled={deletingId === t.id}
-                      aria-label="Delete try-on"
-                      className="grid h-9 w-9 place-items-center rounded-full bg-black/75 text-white shadow-lg backdrop-blur active:scale-90 transition-transform disabled:opacity-50"
-                      title="Delete"
-                    >
-                      {deletingId === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  {t.published === false && (
-                    <span className="absolute left-2 top-2 rounded-full bg-black/75 px-2 py-0.5 text-[10px] font-black text-white shadow-lg backdrop-blur">Hidden</span>
-                  )}
-                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                    <p className="text-[10px] font-black text-white truncate">{t.lookName}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+        {/* Try-ons live on their OWN page now — link to it from the account. */}
+        <a href="/user/tryons"
+          className="flex items-center justify-between rounded-2xl border border-black/8 bg-white px-4 py-4 active:scale-[0.99] transition-transform">
+          <span className="flex items-center gap-3">
+            <ImagePlus className="h-5 w-5 text-black/50" />
+            <span className="text-sm font-black text-black">My try-ons{tryOns.length > 0 ? ` · ${tryOns.length}` : ""}</span>
+          </span>
+          <span className="text-lg font-black text-black/30">→</span>
+        </a>
 
         <button type="button" onClick={onLogout}
           className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-black/10 bg-white text-sm font-bold text-black/50">
