@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import {
   Loader2, Plus, Pencil, Trash2, Sparkles, Lock,
   CheckCircle2, ImagePlus, X, User, ChevronDown,
-  LogOut, KeyRound, Phone, Mail, MessageCircle
+  LogOut, KeyRound, Phone, Mail, MessageCircle, Eye, EyeOff
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -242,7 +242,7 @@ function ProfileMenu({ email, storeName, onLogout }: { email?: string; storeName
 
 // ── Main dashboard ─────────────────────────────────────────────────────────
 // ── Full profile page (community users / admin without a store) ───────────────
-type TryOnItem = { id: string; imageUrl: string; lookName: string; storeName: string; createdAt: string };
+type TryOnItem = { id: string; imageUrl: string; lookName: string; storeName: string; createdAt: string; published?: boolean };
 
 function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }: {
   isAdmin: boolean; userEmail: string; userInitial: string; accessToken: string; onLogout: () => void;
@@ -459,6 +459,27 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
     }
   };
 
+  // Hide / show a try-on in the public feed (keeps it in your account).
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const handleToggleTryOnFeed = async (id: string, next: boolean) => {
+    setTogglingId(id);
+    // optimistic
+    setTryOns(prev => prev.map(t => t.id === id ? { ...t, published: next } : t));
+    try {
+      const res = await fetch("/api/try-this-look", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "set-generation-feed", generationId: id, feed: next }),
+      });
+      if (!res.ok) throw new Error("Toggle failed.");
+    } catch {
+      // revert on failure
+      setTryOns(prev => prev.map(t => t.id === id ? { ...t, published: !next } : t));
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   const field = "h-11 w-full rounded-xl border border-black/10 bg-black/[0.03] px-4 text-sm font-bold text-black placeholder:text-black/30 outline-none focus:border-black";
 
   return (
@@ -657,18 +678,34 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
               {tryOns.map(t => (
                 <div key={t.id} className="relative aspect-[3/4] bg-black/5 overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={t.imageUrl} alt={t.lookName} className="h-full w-full object-cover object-top" />
-                  {/* Delete is ALWAYS visible — hover-only didn't work on touch/Safari. */}
-                  <button
-                    type="button"
-                    onClick={() => void handleDeleteTryOn(t.id)}
-                    disabled={deletingId === t.id}
-                    aria-label="Delete try-on"
-                    className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-full bg-black/75 text-white shadow-lg backdrop-blur active:scale-90 transition-transform disabled:opacity-50"
-                    title="Delete"
-                  >
-                    {deletingId === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                  </button>
+                  <img src={t.imageUrl} alt={t.lookName} className={`h-full w-full object-cover object-top ${t.published === false ? "opacity-50" : ""}`} />
+                  {/* Always-visible controls (hover-only didn't work on touch/Safari):
+                      hide/show in the public feed, and delete. */}
+                  <div className="absolute right-2 top-2 flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => void handleToggleTryOnFeed(t.id, t.published === false)}
+                      disabled={togglingId === t.id}
+                      aria-label={t.published === false ? "Show in feed" : "Hide from feed"}
+                      className="grid h-9 w-9 place-items-center rounded-full bg-black/75 text-white shadow-lg backdrop-blur active:scale-90 transition-transform disabled:opacity-50"
+                      title={t.published === false ? "Show in feed" : "Hide from feed"}
+                    >
+                      {togglingId === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : t.published === false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteTryOn(t.id)}
+                      disabled={deletingId === t.id}
+                      aria-label="Delete try-on"
+                      className="grid h-9 w-9 place-items-center rounded-full bg-black/75 text-white shadow-lg backdrop-blur active:scale-90 transition-transform disabled:opacity-50"
+                      title="Delete"
+                    >
+                      {deletingId === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {t.published === false && (
+                    <span className="absolute left-2 top-2 rounded-full bg-black/75 px-2 py-0.5 text-[10px] font-black text-white shadow-lg backdrop-blur">Hidden</span>
+                  )}
                   <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
                     <p className="text-[10px] font-black text-white truncate">{t.lookName}</p>
                   </div>
