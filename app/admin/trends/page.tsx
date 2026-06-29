@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Check, ChevronUp, ChevronDown, ClipboardPaste, Crop, ExternalLink, ImagePlus, Link2, Loader2, Lock, Plus, Search, Trash2, Video, Wand2, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronUp, ChevronDown, ClipboardPaste, Crop, ExternalLink, ImagePlus, Link2, Loader2, Lock, Plus, Search, Trash2, Upload, Video, Wand2, X } from "lucide-react";
 import { FASHION_BRANDS } from "@/lib/fashion-brands";
 import { isIntimateName } from "@/lib/lingerie";
 import { LOOK_CATEGORIES, categorizeLook, type LookCategory } from "@/lib/look-category";
@@ -661,6 +661,24 @@ export default function AdminTrends() {
     setUploadingVideo(lookId);
     const fd = new FormData(); fd.append("lookId", lookId); fd.append("remove", "1"); fd.append("curatorId", getCuratorId());
     try { await fetch("/api/upload-look-video", { method: "POST", headers: { "x-curator-id": getCuratorId() }, body: fd }); setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, videoUrl: "" } : l)); } catch { /**/ }
+    setUploadingVideo("");
+  };
+  // Upload an OWN finished video (e.g. a Pixverse reel made outside the app) as the
+  // look's feed video. Same endpoint as the AI flow; just a file instead of generation.
+  const uploadOwnVideo = async (lookId: string, file: File) => {
+    if (!file.type.startsWith("video/")) { alert("Bitte eine Videodatei (z. B. MP4) wählen."); return; }
+    if (file.size > 50 * 1024 * 1024) { alert("Video zu groß (max 50 MB)."); return; }
+    setUploadingVideo(lookId);
+    try {
+      const fd = new FormData();
+      fd.append("lookId", lookId);
+      fd.append("curatorId", getCuratorId());
+      fd.append("video", file);
+      const r = await fetch("/api/upload-look-video", { method: "POST", headers: { "x-try-look-admin-pin": getStoredPin(), "x-curator-id": getCuratorId() }, body: fd });
+      const d = await r.json();
+      if (!r.ok || !d.videoUrl) alert(d.error ?? "Upload fehlgeschlagen.");
+      else setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, videoUrl: d.videoUrl } : l));
+    } catch { alert("Netzwerkfehler beim Upload."); }
     setUploadingVideo("");
   };
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
@@ -1705,10 +1723,18 @@ export default function AdminTrends() {
                               <button type="button" onClick={() => void removeLookVideo(l.id)} disabled={uploadingVideo === l.id} className="text-red-500 disabled:opacity-50">Remove</button>
                             </div>
                           ) : (
+                            <>
                             <button type="button" onClick={() => void generateLookVideo(l.id)} disabled={uploadingVideo === l.id}
                               className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-black/15 bg-panel px-2 py-1.5 text-[11px] font-black text-ink/55 hover:border-cobalt disabled:opacity-60">
                               {uploadingVideo === l.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating video…</> : <><Video className="h-3.5 w-3.5" /> Generate AI video · 5s · {costs?.video ?? 8} credits</>}
                             </button>
+                            {/* Upload an own finished reel (e.g. from Pixverse) instead of generating. */}
+                            <label className={`mt-1.5 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-black/15 bg-panel px-2 py-1.5 text-[11px] font-black text-ink/55 hover:border-cobalt ${uploadingVideo === l.id ? "pointer-events-none opacity-60" : ""}`}>
+                              <Upload className="h-3.5 w-3.5" /> Eigenes Video hochladen · MP4 · max 50 MB
+                              <input type="file" accept="video/*" className="sr-only" disabled={uploadingVideo === l.id}
+                                onChange={e => { const f = e.target.files?.[0]; if (f) void uploadOwnVideo(l.id, f); e.currentTarget.value = ""; }} />
+                            </label>
+                            </>
                           )}
                         </div>
                       );
