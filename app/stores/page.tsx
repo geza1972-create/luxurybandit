@@ -250,7 +250,11 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
           {slides.map((s, i) => (
             <div key={i} className="relative h-full w-full shrink-0 snap-center bg-black">
               {s.kind === "video" ? (
-                <video ref={videoRef} src={s.url} poster={optImg(it.imageUrl, 1080)} muted={muted} loop playsInline preload="metadata"
+                <video ref={videoRef} src={s.url} poster={optImg(it.imageUrl, 1080)} muted={muted} loop playsInline
+                  // Buffer the CURRENT and the NEXT reel ahead of time so a swipe doesn't
+                  // stall waiting for the next video to load. The previous reel only keeps
+                  // metadata (it's already been watched).
+                  preload={offset >= 0 ? "auto" : "metadata"}
                   onClick={() => setPaused(p => !p)}
                   onCanPlay={attemptPlay} onLoadedData={attemptPlay}
                   onPlay={() => setPlayFailed(false)}
