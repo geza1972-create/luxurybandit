@@ -6,6 +6,7 @@ import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, Vo
 import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
+import { safeLookImage } from "@/lib/look-image";
 
 export type FeedLook = {
   id: string;
@@ -118,6 +119,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       })
       .slice(0, 8);
   })();
+  // Licensing-safe hero still: our created image only (AI render / video poster),
+  // never the scraped original product photo of a curated look.
+  const heroImg = safeLookImage(look);
   const community = (look.communityTryOns ?? []).filter(c => c?.imageUrl);
   const communityVideos = community
     .filter(c => c.videoUrl)
@@ -133,7 +137,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     // Try-ons are NOT mixed into an Original/Curated post anymore — they live on
     // their own under The A List. A look post shows only its own video + image.
     ...(look.videoUrl ? [{ type: "video" as const }] : []),
-    { type: "image" as const },
+    // Only show a still if it's a safe (created) image — never the original product photo.
+    ...(heroImg ? [{ type: "image" as const }] : []),
     // Shop options are NOT shown in the feed (no product slides, no list). The
     // dupes are fetched on demand only when the user taps "Bandit the look!".
   ];
@@ -193,7 +198,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     syncVideos();
   }, [inView, active, muted]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const img = look.frontImageUrl ?? look.imageUrl;
+  const img = heroImg;
   const detail = lookPath(look.name, look.id);
   // When the active carousel slide is a shop option, show its buy card on white below
   // AND make "Try This Look" use THAT product (its clean image), not the look's photo.

@@ -16,6 +16,7 @@ import HomeFeed from "@/components/HomeFeed";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { LOOK_CATEGORIES, isHiddenFromAll, type LookCategory } from "@/lib/look-category";
 import { publicLookLabel } from "@/lib/look-title";
+import { safeLookImage } from "@/lib/look-image";
 import { Bookmark, EyeOff, Heart, Home, Image as ImageIcon, Info, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, Sparkles, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -1726,7 +1727,9 @@ function StoresPage() {
     const items: HItem[] = [];
     const lookById = new Map(looks.map((l) => [l.id, l]));
     for (const l of looks) {
-      const thumb = l.frontImageUrl || l.imageUrl;
+      // Licensing: only our created image (AI render / video poster), never the
+      // scraped original product photo. Curated flat looks with no render → no thumb.
+      const thumb = safeLookImage(l);
       // Poster only when it's a REAL model frame (never the floating product); else
       // the video tile shows the video's own first frame.
       const videoPoster = l.videoPosterUrl || l.tryOnImageUrl || undefined;

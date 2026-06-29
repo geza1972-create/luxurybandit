@@ -7,6 +7,8 @@ import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGri
 import { signInWithPassword, getStoredAuthSession, saveAuthSession, signOut, resetPassword } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { LOOK_CATEGORIES, categorizeLook, type LookCategory } from "@/lib/look-category";
+import { publicLookLabel } from "@/lib/look-title";
+import { safeLookImage } from "@/lib/look-image";
 
 const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
 
@@ -24,6 +26,7 @@ type Curator = {
 type Look = {
   id: string; name: string; published?: boolean;
   frontImageUrl?: string; imageUrl?: string; videoUrl?: string;
+  tryOnImageUrl?: string; videoPosterUrl?: string; curatorNote?: string;
   curatorName?: string; curatorId?: string;
   price?: string; salePrice?: string; buyUrl?: string;
   brand?: string; productNote?: string; storeName?: string;
@@ -716,21 +719,26 @@ export default function AdminPage() {
             {shownLooks.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No listings.</p>}
             {shownLooks.map(l => {
               const live = l.published !== false;
-              const img = l.frontImageUrl || l.imageUrl;
+              // Licensing: never show the original brand photo — only our created image
+              // (AI render / video poster), else the video itself, else a placeholder.
+              const img = safeLookImage(l);
               return (
                 <div key={l.id} className={`flex min-w-0 gap-3 rounded-xl border bg-white p-2.5 ${live ? "border-black/10" : "border-black/10 opacity-70"}`}>
                   <a href={`/look/${l.id}`} target="_blank" rel="noreferrer" title="View live in the frontend"
                     className="group relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-black/5 active:scale-95 transition">
-                    {img ? <img src={img} alt="" className="h-full w-full object-cover object-top" /> : <div className="grid h-full w-full place-items-center text-[10px] font-black text-ink/30">LB</div>}
+                    {img
+                      ? <img src={img} alt="" className="h-full w-full object-cover object-top" />
+                      : l.videoUrl
+                        ? <video src={l.videoUrl} muted playsInline preload="metadata" className="h-full w-full object-cover object-top" />
+                        : <div className="grid h-full w-full place-items-center text-[10px] font-black text-ink/30">LB</div>}
                     {l.videoUrl
                       ? <PlayCircle className="absolute bottom-1 right-1 h-4 w-4 text-white drop-shadow" />
                       : <ExternalLink className="absolute bottom-1 right-1 h-4 w-4 text-white opacity-0 drop-shadow transition group-hover:opacity-100" />}
                   </a>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-black text-ink">{l.name}</div>
+                    <div className="truncate text-sm font-black text-ink">{publicLookLabel(l)}</div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${live ? "bg-emerald-100 text-emerald-700" : "bg-black/8 text-ink/50"}`}>{live ? "Live" : "Off"}</span>
-                      {l.brand && <span className="rounded-full bg-cobalt/10 px-2 py-0.5 text-[10px] font-black text-cobalt">{l.brand}</span>}
                       <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">{l.aiCreated ? "AI" : "Curated"}</span>
                       {l.videoUrl && <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">Video</span>}
                     </div>
