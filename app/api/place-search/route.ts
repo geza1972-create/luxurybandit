@@ -19,10 +19,16 @@ export async function POST(request: Request) {
   try { query = String((await request.json())?.query ?? "").trim(); } catch { /**/ }
   if (!query) return NextResponse.json({ error: "Suchbegriff fehlt." }, { status: 400 });
 
+  // Bias broad/region queries (e.g. just "Greece") toward bookable stays, so the
+  // results lean to Booking/Airbnb instead of random photos. If the curator already
+  // typed an accommodation/booking word, search it as-is.
+  const hasTravelWord = /\b(villa|hotel|resort|airbnb|booking|stay|suite|apartment|rental|finca|riad|chalet)\b/i.test(query);
+  const q = hasTravelWord ? query : `${query} luxury villa booking.com airbnb`;
+
   try {
     const u = new URL("https://serpapi.com/search.json");
     u.searchParams.set("engine", "google_images");
-    u.searchParams.set("q", query);
+    u.searchParams.set("q", q);
     u.searchParams.set("api_key", key);
     const res = await fetch(u.toString(), { signal: AbortSignal.timeout(25000) });
     const data = await res.json().catch(() => null);
