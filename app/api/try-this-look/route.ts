@@ -906,11 +906,13 @@ export async function POST(request: Request) {
         // owner find + delete it from their account later, even if they never set an alias.
         ownerEmail: String(payload.ownerEmail ?? "").trim().toLowerCase() || undefined,
         curatorId: String(payload.curatorId ?? "").trim() || undefined,
-        // FIX 4: provable active publish consent — whether the user ticked the box, the
-        // exact wording they agreed to, and when.
+        // Provable active consents — whether the user ticked each box, the exact wording
+        // they agreed to, and when. publish = may be published; rights = may use the photo.
         publishConsent: payload.publishConsent === true,
         consentTimestamp: String(payload.consentTimestamp ?? "").trim() || undefined,
         consentText: String(payload.consentText ?? "").trim() || undefined,
+        rightsConsent: payload.rightsConsent === true,
+        rightsConsentText: String(payload.rightsConsentText ?? "").trim() || undefined,
         imagePath,
         userPhotoPath,
         // Which try-on tier produced this (for the post-info history): photo | video | video360.

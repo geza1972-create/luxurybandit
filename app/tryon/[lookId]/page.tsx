@@ -36,6 +36,10 @@ type Step = "upload" | "crop" | "confirm" | "generating" | "result" | "locked";
 // Exact wording the user actively consents to before publishing (FIX 4). Logged
 // verbatim on the generation alongside a timestamp so consent is provable.
 const PUBLISH_CONSENT_TEXT = "Yes, I agree that this image I created may be published to the LuxuryBandit community.";
+// Rights attestation: the uploader confirms they may use the uploaded photo (it's
+// them or they have the depicted person's permission). Protects against uploading a
+// third party's photo without consent. Also logged verbatim.
+const RIGHTS_CONSENT_TEXT = "I confirm I am the person in the photo, or I have their permission, and I have the right to use this photo.";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -207,7 +211,8 @@ export default function TryonPage() {
   // before the real generation starts. We log the exact wording + timestamp on the
   // generation so active consent is provable. Kept separate from Terms/Privacy.
   const [publishConsent, setPublishConsent] = useState(false);
-  const consentRef = useRef<{ at: string; text: string } | null>(null);
+  const [rightsConsent, setRightsConsent] = useState(false); // I'm in the photo / have permission
+  const consentRef = useRef<{ at: string; publishText: string; rightsText: string } | null>(null);
   // The email this try-on belongs to (gate email, or the logged-in account's email).
   // Saved on the generation so the owner can find + delete it from their account.
   const ownerEmailRef = useRef("");
@@ -367,6 +372,7 @@ export default function TryonPage() {
   const discardPhoto = () => {
     setUserPhoto(null);
     setPublishConsent(false); // re-consent required for a fresh try-on (FIX 4)
+    setRightsConsent(false);
     consentRef.current = null;
     try { sessionStorage.removeItem("lb_model_image"); } catch { /**/ }
   };
@@ -736,10 +742,12 @@ export default function TryonPage() {
           image: imageSmall, userPhotoImage: userPhotoSmall,
           genKind: lastGenKindRef.current, // photo | video | video360 (for the post-info history)
           feed: showInFeedRef.current, // respect the toggle (creators can save without publishing)
-          // FIX 4: provable active publish consent (verbatim wording + timestamp).
+          // Provable active consents (verbatim wording + timestamp).
           publishConsent: !!consentRef.current,
           consentTimestamp: consentRef.current?.at,
-          consentText: consentRef.current?.text,
+          consentText: consentRef.current?.publishText,
+          rightsConsent: !!consentRef.current,
+          rightsConsentText: consentRef.current?.rightsText,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -856,9 +864,9 @@ export default function TryonPage() {
   const revealWithEmail = () => {
     const email = gateEmail.trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !look) return;
-    if (!publishConsent) return; // FIX 4: must actively consent before we generate/publish
-    // Record the active publish consent (verbatim wording + timestamp) for this generation.
-    consentRef.current = { at: new Date().toISOString(), text: PUBLISH_CONSENT_TEXT };
+    if (!publishConsent || !rightsConsent) return; // must actively consent (publish + rights)
+    // Record both active consents (verbatim wording + timestamp) for this generation.
+    consentRef.current = { at: new Date().toISOString(), publishText: PUBLISH_CONSENT_TEXT, rightsText: RIGHTS_CONSENT_TEXT };
     setShowInFeed(true); // they consented → this try-on is published
     // Bind the upcoming try-on to this email so it shows in the account they create.
     ownerEmailRef.current = email.toLowerCase();
@@ -1114,6 +1122,13 @@ export default function TryonPage() {
             {/* FIX 4: separate, NOT pre-checked publish consent. Reveal stays disabled
                 until it's actively ticked (and the email is valid). */}
             <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-left">
+              <input type="checkbox" checked={rightsConsent} onChange={e => setRightsConsent(e.target.checked)}
+                className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-black" />
+              <span className="text-[12px] font-bold leading-snug text-black/70">
+                I confirm I am the person in the photo, or I have their permission, and I have the right to use this photo.
+              </span>
+            </label>
+            <label className="mt-2.5 flex cursor-pointer items-start gap-2.5 text-left">
               <input type="checkbox" checked={publishConsent} onChange={e => setPublishConsent(e.target.checked)}
                 className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-black" />
               <span className="text-[12px] font-bold leading-snug text-black/70">
@@ -1121,7 +1136,7 @@ export default function TryonPage() {
               </span>
             </label>
             <button onClick={() => void revealWithEmail()}
-              disabled={!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(gateEmail.trim()) || !publishConsent}
+              disabled={!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(gateEmail.trim()) || !publishConsent || !rightsConsent}
               className="mt-3 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-black py-3.5 text-base font-black text-white active:scale-95 transition-transform disabled:opacity-30">
               <Sparkles className="h-4 w-4" /> Reveal my look
             </button>
