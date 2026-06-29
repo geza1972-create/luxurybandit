@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus, Video } from "lucide-react";
 import { signInWithPassword, getStoredAuthSession, saveAuthSession, signOut, resetPassword } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
+import { LOOK_CATEGORIES, categorizeLook, type LookCategory } from "@/lib/look-category";
 
 const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
 
@@ -26,6 +27,7 @@ type Look = {
   curatorName?: string; curatorId?: string;
   price?: string; salePrice?: string; buyUrl?: string;
   brand?: string; productNote?: string; storeName?: string;
+  category?: LookCategory; lingerie?: boolean;
   aiCreated?: boolean; createdAt?: string; videoCreatedAt?: string;
   likeCount?: number;
   alternatives?: unknown[];
@@ -305,6 +307,18 @@ export default function AdminPage() {
       const r = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "toggle-look", lookId: id, published }) });
       if (!r.ok) { setLooks(ls => ls.map(l => l.id === id ? { ...l, published: !published } : l)); await fail(r, "Could not update listing"); }
     } catch { setError("Network error."); }
+    setBusy("");
+  };
+  // Re-categorize a look (After Dark / Riviera / Boudoir / Off-Duty). Boudoir is the
+  // lingerie category → the API forces lingerie:true and hides it from the "All" feed.
+  const setLookCategory = async (id: string, category: LookCategory) => {
+    setBusy(id); setError("");
+    const prev = looks;
+    setLooks(ls => ls.map(l => l.id === id ? { ...l, category, lingerie: category === "boudoir" ? true : false } : l));
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "update-look", id, category }) });
+      if (!r.ok) { setLooks(prev); await fail(r, "Could not set category"); }
+    } catch { setLooks(prev); setError("Network error."); }
     setBusy("");
   };
   const deleteLook = async (id: string) => {
@@ -673,6 +687,23 @@ export default function AdminPage() {
                       <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">{l.aiCreated ? "AI" : "Curated"}</span>
                       {l.videoUrl && <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">Video</span>}
                     </div>
+                    {/* Category — manual override. Boudoir = lingerie (private + hidden from
+                        "All"). Falls back to the auto-inferred category until set by hand. */}
+                    {(() => {
+                      const effective: LookCategory = l.category ?? categorizeLook(l);
+                      return (
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                          {LOOK_CATEGORIES.map(c => (
+                            <button key={c.slug} type="button" disabled={busy === l.id}
+                              onClick={() => void setLookCategory(l.id, c.slug)} title={c.blurb}
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-black transition disabled:opacity-50 ${effective === c.slug ? "bg-ink text-white" : "bg-black/5 text-ink/45 hover:bg-black/10"}`}>
+                              {c.slug === "boudoir" ? "🔒 " : ""}{c.label}
+                            </button>
+                          ))}
+                          {!l.category && <span className="text-[9px] font-bold uppercase tracking-wide text-ink/30">auto</span>}
+                        </div>
+                      );
+                    })()}
                     <div className="mt-1 truncate text-xs font-bold text-ink/55">
                       <span className="text-ink/70">{l.curatorName ?? "—"}</span>{l.price ? ` · ${l.price}` : ""}
                     </div>

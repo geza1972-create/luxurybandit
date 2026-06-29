@@ -1371,6 +1371,8 @@ function StoresPage() {
   // brand names as the top-level chips. null = "All" (Boudoir hidden from All).
   const [categoryFilter, setCategoryFilter] = useState<LookCategory | null>(null);
   const [feedSelectMode, setFeedSelectMode] = useState(false);
+  // Boudoir is gated: if the viewer is on it and signs out, drop them back to "All"
+  // so lingerie never shows without a session. (Effect added after auth state below.)
   const [selectedLookIds, setSelectedLookIds] = useState<Set<string>>(new Set());
   const [feedBulkWorking, setFeedBulkWorking] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -1424,6 +1426,12 @@ function StoresPage() {
       window.removeEventListener("focus", onAuth);
     };
   }, []);
+
+  // Boudoir gate: never show lingerie to a signed-out viewer. If the filter is on
+  // Boudoir and there's no session/curator/admin, snap back to "All".
+  useEffect(() => {
+    if (categoryFilter === "boudoir" && !(isSignedIn || !!myCuratorId || isAdmin)) setCategoryFilter(null);
+  }, [categoryFilter, isSignedIn, myCuratorId, isAdmin]);
 
   // React to bottom-nav deep links whenever search params change
   useEffect(() => {
@@ -2084,12 +2092,18 @@ function StoresPage() {
                   className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${categoryFilter === null ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>
                   All
                 </button>
-                {categoryChips.map(c => (
-                  <button key={c.slug} type="button" onClick={() => setCategoryFilter(c.slug)}
+                {categoryChips.map(c => {
+                  // Boudoir (lingerie) is locked — only viewable when signed in (user
+                  // session, curator or admin). Tapping it signed-out opens sign-in.
+                  const locked = c.slug === "boudoir" && !(isSignedIn || !!myCuratorId || isAdmin);
+                  return (
+                  <button key={c.slug} type="button"
+                    onClick={() => { if (locked) { setShowUserPanel(true); return; } setCategoryFilter(c.slug); }}
                     className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${categoryFilter === c.slug ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>
-                    {c.label}
+                    {c.slug === "boudoir" ? "🔒 " : ""}{c.label}
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
             <div className="grid grid-cols-3 gap-0.5">
