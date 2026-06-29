@@ -1723,19 +1723,18 @@ export default function AdminTrends() {
                               <button type="button" onClick={() => void removeLookVideo(l.id)} disabled={uploadingVideo === l.id} className="text-red-500 disabled:opacity-50">Remove</button>
                             </div>
                           ) : (
-                            <>
                             <button type="button" onClick={() => void generateLookVideo(l.id)} disabled={uploadingVideo === l.id}
                               className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-black/15 bg-panel px-2 py-1.5 text-[11px] font-black text-ink/55 hover:border-cobalt disabled:opacity-60">
                               {uploadingVideo === l.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating video…</> : <><Video className="h-3.5 w-3.5" /> Generate AI video · 5s · {costs?.video ?? 8} credits</>}
                             </button>
-                            {/* Upload an own finished reel (e.g. from Pixverse) instead of generating. */}
-                            <label className={`mt-1.5 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-black/15 bg-panel px-2 py-1.5 text-[11px] font-black text-ink/55 hover:border-cobalt ${uploadingVideo === l.id ? "pointer-events-none opacity-60" : ""}`}>
-                              <Upload className="h-3.5 w-3.5" /> Eigenes Video hochladen · MP4 · max 50 MB
-                              <input type="file" accept="video/*" className="sr-only" disabled={uploadingVideo === l.id}
-                                onChange={e => { const f = e.target.files?.[0]; if (f) void uploadOwnVideo(l.id, f); e.currentTarget.value = ""; }} />
-                            </label>
-                            </>
                           )}
+                          {/* Upload an OWN finished reel (e.g. from Pixverse). Always available —
+                              replaces the current video when one already exists. */}
+                          <label className={`mt-1.5 flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-black/15 bg-panel px-2 py-1.5 text-[11px] font-black text-ink/55 hover:border-cobalt ${uploadingVideo === l.id ? "pointer-events-none opacity-60" : ""}`}>
+                            <Upload className="h-3.5 w-3.5" /> {l.videoUrl ? "Eigenes Video ersetzen" : "Eigenes Video hochladen"} · MP4 · max 50 MB
+                            <input type="file" accept="video/*" className="sr-only" disabled={uploadingVideo === l.id}
+                              onChange={e => { const f = e.target.files?.[0]; if (f) void uploadOwnVideo(l.id, f); e.currentTarget.value = ""; }} />
+                          </label>
                         </div>
                       );
                     })()}
