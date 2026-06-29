@@ -36,8 +36,9 @@ export default function ConfirmPage() {
         saveAuthSession(session);
         setStatus("success");
         // Return to where sign-in started (e.g. the funnel that triggered OAuth) so the
-        // try-on can resume. Falls back to the feed. Only internal paths allowed.
-        let dest = "/stores";
+        // try-on can resume; otherwise land on the user's dashboard, not the feed.
+        // Only internal paths allowed.
+        let dest = "/user/myaccount";
         try {
           const rt = new URLSearchParams(window.location.search).get("returnTo");
           if (rt && rt.startsWith("/") && !rt.startsWith("//")) dest = rt;
