@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -29,6 +29,7 @@ export type FeedLook = {
   likeCount?: number;
   createdAt?: string;
   alternatives?: { title?: string; link?: string; source?: string; thumbnail?: string; price?: string; priceValue?: number; currency?: string; lingerie?: boolean }[];
+  locationDupes?: { title?: string; link?: string; source?: string; thumbnail?: string; price?: string }[];
   price?: string;
   salePrice?: string;
   buyUrl?: string;
@@ -423,6 +424,29 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             Bandit the look!
           </button>
         </div>
+        {/* Bandit the escape — the look's stays, right in the feed (tap → book). */}
+        {(look.locationDupes?.length ?? 0) > 0 && (
+          <div className="mt-3">
+            <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-black/40">
+              <MapPin className="h-3.5 w-3.5" /> Bandit the escape — similar stays for less
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {look.locationDupes!.slice(0, 8).map((a, i) => (
+                <a key={i} href={a.link} target="_blank" rel="noopener noreferrer sponsored"
+                  onClick={() => { if (look.id && a.link) { try { fetch("/api/try-this-look", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "click", lookId: look.id, link: a.link }) }).catch(() => {}); } catch { /**/ } } }}
+                  className="w-32 shrink-0 active:scale-95 transition-transform">
+                  <div className="aspect-[4/3] overflow-hidden rounded-xl bg-black/5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={a.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover"
+                      onError={(e) => { const el = e.currentTarget; if (a.thumbnail && !el.dataset.proxied) { el.dataset.proxied = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(a.thumbnail)}`; } }} />
+                  </div>
+                  <p className="mt-1 line-clamp-1 text-[11px] font-black text-black">{a.title || a.source || "Stay"}</p>
+                  <p className="line-clamp-1 text-[10px] font-bold text-black/45">{a.price || a.source || ""}</p>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Info / history sheet — public provenance for this look */}
