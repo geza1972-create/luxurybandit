@@ -639,6 +639,15 @@ export async function GET(request: Request) {
   }
 }
 
+// Remove ALL storage assets a generation owns — the generated image AND the uploaded
+// "before" photo — so deleting a try-on doesn't leave orphaned files in the bucket.
+// (Videos live on external providers, not our bucket; deleteTryThisLookImage no-ops on
+// non-"try-this-look/" paths anyway.) allSettled so one failure can't block the delete.
+async function purgeGenerationAssets(gen: any) {
+  const paths = [gen?.imagePath, gen?.userPhotoPath].filter(Boolean).map(String);
+  await Promise.allSettled(paths.map(p => deleteTryThisLookImage(p)));
+}
+
 export async function POST(request: Request) {
   try {
     const payload = (await request.json()) as {
@@ -1311,6 +1320,7 @@ export async function POST(request: Request) {
       // Try-on images are only deleted when purging; otherwise the try-ons survive.
       for (const generation of storeGenerations) {
         if (generation.imagePath) pathsToDelete.add(String(generation.imagePath));
+        if ((generation as any).userPhotoPath) pathsToDelete.add(String((generation as any).userPhotoPath));
       }
       for (const path of pathsToDelete) await deleteTryThisLookImage(path);
 
@@ -1598,7 +1608,7 @@ export async function POST(request: Request) {
       state.generations = state.generations.filter(g => !ids.has(g.id) && (g as any).imageUrl);
       const updatedState = await saveTryThisLookState(state);
       // Delete images after saving state (failures are non-fatal)
-      await Promise.allSettled(toDelete.map(g => deleteTryThisLookImage(g.imagePath)));
+      await Promise.allSettled(toDelete.map(g => purgeGenerationAssets(g)));
       return NextResponse.json({ ok: true, deleted: toDelete.length, generations: updatedState.generations });
     }
 
@@ -1619,7 +1629,7 @@ export async function POST(request: Request) {
       }
 
       state.generations = state.generations.filter((generation) => generation.id !== generationId);
-      await deleteTryThisLookImage(generationToDelete.imagePath);
+      await purgeGenerationAssets(generationToDelete);
 
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json({
@@ -1761,7 +1771,7 @@ export async function POST(request: Request) {
         return name.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "") === userSlug;
       });
       // Delete images from storage
-      await Promise.allSettled(toDelete.map(g => deleteTryThisLookImage(g.imagePath)));
+      await Promise.allSettled(toDelete.map(g => purgeGenerationAssets(g)));
       const toDeleteIds = new Set(toDelete.map(g => g.id));
       state.generations = state.generations.filter(g => !toDeleteIds.has(g.id));
       await saveTryThisLookState(state);
@@ -1797,7 +1807,7 @@ export async function POST(request: Request) {
       if (!byAlias && !byEmail) return NextResponse.json({ error: "Not your image." }, { status: 403 });
 
       state.generations = state.generations.filter(g => g.id !== generationId);
-      await deleteTryThisLookImage(gen.imagePath);
+      await purgeGenerationAssets(gen);
       await saveTryThisLookState(state);
       return NextResponse.json({ ok: true });
     }
