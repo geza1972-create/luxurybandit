@@ -244,12 +244,15 @@ export default function BottomNav() {
             </div>
             {/* Menu items */}
             <div className="grid divide-y divide-black/5">
-              {/* Curator studio — the tool (sign in / register handled at the profile) */}
-              <button type="button" onClick={() => navigate(isCurator ? "/studio" : "/curators/profile")}
-                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
-                <Sparkles className="h-5 w-5 shrink-0 text-black/50" />
-                <span className="text-sm font-black text-black">Curator studio</span>
-              </button>
+              {/* Curator studio — ONLY for actual curators (no self-signup; creators are
+                  created by us). Normal users don't see a studio entry. */}
+              {isCurator && (
+                <button type="button" onClick={() => navigate("/studio")}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                  <Sparkles className="h-5 w-5 shrink-0 text-black/50" />
+                  <span className="text-sm font-black text-black">Curator studio</span>
+                </button>
+              )}
               {/* Curator → My profile (their form data); others → generic account */}
               {isCurator ? (
                 <button type="button" onClick={() => navigate("/curators/profile")}
@@ -298,7 +301,6 @@ export default function BottomNav() {
             <div className="mt-4 border-t border-black/5 px-5 pt-3">
               <p className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-black/30">Info &amp; legal</p>
               <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-bold text-black/45">
-                <button type="button" onClick={() => navigate("/curators")} className="hover:text-black">Become a curator</button>
                 <button type="button" onClick={() => navigate("/about")} className="hover:text-black">About</button>
                 <button type="button" onClick={() => navigate("/terms")} className="hover:text-black">Terms</button>
                 <button type="button" onClick={() => navigate("/privacy")} className="hover:text-black">Privacy</button>

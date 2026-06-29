@@ -1458,10 +1458,15 @@ export default function TryonPage() {
           {/* Cross-sell up top — sits just below the Back button (top-5 + h-10 ≈ 60px). */}
           <div className="pt-4">{crossSellRow(true)}</div>
 
-          {/* Title — ABOVE the two images (aspirational, not technical) */}
+          {/* Title — ABOVE the two images. Lingerie/swim is a PAID try-on, so don't say
+              "free": make the cost explicit. */}
           <div className="text-center">
             <p className="text-2xl font-black text-white [text-shadow:0_2px_8px_#000]">See yourself in this look ✨</p>
-            <p className="mt-1 text-sm font-bold text-white/75">Your free AI try-on — ready in seconds</p>
+            <p className="mt-1 text-sm font-bold text-white/75">
+              {(effectiveLingerie && !isStaff)
+                ? "Lingerie & swimwear try-ons are paid — $2.90 per look, private to you."
+                : "Your free AI try-on — ready in seconds"}
+            </p>
           </div>
 
           {/* Side by side */}

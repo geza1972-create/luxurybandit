@@ -1155,8 +1155,9 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
           </button>
         </div>
 
-        {/* Curator studio entry (separate curator session) */}
-        {curator ? (
+        {/* Curator studio entry — ONLY for actual curators (separate curator session).
+            No self-signup: normal users see nothing here. */}
+        {curator && (
           <a href="/studio"
             className="mb-5 flex items-center justify-between gap-3 rounded-2xl bg-black px-4 py-3.5 text-white active:scale-[0.99] transition-transform">
             <span className="min-w-0">
@@ -1164,15 +1165,6 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
               <span className="block text-[11px] font-bold text-white/55">Find trends · publish looks</span>
             </span>
             <span className="shrink-0 text-lg font-black">→</span>
-          </a>
-        ) : (
-          <a href="/curators"
-            className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-black/10 bg-black/[0.02] px-4 py-3.5 text-ink active:scale-[0.99] transition-transform">
-            <span className="min-w-0">
-              <span className="block text-sm font-black">Become a curator</span>
-              <span className="block text-[11px] font-bold text-ink/45">Spot trends, earn via affiliate</span>
-            </span>
-            <span className="shrink-0 text-lg font-black text-ink/40">→</span>
           </a>
         )}
 
@@ -2046,7 +2038,7 @@ function StoresPage() {
                   {[
                     [<ShoppingBag key="i" className="h-4 w-4 text-cobalt" />, "Bandit the look", "From the real luxury piece down to the best dupe."],
                     [<Sparkles key="i" className="h-4 w-4 text-cobalt" />, "Make a try-on", "Any look, on you, in seconds — photo + video."],
-                    [<Heart key="i" className="h-4 w-4 text-cobalt" />, "Join the community", "Become a curator, build a following — and earn."],
+                    [<Heart key="i" className="h-4 w-4 text-cobalt" />, "Save your favourites", "Like looks, build your feed, shop when you're ready."],
                   ].map(([icon, title, text], i) => (
                     <div key={i} className="flex items-start gap-2.5">
                       <span className="mt-0.5 shrink-0">{icon as React.ReactNode}</span>
@@ -2057,9 +2049,9 @@ function StoresPage() {
                   ))}
                 </div>
                 <div className="mt-3.5 flex items-center gap-2">
-                  <button type="button" onClick={() => router.push("/curators")}
+                  <button type="button" onClick={() => router.push("/stores")}
                     className="flex h-10 items-center justify-center gap-1.5 rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
-                    <Sparkles className="h-4 w-4" /> Become a curator
+                    <Sparkles className="h-4 w-4" /> Explore the feed
                   </button>
                   <button type="button" onClick={() => router.push("/about")}
                     className="flex h-10 items-center justify-center rounded-full border border-black/15 bg-white px-5 text-sm font-black text-black active:scale-95 transition-transform">
