@@ -210,7 +210,9 @@ export default function TryonPage() {
   // Active publish consent (FIX 4): a separate, NOT pre-checked box the user must tick
   // before the real generation starts. We log the exact wording + timestamp on the
   // generation so active consent is provable. Kept separate from Terms/Privacy.
-  const [publishConsent, setPublishConsent] = useState(false);
+  // Visibility choice at the gate: "public" = shared to the community (= active publish
+  // consent), "private" = only in the user's own account. Default public.
+  const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [rightsConsent, setRightsConsent] = useState(false); // I'm in the photo / have permission
   const consentRef = useRef<{ at: string; publishText: string; rightsText: string } | null>(null);
   // The email this try-on belongs to (gate email, or the logged-in account's email).
@@ -371,8 +373,8 @@ export default function TryonPage() {
   // persisted copy so a fresh look starts at the upload step, not pre-filled.
   const discardPhoto = () => {
     setUserPhoto(null);
-    setPublishConsent(false); // re-consent required for a fresh try-on (FIX 4)
-    setRightsConsent(false);
+    setVisibility("public"); // reset to default for a fresh try-on
+    setRightsConsent(false); // re-consent required
     consentRef.current = null;
     try { sessionStorage.removeItem("lb_model_image"); } catch { /**/ }
   };
@@ -611,8 +613,9 @@ export default function TryonPage() {
       // Post the try-on FIRST (so its generation is persisted), THEN start the video.
       // Running them in parallel raced the shared state save and lost the try-on.
       void (async () => {
-        // Lingerie try-ons stay PRIVATE — never auto-posted to the public A List.
-        if (showInFeed && (!isLingerieTryon() || isStaff)) await postToFeed(payload.image);
+        // Always SAVE the try-on (so it's in the user's account); postToFeed sets the
+        // `feed` flag = public choice (and lingerie stays private for end-users).
+        await postToFeed(payload.image);
         // Email the look + a sign-in link to the gate email — app-controlled via Resend
         // (Supabase's own magic-link email is disabled on this project). Anonymous funnel
         // visitors only; logged-in users & staff already have a session.
@@ -741,12 +744,14 @@ export default function TryonPage() {
           curatorId: curatorId || undefined,
           image: imageSmall, userPhotoImage: userPhotoSmall,
           genKind: lastGenKindRef.current, // photo | video | video360 (for the post-info history)
-          feed: showInFeedRef.current, // respect the toggle (creators can save without publishing)
+          // Public only if the user chose Public AND it's allowed (lingerie stays private
+          // for end-users). Otherwise saved privately (account only).
+          feed: showInFeedRef.current && (!isLingerieTryon() || isStaff),
           // Provable active consents (verbatim wording + timestamp).
-          publishConsent: !!consentRef.current,
+          publishConsent: showInFeedRef.current && (!isLingerieTryon() || isStaff) && !!consentRef.current?.publishText,
           consentTimestamp: consentRef.current?.at,
-          consentText: consentRef.current?.publishText,
-          rightsConsent: !!consentRef.current,
+          consentText: consentRef.current?.publishText || undefined,
+          rightsConsent: !!consentRef.current?.rightsText,
           rightsConsentText: consentRef.current?.rightsText,
         }),
       });
@@ -864,10 +869,12 @@ export default function TryonPage() {
   const revealWithEmail = () => {
     const email = gateEmail.trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !look) return;
-    if (!publishConsent || !rightsConsent) return; // must actively consent (publish + rights)
-    // Record both active consents (verbatim wording + timestamp) for this generation.
-    consentRef.current = { at: new Date().toISOString(), publishText: PUBLISH_CONSENT_TEXT, rightsText: RIGHTS_CONSENT_TEXT };
-    setShowInFeed(true); // they consented → this try-on is published
+    if (!rightsConsent) return; // rights attestation is always required
+    const isPublic = visibility === "public";
+    // Record consents (verbatim wording + timestamp). Publish consent only when the
+    // user actively chose "Public"; rights consent always.
+    consentRef.current = { at: new Date().toISOString(), publishText: isPublic ? PUBLISH_CONSENT_TEXT : "", rightsText: RIGHTS_CONSENT_TEXT };
+    setShowInFeed(isPublic); // public choice → shared to the community; private → account only
     // Bind the upcoming try-on to this email so it shows in the account they create.
     ownerEmailRef.current = email.toLowerCase();
     // Capture the email (lead) + create a passwordless account — in the background.
@@ -1121,6 +1128,7 @@ export default function TryonPage() {
               className="mt-2.5 h-13 w-full rounded-2xl border-2 border-black/15 bg-black/[0.02] px-4 py-3.5 text-base font-bold text-black placeholder:text-black/35 outline-none focus:border-black" />
             {/* FIX 4: separate, NOT pre-checked publish consent. Reveal stays disabled
                 until it's actively ticked (and the email is valid). */}
+            {/* Rights attestation — always required (you uploaded a person's photo). */}
             <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-left">
               <input type="checkbox" checked={rightsConsent} onChange={e => setRightsConsent(e.target.checked)}
                 className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-black" />
@@ -1128,15 +1136,25 @@ export default function TryonPage() {
                 I confirm I am the person in the photo, or I have their permission, and I have the right to use this photo.
               </span>
             </label>
-            <label className="mt-2.5 flex cursor-pointer items-start gap-2.5 text-left">
-              <input type="checkbox" checked={publishConsent} onChange={e => setPublishConsent(e.target.checked)}
-                className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-black" />
-              <span className="text-[12px] font-bold leading-snug text-black/70">
-                Yes, I agree that this image I created may be published to the LuxuryBandit community.
-              </span>
-            </label>
+            {/* Who can see it — Public (= consent to publish) or Only me (account only). */}
+            <p className="mt-3 mb-1.5 text-left text-[11px] font-black uppercase tracking-wider text-black/40">Who can see this?</p>
+            <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-black/[0.05] p-1">
+              <button type="button" onClick={() => setVisibility("public")}
+                className={`flex h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-black transition ${visibility === "public" ? "bg-black text-white shadow" : "text-black/55"}`}>
+                <Sparkles className="h-4 w-4" /> Public
+              </button>
+              <button type="button" onClick={() => setVisibility("private")}
+                className={`flex h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-black transition ${visibility === "private" ? "bg-black text-white shadow" : "text-black/55"}`}>
+                🔒 Only me
+              </button>
+            </div>
+            <p className="mt-1.5 text-left text-[11px] font-bold leading-snug text-black/45">
+              {visibility === "public"
+                ? "Public means you agree this image may be shared to the LuxuryBandit community. You can remove it anytime."
+                : "Only you can see this in your account. You can publish it later if you change your mind."}
+            </p>
             <button onClick={() => void revealWithEmail()}
-              disabled={!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(gateEmail.trim()) || !publishConsent || !rightsConsent}
+              disabled={!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(gateEmail.trim()) || !rightsConsent}
               className="mt-3 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-black py-3.5 text-base font-black text-white active:scale-95 transition-transform disabled:opacity-30">
               <Sparkles className="h-4 w-4" /> Reveal my look
             </button>
@@ -1475,16 +1493,13 @@ export default function TryonPage() {
                 {paidSoon === "360" ? "360° video" : "Video"} comes very soon — activates at checkout. Tap <span className="text-white">Photo</span> to try it on now.
               </p>
             )}
-            {/* Consent BEFORE generating: tell the user that continuing publishes their
-                look to the community (they can Remove it later), with "No, cancel" as the
-                clear opt-out. Hidden when it won't be posted (lingerie for end-users). */}
-            {showInFeed && (!effectiveLingerie || isStaff) && (
-              <p className="px-2 text-center text-[11px] leading-snug font-medium text-white/65">
-                By continuing, your try-on is shared to the community so you can win credits — you can remove it anytime. You agree to our{" "}
-                <a href="/terms" className="font-bold text-white/85 underline">Terms</a> &{" "}
-                <a href="/privacy" className="font-bold text-white/85 underline">Privacy</a>.
-              </p>
-            )}
+            {/* The publish/private choice is made at the next step (the gate); just point
+                to the Terms/Privacy here. */}
+            <p className="px-2 text-center text-[11px] leading-snug font-medium text-white/65">
+              Next you&apos;ll choose to keep it private or share it. You agree to our{" "}
+              <a href="/terms" className="font-bold text-white/85 underline">Terms</a> &{" "}
+              <a href="/privacy" className="font-bold text-white/85 underline">Privacy</a>.
+            </p>
             <button onClick={() => router.push(lookBackPath)}
               className="flex h-12 w-full items-center justify-center rounded-2xl bg-white/10 text-sm font-bold text-white/70 active:opacity-70">
               No, cancel
