@@ -155,6 +155,7 @@ type CommunityItem = {
   userPhotoUrl?: string;
   customerName: string;
   lookName: string;
+  lookTitle?: string;
   storeName: string;
   storeSlug: string;
   curatorId?: string;
@@ -410,7 +411,7 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
                       alt={creatorName} className="h-9 w-9 shrink-0 rounded-full bg-white/10 object-cover" />}
                 <div className="min-w-0">
                   <p className="truncate text-sm font-black text-white">{creatorName}</p>
-                  {it.lookName && <p className="truncate text-[11px] font-bold text-white/50">{it.lookName}{it.storeName ? ` · ${it.storeName}` : ""}</p>}
+                  {it.lookTitle && <p className="truncate text-[11px] font-bold text-white/50">{it.lookTitle}</p>}
                 </div>
               </a>
               <button type="button" onClick={toggleFollow}
@@ -421,7 +422,7 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
           ) : (
             <>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-black text-white">{it.lookName}</p>
+                <p className="truncate text-sm font-black text-white">{it.lookTitle || "Luxury look"}</p>
                 {it.storeName && <p className="truncate text-[11px] font-bold text-white/50">{it.storeName}</p>}
               </div>
               {it.storeName && (
@@ -1808,6 +1809,7 @@ function StoresPage() {
             thumbUrl: it.thumb,
             customerName: it.kind === "tryon" ? (it.curatorName ?? "") : "",
             lookName: it.name,
+            lookTitle: it.name, // it.name is already the public label (description), never the brand
             storeName: lookById.get(it.id)?.storeName ?? "",
             storeSlug: lookById.get(it.id)?.storeSlug ?? "",
             curatorId: lookById.get(it.id)?.curatorId,

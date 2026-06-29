@@ -505,6 +505,9 @@ export async function GET(request: Request) {
             // hide Boudoir try-ons from "All" too (not just the looks).
             category: look ? categorizeLook(look as any) : undefined,
             lingerie: look ? (typeof (look as any).lingerie === "boolean" ? (look as any).lingerie : isIntimateName([(look as any).name, (look as any).brand, (look as any).campaignName, (look as any).productNote].filter(Boolean).join(" "))) : undefined,
+            // Public, licensing-safe label (curator description) — shown instead of the
+            // real brand product name. Empty when the look has no description.
+            lookTitle: look ? (((look as any).curatorNote || (look as any).productNote || "").trim() || undefined) : undefined,
             // The original uploaded photo → the feed shows it as the "Before" slide.
             userPhotoUrl: (g as any).userPhotoUrl ?? undefined,
             customerName: (g as any).customerName ?? "",
