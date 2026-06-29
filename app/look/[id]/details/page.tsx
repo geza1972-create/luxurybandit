@@ -266,13 +266,13 @@ export default function LookDetailsPage() {
                   </a>
                   <div className="flex min-w-0 flex-1 flex-col gap-2 py-0.5">
                     <a href={a.link} target="_blank" rel="noopener noreferrer sponsored" className="min-w-0 active:opacity-70">
-                      <p className="line-clamp-2 text-sm font-black text-black">{a.title || a.source || "Anbieter"}</p>
+                      <p className="line-clamp-2 text-sm font-black text-black">{a.title || a.source || ""}</p>
                       {a.source && <p className="mt-0.5 truncate text-[11px] font-bold text-black/40">{a.source}</p>}
                     </a>
                     {/* Products are affiliate shop links only — no "Try-on" here (try-on is
                         on the look itself, not on a random dupe). */}
                     <div className="mt-auto flex items-center justify-between gap-2">
-                      <span className="text-base font-black text-ink">{a.price || "—"}</span>
+                      <span className="text-base font-black text-ink">{a.price || ""}</span>
                       <a href={a.link} target="_blank" rel="noopener noreferrer sponsored"
                         className="flex shrink-0 items-center gap-1.5 rounded-full bg-black px-4 py-1.5 text-[12px] font-black text-white active:scale-95 transition-transform">
                         <ShoppingBag className="h-3.5 w-3.5" /> Shop now
@@ -302,7 +302,7 @@ export default function LookDetailsPage() {
                     className="h-full w-full object-cover" />
                 </div>
                 <div className="flex flex-1 flex-col gap-1 p-2.5">
-                  <p className="line-clamp-2 text-[13px] font-black text-black">{a.title || a.source || "Reise-Idee"}</p>
+                  <p className="line-clamp-2 text-[13px] font-black text-black">{a.title || a.source || ""}</p>
                   <div className="mt-auto flex items-center justify-between gap-2 pt-1">
                     {a.price ? <span className="text-sm font-black text-ink">{a.price}</span> : a.source ? <span className="truncate text-[11px] font-bold text-black/40">{a.source}</span> : <span />}
                     <span className="shrink-0 rounded-full bg-black px-3 py-1 text-[11px] font-black text-white">Ansehen →</span>
