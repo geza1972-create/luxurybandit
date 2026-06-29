@@ -8,6 +8,7 @@ import { FASHION_BRANDS } from "@/lib/fashion-brands";
 import { isIntimateName } from "@/lib/lingerie";
 import { LOOK_CATEGORIES, categorizeLook, type LookCategory } from "@/lib/look-category";
 import { findBrandsInText } from "@/lib/fashion-brands";
+import { auditProducts, auditEscapes } from "@/lib/reel-audit";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 // Garment types a curator can target the search with (select one, sorted A→Z list
@@ -656,6 +657,7 @@ export default function AdminTrends() {
   const [reelClothesSel, setReelClothesSel] = useState<Set<string>>(new Set());
   const [reelLocCands, setReelLocCands] = useState<{ title?: string; link: string; source?: string; thumbnail: string; price?: string }[]>([]);
   const [reelLocSel, setReelLocSel] = useState<Set<string>>(new Set());
+  const [reelAuditMsg, setReelAuditMsg] = useState("");
   // AI Fashion generation state
   const [aiGarmentFile, setAiGarmentFile] = useState<File | null>(null);
   const [aiPersonFile, setAiPersonFile] = useState<File | null>(null);
@@ -767,6 +769,18 @@ export default function AdminTrends() {
     } catch { setReelErr("Suche fehlgeschlagen."); }
     setReelSearching(false);
   };
+  // Pre-post check: deselect blind text, dead links, and non-booking/social places.
+  const runReelAnalysis = () => {
+    const p = auditProducts(reelClothesCands);
+    const e = auditEscapes(reelLocCands);
+    if (p.drop.size) setReelClothesSel(s => { const n = new Set(s); p.drop.forEach(l => n.delete(l)); return n; });
+    if (e.drop.size) setReelLocSel(s => { const n = new Set(s); e.drop.forEach(l => n.delete(l)); return n; });
+    const reasons = (m: Record<string, string>) => { const c: Record<string, number> = {}; Object.values(m).forEach(r => c[r] = (c[r] ?? 0) + 1); return Object.entries(c).map(([r, n]) => `${n}× ${r}`).join(", "); };
+    const parts: string[] = [];
+    if (p.drop.size) parts.push(`Produkte: ${p.drop.size} abgewählt (${reasons(p.reasons)})`);
+    if (e.drop.size) parts.push(`Orte: ${e.drop.size} abgewählt (${reasons(e.reasons)})`);
+    setReelAuditMsg(parts.length ? `Korrektur — ${parts.join(" · ")}. Häkchen prüfen, dann posten.` : "Alles sauber ✅ — keine Blindtext-/toten-Link-/Nicht-Buchungs-Treffer.");
+  };
   const publishReel = async () => {
     setReelErr(""); setReelMsg("");
     if (!reelFile) { setReelErr("Bitte ein Video (MP4) wählen."); return; }
@@ -840,7 +854,7 @@ export default function AdminTrends() {
       const locNote = triedLocation && !locationDupes.length ? " · keine Orte gefunden (Suchbegriff eingeben?)" : locationDupes.length ? ` · ${locationDupes.length} Orte` : "";
       setReelMsg(`Reel ist live im Feed ✨${alternatives.length ? ` · ${alternatives.length} ähnliche Looks` : ""}${locNote}`);
       setReelFile(null); setReelClothesFile(null); setReelLocationFile(null); setReelLocationQuery(""); setReelDesc("");
-      setReelClothesCands([]); setReelClothesSel(new Set()); setReelLocCands([]); setReelLocSel(new Set());
+      setReelClothesCands([]); setReelClothesSel(new Set()); setReelLocCands([]); setReelLocSel(new Set()); setReelAuditMsg("");
       void fetch("/api/curator?mylooks=1", { headers: studioHeaders() }).then(r => r.json()).then((d: any) => setMyLooks(d.looks ?? [])).catch(() => {});
     } catch (e) {
       setReelErr(e instanceof Error ? e.message : "Upload fehlgeschlagen.");
@@ -1451,6 +1465,13 @@ export default function AdminTrends() {
                   ))}
                 </div>
               </div>
+              {(reelClothesCands.length > 0 || reelLocCands.length > 0) && (
+                <button type="button" onClick={runReelAnalysis} disabled={reelBusy}
+                  className="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-amber-400 bg-amber-50 text-[12px] font-black text-amber-700 disabled:opacity-50">
+                  <Wand2 className="h-4 w-4" /> Analyse & Korrektur (Blindtext, tote Links, Nicht-Buchungs-Orte)
+                </button>
+              )}
+              {reelAuditMsg && <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-bold leading-snug text-amber-700">{reelAuditMsg}</p>}
               {reelErr && <p className="text-xs font-bold text-coral">{reelErr}</p>}
               {reelMsg && <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-xs font-black text-green-700">{reelMsg}</p>}
               <button type="button" onClick={() => void publishReel()} disabled={reelBusy}
