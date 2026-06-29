@@ -166,6 +166,18 @@ async function callDupes(imageUrl: string, imageData?: string): Promise<any[]> {
   }
 }
 
+// Keyword "similar escapes" search (Google Images) for the Reel location — works
+// even on AI-generated location renders, where reverse-image search finds nothing.
+async function callPlaceSearch(query: string): Promise<any[]> {
+  if (!query.trim()) return [];
+  try {
+    const res = await fetch("/api/place-search", { method: "POST", headers: studioHeaders(), body: JSON.stringify({ query }) });
+    const data = await res.json();
+    if (!res.ok || data.error) return [];
+    return Array.isArray(data.results) ? data.results : [];
+  } catch { return []; }
+}
+
 // Brand-aware shop search (Google Shopping text query) — surfaces actual on-brand
 // products (e.g. real Tom Ford pieces) that a pure visual match would miss.
 // Returns alternatives in the look's shape, or [] on failure.
@@ -631,6 +643,7 @@ export default function AdminTrends() {
   const [reelFile, setReelFile] = useState<File | null>(null);
   const [reelClothesFile, setReelClothesFile] = useState<File | null>(null);   // garment → look dupes
   const [reelLocationFile, setReelLocationFile] = useState<File | null>(null);  // place → similar escapes
+  const [reelLocationQuery, setReelLocationQuery] = useState("");               // place keyword (reliable)
   const [reelDesc, setReelDesc] = useState("");
   const [reelCategory, setReelCategory] = useState<LookCategory>("after-dark");
   const [reelBusy, setReelBusy] = useState(false);
@@ -756,9 +769,13 @@ export default function AdminTrends() {
         setReelStep("Ähnliche Looks suchen…");
         try { alternatives = await callDupes("", await fileToDataUrl(reelClothesFile)); } catch { /**/ }
       }
-      if (reelLocationFile) {
+      const triedLocation = !!reelLocationFile || !!reelLocationQuery.trim();
+      if (triedLocation) {
         setReelStep("Ähnliche Orte suchen…");
-        try { locationDupes = await callDupes("", await fileToDataUrl(reelLocationFile)); } catch { /**/ }
+        // Keyword search (reliable for AI/generic places) first; fall back to the
+        // reverse-image search on the location photo if no keyword was given.
+        if (reelLocationQuery.trim()) { try { locationDupes = await callPlaceSearch(reelLocationQuery); } catch { /**/ } }
+        if (!locationDupes.length && reelLocationFile) { try { locationDupes = await callDupes("", await fileToDataUrl(reelLocationFile)); } catch { /**/ } }
       }
       if (alternatives.length || locationDupes.length) {
         setReelStep("Treffer speichern…");
@@ -768,8 +785,9 @@ export default function AdminTrends() {
           ...(locationDupes.length ? { locationDupes } : {}),
         }) }).catch(() => {});
       }
-      setReelMsg(`Reel ist live im Feed ✨${alternatives.length ? ` · ${alternatives.length} ähnliche Looks` : ""}${locationDupes.length ? ` · ${locationDupes.length} Orte` : ""}`);
-      setReelFile(null); setReelClothesFile(null); setReelLocationFile(null); setReelDesc("");
+      const locNote = triedLocation && !locationDupes.length ? " · keine Orte gefunden (Suchbegriff eingeben?)" : locationDupes.length ? ` · ${locationDupes.length} Orte` : "";
+      setReelMsg(`Reel ist live im Feed ✨${alternatives.length ? ` · ${alternatives.length} ähnliche Looks` : ""}${locNote}`);
+      setReelFile(null); setReelClothesFile(null); setReelLocationFile(null); setReelLocationQuery(""); setReelDesc("");
       void fetch("/api/curator?mylooks=1", { headers: studioHeaders() }).then(r => r.json()).then((d: any) => setMyLooks(d.looks ?? [])).catch(() => {});
     } catch (e) {
       setReelErr(e instanceof Error ? e.message : "Upload fehlgeschlagen.");
@@ -1278,6 +1296,12 @@ export default function AdminTrends() {
                     onChange={e => { const f = e.target.files?.[0]; if (f) { setReelLocationFile(f); setReelErr(""); } }} />
                 </label>
               </div>
+              {/* Reliable location search for AI/generic places — a keyword beats
+                  reverse-image search (which finds nothing on a rendered landscape). */}
+              <input value={reelLocationQuery} onChange={e => setReelLocationQuery(e.target.value)} disabled={reelBusy}
+                placeholder="Ort / Vibe für die Orte-Suche, z. B. „Ibiza Klippen-Villa Pool“"
+                className="h-10 w-full rounded-md border border-black/10 bg-panel px-3 text-sm font-semibold text-ink outline-none focus:border-cobalt disabled:opacity-60" />
+              <p className="-mt-1 text-[10px] font-bold text-ink/35">Tipp: Bei KI-/Render-Locations findet die Bildsuche oft nichts — der Suchbegriff bringt zuverlässig Orte.</p>
               <div className="grid gap-1.5">
                 <span className="text-[11px] font-black uppercase tracking-[0.14em] text-ink/40">Beschreibung <span className="font-bold text-ink/30">· öffentlicher Titel</span></span>
                 <textarea value={reelDesc} onChange={e => setReelDesc(e.target.value)} disabled={reelBusy}
