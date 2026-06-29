@@ -79,7 +79,7 @@ export async function GET(request: Request) {
           if (bo !== null) return -1;  // b is manually ordered, a is new → new first
           return String((b as any).createdAt ?? "").localeCompare(String((a as any).createdAt ?? "")); // newest first
         })
-        .map(l => ({ id: l.id, name: l.name, imageUrl: (l as any).frontImageUrl ?? l.imageUrl, published: l.published !== false, altCount: ((l as any).alternatives ?? []).length, note: (l as any).curatorNote ?? "", commentsOff: (l as any).commentsOff === true, videoUrl: (l as any).videoUrl ?? "", brand: (l as any).brand ?? "", description: (l as any).productNote ?? "", feedOrder: typeof (l as any).feedOrder === "number" ? (l as any).feedOrder : undefined }));
+        .map(l => ({ id: l.id, name: l.name, imageUrl: (l as any).frontImageUrl ?? l.imageUrl, published: l.published !== false, altCount: ((l as any).alternatives ?? []).length, locationCount: ((l as any).locationDupes ?? []).length, note: (l as any).curatorNote ?? "", commentsOff: (l as any).commentsOff === true, videoUrl: (l as any).videoUrl ?? "", brand: (l as any).brand ?? "", category: (l as any).category ?? "", description: (l as any).productNote ?? "", feedOrder: typeof (l as any).feedOrder === "number" ? (l as any).feedOrder : undefined }));
       return NextResponse.json({ looks });
     }
     // Earn-as-you-prove-yourself: tally this creator's engagement and grant any

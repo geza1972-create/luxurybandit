@@ -676,7 +676,7 @@ export default function AdminTrends() {
     try { localStorage.setItem("lb_ai_generations", JSON.stringify(aiGenerations)); }
     catch { /* quota exceeded — keep in-memory only */ }
   }, [aiGenerations]);
-  const [myLooks, setMyLooks] = useState<{ id: string; name: string; imageUrl: string; published: boolean; altCount: number; note?: string; commentsOff?: boolean; videoUrl?: string; brand?: string; description?: string }[]>([]);
+  const [myLooks, setMyLooks] = useState<{ id: string; name: string; imageUrl: string; published: boolean; altCount: number; locationCount?: number; note?: string; commentsOff?: boolean; videoUrl?: string; brand?: string; category?: string; description?: string }[]>([]);
   const [uploadingVideo, setUploadingVideo] = useState<string>("");
   const toggleLookComments = async (lookId: string, commentsOff: boolean) => {
     setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, commentsOff } : l));
@@ -842,6 +842,11 @@ export default function AdminTrends() {
     await fetch("/api/curator", { method: "POST", headers: studioHeaders(), body: JSON.stringify({ action: "update-look-meta", lookId, brand }) }).catch(() => {});
     setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, brand } : l));
     setSavingBrand("");
+  };
+  // Change a look's editorial category from the studio (Boudoir ⇒ private + paid).
+  const setMyLookCategory = async (lookId: string, category: LookCategory) => {
+    setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, category } : l));
+    await fetch("/api/try-this-look", { method: "POST", headers: studioHeaders(), body: JSON.stringify({ action: "update-look", id: lookId, category }) }).catch(() => {});
   };
 
   // Use an image already on the clipboard (e.g. a screenshot) as the garment reference.
@@ -1832,12 +1837,21 @@ export default function AdminTrends() {
                 const lookHref = `/look/${lookSlug}--${l.id}`;
                 return (
                 <div key={l.id} className={`overflow-hidden rounded-lg border border-black/10 transition ${l.published ? "" : "opacity-70"}`}>
-                  <div className="relative aspect-[3/4] w-full overflow-hidden bg-panel cursor-pointer"
-                    onClick={() => window.open(lookHref, "_blank")}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={l.imageUrl} alt={l.name} className="h-full w-full object-cover object-top" />
+                  <div className="relative aspect-[3/4] w-full overflow-hidden bg-panel">
+                    {l.videoUrl ? (
+                      // The uploaded/generated reel — playable right here so you can review it.
+                      // eslint-disable-next-line jsx-a11y/media-has-caption
+                      <video src={l.videoUrl} poster={l.imageUrl || undefined} controls playsInline className="h-full w-full object-cover object-top" />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={l.imageUrl} alt={l.name} className="h-full w-full cursor-pointer object-cover object-top" onClick={() => window.open(lookHref, "_blank")} />
+                    )}
+                    {l.videoUrl && (
+                      <a href={lookHref} target="_blank" rel="noopener noreferrer" title="Im Feed öffnen"
+                        className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-black/55 text-white backdrop-blur active:scale-90"><ExternalLink className="h-3.5 w-3.5" /></a>
+                    )}
                     {!l.published && (
-                      <div className="absolute inset-0 grid place-items-center bg-white/55">
+                      <div className="pointer-events-none absolute inset-0 grid place-items-center bg-white/55">
                         <span className="rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white">Off</span>
                       </div>
                     )}
@@ -1899,6 +1913,19 @@ export default function AdminTrends() {
                               </div>
                             );
                           })()}
+                          {/* Editorial category — editable from the studio (Boudoir = private). */}
+                          <div className="mt-1.5 flex items-center justify-between gap-1.5 rounded-md bg-panel px-2 py-1.5">
+                            <span className="text-[11px] font-black text-ink/60">Kategorie</span>
+                            <select value={(l.category as LookCategory) || categorizeLook({ name: l.name, productNote: l.description })}
+                              onChange={(e) => void setMyLookCategory(l.id, e.target.value as LookCategory)}
+                              className="rounded-full border border-black/15 bg-white px-2 py-0.5 text-[11px] font-black text-ink outline-none focus:border-cobalt">
+                              {LOOK_CATEGORIES.map(c => <option key={c.slug} value={c.slug}>{c.slug === "boudoir" ? "🔒 " : ""}{c.label}</option>)}
+                            </select>
+                          </div>
+                          {/* Shop-dupes / escapes counts so you know the funnel is filled. */}
+                          {(l.altCount > 0 || (l.locationCount ?? 0) > 0) && (
+                            <p className="mt-1.5 text-[10px] font-bold text-ink/40">{l.altCount} ähnliche Looks{(l.locationCount ?? 0) > 0 ? ` · ${l.locationCount} Orte` : ""}</p>
+                          )}
                           {/* Comments on/off for this look */}
                           <button type="button" onClick={() => void toggleLookComments(l.id, !l.commentsOff)}
                             className="mt-1.5 flex w-full items-center justify-between rounded-md bg-panel px-2 py-1.5 text-[11px] font-black text-ink/60">
