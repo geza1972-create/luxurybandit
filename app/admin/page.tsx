@@ -607,7 +607,8 @@ export default function AdminPage() {
               const counts = new Map<LookCategory, number>();
               for (const p of posts) { const c = lookCatById.get(p.lookId); if (c) counts.set(c, (counts.get(c) ?? 0) + 1); }
               return (
-                <div className="mb-3 flex flex-wrap gap-1.5">
+                <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                  <span className="mr-0.5 text-[10px] font-black uppercase tracking-wide text-ink/35">Try-ons</span>
                   <button type="button" onClick={() => setLookCatFilter(null)}
                     className={`rounded-full px-3 py-1 text-[11px] font-black transition ${lookCatFilter === null ? "bg-ink text-white" : "bg-black/5 text-ink/55 hover:bg-black/10"}`}>
                     Alle <span className="opacity-60">{posts.length}</span>
@@ -696,7 +697,8 @@ export default function AdminPage() {
             const counts = new Map<LookCategory, number>();
             for (const l of looks) { const c = l.category ?? categorizeLook(l); counts.set(c, (counts.get(c) ?? 0) + 1); }
             return (
-              <div className="mt-3 flex flex-wrap gap-1.5">
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span className="mr-0.5 text-[10px] font-black uppercase tracking-wide text-ink/35">Looks</span>
                 <button type="button" onClick={() => setLookCatFilter(null)}
                   className={`rounded-full px-3 py-1 text-[11px] font-black transition ${lookCatFilter === null ? "bg-ink text-white" : "bg-black/5 text-ink/55 hover:bg-black/10"}`}>
                   Alle <span className="opacity-60">{looks.length}</span>
