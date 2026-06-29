@@ -9,6 +9,7 @@ import NextImage from "next/image";
 import Link from "next/link";
 import { ChangeEvent, RefObject, useEffect, useRef, useState } from "react";
 import { LOOK_CATEGORIES, categorizeLook, type LookCategory } from "@/lib/look-category";
+import { findBrandsInText } from "@/lib/fashion-brands";
 
 function inferGarmentCategory(look: { name?: string; productNote?: string; hashtags?: string }): "tops" | "bottoms" | "one-pieces" | "lingerie" {
   const text = [look.name, look.productNote, look.hashtags].filter(Boolean).join(" ").toLowerCase();
@@ -728,6 +729,12 @@ function LookForm({
         placeholder="Product note optional, e.g. Limited drop, handmade, available this week."
         className="min-h-24 rounded-md border border-black/10 bg-panel p-3 text-sm font-bold outline-none focus:border-cobalt"
       />
+      {/* The product note is the PUBLIC look title now — curators must not name brands. */}
+      {(() => { const b = findBrandsInText(productNote); return b.length > 0 ? (
+        <p className="-mt-1 rounded-md bg-amber-50 px-2.5 py-1.5 text-[11px] font-bold leading-snug text-amber-700">
+          ⚠️ Markenname in der Beschreibung: <span className="font-black">{b.join(", ")}</span>. Als Curator bitte entfernen (Lizenz) — das ist der öffentliche Titel.
+        </p>
+      ) : null; })()}
       {/* Product type */}
       <div className="grid gap-1.5">
         <div className="text-xs font-black uppercase tracking-[0.14em] text-ink/45">Product type</div>

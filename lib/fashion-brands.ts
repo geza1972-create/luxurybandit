@@ -71,3 +71,22 @@ export const FASHION_BRANDS: string[] = [
   // ── Swimwear ──
   "Calzedonia", "Solid & Striped", "Hunza G", "Melissa Odabash", "Zimmermann Swim", "Oséree", "Marysia",
 ];
+
+// Detect known fashion-brand names inside a piece of text — used to WARN curators
+// when their public copy (look name / description) contains a brand (licensing).
+// Word-boundary match for plain alpha brands (avoids "Etro" in "metro"); plain
+// substring for multi-word / symbol brands ("Dolce & Gabbana").
+export function findBrandsInText(text: string | undefined | null): string[] {
+  if (!text) return [];
+  const found = new Set<string>();
+  for (const b of FASHION_BRANDS) {
+    const needle = b.toLowerCase();
+    if (/[^a-z0-9]/.test(needle)) {
+      if (text.toLowerCase().includes(needle)) found.add(b);
+    } else {
+      const re = new RegExp(`\\b${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+      if (re.test(text)) found.add(b);
+    }
+  }
+  return [...found];
+}

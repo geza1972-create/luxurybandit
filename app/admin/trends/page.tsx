@@ -7,6 +7,7 @@ import { ArrowLeft, Check, ChevronUp, ChevronDown, ClipboardPaste, Crop, Externa
 import { FASHION_BRANDS } from "@/lib/fashion-brands";
 import { isIntimateName } from "@/lib/lingerie";
 import { LOOK_CATEGORIES, categorizeLook, type LookCategory } from "@/lib/look-category";
+import { findBrandsInText } from "@/lib/fashion-brands";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 // Garment types a curator can target the search with (select one, sorted A→Z list
@@ -439,6 +440,16 @@ function DraftCard({ draft, onRemove }: { draft: Draft; onRemove: () => void }) 
           <span className="text-[11px] font-black uppercase tracking-[0.14em] text-ink/40">Name</span>
           <input value={name} onChange={(e) => setName(e.target.value)} disabled={status === "done"}
             className="h-10 w-full rounded-md border border-black/10 bg-panel px-3 text-sm font-semibold text-ink outline-none focus:border-cobalt disabled:opacity-60" />
+          {/* Curators must not put brand names in their public copy (licensing). Users
+              may; we may not. Warn so the curator removes it before publishing. */}
+          {(() => {
+            const brands = findBrandsInText(name);
+            return brands.length > 0 ? (
+              <p className="rounded-md bg-amber-50 px-2.5 py-1.5 text-[11px] font-bold leading-snug text-amber-700">
+                ⚠️ Markenname erkannt: <span className="font-black">{brands.join(", ")}</span>. Als Curator bitte entfernen (Lizenz) — die User sehen den Namen.
+              </p>
+            ) : null;
+          })()}
         </div>
         <div className="grid gap-1.5">
           <span className="text-[11px] font-black uppercase tracking-[0.14em] text-ink/40">Preis</span>
