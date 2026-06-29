@@ -2030,10 +2030,13 @@ function StoresPage() {
                     onClick={() => { setReelItems(visibleHistoryAsReel); setCommunitySelectedIndex(idx); }}
                     className="relative aspect-square overflow-hidden bg-black/5 transition-opacity active:opacity-80">
                     {it.videoUrl ? (
-                      // Video tile — show a real model frame: the model poster if we
-                      // have one, else the video's own first frame (#t=0.1 forces it).
-                      <video src={it.videoPoster ? it.videoUrl : `${it.videoUrl}#t=0.1`} poster={it.videoPoster} muted playsInline preload="metadata"
-                        className="h-full w-full bg-black object-cover object-top" />
+                      // Video tile — always show a still poster so the tile is never a
+                      // black box: the model poster if we have one, else the look's own
+                      // image, and only as a last resort the video's first frame.
+                      (() => { const poster = it.videoPoster || it.thumb; return (
+                        <video src={poster ? it.videoUrl : `${it.videoUrl}#t=0.1`} poster={poster || undefined} muted playsInline preload="metadata"
+                          className="h-full w-full bg-black object-cover object-top" />
+                      ); })()
                     ) : (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={optImg(it.thumb, 400)} alt={it.name} loading="lazy" decoding="async"
