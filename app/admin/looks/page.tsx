@@ -2993,7 +2993,7 @@ export default function AdminLooksPage() {
                       type="button"
                       disabled={isSaving}
                       onClick={() => void toggleLingerie(look)}
-                      className={`inline-flex h-10 items-center justify-center gap-2 rounded-md px-3 text-xs font-black disabled:cursor-wait disabled:opacity-50 ${look.lingerie ? "bg-black text-white" : "bg-black/[0.06] text-ink/60"}`}
+                      className={`inline-flex h-10 items-center justify-center gap-2 rounded-md px-3 text-xs font-black disabled:cursor-wait disabled:opacity-50 ${look.lingerie ? "bg-amber-100 text-amber-700 ring-1 ring-amber-300" : "bg-black/[0.06] text-ink/60"}`}
                       title="Toggle Lingerie/Swimwear (try-ons stay private; paid tier)"
                     >
                       🔒 {look.lingerie ? "Lingerie ✓" : "Lingerie"}
