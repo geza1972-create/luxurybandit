@@ -17,6 +17,7 @@ type Post = {
   customerName: string;
   userId?: string;
   lookName: string;
+  lookTitle?: string;
   storeName: string;
   storeSlug: string;
   lookThumbUrl: string;
@@ -506,7 +507,7 @@ export default function PostPage() {
         {post.creatorDeleted ? (
           <div className="flex items-center gap-3 rounded-xl border border-black/10 bg-black/[0.02] p-3">
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-black text-black/50">{post.lookName}</p>
+              <p className="truncate text-xs font-black text-black/50">{post.lookTitle || "Luxury look"}</p>
             </div>
           </div>
         ) : (
@@ -517,7 +518,7 @@ export default function PostPage() {
               <img src={post.lookThumbUrl} alt={post.lookName} className="h-14 w-10 rounded-lg object-cover object-top shrink-0" />
             )}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-black text-black">{post.lookName}</p>
+              <p className="truncate text-xs font-black text-black">{post.lookTitle || "Luxury look"}</p>
               {post.storeName && <p className="truncate text-[10px] font-bold text-black/40">{post.storeName}</p>}
             </div>
             {post.curatorName ? (

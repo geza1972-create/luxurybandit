@@ -458,6 +458,9 @@ export async function GET(request: Request) {
           customerName: (g as any).customerName ?? "",
           userId: (g as any).userId ?? undefined,
           lookName: g.lookName ?? look?.name ?? "",
+          // Public, licensing-safe label (curator description) — shown to users instead
+          // of the real brand product name. Empty if the look has no description.
+          lookTitle: ((look as any)?.curatorNote || (look as any)?.productNote || "").trim() || undefined,
           storeName: g.storeName ?? look?.storeName ?? "",
           storeSlug: (look as any)?.storeSlug ?? "",
           lookThumbUrl: look?.frontImageUrl ?? look?.imageUrl ?? "",

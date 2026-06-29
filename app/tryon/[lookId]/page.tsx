@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import CropModal from "@/components/CropModal";
 import { getClientAccountId } from "@/lib/client-account";
+import { publicLookTitle, publicLookLabel } from "@/lib/look-title";
 import {
   getStoredAuthSession,
   signInWithPassword,
@@ -28,6 +29,7 @@ type Look = {
   imageUrl: string; frontImageUrl?: string; garmentFrontImageUrl?: string;
   galleryImageUrls?: string[];
   lingerie?: boolean;
+  curatorNote?: string; productNote?: string;
   alternatives?: { title: string; link: string; thumbnail: string; price?: string; source?: string }[];
 };
 
@@ -160,13 +162,14 @@ export default function TryonPage() {
   const [isLoadingLook, setIsLoadingLook] = useState(true);
   // Cross-sell: other looks to try on next (shown on the result step).
   const [moreLooks, setMoreLooks] = useState<{ id: string; name: string; img: string; price?: string; lingerie?: boolean }[]>([]);
+  // `name` here is the PUBLIC label (curator description), never the brand product name.
   useEffect(() => {
     fetch("/api/try-this-look").then(r => r.json()).then((d: any) => {
       const all = (d.looks ?? d.activeLooks ?? []) as any[];
       setMoreLooks(all
         .filter(l => l.id !== lookId && (l.frontImageUrl || l.imageUrl))
         .slice(0, 40) // show (nearly) the whole gallery — it's a horizontal scroll row
-        .map(l => ({ id: l.id, name: l.name, img: l.frontImageUrl || l.imageUrl, price: l.salePrice || l.price, lingerie: !!l.lingerie })));
+        .map(l => ({ id: l.id, name: publicLookLabel(l), img: l.frontImageUrl || l.imageUrl, price: l.salePrice || l.price, lingerie: !!l.lingerie })));
     }).catch(() => {});
   }, [lookId]);
 
@@ -1566,7 +1569,7 @@ export default function TryonPage() {
         </button>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-bold text-black/40 truncate">{look.storeName}</p>
-          <p className="text-sm font-black truncate">{look.name}</p>
+          <p className="text-sm font-black truncate">{publicLookTitle(look) || "Luxury look"}</p>
         </div>
         {look.price && <p className="text-sm font-black shrink-0">{look.salePrice ?? look.price}</p>}
       </div>

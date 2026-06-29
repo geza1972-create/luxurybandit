@@ -15,6 +15,7 @@ import { lookPath } from "@/lib/look-slug";
 import HomeFeed from "@/components/HomeFeed";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { LOOK_CATEGORIES, isHiddenFromAll, type LookCategory } from "@/lib/look-category";
+import { publicLookLabel } from "@/lib/look-title";
 import { Bookmark, EyeOff, Heart, Home, Image as ImageIcon, Info, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, Sparkles, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -1733,12 +1734,12 @@ function StoresPage() {
       // date. Fall back to the timestamp embedded in the video filename for older ones.
       const videoTs = l.videoCreatedAt || tsFromVideoUrl(l.videoUrl) || "";
       const when = videoTs > (l.createdAt ?? "") ? videoTs : (l.createdAt ?? "");
-      items.push({ key: `look-${l.id}`, kind: "look", id: l.id, lookId: l.id, thumb, videoUrl: l.videoUrl, videoPoster, aiCreated: l.aiCreated, brand: l.brand, category: l.category, createdAt: when, name: l.name, price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl });
+      items.push({ key: `look-${l.id}`, kind: "look", id: l.id, lookId: l.id, thumb, videoUrl: l.videoUrl, videoPoster, aiCreated: l.aiCreated, brand: l.brand, category: l.category, createdAt: when, name: publicLookLabel(l), price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl });
     }
     for (const c of communityItems) {
       // A try-on still IS a real model frame → use it as the video poster.
       const srcLook = lookById.get(c.lookId);
-      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, hasBefore: !!c.userPhotoUrl, brand: c.brand, category: c.category ?? srcLook?.category, createdAt: c.createdAt ?? "", name: c.customerName || c.lookName, price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName });
+      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, hasBefore: !!c.userPhotoUrl, brand: c.brand, category: c.category ?? srcLook?.category, createdAt: c.createdAt ?? "", name: c.customerName || (srcLook ? publicLookLabel(srcLook) : "Luxury look"), price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName });
     }
     items.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
     // Dedupe only the LOOK tiles by look (one tile per product, prefer the video).
@@ -2327,7 +2328,7 @@ function StoresPage() {
                           </a>
                         ) : null}
                         <span className="min-w-0 flex-1 truncate text-[9px] font-black text-black/70">
-                          {item.customerName || item.lookName}
+                          {item.customerName || "Luxury look"}
                         </span>
                       </div>
                       {/* Social bar — same as regular feed */}
