@@ -542,6 +542,17 @@ function CommunityDetailView({
   router: ReturnType<typeof import("next/navigation").useRouter>;
 }) {
   const [currentIdx, setCurrentIdx] = useState(initialIndex);
+  // Count a real feed view when a post becomes the active reel (once per look/session).
+  const viewedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const it = allItems[currentIdx];
+    const lookId = it?.lookId || it?.id;
+    if (!lookId || viewedRef.current.has(lookId)) return;
+    viewedRef.current.add(lookId);
+    try {
+      fetch("/api/try-this-look", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "view", lookId }) }).catch(() => {});
+    } catch { /**/ }
+  }, [currentIdx, allItems]);
   const [verticalDrag, setVerticalDrag] = useState(0);
   const [verticalSnapping, setVerticalSnapping] = useState(false);
   // Thin top progress bar: shown on every scroll until the new reel's media is ready.

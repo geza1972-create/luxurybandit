@@ -685,7 +685,7 @@ export default function AdminTrends() {
     catch { /* quota exceeded — keep in-memory only */ }
   }, [aiGenerations]);
   type SerpItem = { title?: string; link: string; source?: string; thumbnail: string; price?: string; priceValue?: number; currency?: string };
-  const [myLooks, setMyLooks] = useState<{ id: string; name: string; imageUrl: string; published: boolean; altCount: number; locationCount?: number; alternatives?: SerpItem[]; locationDupes?: SerpItem[]; clicks?: Record<string, number>; clothesImageUrl?: string; locationImageUrl?: string; note?: string; commentsOff?: boolean; videoUrl?: string; brand?: string; category?: string; description?: string }[]>([]);
+  const [myLooks, setMyLooks] = useState<{ id: string; name: string; imageUrl: string; published: boolean; altCount: number; locationCount?: number; alternatives?: SerpItem[]; locationDupes?: SerpItem[]; clicks?: Record<string, number>; viewCount?: number; likeCount?: number; tryOnCount?: number; commentCount?: number; clothesImageUrl?: string; locationImageUrl?: string; note?: string; commentsOff?: boolean; videoUrl?: string; brand?: string; category?: string; description?: string }[]>([]);
   const [editingLookId, setEditingLookId] = useState<string | null>(null); // open the edit sheet for one look
   // Edit-sheet curation state (one look at a time): re-upload source images, run the
   // SerpApi search, and tick which results show in the reel's "Bandit the look".
@@ -2005,9 +2005,16 @@ export default function AdminTrends() {
                   <div className="p-2">
                     {/* Public title (curator description), never the raw brand product name. */}
                     <p className="line-clamp-1 text-[11px] font-bold text-ink/80">{l.note || l.description || "Luxury look"}</p>
-                    {(() => { const total = Object.values(l.clicks ?? {}).reduce((s, n) => s + (n as number), 0); return total > 0 ? (
-                      <p className="mt-0.5 text-[10px] font-black text-emerald-600">👁 {total} Klick{total === 1 ? "" : "s"} auf Shop-/Orte-Links</p>
-                    ) : null; })()}
+                    {/* Real feed insights (not the seeded social-proof counts). */}
+                    {(() => {
+                      const clicks = Object.values(l.clicks ?? {}).reduce((s, n) => s + (n as number), 0);
+                      const cells: [string, number][] = [["👁", l.viewCount ?? 0], ["❤️", l.likeCount ?? 0], ["✨", l.tryOnCount ?? 0], ["🛍", clicks], ["💬", l.commentCount ?? 0]];
+                      return (
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-black text-ink/55">
+                          {cells.map(([icon, n]) => <span key={icon} className={n > 0 ? "text-ink/80" : ""}>{icon} {n}</span>)}
+                        </div>
+                      );
+                    })()}
                     <div className="mt-1.5 flex items-center gap-1.5">
                       {/* Feed order */}
                       <div className="flex shrink-0 flex-col">

@@ -780,6 +780,18 @@ export async function POST(request: Request) {
       return NextResponse.json(ps(updatedState));
     }
 
+    // Feed view tracking (real impressions) — fired when a post becomes the active
+    // reel. The displayed feed counts are seeded social proof; this is the real number.
+    if (payload.action === "view") {
+      const lookId = String(payload.lookId ?? "").trim();
+      const look = state.looks.find(l => l.id === lookId);
+      if (look) {
+        (look as any).viewCount = ((look as any).viewCount ?? 0) + 1;
+        await saveTryThisLookState(state);
+      }
+      return NextResponse.json({ ok: true });
+    }
+
     // Affiliate click tracking: count taps on a product "Shop now" / escape "Ansehen"
     // link, keyed by the destination URL, so the curator sees which dupes/places perform.
     if (payload.action === "click") {
@@ -1585,6 +1597,7 @@ export async function POST(request: Request) {
           ...(altInput ? { alternatives: altInput } : {}),
           ...(locationInput ? { locationDupes: locationInput } : {}),
           ...(hasField("clicks") && (payload as any).clicks && typeof (payload as any).clicks === "object" ? { clicks: (payload as any).clicks } : {}),
+          ...(hasField("viewCount") && typeof (payload as any).viewCount === "number" ? { viewCount: (payload as any).viewCount } : {}),
           availabilityNote: availabilityNote || undefined,
           deliveryTime: deliveryTime || undefined,
           productNote: productNote || undefined,

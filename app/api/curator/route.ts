@@ -67,6 +67,11 @@ export async function GET(request: Request) {
       // A curator sees their own looks. The house admin (PIN/email, no curator
       // session) sees ALL looks — this is the master gallery below the studio.
       const adminAll = !curator && (await isAdminRequest(request));
+      // Real engagement per look for the studio insights row.
+      const tryOnByLook = new Map<string, number>();
+      for (const g of state.generations ?? []) { const k = (g as any).lookId; if (k) tryOnByLook.set(k, (tryOnByLook.get(k) ?? 0) + 1); }
+      const commentsByLook = new Map<string, number>();
+      for (const c of state.comments ?? []) { const k = (c as any).lookId; if (k) commentsByLook.set(k, (commentsByLook.get(k) ?? 0) + 1); }
       const looks = (!curator && !adminAll) ? [] : (state.looks ?? [])
         .filter(l => adminAll || (l as any).curatorId === curator!.id)
         // Manual order (feedOrder) wins where set; everything else newest-first so
@@ -79,7 +84,7 @@ export async function GET(request: Request) {
           if (bo !== null) return -1;  // b is manually ordered, a is new → new first
           return String((b as any).createdAt ?? "").localeCompare(String((a as any).createdAt ?? "")); // newest first
         })
-        .map(l => ({ id: l.id, name: l.name, imageUrl: (l as any).frontImageUrl ?? l.imageUrl, published: l.published !== false, altCount: ((l as any).alternatives ?? []).length, locationCount: ((l as any).locationDupes ?? []).length, alternatives: (l as any).alternatives ?? [], locationDupes: (l as any).locationDupes ?? [], clicks: (l as any).clicks ?? {}, clothesImageUrl: (l as any).clothesImageUrl ?? "", locationImageUrl: (l as any).locationImageUrl ?? "", note: ((l as any).curatorNote || (l as any).productNote) ?? "", commentsOff: (l as any).commentsOff === true, videoUrl: (l as any).videoUrl ?? "", brand: (l as any).brand ?? "", category: (l as any).category ?? "", description: (l as any).productNote ?? "", feedOrder: typeof (l as any).feedOrder === "number" ? (l as any).feedOrder : undefined }));
+        .map(l => ({ id: l.id, name: l.name, imageUrl: (l as any).frontImageUrl ?? l.imageUrl, published: l.published !== false, altCount: ((l as any).alternatives ?? []).length, locationCount: ((l as any).locationDupes ?? []).length, alternatives: (l as any).alternatives ?? [], locationDupes: (l as any).locationDupes ?? [], clicks: (l as any).clicks ?? {}, viewCount: (l as any).viewCount ?? 0, likeCount: (l as any).likeCount ?? 0, tryOnCount: tryOnByLook.get(l.id) ?? 0, commentCount: commentsByLook.get(l.id) ?? 0, clothesImageUrl: (l as any).clothesImageUrl ?? "", locationImageUrl: (l as any).locationImageUrl ?? "", note: ((l as any).curatorNote || (l as any).productNote) ?? "", commentsOff: (l as any).commentsOff === true, videoUrl: (l as any).videoUrl ?? "", brand: (l as any).brand ?? "", category: (l as any).category ?? "", description: (l as any).productNote ?? "", feedOrder: typeof (l as any).feedOrder === "number" ? (l as any).feedOrder : undefined }));
       return NextResponse.json({ looks });
     }
     // Earn-as-you-prove-yourself: tally this creator's engagement and grant any
