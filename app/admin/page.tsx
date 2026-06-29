@@ -100,6 +100,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+  const [lookCatFilter, setLookCatFilter] = useState<LookCategory | null>(null); // A-List category filter
   const [busy, setBusy] = useState("");
   const [confirmId, setConfirmId] = useState("");
   const [edit, setEdit] = useState<Curator | null>(null); // curator being edited
@@ -404,9 +405,10 @@ export default function AdminPage() {
     return hasHouse && (!q || "admin house".includes(q)) ? [houseCurator, ...arr] : arr;
   }, [curators, q, sortC, sortDir, looksByCurator, tryonsByCurator, hasHouse, houseCurator]);
   const shownLooks = useMemo(() => {
-    const base = !q ? looks : looks.filter(l => `${l.name} ${l.curatorName ?? ""} ${l.brand ?? ""} ${l.productNote ?? ""}`.toLowerCase().includes(q));
+    let base = !q ? looks : looks.filter(l => `${l.name} ${l.curatorName ?? ""} ${l.brand ?? ""} ${l.productNote ?? ""}`.toLowerCase().includes(q));
+    if (lookCatFilter) base = base.filter(l => (l.category ?? categorizeLook(l)) === lookCatFilter);
     return [...base].sort((a, b) => lookWhen(b).localeCompare(lookWhen(a))); // newest activity first — matches the frontend A List
-  }, [looks, q]);
+  }, [looks, q, lookCatFilter]);
 
   // ── Posts tab: load all generations (incl. hidden), search by name + date ──
   useEffect(() => {
@@ -665,6 +667,26 @@ export default function AdminPage() {
 
         {/* ── A List ── */}
         {tab === "looks" && (
+          <>
+          {/* Category filter chips — All + the 4 editorial categories, each with a count. */}
+          {(() => {
+            const counts = new Map<LookCategory, number>();
+            for (const l of looks) { const c = l.category ?? categorizeLook(l); counts.set(c, (counts.get(c) ?? 0) + 1); }
+            return (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <button type="button" onClick={() => setLookCatFilter(null)}
+                  className={`rounded-full px-3 py-1 text-[11px] font-black transition ${lookCatFilter === null ? "bg-ink text-white" : "bg-black/5 text-ink/55 hover:bg-black/10"}`}>
+                  Alle <span className="opacity-60">{looks.length}</span>
+                </button>
+                {LOOK_CATEGORIES.map(c => (
+                  <button key={c.slug} type="button" onClick={() => setLookCatFilter(c.slug)}
+                    className={`rounded-full px-3 py-1 text-[11px] font-black transition ${lookCatFilter === c.slug ? "bg-ink text-white" : "bg-black/5 text-ink/55 hover:bg-black/10"}`}>
+                    {c.slug === "boudoir" ? "🔒 " : ""}{c.label} <span className="opacity-60">{counts.get(c.slug) ?? 0}</span>
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
           <div className="mt-3 grid grid-cols-1 gap-2 pb-16">
             {shownLooks.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No listings.</p>}
             {shownLooks.map(l => {
@@ -733,6 +755,7 @@ export default function AdminPage() {
               );
             })}
           </div>
+          </>
         )}
 
         {/* ── Curators ── */}
