@@ -619,12 +619,14 @@ function CommunityDetailView({
   const onWheel = (e: React.WheelEvent) => {
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
     if (allItems.length <= 1) return;
-    // A single trackpad flick fires a long burst of wheel events (momentum). Keep the
-    // lock alive until the burst STOPS for 160ms, so one flick = one step (no auto-scroll).
-    if (wheelTimer.current) clearTimeout(wheelTimer.current);
-    wheelTimer.current = setTimeout(() => { wheelCooldown.current = false; }, 160);
     if (wheelCooldown.current || verticalSnapping) return;
+    // Take ONE step, then a FIXED short cooldown. (The old logic only cleared the lock
+    // 160ms after trackpad momentum fully stopped, so it stayed locked for 1–2s and the
+    // feed felt frozen between deliberate scrolls.) A fixed window absorbs a single
+    // flick's momentum without blocking the next intentional scroll.
     wheelCooldown.current = true;
+    if (wheelTimer.current) clearTimeout(wheelTimer.current);
+    wheelTimer.current = setTimeout(() => { wheelCooldown.current = false; }, 500);
     const goNext = e.deltaY > 0;
     const newIdx = goNext ? (currentIdx + 1) % allItems.length : (currentIdx - 1 + allItems.length) % allItems.length;
     snapTo(newIdx, goNext ? -slideH() : slideH());
