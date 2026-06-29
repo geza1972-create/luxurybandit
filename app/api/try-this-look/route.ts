@@ -465,13 +465,25 @@ export async function GET(request: Request) {
     // Global community feed — all recent public generations
     if (url.searchParams.get("community") === "1") {
       const lookById = new Map(state.looks.map(l => [l.id, l]));
-      // Discover archive — every PUBLIC post (respect the creator's "In feed /
-      // Hidden" toggle: feed === false means hide it from the public grid too).
+      // Who's asking? Best-effort decode of the JWT email (no round-trip) + the curator
+      // id header, so we can flag each post as `mine`. Only drives a UI button (the
+      // owner's "Make AI-Video"), so a local decode is fine — we never expose ownerEmail.
+      let myEmail = "";
+      try {
+        const tok = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+        if (tok) {
+          const claims = JSON.parse(Buffer.from(tok.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString());
+          myEmail = String(claims.email ?? "").trim().toLowerCase();
+        }
+      } catch { /* ignore */ }
+      const myCuratorId = request.headers.get("x-curator-id")?.trim() ?? "";
       const community = state.generations
         .filter(g => (g as any).imageUrl && !(g as any).hidden && (g as any).feed !== false)
         .slice(0, 200)
         .map(g => {
           const look = lookById.get(g.lookId);
+          const ownerEmail = String((g as any).ownerEmail ?? "").trim().toLowerCase();
+          const mine = (!!myEmail && ownerEmail === myEmail) || (!!myCuratorId && String((g as any).curatorId ?? "") === myCuratorId);
           return {
             id: g.id,
             lookId: g.lookId,
@@ -483,6 +495,7 @@ export async function GET(request: Request) {
             userPhotoUrl: (g as any).userPhotoUrl ?? undefined,
             customerName: (g as any).customerName ?? "",
             curatorId: (g as any).curatorId ?? "",
+            mine, // this post belongs to the signed-in user → show owner-only actions
             lookName: g.lookName ?? look?.name ?? "",
             storeName: g.storeName ?? look?.storeName ?? "",
             storeSlug: (look as any)?.storeSlug ?? "",

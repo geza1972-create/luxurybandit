@@ -155,6 +155,7 @@ type CommunityItem = {
   curatorPhotoUrl?: string;
   slides?: Slide[];
   kind?: "look" | "tryon"; // for the in-feed Hide action (unpublish look vs hide try-on)
+  mine?: boolean; // this post belongs to the signed-in user → owner-only actions
   createdAt: string;
 };
 
@@ -331,14 +332,21 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
               className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-white/80 px-5 text-sm font-black text-black backdrop-blur-md active:scale-95 transition-transform">
               <Sparkles className="h-4 w-4" /> Try on you
             </a>
-            {/* Make AI-Video — on AI-picture posts (no video yet). Everyone sees it;
-                staff generate now (free), others get a 'Soon' (paid, pending Stripe). */}
-            {!it.videoUrl && onMakeVideo && (
+            {/* Make AI-Video — ONLY on the user's OWN AI-picture post (no video yet).
+                Owner → opens the try-on flow (video + 360° tiers). Staff keep the
+                inline one-tap generate on any post (content seeding). */}
+            {!it.videoUrl && it.mine && !isStaff && (
+              <a href={`/tryon/${it.lookId}?make=video`}
+                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-white/80 px-5 text-sm font-black text-black backdrop-blur-md active:scale-95 transition-transform">
+                <Sparkles className="h-4 w-4" /> Make AI-Video
+              </a>
+            )}
+            {!it.videoUrl && isStaff && onMakeVideo && (
               <button type="button" disabled={makingVideoLookId === it.lookId}
-                onClick={() => { if (isStaff) onMakeVideo(it.lookId); else { setSoon(true); setTimeout(() => setSoon(false), 2500); } }}
+                onClick={() => onMakeVideo(it.lookId)}
                 className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-white/80 px-5 text-sm font-black text-black backdrop-blur-md active:scale-95 transition-transform disabled:opacity-60">
                 {makingVideoLookId === it.lookId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {makingVideoLookId === it.lookId ? "Generating…" : soon ? "Soon · paid" : "Make AI-Video"}
+                {makingVideoLookId === it.lookId ? "Generating…" : "Make AI-Video"}
               </button>
             )}
             <a href={`${lookPath(it.lookName, it.lookId)}/details`}
@@ -1579,7 +1587,11 @@ function StoresPage() {
     let alive = true;
     const load = (showSpinner: boolean) => {
       if (showSpinner) setCommunityLoading(true);
-      fetch("/api/try-this-look?community=1")
+      // Send identity so the feed can flag the user's OWN posts (for owner-only actions).
+      const h: Record<string, string> = {};
+      try { const s = getStoredAuthSession(); if (s?.access_token) h.Authorization = `Bearer ${s.access_token}`; } catch { /**/ }
+      try { const id = JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id; if (id) h["x-curator-id"] = String(id); } catch { /**/ }
+      fetch("/api/try-this-look?community=1", { headers: h })
         .then(r => r.json())
         .then((p: { community?: CommunityItem[] }) => { if (alive && p.community) setCommunityItems(p.community); })
         .catch(() => {})
