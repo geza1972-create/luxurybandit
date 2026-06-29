@@ -51,8 +51,8 @@ export async function POST(request: Request) {
         const lowNum = p?.rate_per_night?.extracted_lowest ?? p?.total_rate?.extracted_lowest;
         const lowStr = p?.rate_per_night?.lowest ?? p?.total_rate?.lowest ?? "";
         const price = typeof lowNum === "number" && lowNum > 0
-          ? `ab ${Math.round(lowNum)} €/Nacht`
-          : (lowStr ? `ab ${lowStr}/Nacht` : "");
+          ? `from €${Math.round(lowNum)}/night`
+          : (lowStr ? `from ${lowStr}/night` : "");
         // A working booking link: the property's own link if it's already booking/airbnb,
         // else a Booking.com search for the name + place (always resolves).
         const own = String(p?.link ?? "").trim();

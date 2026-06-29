@@ -302,7 +302,7 @@ export default function LookDetailsPage() {
       {(look.locationDupes?.length ?? 0) > 0 && (
         <div className="px-4 pt-6">
           <div className="mb-3 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.14em] text-black/40">
-            <MapPin className="h-3.5 w-3.5" /> Bandit the escape — ähnliche Orte für weniger
+            <MapPin className="h-3.5 w-3.5" /> Bandit the escape — similar stays for less
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             {look.locationDupes!.map((a, i) => (
@@ -318,7 +318,7 @@ export default function LookDetailsPage() {
                   <p className="line-clamp-2 text-[13px] font-black text-black">{a.title || a.source || ""}</p>
                   <div className="mt-auto flex items-center justify-between gap-2 pt-1">
                     {a.price ? <span className="text-sm font-black text-ink">{a.price}</span> : a.source ? <span className="truncate text-[11px] font-bold text-black/40">{a.source}</span> : <span />}
-                    <span className="shrink-0 rounded-full bg-black px-3 py-1 text-[11px] font-black text-white">Ansehen →</span>
+                    <span className="shrink-0 rounded-full bg-black px-3 py-1 text-[11px] font-black text-white">View →</span>
                   </div>
                 </div>
               </a>
