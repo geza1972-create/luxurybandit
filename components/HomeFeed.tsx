@@ -336,26 +336,39 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             ))}
           </div>
         )}
-        {/* Main product image → its own buy card so the user knows what they see:
-            "Shop now" when there's a shop link, otherwise a simple Details link. */}
-        {am?.type === "image" && (
-          <div className="mb-2 flex items-center gap-3 rounded-2xl border border-black/10 bg-black/[0.02] p-2.5">
-            <div className="min-w-0 flex-1">
-              <p className="line-clamp-1 text-[13px] font-black text-black">{look.name}</p>
-              <p className="mt-0.5 truncate text-[12px] font-bold text-black/45">{[look.storeName, look.salePrice || look.price].filter(Boolean).join(" · ") || "The original piece"}</p>
+        {/* Who recreated this look — the community try-ons, as a list. Replaces the old
+            "Shop now" buy card (shopping still happens via "Bandit the look!" below). */}
+        {single && (
+          community.length > 0 ? (
+            <div className="mb-2 rounded-2xl border border-black/10 bg-black/[0.02] p-2.5">
+              <p className="mb-2 px-0.5 text-[11px] font-black uppercase tracking-wide text-black/40">
+                {community.length} {community.length === 1 ? "person tried this on" : "people tried this on"}
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {community.slice(0, 12).map((c, i) => {
+                  const slug = (c.name ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+                  const row = (
+                    <>
+                      <span className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-black/5">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={c.imageUrl} alt={c.name || "Member"} className="h-full w-full object-cover object-top" />
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-[13px] font-black text-black">{c.name || "Member"}</span>
+                      {c.videoUrl && <span className="shrink-0 rounded-full bg-black/5 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-black/45">Video</span>}
+                    </>
+                  );
+                  return slug ? (
+                    <button key={i} type="button" onClick={() => router.push(`/u/${slug}`)}
+                      className="flex items-center gap-2.5 text-left active:opacity-70">{row}</button>
+                  ) : (
+                    <div key={i} className="flex items-center gap-2.5">{row}</div>
+                  );
+                })}
+              </div>
             </div>
-            {look.buyUrl ? (
-              <a href={look.buyUrl} target="_blank" rel="noopener noreferrer"
-                className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
-                Shop now →
-              </a>
-            ) : (
-              <button type="button" onClick={() => router.push(`${detail}/details`)}
-                className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full border border-black/15 bg-white px-5 text-sm font-black text-black active:scale-95 transition-transform">
-                Details →
-              </button>
-            )}
-          </div>
+          ) : (
+            <p className="mb-2 px-0.5 text-[12px] font-bold text-black/40">Be the first to try this look on you ✨</p>
+          )
         )}
         <p ref={captionRef} className={`text-[13px] leading-snug text-black ${expanded ? "" : "line-clamp-2"}`}>
           <span className="text-black/45">{look.aiCreated ? "Created by " : "Curated by "}</span>
