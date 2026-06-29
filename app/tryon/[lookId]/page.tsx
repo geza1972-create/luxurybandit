@@ -159,14 +159,14 @@ export default function TryonPage() {
   const [look, setLook] = useState<Look | null>(null);
   const [isLoadingLook, setIsLoadingLook] = useState(true);
   // Cross-sell: other looks to try on next (shown on the result step).
-  const [moreLooks, setMoreLooks] = useState<{ id: string; name: string; img: string; price?: string }[]>([]);
+  const [moreLooks, setMoreLooks] = useState<{ id: string; name: string; img: string; price?: string; lingerie?: boolean }[]>([]);
   useEffect(() => {
     fetch("/api/try-this-look").then(r => r.json()).then((d: any) => {
       const all = (d.looks ?? d.activeLooks ?? []) as any[];
       setMoreLooks(all
         .filter(l => l.id !== lookId && (l.frontImageUrl || l.imageUrl))
-        .slice(0, 12)
-        .map(l => ({ id: l.id, name: l.name, img: l.frontImageUrl || l.imageUrl, price: l.salePrice || l.price })));
+        .slice(0, 40) // show (nearly) the whole gallery — it's a horizontal scroll row
+        .map(l => ({ id: l.id, name: l.name, img: l.frontImageUrl || l.imageUrl, price: l.salePrice || l.price, lingerie: !!l.lingerie })));
     }).catch(() => {});
   }, [lookId]);
 
@@ -931,9 +931,12 @@ export default function TryonPage() {
         {moreLooks.map(l => (
           <button key={l.id} type="button" onClick={() => router.push(`/tryon/${l.id}`)}
             className="w-24 shrink-0 text-left active:scale-95 transition-transform">
-            <div className={`aspect-[3/4] overflow-hidden rounded-xl border ${dark ? "border-white/15 bg-white/5" : "border-black/10 bg-black/[0.03]"}`}>
+            <div className={`relative aspect-[3/4] overflow-hidden rounded-xl border ${dark ? "border-white/15 bg-white/5" : "border-black/10 bg-black/[0.03]"}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={l.img} alt={l.name} loading="lazy" className="h-full w-full object-cover object-top" />
+              {l.lingerie && (
+                <span className="absolute left-1 top-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-black text-white backdrop-blur">🔒 Private</span>
+              )}
             </div>
             <p className={`mt-1 line-clamp-1 text-[11px] font-black ${dark ? "text-white" : "text-black"}`}>{l.name}</p>
             <p className={`text-[10px] font-bold ${dark ? "text-white/50" : "text-black/45"}`}>{l.price || " "}</p>
