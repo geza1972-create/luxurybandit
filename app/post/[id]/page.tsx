@@ -288,7 +288,7 @@ export default function PostPage() {
     <div className="min-h-screen bg-white pb-20">
       {/* Header */}
       <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/8 bg-white/95 px-3 py-2 backdrop-blur">
-        <button type="button" onClick={() => router.back()}
+        <button type="button" onClick={() => { if (typeof window !== "undefined" && window.history.length > 1) router.back(); else router.push("/stores"); }}
           className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-black/40 active:bg-black/5">
           <ChevronLeft className="h-5 w-5" />
         </button>

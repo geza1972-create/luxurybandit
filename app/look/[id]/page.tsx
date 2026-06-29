@@ -519,14 +519,14 @@ export default function LookPage() {
     <div className="flex h-screen flex-col items-center justify-center gap-4 bg-black text-white">
       <span className="text-5xl">🛍️</span>
       <p className="text-sm font-black opacity-50">Listing not found</p>
-      <button type="button" onClick={() => router.back()} className="text-xs font-black underline opacity-50">Go back</button>
+      <button type="button" onClick={() => { if (typeof window !== "undefined" && window.history.length > 1) router.back(); else router.push("/stores"); }} className="text-xs font-black underline opacity-50">Go back</button>
     </div>
   );
 
   // New post view (video + carousel + shop slides) — replaces the legacy layout.
   return (
     <div className="relative">
-      <button type="button" onClick={() => router.back()} aria-label="Back"
+      <button type="button" onClick={() => { if (typeof window !== "undefined" && window.history.length > 1) router.back(); else router.push("/stores"); }} aria-label="Back"
         className="fixed left-3 z-40 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform"
         style={{ top: "calc(env(safe-area-inset-top) + 0.6rem)" }}>
         <ChevronLeft className="h-5 w-5" />

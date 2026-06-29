@@ -148,7 +148,7 @@ export default function LookDetailsPage() {
     return (
       <main className="grid min-h-[100dvh] place-items-center gap-3 bg-white">
         <p className="text-sm font-black text-black/50">Listing not found</p>
-        <button type="button" onClick={() => router.back()} className="text-xs font-black text-black/50 underline">Go back</button>
+        <button type="button" onClick={() => { if (typeof window !== "undefined" && window.history.length > 1) router.back(); else router.push("/stores"); }} className="text-xs font-black text-black/50 underline">Go back</button>
       </main>
     );
   }
@@ -175,7 +175,7 @@ export default function LookDetailsPage() {
     <main className="min-h-[100dvh] bg-white pb-32">
       {/* Header */}
       <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/8 bg-white/95 px-4 py-3 backdrop-blur">
-        <button type="button" onClick={() => router.back()}
+        <button type="button" onClick={() => { if (typeof window !== "undefined" && window.history.length > 1) router.back(); else router.push("/stores"); }}
           className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 text-black active:scale-90 transition-transform">
           <ArrowLeft className="h-4 w-4" />
         </button>
