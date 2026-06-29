@@ -35,9 +35,13 @@ function LoginForm() {
   // Where to land after sign-in (e.g. back to the studio). Only internal paths.
   const rawReturn = params.get("returnTo") ?? "";
   const returnPath = rawReturn.startsWith("/") && !rawReturn.startsWith("//") ? rawReturn : "/user/myaccount";
-  const redirectTo = typeof window !== "undefined"
-    ? `${window.location.origin}/auth/confirm${rawReturn ? `?returnTo=${encodeURIComponent(returnPath)}` : ""}`
-    : "";
+  // Clean redirect URL (always allowlisted); the post-login destination is stashed in
+  // sessionStorage so Supabase's allowlist can't drop it.
+  const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth/confirm` : "";
+  const oauth = (provider: "google" | "facebook") => {
+    try { if (rawReturn) sessionStorage.setItem("lb_oauth_return", returnPath); } catch { /**/ }
+    signInWithOAuth(provider, redirectTo);
+  };
 
   const handlePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,10 +107,10 @@ function LoginForm() {
           <>
             {/* Social — fastest */}
             <div className="grid gap-2.5">
-              <button type="button" onClick={() => signInWithOAuth("google", redirectTo)} className={oauthBtn}>
+              <button type="button" onClick={() => oauth("google")} className={oauthBtn}>
                 <GoogleIcon /> Continue with Google
               </button>
-              <button type="button" onClick={() => signInWithOAuth("facebook", redirectTo)} className={oauthBtn}>
+              <button type="button" onClick={() => oauth("facebook")} className={oauthBtn}>
                 <FacebookIcon /> Continue with Facebook
               </button>
             </div>

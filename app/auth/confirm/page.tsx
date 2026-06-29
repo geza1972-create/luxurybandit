@@ -36,12 +36,17 @@ export default function ConfirmPage() {
         saveAuthSession(session);
         setStatus("success");
         // Return to where sign-in started (e.g. the funnel that triggered OAuth) so the
-        // try-on can resume; otherwise land on the user's dashboard, not the feed.
-        // Only internal paths allowed.
+        // try-on can resume; otherwise the user's dashboard, not the feed. The dest is
+        // read from sessionStorage (set before OAuth) — NOT the redirect URL — so it
+        // can't be dropped by Supabase's redirect allowlist. ?returnTo= kept as fallback.
         let dest = "/user/myaccount";
+        const ok = (p: string | null) => !!p && p.startsWith("/") && !p.startsWith("//");
         try {
+          const stored = sessionStorage.getItem("lb_oauth_return");
           const rt = new URLSearchParams(window.location.search).get("returnTo");
-          if (rt && rt.startsWith("/") && !rt.startsWith("//")) dest = rt;
+          if (ok(stored)) dest = stored as string;
+          else if (ok(rt)) dest = rt as string;
+          sessionStorage.removeItem("lb_oauth_return");
         } catch { /**/ }
         setTimeout(() => router.push(dest), 1200);
       } catch {

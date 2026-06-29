@@ -914,8 +914,10 @@ export default function TryonPage() {
         visibility, rightsConsentAt: new Date().toISOString(),
       }));
     } catch { /**/ }
-    const returnTo = `/tryon/${look.id}`;
-    signInWithOAuth(provider, `${window.location.origin}/auth/confirm?returnTo=${encodeURIComponent(returnTo)}`);
+    // Where to land after OAuth — stored (not in the redirect URL) so Supabase's
+    // redirect allowlist can't drop it and bounce us to the Site URL (the feed).
+    try { sessionStorage.setItem("lb_oauth_return", `/tryon/${look.id}`); } catch { /**/ }
+    signInWithOAuth(provider, `${window.location.origin}/auth/confirm`);
   };
 
   // Cross-sell carousel — other looks to try on next. Reused on the result, confirm
