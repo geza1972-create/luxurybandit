@@ -1495,7 +1495,7 @@ export default function TryonPage() {
           {/* Choose what to create — Photo (the base try-on), Video, or 360°.
               Photo generates now; the paid video tiers activate with checkout. */}
           <div className="grid gap-2">
-            <button type="button" onClick={() => { setPaidSoon(""); if (effectiveLingerie && isStaff) void startReferenceVideo(false, true); else void handleGenerate(); }}
+            <button type="button" onClick={() => { setPaidSoon(""); void handleGenerate(); }}
               className="flex h-14 w-full items-center gap-3 rounded-2xl bg-white px-4 text-black shadow-xl active:scale-95 transition-transform">
               <Sparkles className="h-5 w-5 shrink-0 text-blue-600" />
               <span className="text-base font-black">See me in this look</span>
