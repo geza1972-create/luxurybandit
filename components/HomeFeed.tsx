@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useCallback, type ReactNode } from "react"
 import { useRouter } from "next/navigation";
 import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
-import TryOnQR from "@/components/TryOnQR";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
 
@@ -412,7 +411,6 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform">
             <Sparkles className="h-4 w-4" /> Try This Look · {look.lingerie ? "$2.90" : "Free"}
           </button>
-          <TryOnQR lookId={look.id} lookName={look.name} variant="icon" />
           <button type="button" onClick={() => router.push(`${detail}/details`)}
             className="flex h-11 shrink-0 items-center justify-center rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
             Bandit the look!
