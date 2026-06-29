@@ -646,7 +646,7 @@ export default function TryonPage() {
   const resumedRef = useRef(false);
   useEffect(() => {
     if (resumedRef.current || !look) return;
-    let resume: { returnTo?: string; lookId?: string; userPhoto?: string; visibility?: "public" | "private"; rightsConsentAt?: string } | null = null;
+    let resume: { returnTo?: string; lookId?: string; userPhoto?: string; visibility?: "public" | "private"; rightsConsentAt?: string; name?: string } | null = null;
     try { resume = JSON.parse(sessionStorage.getItem("lb_resume_tryon") ?? "null"); } catch { /* ignore */ }
     if (!resume || resume.lookId !== look.id) return;
     const isCurator = (() => { try { return !!JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id; } catch { return false; } })();
@@ -663,6 +663,7 @@ export default function TryonPage() {
       showInFeedRef.current = isPublic;
       setVisibility(resume.visibility);
       setRightsConsent(true);
+      if (resume.name) setShareNameInput(resume.name); // keep the name they entered → shown on the post
       consentRef.current = { at: resume.rightsConsentAt || new Date().toISOString(), publishText: isPublic ? PUBLISH_CONSENT_TEXT : "", rightsText: RIGHTS_CONSENT_TEXT };
     }
     let photo = resume.userPhoto;
@@ -879,7 +880,7 @@ export default function TryonPage() {
   const revealWithEmail = () => {
     const email = gateEmail.trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !look) return;
-    if (!rightsConsent) return; // rights attestation is always required
+    if (!rightsConsent || !shareNameInput.trim()) return; // name + rights attestation required
     const isPublic = visibility === "public";
     // Record consents (verbatim wording + timestamp). Publish consent only when the
     // user actively chose "Public"; rights consent always.
@@ -903,15 +904,15 @@ export default function TryonPage() {
   // On return, /auth/confirm signs them in and sends them back here; the resume
   // effect picks up the saved photo and runs the generation (now authenticated).
   const gateOAuth = (provider: "google" | "facebook") => {
-    if (!look || !rightsConsent) return; // consent is required for the social path too
+    if (!look || !rightsConsent || !shareNameInput.trim()) return; // name + consent required
     let photo = userPhoto ?? "";
     try { if (!photo) photo = sessionStorage.getItem("lb_model_image") ?? ""; } catch { /**/ }
-    // Persist the consent + visibility through the OAuth round-trip so the resumed
-    // generation logs them (the social path must not bypass consent).
+    // Persist name + consent + visibility through the OAuth round-trip so the resumed
+    // generation uses them (the social path must not bypass any of it).
     try {
       sessionStorage.setItem("lb_resume_tryon", JSON.stringify({
         lookId: look.id, userPhoto: photo, returnTo: `/tryon/${look.id}`,
-        visibility, rightsConsentAt: new Date().toISOString(),
+        visibility, rightsConsentAt: new Date().toISOString(), name: shareNameInput.trim(),
       }));
     } catch { /**/ }
     // Where to land after OAuth — stored (not in the redirect URL) so Supabase's
@@ -1116,11 +1117,17 @@ export default function TryonPage() {
               <Sparkles className="h-6 w-6" />
             </div>
             <p className="mt-3 text-2xl font-black text-black">Your look is ready ✨</p>
-            <p className="mt-1.5 text-sm font-bold text-black/55">Confirm the two points below, then sign in to reveal your look.</p>
+            <p className="mt-1.5 text-sm font-bold text-black/55">Your name, then confirm the points below, then sign in.</p>
+
+            {/* Your name — REQUIRED, shown on your look. Comes first; gates all sign-in. */}
+            <input type="text" value={shareNameInput} autoFocus
+              onChange={e => setShareNameInput(e.target.value)}
+              placeholder="Your name (shown on your look) *"
+              className="mt-4 h-13 w-full rounded-2xl border-2 border-black/15 bg-black/[0.02] px-4 py-3.5 text-base font-bold text-black placeholder:text-black/35 outline-none focus:border-black" />
 
             {/* STEP 1 — consent FIRST, so no sign-in method (incl. Google/Facebook) can
                 bypass it. Rights attestation is required for all paths. */}
-            <label className="mt-4 flex cursor-pointer items-start gap-2.5 text-left">
+            <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-left">
               <input type="checkbox" checked={rightsConsent} onChange={e => setRightsConsent(e.target.checked)}
                 className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-black" />
               <span className="text-[12px] font-bold leading-snug text-black/70">
@@ -1149,16 +1156,16 @@ export default function TryonPage() {
                 Google/Facebook can't skip the consent above. */}
             <div className="my-4 flex items-center gap-3">
               <div className="h-px flex-1 bg-black/10" />
-              <span className="text-[11px] font-black uppercase tracking-wider text-black/30">{rightsConsent ? "now sign in" : "tick the box to continue"}</span>
+              <span className="text-[11px] font-black uppercase tracking-wider text-black/30">{(shareNameInput.trim() && rightsConsent) ? "now sign in" : "add your name & tick the box"}</span>
               <div className="h-px flex-1 bg-black/10" />
             </div>
-            <div className={`grid gap-2.5 ${rightsConsent ? "" : "pointer-events-none opacity-40"}`}>
-              <button type="button" disabled={!rightsConsent} onClick={() => gateOAuth("google")}
+            <div className={`grid gap-2.5 ${(shareNameInput.trim() && rightsConsent) ? "" : "pointer-events-none opacity-40"}`}>
+              <button type="button" disabled={!shareNameInput.trim() || !rightsConsent} onClick={() => gateOAuth("google")}
                 className="flex h-13 w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-black/12 bg-white py-3.5 text-base font-black text-black active:scale-95 transition-transform">
                 <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
                 Continue with Google
               </button>
-              <button type="button" disabled={!rightsConsent} onClick={() => gateOAuth("facebook")}
+              <button type="button" disabled={!shareNameInput.trim() || !rightsConsent} onClick={() => gateOAuth("facebook")}
                 className="flex h-13 w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-black/12 bg-white py-3.5 text-base font-black text-black active:scale-95 transition-transform">
                 <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true"><path fill="#1877F2" d="M24 12c0-6.63-5.37-12-12-12S0 5.37 0 12c0 5.99 4.39 10.95 10.13 11.85v-8.38H7.08V12h3.05V9.36c0-3.01 1.79-4.67 4.53-4.67 1.31 0 2.69.23 2.69.23v2.95h-1.51c-1.49 0-1.96.93-1.96 1.88V12h3.33l-.53 3.47h-2.8v8.38C19.61 22.95 24 17.99 24 12z"/></svg>
                 Continue with Facebook
@@ -1168,18 +1175,13 @@ export default function TryonPage() {
                 <span className="text-[11px] font-black uppercase tracking-wider text-black/30">or with email</span>
                 <div className="h-px flex-1 bg-black/10" />
               </div>
-              <input type="text" value={shareNameInput}
-                onChange={e => setShareNameInput(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") void revealWithEmail(); }}
-                placeholder="Your name (shown on your look)"
-                className="h-13 w-full rounded-2xl border-2 border-black/15 bg-black/[0.02] px-4 py-3.5 text-base font-bold text-black placeholder:text-black/35 outline-none focus:border-black" />
               <input type="email" inputMode="email" value={gateEmail}
                 onChange={e => setGateEmail(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") void revealWithEmail(); }}
                 placeholder="you@email.com"
                 className="h-13 w-full rounded-2xl border-2 border-black/15 bg-black/[0.02] px-4 py-3.5 text-base font-bold text-black placeholder:text-black/35 outline-none focus:border-black" />
               <button onClick={() => void revealWithEmail()}
-                disabled={!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(gateEmail.trim()) || !rightsConsent}
+                disabled={!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(gateEmail.trim()) || !rightsConsent || !shareNameInput.trim()}
                 className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-black py-3.5 text-base font-black text-white active:scale-95 transition-transform disabled:opacity-30">
                 <Sparkles className="h-4 w-4" /> Reveal my look
               </button>
