@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Check, ChevronUp, ChevronDown, ClipboardPaste, Crop, ExternalLink, ImagePlus, Link2, Loader2, Lock, Plus, Search, Trash2, Upload, Video, Wand2, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronUp, ChevronDown, ClipboardPaste, Crop, ExternalLink, ImagePlus, Link2, Loader2, Lock, Pencil, Plus, Search, Trash2, Upload, Video, Wand2, X } from "lucide-react";
 import { FASHION_BRANDS } from "@/lib/fashion-brands";
 import { isIntimateName } from "@/lib/lingerie";
 import { LOOK_CATEGORIES, categorizeLook, type LookCategory } from "@/lib/look-category";
@@ -677,6 +677,7 @@ export default function AdminTrends() {
     catch { /* quota exceeded — keep in-memory only */ }
   }, [aiGenerations]);
   const [myLooks, setMyLooks] = useState<{ id: string; name: string; imageUrl: string; published: boolean; altCount: number; locationCount?: number; note?: string; commentsOff?: boolean; videoUrl?: string; brand?: string; category?: string; description?: string }[]>([]);
+  const [editingLookId, setEditingLookId] = useState<string | null>(null); // open the edit sheet for one look
   const [uploadingVideo, setUploadingVideo] = useState<string>("");
   const toggleLookComments = async (lookId: string, commentsOff: boolean) => {
     setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, commentsOff } : l));
@@ -1866,21 +1867,41 @@ export default function AdminTrends() {
                         <button type="button" onClick={() => void moveLook(l.id, 1)} disabled={idx === myLooks.length - 1} aria-label="Move down"
                           className="grid h-3.5 w-7 place-items-center rounded-b-md bg-black/5 text-ink/50 disabled:opacity-25 active:bg-black/10"><ChevronDown className="h-3.5 w-3.5" /></button>
                       </div>
+                      <button type="button" onClick={() => setEditingLookId(l.id)}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-black py-1.5 text-[11px] font-black text-white transition active:scale-95">
+                        <Pencil className="h-3 w-3" /> Bearbeiten
+                      </button>
                       <button type="button" onClick={() => void toggleMyLook(l.id, !l.published)}
-                        className={`flex-1 rounded-md py-1.5 text-[11px] font-black transition active:scale-95 ${l.published ? "bg-black/5 text-ink/60 hover:bg-black/10" : "bg-emerald-500 text-white"}`}>
-                        {l.published ? "Deactivate" : "Activate"}
+                        className={`shrink-0 rounded-md px-2 py-1.5 text-[11px] font-black transition active:scale-95 ${l.published ? "bg-black/5 text-ink/60 hover:bg-black/10" : "bg-emerald-500 text-white"}`}>
+                        {l.published ? "Off" : "On"}
                       </button>
                       <button type="button" onClick={() => void deleteMyLook(l.id, l.name)} aria-label="Delete look"
                         className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-black/5 text-ink/40 transition hover:bg-red-50 hover:text-red-500 active:scale-95">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                    {/* Curator's personal thoughts — shown on the look in the frontend */}
-                    {(() => {
+                  </div>
+                  {/* ── Edit sheet (opened by Bearbeiten) ── */}
+                  {editingLookId === l.id && (() => {
                       const draft = noteDrafts[l.id] ?? l.note ?? "";
                       const dirty = draft.trim() !== (l.note ?? "").trim();
                       return (
-                        <div className="mt-1.5">
+                      <div className="fixed inset-0 z-[130] flex items-end justify-center bg-black/50 sm:items-center" onClick={() => setEditingLookId(null)}>
+                        <div className="flex max-h-[88vh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-white sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-between border-b border-black/10 px-4 py-3">
+                            <span className="flex items-center gap-2 text-sm font-black text-ink"><Pencil className="h-4 w-4" /> Post bearbeiten</span>
+                            <button type="button" onClick={() => setEditingLookId(null)} className="grid h-8 w-8 place-items-center rounded-full text-ink/40 active:bg-black/5"><X className="h-5 w-5" /></button>
+                          </div>
+                          <div className="flex-1 overflow-y-auto p-4">
+                          {/* media preview */}
+                          {l.videoUrl ? (
+                            // eslint-disable-next-line jsx-a11y/media-has-caption
+                            <video src={l.videoUrl} poster={l.imageUrl || undefined} controls playsInline className="mb-3 max-h-72 w-full rounded-xl bg-black object-contain" />
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={l.imageUrl} alt="" className="mb-3 max-h-72 w-full rounded-xl object-contain" />
+                          )}
+                          <span className="text-[11px] font-black uppercase tracking-[0.14em] text-ink/40">Beschreibung</span>
                           <textarea
                             value={draft}
                             onChange={(e) => setNoteDrafts(d => ({ ...d, [l.id]: e.target.value }))}
@@ -1944,10 +1965,15 @@ export default function AdminTrends() {
                               {uploadingVideo === l.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating video…</> : <><Video className="h-3.5 w-3.5" /> Generate AI video · 5s · {costs?.video ?? 8} credits</>}
                             </button>
                           )}
+                          </div>
+                          <div className="border-t border-black/10 p-3">
+                            <button type="button" onClick={() => setEditingLookId(null)}
+                              className="flex h-11 w-full items-center justify-center rounded-xl bg-black text-sm font-black text-white active:scale-[0.99]">Fertig</button>
+                          </div>
                         </div>
+                      </div>
                       );
                     })()}
-                  </div>
                 </div>
                 );
               })}
