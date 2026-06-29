@@ -1,6 +1,19 @@
-# User-Bereich: Dashboard vs. Account — offener Punkt
+# User-Bereich: Dashboard vs. Account — ✅ UMGESETZT
 
-Stand: 2026-06-29
+Stand: 2026-06-29 (erledigt in Commit 8cf4030)
+
+## Entscheidung (vom User bestätigt) & Umsetzung
+- **Dashboard = neue Übersichtsseite** `app/user/dashboard/page.tsx`: Identität,
+  Quick-Stats (Try-ons / Public / Hidden / Credits), „Buy 10 try-on credits"-CTA,
+  eigene Try-ons (mit Hide/Delete), Links zu „Account settings" + „Explore feed".
+- **Login landet jetzt auf `/user/dashboard`** — geändert in `auth/confirm`,
+  `seller/login` (default returnTo) und `/stores` (Passwort-Login).
+- **Account (`/user/myaccount`) bleibt die Settings-Seite.**
+- **Bottom-Nav unverändert** (Home · Messages · Account) — Dashboard ist das
+  Login-Ziel + über „Account settings"/Account-Tab erreichbar.
+
+---
+## (Historie) ursprüngliche Notizen
 
 ## Frage des Users
 > „Haben wir nicht gesagt, dass der User auf seinem **Dashboard** landen muss und
