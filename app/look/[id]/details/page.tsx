@@ -256,9 +256,7 @@ export default function LookDetailsPage() {
             <ShoppingBag className="h-3.5 w-3.5" /> Bandit the look — luxe to budget
           </div>
           <div className="grid gap-2.5">
-            {alts.map((a, i) => {
-              const altIdx = (dupes ?? []).findIndex(x => x.link === a.link && x.thumbnail === a.thumbnail);
-              return (
+            {alts.map((a, i) => (
                 <div key={i} className="flex w-full min-w-0 gap-3 rounded-2xl border border-black/10 bg-white p-2.5">
                   <a href={a.link} target="_blank" rel="noopener noreferrer sponsored" className="shrink-0 active:scale-95 transition-transform">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -271,22 +269,18 @@ export default function LookDetailsPage() {
                       <p className="line-clamp-2 text-sm font-black text-black">{a.title || a.source || "Anbieter"}</p>
                       {a.source && <p className="mt-0.5 truncate text-[11px] font-bold text-black/40">{a.source}</p>}
                     </a>
-                    <div className="flex items-center justify-between gap-2">
+                    {/* Products are affiliate shop links only — no "Try-on" here (try-on is
+                        on the look itself, not on a random dupe). */}
+                    <div className="mt-auto flex items-center justify-between gap-2">
                       <span className="text-base font-black text-ink">{a.price || "—"}</span>
                       <a href={a.link} target="_blank" rel="noopener noreferrer sponsored"
                         className="flex shrink-0 items-center gap-1.5 rounded-full bg-black px-4 py-1.5 text-[12px] font-black text-white active:scale-95 transition-transform">
                         <ShoppingBag className="h-3.5 w-3.5" /> Shop now
                       </a>
                     </div>
-                    <button type="button"
-                      onClick={() => router.push(`/tryon/${look.id}${altIdx >= 0 ? `?alt=${altIdx}` : ""}`)}
-                      className="flex w-full items-center justify-center gap-1.5 rounded-full border border-black/15 bg-white px-3.5 py-2 text-[12px] font-black text-black active:scale-95 transition-transform">
-                      <Sparkles className="h-3.5 w-3.5" /> Try-on · {a.lingerie ? "$2.90" : "Free"}
-                    </button>
                   </div>
                 </div>
-              );
-            })}
+            ))}
           </div>
         </div>
       )}
