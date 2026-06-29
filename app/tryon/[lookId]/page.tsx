@@ -1421,9 +1421,9 @@ export default function TryonPage() {
             <ChevronLeft className="h-5 w-5" />
           </button>
 
-          {/* Cross-sell up top. pt-20 clears the absolute Back button (top-12 + h-10 ≈
-              88px) so it never sits on top of the "Try these looks too" title. */}
-          <div className="pt-20">{crossSellRow(true)}</div>
+          {/* Cross-sell up top — sits just below the absolute Back button (top-12 + h-10
+              ≈ 88px). pt-12 keeps a small clearance without a big gap. */}
+          <div className="pt-12">{crossSellRow(true)}</div>
 
           {/* Title — ABOVE the two images (aspirational, not technical) */}
           <div className="text-center">
