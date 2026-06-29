@@ -116,6 +116,16 @@ function videoFirstFrame(file: File): Promise<string> {
   });
 }
 
+// Read an image File as a data URL (for the reverse-image dupe search).
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(new Error("Bild konnte nicht gelesen werden."));
+    r.readAsDataURL(file);
+  });
+}
+
 type Draft = {
   id: string;
   name: string;
@@ -619,9 +629,12 @@ export default function AdminTrends() {
   const [mode, setMode] = useState<"web" | "ai" | "link" | "reel" | null>(null);
   // Upload-reel tool state (post an own finished video as a feed funnel post)
   const [reelFile, setReelFile] = useState<File | null>(null);
+  const [reelClothesFile, setReelClothesFile] = useState<File | null>(null);   // garment → look dupes
+  const [reelLocationFile, setReelLocationFile] = useState<File | null>(null);  // place → similar escapes
   const [reelDesc, setReelDesc] = useState("");
   const [reelCategory, setReelCategory] = useState<LookCategory>("after-dark");
   const [reelBusy, setReelBusy] = useState(false);
+  const [reelStep, setReelStep] = useState("");
   const [reelMsg, setReelMsg] = useState("");
   const [reelErr, setReelErr] = useState("");
   // AI Fashion generation state
@@ -706,8 +719,10 @@ export default function AdminTrends() {
     if (brands.length > 0 && !confirm(`Achtung: Markenname in der Beschreibung (${brands.join(", ")}). Als Curator solltest du den entfernen (Lizenz). Trotzdem posten?`)) return;
     setReelBusy(true);
     try {
+      setReelStep("Vorschaubild aus dem Video…");
       const poster = await videoFirstFrame(reelFile);
       // 1) create the look (funnel post) with the poster as the safe still
+      setReelStep("Feed-Post anlegen…");
       const r1 = await fetch("/api/try-this-look", { method: "POST", headers: studioHeaders(), body: JSON.stringify({
         action: "upload-look",
         name: reelDesc.trim().slice(0, 80) || "Reel",
@@ -723,22 +738,43 @@ export default function AdminTrends() {
       }) });
       const d1 = await r1.json();
       const lookId = d1.lookId || d1.look?.id;
-      if (!r1.ok || !lookId) { setReelErr(d1.error ?? "Look konnte nicht angelegt werden."); setReelBusy(false); return; }
+      if (!r1.ok || !lookId) { setReelErr(d1.error ?? "Look konnte nicht angelegt werden."); setReelBusy(false); setReelStep(""); return; }
       // 2) attach the video
+      setReelStep("Video hochladen…");
       const fd = new FormData();
       fd.append("lookId", lookId);
       fd.append("curatorId", getCuratorId());
       fd.append("video", reelFile);
       const r2 = await fetch("/api/upload-look-video", { method: "POST", headers: { "x-try-look-admin-pin": getStoredPin(), "x-curator-id": getCuratorId() }, body: fd });
       const d2 = await r2.json();
-      if (!r2.ok || !d2.videoUrl) { setReelErr(d2.error ?? "Video-Upload fehlgeschlagen (Look wurde angelegt)."); setReelBusy(false); return; }
-      setReelMsg("Reel ist live im Feed ✨");
-      setReelFile(null); setReelDesc("");
+      if (!r2.ok || !d2.videoUrl) { setReelErr(d2.error ?? "Video-Upload fehlgeschlagen (Look wurde angelegt)."); setReelBusy(false); setReelStep(""); return; }
+      // 3) clothes image → shop dupes (similar looks for less). 4) location image →
+      // similar escapes (reverse-image search). Both stored on the look for "Bandit the look".
+      let alternatives: any[] = [];
+      let locationDupes: any[] = [];
+      if (reelClothesFile) {
+        setReelStep("Ähnliche Looks suchen…");
+        try { alternatives = await callDupes("", await fileToDataUrl(reelClothesFile)); } catch { /**/ }
+      }
+      if (reelLocationFile) {
+        setReelStep("Ähnliche Orte suchen…");
+        try { locationDupes = await callDupes("", await fileToDataUrl(reelLocationFile)); } catch { /**/ }
+      }
+      if (alternatives.length || locationDupes.length) {
+        setReelStep("Treffer speichern…");
+        await fetch("/api/try-this-look", { method: "POST", headers: studioHeaders(), body: JSON.stringify({
+          action: "update-look", id: lookId,
+          ...(alternatives.length ? { alternatives } : {}),
+          ...(locationDupes.length ? { locationDupes } : {}),
+        }) }).catch(() => {});
+      }
+      setReelMsg(`Reel ist live im Feed ✨${alternatives.length ? ` · ${alternatives.length} ähnliche Looks` : ""}${locationDupes.length ? ` · ${locationDupes.length} Orte` : ""}`);
+      setReelFile(null); setReelClothesFile(null); setReelLocationFile(null); setReelDesc("");
       void fetch("/api/curator?mylooks=1", { headers: studioHeaders() }).then(r => r.json()).then((d: any) => setMyLooks(d.looks ?? [])).catch(() => {});
     } catch (e) {
       setReelErr(e instanceof Error ? e.message : "Upload fehlgeschlagen.");
     }
-    setReelBusy(false);
+    setReelBusy(false); setReelStep("");
   };
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [savingNote, setSavingNote] = useState<string>("");
@@ -1224,6 +1260,24 @@ export default function AdminTrends() {
                 <input type="file" accept="video/*" className="sr-only" disabled={reelBusy}
                   onChange={e => { const f = e.target.files?.[0]; if (f) { setReelFile(f); setReelErr(""); setReelMsg(""); } }} />
               </label>
+              {/* The two reference images you used to make the reel → power "Bandit the look":
+                  the garment finds similar looks for less, the place finds similar escapes. */}
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-black/15 bg-panel p-4 text-center transition hover:border-black/30">
+                  <ImagePlus className="h-4 w-4 text-ink/30" />
+                  <span className="text-[11px] font-black text-ink/55">{reelClothesFile ? "✓ Klamotten" : "Klamotten-Bild"}</span>
+                  <span className="text-[9px] font-bold text-ink/30">→ ähnliche Looks günstig</span>
+                  <input type="file" accept="image/*" className="sr-only" disabled={reelBusy}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) { setReelClothesFile(f); setReelErr(""); } }} />
+                </label>
+                <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-black/15 bg-panel p-4 text-center transition hover:border-black/30">
+                  <ImagePlus className="h-4 w-4 text-ink/30" />
+                  <span className="text-[11px] font-black text-ink/55">{reelLocationFile ? "✓ Location" : "Location-Bild"}</span>
+                  <span className="text-[9px] font-bold text-ink/30">→ ähnliche Orte günstig</span>
+                  <input type="file" accept="image/*" className="sr-only" disabled={reelBusy}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) { setReelLocationFile(f); setReelErr(""); } }} />
+                </label>
+              </div>
               <div className="grid gap-1.5">
                 <span className="text-[11px] font-black uppercase tracking-[0.14em] text-ink/40">Beschreibung <span className="font-bold text-ink/30">· öffentlicher Titel</span></span>
                 <textarea value={reelDesc} onChange={e => setReelDesc(e.target.value)} disabled={reelBusy}
@@ -1248,7 +1302,7 @@ export default function AdminTrends() {
               {reelMsg && <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-xs font-black text-green-700">{reelMsg}</p>}
               <button type="button" onClick={() => void publishReel()} disabled={reelBusy}
                 className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-black text-sm font-black text-white active:scale-[0.99] transition disabled:opacity-50">
-                {reelBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Wird gepostet…</> : <><Upload className="h-4 w-4" /> Reel in den Feed posten</>}
+                {reelBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> {reelStep || "Wird gepostet…"}</> : <><Upload className="h-4 w-4" /> Reel in den Feed posten</>}
               </button>
             </div>
           </section>

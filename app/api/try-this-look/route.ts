@@ -151,6 +151,10 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
       ? (look as any).alternatives.map((a: any) => ({ ...a, link: wrap(a.link) }))
       : (look as any).alternatives,
     hashtags: (look as any).hashtags,
+    // Similar-escapes (travel) results found from the reel's location photo.
+    locationDupes: Array.isArray((look as any).locationDupes)
+      ? (look as any).locationDupes.map((a: any) => ({ ...a, link: wrap(a.link) }))
+      : undefined,
     curatorId: (look as any).curatorId,
     curatorName: curatorName || undefined,
     curatorPhotoUrl: curator?.photoUrl || undefined,
@@ -1419,6 +1423,20 @@ export async function POST(request: Request) {
               currency: a.currency ? String(a.currency).slice(0, 8) : undefined,
             }))
         : undefined;
+      // Similar-escapes results (reverse-image search on the reel's location photo) —
+      // same shape as the shop dupes, shown under "Bandit the look".
+      const locationInput = hasField("locationDupes") && Array.isArray((payload as any).locationDupes)
+        ? (payload as any).locationDupes
+            .filter((a: any) => a && typeof a.link === "string" && typeof a.thumbnail === "string")
+            .slice(0, 12)
+            .map((a: any) => ({
+              title: String(a.title ?? "").slice(0, 200),
+              link: String(a.link),
+              source: a.source ? String(a.source).slice(0, 80) : undefined,
+              thumbnail: String(a.thumbnail),
+              price: a.price ? String(a.price).slice(0, 40) : undefined,
+            }))
+        : undefined;
       const backImagePath = payload.backImage?.startsWith("data:image/")
         ? await uploadTryThisLookImage("looks", payload.backImage)
         : undefined;
@@ -1539,6 +1557,7 @@ export async function POST(request: Request) {
             : {}),
           // Admin may replace the shop options (vetted look-alike dupes).
           ...(altInput ? { alternatives: altInput } : {}),
+          ...(locationInput ? { locationDupes: locationInput } : {}),
           availabilityNote: availabilityNote || undefined,
           deliveryTime: deliveryTime || undefined,
           productNote: productNote || undefined,
