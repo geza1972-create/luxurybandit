@@ -17,6 +17,10 @@
   width: 100%;
 }
 @media (min-width: 900px) {
+  html, body {
+    height: 100%;
+    overflow: hidden; /* the FRAME scrolls, not the body — avoids double scrollbars */
+  }
   body {
     background: #2a2a2e; /* desktop backdrop around the phone frame */
   }
@@ -24,13 +28,15 @@
     position: relative;
     width: 440px;
     max-width: 100vw;
-    min-height: 100dvh;
+    height: 100dvh;     /* fixed viewport height — NOT min-height, so it scrolls itself */
     margin: 0 auto;
-    overflow: hidden;
+    overflow-y: auto;   /* page content scrolls INSIDE the frame */
+    overflow-x: hidden;
     background: #fbfaf7;
     box-shadow: 0 0 60px rgba(0, 0, 0, 0.45);
-    /* Establishes the containing block so descendant position:fixed elements
-       (full-screen reels, modals, bottom nav) stay inside the 440px frame. */
+    /* transform makes descendant position:fixed elements (reels, modals, bottom nav)
+       relative to this 100dvh frame — so they behave like viewport-fixed AND stay in
+       the 440px column instead of spanning the whole desktop. */
     transform: translateZ(0);
   }
 }
