@@ -131,7 +131,7 @@ export default function BottomNav() {
     <>
     {!hideBar && (
     <nav
-      className="fixed bottom-0 inset-x-0 z-50 border-t border-black/10 bg-white/95 backdrop-blur-md"
+      className="lb-phone-col fixed bottom-0 inset-x-0 z-50 border-t border-black/10 bg-white/95 backdrop-blur-md"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="mx-auto grid max-w-lg grid-cols-4 h-14">
@@ -215,7 +215,7 @@ export default function BottomNav() {
           {/* Backdrop */}
           <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm" onClick={() => setShowProfileMenu(false)} />
           {/* Sheet */}
-          <div className="fixed inset-x-0 bottom-0 z-[61] rounded-t-2xl bg-white shadow-2xl"
+          <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[61] rounded-t-2xl bg-white shadow-2xl"
             style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-2">

@@ -613,7 +613,7 @@ function CommunityDetailView({
   const transition = verticalSnapping ? "transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)" : "none";
 
   return (
-    <div ref={containerRef} className="fixed inset-0 z-[100] overflow-hidden bg-black overscroll-none"
+    <div ref={containerRef} className="lb-phone-col fixed inset-0 z-[100] overflow-hidden bg-black overscroll-none"
       style={{ height: "100dvh" }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
