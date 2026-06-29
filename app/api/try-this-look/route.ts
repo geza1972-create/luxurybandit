@@ -11,6 +11,7 @@ import {
 import { authorizeStudio } from "@/lib/studio-auth";
 import { tryOnGarment } from "@/lib/tryon";
 import { isIntimateName } from "@/lib/lingerie";
+import { categorizeLook, isLookCategory } from "@/lib/look-category";
 import { notifyAdminWhatsApp, ADMIN_URL } from "@/lib/notify-admin";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { sendCuratorInviteEmail } from "@/lib/curator-invite-email";
@@ -121,6 +122,13 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
   const frontPath = look.frontImagePath ?? look.imagePath;
   // Expose clean gallery paths: exclude front image path to avoid client-side duplicates
   const cleanGalleryPaths = (look.galleryImagePaths ?? []).filter(p => p && p !== frontPath);
+  // Lingerie/swim: explicit flag wins; otherwise detect from name + brand + notes.
+  const lingerie = typeof (look as any).lingerie === "boolean"
+    ? (look as any).lingerie
+    : isIntimateName([look.name, (look as any).brand, (look as any).campaignName, (look as any).productNote].filter(Boolean).join(" "));
+  // Editorial category (After Dark / Riviera / Boudoir / Off-Duty). Explicit wins,
+  // else lingerie→Boudoir, else inferred from the name so legacy looks are sorted.
+  const category = categorizeLook(look as any, lingerie);
   return {
     id: look.id,
     name: look.name,
@@ -150,9 +158,9 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     productType: (look as any).productType ?? "real",
     brand: ((look as any).brand?.trim() || detectBrand(look.name, (look as any).productNote, (look as any).campaignName)) ?? undefined,
     // Lingerie/swim: explicit flag wins; otherwise detect from name + brand + notes.
-    lingerie: typeof (look as any).lingerie === "boolean"
-      ? (look as any).lingerie
-      : isIntimateName([look.name, (look as any).brand, (look as any).campaignName, (look as any).productNote].filter(Boolean).join(" ")),
+    lingerie,
+    // Editorial category replaces brand as the top-level filter.
+    category,
     aiCreated: (look as any).aiCreated === true,
     curatorNote: (look as any).curatorNote ?? undefined,
     commentsOff: (look as any).commentsOff === true,
@@ -164,7 +172,6 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     feedOrder: typeof (look as any).feedOrder === "number" ? (look as any).feedOrder : undefined,
     likeCount: (look as any).likeCount ?? 0,
     generationCount,
-    category: (look as any).category ?? null,
     createdAt: look.createdAt,
     imageUrl: primaryImageUrl,
     frontImageUrl: primaryImageUrl,
@@ -491,6 +498,10 @@ export async function GET(request: Request) {
             thumbUrl: toThumbUrl((g as any).imageUrl ?? ""),
             videoUrl: (g as any).videoUrl ?? undefined,
             brand: detectBrand(g.lookName ?? look?.name, (look as any)?.productNote) ?? undefined,
+            // Editorial category + lingerie come from the source look, so the feed can
+            // hide Boudoir try-ons from "All" too (not just the looks).
+            category: look ? categorizeLook(look as any) : undefined,
+            lingerie: look ? (typeof (look as any).lingerie === "boolean" ? (look as any).lingerie : isIntimateName([(look as any).name, (look as any).brand, (look as any).campaignName, (look as any).productNote].filter(Boolean).join(" "))) : undefined,
             // The original uploaded photo → the feed shows it as the "Before" slide.
             userPhotoUrl: (g as any).userPhotoUrl ?? undefined,
             customerName: (g as any).customerName ?? "",
@@ -1197,9 +1208,11 @@ export async function POST(request: Request) {
         hashtags: hashtags || undefined,
         productType,
         aiCreated: aiCreated || undefined,
+        // Editorial category (After Dark / Riviera / Boudoir / Off-Duty), creator-set.
+        category: isLookCategory((payload as any).category) ? (payload as any).category : undefined,
         // Creator-set Lingerie/Swimwear flag (explicit; overrides auto-detection and
-        // forces the look's try-ons private + paid tier). Only stored when true.
-        lingerie: payload.lingerie === true ? true : undefined,
+        // forces the look's try-ons private + paid tier). Boudoir always implies lingerie.
+        lingerie: ((payload as any).category === "boudoir" || payload.lingerie === true) ? true : undefined,
         // The look image is already a model wearing the piece → the video can
         // animate it directly (no second try-on in generate-look-video).
         modelReady: modelReady || undefined,
@@ -1503,9 +1516,16 @@ export async function POST(request: Request) {
           discountLabel: discountLabel || undefined,
           dealEndsAt: dealEndsAt || undefined,
           inStock: inStock || undefined,
+          // Editorial category (admin-settable per look). Explicit boolean wins.
+          category: hasField("category")
+            ? (isLookCategory((payload as any).category) ? (payload as any).category : undefined)
+            : (look as any).category,
           // Creator/admin-set Lingerie/Swimwear flag (retroactively markable). Store the
           // EXPLICIT boolean so the toggle wins both ways (off overrides auto-detection).
-          lingerie: hasField("lingerie") ? payload.lingerie === true : (look as any).lingerie,
+          // Boudoir always implies lingerie; switching AWAY from Boudoir clears it.
+          lingerie: hasField("category")
+            ? ((payload as any).category === "boudoir" ? true : (hasField("lingerie") ? payload.lingerie === true : false))
+            : (hasField("lingerie") ? payload.lingerie === true : (look as any).lingerie),
           published: typeof payload.published === "boolean" ? payload.published : existingLook.published,
           // Admin may reassign the owning curator (e.g. distribute seeded looks).
           ...(adminRequest && typeof payload.curatorId === "string" && payload.curatorId.trim()

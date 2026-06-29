@@ -8,6 +8,7 @@ import { ArrowLeft, ArrowRight, Camera, Check, Eye, EyeOff, Ghost, ImagePlus, Im
 import NextImage from "next/image";
 import Link from "next/link";
 import { ChangeEvent, RefObject, useEffect, useRef, useState } from "react";
+import { LOOK_CATEGORIES, categorizeLook, type LookCategory } from "@/lib/look-category";
 
 function inferGarmentCategory(look: { name?: string; productNote?: string; hashtags?: string }): "tops" | "bottoms" | "one-pieces" | "lingerie" {
   const text = [look.name, look.productNote, look.hashtags].filter(Boolean).join(" ").toLowerCase();
@@ -33,6 +34,7 @@ type Look = {
   inStock?: boolean;
   published?: boolean;
   lingerie?: boolean;
+  category?: LookCategory;
   availabilityNote?: string;
   deliveryTime?: string;
   productNote?: string;
@@ -1676,14 +1678,17 @@ export default function AdminLooksPage() {
     }
   };
 
-  const toggleLingerie = async (look: Look) => {
+  // Manually re-categorize a look (After Dark / Riviera / Boudoir / Off-Duty). Boudoir
+  // is the lingerie category → the API forces lingerie:true and keeps it out of "All".
+  const setLookCategory = async (look: Look, category: LookCategory) => {
+    if (look.category === category) return;
     setIsSaving(true);
     setError(null);
     setMessage(null);
     try {
-      const next = !look.lingerie;
-      await callAdminAction({ action: "update-look", id: look.id, lingerie: next });
-      setMessage(`"${look.name}" ${next ? "marked as Lingerie/Swimwear (try-ons private)" : "unmarked as Lingerie"}.`);
+      await callAdminAction({ action: "update-look", id: look.id, category });
+      const label = LOOK_CATEGORIES.find((c) => c.slug === category)?.label ?? category;
+      setMessage(`"${look.name}" → ${label}${category === "boudoir" ? " (try-ons private)" : ""}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update.");
     } finally {
@@ -2988,16 +2993,34 @@ export default function AdminLooksPage() {
                       </button>
                     )}
 
-                    {/* 4b. LINGERIE / SWIMWEAR — creator/admin flag; forces try-ons private + paid tier */}
-                    <button
-                      type="button"
-                      disabled={isSaving}
-                      onClick={() => void toggleLingerie(look)}
-                      className={`inline-flex h-10 items-center justify-center gap-2 rounded-md px-3 text-xs font-black disabled:cursor-wait disabled:opacity-50 ${look.lingerie ? "bg-amber-100 text-amber-700 ring-1 ring-amber-300" : "bg-black/[0.06] text-ink/60"}`}
-                      title="Toggle Lingerie/Swimwear (try-ons stay private; paid tier)"
-                    >
-                      🔒 {look.lingerie ? "Lingerie ✓" : "Lingerie"}
-                    </button>
+                    {/* 4b. CATEGORY — editorial bucket (After Dark / Riviera / Boudoir /
+                        Off-Duty). Boudoir = lingerie → try-ons private + paid + hidden from
+                        "All". Falls back to the inferred category until set by hand. */}
+                    {(() => {
+                      const effective: LookCategory = look.category ?? categorizeLook(look);
+                      const inferred = !look.category;
+                      return (
+                        <div className="flex w-full flex-col gap-1">
+                          <span className="text-[10px] font-black uppercase tracking-wide text-ink/40">
+                            Kategorie{inferred ? " · auto" : ""}
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {LOOK_CATEGORIES.map((c) => (
+                              <button
+                                key={c.slug}
+                                type="button"
+                                disabled={isSaving}
+                                onClick={() => void setLookCategory(look, c.slug)}
+                                title={c.blurb}
+                                className={`inline-flex h-9 items-center justify-center gap-1 rounded-md px-2.5 text-[11px] font-black disabled:cursor-wait disabled:opacity-50 ${effective === c.slug ? "bg-black text-white" : "bg-black/[0.06] text-ink/55 hover:bg-black/10"}`}
+                              >
+                                {c.slug === "boudoir" ? "🔒 " : ""}{c.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* 5. TOOLS */}
                     {!isEditing && (

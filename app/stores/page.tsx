@@ -14,6 +14,7 @@ import { useScrollLock } from "@/lib/use-scroll-lock";
 import { lookPath } from "@/lib/look-slug";
 import HomeFeed from "@/components/HomeFeed";
 import { isAdminEmail } from "@/lib/is-admin-email";
+import { LOOK_CATEGORIES, isHiddenFromAll, type LookCategory } from "@/lib/look-category";
 import { Bookmark, EyeOff, Heart, Home, Image as ImageIcon, Info, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, Sparkles, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -65,6 +66,8 @@ type Look = {
   galleryImageUrls?: string[];
   productType?: "real" | "virtual";
   brand?: string;
+  lingerie?: boolean;
+  category?: LookCategory;
   generationCount?: number;
   curatorId?: string;
   curatorName?: string;
@@ -144,6 +147,8 @@ type CommunityItem = {
   imageUrl: string;
   videoUrl?: string;
   brand?: string;
+  lingerie?: boolean;
+  category?: LookCategory;
   thumbUrl?: string;
   userPhotoUrl?: string;
   customerName: string;
@@ -1362,6 +1367,9 @@ function StoresPage() {
   // Account/Saved deep links open over the grid, not the immersive reels.
   const showReels = !showAList && !showGrid && !searchParams.get("panel"); // default
   const [brandFilter, setBrandFilter] = useState<string | null>(null);
+  // Editorial category filter (After Dark / Riviera / Boudoir / Off-Duty). Replaces
+  // brand names as the top-level chips. null = "All" (Boudoir hidden from All).
+  const [categoryFilter, setCategoryFilter] = useState<LookCategory | null>(null);
   const [feedSelectMode, setFeedSelectMode] = useState(false);
   const [selectedLookIds, setSelectedLookIds] = useState<Set<string>>(new Set());
   const [feedBulkWorking, setFeedBulkWorking] = useState(false);
@@ -1705,7 +1713,7 @@ function StoresPage() {
 
   // Discover = ONE mixed archive: looks, curator videos AND try-ons, by timestamp.
   const historyItems = useMemo(() => {
-    type HItem = { key: string; kind: "look" | "tryon"; id: string; lookId: string; thumb: string; videoUrl?: string; videoPoster?: string; hasBefore?: boolean; aiCreated?: boolean; brand?: string; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string };
+    type HItem = { key: string; kind: "look" | "tryon"; id: string; lookId: string; thumb: string; videoUrl?: string; videoPoster?: string; hasBefore?: boolean; aiCreated?: boolean; brand?: string; category?: LookCategory; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string };
     const items: HItem[] = [];
     const lookById = new Map(looks.map((l) => [l.id, l]));
     for (const l of looks) {
@@ -1717,12 +1725,12 @@ function StoresPage() {
       // date. Fall back to the timestamp embedded in the video filename for older ones.
       const videoTs = l.videoCreatedAt || tsFromVideoUrl(l.videoUrl) || "";
       const when = videoTs > (l.createdAt ?? "") ? videoTs : (l.createdAt ?? "");
-      items.push({ key: `look-${l.id}`, kind: "look", id: l.id, lookId: l.id, thumb, videoUrl: l.videoUrl, videoPoster, aiCreated: l.aiCreated, brand: l.brand, createdAt: when, name: l.name, price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl });
+      items.push({ key: `look-${l.id}`, kind: "look", id: l.id, lookId: l.id, thumb, videoUrl: l.videoUrl, videoPoster, aiCreated: l.aiCreated, brand: l.brand, category: l.category, createdAt: when, name: l.name, price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl });
     }
     for (const c of communityItems) {
       // A try-on still IS a real model frame → use it as the video poster.
       const srcLook = lookById.get(c.lookId);
-      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, hasBefore: !!c.userPhotoUrl, brand: c.brand, createdAt: c.createdAt ?? "", name: c.customerName || c.lookName, price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName });
+      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, hasBefore: !!c.userPhotoUrl, brand: c.brand, category: c.category ?? srcLook?.category, createdAt: c.createdAt ?? "", name: c.customerName || c.lookName, price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName });
     }
     items.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
     // Dedupe only the LOOK tiles by look (one tile per product, prefer the video).
@@ -1748,21 +1756,28 @@ function StoresPage() {
     return set.size;
   }, [looks, communityItems]);
 
-  // Brand filter chips — only brands the curator named at generation (paid placement).
-  const brandChips = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const it of historyItems) if (it.brand) counts.set(it.brand, (counts.get(it.brand) ?? 0) + 1);
-    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([brand]) => brand);
-  }, [historyItems]);
+  // The base feed: what PEOPLE generate (try-ons, image or video) + curator look
+  // VIDEOS. Never a flat product/clothing still — those are "Kleidungsstücke".
+  const feedItems = useMemo(
+    () => historyItems.filter(it => it.kind === "tryon" || !!it.videoUrl),
+    [historyItems],
+  );
+  // Category chips — only the editorial categories that actually have content. Boudoir
+  // appears as a chip (so it's reachable) even though it's hidden from "All".
+  const categoryChips = useMemo(() => {
+    const present = new Set<LookCategory>();
+    for (const it of feedItems) if (it.category) present.add(it.category);
+    return LOOK_CATEGORIES.filter(c => present.has(c.slug));
+  }, [feedItems]);
   const visibleHistory = useMemo(() => {
-    let items = brandFilter ? historyItems.filter(it => it.brand === brandFilter) : historyItems;
-    // Feed shows what PEOPLE generate (try-ons, image or video) + curator look VIDEOS.
-    // Never a flat product/clothing still — those are "Kleidungsstücke", not content.
-    items = items.filter(it => it.kind === "tryon" || !!it.videoUrl);
+    let items = categoryFilter
+      ? feedItems.filter(it => it.category === categoryFilter)
+      // "All" → everything EXCEPT the hidden-from-All categories (Boudoir/lingerie).
+      : feedItems.filter(it => !(it.category && isHiddenFromAll(it.category)));
     const q = query.trim().toLowerCase();
-    if (q) items = items.filter(it => `${it.name} ${it.curatorName ?? ""} ${it.brand ?? ""}`.toLowerCase().includes(q));
+    if (q) items = items.filter(it => `${it.name} ${it.curatorName ?? ""}`.toLowerCase().includes(q));
     return items;
-  }, [historyItems, brandFilter, query]);
+  }, [feedItems, categoryFilter, query]);
   // The visible grid mapped to the scroll-feed's item shape (looks + try-ons), so
   // tapping any tile opens a full-screen vertical reels feed of exactly what's shown.
   const visibleHistoryAsReel = useMemo<CommunityItem[]>(() => {
@@ -2024,7 +2039,7 @@ function StoresPage() {
           <>
             {/* Hero — explains in one glance what LuxuryBandit lets you do.
                 Hidden while filtering/searching to keep browsing clean. */}
-            {!brandFilter && !searchOpen && (
+            {!categoryFilter && !searchOpen && (
               <section className="px-4 pt-4 pb-3">
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cobalt">LuxuryBandit</p>
                 <h1 className="mt-1.5 text-[1.7rem] font-black leading-[1.1] tracking-tight text-black">
@@ -2061,17 +2076,18 @@ function StoresPage() {
               </section>
             )}
 
-            {/* Brand filter chips — only brands named at generation (paid placement) */}
-            {brandChips.length > 0 && (
+            {/* Editorial category chips (After Dark / Riviera / Off-Duty / Boudoir) —
+                NEVER brand names. "All" excludes Boudoir; pick the Boudoir chip to see it. */}
+            {categoryChips.length > 0 && (
               <div className="flex gap-1.5 overflow-x-auto px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <button type="button" onClick={() => setBrandFilter(null)}
-                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${brandFilter === null ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>
+                <button type="button" onClick={() => setCategoryFilter(null)}
+                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${categoryFilter === null ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>
                   All
                 </button>
-                {brandChips.map(b => (
-                  <button key={b} type="button" onClick={() => setBrandFilter(b)}
-                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${brandFilter === b ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>
-                    {b}
+                {categoryChips.map(c => (
+                  <button key={c.slug} type="button" onClick={() => setCategoryFilter(c.slug)}
+                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${categoryFilter === c.slug ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>
+                    {c.label}
                   </button>
                 ))}
               </div>
@@ -2121,61 +2137,8 @@ function StoresPage() {
                 </div>
               ))}
             </div>
-            {brandFilter && visibleHistory.length === 0 && (
-              <p className="py-16 text-center text-sm font-black text-black/40">Nothing from {brandFilter} yet.</p>
-            )}
-
-            {/* More {brand} to try on — a shoppable list (stored dupes + live results) */}
-            {brandFilter && (
-              <div className="px-4 pt-6 pb-4">
-                <div className="mb-3 flex items-center gap-2 border-t border-black/10 pt-5 text-[11px] font-black uppercase tracking-[0.14em] text-black/40">
-                  <ShoppingBag className="h-3.5 w-3.5" /> More {brandFilter} to try on
-                </div>
-                <div className="grid gap-2.5">
-                  {[
-                    ...brandStoredProducts.map(p => ({ ...p, tryHref: `/tryon/${p.lookId}?alt=${p.altIdx}` })),
-                    ...liveProducts.map(p => ({ ...p, lingerie: false, tryHref: brandRepLookId ? `/tryon/${brandRepLookId}?garment=${encodeURIComponent(p.thumbnail)}` : "" })),
-                  ].map((a, i) => (
-                    <div key={a.link || `x${i}`} className="flex w-full min-w-0 gap-3 rounded-2xl border border-black/10 bg-white p-2.5">
-                      <a href={a.link || undefined} target="_blank" rel="noopener noreferrer sponsored" className="shrink-0 active:scale-95 transition-transform">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={a.thumbnail} alt=""
-                          onError={(e) => { const el = e.currentTarget; if (!el.dataset.proxied) { el.dataset.proxied = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(a.thumbnail)}`; } }}
-                          className="h-28 w-24 rounded-xl bg-black/5 object-cover" />
-                      </a>
-                      <div className="flex min-w-0 flex-1 flex-col gap-2 py-0.5">
-                        <div className="min-w-0">
-                          <p className="line-clamp-2 text-sm font-black text-black">{a.title || a.source || "Product"}</p>
-                          {a.source && <p className="mt-0.5 truncate text-[11px] font-bold text-black/40">{a.source}</p>}
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-base font-black text-ink">{a.price || "—"}</span>
-                          {a.link && (
-                            <a href={a.link} target="_blank" rel="noopener noreferrer sponsored"
-                              className="flex shrink-0 items-center gap-1.5 rounded-full bg-black px-4 py-1.5 text-[12px] font-black text-white active:scale-95 transition-transform">
-                              <ShoppingBag className="h-3.5 w-3.5" /> Shop now
-                            </a>
-                          )}
-                        </div>
-                        {a.tryHref && (
-                          <button type="button" onClick={() => router.push(a.tryHref)}
-                            className="flex w-full items-center justify-center gap-1.5 rounded-full border border-black/15 bg-white px-3.5 py-2 text-[12px] font-black text-black active:scale-95 transition-transform">
-                            <Sparkles className="h-3.5 w-3.5" /> Try on · {a.lingerie ? "$2.90" : "Free"}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {liveLoadedBrand !== brandFilter ? (
-                  <button type="button" onClick={() => void loadMoreBrand()} disabled={liveLoading}
-                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-black/15 bg-white px-4 py-2.5 text-sm font-black text-black active:scale-95 transition disabled:opacity-50">
-                    {liveLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Load more {brandFilter}
-                  </button>
-                ) : liveProducts.length === 0 && brandStoredProducts.length === 0 ? (
-                  <p className="mt-3 text-center text-[12px] font-bold text-black/35">No more {brandFilter} products found.</p>
-                ) : null}
-              </div>
+            {categoryFilter && visibleHistory.length === 0 && (
+              <p className="py-16 text-center text-sm font-black text-black/40">Nothing in this category yet.</p>
             )}
           </>
           )

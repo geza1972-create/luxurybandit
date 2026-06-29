@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, Check, ChevronUp, ChevronDown, ClipboardPaste, Crop, ExternalLink, ImagePlus, Link2, Loader2, Lock, Plus, Search, Trash2, Video, Wand2, X } from "lucide-react";
 import { FASHION_BRANDS } from "@/lib/fashion-brands";
 import { isIntimateName } from "@/lib/lingerie";
+import { LOOK_CATEGORIES, categorizeLook, type LookCategory } from "@/lib/look-category";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 // Garment types a curator can target the search with (select one, sorted A→Z list
@@ -205,7 +206,7 @@ function storeNameFromUrl(url: string): string {
   } catch { return "Shop"; }
 }
 
-async function callPublish(draft: Draft, name: string, price: string, brandQueries?: string[], guaranteedAlt?: any, modelImage?: string, description?: string, lingerie?: boolean): Promise<{ altCount: number }> {
+async function callPublish(draft: Draft, name: string, price: string, brandQueries?: string[], guaranteedAlt?: any, modelImage?: string, description?: string, lingerie?: boolean, category?: LookCategory): Promise<{ altCount: number }> {
   // An AI-generated look has no source shop URL. Its shop "Vorschläge" come from TWO
   // sources merged: (1) brand-aware text search so real on-brand pieces (e.g. Tom
   // Ford) show up, then (2) a reverse-image search for visually similar dupes across
@@ -258,7 +259,8 @@ async function callPublish(draft: Draft, name: string, price: string, brandQueri
       alternatives,
       productType: "real",
       aiCreated: isAiLook,    // AI Fashion creation vs curated web find — drives the badge
-      lingerie: lingerie === true ? true : undefined, // creator-set; forces private + paid tier
+      category: category ?? undefined, // editorial category (After Dark / Riviera / Boudoir / Off-Duty)
+      lingerie: (category === "boudoir" || lingerie === true) ? true : undefined, // Boudoir ⇒ private + paid tier
       published: true,
       image: main,            // real product photo = main display (no AI hero)
       frontImage: main,
@@ -407,7 +409,8 @@ function CropModal({ file, onCancel, onApply }: { file: File; onCancel: () => vo
 function DraftCard({ draft, onRemove }: { draft: Draft; onRemove: () => void }) {
   const [name, setName] = useState(draft.name);
   const [price, setPrice] = useState(draft.price);
-  const [lingerie, setLingerie] = useState(false);
+  // Pre-select a category by inferring from the draft name; creator can override.
+  const [category, setCategory] = useState<LookCategory>(() => categorizeLook({ name: draft.name }));
   const [status, setStatus] = useState<"idle" | "publishing" | "done" | "error">("idle");
   const [error, setError] = useState("");
   const [altCount, setAltCount] = useState(0);
@@ -416,7 +419,7 @@ function DraftCard({ draft, onRemove }: { draft: Draft; onRemove: () => void }) 
     setStatus("publishing");
     setError("");
     try {
-      const { altCount } = await callPublish(draft, name.trim() || "Trend Look", price.trim(), undefined, undefined, undefined, undefined, lingerie);
+      const { altCount } = await callPublish(draft, name.trim() || "Trend Look", price.trim(), undefined, undefined, undefined, undefined, category === "boudoir", category);
       setAltCount(altCount);
       setStatus("done");
     } catch (e) {
@@ -446,12 +449,25 @@ function DraftCard({ draft, onRemove }: { draft: Draft; onRemove: () => void }) 
           className="inline-flex w-fit items-center gap-1.5 text-xs font-black text-cobalt hover:underline">
           <ExternalLink className="h-3.5 w-3.5" /> Quelle / Affiliate-Link
         </a>
-        {/* Creator decides — Lingerie/Swimwear forces try-ons private (never public) + paid tier. */}
-        <label className="flex cursor-pointer items-center gap-2 rounded-md border border-black/10 bg-panel px-3 py-2.5">
-          <input type="checkbox" checked={lingerie} onChange={(e) => setLingerie(e.target.checked)} disabled={status === "done"}
-            className="h-4 w-4 cursor-pointer accent-black" />
-          <span className="text-sm font-bold text-ink">🔒 Lingerie / Swimwear <span className="font-medium text-ink/50">— try-ons stay private</span></span>
-        </label>
+        {/* Creator picks the editorial category. Boudoir (lingerie) forces try-ons
+            private (never public) + paid tier, and is hidden from the "All" feed. */}
+        <div className="grid gap-1.5">
+          <span className="text-[11px] font-black uppercase tracking-[0.14em] text-ink/40">Kategorie</span>
+          <div className="grid grid-cols-2 gap-1.5">
+            {LOOK_CATEGORIES.map((c) => (
+              <button key={c.slug} type="button" disabled={status === "done"}
+                onClick={() => setCategory(c.slug)}
+                className={`rounded-md border px-3 py-2 text-left text-sm font-bold transition disabled:opacity-60 ${category === c.slug ? "border-black bg-black text-white" : "border-black/10 bg-panel text-ink hover:border-black/30"}`}>
+                {c.slug === "boudoir" ? "🔒 " : ""}{c.label}
+              </button>
+            ))}
+          </div>
+          <span className="text-[11px] font-medium text-ink/45">
+            {category === "boudoir"
+              ? "Boudoir: try-ons bleiben privat (nie öffentlich) + bezahlt, versteckt unter „All“."
+              : LOOK_CATEGORIES.find((c) => c.slug === category)?.blurb}
+          </span>
+        </div>
 
         {status === "done" ? (
           <div className="grid gap-1.5 rounded-md border border-green-200 bg-green-50 px-3 py-2.5">

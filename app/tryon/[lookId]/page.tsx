@@ -924,11 +924,17 @@ export default function TryonPage() {
   // Cross-sell carousel — other looks to try on next. Reused on the result, confirm
   // and generating steps (dark=true for the dark steps). items-start keeps every card
   // top-aligned so none look "shifted".
-  const crossSellRow = (dark: boolean) => moreLooks.length === 0 ? null : (
+  const crossSellRow = (dark: boolean) => {
+    // Boudoir (lingerie) templates are NOT offered in the general "choose a look"
+    // row — same rule as the feed's "All". Only when the current look is itself
+    // Boudoir do we surface other Boudoir looks.
+    const showBoudoir = effectiveLingerie;
+    const looksToShow = moreLooks.filter(l => showBoudoir || !l.lingerie);
+    return looksToShow.length === 0 ? null : (
     <div className="w-full max-w-md">
       <p className={`mb-2 text-sm font-black ${dark ? "text-white" : "text-black"}`}>Try these looks too ✨</p>
       <div className="flex items-start gap-2.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {moreLooks.map(l => (
+        {looksToShow.map(l => (
           <button key={l.id} type="button" onClick={() => router.push(`/tryon/${l.id}`)}
             className="w-24 shrink-0 text-left active:scale-95 transition-transform">
             <div className={`relative aspect-[3/4] overflow-hidden rounded-xl border ${dark ? "border-white/15 bg-white/5" : "border-black/10 bg-black/[0.03]"}`}>
@@ -941,7 +947,8 @@ export default function TryonPage() {
         ))}
       </div>
     </div>
-  );
+    );
+  };
 
   // ─── Loading ───
   if (isLoadingLook) {
@@ -1660,3 +1667,4 @@ export default function TryonPage() {
     </div>
   );
 }
+
