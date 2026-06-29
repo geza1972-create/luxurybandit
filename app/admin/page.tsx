@@ -687,19 +687,24 @@ export default function AdminPage() {
                       <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">{l.aiCreated ? "AI" : "Curated"}</span>
                       {l.videoUrl && <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">Video</span>}
                     </div>
-                    {/* Category — manual override. Boudoir = lingerie (private + hidden from
-                        "All"). Falls back to the auto-inferred category until set by hand. */}
+                    {/* Category — a single CHOICE (dropdown, not on/off toggles). Boudoir =
+                        lingerie (private + hidden from "All"). Shows the auto-inferred
+                        category until set by hand; picking another switches it. */}
                     {(() => {
                       const effective: LookCategory = l.category ?? categorizeLook(l);
                       return (
-                        <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                          {LOOK_CATEGORIES.map(c => (
-                            <button key={c.slug} type="button" disabled={busy === l.id}
-                              onClick={() => void setLookCategory(l.id, c.slug)} title={c.blurb}
-                              className={`rounded-full px-2 py-0.5 text-[10px] font-black transition disabled:opacity-50 ${effective === c.slug ? "bg-ink text-white" : "bg-black/5 text-ink/45 hover:bg-black/10"}`}>
-                              {c.slug === "boudoir" ? "🔒 " : ""}{c.label}
-                            </button>
-                          ))}
+                        <div className="mt-1.5 flex items-center gap-1.5">
+                          <span className="text-[10px] font-black uppercase tracking-wide text-ink/40">Kategorie</span>
+                          <select
+                            value={effective}
+                            disabled={busy === l.id}
+                            onChange={(e) => void setLookCategory(l.id, e.target.value as LookCategory)}
+                            className="rounded-full border border-black/15 bg-white px-2.5 py-1 text-[11px] font-black text-ink outline-none focus:border-cobalt disabled:opacity-50"
+                          >
+                            {LOOK_CATEGORIES.map(c => (
+                              <option key={c.slug} value={c.slug}>{c.slug === "boudoir" ? "🔒 " : ""}{c.label}</option>
+                            ))}
+                          </select>
                           {!l.category && <span className="text-[9px] font-bold uppercase tracking-wide text-ink/30">auto</span>}
                         </div>
                       );
