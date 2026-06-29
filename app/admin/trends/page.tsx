@@ -781,6 +781,32 @@ export default function AdminTrends() {
     if (e.drop.size) parts.push(`Orte: ${e.drop.size} abgewählt (${reasons(e.reasons)})`);
     setReelAuditMsg(parts.length ? `Korrektur — ${parts.join(" · ")}. Häkchen prüfen, dann posten.` : "Alles sauber ✅ — keine Blindtext-/toten-Link-/Nicht-Buchungs-Treffer.");
   };
+  // One selectable candidate row: thumbnail + title + source + price (+ clicks),
+  // an "open" link and a tick — so the curator picks by details, not just the image.
+  const candRow = (c: SerpItem, selected: boolean, onToggle: () => void, clickCount?: number) => (
+    <div key={c.link} className={`flex items-center gap-2.5 rounded-lg border p-1.5 transition ${selected ? "border-cobalt bg-cobalt/[0.05]" : "border-black/10"}`}>
+      <button type="button" onClick={onToggle} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+        <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md bg-black/5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={c.thumbnail} alt="" className="h-full w-full object-cover" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="line-clamp-2 text-[12px] font-black leading-snug text-ink">{c.title || c.source || "—"}</span>
+          <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-bold">
+            {c.price && <span className="rounded bg-emerald-50 px-1 text-emerald-700">{c.price}</span>}
+            {c.source && <span className="text-ink/45">{c.source}</span>}
+            {!!clickCount && <span className="text-ink/45">👁 {clickCount}</span>}
+          </span>
+        </span>
+      </button>
+      <a href={c.link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} title="Öffnen"
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-ink/40 hover:bg-black/5"><ExternalLink className="h-3.5 w-3.5" /></a>
+      <button type="button" onClick={onToggle} aria-label="Auswählen"
+        className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 text-[11px] font-black transition ${selected ? "border-cobalt bg-cobalt text-white" : "border-black/20 text-transparent"}`}>✓</button>
+    </div>
+  );
+  const toggleIn = (setter: (fn: (s: Set<string>) => Set<string>) => void, link: string) =>
+    setter(s => { const n = new Set(s); n.has(link) ? n.delete(link) : n.add(link); return n; });
   const publishReel = async () => {
     setReelErr(""); setReelMsg("");
     if (!reelFile) { setReelErr("Bitte ein Video (MP4) wählen."); return; }
@@ -1417,32 +1443,16 @@ export default function AdminTrends() {
               {reelClothesCands.length > 0 && (
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-wide text-ink/45">Klamotten — anhaken, was ins Reel soll ({reelClothesSel.size})</p>
-                  <div className="mt-1.5 grid grid-cols-4 gap-1.5">
-                    {reelClothesCands.map(c => (
-                      <button key={c.link} type="button" onClick={() => setReelClothesSel(s => { const n = new Set(s); n.has(c.link) ? n.delete(c.link) : n.add(c.link); return n; })}
-                        className={`relative overflow-hidden rounded-md border-2 ${reelClothesSel.has(c.link) ? "border-cobalt" : "border-transparent opacity-50"}`}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={c.thumbnail} alt="" className="aspect-square w-full object-cover" />
-                        {reelClothesSel.has(c.link) && <span className="absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-full bg-cobalt text-[9px] text-white">✓</span>}
-                        {c.price && <span className="absolute bottom-0 inset-x-0 bg-black/60 px-0.5 text-[7px] font-black text-white">{c.price}</span>}
-                      </button>
-                    ))}
+                  <div className="mt-1.5 flex flex-col gap-1.5">
+                    {reelClothesCands.map(c => candRow(c, reelClothesSel.has(c.link), () => toggleIn(setReelClothesSel, c.link)))}
                   </div>
                 </div>
               )}
               {reelLocCands.length > 0 && (
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-wide text-ink/45">Orte — anhaken, was ins Reel soll ({reelLocSel.size})</p>
-                  <div className="mt-1.5 grid grid-cols-4 gap-1.5">
-                    {reelLocCands.map(c => (
-                      <button key={c.link} type="button" onClick={() => setReelLocSel(s => { const n = new Set(s); n.has(c.link) ? n.delete(c.link) : n.add(c.link); return n; })}
-                        className={`relative overflow-hidden rounded-md border-2 ${reelLocSel.has(c.link) ? "border-cobalt" : "border-transparent opacity-50"}`}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={c.thumbnail} alt="" className="aspect-square w-full object-cover" />
-                        {reelLocSel.has(c.link) && <span className="absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-full bg-cobalt text-[9px] text-white">✓</span>}
-                        {c.price && <span className="absolute bottom-0 inset-x-0 bg-black/60 px-0.5 text-[7px] font-black text-white">{c.price}</span>}
-                      </button>
-                    ))}
+                  <div className="mt-1.5 flex flex-col gap-1.5">
+                    {reelLocCands.map(c => candRow(c, reelLocSel.has(c.link), () => toggleIn(setReelLocSel, c.link)))}
                   </div>
                 </div>
               )}
@@ -2117,17 +2127,8 @@ export default function AdminTrends() {
                               </button>
                             </div>
                             {clothesCands.length > 0 && (
-                              <div className="mt-2 grid grid-cols-3 gap-1.5">
-                                {clothesCands.map((c) => (
-                                  <button key={c.link} type="button" onClick={() => setClothesSel(s => { const n = new Set(s); n.has(c.link) ? n.delete(c.link) : n.add(c.link); return n; })}
-                                    className={`relative overflow-hidden rounded-md border-2 ${clothesSel.has(c.link) ? "border-cobalt" : "border-transparent opacity-60"}`}>
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={c.thumbnail} alt="" className="aspect-square w-full object-cover" />
-                                    {clothesSel.has(c.link) && <span className="absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-full bg-cobalt text-[9px] text-white">✓</span>}
-                                    {(l.clicks?.[c.link] ?? 0) > 0 && <span className="absolute left-0.5 top-0.5 rounded-full bg-emerald-600 px-1 text-[8px] font-black text-white">👁 {l.clicks![c.link]}</span>}
-                                    {c.price && <span className="absolute bottom-0 inset-x-0 bg-black/60 px-1 text-[8px] font-black text-white">{c.price}</span>}
-                                  </button>
-                                ))}
+                              <div className="mt-2 flex flex-col gap-1.5">
+                                {clothesCands.map((c) => candRow(c, clothesSel.has(c.link), () => toggleIn(setClothesSel, c.link), l.clicks?.[c.link]))}
                               </div>
                             )}
                           </div>
@@ -2152,17 +2153,8 @@ export default function AdminTrends() {
                               placeholder="Suchbegriff, z. B. „Ibiza Klippen-Villa Pool“"
                               className="mt-1.5 h-8 w-full rounded-md border border-black/10 bg-panel px-2 text-[11px] font-semibold text-ink outline-none focus:border-cobalt" />
                             {locCands.length > 0 && (
-                              <div className="mt-2 grid grid-cols-3 gap-1.5">
-                                {locCands.map((c) => (
-                                  <button key={c.link} type="button" onClick={() => setLocSel(s => { const n = new Set(s); n.has(c.link) ? n.delete(c.link) : n.add(c.link); return n; })}
-                                    className={`relative overflow-hidden rounded-md border-2 ${locSel.has(c.link) ? "border-cobalt" : "border-transparent opacity-60"}`}>
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={c.thumbnail} alt="" className="aspect-square w-full object-cover" />
-                                    {locSel.has(c.link) && <span className="absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-full bg-cobalt text-[9px] text-white">✓</span>}
-                                    {(l.clicks?.[c.link] ?? 0) > 0 && <span className="absolute left-0.5 top-0.5 rounded-full bg-emerald-600 px-1 text-[8px] font-black text-white">👁 {l.clicks![c.link]}</span>}
-                                    {c.price && <span className="absolute bottom-0 inset-x-0 bg-black/60 px-0.5 text-[7px] font-black text-white">{c.price}</span>}
-                                  </button>
-                                ))}
+                              <div className="mt-2 flex flex-col gap-1.5">
+                                {locCands.map((c) => candRow(c, locSel.has(c.link), () => toggleIn(setLocSel, c.link), l.clicks?.[c.link]))}
                               </div>
                             )}
                           </div>
