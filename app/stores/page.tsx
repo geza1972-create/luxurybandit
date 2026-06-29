@@ -1099,7 +1099,7 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
       if (action === "signin") {
         const s = await signInWithPassword(email.trim(), password);
         setSession(s);
-        window.location.href = "/user/myaccount"; // land on the dashboard, not the feed
+        window.location.href = "/user/dashboard"; // land on the dashboard, not the feed
         return;
       } else if (action === "register") {
         await signUpWithPassword(email.trim(), password);

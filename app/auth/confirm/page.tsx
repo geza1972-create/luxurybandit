@@ -39,7 +39,7 @@ export default function ConfirmPage() {
         // try-on can resume; otherwise the user's dashboard, not the feed. The dest is
         // read from sessionStorage (set before OAuth) — NOT the redirect URL — so it
         // can't be dropped by Supabase's redirect allowlist. ?returnTo= kept as fallback.
-        let dest = "/user/myaccount";
+        let dest = "/user/dashboard";
         const ok = (p: string | null) => !!p && p.startsWith("/") && !p.startsWith("//");
         try {
           const stored = sessionStorage.getItem("lb_oauth_return");

@@ -34,7 +34,7 @@ function LoginForm() {
 
   // Where to land after sign-in (e.g. back to the studio). Only internal paths.
   const rawReturn = params.get("returnTo") ?? "";
-  const returnPath = rawReturn.startsWith("/") && !rawReturn.startsWith("//") ? rawReturn : "/user/myaccount";
+  const returnPath = rawReturn.startsWith("/") && !rawReturn.startsWith("//") ? rawReturn : "/user/dashboard";
   // Clean redirect URL (always allowlisted); the post-login destination is stashed in
   // sessionStorage so Supabase's allowlist can't drop it.
   const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth/confirm` : "";
