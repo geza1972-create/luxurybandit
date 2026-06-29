@@ -137,8 +137,10 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     // Try-ons are NOT mixed into an Original/Curated post anymore — they live on
     // their own under The A List. A look post shows only its own video + image.
     ...(look.videoUrl ? [{ type: "video" as const }] : []),
-    // Only show a still if it's a safe (created) image — never the original product photo.
-    ...(heroImg ? [{ type: "image" as const }] : []),
+    // Still image: only the AI creation, or — for a curated "Studio Web" look — only
+    // when there's NO video. A curated look WITH a video never shows a second still
+    // (it's redundant and the render/original can be broken). Never the original photo.
+    ...(heroImg && (look.aiCreated || !look.videoUrl) ? [{ type: "image" as const }] : []),
     // Shop options are NOT shown in the feed (no product slides, no list). The
     // dupes are fetched on demand only when the user taps "Bandit the look!".
   ];
@@ -296,7 +298,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               ) : m.type === "image" ? (
                 <div className="relative h-full w-full">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img} alt={look.name} className="h-full w-full object-contain" />
+                  <img src={img} alt="" className="h-full w-full object-contain" />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide backdrop-blur transition active:opacity-70 ${look.aiCreated ? "bg-black/70 text-white hover:bg-black/85" : "bg-white/85 text-black/70 hover:bg-white"}`}>
                     {look.aiCreated ? "✦ Original" : "Curated"}<Info className="ml-1 h-3 w-3 opacity-80" />
