@@ -650,6 +650,12 @@ export default function AdminTrends() {
   const [reelStep, setReelStep] = useState("");
   const [reelMsg, setReelMsg] = useState("");
   const [reelErr, setReelErr] = useState("");
+  // Reel-creation curation: search the SerpApi candidates, tick which to keep.
+  const [reelSearching, setReelSearching] = useState(false);
+  const [reelClothesCands, setReelClothesCands] = useState<{ title?: string; link: string; source?: string; thumbnail: string; price?: string; priceValue?: number; currency?: string }[]>([]);
+  const [reelClothesSel, setReelClothesSel] = useState<Set<string>>(new Set());
+  const [reelLocCands, setReelLocCands] = useState<{ title?: string; link: string; source?: string; thumbnail: string; price?: string }[]>([]);
+  const [reelLocSel, setReelLocSel] = useState<Set<string>>(new Set());
   // AI Fashion generation state
   const [aiGarmentFile, setAiGarmentFile] = useState<File | null>(null);
   const [aiPersonFile, setAiPersonFile] = useState<File | null>(null);
@@ -743,6 +749,24 @@ export default function AdminTrends() {
   // post it as a NEW feed look — a funnel post (Try-on / Bandit). Creates the look
   // (poster = the video's first frame, description = public title, category), then
   // attaches the video. Never uses a brand product photo → licensing-safe.
+  // Run the SerpApi searches for the reel BEFORE posting, so the curator can tick
+  // which results to keep (clothes image / location image+keyword → candidates).
+  const runReelSearch = async () => {
+    setReelErr("");
+    if (!reelClothesFile && !reelLocationFile && !reelLocationQuery.trim()) { setReelErr("Klamotten-Bild und/oder Location-Bild/Suchbegriff wählen, dann suchen."); return; }
+    setReelSearching(true);
+    try {
+      if (reelClothesFile) {
+        const found = await callDupes("", await fileToDataUrl(reelClothesFile));
+        const seen = new Set<string>(); const uniq = found.filter((f: any) => f.link && f.thumbnail && !seen.has(f.link) && (seen.add(f.link), true));
+        setReelClothesCands(uniq); setReelClothesSel(new Set(uniq.map((f: any) => f.link)));
+      }
+      const loc = reelLocationQuery.trim() ? await callPlaceSearch(reelLocationQuery) : reelLocationFile ? await callDupes("", await fileToDataUrl(reelLocationFile)) : [];
+      const seenL = new Set<string>(); const uniqL = loc.filter((f: any) => f.link && f.thumbnail && !seenL.has(f.link) && (seenL.add(f.link), true));
+      setReelLocCands(uniqL); setReelLocSel(new Set(uniqL.map((f: any) => f.link)));
+    } catch { setReelErr("Suche fehlgeschlagen."); }
+    setReelSearching(false);
+  };
   const publishReel = async () => {
     setReelErr(""); setReelMsg("");
     if (!reelFile) { setReelErr("Bitte ein Video (MP4) wählen."); return; }
@@ -786,17 +810,22 @@ export default function AdminTrends() {
       // similar escapes (reverse-image search). Both stored on the look for "Bandit the look".
       let alternatives: any[] = [];
       let locationDupes: any[] = [];
-      if (reelClothesFile) {
-        setReelStep("Ähnliche Looks suchen…");
-        try { alternatives = await callDupes("", await fileToDataUrl(reelClothesFile)); } catch { /**/ }
-      }
       const triedLocation = !!reelLocationFile || !!reelLocationQuery.trim();
-      if (triedLocation) {
-        setReelStep("Ähnliche Orte suchen…");
-        // Keyword search (reliable for AI/generic places) first; fall back to the
-        // reverse-image search on the location photo if no keyword was given.
-        if (reelLocationQuery.trim()) { try { locationDupes = await callPlaceSearch(reelLocationQuery); } catch { /**/ } }
-        if (!locationDupes.length && reelLocationFile) { try { locationDupes = await callDupes("", await fileToDataUrl(reelLocationFile)); } catch { /**/ } }
+      if (reelClothesCands.length || reelLocCands.length) {
+        // The curator already searched + ticked — use exactly their selection.
+        alternatives = reelClothesCands.filter(c => reelClothesSel.has(c.link)).slice(0, 16);
+        locationDupes = reelLocCands.filter(c => reelLocSel.has(c.link)).slice(0, 12);
+      } else {
+        // No preview search → auto-search and keep everything (back-compat).
+        if (reelClothesFile) {
+          setReelStep("Ähnliche Looks suchen…");
+          try { alternatives = await callDupes("", await fileToDataUrl(reelClothesFile)); } catch { /**/ }
+        }
+        if (triedLocation) {
+          setReelStep("Ähnliche Orte suchen…");
+          if (reelLocationQuery.trim()) { try { locationDupes = await callPlaceSearch(reelLocationQuery); } catch { /**/ } }
+          if (!locationDupes.length && reelLocationFile) { try { locationDupes = await callDupes("", await fileToDataUrl(reelLocationFile)); } catch { /**/ } }
+        }
       }
       if (alternatives.length || locationDupes.length || reelClothesFile || reelLocationFile) {
         setReelStep("Treffer & Bilder speichern…");
@@ -811,6 +840,7 @@ export default function AdminTrends() {
       const locNote = triedLocation && !locationDupes.length ? " · keine Orte gefunden (Suchbegriff eingeben?)" : locationDupes.length ? ` · ${locationDupes.length} Orte` : "";
       setReelMsg(`Reel ist live im Feed ✨${alternatives.length ? ` · ${alternatives.length} ähnliche Looks` : ""}${locNote}`);
       setReelFile(null); setReelClothesFile(null); setReelLocationFile(null); setReelLocationQuery(""); setReelDesc("");
+      setReelClothesCands([]); setReelClothesSel(new Set()); setReelLocCands([]); setReelLocSel(new Set());
       void fetch("/api/curator?mylooks=1", { headers: studioHeaders() }).then(r => r.json()).then((d: any) => setMyLooks(d.looks ?? [])).catch(() => {});
     } catch (e) {
       setReelErr(e instanceof Error ? e.message : "Upload fehlgeschlagen.");
@@ -1363,6 +1393,44 @@ export default function AdminTrends() {
                 placeholder="Ort / Vibe für die Orte-Suche, z. B. „Ibiza Klippen-Villa Pool“"
                 className="h-10 w-full rounded-md border border-black/10 bg-panel px-3 text-sm font-semibold text-ink outline-none focus:border-cobalt disabled:opacity-60" />
               <p className="-mt-1 text-[10px] font-bold text-ink/35">Tipp: Bei KI-/Render-Locations findet die Bildsuche oft nichts — der Suchbegriff bringt zuverlässig Orte.</p>
+              {/* Search the SerpApi candidates now → tick which appear in "Bandit the look". */}
+              {(reelClothesFile || reelLocationFile || reelLocationQuery.trim()) && (
+                <button type="button" onClick={() => void runReelSearch()} disabled={reelSearching || reelBusy}
+                  className="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-cobalt bg-cobalt/5 text-[12px] font-black text-cobalt disabled:opacity-50">
+                  {reelSearching ? <><Loader2 className="h-4 w-4 animate-spin" /> Suche läuft…</> : <><Search className="h-4 w-4" /> Treffer suchen & auswählen</>}
+                </button>
+              )}
+              {reelClothesCands.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-wide text-ink/45">Klamotten — anhaken, was ins Reel soll ({reelClothesSel.size})</p>
+                  <div className="mt-1.5 grid grid-cols-4 gap-1.5">
+                    {reelClothesCands.map(c => (
+                      <button key={c.link} type="button" onClick={() => setReelClothesSel(s => { const n = new Set(s); n.has(c.link) ? n.delete(c.link) : n.add(c.link); return n; })}
+                        className={`relative overflow-hidden rounded-md border-2 ${reelClothesSel.has(c.link) ? "border-cobalt" : "border-transparent opacity-50"}`}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={c.thumbnail} alt="" className="aspect-square w-full object-cover" />
+                        {reelClothesSel.has(c.link) && <span className="absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-full bg-cobalt text-[9px] text-white">✓</span>}
+                        {c.price && <span className="absolute bottom-0 inset-x-0 bg-black/60 px-0.5 text-[7px] font-black text-white">{c.price}</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {reelLocCands.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-wide text-ink/45">Orte — anhaken, was ins Reel soll ({reelLocSel.size})</p>
+                  <div className="mt-1.5 grid grid-cols-4 gap-1.5">
+                    {reelLocCands.map(c => (
+                      <button key={c.link} type="button" onClick={() => setReelLocSel(s => { const n = new Set(s); n.has(c.link) ? n.delete(c.link) : n.add(c.link); return n; })}
+                        className={`relative overflow-hidden rounded-md border-2 ${reelLocSel.has(c.link) ? "border-cobalt" : "border-transparent opacity-50"}`}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={c.thumbnail} alt="" className="aspect-square w-full object-cover" />
+                        {reelLocSel.has(c.link) && <span className="absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-full bg-cobalt text-[9px] text-white">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="grid gap-1.5">
                 <span className="text-[11px] font-black uppercase tracking-[0.14em] text-ink/40">Beschreibung <span className="font-bold text-ink/30">· öffentlicher Titel</span></span>
                 <textarea value={reelDesc} onChange={e => setReelDesc(e.target.value)} disabled={reelBusy}
