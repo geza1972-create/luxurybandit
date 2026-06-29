@@ -997,12 +997,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, comments: lookComments });
     }
 
-    // Curators may ONLY publish looks (upload-look); every other action below
-    // stays admin-only (delete/update/store/activation are destructive).
+    // Curators may ONLY publish looks (upload-look). A few SELF-SERVICE actions below
+    // authorize themselves via the user's own access token (delete/rename one's OWN
+    // try-ons, change one's own avatar) — they must NOT be caught by this admin gate.
+    // Everything else stays admin-only (delete/update/store/activation are destructive).
+    const SELF_SERVICE = new Set(["delete-own-generation", "rename-my-generations", "upload-avatar"]);
     const studioAuth = payload.action === "upload-look"
       ? await authorizeStudio(request)
       : { ok: false as const };
-    if (!(await isAdmin(request)) && !studioAuth.ok) {
+    if (!SELF_SERVICE.has(payload.action) && !studioAuth.ok && !(await isAdmin(request))) {
       return NextResponse.json({ error: "Admin access required." }, { status: 401 });
     }
 
