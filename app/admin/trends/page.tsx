@@ -2002,7 +2002,8 @@ export default function AdminTrends() {
                     )}
                   </div>
                   <div className="p-2">
-                    <p className="line-clamp-1 text-[11px] font-bold text-ink/80">{l.name}</p>
+                    {/* Public title (curator description), never the raw brand product name. */}
+                    <p className="line-clamp-1 text-[11px] font-bold text-ink/80">{l.note || l.description || "Luxury look"}</p>
                     <div className="mt-1.5 flex items-center gap-1.5">
                       {/* Feed order */}
                       <div className="flex shrink-0 flex-col">
