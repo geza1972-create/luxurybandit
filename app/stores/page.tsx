@@ -160,11 +160,12 @@ type CommunityItem = {
 };
 
 // ── Community slide (extracted to avoid component-inside-component) ──────────
-function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleMute, onHome, isStaff, onMakeVideo, makingVideoLookId, onInfo }: {
+function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleMute, onHome, isStaff, onMakeVideo, makingVideoLookId, onInfo, onMediaReady }: {
   it: CommunityItem; offset: number; verticalDrag: number; transition: string;
   muted: boolean; onToggleMute: () => void; onHome: () => void;
   isStaff?: boolean; onMakeVideo?: (lookId: string) => void; makingVideoLookId?: string;
   onInfo?: () => void; // admin: open the post-info/history sheet (label becomes the trigger)
+  onMediaReady?: (ready: boolean) => void; // drives the parent's top loading bar (current slide only)
 }) {
   const uname = it.customerName
     ? it.customerName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
@@ -237,6 +238,19 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
   }, [isCurrent, showingVideo, paused, muted]); // eslint-disable-line react-hooks/exhaustive-deps
   // Reset to playing whenever this post leaves the screen, so it auto-plays next time.
   useEffect(() => { if (!isCurrent) { setPaused(false); setPlayFailed(false); setBuffering(false); } }, [isCurrent]);
+  // Tell the parent whether THIS (current) reel's media is ready → drives the top bar.
+  const reportReady = (ready: boolean) => { if (isCurrent) onMediaReady?.(ready); };
+  useEffect(() => {
+    if (!isCurrent) return;
+    const s = slides[hIdx];
+    if (!s) { onMediaReady?.(true); return; }
+    if (s.kind === "video") {
+      const v = videoRef.current;
+      onMediaReady?.(!!v && v.readyState >= 3); // ready if already buffered (preload), else wait for onCanPlay
+    } else {
+      onMediaReady?.(true); // images/compare load fast; onLoad also confirms below
+    }
+  }, [isCurrent, hIdx]); // eslint-disable-line react-hooks/exhaustive-deps
   const onScroll = () => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -258,11 +272,11 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
                   // metadata (it's already been watched).
                   preload={offset >= 0 ? "auto" : "metadata"}
                   onClick={() => setPaused(p => !p)}
-                  onWaiting={() => setBuffering(true)}
-                  onStalled={() => setBuffering(true)}
-                  onCanPlay={() => { setBuffering(false); attemptPlay(); }}
-                  onLoadedData={() => { setBuffering(false); attemptPlay(); }}
-                  onPlaying={() => { setBuffering(false); setPlayFailed(false); }}
+                  onWaiting={() => { setBuffering(true); reportReady(false); }}
+                  onStalled={() => { setBuffering(true); reportReady(false); }}
+                  onCanPlay={() => { setBuffering(false); reportReady(true); attemptPlay(); }}
+                  onLoadedData={() => { setBuffering(false); reportReady(true); attemptPlay(); }}
+                  onPlaying={() => { setBuffering(false); setPlayFailed(false); reportReady(true); }}
                   onPlay={() => setPlayFailed(false)}
                   className="h-full w-full object-cover object-top" />
               ) : s.kind === "compare" ? (
@@ -289,6 +303,7 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={optImg(s.url, 1080)} alt={it.lookName} loading="lazy" decoding="async"
+                  onLoad={() => reportReady(true)}
                   onError={(e) => { const im = e.currentTarget; if (im.src !== s.url) im.src = s.url; }}
                   className="h-full w-full object-cover object-top" />
               )}
@@ -521,6 +536,8 @@ function CommunityDetailView({
   const [currentIdx, setCurrentIdx] = useState(initialIndex);
   const [verticalDrag, setVerticalDrag] = useState(0);
   const [verticalSnapping, setVerticalSnapping] = useState(false);
+  // Thin top progress bar: shown on every scroll until the new reel's media is ready.
+  const [mediaReady, setMediaReady] = useState(true);
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignName, setAssignName] = useState("");
   const [assignWorking, setAssignWorking] = useState(false);
@@ -579,6 +596,7 @@ function CommunityDetailView({
   };
 
   const snapTo = (newIdx: number, targetY: number) => {
+    setMediaReady(false); // show the loading bar until the new reel's media is ready
     setVerticalSnapping(true);
     setVerticalDrag(targetY);
     setTimeout(() => {
@@ -642,10 +660,17 @@ function CommunityDetailView({
       onTouchEnd={onTouchEnd}
       onWheel={onWheel}
     >
+      {/* Thin top progress bar — appears on every scroll until the new reel's media is
+          ready, so the user can tell the next item is loading (not the end of the feed). */}
+      {!mediaReady && (
+        <div className="absolute inset-x-0 top-0 z-30 h-[3px] overflow-hidden bg-white/15">
+          <div className="lb-loadbar h-full w-1/3 bg-white/90" />
+        </div>
+      )}
       {/* Prev slide */}
       {prevItem && <CommunitySlide it={prevItem} offset={-1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} isStaff={!!isAdmin || !!myCuratorId} onMakeVideo={onMakeVideo} makingVideoLookId={makingVideoLookId} />}
       {/* Current slide */}
-      <CommunitySlide it={item} offset={0} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} isStaff={!!isAdmin || !!myCuratorId} onMakeVideo={onMakeVideo} makingVideoLookId={makingVideoLookId} onInfo={openInfo} />
+      <CommunitySlide it={item} offset={0} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} isStaff={!!isAdmin || !!myCuratorId} onMakeVideo={onMakeVideo} makingVideoLookId={makingVideoLookId} onInfo={openInfo} onMediaReady={setMediaReady} />
       {/* Next slide */}
       {nextItem && <CommunitySlide it={nextItem} offset={1} verticalDrag={verticalDrag} transition={transition} muted={muted} onToggleMute={() => setMuted(m => !m)} onHome={onClose} isStaff={!!isAdmin || !!myCuratorId} onMakeVideo={onMakeVideo} makingVideoLookId={makingVideoLookId} />}
 
