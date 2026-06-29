@@ -115,6 +115,19 @@ export default function LookDetailsPage() {
       .finally(() => setDupesLoading(false));
   }, [look?.id]);
 
+  // Count an affiliate click (product "Shop now" / escape "Ansehen") — keepalive so it
+  // completes even as the new tab opens. Keyed by the destination link.
+  const trackClick = (link: string) => {
+    if (!look?.id || !link) return;
+    try {
+      fetch("/api/try-this-look", {
+        method: "POST", keepalive: true,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "click", lookId: look.id, link }),
+      }).catch(() => {});
+    } catch { /**/ }
+  };
+
   const handleContact = async () => {
     if (!look || !buyerName.trim() || !buyerPhone.trim()) return;
     setSending(true);
@@ -273,7 +286,7 @@ export default function LookDetailsPage() {
                         on the look itself, not on a random dupe). */}
                     <div className="mt-auto flex items-center justify-between gap-2">
                       <span className="text-base font-black text-ink">{a.price || ""}</span>
-                      <a href={a.link} target="_blank" rel="noopener noreferrer sponsored"
+                      <a href={a.link} target="_blank" rel="noopener noreferrer sponsored" onClick={() => trackClick(a.link)}
                         className="flex shrink-0 items-center gap-1.5 rounded-full bg-black px-4 py-1.5 text-[12px] font-black text-white active:scale-95 transition-transform">
                         <ShoppingBag className="h-3.5 w-3.5" /> Shop now
                       </a>
@@ -293,7 +306,7 @@ export default function LookDetailsPage() {
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             {look.locationDupes!.map((a, i) => (
-              <a key={i} href={a.link} target="_blank" rel="noopener noreferrer sponsored"
+              <a key={i} href={a.link} target="_blank" rel="noopener noreferrer sponsored" onClick={() => trackClick(a.link)}
                 className="flex flex-col overflow-hidden rounded-2xl border border-black/10 bg-white active:scale-[0.98] transition-transform">
                 <div className="aspect-[4/3] w-full bg-black/5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}

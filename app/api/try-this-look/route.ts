@@ -158,6 +158,8 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     // Reel source images (admin-only) — the clothes + location used for the searches.
     clothesImageUrl: (look as any).clothesImageUrl || undefined,
     locationImageUrl: (look as any).locationImageUrl || undefined,
+    // Affiliate click counts per destination link (admin analytics).
+    clicks: (look as any).clicks && typeof (look as any).clicks === "object" ? (look as any).clicks : undefined,
     curatorId: (look as any).curatorId,
     curatorName: curatorName || undefined,
     curatorPhotoUrl: curator?.photoUrl || undefined,
@@ -776,6 +778,20 @@ export async function POST(request: Request) {
 
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json(ps(updatedState));
+    }
+
+    // Affiliate click tracking: count taps on a product "Shop now" / escape "Ansehen"
+    // link, keyed by the destination URL, so the curator sees which dupes/places perform.
+    if (payload.action === "click") {
+      const lookId = String(payload.lookId ?? "").trim();
+      const link = String((payload as any).link ?? "").trim();
+      const look = state.looks.find(l => l.id === lookId);
+      if (look && link) {
+        const clicks = ((look as any).clicks ??= {} as Record<string, number>);
+        clicks[link] = (clicks[link] ?? 0) + 1;
+        await saveTryThisLookState(state);
+      }
+      return NextResponse.json({ ok: true });
     }
 
     if (payload.action === "like") {

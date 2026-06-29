@@ -685,7 +685,7 @@ export default function AdminTrends() {
     catch { /* quota exceeded — keep in-memory only */ }
   }, [aiGenerations]);
   type SerpItem = { title?: string; link: string; source?: string; thumbnail: string; price?: string; priceValue?: number; currency?: string };
-  const [myLooks, setMyLooks] = useState<{ id: string; name: string; imageUrl: string; published: boolean; altCount: number; locationCount?: number; alternatives?: SerpItem[]; locationDupes?: SerpItem[]; clothesImageUrl?: string; locationImageUrl?: string; note?: string; commentsOff?: boolean; videoUrl?: string; brand?: string; category?: string; description?: string }[]>([]);
+  const [myLooks, setMyLooks] = useState<{ id: string; name: string; imageUrl: string; published: boolean; altCount: number; locationCount?: number; alternatives?: SerpItem[]; locationDupes?: SerpItem[]; clicks?: Record<string, number>; clothesImageUrl?: string; locationImageUrl?: string; note?: string; commentsOff?: boolean; videoUrl?: string; brand?: string; category?: string; description?: string }[]>([]);
   const [editingLookId, setEditingLookId] = useState<string | null>(null); // open the edit sheet for one look
   // Edit-sheet curation state (one look at a time): re-upload source images, run the
   // SerpApi search, and tick which results show in the reel's "Bandit the look".
@@ -2005,6 +2005,9 @@ export default function AdminTrends() {
                   <div className="p-2">
                     {/* Public title (curator description), never the raw brand product name. */}
                     <p className="line-clamp-1 text-[11px] font-bold text-ink/80">{l.note || l.description || "Luxury look"}</p>
+                    {(() => { const total = Object.values(l.clicks ?? {}).reduce((s, n) => s + (n as number), 0); return total > 0 ? (
+                      <p className="mt-0.5 text-[10px] font-black text-emerald-600">👁 {total} Klick{total === 1 ? "" : "s"} auf Shop-/Orte-Links</p>
+                    ) : null; })()}
                     <div className="mt-1.5 flex items-center gap-1.5">
                       {/* Feed order */}
                       <div className="flex shrink-0 flex-col">
@@ -2114,6 +2117,7 @@ export default function AdminTrends() {
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img src={c.thumbnail} alt="" className="aspect-square w-full object-cover" />
                                     {clothesSel.has(c.link) && <span className="absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-full bg-cobalt text-[9px] text-white">✓</span>}
+                                    {(l.clicks?.[c.link] ?? 0) > 0 && <span className="absolute left-0.5 top-0.5 rounded-full bg-emerald-600 px-1 text-[8px] font-black text-white">👁 {l.clicks![c.link]}</span>}
                                     {c.price && <span className="absolute bottom-0 inset-x-0 bg-black/60 px-1 text-[8px] font-black text-white">{c.price}</span>}
                                   </button>
                                 ))}
@@ -2148,6 +2152,7 @@ export default function AdminTrends() {
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img src={c.thumbnail} alt="" className="aspect-square w-full object-cover" />
                                     {locSel.has(c.link) && <span className="absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-full bg-cobalt text-[9px] text-white">✓</span>}
+                                    {(l.clicks?.[c.link] ?? 0) > 0 && <span className="absolute left-0.5 top-0.5 rounded-full bg-emerald-600 px-1 text-[8px] font-black text-white">👁 {l.clicks![c.link]}</span>}
                                     {c.price && <span className="absolute bottom-0 inset-x-0 bg-black/60 px-0.5 text-[7px] font-black text-white">{c.price}</span>}
                                   </button>
                                 ))}
