@@ -33,6 +33,10 @@ type Look = {
 
 type Step = "upload" | "crop" | "confirm" | "generating" | "result" | "locked";
 
+// Exact wording the user actively consents to before publishing (FIX 4). Logged
+// verbatim on the generation alongside a timestamp so consent is provable.
+const PUBLISH_CONSENT_TEXT = "Yes, I agree that this image I created may be published to the LuxuryBandit community.";
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 // Shrink a (possibly multi-MB PNG) data URL to a compact JPEG before sending it
@@ -199,6 +203,11 @@ export default function TryonPage() {
   const [gatePassed, setGatePassed] = useState(false);
   const [gateEmail, setGateEmail] = useState("");
   const [gateSending, setGateSending] = useState(false);
+  // Active publish consent (FIX 4): a separate, NOT pre-checked box the user must tick
+  // before the real generation starts. We log the exact wording + timestamp on the
+  // generation so active consent is provable. Kept separate from Terms/Privacy.
+  const [publishConsent, setPublishConsent] = useState(false);
+  const consentRef = useRef<{ at: string; text: string } | null>(null);
   // The email this try-on belongs to (gate email, or the logged-in account's email).
   // Saved on the generation so the owner can find + delete it from their account.
   const ownerEmailRef = useRef("");
@@ -357,6 +366,8 @@ export default function TryonPage() {
   // persisted copy so a fresh look starts at the upload step, not pre-filled.
   const discardPhoto = () => {
     setUserPhoto(null);
+    setPublishConsent(false); // re-consent required for a fresh try-on (FIX 4)
+    consentRef.current = null;
     try { sessionStorage.removeItem("lb_model_image"); } catch { /**/ }
   };
 
@@ -725,6 +736,10 @@ export default function TryonPage() {
           image: imageSmall, userPhotoImage: userPhotoSmall,
           genKind: lastGenKindRef.current, // photo | video | video360 (for the post-info history)
           feed: showInFeedRef.current, // respect the toggle (creators can save without publishing)
+          // FIX 4: provable active publish consent (verbatim wording + timestamp).
+          publishConsent: !!consentRef.current,
+          consentTimestamp: consentRef.current?.at,
+          consentText: consentRef.current?.text,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -841,6 +856,10 @@ export default function TryonPage() {
   const revealWithEmail = () => {
     const email = gateEmail.trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !look) return;
+    if (!publishConsent) return; // FIX 4: must actively consent before we generate/publish
+    // Record the active publish consent (verbatim wording + timestamp) for this generation.
+    consentRef.current = { at: new Date().toISOString(), text: PUBLISH_CONSENT_TEXT };
+    setShowInFeed(true); // they consented → this try-on is published
     // Bind the upcoming try-on to this email so it shows in the account they create.
     ownerEmailRef.current = email.toLowerCase();
     // Capture the email (lead) + create a passwordless account — in the background.
@@ -1092,9 +1111,18 @@ export default function TryonPage() {
               onKeyDown={e => { if (e.key === "Enter") void revealWithEmail(); }}
               placeholder="you@email.com"
               className="mt-2.5 h-13 w-full rounded-2xl border-2 border-black/15 bg-black/[0.02] px-4 py-3.5 text-base font-bold text-black placeholder:text-black/35 outline-none focus:border-black" />
+            {/* FIX 4: separate, NOT pre-checked publish consent. Reveal stays disabled
+                until it's actively ticked (and the email is valid). */}
+            <label className="mt-3 flex cursor-pointer items-start gap-2.5 text-left">
+              <input type="checkbox" checked={publishConsent} onChange={e => setPublishConsent(e.target.checked)}
+                className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-black" />
+              <span className="text-[12px] font-bold leading-snug text-black/70">
+                Yes, I agree that this image I created may be published to the LuxuryBandit community.
+              </span>
+            </label>
             <button onClick={() => void revealWithEmail()}
-              disabled={!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(gateEmail.trim())}
-              className="mt-2.5 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-black py-3.5 text-base font-black text-white active:scale-95 transition-transform disabled:opacity-30">
+              disabled={!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(gateEmail.trim()) || !publishConsent}
+              className="mt-3 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-black py-3.5 text-base font-black text-white active:scale-95 transition-transform disabled:opacity-30">
               <Sparkles className="h-4 w-4" /> Reveal my look
             </button>
             <p className="mt-2.5 text-[11px] font-bold text-black/40">We&apos;ll email your look + a link to your free account. No spam.</p>
