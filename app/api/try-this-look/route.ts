@@ -1584,6 +1584,7 @@ export async function POST(request: Request) {
           // Admin may replace the shop options (vetted look-alike dupes).
           ...(altInput ? { alternatives: altInput } : {}),
           ...(locationInput ? { locationDupes: locationInput } : {}),
+          ...(hasField("clicks") && (payload as any).clicks && typeof (payload as any).clicks === "object" ? { clicks: (payload as any).clicks } : {}),
           availabilityNote: availabilityNote || undefined,
           deliveryTime: deliveryTime || undefined,
           productNote: productNote || undefined,
