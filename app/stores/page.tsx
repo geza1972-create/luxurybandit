@@ -1940,15 +1940,17 @@ function StoresPage() {
 
   // ── DEFAULT HOME = the single feed style (HomeFeed: caption on top, Look/Escape
   //    thumbnails, Bandit the feeling!). The old full-screen "Vollansicht" is gone. ──
+  // Use ALL looks (same as /look/[id]), not filtered feedLooks. This way /stores and
+  // /look/[id] scroll through the same feed.
   if (!searchOpen && showReels) {
-    if (!feedLooks.length) {
+    if (!looks.length) {
       return (
         <div className="grid min-h-dvh place-items-center bg-black" style={{ maxWidth: "100vw" }}>
           <Loader2 className="h-7 w-7 animate-spin text-white/40" />
         </div>
       );
     }
-    return <HomeFeed looks={feedLooks as unknown as FeedLook[]} />;
+    return <HomeFeed looks={looks as unknown as FeedLook[]} />;
   }
 
   // ── The A List = HomeFeed of look posts (?view=alist) ──
