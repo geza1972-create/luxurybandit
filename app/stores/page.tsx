@@ -12,7 +12,7 @@ import {
 } from "@/lib/supabase-auth-client";
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { lookPath } from "@/lib/look-slug";
-import HomeFeed from "@/components/HomeFeed";
+import HomeFeed, { type FeedLook } from "@/components/HomeFeed";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { LOOK_CATEGORIES, isHiddenFromAll, type LookCategory } from "@/lib/look-category";
 import { publicLookLabel } from "@/lib/look-title";
@@ -1881,6 +1881,20 @@ function StoresPage() {
   const filteredCommunityAsReel = useMemo<CommunityItem[]>(() => {
     return filteredCommunity.map(c => ({ ...c, kind: "tryon" as const, slides: buildSlides(c.imageUrl, c.videoUrl, c.userPhotoUrl) }));
   }, [filteredCommunity]);
+  // The visible feed as LOOKS (one card style everywhere → HomeFeed). Try-on tiles
+  // resolve to their source look so the feed is a single, consistent look-reel.
+  const feedLooks = useMemo<Look[]>(() => {
+    const byId = new Map(looks.map(l => [l.id, l]));
+    const seen = new Set<string>();
+    const out: Look[] = [];
+    for (const it of visibleHistory) {
+      const lookId = it.kind === "look" ? it.id : it.lookId;
+      if (!lookId || seen.has(lookId)) continue;
+      const l = byId.get(lookId);
+      if (l) { seen.add(lookId); out.push(l); }
+    }
+    return out;
+  }, [visibleHistory, looks]);
 
   // ── "More {brand} to try on" — products shown as a list below the curated grid.
   // Stored first (free: each look's saved shop alternatives, try-on via ?alt=N),
@@ -1924,38 +1938,17 @@ function StoresPage() {
     setLiveLoading(false);
   };
 
-  // ── DEFAULT HOME = full-screen vertical reels feed (TikTok/IG style) ──
+  // ── DEFAULT HOME = the single feed style (HomeFeed: caption on top, Look/Escape
+  //    thumbnails, Bandit the feeling!). The old full-screen "Vollansicht" is gone. ──
   if (!searchOpen && showReels) {
-    if (!visibleHistoryAsReel.length) {
+    if (!feedLooks.length) {
       return (
         <div className="grid min-h-dvh place-items-center bg-black" style={{ maxWidth: "100vw" }}>
           <Loader2 className="h-7 w-7 animate-spin text-white/40" />
         </div>
       );
     }
-    return (
-      <CommunityDetailView
-        allItems={visibleHistoryAsReel}
-        initialIndex={0}
-        likes={communityLikes}
-        onClose={() => router.push("/stores?view=grid")}
-        onLikeToggle={(id) => {
-          const next = { ...communityLikes, [id]: !(communityLikes[id] ?? false) };
-          setCommunityLikes(next);
-          try { localStorage.setItem("lb_gen_likes", JSON.stringify(next)); } catch { /**/ }
-        }}
-        onDelete={isAdmin ? (id) => { const it = visibleHistoryAsReel.find(i => i.id === id); if (it) void deleteCommunityItem(it); } : undefined}
-        onAssign={isAdmin ? assignCommunityItem : undefined}
-        onInfo={fetchPostInfo}
-        curators={assignCurators}
-        isAdmin={isAdmin}
-        myCuratorId={myCuratorId}
-        onHideItem={hideReelItem}
-        onMakeVideo={makeLookVideo}
-        makingVideoLookId={makingVideoLookId}
-        router={router}
-      />
-    );
+    return <HomeFeed looks={feedLooks as unknown as FeedLook[]} />;
   }
 
   // ── The A List = HomeFeed of look posts (?view=alist) ──
@@ -2173,7 +2166,7 @@ function StoresPage() {
               {visibleHistory.map((it, idx) => (
                 <div key={it.key} className="flex flex-col">
                   <button type="button"
-                    onClick={() => { setReelItems(visibleHistoryAsReel); setCommunitySelectedIndex(idx); }}
+                    onClick={() => router.push(lookPath(it.name, it.lookId || it.id))}
                     className="relative aspect-square overflow-hidden bg-black/5 transition-opacity active:opacity-80">
                     {it.videoUrl ? (
                       // Video tile — always show a still poster so the tile is never a
