@@ -2111,7 +2111,10 @@ export default function AdminTrends() {
                           </div>
                           {/* ── Klamotten: source image + search + tick which dupes show ── */}
                           <div className="mt-3 rounded-lg border border-black/10 p-2.5">
-                            <p className="text-[11px] font-black uppercase tracking-wide text-ink/45">Klamotten · ähnliche Looks</p>
+                            <div className="flex items-center justify-between">
+                              <p className="text-[11px] font-black uppercase tracking-wide text-ink/45">Klamotten · ähnliche Looks</p>
+                              {clothesCands.length > 0 && <button type="button" onClick={() => { setClothesCands([]); setClothesSel(new Set()); }} className="text-[10px] font-black text-coral">Liste leeren</button>}
+                            </div>
                             <div className="mt-1.5 flex items-center gap-2">
                               {(editClothesFile || l.clothesImageUrl) ? (
                                 // eslint-disable-next-line @next/next/no-img-element
@@ -2134,7 +2137,10 @@ export default function AdminTrends() {
                           </div>
                           {/* ── Location: keyword/image + search + tick which places show ── */}
                           <div className="mt-2 rounded-lg border border-black/10 p-2.5">
-                            <p className="text-[11px] font-black uppercase tracking-wide text-ink/45">Location · ähnliche Orte</p>
+                            <div className="flex items-center justify-between">
+                              <p className="text-[11px] font-black uppercase tracking-wide text-ink/45">Location · ähnliche Orte</p>
+                              {locCands.length > 0 && <button type="button" onClick={() => { setLocCands([]); setLocSel(new Set()); }} className="text-[10px] font-black text-coral">Liste leeren</button>}
+                            </div>
                             <div className="mt-1.5 flex items-center gap-2">
                               {(editLocationFile || l.locationImageUrl) ? (
                                 // eslint-disable-next-line @next/next/no-img-element
