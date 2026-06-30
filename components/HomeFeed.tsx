@@ -215,6 +215,12 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   };
 
   const img = heroImg;
+  // Still shown for a VIDEO (poster / paused / blocked-autoplay). A video is the
+  // curator's own reel, so its uploaded cover (imageUrl) is safe to show even when
+  // safeLookImage withholds it. For image-only looks we stay licensing-safe (heroImg).
+  const videoStill = look.videoUrl
+    ? (look.videoPosterUrl || heroImg || look.frontImageUrl || look.imageUrl || "")
+    : heroImg;
   const detail = lookPath(look.name, look.id);
   // When the active carousel slide is a shop option, show its buy card on white below
   // AND make "Try This Look" use THAT product (its clean image), not the look's photo.
@@ -288,7 +294,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       <div className="relative aspect-square w-full shrink-0 overflow-hidden bg-black">
         {/* Blurred fill so the whole look stays visible without empty bars */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={img} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-2xl" />
+        <img src={videoStill} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-2xl" />
 
         {/* Horizontal media carousel: video first, image second */}
         <div ref={carouselRef} className="absolute inset-0 flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -301,7 +307,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               {m.type === "video" ? (
                 <div className="relative h-full w-full">
                   <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
-                    src={look.videoUrl} poster={look.videoPosterUrl || img} className="h-full w-full object-contain"
+                    src={look.videoUrl} poster={videoStill || undefined} className="h-full w-full object-contain"
                     onClick={togglePause} muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{look.aiCreated ? "✦ AI video" : "Video"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
@@ -336,12 +342,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           ))}
         </div>
 
-        {/* Play overlay — when autoplay was blocked OR the user tapped to pause. */}
+        {/* Play overlay — when autoplay was blocked (Safari!) OR the user tapped to pause.
+            Shows the look's still behind the button so the video is never a black box. */}
         {(media[active]?.type === "video" || media[active]?.type === "cvideo") && (vidFailed || paused) && (
           <button type="button" aria-label="Play"
             onClick={() => { const v = videoRefs.current[active]; if (v) { setPaused(false); v.muted = true; v.play().then(() => setVidFailed(false)).catch(() => {}); } }}
-            className="absolute inset-0 z-10 grid place-items-center bg-black/10">
-            <Play className="h-16 w-16 fill-white/90 text-white/90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" />
+            className="absolute inset-0 z-10 grid place-items-center bg-black/20">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={videoStill} alt="" className="absolute inset-0 h-full w-full object-contain" />
+            <Play className="relative z-10 h-16 w-16 fill-white/90 text-white/90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]" />
           </button>
         )}
 
