@@ -167,14 +167,7 @@ export default function BottomNav() {
 
         {/* Account */}
         <button type="button" onClick={() => { setActive("account"); setShowProfileMenu(true); }} className={btn("account")}>
-          <span className="relative">
-            <User className="h-5 w-5" />
-            {curatorCredits !== null && (
-              <span className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[9px] font-black text-white">
-                {curatorCredits}
-              </span>
-            )}
-          </span>
+          <User className="h-5 w-5" />
           <span className="text-[10px] font-bold">Account</span>
         </button>
 
@@ -242,6 +235,12 @@ export default function BottomNav() {
                 <X className="h-4 w-4" />
               </button>
             </div>
+            {curatorCredits !== null && (
+              <div className="mx-5 mb-3 flex items-center gap-2 rounded-lg bg-black/5 px-3 py-2">
+                <Sparkles className="h-4 w-4 text-black/50" />
+                <span className="text-xs font-black text-black">{curatorCredits} Credits</span>
+              </div>
+            )}
             {/* Menu items */}
             <div className="grid divide-y divide-black/5">
               {/* Curator studio — ONLY for actual curators (no self-signup; creators are

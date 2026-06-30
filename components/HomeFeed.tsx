@@ -89,17 +89,21 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [inView, setInView] = useState(false);
   const [vidFailed, setVidFailed] = useState(false); // autoplay blocked → show a Play button
   const [paused, setPaused] = useState(false); // user tapped the video to pause
+  const [playing, setPlaying] = useState(false); // active video is ACTUALLY playing (onPlaying)
   const pausedRef = useRef(false); pausedRef.current = paused;
   const [infoOpen, setInfoOpen] = useState(false);
   // Who-tried-this-on is a business secret → only the admin sees the named list.
-  const [isAdmin, setIsAdmin] = useState(false);
-  useEffect(() => {
+  // Also used to flag the admin's OWN feed interactions as internal so they don't
+  // pollute the funnel analytics. Read synchronously (no async state race) in trackers.
+  const isAdminNow = () => {
     try {
       const pin = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "";
       const email = getStoredAuthSession()?.user?.email?.toLowerCase();
-      setIsAdmin(!!pin || (!!email && (isAdminEmail(email) || email === "support@luxurybandit.com")));
-    } catch { /**/ }
-  }, []);
+      return !!pin || (!!email && (isAdminEmail(email) || email === "support@luxurybandit.com"));
+    } catch { return false; }
+  };
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => { setIsAdmin(isAdminNow()); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [infoData, setInfoData] = useState<Record<string, any> | null>(null);
   const [infoLoading, setInfoLoading] = useState(false);
   const openLookInfo = async () => {
@@ -202,7 +206,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
 
   // When this slide scrolls into view, tell the feed to switch the soundtrack to
   // this slide's track (resuming, not restarting).
-  useEffect(() => { if (inView) onActive(index); }, [inView]); // eslint-disable-line react-hooks/exhaustive-deps
+  const viewTracked = useRef(false);
+  useEffect(() => {
+    if (!inView) return;
+    onActive(index);
+    if (!viewTracked.current) {
+      viewTracked.current = true;
+      fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "view", lookId: look.id, internal: isAdminNow() }) }).catch(() => {});
+    }
+  }, [inView]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Drive ALL videos (curator + community) from visibility + carousel position +
   // global mute: only the on-screen, active video plays; every other one is silent.
@@ -230,7 +242,17 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   // Switching carousel item clears a manual pause so it autoplays again.
   // NOT on inView change — a browser micro-scroll on tap would fire IntersectionObserver,
   // reset paused=false, and immediately un-pause a video the user just stopped.
-  useEffect(() => { setPaused(false); pausedRef.current = false; }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setPaused(false); pausedRef.current = false; setPlaying(false); }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Grace period: don't flash the Play button while autoplay is still spinning up on a
+  // fresh slide — only surface it if the active video is STILL not playing after ~700ms
+  // (i.e. autoplay genuinely failed, the iOS "frozen still" case). A user pause shows
+  // the button immediately (handled separately via `paused`).
+  const [playHint, setPlayHint] = useState(false);
+  useEffect(() => {
+    if (playing || paused) { setPlayHint(false); return; }
+    const t = setTimeout(() => setPlayHint(true), 700);
+    return () => clearTimeout(t);
+  }, [playing, paused, active, inView]);
   // Scrubbing: drag on video to seek (like YouTube). DESKTOP-ONLY — mouse events
   // never fire on a touch device, so on phones a tap goes through handleVideoClick
   // (which fires on iOS) to toggle play/pause instead.
@@ -304,6 +326,21 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   // Curator's own voice first, else the editorial note — never empty in the feed.
   const caption = (look.curatorNote || look.productNote || "").trim();
   const range = priceRange(look);
+
+  const trackEvent = (event: string, extra?: Record<string, string>) => {
+    let utmSource = "", referrer = "", visitor = "";
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      utmSource = sp.get("utm_source") || sp.get("source") || sp.get("ref") || "";
+      referrer = document.referrer || "";
+      const sess = getStoredAuthSession();
+      const meta = (sess?.user as any)?.user_metadata ?? {};
+      const cur = JSON.parse(localStorage.getItem("lb_curator") ?? "{}");
+      visitor = (cur?.firstName ? `${cur.firstName}${cur.lastName ? " " + cur.lastName : ""}` : "")
+        || meta?.full_name || meta?.username || sess?.user?.email || "";
+    } catch { /**/ }
+    fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "event", lookId: look.id, event, lookName: look.name, utmSource, referrer, visitor, internal: isAdminNow(), ...extra }) }).catch(() => {});
+  };
 
   const toggleLike = () => {
     const next = !liked;
@@ -399,7 +436,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 <div className="relative h-full w-full">
                   <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
                     src={look.videoUrl} poster={videoStill} className="h-full w-full object-cover cursor-grab active:cursor-grabbing"
-                    onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
+                    onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted autoPlay loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos}
+                    onPlaying={() => { if (i === active) { setPlaying(true); setVidFailed(false); } }} onPause={() => { if (i === active) setPlaying(false); }} onStalled={() => { if (i === active) setPlaying(false); }} />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{look.aiCreated ? "✦ AI video" : "Video"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
                 </div>
@@ -420,7 +458,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 // Community try-on video — same sound handling as the curator video.
                 <div className="relative h-full w-full">
                   <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
-                    src={m.url} className="h-full w-full bg-black object-cover cursor-grab active:cursor-grabbing" onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
+                    src={m.url} poster={videoStill} className="h-full w-full bg-black object-cover cursor-grab active:cursor-grabbing" onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted autoPlay loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos}
+                    onPlaying={() => { if (i === active) { setPlaying(true); setVidFailed(false); } }} onPause={() => { if (i === active) setPlaying(false); }} onStalled={() => { if (i === active) setPlaying(false); }} />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>Try-on video<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
                 </div>
@@ -446,19 +485,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           ))}
         </div>
 
-        {/* Play overlay — two modes:
-            1. vidFailed (autoplay blocked, video never started): show poster image so it's not a black box.
-            2. paused (user tapped to pause): show ONLY the Play button — the browser already
-               displays the current frame, so overlaying a poster would show a completely different
-               image (look's product shot vs. the community try-on video that was playing). */}
-        {(media[active]?.type === "video" || media[active]?.type === "cvideo") && (vidFailed || paused) && (
+        {/* Play overlay — shown whenever the ACTIVE video isn't actually playing
+            (paused, autoplay blocked, OR iOS' play() "succeeded" but never started —
+            the latter left a frozen still with no way to start it). The <video>'s
+            native poster (videoStill) prevents a black/blank box underneath, so the
+            overlay is just the tappable Play button. Hidden while the user is scrubbing. */}
+        {(media[active]?.type === "video" || media[active]?.type === "cvideo") && inView && !playing && (paused || vidFailed || playHint) && !scrubRef.current.isScrubbing && (
           <button type="button" aria-label="Play"
-            onClick={() => { const v = videoRefs.current[active]; if (v) { pausedRef.current = false; setPaused(false); v.muted = true; v.play().then(() => setVidFailed(false)).catch(() => {}); } }}
+            onClick={() => { const v = videoRefs.current[active]; if (v) { pausedRef.current = false; setPaused(false); v.muted = true; v.play().then(() => { setVidFailed(false); setPlaying(true); }).catch(() => setVidFailed(true)); } }}
             className="absolute inset-0 z-10 grid place-items-center bg-black/20">
-            {vidFailed && !paused && (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={videoStill} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            )}
             <Play className="relative z-10 h-16 w-16 fill-white/50 text-white/50" />
           </button>
         )}
@@ -500,11 +535,11 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         )}
         {/* ── Action buttons directly under the video ── */}
         <div className="mb-2.5 flex items-center gap-2">
-          <button type="button" onClick={() => router.push(tryOnHref)}
+          <button type="button" onClick={() => { trackEvent("tryon_click"); router.push(tryOnHref); }}
             className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform">
             <Sparkles className="h-4 w-4" /> Try This Look · {look.lingerie ? "$2.90" : "Free"}
           </button>
-          <button type="button" onClick={() => router.push(`${detail}/details`)}
+          <button type="button" onClick={() => { trackEvent("bandit_click"); router.push(`${detail}/details`); }}
             className="flex h-11 shrink-0 items-center justify-center rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
             Bandit the feeling!
           </button>
@@ -517,10 +552,18 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           const clothes = allClothes.slice(0, 4);
           const stays = allStays.slice(0, 4);
           if (!clothes.length && !stays.length) return null;
-          const goDetail = () => router.push(`${detail}/details`);
+          const goDetail = (a?: { title?: string; source?: string; price?: string; link?: string; thumbnail?: string }) => {
+            const label = (a?.title || a?.source || "").trim();
+            trackEvent("product_click", {
+              productLabel: label ? `${label}${a?.price ? ` · ${a.price}` : ""}` : (a?.price || ""),
+              productLink: a?.link || "",
+              productThumb: a?.thumbnail || "",
+            });
+            router.push(`${detail}/details`);
+          };
           // No row titles — the last tile carries a "+N More Looks/Escapes" overlay instead.
-          const thumb = (a: { thumbnail?: string; price?: string }, key: string, more: number, moreLabel: string) => (
-            <button key={key} type="button" onClick={goDetail}
+          const thumb = (a: { thumbnail?: string; price?: string; title?: string; source?: string; link?: string }, key: string, more: number, moreLabel: string) => (
+            <button key={key} type="button" onClick={() => goDetail(a)}
               className="relative block aspect-square min-w-0 flex-1 overflow-hidden rounded-lg bg-black/5 active:scale-95 transition-transform">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={a.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover"

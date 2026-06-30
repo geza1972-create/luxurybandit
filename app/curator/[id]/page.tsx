@@ -128,9 +128,36 @@ export default function CuratorPublicPage() {
 
   return (
     <main className="min-h-[100dvh] bg-white pb-16">
-      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/8 bg-white/95 px-4 py-3 backdrop-blur">
-        <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10"><ArrowLeft className="h-4 w-4" /></button>
-        <p className="text-sm font-black text-black">Curator</p>
+      <div className="sticky top-0 z-20 border-b border-black/8 bg-white/95 px-4 py-3 backdrop-blur">
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10"><ArrowLeft className="h-4 w-4" /></button>
+          <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-black/5">
+            {profile.photoUrl
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={profile.photoUrl} alt={name} className="h-full w-full object-cover" />
+              : <div className="grid h-full w-full place-items-center text-xs font-black text-black/30">{name.slice(0, 2).toUpperCase()}</div>}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-black text-black">{name}</p>
+            {profile.motto && <p className="truncate text-[11px] font-medium text-cobalt">{profile.motto}</p>}
+          </div>
+        </div>
+        {!isOwn && (
+          <div className="mt-2 flex items-center gap-2">
+            <button type="button" onClick={() => void handleFollow()} disabled={followLoading}
+              className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-black transition active:scale-95 disabled:opacity-50 ${following ? "border border-black/15 bg-white text-black/60" : "bg-black text-white"}`}>
+              {followLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : following ? <><UserCheck className="h-3.5 w-3.5" /> Following</> : <><UserPlus className="h-3.5 w-3.5" /> Follow</>}
+            </button>
+            <button type="button" onClick={() => { setShowMsg(true); setSent(false); }}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-black/15 active:scale-95 transition">
+              <MessageCircle className="h-4 w-4" />
+            </button>
+            <button type="button" onClick={() => { const url = window.location.href; if (navigator.share) navigator.share({ title: name, url }).catch(() => {}); else navigator.clipboard?.writeText(url); }}
+              className="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full bg-black px-4 text-xs font-black text-white active:scale-95 transition">
+              <Send className="h-3.5 w-3.5" /> Share
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Profile header */}
@@ -154,8 +181,8 @@ export default function CuratorPublicPage() {
         </div>
 
         {/* Stats */}
-        <div className="mt-3 flex items-center justify-center gap-8">
-          {[["Looks", looks.length], ["Try-ons", tryons.length], ["Followers", fmtN(followerCount)]].map(([label, val]) => (
+        <div className="mt-3 flex items-center justify-center gap-6">
+          {[["Looks", looks.length], ["Followers", fmtN(followerCount)], ["Likes", fmtN(looks.reduce((s, l) => s + ((l as any).likeCount ?? 0), 0))], ["Views", fmtN(looks.reduce((s, l) => s + ((l as any).viewCount ?? 0), 0))]].map(([label, val]) => (
             <div key={label as string} className="flex flex-col items-center">
               <span className="text-base font-black text-black">{val}</span>
               <span className="text-[10px] font-bold uppercase tracking-wide text-black/40">{label}</span>
@@ -163,19 +190,7 @@ export default function CuratorPublicPage() {
           ))}
         </div>
 
-        {/* Follow + Message (hidden on own profile) */}
-        {!isOwn && (
-          <div className="mt-3 flex w-full max-w-xs items-center gap-2">
-            <button type="button" onClick={() => void handleFollow()} disabled={followLoading}
-              className={`flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl text-sm font-black transition active:scale-95 disabled:opacity-50 ${following ? "border border-black/15 bg-white text-black/60" : "bg-black text-white"}`}>
-              {followLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : following ? <><UserCheck className="h-4 w-4" /> Following</> : <><UserPlus className="h-4 w-4" /> Follow</>}
-            </button>
-            <button type="button" onClick={() => { setShowMsg(true); setSent(false); }}
-              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition">
-              <MessageCircle className="h-4 w-4" /> Message
-            </button>
-          </div>
-        )}
+        {/* Follow + Message + Share moved to sticky header (second row) */}
       </div>
 
       {/* Gallery — published trend looks + the curator's own try-ons (badged) */}

@@ -181,6 +181,7 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     feedOrder: typeof (look as any).feedOrder === "number" ? (look as any).feedOrder : undefined,
     likeCount: (look as any).likeCount ?? 0,
     commentCount: (look as any).commentCount ?? 0,
+    viewCount: (look as any).viewCount ?? 0,
     generationCount,
     createdAt: look.createdAt,
     imageUrl: primaryImageUrl,
@@ -366,6 +367,14 @@ export async function GET(request: Request) {
         });
       }
       return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    }
+
+    // Admin: lightweight recent-events poll for the live activity feed (no images,
+    // no full state) — keeps the Insights "Live" stream cheap to refresh every few sec.
+    if (url.searchParams.get("recentEvents")) {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const n = Math.min(300, Math.max(1, Number(url.searchParams.get("recentEvents")) || 100));
+      return NextResponse.json({ events: (state.events ?? []).slice(0, n) });
     }
 
     // Admin: ALL posts (generations) incl. hidden — for the admin posts grid.
@@ -763,6 +772,31 @@ export async function POST(request: Request) {
       const eventName = String(payload.event ?? "").trim();
       if (!eventName) return NextResponse.json({ error: "Event name is missing." }, { status: 400 });
 
+      // Geo (Vercel edge headers; undefined in local dev) — for the country breakdown.
+      const country = (request.headers.get("x-vercel-ip-country") || "").trim().toUpperCase() || undefined;
+      const city = (() => {
+        const raw = (request.headers.get("x-vercel-ip-city") || "").trim();
+        try { return raw ? decodeURIComponent(raw) : undefined; } catch { return raw || undefined; }
+      })();
+      // Traffic source: explicit utm/source wins; else classify the referrer host.
+      const utmSource = String(payload.utmSource ?? "").trim();
+      const referrer = String(payload.referrer ?? request.headers.get("referer") ?? "").trim();
+      const source = (() => {
+        const explicit = (String(payload.source ?? "").trim() || utmSource).toLowerCase();
+        if (explicit) return explicit;
+        if (!referrer) return "direct";
+        try {
+          const host = new URL(referrer).hostname.replace(/^www\./, "");
+          if (/instagram|ig\.me|l\.instagram/.test(host)) return "instagram";
+          if (/facebook|fb\.|fb\.me/.test(host)) return "facebook";
+          if (/tiktok/.test(host)) return "tiktok";
+          if (/t\.co|twitter|x\.com/.test(host)) return "twitter";
+          if (/google|bing|duckduckgo/.test(host)) return "search";
+          if (/luxurybandit/.test(host)) return "direct";
+          return host;
+        } catch { return "direct"; }
+      })();
+
       state.events.unshift({
         id: `${Date.now()}-${crypto.randomUUID()}`,
         name: eventName,
@@ -773,8 +807,16 @@ export async function POST(request: Request) {
         storeName: String(payload.storeName ?? "").trim() || activeLook.storeName,
         lookName: String(payload.lookName ?? "").trim() || activeLook.name,
         selectedSize: String(payload.selectedSize ?? "").trim() || undefined,
-        utmSource: String(payload.utmSource ?? "").trim() || undefined,
-        utmCampaign: String(payload.utmCampaign ?? "").trim() || undefined
+        utmSource: utmSource || undefined,
+        utmCampaign: String(payload.utmCampaign ?? "").trim() || undefined,
+        source,
+        country,
+        city,
+        productLabel: String(payload.productLabel ?? "").trim() || undefined,
+        productLink: String(payload.productLink ?? "").trim() || undefined,
+        productThumb: String(payload.productThumb ?? "").trim() || undefined,
+        visitor: String(payload.visitor ?? "").trim().slice(0, 80) || undefined,
+        internal: (payload as any).internal === true || undefined,
       });
 
       const updatedState = await saveTryThisLookState(state);
@@ -784,6 +826,8 @@ export async function POST(request: Request) {
     // Feed view tracking (real impressions) — fired when a post becomes the active
     // reel. The displayed feed counts are seeded social proof; this is the real number.
     if (payload.action === "view") {
+      // Admin/test sessions send internal:true → don't inflate the real view count.
+      if ((payload as any).internal === true) return NextResponse.json({ ok: true, skipped: "internal" });
       const lookId = String(payload.lookId ?? "").trim();
       const look = state.looks.find(l => l.id === lookId);
       if (look) {
@@ -809,12 +853,27 @@ export async function POST(request: Request) {
 
     if (payload.action === "like") {
       const lookId = String(payload.lookId ?? "").trim();
-      const delta = (payload as any).liked ? 1 : -1;
+      // The feed sends `delta` (+1 like / -1 unlike); older callers used `liked`.
+      // Reading the wrong field made every like DECREMENT the count (a real bug).
+      const liked = typeof (payload as any).delta === "number"
+        ? (payload as any).delta > 0
+        : !!(payload as any).liked;
+      const delta = liked ? 1 : -1;
       const look = state.looks.find(l => l.id === lookId);
       if (look) {
+        // The displayed likeCount is a seeded VANITY number (social proof). A single
+        // real like is invisible at 62k — so we ALSO log every real like as an event,
+        // giving the funnel Insights a true, separate like tally (like try-on/bandit).
         (look as any).likeCount = Math.max(0, ((look as any).likeCount ?? 0) + delta);
+        if (liked) {
+          state.events.unshift({
+            id: `${Date.now()}-${crypto.randomUUID()}`,
+            name: "like_click", lookId, createdAt: now,
+            lookName: look.name,
+          } as any);
+          notifyAdminWhatsApp(`❤️ New like on "${look.name}" (${(look as any).likeCount} total). ${ADMIN_URL}`);
+        }
         await saveTryThisLookState(state);
-        if ((payload as any).liked) notifyAdminWhatsApp(`❤️ New like on "${look.name}" (${(look as any).likeCount} total). ${ADMIN_URL}`);
       }
       return NextResponse.json({ likeCount: (look as any)?.likeCount ?? 0 });
     }
@@ -926,7 +985,7 @@ export async function POST(request: Request) {
         await deleteTryThisLookImage(leadToDelete.uploadedPhotoPath);
       }
 
-      const updatedState = await saveTryThisLookState(state);
+      const updatedState = await saveTryThisLookState(state, { deletedLeadIds: [leadId] });
       return NextResponse.json({
         ...ps(updatedState),
         events: updatedState.events,
@@ -1714,6 +1773,20 @@ export async function POST(request: Request) {
       });
     }
 
+    // ── Reset funnel analytics (admin) — wipe the event log + real view counts.
+    // Used to clear test/internal traffic so the numbers start clean. Vanity
+    // likeCount/commentCount are NOT touched (they're seeded social proof).
+    if (payload.action === "reset-analytics") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const onlyInternal = (payload as any).onlyInternal === true;
+      state.events = onlyInternal ? (state.events ?? []).filter(e => !(e as any).internal) : [];
+      if (!onlyInternal) {
+        for (const l of state.looks) (l as any).viewCount = 0;
+      }
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, remaining: state.events.length });
+    }
+
     // ── Bulk delete (atomic, avoids parallel race condition) ─────────────────
     if (payload.action === "bulk-delete-generations") {
       if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
@@ -1721,7 +1794,7 @@ export async function POST(request: Request) {
       const toDelete = state.generations.filter(g => ids.has(g.id));
       // Also purge ghost entries (no imageUrl) while we're here
       state.generations = state.generations.filter(g => !ids.has(g.id) && (g as any).imageUrl);
-      const updatedState = await saveTryThisLookState(state);
+      const updatedState = await saveTryThisLookState(state, { deletedGenerationIds: [...ids] });
       // Delete images after saving state (failures are non-fatal)
       await Promise.allSettled(toDelete.map(g => purgeGenerationAssets(g)));
       return NextResponse.json({ ok: true, deleted: toDelete.length, generations: updatedState.generations });
@@ -1746,7 +1819,7 @@ export async function POST(request: Request) {
       state.generations = state.generations.filter((generation) => generation.id !== generationId);
       await purgeGenerationAssets(generationToDelete);
 
-      const updatedState = await saveTryThisLookState(state);
+      const updatedState = await saveTryThisLookState(state, { deletedGenerationIds: [generationId] });
       return NextResponse.json({
         ...ps(updatedState),
         events: updatedState.events,
@@ -1889,7 +1962,7 @@ export async function POST(request: Request) {
       await Promise.allSettled(toDelete.map(g => purgeGenerationAssets(g)));
       const toDeleteIds = new Set(toDelete.map(g => g.id));
       state.generations = state.generations.filter(g => !toDeleteIds.has(g.id));
-      await saveTryThisLookState(state);
+      await saveTryThisLookState(state, { deletedGenerationIds: [...toDeleteIds] });
       return NextResponse.json({ ok: true, deleted: toDelete.length });
     }
 
@@ -1923,7 +1996,7 @@ export async function POST(request: Request) {
 
       state.generations = state.generations.filter(g => g.id !== generationId);
       await purgeGenerationAssets(gen);
-      await saveTryThisLookState(state);
+      await saveTryThisLookState(state, { deletedGenerationIds: [generationId] });
       return NextResponse.json({ ok: true });
     }
 

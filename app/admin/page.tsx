@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus, Video } from "lucide-react";
+import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus, Video, BarChart3, Eye, MousePointerClick } from "lucide-react";
 import { signInWithPassword, getStoredAuthSession, saveAuthSession, signOut, resetPassword } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { LOOK_CATEGORIES, categorizeLook, type LookCategory } from "@/lib/look-category";
@@ -32,7 +32,8 @@ type Look = {
   brand?: string; productNote?: string; storeName?: string;
   category?: LookCategory; lingerie?: boolean;
   aiCreated?: boolean; createdAt?: string; videoCreatedAt?: string;
-  likeCount?: number;
+  likeCount?: number; commentCount?: number; viewCount?: number;
+  clicks?: Record<string, number>;
   alternatives?: unknown[];
 };
 
@@ -72,7 +73,7 @@ export default function AdminPage() {
   const [gateMode, setGateMode] = useState<"login" | "pin">("login");
   const [note, setNote] = useState("");
   const [authed, setAuthed] = useState(false);
-  const [tab, setTab] = useState<"looks" | "curators" | "inbox" | "posts">("looks");
+  const [tab, setTab] = useState<"looks" | "curators" | "inbox" | "posts" | "insights">("looks");
   type AdminPost = { id: string; lookId: string; imageUrl: string; videoUrl?: string; customerName: string; curatorId: string; lookName: string; feed: boolean; createdAt: string };
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [postsLoaded, setPostsLoaded] = useState(false);
@@ -86,6 +87,11 @@ export default function AdminPage() {
   const [followerDir, setFollowerDir] = useState<"desc" | "asc">("desc");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [comments, setComments] = useState<Cmt[]>([]);
+  type FeedEvent = { id: string; name: string; lookId: string; createdAt: string; lookName?: string; source?: string; country?: string; city?: string; productLabel?: string; productLink?: string; productThumb?: string; visitor?: string };
+  const [feedEvents, setFeedEvents] = useState<FeedEvent[]>([]);
+  const [insightsRange, setInsightsRange] = useState<"today" | "7d" | "30d" | "all">("7d");
+  const [insightsGroup, setInsightsGroup] = useState<"day" | "hour">("day");
+  const [liveOn, setLiveOn] = useState(true);
   const [reply, setReply] = useState<Record<string, string>>({});
   const [sendingId, setSendingId] = useState("");
   const [commentFilter, setCommentFilter] = useState<"new" | "all">("new");
@@ -143,6 +149,7 @@ export default function AdminPage() {
       const fold = await fol.json().catch(() => ({}));
       setCurators(Array.isArray(cd.curators) ? cd.curators : []);
       setLooks(Array.isArray(ld.looks) ? ld.looks : []);
+      setFeedEvents(Array.isArray(ld.events) ? ld.events : []);
       setCommunity(Array.isArray(comd.community) ? comd.community : []);
       setMessages(Array.isArray(msgd.messages) ? msgd.messages : []);
       setComments(Array.isArray(cmtd.comments) ? cmtd.comments : []);
@@ -425,6 +432,22 @@ export default function AdminPage() {
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, postsLoaded]);
+
+  // ── Insights "Live": poll recent events every 4s while watching, so clicks stream in ──
+  useEffect(() => {
+    if (tab !== "insights" || !liveOn) return;
+    let alive = true;
+    const poll = () => {
+      fetch("/api/try-this-look?recentEvents=200", { headers: headers() })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (alive && Array.isArray(d?.events)) setFeedEvents(d.events); })
+        .catch(() => {});
+    };
+    poll();
+    const iv = setInterval(poll, 4000);
+    return () => { alive = false; clearInterval(iv); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, liveOn]);
   const togglePostFeed = async (p: AdminPost) => {
     const feed = !p.feed;
     setPosts(ps => ps.map(x => x.id === p.id ? { ...x, feed } : x));
@@ -434,6 +457,19 @@ export default function AdminPage() {
     if (!confirm("Permanently delete this post?")) return;
     setPosts(ps => ps.filter(x => x.id !== p.id));
     await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-generation", id: p.id }) }).catch(() => {});
+  };
+  const [resetting, setResetting] = useState(false);
+  const resetAnalytics = async (onlyInternal: boolean) => {
+    if (!confirm(onlyInternal
+      ? "Remove all internal/test events from the analytics?"
+      : "Reset ALL funnel analytics — clears the event log and zeroes view counts. Vanity like/comment numbers are kept. Continue?")) return;
+    setResetting(true);
+    try {
+      await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "reset-analytics", onlyInternal }) });
+      setFeedEvents(fe => onlyInternal ? fe.filter(e => !e.internal) : []);
+      await load();
+    } catch { /**/ }
+    setResetting(false);
   };
   // Rename a post (set the displayed name) — opens an inline modal (window.prompt is
   // blocked in many in-app webviews, which made the pencil button look dead).
@@ -566,7 +602,7 @@ export default function AdminPage() {
           </div>
         </header>
 
-        <div className="mt-4 flex items-center gap-1 rounded-xl border border-black/10 bg-white p-1">
+        <div className="mt-4 flex flex-wrap items-center gap-1 rounded-xl border border-black/10 bg-white p-1">
           <button type="button" onClick={() => setTab("looks")}
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "looks" ? "bg-black text-white" : "text-ink/50"}`}>
             <LayoutGrid className="h-4 w-4" /> A List <span className="opacity-60">{liveLooks}/{looks.length}</span>
@@ -583,9 +619,13 @@ export default function AdminPage() {
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "inbox" ? "bg-black text-white" : "text-ink/50"}`}>
             <Inbox className="h-4 w-4" /> Inbox <span className="opacity-60">{newComments.length + messages.length}</span>
           </button>
+          <button type="button" onClick={() => setTab("insights")}
+            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "insights" ? "bg-black text-white" : "text-ink/50"}`}>
+            <BarChart3 className="h-4 w-4" /> Insights
+          </button>
         </div>
 
-        {tab !== "inbox" && (
+        {tab !== "inbox" && tab !== "insights" && (
           <div className="mt-3 flex items-center gap-2">
             <div className="flex flex-1 items-center gap-2 rounded-xl border border-black/10 bg-white px-3">
               <Search className="h-4 w-4 text-ink/30" />
@@ -631,41 +671,42 @@ export default function AdminPage() {
             ) : shownPosts.length === 0 ? (
               <p className="py-12 text-center text-sm font-bold text-ink/35">No posts.</p>
             ) : (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+              <div className="flex flex-col gap-2">
                 {shownPosts.map(p => (
-                  <div key={p.id} className={`overflow-hidden rounded-lg border border-black/10 bg-white transition ${p.feed ? "" : "opacity-60"}`}>
-                    <div className="relative aspect-[3/4] bg-black/5">
-                      {/* Always a still here — rendering ~90 <video> elements at once froze
-                          the grid. The Video badge marks clips; open the post to play. */}
+                  <div key={p.id} className={`flex items-center gap-3 rounded-lg border border-black/10 bg-white p-2 transition ${p.feed ? "" : "opacity-60"}`}>
+                    <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded bg-black/5">
                       {p.imageUrl
                         // eslint-disable-next-line @next/next/no-img-element
                         ? <img src={p.imageUrl} alt={p.lookName} loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
-                        : <video src={p.videoUrl} muted playsInline preload="none" className="h-full w-full object-cover object-top" />}
-                      {!p.feed && <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">Hidden</span>}
-                      {p.videoUrl && <span className="absolute right-1.5 top-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">Video</span>}
+                        : p.videoUrl
+                          ? <video src={p.videoUrl} muted playsInline preload="metadata" className="h-full w-full object-cover object-top" />
+                          : null}
+                      {p.videoUrl && <span className="absolute bottom-0.5 right-0.5 rounded bg-black/60 px-1 py-px text-[7px] font-black uppercase text-white">Vid</span>}
                     </div>
-                    <div className="p-2">
-                      <button type="button" onClick={() => openRename(p)} title="Rename"
-                        className="flex w-full items-center gap-1 text-left">
-                        <span className="truncate text-[11px] font-black text-ink">{p.customerName || "Anonymous"}</span>
-                        <Pencil className="h-3 w-3 shrink-0 text-ink/30" />
-                      </button>
-                      <p className="truncate text-[10px] font-bold text-ink/40">{p.lookName || "Try-on"} · {new Date(p.createdAt).toLocaleDateString()}</p>
-                      <div className="mt-1.5 flex items-center gap-1">
-                        <button type="button" onClick={() => void togglePostFeed(p)}
-                          title={p.feed ? "Hide from the feeds" : "Activate — show in the feeds & reels"}
-                          className={`flex flex-1 items-center justify-center rounded-full px-2 py-1 text-[10px] font-black transition ${p.feed ? "bg-black/[0.07] text-ink/60" : "bg-emerald-500 text-white"}`}>
-                          {p.feed ? "Hide" : "Activate"}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1">
+                        <button type="button" onClick={() => openRename(p)} title="Rename" className="flex min-w-0 items-center gap-1 text-left">
+                          <span className="truncate text-[11px] font-black text-ink">{p.customerName || "Anonymous"}</span>
+                          <Pencil className="h-3 w-3 shrink-0 text-ink/30" />
                         </button>
-                        {!p.videoUrl && (
-                          <button type="button" disabled={!!videoBusy} onClick={() => void makePostVideo(p)}
-                            className="grid h-7 w-7 place-items-center rounded text-cobalt transition hover:bg-cobalt/10 disabled:opacity-40" title="Generate a video from this image">
-                            {videoBusy === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
-                          </button>
-                        )}
-                        <a href={`/post/${p.id}`} target="_blank" rel="noopener noreferrer" className="grid h-7 w-7 place-items-center rounded text-ink/50 transition hover:bg-black/5" title="Open"><ExternalLink className="h-3.5 w-3.5" /></a>
-                        <button type="button" onClick={() => void deletePost(p)} className="grid h-7 w-7 place-items-center rounded text-coral transition hover:bg-coral/10" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
+                        {!p.feed && <span className="shrink-0 rounded-full bg-black/70 px-1.5 py-px text-[8px] font-black uppercase text-white">Hidden</span>}
                       </div>
+                      <p className="truncate text-[10px] font-bold text-ink/40">{p.lookName || "Try-on"} · {new Date(p.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button type="button" onClick={() => void togglePostFeed(p)}
+                        title={p.feed ? "Hide from the feeds" : "Activate — show in the feeds & reels"}
+                        className={`rounded-full px-2 py-1 text-[10px] font-black transition ${p.feed ? "bg-black/[0.07] text-ink/60" : "bg-emerald-500 text-white"}`}>
+                        {p.feed ? "Hide" : "Show"}
+                      </button>
+                      {!p.videoUrl && (
+                        <button type="button" disabled={!!videoBusy} onClick={() => void makePostVideo(p)}
+                          className="grid h-7 w-7 place-items-center rounded text-cobalt transition hover:bg-cobalt/10 disabled:opacity-40" title="Generate video">
+                          {videoBusy === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
+                        </button>
+                      )}
+                      <a href={`/post/${p.id}`} target="_blank" rel="noopener noreferrer" className="grid h-7 w-7 place-items-center rounded text-ink/50 transition hover:bg-black/5" title="Open"><ExternalLink className="h-3.5 w-3.5" /></a>
+                      <button type="button" onClick={() => void deletePost(p)} className="grid h-7 w-7 place-items-center rounded text-coral transition hover:bg-coral/10" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>
                   </div>
                 ))}
@@ -1023,6 +1064,298 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      {/* ── Insights tab ── */}
+        {tab === "insights" && (() => {
+          const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+          // Live-feed helpers: human label per event name + relative "12s ago" time.
+          const evMeta: Record<string, { label: string; emoji: string }> = {
+            tryon_click: { label: "tapped Try This Look", emoji: "✨" },
+            bandit_click: { label: "tapped Bandit the feeling", emoji: "🛍️" },
+            product_click: { label: "opened a product", emoji: "👗" },
+            like_click: { label: "liked a look", emoji: "❤️" },
+          };
+          const ago = (iso: string) => {
+            const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+            if (s < 60) return `${s}s ago`;
+            if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+            if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+            return `${Math.floor(s / 86400)}d ago`;
+          };
+          const flag = (cc?: string) => (cc && cc.length === 2)
+            ? String.fromCodePoint(...[...cc.toUpperCase()].map(c => 0x1f1e6 + c.charCodeAt(0) - 65))
+            : "";
+          // Time-range filter (applies to all event-based metrics below).
+          const nowMs = Date.now();
+          const cutoff = insightsRange === "today" ? new Date().setHours(0, 0, 0, 0)
+            : insightsRange === "7d" ? nowMs - 7 * 864e5
+            : insightsRange === "30d" ? nowMs - 30 * 864e5
+            : 0;
+          // Exclude internal (admin/test) traffic from every funnel metric.
+          const evs = feedEvents.filter(e => !e.internal && new Date(e.createdAt).getTime() >= cutoff);
+          const countOf = (name: string) => evs.filter(e => e.name === name).length;
+          // Breakdown helper: count events by a field, sorted desc.
+          const breakdown = (pick: (e: FeedEvent) => string | undefined, names?: string[]) => {
+            const m = new Map<string, number>();
+            for (const e of evs) {
+              if (names && !names.includes(e.name)) continue;
+              const k = (pick(e) || "").trim(); if (!k) continue;
+              m.set(k, (m.get(k) ?? 0) + 1);
+            }
+            return [...m.entries()].sort((a, b) => b[1] - a[1]);
+          };
+          const sources = breakdown(e => e.source);
+          const countries = breakdown(e => e.country);
+          // Rich top-products: group product_click events by product, keep the thumbnail,
+          // the count, and which look(s) the product was clicked from (with feed links).
+          const productMap = new Map<string, { label: string; thumb: string; link: string; count: number; looks: Map<string, string> }>();
+          for (const e of evs) {
+            if (e.name !== "product_click") continue;
+            const key = (e.productLink || e.productLabel || "").trim();
+            if (!key) continue;
+            const cur = productMap.get(key) ?? { label: e.productLabel || e.productLink || "Product", thumb: e.productThumb || "", link: e.productLink || "", count: 0, looks: new Map<string, string>() };
+            cur.count += 1;
+            if (!cur.thumb && e.productThumb) cur.thumb = e.productThumb;
+            if (e.lookId) cur.looks.set(e.lookId, e.lookName || "Look");
+            productMap.set(key, cur);
+          }
+          const topProducts = [...productMap.values()].sort((a, b) => b.count - a.count).slice(0, 15);
+          const lookThumbById = new Map(looks.map(l => [l.id, l.frontImageUrl || l.imageUrl || l.videoPosterUrl || l.tryOnImageUrl || ""]));
+          // Time series: events grouped by day or hour bucket.
+          const series = (() => {
+            const m = new Map<string, number>();
+            for (const e of evs) {
+              const d = new Date(e.createdAt);
+              const key = insightsGroup === "hour"
+                ? `${d.toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" })} ${String(d.getHours()).padStart(2, "0")}:00`
+                : d.toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" });
+              m.set(key, (m.get(key) ?? 0) + 1);
+            }
+            return [...m.entries()].reverse().slice(0, insightsGroup === "hour" ? 24 : 30);
+          })();
+          const seriesMax = Math.max(1, ...series.map(([, n]) => n));
+
+          // Per-look event aggregation (within range).
+          const eventsByLook = new Map<string, Record<string, number>>();
+          for (const e of evs) {
+            const m = eventsByLook.get(e.lookId) ?? {};
+            m[e.name] = (m[e.name] ?? 0) + 1;
+            eventsByLook.set(e.lookId, m);
+          }
+          const rows = looks.map(l => ({
+            id: l.id, name: publicLookLabel(l.name, l.curatorNote, l.curatorName),
+            curator: l.curatorName ?? "House",
+            thumb: l.frontImageUrl || l.imageUrl || l.videoPosterUrl || l.tryOnImageUrl || "",
+            hasVideo: !!l.videoUrl,
+            views: (l as any).viewCount ?? 0, // lifetime counter (not event-based)
+            likes: eventsByLook.get(l.id)?.["like_click"] ?? 0,
+            comments: l.commentCount ?? 0,
+            tryonClicks: eventsByLook.get(l.id)?.["tryon_click"] ?? 0,
+            banditClicks: eventsByLook.get(l.id)?.["bandit_click"] ?? 0,
+            productClicks: eventsByLook.get(l.id)?.["product_click"] ?? 0,
+            affiliateClicks: l.clicks ? Object.values(l.clicks).reduce((s, n) => s + n, 0) : 0,
+          })).sort((a, b) => (b.tryonClicks + b.likes + b.productClicks) - (a.tryonClicks + a.likes + a.productClicks) || b.views - a.views);
+          const totalViews = rows.reduce((s, r) => s + r.views, 0);
+
+          const Bars = ({ data, accent = "bg-cobalt" }: { data: [string, number][]; accent?: string }) => {
+            const rows2 = (data ?? []).filter(Array.isArray);
+            const max = Math.max(1, ...rows2.map(r => Number(r[1]) || 0));
+            return (
+              <div className="flex flex-col gap-1">
+                {rows2.length === 0 && <p className="py-3 text-center text-[11px] font-bold text-ink/35">No data in this range.</p>}
+                {rows2.map(r => {
+                  const k = String(r[0]); const n = Number(r[1]) || 0;
+                  return (
+                    <div key={k} className="flex items-center gap-2">
+                      <span className="w-28 shrink-0 truncate text-[10px] font-bold text-ink/55" title={k}>{k}</span>
+                      <div className="h-3.5 flex-1 overflow-hidden rounded-full bg-black/[0.06]">
+                        <div className={`h-full rounded-full ${accent}`} style={{ width: `${(n / max) * 100}%` }} />
+                      </div>
+                      <span className="w-8 shrink-0 text-right text-[10px] font-black text-ink">{fmt(n)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          };
+
+          return (
+            <div className="mt-3 pb-16">
+              {/* Time-range filter + reset */}
+              <div className="flex items-center gap-1.5">
+                {([["today", "Today"], ["7d", "7 days"], ["30d", "30 days"], ["all", "All"]] as const).map(([k, label]) => (
+                  <button key={k} type="button" onClick={() => setInsightsRange(k)}
+                    className={`h-8 rounded-lg border px-2.5 text-[11px] font-black transition ${insightsRange === k ? "border-black bg-black text-white" : "border-black/10 text-ink/55"}`}>{label}</button>
+                ))}
+                <button type="button" disabled={resetting} onClick={() => void resetAnalytics(false)}
+                  className="ml-auto inline-flex h-8 items-center gap-1 rounded-lg border border-black/10 px-2.5 text-[11px] font-black text-red-500 transition hover:bg-red-50 disabled:opacity-40" title="Clear the event log + view counts (vanity numbers kept)">
+                  {resetting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />} Reset
+                </button>
+              </div>
+              <p className="mt-1.5 text-[10px] font-bold text-ink/35">Your own admin session is excluded automatically. Geo (country/city) shows once live on the server.</p>
+
+              {/* Engagement tiles (event-based ones reflect the range) */}
+              <div className="mt-3 grid grid-cols-4 gap-2">
+                {([
+                  ["Views", totalViews, Eye, "lifetime"],
+                  ["Likes", countOf("like_click"), Heart, ""],
+                  ["Try-on", countOf("tryon_click"), Sparkles, ""],
+                  ["Bandit", countOf("bandit_click"), MousePointerClick, ""],
+                ] as const).map(([label, n, Icon, sub]) => (
+                  <div key={label} className="rounded-xl border border-black/10 bg-white p-3 text-center">
+                    <Icon className="mx-auto mb-1 h-4 w-4 text-ink/40" />
+                    <p className="text-lg font-black text-ink">{fmt(n)}</p>
+                    <p className="text-[10px] font-bold text-ink/40">{label}{sub ? <span className="ml-0.5 text-ink/25">·{sub}</span> : ""}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Live activity stream — auto-polls every 4s */}
+              <div className="mt-4 flex items-center justify-between">
+                <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-ink/40">
+                  {liveOn && <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" /></span>}
+                  Live activity
+                </p>
+                <button type="button" onClick={() => setLiveOn(v => !v)}
+                  className={`h-7 rounded-md border px-2.5 text-[10px] font-black transition ${liveOn ? "border-emerald-500 bg-emerald-500 text-white" : "border-black/10 text-ink/50"}`}>
+                  {liveOn ? "● Live" : "Paused"}
+                </button>
+              </div>
+              <div className="mt-2 flex max-h-80 flex-col gap-1 overflow-y-auto rounded-xl border border-black/10 bg-white p-2">
+                {feedEvents.filter(e => evMeta[e.name] && !e.internal).length === 0 && (
+                  <p className="py-6 text-center text-[11px] font-bold text-ink/35">Waiting for clicks… interactions appear here in real time.</p>
+                )}
+                {feedEvents.filter(e => evMeta[e.name] && !e.internal).slice(0, 40).map(e => {
+                  const m = evMeta[e.name];
+                  const who = (e.visitor || "").trim() || "Guest";
+                  return (
+                    <a key={e.id} href={`/look/${e.lookId}`} target="_blank" rel="noreferrer"
+                      className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-black/[0.03]">
+                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-black/[0.06] text-sm">{m.emoji}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[11px] font-bold text-ink/80">
+                          <span className="font-black text-ink">{who}</span> {m.label}
+                          {e.name === "product_click" && e.productLabel ? <span className="text-ink/50"> · {e.productLabel}</span> : null}
+                        </p>
+                        <p className="truncate text-[9px] font-bold text-ink/40">
+                          {e.lookName || "Look"}
+                          {e.source ? ` · ${e.source}` : ""}
+                          {e.country ? ` · ${flag(e.country)} ${e.city ? e.city + ", " : ""}${e.country}` : ""}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[9px] font-black text-ink/35">{ago(e.createdAt)}</span>
+                    </a>
+                  );
+                })}
+              </div>
+
+              {/* Timeline */}
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-xs font-black uppercase tracking-wider text-ink/40">Activity over time</p>
+                <div className="flex items-center gap-1">
+                  {([["day", "Day"], ["hour", "Hour"]] as const).map(([k, label]) => (
+                    <button key={k} type="button" onClick={() => setInsightsGroup(k)}
+                      className={`h-7 rounded-md border px-2 text-[10px] font-black transition ${insightsGroup === k ? "border-black bg-black text-white" : "border-black/10 text-ink/50"}`}>{label}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-2 rounded-xl border border-black/10 bg-white p-3">
+                {series.length === 0
+                  ? <p className="py-3 text-center text-[11px] font-bold text-ink/35">No activity in this range.</p>
+                  : <div className="flex h-28 items-end gap-1">
+                      {series.slice().reverse().map(([k, n]) => (
+                        <div key={k} className="flex flex-1 flex-col items-center gap-1" title={`${k}: ${n}`}>
+                          <div className="flex w-full items-end" style={{ height: "84px" }}>
+                            <div className="w-full rounded-t bg-cobalt" style={{ height: `${(n / seriesMax) * 100}%` }} />
+                          </div>
+                          <span className="w-full truncate text-center text-[7px] font-bold text-ink/40">{k}</span>
+                        </div>
+                      ))}
+                    </div>}
+              </div>
+
+              {/* Sources + Countries */}
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <p className="mb-2 text-xs font-black uppercase tracking-wider text-ink/40">Traffic source</p>
+                  <Bars data={sources} accent="bg-violet-500" />
+                </div>
+                <div>
+                  <p className="mb-2 text-xs font-black uppercase tracking-wider text-ink/40">Countries</p>
+                  <Bars data={countries} accent="bg-emerald-500" />
+                </div>
+              </div>
+
+              {/* Top products clicked — with image + which look they sit in */}
+              <p className="mt-4 mb-2 text-xs font-black uppercase tracking-wider text-ink/40">Top products clicked</p>
+              <div className="flex flex-col gap-1.5">
+                {topProducts.length === 0 && <p className="py-3 text-center text-[11px] font-bold text-ink/35">No product taps in this range.</p>}
+                {topProducts.map(p => (
+                  <div key={p.label + p.link} className="flex items-center gap-3 rounded-lg border border-black/10 bg-white p-2.5">
+                    <div className="relative h-16 w-14 shrink-0 overflow-hidden rounded bg-black/5">
+                      {p.thumb
+                        // eslint-disable-next-line @next/next/no-img-element
+                        ? <img src={p.thumb} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover"
+                            onError={(e) => { const el = e.currentTarget; if (p.thumb && !el.dataset.proxied) { el.dataset.proxied = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(p.thumb)}`; } }} />
+                        : <div className="grid h-full w-full place-items-center text-[9px] font-black text-ink/25">—</div>}
+                      <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-amber-500 px-1 text-[10px] font-black text-white">{p.count}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate text-[11px] font-black text-ink">{p.label}</p>
+                        {p.link && <a href={p.link} target="_blank" rel="noreferrer" className="shrink-0 text-cobalt" title="Open product"><ExternalLink className="h-3 w-3" /></a>}
+                      </div>
+                      <p className="mt-0.5 text-[9px] font-black uppercase tracking-wide text-ink/35">In {p.looks.size} look{p.looks.size === 1 ? "" : "s"}</p>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {[...p.looks.entries()].slice(0, 6).map(([lid, lname]) => (
+                          <a key={lid} href={`/look/${lid}`} target="_blank" rel="noreferrer"
+                            className="flex items-center gap-1 rounded-full border border-black/10 bg-panel py-0.5 pl-0.5 pr-2 active:scale-95 transition" title={`Open "${lname}" in the feed`}>
+                            {lookThumbById.get(lid)
+                              // eslint-disable-next-line @next/next/no-img-element
+                              ? <img src={lookThumbById.get(lid)} alt="" className="h-5 w-5 shrink-0 rounded-full object-cover object-top" />
+                              : <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-black/10 text-[7px] font-black text-ink/40">LB</span>}
+                            <span className="max-w-[120px] truncate text-[9px] font-bold text-ink/60">{lname}</span>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Per look */}
+              <p className="mt-4 mb-2 text-xs font-black uppercase tracking-wider text-ink/40">Per look</p>
+              <div className="flex flex-col gap-1.5">
+                {rows.filter(r => r.views > 0 || r.likes > 0 || r.tryonClicks > 0 || r.productClicks > 0).map(r => (
+                  <div key={r.id} className="flex items-center gap-3 rounded-lg border border-black/10 bg-white p-2.5">
+                    <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded bg-black/5">
+                      {r.thumb
+                        // eslint-disable-next-line @next/next/no-img-element
+                        ? <img src={r.thumb} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
+                        : <div className="grid h-full w-full place-items-center text-[9px] font-black text-ink/25">LB</div>}
+                      {r.hasVideo && <span className="absolute bottom-0.5 right-0.5 rounded bg-black/60 px-1 py-px text-[7px] font-black uppercase text-white">Vid</span>}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[11px] font-black text-ink">{r.name}</p>
+                      <p className="truncate text-[10px] font-bold text-ink/40">{r.curator}</p>
+                      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-bold text-ink/50">
+                        <span><Eye className="mb-px mr-0.5 inline h-3 w-3" />{fmt(r.views)}</span>
+                        <span><Heart className="mb-px mr-0.5 inline h-3 w-3" />{fmt(r.likes)}</span>
+                        <span>Try-on {fmt(r.tryonClicks)}</span>
+                        <span>Bandit {fmt(r.banditClicks)}</span>
+                        <span>Product {fmt(r.productClicks)}</span>
+                        {r.affiliateClicks > 0 && <span>Shop {fmt(r.affiliateClicks)}</span>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {rows.every(r => r.views === 0 && r.likes === 0 && r.tryonClicks === 0 && r.productClicks === 0) && (
+                  <p className="py-10 text-center text-sm font-bold text-ink/40">No engagement data yet — views, likes, and clicks will appear here as users interact with the feed.</p>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
       {/* ── Curator edit sheet ── */}
       {edit && (

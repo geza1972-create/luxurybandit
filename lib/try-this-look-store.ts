@@ -83,6 +83,16 @@ export type TryThisLookEvent = {
   selectedSize?: string;
   utmSource?: string;
   utmCampaign?: string;
+  // Funnel analytics: traffic source (instagram/direct/…), visitor geo, and the
+  // specific product/escape a product_click landed on.
+  source?: string;
+  country?: string;
+  city?: string;
+  productLabel?: string;
+  productLink?: string;
+  productThumb?: string;
+  visitor?: string; // logged-in name/email if known, else undefined (shown as "Guest")
+  internal?: boolean; // fired by an admin/test session → excluded from the funnel counts
 };
 
 export type TryThisLookLead = {
@@ -597,27 +607,44 @@ function unionById<T extends { id: string }>(ours: T[] = [], latest: T[] = []): 
 // For generations (which CAN be deleted): only re-add storage records that are
 // NEWER than our newest — i.e. concurrent posts we hadn't seen. Older records we
 // don't have were deleted on purpose, so we must NOT resurrect them.
-function mergeNewerById<T extends { id: string; createdAt?: string }>(ours: T[] = [], latest: T[] = []): T[] {
+function mergeNewerById<T extends { id: string; createdAt?: string }>(ours: T[] = [], latest: T[] = [], deletedIds?: Set<string>): T[] {
   const seen = new Set(ours.map(r => r.id));
   const ourNewest = ours.reduce((m, r) => (String(r.createdAt ?? "") > m ? String(r.createdAt ?? "") : m), "");
-  const missedNewer = latest.filter(r => !seen.has(r.id) && String(r.createdAt ?? "") > ourNewest);
+  // Re-add concurrent additions (newer than our newest) that a slow save would drop —
+  // but NEVER resurrect something we explicitly deleted. Deleting our newest item drops
+  // ourNewest below the deleted item's timestamp, which would otherwise reclassify the
+  // just-deleted row as "concurrent" and bring it back. deletedIds blocks that.
+  const missedNewer = latest.filter(r =>
+    !seen.has(r.id) &&
+    !(deletedIds?.has(r.id)) &&
+    String(r.createdAt ?? "") > ourNewest
+  );
   return [...missedNewer, ...ours];
 }
 
-async function writeTryThisLookState(state: TryThisLookState) {
+type SaveOptions = { deletedGenerationIds?: string[]; deletedLeadIds?: string[] };
+
+async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions = {}) {
   await ensureBucket();
   // The whole state is one blob (last-write-wins). Re-read the latest and merge so
   // a slow/stale save can never DROP try-ons/comments posted in the meantime.
   const latest = await fetchRawState();
   if (latest) {
+    const delGen = opts.deletedGenerationIds?.length ? new Set(opts.deletedGenerationIds) : undefined;
+    const delLead = opts.deletedLeadIds?.length ? new Set(opts.deletedLeadIds) : undefined;
     state = {
       ...state,
-      generations: mergeNewerById(state.generations as any, latest.generations as any) as any,
+      generations: mergeNewerById(state.generations as any, latest.generations as any, delGen) as any,
       comments: unionById((state.comments ?? []) as any, (latest.comments ?? []) as any) as any,
       // Leads CAN be deleted in the admin → use mergeNewerById (like generations) so a
       // deletion isn't resurrected by the read-merge, while concurrent new leads survive.
-      leads: mergeNewerById((state.leads ?? []) as any, (latest.leads ?? []) as any) as any,
+      leads: mergeNewerById((state.leads ?? []) as any, (latest.leads ?? []) as any, delLead) as any,
       messages: unionById((state.messages ?? []) as any, (latest.messages ?? []) as any) as any,
+      // Events are an append-only analytics log fired constantly (views, tryon/bandit/
+      // product clicks). Without a union-merge a concurrent `view` save clobbers a
+      // just-fired `tryon_click` (last-write-wins). Union keeps both; sort newest-first.
+      events: unionById((state.events ?? []) as any, (latest.events ?? []) as any)
+        .sort((a: any, b: any) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""))) as any,
     };
   }
   const strippedState: TryThisLookState = {
@@ -725,8 +752,8 @@ export async function deleteTryThisLookImage(path: string) {
   }
 }
 
-export async function saveTryThisLookState(state: TryThisLookState) {
-  await writeTryThisLookState(state);
+export async function saveTryThisLookState(state: TryThisLookState, opts: SaveOptions = {}) {
+  await writeTryThisLookState(state, opts);
   return readTryThisLookState();
 }
 
