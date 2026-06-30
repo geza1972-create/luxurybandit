@@ -171,6 +171,13 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     try { setSaved((JSON.parse(localStorage.getItem("lb_bookmarks") ?? "[]") as string[]).includes(look.id)); } catch { /**/ }
   }, [look.id]);
 
+  // Always open the carousel at slide 1 (the try-on video), not slide 2. When you
+  // open a post or switch looks, jump the carousel back to the first slide.
+  useEffect(() => {
+    if (carouselRef.current) carouselRef.current.scrollLeft = 0;
+    setActive(0);
+  }, [look.id]);
+
   // Detect whether the caption is actually truncated (only then show "more").
   useEffect(() => {
     const el = captionRef.current;
