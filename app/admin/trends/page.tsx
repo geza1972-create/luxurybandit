@@ -1986,7 +1986,7 @@ export default function AdminTrends() {
               </div>
               <p className="mt-1.5 text-xs font-medium text-ink/50">Every try-on you make is saved here — nothing gets lost. Toggle <span className="font-black text-ink/70">In feed</span> to show/hide it on the look, download the file, or open it.</p>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3">
               {myTryons.map((t) => (
                 <div key={t.id} className="overflow-hidden rounded-lg border border-black/10 bg-panel">
                   <div className="relative aspect-[3/4] bg-black/5">
