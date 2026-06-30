@@ -1438,7 +1438,7 @@ export default function AdminTrends() {
                 list="lb-destinations" autoComplete="off"
                 placeholder="Ort / Land, z. B. „Greece“ oder „Ibiza Klippen-Villa Pool“"
                 className="h-10 w-full rounded-md border border-black/10 bg-panel px-3 text-sm font-semibold text-ink outline-none focus:border-cobalt disabled:opacity-60" />
-              <p className="-mt-1 text-[10px] font-bold text-ink/35">Tipp: Bei KI-/Render-Locations findet die Bildsuche oft nichts — der Suchbegriff bringt zuverlässig Orte.</p>
+              <p className="-mt-1 text-[10px] font-bold text-ink/35">Tipp: Bei KI-/Render-Locations findet die Bildsuche oft nichts — der Suchbegriff bringt zuverlässig Orte. Jede Suche <b>fügt hinzu</b> (mehrere Orte nacheinander möglich).</p>
               {/* Search the SerpApi candidates now → tick which appear in "Bandit the look". */}
               {(reelClothesFile || reelLocationFile || reelLocationQuery.trim()) && (
                 <button type="button" onClick={() => void runReelSearch()} disabled={reelSearching || reelBusy}
@@ -2165,6 +2165,7 @@ export default function AdminTrends() {
                               list="lb-destinations" autoComplete="off"
                               placeholder="Ort / Land, z. B. „Greece“"
                               className="mt-1.5 h-8 w-full rounded-md border border-black/10 bg-panel px-2 text-[11px] font-semibold text-ink outline-none focus:border-cobalt" />
+                            <p className="mt-1 text-[10px] font-bold text-ink/35">Jede Suche <b>fügt hinzu</b> — mehrere Orte nacheinander gehen. Nur ein Ort? Erst „Liste leeren“.</p>
                             {locCands.length > 0 && (
                               <div className="mt-2 flex flex-col gap-1.5">
                                 {locCands.map((c) => candRow(c, locSel.has(c.link), () => toggleIn(setLocSel, c.link), l.clicks?.[c.link]))}
