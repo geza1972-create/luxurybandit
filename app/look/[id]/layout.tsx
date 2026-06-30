@@ -32,9 +32,10 @@ async function getLookData(id: string): Promise<Look | null> {
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }): Promise<Metadata> {
-  const look = await getLookData(params.id);
+  const { id } = await params;
+  const look = await getLookData(id);
 
   if (!look) {
     return {
@@ -59,7 +60,7 @@ export async function generateMetadata({
       title,
       description,
       type: "website",
-      url: `/look/${encodeURIComponent(params.id)}`,
+      url: `/look/${encodeURIComponent(id)}`,
       images: look.imageUrl
         ? [
             {
