@@ -628,7 +628,8 @@ function CommentsSheet({ look, onClose }: { look: FeedLook; onClose: () => void 
   );
 }
 
-export default function HomeFeed({ looks, single = false }: { looks: FeedLook[]; single?: boolean }) {
+export default function HomeFeed({ looks, single = false, initialLookId }: { looks: FeedLook[]; single?: boolean; initialLookId?: string }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [commentsFor, setCommentsFor] = useState<FeedLook | null>(null);
   // One global sound switch for the whole feed. The audio is a single looping
   // soundtrack (drop your track at public/feed-music.mp3) — consistent across all
@@ -676,6 +677,17 @@ export default function HomeFeed({ looks, single = false }: { looks: FeedLook[];
   // Newest first — fresh curator posts always surface at the top of the feed.
   const feed = [...looks].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
 
+  // Deep-link: when opened on a specific post (/look/[id]), jump straight to that
+  // slide in the scrollable feed instead of starting at the top.
+  const initialIdx = initialLookId ? feed.findIndex(l => l.id === initialLookId) : -1;
+  useEffect(() => {
+    if (initialIdx > 0 && scrollRef.current) {
+      scrollRef.current.scrollTop = initialIdx * scrollRef.current.clientHeight;
+    }
+    // run once on mount — the target post never changes for a given page load
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (!feed.length) {
     return (
       <div className="grid h-[100dvh] place-items-center bg-black text-center text-white/50">
@@ -686,7 +698,7 @@ export default function HomeFeed({ looks, single = false }: { looks: FeedLook[];
 
   return (
     <>
-      <div className="h-[100dvh] w-full snap-y snap-mandatory overflow-y-scroll overscroll-contain bg-black [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div ref={scrollRef} className="h-[100dvh] w-full snap-y snap-mandatory overflow-y-scroll overscroll-contain bg-black [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {feed.map((look, i) => <Slide key={look.id} look={look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} index={i} onActive={handleActive} single={single} />)}
       </div>
       {/* Slide-coupled feed soundtrack — shuffled /public mp3s, the track changes
