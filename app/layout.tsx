@@ -5,11 +5,11 @@ import BottomNav from "@/components/BottomNav";
 
 export const metadata: Metadata = {
   metadataBase: new URL((process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "")),
-  title: "Luxurybandit — Try On Any Luxury Look & Shop the Dupe | Virtual Try-On",
-  description: "Try on any luxury look on your own photo with AI, then shop the whole outfit at any price — from the designer original to the budget version. Get the look for less with Luxurybandit.",
+  title: "Luxurybandit — Bandit the Feeling | Virtual Try-On & Luxury Style",
+  description: "Try on any luxury look on your own photo and shop the whole outfit at any price. Discover the high-end style you love — only on Luxurybandit.",
   openGraph: {
-    title: "Luxurybandit — Try On Any Luxury Look & Shop the Dupe | Virtual Try-On",
-    description: "Try on any luxury look on your own photo with AI, then shop the whole outfit at any price — from the designer original to the budget version. Get the look for less with Luxurybandit.",
+    title: "Luxurybandit — Bandit the Feeling | Virtual Try-On & Luxury Style",
+    description: "Try on any luxury look on your own photo and shop the whole outfit at any price. Discover the high-end style you love — only on Luxurybandit.",
   }
 };
 

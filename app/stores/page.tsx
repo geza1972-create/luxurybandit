@@ -2111,12 +2111,12 @@ function StoresPage() {
                 </h1>
                 <p className="mt-2 max-w-md text-sm font-medium leading-6 text-black/55">
                   Upload your photo and try on any high-end look instantly — then shop the whole
-                  outfit at any price, from the original to the look for less.
+                  outfit at any price, from the original to the smartest find.
                 </p>
                 <div className="mt-3 grid gap-1.5">
                   {[
-                    [<Sparkles key="i" className="h-4 w-4 text-cobalt" />, "Try it on you", "See any luxury look on your own photo in seconds, powered by AI."],
-                    [<ShoppingBag key="i" className="h-4 w-4 text-cobalt" />, "Bandit the feeling", "Get the whole vibe, from the high-end original and the look down to the budget version, plus where to live it."],
+                    [<Sparkles key="i" className="h-4 w-4 text-cobalt" />, "Try it on you", "See any luxury look on your own photo in seconds."],
+                    [<ShoppingBag key="i" className="h-4 w-4 text-cobalt" />, "Bandit the feeling", "Get the whole vibe, from the high-end original and the outfit down to the budget version, plus where to live it."],
                     [<Heart key="i" className="h-4 w-4 text-cobalt" />, "Save & shop your way", "Like looks, build your feed, and shop when you're ready."],
                   ].map(([icon, title, text], i) => (
                     <div key={i} className="flex items-start gap-2.5">
