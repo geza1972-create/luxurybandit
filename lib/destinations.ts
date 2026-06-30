@@ -20,7 +20,7 @@ export const DESTINATIONS: string[] = [
   // ── Indian Ocean & Africa ──
   "Maldives", "Seychelles", "Mauritius", "Zanzibar", "Morocco", "Marrakech", "South Africa", "Cape Town",
   // ── Asia & Pacific ──
-  "Bali", "Indonesia", "Thailand", "Phuket", "Koh Samui", "Bora Bora", "Fiji",
+  "Bali", "Indonesia", "Thailand", "Phuket", "Koh Samui", "Koh Phangan", "Koh Tao", "Krabi", "Koh Phi Phi", "Bora Bora", "Fiji",
   // ── Americas ──
   "Tulum", "Cabo San Lucas", "Mexico", "Costa Rica", "Turks and Caicos", "St. Barths", "The Hamptons", "Miami", "Aspen", "Lake Tahoe", "Napa Valley", "Big Sur",
 ];
