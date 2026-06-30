@@ -583,6 +583,47 @@ function CommunityDetailView({
   // (address bar), which left a gap showing the grid behind while scrolling.
   const slideH = () => containerRef.current?.clientHeight || (typeof window !== "undefined" ? window.innerHeight : 800);
 
+  // ── Feed soundtrack ───────────────────────────────────────────────────────
+  // Our own music (Pixverse/Kling clips are silent). Shuffled /public mp3s; the
+  // track changes as you scroll and resumes where it left off. Gated by the same
+  // `muted` toggle the user already taps for sound.
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const tracksRef = useRef<string[]>([]);
+  const curTrack = useRef(-1);
+  const trackPos = useRef<Record<number, number>>({});
+  const mutedRef = useRef(true); mutedRef.current = muted;
+  useEffect(() => {
+    fetch("/api/feed-music").then(r => r.json())
+      .then(d => { tracksRef.current = [...(d.tracks ?? [])].sort(() => Math.random() - 0.5); })
+      .catch(() => {});
+  }, []);
+  const playTrack = (trackIdx: number) => {
+    const a = audioRef.current, t = tracksRef.current;
+    if (!a || !t.length) return;
+    if (trackIdx === curTrack.current) { if (!mutedRef.current) void a.play().catch(() => {}); return; }
+    if (curTrack.current >= 0) trackPos.current[curTrack.current] = a.currentTime || 0;
+    curTrack.current = trackIdx;
+    a.src = t[trackIdx];
+    a.volume = 0.5;
+    const resume = trackPos.current[trackIdx] || 0;
+    const onMeta = () => { try { a.currentTime = resume; } catch { /**/ } if (!mutedRef.current) void a.play().catch(() => {}); a.removeEventListener("loadedmetadata", onMeta); };
+    a.addEventListener("loadedmetadata", onMeta);
+  };
+  // Active reel → its track (rotates as you scroll).
+  useEffect(() => {
+    const t = tracksRef.current;
+    if (t.length) playTrack(currentIdx % t.length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIdx]);
+  // The sound toggle gates the whole soundtrack.
+  useEffect(() => {
+    const a = audioRef.current; if (!a) return;
+    if (muted) { if (curTrack.current >= 0) trackPos.current[curTrack.current] = a.currentTime || 0; a.pause(); }
+    else if (curTrack.current < 0 && tracksRef.current.length) playTrack(currentIdx % tracksRef.current.length);
+    else void a.play().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [muted]);
+
   const item = allItems[currentIdx];
   const prevItem = allItems.length > 1 ? allItems[(currentIdx - 1 + allItems.length) % allItems.length] : null;
   const nextItem = allItems.length > 1 ? allItems[(currentIdx + 1) % allItems.length] : null;
@@ -701,6 +742,9 @@ function CommunityDetailView({
           ? <VolumeX strokeWidth={2} className="h-5 w-5 text-white" />
           : <Volume2 strokeWidth={2} className="h-5 w-5 text-white" />}
       </button>
+      {/* Feed soundtrack — our own music (clips are silent). eslint-disable-next-line jsx-a11y/media-has-caption */}
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio ref={audioRef} preload="auto" loop />
 
 
       {/* Right action column — always on top, not translated */}

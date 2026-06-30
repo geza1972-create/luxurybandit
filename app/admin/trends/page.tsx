@@ -764,6 +764,17 @@ export default function AdminTrends() {
     try { await fetch("/api/upload-look-video", { method: "POST", headers: { "x-curator-id": getCuratorId() }, body: fd }); setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, videoUrl: "" } : l)); } catch { /**/ }
     setUploadingVideo("");
   };
+  // Upload / replace the look's video with an own clip (e.g. a fresh Pixverse reel).
+  const replaceLookVideo = async (lookId: string, file: File) => {
+    setUploadingVideo(lookId);
+    const fd = new FormData(); fd.append("lookId", lookId); fd.append("curatorId", getCuratorId()); fd.append("video", file);
+    try {
+      const res = await fetch("/api/upload-look-video", { method: "POST", headers: { "x-try-look-admin-pin": getStoredPin(), "x-curator-id": getCuratorId() }, body: fd });
+      const d = await res.json();
+      if (res.ok && d.videoUrl) setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, videoUrl: d.videoUrl } : l));
+    } catch { /**/ }
+    setUploadingVideo("");
+  };
   // The "Reel hochladen" tool: take an own finished video (e.g. a Pixverse reel) and
   // post it as a NEW feed look — a funnel post (Try-on / Bandit). Creates the look
   // (poster = the video's first frame, description = public title, category), then
@@ -2208,17 +2219,31 @@ export default function AdminTrends() {
                             <span>Comments</span>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] ${l.commentsOff ? "bg-black/10 text-ink/50" : "bg-emerald-100 text-emerald-700"}`}>{l.commentsOff ? "Off" : "On"}</span>
                           </button>
-                          {/* AI video — Pixverse generates a 5s clip presenting the look */}
+                          {/* Video — own upload (e.g. Pixverse reel) or AI-generated (Pixverse). */}
                           {l.videoUrl ? (
-                            <div className="mt-1.5 flex items-center justify-between rounded-md bg-emerald-50 px-2 py-1.5 text-[11px] font-black text-emerald-700">
+                            <div className="mt-1.5 flex items-center justify-between gap-2 rounded-md bg-emerald-50 px-2 py-1.5 text-[11px] font-black text-emerald-700">
                               <span className="flex items-center gap-1"><Video className="h-3.5 w-3.5" /> Video ready</span>
-                              <button type="button" onClick={() => void removeLookVideo(l.id)} disabled={uploadingVideo === l.id} className="text-red-500 disabled:opacity-50">Remove</button>
+                              <span className="flex items-center gap-2.5">
+                                <label className={`cursor-pointer text-cobalt ${uploadingVideo === l.id ? "opacity-50" : ""}`}>
+                                  {uploadingVideo === l.id ? "Lädt…" : "Ersetzen"}
+                                  <input type="file" accept="video/*" className="sr-only" disabled={uploadingVideo === l.id}
+                                    onChange={e => { const f = e.target.files?.[0]; if (f) void replaceLookVideo(l.id, f); e.target.value = ""; }} />
+                                </label>
+                                <button type="button" onClick={() => void removeLookVideo(l.id)} disabled={uploadingVideo === l.id} className="text-red-500 disabled:opacity-50">Remove</button>
+                              </span>
                             </div>
                           ) : (
-                            <button type="button" onClick={() => void generateLookVideo(l.id)} disabled={uploadingVideo === l.id}
-                              className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-black/15 bg-panel px-2 py-1.5 text-[11px] font-black text-ink/55 hover:border-cobalt disabled:opacity-60">
-                              {uploadingVideo === l.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating video…</> : <><Video className="h-3.5 w-3.5" /> Generate AI video · 5s · {costs?.video ?? 8} credits</>}
-                            </button>
+                            <div className="mt-1.5 flex flex-col gap-1.5">
+                              <label className={`flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-black/15 bg-panel px-2 py-1.5 text-[11px] font-black text-ink/55 hover:border-cobalt ${uploadingVideo === l.id ? "opacity-60" : ""}`}>
+                                {uploadingVideo === l.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Lädt…</> : <><Video className="h-3.5 w-3.5" /> Eigenes Video hochladen (z. B. Pixverse)</>}
+                                <input type="file" accept="video/*" className="sr-only" disabled={uploadingVideo === l.id}
+                                  onChange={e => { const f = e.target.files?.[0]; if (f) void replaceLookVideo(l.id, f); e.target.value = ""; }} />
+                              </label>
+                              <button type="button" onClick={() => void generateLookVideo(l.id)} disabled={uploadingVideo === l.id}
+                                className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-black/15 bg-panel px-2 py-1.5 text-[11px] font-black text-ink/55 hover:border-cobalt disabled:opacity-60">
+                                {uploadingVideo === l.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating video…</> : <><Video className="h-3.5 w-3.5" /> Generate AI video · 5s · {costs?.video ?? 8} credits</>}
+                              </button>
+                            </div>
                           )}
                           </div>
                           <div className="border-t border-black/10 p-3">
