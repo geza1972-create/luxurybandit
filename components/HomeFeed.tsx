@@ -446,14 +446,19 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           ))}
         </div>
 
-        {/* Play overlay — when autoplay was blocked (Safari!) OR the user tapped to pause.
-            Shows the look's still behind the button so the video is never a black box. */}
+        {/* Play overlay — two modes:
+            1. vidFailed (autoplay blocked, video never started): show poster image so it's not a black box.
+            2. paused (user tapped to pause): show ONLY the Play button — the browser already
+               displays the current frame, so overlaying a poster would show a completely different
+               image (look's product shot vs. the community try-on video that was playing). */}
         {(media[active]?.type === "video" || media[active]?.type === "cvideo") && (vidFailed || paused) && (
           <button type="button" aria-label="Play"
-            onClick={() => { const v = videoRefs.current[active]; if (v) { setPaused(false); v.muted = true; v.play().then(() => setVidFailed(false)).catch(() => {}); } }}
+            onClick={() => { const v = videoRefs.current[active]; if (v) { pausedRef.current = false; setPaused(false); v.muted = true; v.play().then(() => setVidFailed(false)).catch(() => {}); } }}
             className="absolute inset-0 z-10 grid place-items-center bg-black/20">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={videoStill} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            {vidFailed && !paused && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={videoStill} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            )}
             <Play className="relative z-10 h-16 w-16 fill-white/50 text-white/50" />
           </button>
         )}
