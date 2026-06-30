@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, ShoppingBag } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -361,22 +361,23 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           const clothes = (look.alternatives ?? []).filter(a => a.thumbnail && a.link).slice(0, 4);
           const stays = cleanEscapes(look.locationDupes ?? []).slice(0, 4);
           if (!clothes.length && !stays.length) return null;
-          const track = (link?: string) => { if (look.id && link) { try { fetch("/api/try-this-look", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "click", lookId: look.id, link }) }).catch(() => {}); } catch { /**/ } } };
-          const thumb = (a: { thumbnail?: string; link?: string; price?: string }, icon: ReactNode, key: string) => (
-            <a key={key} href={a.link} target="_blank" rel="noopener noreferrer sponsored" onClick={() => track(a.link)}
+          // Tapping any thumb opens the full list (Bandit the feeling! detail page),
+          // not the external link directly.
+          const thumb = (a: { thumbnail?: string; price?: string }, badge: ReactNode, key: string) => (
+            <button key={key} type="button" onClick={() => router.push(`${detail}/details`)}
               className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-black/5 active:scale-95 transition-transform">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={a.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover"
                 onError={(e) => { const el = e.currentTarget; if (a.thumbnail && !el.dataset.proxied) { el.dataset.proxied = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(a.thumbnail)}`; } }} />
-              <span className="absolute left-1 top-1 grid h-4 w-4 place-items-center rounded bg-black/55 text-white backdrop-blur">{icon}</span>
-              {a.price && <span className="absolute inset-x-0 bottom-0 truncate bg-black/55 px-1 py-0.5 text-center text-[8px] font-bold leading-tight text-white">{a.price}</span>}
-            </a>
+              {badge}
+              {a.price && <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-black/55 px-1 py-0.5 text-center text-[8px] font-bold leading-tight text-white">{a.price}</span>}
+            </button>
           );
           return (
             <div className="mb-2.5 flex items-center gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {clothes.map((a, i) => thumb(a, <ShoppingBag className="h-2.5 w-2.5" />, `c${i}`))}
+              {clothes.map((a, i) => thumb(a, null, `c${i}`))}
               {!!clothes.length && !!stays.length && <span className="mx-0.5 h-12 w-px shrink-0 bg-black/10" />}
-              {stays.map((a, i) => thumb(a, <MapPin className="h-2.5 w-2.5" />, `s${i}`))}
+              {stays.map((a, i) => thumb(a, <span className="pointer-events-none absolute left-1 top-1 grid h-4 w-4 place-items-center rounded bg-black/55 text-white backdrop-blur"><MapPin className="h-2.5 w-2.5" /></span>, `s${i}`))}
             </div>
           );
         })()}
