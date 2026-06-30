@@ -123,9 +123,10 @@ export default function BottomNav() {
       active === tab ? "text-black" : "text-black/35"
     }`;
 
-  // On the feed (/stores) the nav lives in the TOP header instead — hide the bottom
-  // bar there (the profile sheet below still renders + opens via the lb-open-account event).
-  const hideBar = pathname === "/stores";
+  // /stores now renders the HomeFeed (one feed), which has no own Home button —
+  // so the bottom nav must stay visible here too. (The old full-screen view had its
+  // own Home in the rail; that view is gone.)
+  const hideBar = false;
 
   return (
     <>
