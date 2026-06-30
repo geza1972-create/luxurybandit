@@ -2115,8 +2115,8 @@ function StoresPage() {
                 </p>
                 <div className="mt-3 grid gap-1.5">
                   {[
-                    [<ShoppingBag key="i" className="h-4 w-4 text-cobalt" />, "Bandit the look", "Get the full outfit, from the high-end original down to the budget version."],
                     [<Sparkles key="i" className="h-4 w-4 text-cobalt" />, "Try it on you", "See any luxury look on your own photo in seconds, powered by AI."],
+                    [<ShoppingBag key="i" className="h-4 w-4 text-cobalt" />, "Bandit the feeling", "Get the whole vibe, from the high-end original and the look down to the budget version, plus where to live it."],
                     [<Heart key="i" className="h-4 w-4 text-cobalt" />, "Save & shop your way", "Like looks, build your feed, and shop when you're ready."],
                   ].map(([icon, title, text], i) => (
                     <div key={i} className="flex items-start gap-2.5">
@@ -2130,7 +2130,7 @@ function StoresPage() {
                 <div className="mt-3.5 flex items-center gap-2">
                   <button type="button" onClick={() => router.push("/stores")}
                     className="flex h-10 items-center justify-center gap-1.5 rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
-                    <Sparkles className="h-4 w-4" /> Explore the feed
+                    <Sparkles className="h-4 w-4" /> Bandit the feeling!
                   </button>
                   <button type="button" onClick={() => router.push("/about")}
                     className="flex h-10 items-center justify-center rounded-full border border-black/15 bg-white px-5 text-sm font-black text-black active:scale-95 transition-transform">
