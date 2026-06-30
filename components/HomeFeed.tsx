@@ -449,7 +449,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             className="absolute inset-0 z-10 grid place-items-center bg-black/20">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={videoStill} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            <Play className="relative z-10 h-16 w-16 fill-white/90 text-white/90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]" />
+            <Play className="relative z-10 h-16 w-16 fill-white/50 text-white/50" />
           </button>
         )}
 
