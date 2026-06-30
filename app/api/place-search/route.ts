@@ -25,7 +25,10 @@ export async function POST(request: Request) {
   try { query = String((await request.json())?.query ?? "").trim(); } catch { /**/ }
   if (!query) return NextResponse.json({ error: "Suchbegriff fehlt." }, { status: 400 });
 
-  type Result = { title: string; link: string; source: string; thumbnail: string; price: string };
+  type Result = { title: string; link: string; source: string; thumbnail: string; price: string; region: string };
+  // The searched region/country (e.g. "Greece", "Crete villa") — shown as a 📍 chip
+  // on every stay so the user knows where the escape is.
+  const region = query.replace(/\b(villa|hotel|resort|airbnb|booking|stay|suite|apartment|rental|finca|riad|chalet|luxury)\b/gi, "").replace(/\s+/g, " ").trim() || query;
 
   // ── 1) Google Hotels (prices per night) ──
   try {
@@ -59,7 +62,7 @@ export async function POST(request: Request) {
         const link = /booking\.com|airbnb\./i.test(own) ? own
           : `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(`${name} ${query}`)}`;
         const source = /airbnb\./i.test(link) ? "Airbnb" : "Booking.com";
-        return { title: name, link, source, thumbnail: thumb, price };
+        return { title: name, link, source, thumbnail: thumb, price, region };
       })
       .filter((a) => a.title && a.thumbnail && !seen.has(a.title) && (seen.add(a.title), true))
       .slice(0, 12);
@@ -88,6 +91,7 @@ export async function POST(request: Request) {
         source: String(m?.source ?? "").slice(0, 80).trim(),
         thumbnail: String(m?.thumbnail ?? m?.original ?? "").trim(),
         price: "",
+        region,
       }))
       .filter((a) => a.link && a.thumbnail && !seen.has(a.link) && (seen.add(a.link), true))
       .slice(0, 12);

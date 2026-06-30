@@ -29,7 +29,7 @@ export type FeedLook = {
   likeCount?: number;
   createdAt?: string;
   alternatives?: { title?: string; link?: string; source?: string; thumbnail?: string; price?: string; priceValue?: number; currency?: string; lingerie?: boolean }[];
-  locationDupes?: { title?: string; link?: string; source?: string; thumbnail?: string; price?: string }[];
+  locationDupes?: { title?: string; link?: string; source?: string; thumbnail?: string; price?: string; region?: string }[];
   price?: string;
   salePrice?: string;
   buyUrl?: string;
@@ -441,6 +441,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                       onError={(e) => { const el = e.currentTarget; if (a.thumbnail && !el.dataset.proxied) { el.dataset.proxied = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(a.thumbnail)}`; } }} />
                   </div>
                   <p className="mt-1 line-clamp-1 text-[11px] font-black text-black">{a.title || a.source || "Stay"}</p>
+                  {a.region && <p className="line-clamp-1 flex items-center gap-0.5 text-[10px] font-bold text-black/55"><MapPin className="h-2.5 w-2.5 shrink-0" />{a.region}</p>}
                   <p className="line-clamp-1 text-[10px] font-bold text-black/45">{a.price || a.source || ""}</p>
                 </a>
               ))}

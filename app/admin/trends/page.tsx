@@ -684,7 +684,7 @@ export default function AdminTrends() {
     try { localStorage.setItem("lb_ai_generations", JSON.stringify(aiGenerations)); }
     catch { /* quota exceeded — keep in-memory only */ }
   }, [aiGenerations]);
-  type SerpItem = { title?: string; link: string; source?: string; thumbnail: string; price?: string; priceValue?: number; currency?: string };
+  type SerpItem = { title?: string; link: string; source?: string; thumbnail: string; price?: string; priceValue?: number; currency?: string; region?: string };
   const [myLooks, setMyLooks] = useState<{ id: string; name: string; imageUrl: string; published: boolean; altCount: number; locationCount?: number; alternatives?: SerpItem[]; locationDupes?: SerpItem[]; clicks?: Record<string, number>; viewCount?: number; likeCount?: number; tryOnCount?: number; commentCount?: number; clothesImageUrl?: string; locationImageUrl?: string; note?: string; commentsOff?: boolean; videoUrl?: string; brand?: string; category?: string; description?: string }[]>([]);
   const [editingLookId, setEditingLookId] = useState<string | null>(null); // open the edit sheet for one look
   // Edit-sheet curation state (one look at a time): re-upload source images, run the
@@ -794,6 +794,7 @@ export default function AdminTrends() {
           <span className="line-clamp-2 text-[12px] font-black leading-snug text-ink">{c.title || c.source || "—"}</span>
           <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] font-bold">
             {c.price && <span className="rounded bg-emerald-50 px-1 text-emerald-700">{c.price}</span>}
+            {c.region && <span className="rounded bg-cobalt/10 px-1 text-cobalt">📍 {c.region}</span>}
             {c.source && <span className="text-ink/45">{c.source}</span>}
             {!!clickCount && <span className="text-ink/45">👁 {clickCount}</span>}
           </span>

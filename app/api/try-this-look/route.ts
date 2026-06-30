@@ -1466,6 +1466,7 @@ export async function POST(request: Request) {
               source: a.source ? String(a.source).slice(0, 80) : undefined,
               thumbnail: String(a.thumbnail),
               price: a.price ? String(a.price).slice(0, 40) : undefined,
+              region: a.region ? String(a.region).slice(0, 80) : undefined,
             }))
         : undefined;
       const backImagePath = payload.backImage?.startsWith("data:image/")

@@ -17,7 +17,7 @@ type Look = {
   productNote?: string;
   buyUrl?: string;
   alternatives?: { title: string; link: string; source?: string; thumbnail: string; price?: string; priceValue?: number; currency?: string; lingerie?: boolean }[];
-  locationDupes?: { title: string; link: string; source?: string; thumbnail: string; price?: string }[];
+  locationDupes?: { title: string; link: string; source?: string; thumbnail: string; price?: string; region?: string }[];
   lingerie?: boolean;
   imageUrl: string;
   frontImageUrl?: string;
@@ -316,6 +316,7 @@ export default function LookDetailsPage() {
                 </div>
                 <div className="flex flex-1 flex-col gap-1 p-2.5">
                   <p className="line-clamp-2 text-[13px] font-black text-black">{a.title || a.source || ""}</p>
+                  {a.region && <p className="line-clamp-1 flex items-center gap-0.5 text-[11px] font-bold text-black/55"><MapPin className="h-3 w-3 shrink-0" />{a.region}</p>}
                   <div className="mt-auto flex items-center justify-between gap-2 pt-1">
                     {a.price ? <span className="text-sm font-black text-ink">{a.price}</span> : a.source ? <span className="truncate text-[11px] font-bold text-black/40">{a.source}</span> : <span />}
                     <span className="shrink-0 rounded-full bg-black px-3 py-1 text-[11px] font-black text-white">View →</span>
