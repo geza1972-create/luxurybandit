@@ -238,18 +238,31 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   // Curator + badge row. On the single-look page it moves BELOW the image so the
   // page's fixed back button (top-left) doesn't sit on top of the logo/name/badge.
   const headerBar = (
-    <div className={`z-20 flex items-center gap-2 bg-white px-3 ${single ? "pb-2 pt-3" : "pb-2 pr-14"}`} style={single ? undefined : { paddingTop: "calc(env(safe-area-inset-top) + 0.75rem)" }}>
-      <button type="button" onClick={() => look.curatorId && router.push(`/curator/${look.curatorId}`)}
-        className="flex min-w-0 items-center gap-2 active:opacity-80">
-        <span className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-black/10 bg-black/5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={look.curatorPhotoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(look.curatorName || "LB")}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
+    <div className={`z-20 bg-white px-3 ${single ? "pb-2 pt-3" : "pb-2 pr-14"}`} style={single ? undefined : { paddingTop: "calc(env(safe-area-inset-top) + 0.75rem)" }}>
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={() => look.curatorId && router.push(`/curator/${look.curatorId}`)}
+          className="flex min-w-0 items-center gap-2 active:opacity-80">
+          <span className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-black/10 bg-black/5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={look.curatorPhotoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(look.curatorName || "LB")}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
+          </span>
+          <span className="truncate text-sm font-black text-black">{look.curatorName || "LuxuryBandit"}</span>
+        </button>
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${look.aiCreated ? "bg-black text-white" : "bg-black/[0.06] text-black/60"}`}>
+          {look.aiCreated ? "✦ Original" : "Curated"}
         </span>
-        <span className="truncate text-sm font-black text-black">{look.curatorName || "LuxuryBandit"}</span>
-      </button>
-      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${look.aiCreated ? "bg-black text-white" : "bg-black/[0.06] text-black/60"}`}>
-        {look.aiCreated ? "✦ Original" : "Curated"}
-      </span>
+      </div>
+      {/* Caption (description) right under the name, above the video. */}
+      {caption && (
+        <>
+          <p ref={captionRef} className={`mt-1 text-[13px] leading-snug text-black ${expanded ? "" : "line-clamp-2"}`}>{caption}</p>
+          {clamped && (
+            <button type="button" onClick={() => setExpanded(e => !e)} className="mt-0.5 text-[12px] font-bold text-black/40">
+              {expanded ? "less" : "more"}
+            </button>
+          )}
+        </>
+      )}
     </div>
   );
 
@@ -385,16 +398,6 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             </div>
           );
         })()}
-        <p ref={captionRef} className={`text-[13px] leading-snug text-black ${expanded ? "" : "line-clamp-2"}`}>
-          <span className="text-black/45">{look.aiCreated ? "Created by " : "Curated by "}</span>
-          <button type="button" onClick={() => look.curatorId && router.push(`/curator/${look.curatorId}`)} className="font-black">{look.curatorName || "LuxuryBandit"}</button>
-          {caption ? <> — {caption}</> : null}
-        </p>
-        {clamped && (
-          <button type="button" onClick={() => setExpanded(e => !e)} className="mt-0.5 text-[12px] font-bold text-black/40">
-            {expanded ? "less" : "more"}
-          </button>
-        )}
         {/* Who recreated this look — ADMIN ONLY (business secret). Sits under the
             caption. Replaces the old "Shop now" card; shopping is via "Bandit the look!". */}
         {single && isAdmin && (
