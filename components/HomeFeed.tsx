@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, ChevronRight } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -255,7 +255,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       {/* Caption (description) right under the name, above the video. */}
       {caption && (
         <>
-          <p ref={captionRef} className={`mt-1 text-[13px] leading-snug text-black ${expanded ? "" : "line-clamp-2"}`}>{caption}</p>
+          <p ref={captionRef} className={`mt-1 text-[13px] leading-snug text-black ${expanded ? "" : "line-clamp-1"}`}>{caption}</p>
           {clamped && (
             <button type="button" onClick={() => setExpanded(e => !e)} className="mt-0.5 text-[12px] font-bold text-black/40">
               {expanded ? "less" : "more"}
@@ -368,33 +368,53 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             ))}
           </div>
         )}
-        {/* ── Mini preview: two rows under the image — "Look" (garments) + "Escape"
-            (stays). Each thumb opens the full list (Bandit the feeling! detail). ── */}
+        {/* ── Action buttons directly under the video ── */}
+        <div className="mb-2.5 flex items-center gap-2">
+          <button type="button" onClick={() => router.push(tryOnHref)}
+            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform">
+            <Sparkles className="h-4 w-4" /> Try This Look · {look.lingerie ? "$2.90" : "Free"}
+          </button>
+          <button type="button" onClick={() => router.push(`${detail}/details`)}
+            className="flex h-11 shrink-0 items-center justify-center rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
+            Bandit the feeling!
+          </button>
+        </div>
+        {/* ── Mini preview: two full-width rows — "Look" (garments) + "Escape" (stays).
+            Each thumb opens the full list (Bandit the feeling! detail). ── */}
         {(() => {
-          const clothes = (look.alternatives ?? []).filter(a => a.thumbnail && a.link).slice(0, 4);
-          const stays = cleanEscapes(look.locationDupes ?? []).slice(0, 4);
+          const allClothes = (look.alternatives ?? []).filter(a => a.thumbnail && a.link);
+          const allStays = cleanEscapes(look.locationDupes ?? []);
+          const clothes = allClothes.slice(0, 4);
+          const stays = allStays.slice(0, 4);
           if (!clothes.length && !stays.length) return null;
-          const thumb = (a: { thumbnail?: string; price?: string }, key: string) => (
-            <button key={key} type="button" onClick={() => router.push(`${detail}/details`)}
-              className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-black/5 active:scale-95 transition-transform">
+          const goDetail = () => router.push(`${detail}/details`);
+          const thumb = (a: { thumbnail?: string; price?: string }, key: string, more: number) => (
+            <button key={key} type="button" onClick={goDetail}
+              className="relative block aspect-square min-w-0 flex-1 overflow-hidden rounded-lg bg-black/5 active:scale-95 transition-transform">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={a.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover"
                 onError={(e) => { const el = e.currentTarget; if (a.thumbnail && !el.dataset.proxied) { el.dataset.proxied = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(a.thumbnail)}`; } }} />
-              {a.price && <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-black/55 px-1 py-0.5 text-center text-[8px] font-bold leading-tight text-white">{a.price}</span>}
+              {/* "+N more" overlay on the last tile when there are more behind it. */}
+              {more > 0
+                ? <span className="absolute inset-0 grid place-items-center bg-black/60 text-white"><span className="text-base font-black leading-none">+{more}</span><span className="mt-0.5 text-[8px] font-bold uppercase tracking-wide">more</span></span>
+                : (a.price && <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-black/55 px-1 py-0.5 text-center text-[9px] font-bold leading-tight text-white">{a.price}</span>)}
             </button>
           );
-          const row = (label: string, icon: ReactNode, items: typeof clothes, prefix: string) => (
+          const row = (label: string, icon: ReactNode, items: typeof clothes, total: number, prefix: string) => (
             <div>
-              <p className="mb-1 flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.12em] text-black/40">{icon}{label}</p>
-              <div className="flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {items.map((a, i) => thumb(a, `${prefix}${i}`))}
+              <button type="button" onClick={goDetail} className="mb-1 flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.12em] text-black/40 active:opacity-60">
+                {icon}{label}<span className="text-black/30">· {total}</span><ChevronRight className="h-3 w-3" />
+              </button>
+              <div className="flex gap-1.5">
+                {items.map((a, i) => thumb(a, `${prefix}${i}`, (i === items.length - 1 ? total - items.length : 0)))}
               </div>
             </div>
           );
           return (
-            <div className="mb-2.5 flex flex-col gap-2">
-              {clothes.length > 0 && row("Look", <Sparkles className="h-3 w-3" />, clothes, "c")}
-              {stays.length > 0 && row("Escape", <MapPin className="h-3 w-3" />, stays, "s")}
+            <div className="mb-2.5 flex flex-col gap-1.5">
+              <p className="text-[13px] font-black leading-snug text-black">We banditted the feeling for you — here are the results:</p>
+              {clothes.length > 0 && row("Look", <Sparkles className="h-3 w-3" />, clothes, allClothes.length, "c")}
+              {stays.length > 0 && row("Escape", <MapPin className="h-3 w-3" />, stays, allStays.length, "s")}
             </div>
           );
         })()}
@@ -448,16 +468,6 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         {!look.commentsOff && (
           <button type="button" onClick={() => onComment(look)} className="mt-0.5 text-[12px] font-bold text-black/40">View comments</button>
         )}
-        <div className="mt-2.5 flex items-center gap-2">
-          <button type="button" onClick={() => router.push(tryOnHref)}
-            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform">
-            <Sparkles className="h-4 w-4" /> Try This Look · {look.lingerie ? "$2.90" : "Free"}
-          </button>
-          <button type="button" onClick={() => router.push(`${detail}/details`)}
-            className="flex h-11 shrink-0 items-center justify-center rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
-            Bandit the feeling!
-          </button>
-        </div>
       </div>
 
       {/* Info / history sheet — public provenance for this look */}
