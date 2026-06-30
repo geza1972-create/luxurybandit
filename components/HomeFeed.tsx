@@ -766,8 +766,12 @@ export default function HomeFeed({ looks, single = false, initialLookId }: { loo
   // slide in the scrollable feed instead of starting at the top.
   const initialIdx = initialLookId ? feed.findIndex(l => l.id === initialLookId) : -1;
   useEffect(() => {
+    // Jump to the deep-linked slide by its ACTUAL offset. Slides are now
+    // variable-height (continuous scroll), so multiplying by clientHeight no
+    // longer lands on the right post — read the target element's offsetTop.
     if (initialIdx > 0 && scrollRef.current) {
-      scrollRef.current.scrollTop = initialIdx * scrollRef.current.clientHeight;
+      const target = scrollRef.current.children[initialIdx] as HTMLElement | undefined;
+      if (target) scrollRef.current.scrollTop = target.offsetTop;
     }
     // run once on mount — the target post never changes for a given page load
     // eslint-disable-next-line react-hooks/exhaustive-deps
