@@ -2162,7 +2162,7 @@ function StoresPage() {
                 })}
               </div>
             )}
-            <div className="grid grid-cols-3 gap-0.5">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-0.5">
               {visibleHistory.map((it, idx) => (
                 <div key={it.key} className="flex flex-col">
                   <button type="button"
@@ -2332,7 +2332,7 @@ function StoresPage() {
                     </div>
                   </div>
                 )}
-              <div className="grid grid-cols-3 gap-0.5">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-0.5">
                 {filteredCommunity.map((item, itemIdx) => {
                   const isSelected = selectedIds.has(item.id);
                   const username = item.customerName
@@ -2518,7 +2518,7 @@ function StoresPage() {
             )}
 
             {/* 3-col grid */}
-            <div className="grid grid-cols-3 gap-0.5">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-0.5">
               {filtered.map((look) => {
                 const thumb = look.frontImageUrl ?? look.imageUrl;
                 const isSoldOut = look.inStock === false;
@@ -2624,7 +2624,7 @@ function StoresPage() {
                 <p className="px-3 py-2 text-xs font-black text-black/40 uppercase tracking-widest">
                   Try Ons ({filteredCommunity.length})
                 </p>
-                <div className="grid grid-cols-3 gap-0.5">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-0.5">
                   {filteredCommunity.map((item, itemIdx) => (
                     <button
                       key={item.id}

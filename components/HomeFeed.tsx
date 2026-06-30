@@ -308,7 +308,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   );
 
   return (
-    <section ref={sectionRef} className="relative flex h-[100dvh] w-full snap-start snap-always flex-col bg-white">
+    <section ref={sectionRef} className="relative flex w-full flex-col bg-white">
       {/* ── Header bar (white) — curator + badge ABOVE the image (feed). On the single
           look page it renders below the image instead (see white caption block). ── */}
       {!single && headerBar}
