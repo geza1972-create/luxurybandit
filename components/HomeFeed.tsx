@@ -355,29 +355,33 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             ))}
           </div>
         )}
-        {/* ── Mini preview strip: 4 garment dupes + 4 stays, right under the image.
-            Each thumb is tappable (shop / book) with click tracking. ── */}
+        {/* ── Mini preview: two rows under the image — "Look" (garments) + "Escape"
+            (stays). Each thumb opens the full list (Bandit the feeling! detail). ── */}
         {(() => {
           const clothes = (look.alternatives ?? []).filter(a => a.thumbnail && a.link).slice(0, 4);
           const stays = cleanEscapes(look.locationDupes ?? []).slice(0, 4);
           if (!clothes.length && !stays.length) return null;
-          // Tapping any thumb opens the full list (Bandit the feeling! detail page),
-          // not the external link directly.
-          const thumb = (a: { thumbnail?: string; price?: string }, badge: ReactNode, key: string) => (
+          const thumb = (a: { thumbnail?: string; price?: string }, key: string) => (
             <button key={key} type="button" onClick={() => router.push(`${detail}/details`)}
               className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-black/5 active:scale-95 transition-transform">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={a.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover"
                 onError={(e) => { const el = e.currentTarget; if (a.thumbnail && !el.dataset.proxied) { el.dataset.proxied = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(a.thumbnail)}`; } }} />
-              {badge}
               {a.price && <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-black/55 px-1 py-0.5 text-center text-[8px] font-bold leading-tight text-white">{a.price}</span>}
             </button>
           );
+          const row = (label: string, icon: ReactNode, items: typeof clothes, prefix: string) => (
+            <div>
+              <p className="mb-1 flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.12em] text-black/40">{icon}{label}</p>
+              <div className="flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {items.map((a, i) => thumb(a, `${prefix}${i}`))}
+              </div>
+            </div>
+          );
           return (
-            <div className="mb-2.5 flex items-center gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {clothes.map((a, i) => thumb(a, null, `c${i}`))}
-              {!!clothes.length && !!stays.length && <span className="mx-0.5 h-12 w-px shrink-0 bg-black/10" />}
-              {stays.map((a, i) => thumb(a, <span className="pointer-events-none absolute left-1 top-1 grid h-4 w-4 place-items-center rounded bg-black/55 text-white backdrop-blur"><MapPin className="h-2.5 w-2.5" /></span>, `s${i}`))}
+            <div className="mb-2.5 flex flex-col gap-2">
+              {clothes.length > 0 && row("Look", <Sparkles className="h-3 w-3" />, clothes, "c")}
+              {stays.length > 0 && row("Escape", <MapPin className="h-3 w-3" />, stays, "s")}
             </div>
           );
         })()}
