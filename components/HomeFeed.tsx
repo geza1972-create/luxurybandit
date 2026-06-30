@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, ChevronRight, Home } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, Home } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -433,31 +433,31 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           const stays = allStays.slice(0, 4);
           if (!clothes.length && !stays.length) return null;
           const goDetail = () => router.push(`${detail}/details`);
-          const thumb = (a: { thumbnail?: string; price?: string }, key: string, more: number) => (
+          // No row titles — the last tile carries a "+N More Looks/Escapes" overlay instead.
+          const thumb = (a: { thumbnail?: string; price?: string }, key: string, more: number, moreLabel: string) => (
             <button key={key} type="button" onClick={goDetail}
               className="relative block aspect-square min-w-0 flex-1 overflow-hidden rounded-lg bg-black/5 active:scale-95 transition-transform">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={a.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover"
                 onError={(e) => { const el = e.currentTarget; if (a.thumbnail && !el.dataset.proxied) { el.dataset.proxied = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(a.thumbnail)}`; } }} />
-              {/* "+N more" overlay on the last tile when there are more behind it. */}
-              {more > 0 && <span className="absolute inset-0 grid place-items-center bg-black/60 text-white"><span className="text-base font-black leading-none">+{more}</span><span className="mt-0.5 text-[8px] font-bold uppercase tracking-wide">more</span></span>}
+              {more > 0 && (
+                <span className="absolute inset-0 grid place-items-center bg-black/60 px-1 text-center text-white">
+                  <span className="text-lg font-black leading-none">+{more}</span>
+                  <span className="mt-0.5 text-[9px] font-bold uppercase leading-tight tracking-wide">{moreLabel}</span>
+                </span>
+              )}
             </button>
           );
-          const row = (label: string, icon: ReactNode, items: typeof clothes, total: number, prefix: string) => (
-            <div>
-              <button type="button" onClick={goDetail} className="mb-1 flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.12em] text-black/40 active:opacity-60">
-                {icon}{label}<span className="text-black/30">· {total}</span><ChevronRight className="h-3 w-3" />
-              </button>
-              <div className="flex gap-1.5">
-                {items.map((a, i) => thumb(a, `${prefix}${i}`, (i === items.length - 1 ? total - items.length : 0)))}
-              </div>
+          const row = (items: typeof clothes, total: number, prefix: string, moreLabel: string) => (
+            <div className="flex gap-1.5">
+              {items.map((a, i) => thumb(a, `${prefix}${i}`, (i === items.length - 1 ? total - items.length : 0), moreLabel))}
             </div>
           );
           return (
             <div className="mb-2.5 flex flex-col gap-1.5">
               <p className="text-[13px] font-black leading-snug text-black">We banditted the feeling for you — here are the results:</p>
-              {clothes.length > 0 && row("Look", <Sparkles className="h-3 w-3" />, clothes, allClothes.length, "c")}
-              {stays.length > 0 && row("Escape", <MapPin className="h-3 w-3" />, stays, allStays.length, "s")}
+              {clothes.length > 0 && row(clothes, allClothes.length, "c", "More Looks")}
+              {stays.length > 0 && row(stays, allStays.length, "s", "More Escapes")}
             </div>
           );
         })()}
