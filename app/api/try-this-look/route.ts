@@ -111,7 +111,7 @@ function affiliateWrap(url: string | undefined, sid: string, stores: AffiliateSt
     .split("{sid}").join(encodeURIComponent(sid || "house"));
 }
 
-function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number], generationCount = 0, partnerStores: AffiliateStore[] = [], curators: CuratorProfile[] = [], tryOnImageUrl?: string, communityTryOns: { imageUrl: string; videoUrl?: string; name?: string }[] = []) {
+function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number], generationCount = 0, partnerStores: AffiliateStore[] = [], curators: CuratorProfile[] = [], tryOnImageUrl?: string, communityTryOns: { imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string }[] = []) {
   const sid = String((look as any).curatorId ?? "house");
   const wrap = (u: string | undefined) => affiliateWrap(u, sid, partnerStores);
   // Attribute the look to the curator who published it (name, photo, profile link).
@@ -253,7 +253,7 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
   // Try-ons (consented, feed:true) shown as carousel slides AFTER the curator's
   // video + product image and BEFORE the dupes. Includes the curator's OWN try-ons
   // (with their video) and members'. Newest first (generations are newest-first).
-  const communityByLook = new Map<string, { imageUrl: string; videoUrl?: string; name?: string; isCurator?: boolean }[]>();
+  const communityByLook = new Map<string, { imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; isCurator?: boolean }[]>();
   for (const g of state.generations ?? []) {
     const url = (g as any).imageUrl;
     if (!url || (g as any).hidden || (g as any).feed === false || g.visitorId?.startsWith("admin-")) continue;
@@ -261,7 +261,7 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
     const isCurator = !!(cid && normalizeSlug((g as any).customerName ?? "") === curatorSlugById.get(cid));
     const list = communityByLook.get(g.lookId) ?? [];
     if (list.length >= 12) continue;
-    list.push({ imageUrl: url, videoUrl: (g as any).videoUrl || undefined, name: (g as any).customerName || undefined, isCurator });
+    list.push({ imageUrl: url, videoUrl: (g as any).videoUrl || undefined, userPhotoUrl: (g as any).userPhotoUrl || undefined, name: (g as any).customerName || undefined, isCurator });
     communityByLook.set(g.lookId, list);
   }
   const sl = (look: (typeof visibleLooks)[number]) => serializeLook(look, genCountByLook.get(look.id) ?? 0, state.partnerStores ?? [], state.curators ?? [], selftestByLook.get(look.id)?.url, communityByLook.get(look.id) ?? []);

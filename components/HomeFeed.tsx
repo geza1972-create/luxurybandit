@@ -22,7 +22,7 @@ export type FeedLook = {
   videoUrl?: string;
   videoPosterUrl?: string;
   tryOnImageUrl?: string;
-  communityTryOns?: { imageUrl: string; videoUrl?: string; name?: string }[];
+  communityTryOns?: { imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string }[];
   feedOrder?: number;
   aiCreated?: boolean;
   lingerie?: boolean;
@@ -136,33 +136,34 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   // never the scraped original product photo of a curated look.
   const heroImg = safeLookImage(look);
   const community = (look.communityTryOns ?? []).filter(c => c?.imageUrl);
-  const communityVideos = community
-    .filter(c => c.videoUrl)
-    .map(c => ({ type: "cvideo" as const, url: c.videoUrl as string, name: c.name }));
-  const communityPhotos = community.map(c => ({ type: "cphoto" as const, url: c.imageUrl, name: c.name }));
+  // Representative try-on for the carousel — prefer one WITH an uploaded before photo
+  // so we can show the Before/After compare slide; otherwise the first try-on.
+  const repTryOn = community.find(c => c.userPhotoUrl) ?? community[0];
+  // LOCKED carousel order (see memory feed-post-carousel-structure):
+  //   1) the try-on (member's try-on video, else the look's own video)
+  //   2) Before/After compare (uploaded Before | After result) — when a before photo exists
+  // NO separate "curated" still slide — the After already shows in the compare.
   const media: (
     | { type: "video" }
     | { type: "image" }
     | { type: "cvideo"; url: string; name?: string }
-    | { type: "cphoto"; url: string; name?: string }
+    | { type: "compare"; afterUrl: string; beforeUrl: string; name?: string }
     | { type: "product"; alt: ShopAlt }
   )[] = [
-    // Community try-ons (members wearing this look) come FIRST — a member's try-on
-    // video, then their photos — so a look opens on a real person wearing it.
-    ...communityVideos,
-    ...communityPhotos,
-    // Then the look's own video.
-    ...(look.videoUrl ? [{ type: "video" as const }] : []),
-    // Then the look's own still as the trailing slide behind the video. heroImg is
-    // licensing-safe (our AI render / video poster) — never the scraped original.
-    ...(heroImg ? [{ type: "image" as const }] : []),
-    // Shop options are NOT shown in the feed (no product slides, no list). The
-    // dupes are fetched on demand only when the user taps "Bandit the look!".
+    // 1) Try-on first: the member's try-on video, else the look's own video.
+    ...(repTryOn?.videoUrl
+      ? [{ type: "cvideo" as const, url: repTryOn.videoUrl, name: repTryOn.name }]
+      : look.videoUrl ? [{ type: "video" as const }] : []),
+    // 2) Before/After compare when we have a before photo; otherwise — only if there
+    //    was no video at all — a single still so the post isn't empty.
+    ...(repTryOn?.userPhotoUrl
+      ? [{ type: "compare" as const, afterUrl: repTryOn.imageUrl, beforeUrl: repTryOn.userPhotoUrl, name: repTryOn.name }]
+      : (!repTryOn?.videoUrl && !look.videoUrl && heroImg ? [{ type: "image" as const }] : [])),
   ];
   void shopAlts;
   // How many people have tried this look on (distinct names, else photo count).
   const tryOnPeople = new Set(community.map(c => c.name).filter(Boolean)).size || community.length;
-  const firstTryOnIdx = media.findIndex(m => m.type === "cphoto" || m.type === "cvideo");
+  const firstTryOnIdx = media.findIndex(m => m.type === "cvideo" || m.type === "compare");
   const scrollToSlide = (i: number) => carouselRef.current?.scrollTo({ left: i * (carouselRef.current.clientWidth || 0), behavior: "smooth" });
 
   useEffect(() => {
@@ -383,13 +384,21 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{look.aiCreated ? "✦ AI video" : "Video"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
                 </div>
-              ) : m.type === "cphoto" ? (
-                // Community try-on photo (someone wearing this look).
-                <div className="relative h-full w-full">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.url} alt={`${look.name} on ${m.name ?? "a member"}`} className="h-full w-full object-cover" />
-                  <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
-                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{m.name ? `${m.name}'s try-on` : "Member try-on"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
+              ) : m.type === "compare" ? (
+                // Before (uploaded photo, NOT AI → no AI label) | After (try-on result),
+                // side by side in one slide. This replaces a separate "curated" still.
+                <div className="relative flex h-full w-full">
+                  <div className="relative h-full w-1/2 overflow-hidden border-r border-white/25">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={m.beforeUrl} alt="Before" className="h-full w-full object-cover object-top" />
+                    <span className="absolute left-2 top-12 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">Before</span>
+                  </div>
+                  <div className="relative h-full w-1/2 overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={m.afterUrl} alt="After" className="h-full w-full object-cover object-top" />
+                    {/* left edge of the right half (by the divider) so it clears the top-right rail */}
+                    <span className="absolute left-2 top-12 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">After</span>
+                  </div>
                 </div>
               ) : m.type === "cvideo" ? (
                 // Community try-on video — same sound handling as the curator video.
@@ -794,6 +803,14 @@ export default function HomeFeed({ looks, single = false, initialLookId }: { loo
   // the posts above the target, which used to land us on the neighbouring look.
   const startIdx = initialLookId ? sorted.findIndex(l => l.id === initialLookId) : -1;
   const feed = startIdx > 0 ? [...sorted.slice(startIdx), ...sorted.slice(0, startIdx)] : sorted;
+
+  // Always open at the FIRST slide. Rotation puts the target look at feed[0], but
+  // the browser can restore a previous scrollTop on (re)mount and leave us parked
+  // mid-feed — so force the scroll back to the top once on mount.
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!feed.length) {
     return (
