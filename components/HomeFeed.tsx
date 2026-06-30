@@ -395,9 +395,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               <img src={a.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover"
                 onError={(e) => { const el = e.currentTarget; if (a.thumbnail && !el.dataset.proxied) { el.dataset.proxied = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(a.thumbnail)}`; } }} />
               {/* "+N more" overlay on the last tile when there are more behind it. */}
-              {more > 0
-                ? <span className="absolute inset-0 grid place-items-center bg-black/60 text-white"><span className="text-base font-black leading-none">+{more}</span><span className="mt-0.5 text-[8px] font-bold uppercase tracking-wide">more</span></span>
-                : (a.price && <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-black/55 px-1 py-0.5 text-center text-[9px] font-bold leading-tight text-white">{a.price}</span>)}
+              {more > 0 && <span className="absolute inset-0 grid place-items-center bg-black/60 text-white"><span className="text-base font-black leading-none">+{more}</span><span className="mt-0.5 text-[8px] font-bold uppercase tracking-wide">more</span></span>}
             </button>
           );
           const row = (label: string, icon: ReactNode, items: typeof clothes, total: number, prefix: string) => (
