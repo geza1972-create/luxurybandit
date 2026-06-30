@@ -395,7 +395,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           )}
           <RailButton icon={<Bookmark className="h-8 w-8" fill={saved ? "currentColor" : "none"} strokeWidth={2} />} label={saved ? "Saved" : "Save"} active={saved} onClick={toggleSave} />
           <RailButton icon={<Send className="h-7 w-7" strokeWidth={2} />} label="Share" onClick={share} />
-          <RailButton icon={<Home className="h-7 w-7" strokeWidth={2} />} label="Home" onClick={() => router.push("/stores")} />
+          <RailButton icon={<Home className="h-7 w-7" strokeWidth={2} />} label="Home" onClick={() => router.push("/stores?view=grid")} />
         </div>
       </div>
 
