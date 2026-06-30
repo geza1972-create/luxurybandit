@@ -2030,7 +2030,7 @@ export default function AdminTrends() {
               <span className="text-[11px] font-bold text-ink/40">{myLooks.filter((l) => l.published).length} live · {myLooks.length} total</span>
             </div>
             <p className="mt-1 text-[11px] font-bold text-ink/40">Everything you've published — these show in My Trends. Deactivate to take a look offline without deleting it.</p>
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="mt-3 grid grid-cols-2 gap-3">
               {myLooks.map((l, idx) => {
                 const lookSlug = l.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
                 const lookHref = `/look/${lookSlug}--${l.id}`;
