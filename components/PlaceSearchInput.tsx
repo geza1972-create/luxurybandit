@@ -24,7 +24,8 @@ export default function PlaceSearchInput({
   const lastComma = value.lastIndexOf(",");
   const head = lastComma >= 0 ? value.slice(0, lastComma + 1) : "";
   const rawToken = lastComma >= 0 ? value.slice(lastComma + 1) : value;
-  const keepPlus = !head && /^\s*\+/.test(rawToken);
+  // A "+" on THIS place (e.g. "…, +Gr") marks it additive — keep it when picking.
+  const tokenHasPlus = /^\s*\+/.test(rawToken);
   const token = rawToken.replace(/^\s*\+/, "").trim().toLowerCase();
 
   const matches = token
@@ -37,8 +38,9 @@ export default function PlaceSearchInput({
   const showList = open && matches.length > 0;
 
   const pick = (d: string) => {
-    const prefix = head ? head.replace(/\s*$/, "") + " " : keepPlus ? "+" : "";
-    onChange(prefix + d + ", ");
+    const sep = head ? head.replace(/\s*$/, "") + " " : "";
+    const plus = tokenHasPlus ? "+" : "";
+    onChange(sep + plus + d + ", ");
     setActive(0);
     setOpen(true);            // stay open so the next place can be picked too
     inputRef.current?.focus();

@@ -181,12 +181,14 @@ async function callPlaceSearch(query: string): Promise<any[]> {
 }
 
 // Multi-place escapes search. One field controls everything:
-//   "Greece, Thailand"   → search BOTH at once, REPLACE the list (only these)
-//   "+Greece, Thailand"  → search both, ADD to the existing list
-// Each place is one SerpApi call, so we cap at 5 places to stay frugal.
+//   "Greece, Thailand"     → search BOTH at once, REPLACE the list (only these)
+//   "+Thailand, +Greece"   → mark places with "+" to ADD them to the existing list
+// Any "+" (on the whole string or a single place) switches to add-mode. Each place
+// is one SerpApi call, so we cap at 5 places to stay frugal.
 async function callPlaceSearchMulti(raw: string): Promise<{ additive: boolean; results: any[] }> {
-  const additive = raw.trim().startsWith("+");
-  const places = [...new Set(raw.replace(/^\s*\+/, "").split(",").map(s => s.trim()).filter(Boolean))].slice(0, 5);
+  const tokens = raw.split(",").map(s => s.trim()).filter(Boolean);
+  const additive = tokens.some(t => t.startsWith("+"));
+  const places = [...new Set(tokens.map(t => t.replace(/^\+\s*/, "").trim()).filter(Boolean))].slice(0, 5);
   if (!places.length) return { additive, results: [] };
   const lists = await Promise.all(places.map(p => callPlaceSearch(p)));
   const seen = new Set<string>();
@@ -1462,7 +1464,7 @@ export default function AdminTrends() {
               <PlaceSearchInput value={reelLocationQuery} onChange={setReelLocationQuery} disabled={reelBusy}
                 placeholder="z. B. „Greece, Thailand“ — mehrere mit Komma"
                 className="h-10 w-full rounded-md border border-black/10 bg-panel px-3 text-sm font-semibold text-ink outline-none focus:border-cobalt disabled:opacity-60" />
-              <p className="-mt-1 text-[10px] font-bold text-ink/35">Mehrere Orte mit Komma: <code>Greece, Thailand</code> sucht beide. Mit führendem <code>+</code> (<code>+Greece, Thailand</code>) wird zur Liste <b>hinzugefügt</b> statt ersetzt. (max. 5 pro Suche)</p>
+              <p className="-mt-1 text-[10px] font-bold text-ink/35">Mehrere Orte mit Komma: <code>Greece, Thailand</code> sucht beide (ersetzt die Liste). Mit <code>+</code> pro Ort (<code>+Thailand, +Greece</code>) wird stattdessen <b>hinzugefügt</b>. (max. 5 pro Suche)</p>
               {/* Search the SerpApi candidates now → tick which appear in "Bandit the look". */}
               {(reelClothesFile || reelLocationFile || reelLocationQuery.trim()) && (
                 <button type="button" onClick={() => void runReelSearch()} disabled={reelSearching || reelBusy}
@@ -2189,7 +2191,7 @@ export default function AdminTrends() {
                               wrapperClassName="mt-1.5"
                               placeholder="z. B. „Greece, Thailand“ — mehrere mit Komma"
                               className="h-8 w-full rounded-md border border-black/10 bg-panel px-2 text-[11px] font-semibold text-ink outline-none focus:border-cobalt" />
-                            <p className="mt-1 text-[10px] font-bold text-ink/35"><code>Greece, Thailand</code> = beide (ersetzt). <code>+Greece, Thailand</code> = zur Liste <b>dazu</b>. Max. 5.</p>
+                            <p className="mt-1 text-[10px] font-bold text-ink/35"><code>Greece, Thailand</code> = beide (ersetzt). <code>+Thailand, +Greece</code> = zur Liste <b>dazu</b>. Max. 5.</p>
                             {locCands.length > 0 && (
                               <div className="mt-2 flex flex-col gap-1.5">
                                 {locCands.map((c) => candRow(c, locSel.has(c.link), () => toggleIn(setLocSel, c.link), l.clicks?.[c.link]))}
