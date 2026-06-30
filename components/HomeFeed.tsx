@@ -310,10 +310,11 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     try { fetch("/api/follow", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug: creatorSlug, type: "user" }) }).catch(() => {}); } catch { /**/ }
   };
 
-  // Curator + badge row. On the single-look page it moves BELOW the image so the
-  // page's fixed back button (top-left) doesn't sit on top of the logo/name/badge.
+  // Curator + badge row. Always renders BELOW the video (name + description under
+  // the post, Instagram-Reels style) — on the single-look page this also keeps the
+  // page's fixed back button (top-left) off the logo/name/badge.
   const headerBar = (
-    <div className={`z-20 bg-white px-3 ${single ? "pb-2 pt-3" : "pb-2 pr-14"}`} style={single ? undefined : { paddingTop: "calc(env(safe-area-inset-top) + 0.75rem)" }}>
+    <div className="z-20 bg-white px-3 pb-2 pt-3">
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => look.curatorId && router.push(`/curator/${look.curatorId}`)}
           className="flex min-w-0 items-center gap-2 active:opacity-80">
@@ -349,11 +350,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
 
   return (
     <section ref={sectionRef} className="relative flex w-full flex-col bg-white">
-      {/* ── Header bar (white) — curator + badge ABOVE the image (feed). On the single
-          look page it renders below the image instead (see white caption block). ── */}
-      {!single && headerBar}
-
-      {/* ── Media area — vertical format (9:16) ── */}
+      {/* ── Media area — vertical format (9:16). Curator name + description render
+          BELOW the video (see headerBar block after the media). ── */}
       <div className="relative aspect-[9/16] w-full shrink-0 overflow-hidden bg-black">
         {/* Blurred fill so the whole look stays visible without empty bars */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -427,8 +425,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         )}
 
 
-        {/* Right rail (on the image) */}
-        <div className="absolute right-2.5 bottom-4 z-10 flex flex-col items-center gap-4">
+        {/* Right rail (on the image) — anchored to the TOP edge of the video so it
+            clears the model's body and the bottom action buttons. */}
+        <div className="absolute right-2.5 top-3 z-10 flex flex-col items-center gap-4">
           <RailButton icon={<Heart className="h-8 w-8" fill={liked ? "currentColor" : "none"} strokeWidth={2} />} label={likeCount > 0 ? String(likeCount) : "Like"} active={liked} onClick={toggleLike} />
           {!look.commentsOff && (
             <RailButton icon={<MessageCircle className="h-8 w-8" strokeWidth={2} />} label="Comment" onClick={() => onComment(look)} />
@@ -439,9 +438,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         </div>
       </div>
 
-      {/* Curator + badge — on the single look page this sits below the image, clear
-          of the page's fixed back button. */}
-      {single && <div className="shrink-0">{headerBar}</div>}
+      {/* Curator + badge — always below the video (name + description under the post). */}
+      <div className="shrink-0">{headerBar}</div>
 
       {/* ── White caption + actions (Instagram-style, below the image) ── */}
       <div className="shrink-0 bg-white px-4 pt-2.5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4rem)" }}>
@@ -571,7 +569,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 const isLook = d.kind === "look";
                 const fmt = (iso: any) => { if (!iso) return "—"; try { return new Date(iso).toLocaleString("en-US", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return String(iso); } };
                 const typeLabel = isLook
-                  ? (d.aiCreated ? "AI-Studio look (AI-generated)" : `Curated look${d.productType === "real" ? " · real product" : ""}`)
+                  ? (d.aiCreated ? "AI-Studio look (AI-generated)" : "Curated look")
                   : (d.hadUserPhoto ? "Try-on (own photo uploaded)" : "Try-on (AI render, no own photo)");
                 const mediaLabel = d.media === "video" ? (isLook ? "With video" : (d.videoKind === "video360" ? "AI-Video 360°" : "AI-Video")) : (isLook ? "Image only" : "AI-Picture");
                 const Row = ({ k, v }: { k: string; v: ReactNode }) => (
@@ -779,22 +777,14 @@ export default function HomeFeed({ looks, single = false, initialLookId }: { loo
     else void a.play().catch(() => {});
   }, [muted, playTrack]);
   // Newest first — fresh curator posts always surface at the top of the feed.
-  const feed = [...looks].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
+  const sorted = [...looks].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
 
-  // Deep-link: when opened on a specific post (/look/[id]), jump straight to that
-  // slide in the scrollable feed instead of starting at the top.
-  const initialIdx = initialLookId ? feed.findIndex(l => l.id === initialLookId) : -1;
-  useEffect(() => {
-    // Jump to the deep-linked slide by its ACTUAL offset. Slides are now
-    // variable-height (continuous scroll), so multiplying by clientHeight no
-    // longer lands on the right post — read the target element's offsetTop.
-    if (initialIdx > 0 && scrollRef.current) {
-      const target = scrollRef.current.children[initialIdx] as HTMLElement | undefined;
-      if (target) scrollRef.current.scrollTop = target.offsetTop;
-    }
-    // run once on mount — the target post never changes for a given page load
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Deep-link: when opened on a specific post (/look/[id]), ROTATE the feed so the
+  // target look is first (scrollTop 0). This is rock-solid — unlike scrolling to a
+  // computed offset, it doesn't depend on the (variable, still-loading) heights of
+  // the posts above the target, which used to land us on the neighbouring look.
+  const startIdx = initialLookId ? sorted.findIndex(l => l.id === initialLookId) : -1;
+  const feed = startIdx > 0 ? [...sorted.slice(startIdx), ...sorted.slice(0, startIdx)] : sorted;
 
   if (!feed.length) {
     return (
