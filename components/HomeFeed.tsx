@@ -224,8 +224,10 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   useEffect(() => {
     syncVideos();
   }, [inView, active, muted, paused]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Leaving the slide / switching carousel item clears a manual pause so it autoplays again.
-  useEffect(() => { setPaused(false); }, [inView, active]);
+  // Switching carousel item clears a manual pause so it autoplays again.
+  // NOT on inView change — a browser micro-scroll on tap would fire IntersectionObserver,
+  // reset paused=false, and immediately un-pause a video the user just stopped.
+  useEffect(() => { setPaused(false); pausedRef.current = false; }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
   // Scrubbing: drag on video to seek (like YouTube). DESKTOP-ONLY — mouse events
   // never fire on a touch device, so on phones a tap goes through handleVideoClick
   // (which fires on iOS) to toggle play/pause instead.
@@ -269,10 +271,12 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       // Resume from the exact position — don't let syncVideos reset it.
       const savedTime = v.currentTime;
       v.muted = true;
+      pausedRef.current = false; // update immediately so syncVideos doesn't race
       setPaused(false);
       v.currentTime = savedTime;
       v.play().then(() => setVidFailed(false)).catch(() => setVidFailed(true));
     } else {
+      pausedRef.current = true; // update immediately so onCanPlay/syncVideos don't un-pause
       setPaused(true);
       v.pause();
     }
