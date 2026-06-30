@@ -9,6 +9,7 @@ import { isIntimateName } from "@/lib/lingerie";
 import { LOOK_CATEGORIES, categorizeLook, type LookCategory } from "@/lib/look-category";
 import { findBrandsInText } from "@/lib/fashion-brands";
 import { auditProducts, auditEscapes } from "@/lib/reel-audit";
+import { DESTINATIONS } from "@/lib/destinations";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 // Garment types a curator can target the search with (select one, sorted A→Z list
@@ -1275,6 +1276,9 @@ export default function AdminTrends() {
 
   return (
     <main className="min-h-screen bg-[#fbfaf7] text-ink" style={{ paddingBottom: drafts.length ? "170px" : "88px" }}>
+      {/* Shared autocomplete for the escapes search (reel tool + edit sheet) — rendered
+          once at the top so both inputs can reference it regardless of which card is open. */}
+      <datalist id="lb-destinations">{DESTINATIONS.map(d => <option key={d} value={d} />)}</datalist>
       <div className="mx-auto w-full max-w-4xl px-4 py-6">
         <header className="grid gap-2">
           <a href={isCurator ? "/stores" : "/admin"} className="inline-flex w-fit items-center gap-1.5 text-xs font-black text-ink/50 transition hover:text-ink">
@@ -1431,7 +1435,8 @@ export default function AdminTrends() {
               {/* Reliable location search for AI/generic places — a keyword beats
                   reverse-image search (which finds nothing on a rendered landscape). */}
               <input value={reelLocationQuery} onChange={e => setReelLocationQuery(e.target.value)} disabled={reelBusy}
-                placeholder="Ort / Vibe für die Orte-Suche, z. B. „Ibiza Klippen-Villa Pool“"
+                list="lb-destinations" autoComplete="off"
+                placeholder="Ort / Land, z. B. „Greece“ oder „Ibiza Klippen-Villa Pool“"
                 className="h-10 w-full rounded-md border border-black/10 bg-panel px-3 text-sm font-semibold text-ink outline-none focus:border-cobalt disabled:opacity-60" />
               <p className="-mt-1 text-[10px] font-bold text-ink/35">Tipp: Bei KI-/Render-Locations findet die Bildsuche oft nichts — der Suchbegriff bringt zuverlässig Orte.</p>
               {/* Search the SerpApi candidates now → tick which appear in "Bandit the look". */}
@@ -2157,7 +2162,8 @@ export default function AdminTrends() {
                               </button>
                             </div>
                             <input value={editLocationQuery} onChange={e => setEditLocationQuery(e.target.value)}
-                              placeholder="Suchbegriff, z. B. „Ibiza Klippen-Villa Pool“"
+                              list="lb-destinations" autoComplete="off"
+                              placeholder="Ort / Land, z. B. „Greece“"
                               className="mt-1.5 h-8 w-full rounded-md border border-black/10 bg-panel px-2 text-[11px] font-semibold text-ink outline-none focus:border-cobalt" />
                             {locCands.length > 0 && (
                               <div className="mt-2 flex flex-col gap-1.5">
