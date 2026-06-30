@@ -136,9 +136,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   // never the scraped original product photo of a curated look.
   const heroImg = safeLookImage(look);
   const community = (look.communityTryOns ?? []).filter(c => c?.imageUrl);
-  // Representative try-on for the carousel — prefer one WITH an uploaded before photo
-  // so we can show the Before/After compare slide; otherwise the first try-on.
-  const repTryOn = community.find(c => c.userPhotoUrl) ?? community[0];
+  // Representative try-on for the carousel — prefer one WITH a video (most engaging),
+  // then one with a before photo (can show compare), then any try-on (at least the photo).
+  const repTryOn = community.find(c => c.videoUrl) ?? community.find(c => c.userPhotoUrl) ?? community[0];
   // LOCKED carousel order (see memory feed-post-carousel-structure):
   //   1) the try-on (member's try-on video, else the look's own video)
   //   2) Before/After compare (uploaded Before | After result) — when a before photo exists
@@ -154,11 +154,12 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     ...(repTryOn?.videoUrl
       ? [{ type: "cvideo" as const, url: repTryOn.videoUrl, name: repTryOn.name }]
       : look.videoUrl ? [{ type: "video" as const }] : []),
-    // 2) Before/After compare when we have a before photo; otherwise — only if there
-    //    was no video at all — a single still so the post isn't empty.
+    // 2) Second slide: Before/After compare (if try-on has a before photo), else the
+    //    try-on's after-photo (even without a before), else the look's still (fallback).
     ...(repTryOn?.userPhotoUrl
       ? [{ type: "compare" as const, afterUrl: repTryOn.imageUrl, beforeUrl: repTryOn.userPhotoUrl, name: repTryOn.name }]
-      : (!repTryOn?.videoUrl && !look.videoUrl && heroImg ? [{ type: "image" as const }] : [])),
+      : repTryOn?.imageUrl ? [{ type: "cphoto" as const, url: repTryOn.imageUrl, name: repTryOn.name }]
+      : (heroImg ? [{ type: "image" as const }] : [])),
   ];
   void shopAlts;
   // How many people have tried this look on (distinct names, else photo count).
@@ -414,6 +415,14 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                     src={m.url} className="h-full w-full bg-black object-cover cursor-grab active:cursor-grabbing" onClick={handleVideoClick} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>Try-on video<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
+                </div>
+              ) : m.type === "cphoto" ? (
+                // Community try-on photo (no before photo available, just the after result)
+                <div className="relative h-full w-full">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={m.url} alt={`${m.name ?? "member"} try-on`} className="h-full w-full object-cover" />
+                  <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
+                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{m.name ? `${m.name}'s try-on` : "Try-on photo"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
                 </div>
               ) : m.type === "image" ? (
                 <div className="relative h-full w-full">
