@@ -423,14 +423,13 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           </button>
         )}
 
-        {/* Mute toggle — shown whenever the active carousel slide is a video */}
-        {(media[active]?.type === "video" || media[active]?.type === "cvideo") && (
-          <button type="button" aria-label={muted ? "Unmute" : "Mute"}
-            onClick={() => setMuted(m => !m)}
-            className="absolute bottom-3 left-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform">
-            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-          </button>
-        )}
+        {/* Sound toggle — always shown. The feed soundtrack is global (it plays on
+            every slide, image or video), so you can start/stop it on picture posts too. */}
+        <button type="button" aria-label={muted ? "Unmute" : "Mute"}
+          onClick={() => setMuted(m => !m)}
+          className="absolute bottom-3 left-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform">
+          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+        </button>
 
 
         {/* Right rail (on the image) — anchored to the TOP edge of the video so it
