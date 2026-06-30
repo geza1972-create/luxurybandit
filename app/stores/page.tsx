@@ -2344,8 +2344,8 @@ function StoresPage() {
                       <button type="button"
                         onClick={() => {
                           if (selectMode) { toggleSelect(item.id); return; }
-                          // Open the full-screen vertical scroll feed (reels) starting here.
-                          setReelItems(filteredCommunityAsReel); setCommunitySelectedIndex(itemIdx);
+                          // One feed everywhere → open the look's HomeFeed (not the old full-screen view).
+                          router.push(lookPath(item.lookName, item.lookId || item.id));
                         }}
                         className={`relative aspect-square w-full overflow-hidden bg-black/5 transition-opacity active:opacity-80 block ${
                           selectMode && isSelected ? "opacity-60 ring-2 ring-inset ring-cobalt" : ""
