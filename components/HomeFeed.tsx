@@ -119,6 +119,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const videoRefs = useRef<Record<number, HTMLVideoElement>>({});
   const carouselRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
+  const mediaRef = useRef<HTMLDivElement>(null);
   const captionRef = useRef<HTMLParagraphElement>(null);
   // Carousel order: ALL curator-created content first — try-on VIDEOS, then try-on
   // PHOTOS (most engaging — what the user asked for) — then the look's own video,
@@ -194,9 +195,13 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     if (el && !expanded) setClamped(el.scrollHeight > el.clientHeight + 2);
   }, [look.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Track whether THIS slide is the one on screen (vertical snap).
+  // Track whether THIS slide's VIDEO is on screen. Observe the media area (the
+  // 9:16 video box), NOT the whole <section> — the section also contains the name,
+  // caption, CTA buttons and product grid, making it much taller than the phone
+  // viewport, so its visible ratio stayed < 0.6 and inView never became true (→ no
+  // autoplay AND no Play button on iPhone, though a manual tap still worked).
   useEffect(() => {
-    const el = sectionRef.current;
+    const el = mediaRef.current;
     if (!el) return;
     const obs = new IntersectionObserver(
       ([e]) => setInView(e.isIntersecting && e.intersectionRatio >= 0.6),
@@ -425,7 +430,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     <section ref={sectionRef} className="relative flex w-full flex-col bg-white">
       {/* ── Media area — vertical format (9:16). Curator name + description render
           BELOW the video (see headerBar block after the media). ── */}
-      <div className="relative aspect-[9/16] w-full shrink-0 overflow-hidden bg-black">
+      <div ref={mediaRef} className="relative aspect-[9/16] w-full shrink-0 overflow-hidden bg-black">
         {/* Blurred fill so the whole look stays visible without empty bars */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={videoStill} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-2xl" />
