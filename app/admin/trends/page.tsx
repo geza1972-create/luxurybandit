@@ -2053,7 +2053,7 @@ export default function AdminTrends() {
                     {l.videoUrl ? (
                       // The uploaded/generated reel — playable right here so you can review it.
                       // eslint-disable-next-line jsx-a11y/media-has-caption
-                      <video src={l.videoUrl} poster={l.imageUrl || undefined} controls playsInline className="h-full w-full object-cover object-top" />
+                      <video key={l.videoUrl} src={`${l.videoUrl}#t=0.1`} controls playsInline preload="metadata" className="h-full w-full object-cover object-top" />
                     ) : (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={l.imageUrl} alt={l.name} className="h-full w-full cursor-pointer object-cover object-top" onClick={() => window.open(lookHref, "_blank")} />
