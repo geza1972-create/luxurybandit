@@ -1988,7 +1988,7 @@ function StoresPage() {
             </div>
             <div>
               <div className="text-sm font-black uppercase tracking-widest text-black leading-none">LuxuryBandit</div>
-              <div className="text-[10px] font-bold text-black/40 mt-0.5">Bandit the look!</div>
+              <div className="text-[10px] font-bold text-black/40 mt-0.5">Bandit the feeling!</div>
             </div>
           </div>
 
