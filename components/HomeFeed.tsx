@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, ChevronRight } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, ChevronRight, Home } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -74,6 +74,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(look.likeCount ?? 0);
   const [saved, setSaved] = useState(false);
+  const [following, setFollowing] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [clamped, setClamped] = useState(false);
   const [active, setActive] = useState(0);
@@ -252,6 +253,22 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     if (navigator.share) navigator.share({ title: look.name, url }).catch(() => {});
     else navigator.clipboard?.writeText(url).catch(() => {});
   };
+  // Follow the curator (next to the name). Mirrors the localStorage + /api/follow
+  // pattern used elsewhere; keyed by the curator's name slug.
+  const creatorSlug = (look.curatorName || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  useEffect(() => {
+    try { const l = JSON.parse(localStorage.getItem("lb_following") ?? "[]"); setFollowing(Array.isArray(l) && l.includes(creatorSlug)); } catch { /**/ }
+  }, [creatorSlug]);
+  const toggleFollow = () => {
+    if (!creatorSlug) return;
+    const next = !following;
+    setFollowing(next);
+    try {
+      const l = JSON.parse(localStorage.getItem("lb_following") ?? "[]") as string[];
+      localStorage.setItem("lb_following", JSON.stringify(next ? [...new Set([...l, creatorSlug])] : l.filter(s => s !== creatorSlug)));
+    } catch { /**/ }
+    try { fetch("/api/follow", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug: creatorSlug, type: "user" }) }).catch(() => {}); } catch { /**/ }
+  };
 
   // Curator + badge row. On the single-look page it moves BELOW the image so the
   // page's fixed back button (top-left) doesn't sit on top of the logo/name/badge.
@@ -269,6 +286,12 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${look.aiCreated ? "bg-black text-white" : "bg-black/[0.06] text-black/60"}`}>
           {look.aiCreated ? "✦ Original" : "Curated"}
         </span>
+        {creatorSlug && (
+          <button type="button" onClick={toggleFollow}
+            className={`ml-auto shrink-0 rounded-full px-3.5 py-1 text-xs font-black transition active:scale-95 ${following ? "border border-black/20 text-black/60" : "bg-black text-white"}`}>
+            {following ? "Following" : "Follow"}
+          </button>
+        )}
       </div>
       {/* Caption (description) right under the name, above the video. */}
       {caption && (
@@ -372,6 +395,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           )}
           <RailButton icon={<Bookmark className="h-8 w-8" fill={saved ? "currentColor" : "none"} strokeWidth={2} />} label={saved ? "Saved" : "Save"} active={saved} onClick={toggleSave} />
           <RailButton icon={<Send className="h-7 w-7" strokeWidth={2} />} label="Share" onClick={share} />
+          <RailButton icon={<Home className="h-7 w-7" strokeWidth={2} />} label="Home" onClick={() => router.push("/stores")} />
         </div>
       </div>
 

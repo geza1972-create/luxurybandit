@@ -123,10 +123,9 @@ export default function BottomNav() {
       active === tab ? "text-black" : "text-black/35"
     }`;
 
-  // /stores now renders the HomeFeed (one feed), which has no own Home button —
-  // so the bottom nav must stay visible here too. (The old full-screen view had its
-  // own Home in the rail; that view is gone.)
-  const hideBar = false;
+  // The feed (HomeFeed on /stores + /look/*) carries its own chrome (Home icon in
+  // the right rail, Follow by the name) — hide the global bottom nav there.
+  const hideBar = pathname === "/stores" || pathname.startsWith("/look/");
 
   return (
     <>
