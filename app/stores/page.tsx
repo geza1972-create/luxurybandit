@@ -2107,17 +2107,17 @@ function StoresPage() {
               <section className="px-4 pt-4 pb-3">
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cobalt">LuxuryBandit</p>
                 <h1 className="mt-1.5 text-[1.7rem] font-black leading-[1.1] tracking-tight text-black">
-                  See how every brand<br />looks on <span className="text-cobalt">you</span>.
+                  See how any luxury look looks on <span className="text-cobalt">you</span>.
                 </h1>
                 <p className="mt-2 max-w-md text-sm font-medium leading-6 text-black/55">
-                  Try any luxury look on your own photo — as a photo <span className="font-black text-black/70">and</span> a 5-second video.
-                  Be the brand, find the trend, and shop it at any price.
+                  Upload your photo and try on any high-end look instantly — then shop the whole
+                  outfit at any price, from the original to the look for less.
                 </p>
                 <div className="mt-3 grid gap-1.5">
                   {[
-                    [<ShoppingBag key="i" className="h-4 w-4 text-cobalt" />, "Bandit the look", "From the real luxury piece down to the best dupe."],
-                    [<Sparkles key="i" className="h-4 w-4 text-cobalt" />, "Make a try-on", "Any look, on you, in seconds — photo + video."],
-                    [<Heart key="i" className="h-4 w-4 text-cobalt" />, "Save your favourites", "Like looks, build your feed, shop when you're ready."],
+                    [<ShoppingBag key="i" className="h-4 w-4 text-cobalt" />, "Bandit the look", "Get the full outfit, from the high-end original down to the budget version."],
+                    [<Sparkles key="i" className="h-4 w-4 text-cobalt" />, "Try it on you", "See any luxury look on your own photo in seconds, powered by AI."],
+                    [<Heart key="i" className="h-4 w-4 text-cobalt" />, "Save & shop your way", "Like looks, build your feed, and shop when you're ready."],
                   ].map(([icon, title, text], i) => (
                     <div key={i} className="flex items-start gap-2.5">
                       <span className="mt-0.5 shrink-0">{icon as React.ReactNode}</span>
