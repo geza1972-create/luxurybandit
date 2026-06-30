@@ -151,12 +151,14 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     | { type: "cphoto"; url: string; name?: string }
     | { type: "product"; alt: ShopAlt }
   )[] = [
-    // 1) Try-on first: the member's try-on video, else the look's own video.
-    ...(repTryOn?.videoUrl
-      ? [{ type: "cvideo" as const, url: repTryOn.videoUrl, name: repTryOn.name }]
-      : look.videoUrl ? [{ type: "video" as const }] : []),
-    // 2) Second slide: Before/After compare (if try-on has a before photo AND a video —
-    //    real try-ons with video have matching before/after), else try-on photo, else still.
+    // 1) ALL community try-on videos as separate slides (most engaging content first).
+    ...community
+      .filter(c => c.videoUrl)
+      .map(c => ({ type: "cvideo" as const, url: c.videoUrl!, name: c.name })),
+    // If no community videos, fall back to the look's own video.
+    ...(!community.some(c => c.videoUrl) && look.videoUrl ? [{ type: "video" as const }] : []),
+    // 2) Before/After compare from repTryOn (if it has both video+before photo),
+    //    else try-on photo, else the look's still.
     ...(repTryOn?.userPhotoUrl && repTryOn?.videoUrl
       ? [{ type: "compare" as const, afterUrl: repTryOn.imageUrl, beforeUrl: repTryOn.userPhotoUrl, name: repTryOn.name }]
       : repTryOn?.imageUrl ? [{ type: "cphoto" as const, url: repTryOn.imageUrl, name: repTryOn.name }]
