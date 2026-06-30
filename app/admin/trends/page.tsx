@@ -716,8 +716,9 @@ export default function AdminTrends() {
   const [locSel, setLocSel] = useState<Set<string>>(new Set());
   const [locSearching, setLocSearching] = useState(false);
   const [editSaving, setEditSaving] = useState("");
+  const [editErr, setEditErr] = useState("");
   const openEdit = (l: { id: string; alternatives?: SerpItem[]; locationDupes?: SerpItem[] }) => {
-    setEditingLookId(l.id);
+    setEditingLookId(l.id); setEditErr("");
     setEditClothesFile(null); setEditLocationFile(null); setEditLocationQuery("");
     setClothesCands(l.alternatives ?? []); setClothesSel(new Set((l.alternatives ?? []).map(a => a.link)));
     setLocCands(l.locationDupes ?? []); setLocSel(new Set((l.locationDupes ?? []).map(a => a.link)));
@@ -766,13 +767,16 @@ export default function AdminTrends() {
   };
   // Upload / replace the look's video with an own clip (e.g. a fresh Pixverse reel).
   const replaceLookVideo = async (lookId: string, file: File) => {
-    setUploadingVideo(lookId);
+    setUploadingVideo(lookId); setEditErr("");
+    if (!file.type.startsWith("video/")) { setEditErr("Datei ist kein Video."); setUploadingVideo(""); return; }
+    if (file.size > 50 * 1024 * 1024) { setEditErr("Video zu groß (max. 50 MB)."); setUploadingVideo(""); return; }
     const fd = new FormData(); fd.append("lookId", lookId); fd.append("curatorId", getCuratorId()); fd.append("video", file);
     try {
       const res = await fetch("/api/upload-look-video", { method: "POST", headers: { "x-try-look-admin-pin": getStoredPin(), "x-curator-id": getCuratorId() }, body: fd });
-      const d = await res.json();
-      if (res.ok && d.videoUrl) setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, videoUrl: d.videoUrl } : l));
-    } catch { /**/ }
+      const d = await res.json().catch(() => null);
+      if (res.ok && d?.videoUrl) setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, videoUrl: d.videoUrl } : l));
+      else setEditErr(d?.error || "Video-Upload fehlgeschlagen — Anmeldung/Pin prüfen.");
+    } catch { setEditErr("Video-Upload fehlgeschlagen."); }
     setUploadingVideo("");
   };
   // The "Reel hochladen" tool: take an own finished video (e.g. a Pixverse reel) and
@@ -1006,16 +1010,25 @@ export default function AdminTrends() {
   };
   // Save the edit-sheet curation: the ticked clothes → alternatives, ticked places →
   // locationDupes, plus any replaced source images.
-  const saveEditLists = async (lookId: string) => {
-    setEditSaving(lookId);
+  const saveEditLists = async (lookId: string): Promise<boolean> => {
+    setEditSaving(lookId); setEditErr("");
     const alternatives = clothesCands.filter(c => clothesSel.has(c.link)).slice(0, 16);
     const locationDupes = locCands.filter(c => locSel.has(c.link)).slice(0, 12);
     const body: any = { action: "update-look", id: lookId, alternatives, locationDupes };
     if (editClothesFile) { try { body.clothesImage = await fileToDataUrl(editClothesFile); } catch { /**/ } }
     if (editLocationFile) { try { body.locationImage = await fileToDataUrl(editLocationFile); } catch { /**/ } }
-    await fetch("/api/try-this-look", { method: "POST", headers: studioHeaders(), body: JSON.stringify(body) }).catch(() => {});
+    const res = await fetch("/api/try-this-look", { method: "POST", headers: studioHeaders(), body: JSON.stringify(body) }).catch(() => null);
+    if (!res || !res.ok) {
+      const msg = res ? (await res.json().catch(() => null))?.error : "";
+      setEditErr(msg || "Speichern fehlgeschlagen — Anmeldung/Pin prüfen.");
+      setEditSaving("");
+      return false;
+    }
+    // Only reflect the change in the UI once the server confirmed it (no optimistic
+    // update that masks a failed save).
     setMyLooks(ls => ls.map(l => l.id === lookId ? { ...l, alternatives, locationDupes, altCount: alternatives.length, locationCount: locationDupes.length } : l));
     setEditSaving("");
+    return true;
   };
 
   // Use an image already on the clipboard (e.g. a screenshot) as the garment reference.
@@ -2105,7 +2118,7 @@ export default function AdminTrends() {
                           {/* media preview */}
                           {l.videoUrl ? (
                             // eslint-disable-next-line jsx-a11y/media-has-caption
-                            <video src={l.videoUrl} poster={l.imageUrl || undefined} controls playsInline className="mb-3 max-h-72 w-full rounded-xl bg-black object-contain" />
+                            <video key={l.videoUrl} src={l.videoUrl} poster={l.imageUrl || undefined} controls playsInline className="mb-3 max-h-72 w-full rounded-xl bg-black object-contain" />
                           ) : (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={l.imageUrl} alt="" className="mb-3 max-h-72 w-full rounded-xl object-contain" />
@@ -2246,9 +2259,12 @@ export default function AdminTrends() {
                             </div>
                           )}
                           </div>
+                          {editErr && <p className="mt-2 rounded-md bg-red-50 px-2 py-1.5 text-[11px] font-black text-red-600">{editErr}</p>}
                           <div className="border-t border-black/10 p-3">
-                            <button type="button" onClick={() => setEditingLookId(null)}
-                              className="flex h-11 w-full items-center justify-center rounded-xl bg-black text-sm font-black text-white active:scale-[0.99]">Fertig</button>
+                            <button type="button" disabled={editSaving === l.id}
+                              onClick={async () => { const ok = await saveEditLists(l.id); if (ok) setEditingLookId(null); }}
+                              className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-black text-sm font-black text-white active:scale-[0.99] disabled:opacity-60">
+                              {editSaving === l.id ? <><Loader2 className="h-4 w-4 animate-spin" /> Speichern…</> : "Speichern & fertig"}</button>
                           </div>
                         </div>
                       </div>
