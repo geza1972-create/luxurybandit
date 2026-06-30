@@ -136,9 +136,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   // never the scraped original product photo of a curated look.
   const heroImg = safeLookImage(look);
   const community = (look.communityTryOns ?? []).filter(c => c?.imageUrl);
-  // Representative try-on for the carousel — prefer one WITH a video (most engaging),
-  // then one with a before photo (can show compare), then any try-on (at least the photo).
-  const repTryOn = community.find(c => c.videoUrl) ?? community.find(c => c.userPhotoUrl) ?? community[0];
+  // Representative try-on for the carousel — prefer one WITH video+before (full compare),
+  // then video only, then before photo only, then any try-on (at least the photo).
+  const repTryOn = community.find(c => c.videoUrl && c.userPhotoUrl) ?? community.find(c => c.videoUrl) ?? community.find(c => c.userPhotoUrl) ?? community[0];
   // LOCKED carousel order (see memory feed-post-carousel-structure):
   //   1) the try-on (member's try-on video, else the look's own video)
   //   2) Before/After compare (uploaded Before | After result) — when a before photo exists
@@ -147,6 +147,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     | { type: "video" }
     | { type: "image" }
     | { type: "cvideo"; url: string; name?: string }
+    | { type: "compare"; afterUrl: string; beforeUrl: string; name?: string }
     | { type: "cphoto"; url: string; name?: string }
     | { type: "product"; alt: ShopAlt }
   )[] = [
@@ -154,10 +155,11 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     ...(repTryOn?.videoUrl
       ? [{ type: "cvideo" as const, url: repTryOn.videoUrl, name: repTryOn.name }]
       : look.videoUrl ? [{ type: "video" as const }] : []),
-    // 2) Second slide: try-on photo (if available), else the look's still (fallback).
-    //    Before/After compare REMOVED — AI generates different-looking people, confusing users.
-    ...(repTryOn?.imageUrl
-      ? [{ type: "cphoto" as const, url: repTryOn.imageUrl, name: repTryOn.name }]
+    // 2) Second slide: Before/After compare (if try-on has a before photo AND a video —
+    //    real try-ons with video have matching before/after), else try-on photo, else still.
+    ...(repTryOn?.userPhotoUrl && repTryOn?.videoUrl
+      ? [{ type: "compare" as const, afterUrl: repTryOn.imageUrl, beforeUrl: repTryOn.userPhotoUrl, name: repTryOn.name }]
+      : repTryOn?.imageUrl ? [{ type: "cphoto" as const, url: repTryOn.imageUrl, name: repTryOn.name }]
       : (heroImg ? [{ type: "image" as const }] : [])),
   ];
   void shopAlts;
@@ -398,6 +400,19 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                     onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{look.aiCreated ? "✦ AI video" : "Video"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
+                </div>
+              ) : m.type === "compare" ? (
+                <div className="relative flex h-full w-full">
+                  <div className="relative h-full w-1/2 overflow-hidden border-r border-white/25">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={m.beforeUrl} alt="Before" className="h-full w-full object-cover object-top" />
+                    <span className="absolute left-2 top-12 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">Before</span>
+                  </div>
+                  <div className="relative h-full w-1/2 overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={m.afterUrl} alt="After" className="h-full w-full object-cover object-top" />
+                    <span className="absolute left-2 top-12 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur">After</span>
+                  </div>
                 </div>
               ) : m.type === "cvideo" ? (
                 // Community try-on video — same sound handling as the curator video.
