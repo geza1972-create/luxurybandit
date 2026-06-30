@@ -180,6 +180,20 @@ async function callPlaceSearch(query: string): Promise<any[]> {
   } catch { return []; }
 }
 
+// Multi-place escapes search. One field controls everything:
+//   "Greece, Thailand"   → search BOTH at once, REPLACE the list (only these)
+//   "+Greece, Thailand"  → search both, ADD to the existing list
+// Each place is one SerpApi call, so we cap at 5 places to stay frugal.
+async function callPlaceSearchMulti(raw: string): Promise<{ additive: boolean; results: any[] }> {
+  const additive = raw.trim().startsWith("+");
+  const places = [...new Set(raw.replace(/^\s*\+/, "").split(",").map(s => s.trim()).filter(Boolean))].slice(0, 5);
+  if (!places.length) return { additive, results: [] };
+  const lists = await Promise.all(places.map(p => callPlaceSearch(p)));
+  const seen = new Set<string>();
+  const results = lists.flat().filter((f: any) => f?.link && f?.thumbnail && !seen.has(f.link) && (seen.add(f.link), true));
+  return { additive, results };
+}
+
 // Brand-aware shop search (Google Shopping text query) — surfaces actual on-brand
 // products (e.g. real Tom Ford pieces) that a pure visual match would miss.
 // Returns alternatives in the look's shape, or [] on failure.
@@ -764,9 +778,16 @@ export default function AdminTrends() {
         const seen = new Set<string>(); const uniq = found.filter((f: any) => f.link && f.thumbnail && !seen.has(f.link) && (seen.add(f.link), true));
         setReelClothesCands(uniq); setReelClothesSel(new Set(uniq.map((f: any) => f.link)));
       }
-      const loc = reelLocationQuery.trim() ? await callPlaceSearch(reelLocationQuery) : reelLocationFile ? await callDupes("", await fileToDataUrl(reelLocationFile)) : [];
-      const seenL = new Set<string>(); const uniqL = loc.filter((f: any) => f.link && f.thumbnail && !seenL.has(f.link) && (seenL.add(f.link), true));
-      setReelLocCands(uniqL); setReelLocSel(new Set(uniqL.map((f: any) => f.link)));
+      if (reelLocationQuery.trim()) {
+        // Comma-separated multi-place search; leading "+" adds to the current list.
+        const { additive, results } = await callPlaceSearchMulti(reelLocationQuery);
+        setReelLocCands(prev => { const base = additive ? prev : []; const seen = new Set(base.map((x: any) => x.link)); return [...base, ...results.filter((f: any) => f.link && f.thumbnail && !seen.has(f.link) && (seen.add(f.link), true))]; });
+        setReelLocSel(prev => { const n = additive ? new Set(prev) : new Set<string>(); results.forEach((f: any) => n.add(f.link)); return n; });
+      } else if (reelLocationFile) {
+        const loc = await callDupes("", await fileToDataUrl(reelLocationFile));
+        const seenL = new Set<string>(); const uniqL = loc.filter((f: any) => f.link && f.thumbnail && !seenL.has(f.link) && (seenL.add(f.link), true));
+        setReelLocCands(uniqL); setReelLocSel(new Set(uniqL.map((f: any) => f.link)));
+      }
     } catch { setReelErr("Suche fehlgeschlagen."); }
     setReelSearching(false);
   };
@@ -865,7 +886,7 @@ export default function AdminTrends() {
         }
         if (triedLocation) {
           setReelStep("Ähnliche Orte suchen…");
-          if (reelLocationQuery.trim()) { try { locationDupes = await callPlaceSearch(reelLocationQuery); } catch { /**/ } }
+          if (reelLocationQuery.trim()) { try { locationDupes = (await callPlaceSearchMulti(reelLocationQuery)).results; } catch { /**/ } }
           if (!locationDupes.length && reelLocationFile) { try { locationDupes = await callDupes("", await fileToDataUrl(reelLocationFile)); } catch { /**/ } }
         }
       }
@@ -957,9 +978,16 @@ export default function AdminTrends() {
   const runLocationSearch = async (l: { locationImageUrl?: string }) => {
     setLocSearching(true);
     try {
-      const found = editLocationQuery.trim() ? await callPlaceSearch(editLocationQuery) : editLocationFile ? await callDupes("", await fileToDataUrl(editLocationFile)) : l.locationImageUrl ? await callDupes(l.locationImageUrl) : [];
-      setLocCands(prev => dedupeByLink([...prev, ...found]));
-      setLocSel(prev => { const n = new Set(prev); found.forEach((f: SerpItem) => n.add(f.link)); return n; });
+      if (editLocationQuery.trim()) {
+        // Comma-separated multi-place search; leading "+" adds, otherwise replaces.
+        const { additive, results } = await callPlaceSearchMulti(editLocationQuery);
+        setLocCands(prev => dedupeByLink(additive ? [...prev, ...results] : results));
+        setLocSel(prev => { const n = additive ? new Set(prev) : new Set<string>(); results.forEach((f: SerpItem) => n.add(f.link)); return n; });
+      } else {
+        const found = editLocationFile ? await callDupes("", await fileToDataUrl(editLocationFile)) : l.locationImageUrl ? await callDupes(l.locationImageUrl) : [];
+        setLocCands(prev => dedupeByLink([...prev, ...found]));
+        setLocSel(prev => { const n = new Set(prev); found.forEach((f: SerpItem) => n.add(f.link)); return n; });
+      }
     } catch { /**/ }
     setLocSearching(false);
   };
@@ -1436,9 +1464,9 @@ export default function AdminTrends() {
                   reverse-image search (which finds nothing on a rendered landscape). */}
               <input value={reelLocationQuery} onChange={e => setReelLocationQuery(e.target.value)} disabled={reelBusy}
                 list="lb-destinations" autoComplete="off"
-                placeholder="Ort / Land, z. B. „Greece“ oder „Ibiza Klippen-Villa Pool“"
+                placeholder="z. B. „Greece, Thailand“ — mehrere mit Komma"
                 className="h-10 w-full rounded-md border border-black/10 bg-panel px-3 text-sm font-semibold text-ink outline-none focus:border-cobalt disabled:opacity-60" />
-              <p className="-mt-1 text-[10px] font-bold text-ink/35">Tipp: Bei KI-/Render-Locations findet die Bildsuche oft nichts — der Suchbegriff bringt zuverlässig Orte. Jede Suche <b>fügt hinzu</b> (mehrere Orte nacheinander möglich).</p>
+              <p className="-mt-1 text-[10px] font-bold text-ink/35">Mehrere Orte mit Komma: <code>Greece, Thailand</code> sucht beide. Mit führendem <code>+</code> (<code>+Greece, Thailand</code>) wird zur Liste <b>hinzugefügt</b> statt ersetzt. (max. 5 pro Suche)</p>
               {/* Search the SerpApi candidates now → tick which appear in "Bandit the look". */}
               {(reelClothesFile || reelLocationFile || reelLocationQuery.trim()) && (
                 <button type="button" onClick={() => void runReelSearch()} disabled={reelSearching || reelBusy}
@@ -2163,9 +2191,9 @@ export default function AdminTrends() {
                             </div>
                             <input value={editLocationQuery} onChange={e => setEditLocationQuery(e.target.value)}
                               list="lb-destinations" autoComplete="off"
-                              placeholder="Ort / Land, z. B. „Greece“"
+                              placeholder="z. B. „Greece, Thailand“ — mehrere mit Komma"
                               className="mt-1.5 h-8 w-full rounded-md border border-black/10 bg-panel px-2 text-[11px] font-semibold text-ink outline-none focus:border-cobalt" />
-                            <p className="mt-1 text-[10px] font-bold text-ink/35">Jede Suche <b>fügt hinzu</b> — mehrere Orte nacheinander gehen. Nur ein Ort? Erst „Liste leeren“.</p>
+                            <p className="mt-1 text-[10px] font-bold text-ink/35"><code>Greece, Thailand</code> = beide (ersetzt). <code>+Greece, Thailand</code> = zur Liste <b>dazu</b>. Max. 5.</p>
                             {locCands.length > 0 && (
                               <div className="mt-2 flex flex-col gap-1.5">
                                 {locCands.map((c) => candRow(c, locSel.has(c.link), () => toggleIn(setLocSel, c.link), l.clicks?.[c.link]))}
