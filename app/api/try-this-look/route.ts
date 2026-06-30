@@ -180,6 +180,7 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     communityTryOns,
     feedOrder: typeof (look as any).feedOrder === "number" ? (look as any).feedOrder : undefined,
     likeCount: (look as any).likeCount ?? 0,
+    commentCount: (look as any).commentCount ?? 0,
     generationCount,
     createdAt: look.createdAt,
     imageUrl: primaryImageUrl,

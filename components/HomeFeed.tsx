@@ -28,6 +28,7 @@ export type FeedLook = {
   lingerie?: boolean;
   commentsOff?: boolean;
   likeCount?: number;
+  commentCount?: number;
   createdAt?: string;
   alternatives?: { title?: string; link?: string; source?: string; thumbnail?: string; price?: string; priceValue?: number; currency?: string; lingerie?: boolean }[];
   locationDupes?: { title?: string; link?: string; source?: string; thumbnail?: string; price?: string; region?: string }[];
@@ -58,6 +59,13 @@ function priceRange(look: FeedLook): string | null {
 function isAuthed() {
   try { if (JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id) return true; } catch { /**/ }
   try { return !!JSON.parse(localStorage.getItem("sb-session") ?? "{}")?.access_token; } catch { return false; }
+}
+
+// Compact engagement count: 62000 → "62k", 1500 → "1.5k", 980 → "980".
+function fmtCount(n: number): string {
+  if (n < 1000) return String(n);
+  const k = n / 1000;
+  return (k >= 10 || Number.isInteger(k) ? Math.round(k) : k.toFixed(1)) + "k";
 }
 
 function RailButton({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active?: boolean; onClick: () => void }) {
@@ -428,9 +436,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         {/* Right rail (on the image) — anchored to the TOP edge of the video so it
             clears the model's body and the bottom action buttons. */}
         <div className="absolute right-2.5 top-3 z-10 flex flex-col items-center gap-4">
-          <RailButton icon={<Heart className="h-8 w-8" fill={liked ? "currentColor" : "none"} strokeWidth={2} />} label={likeCount > 0 ? String(likeCount) : "Like"} active={liked} onClick={toggleLike} />
+          <RailButton icon={<Heart className="h-8 w-8" fill={liked ? "currentColor" : "none"} strokeWidth={2} />} label={likeCount > 0 ? fmtCount(likeCount) : "Like"} active={liked} onClick={toggleLike} />
           {!look.commentsOff && (
-            <RailButton icon={<MessageCircle className="h-8 w-8" strokeWidth={2} />} label="Comment" onClick={() => onComment(look)} />
+            <RailButton icon={<MessageCircle className="h-8 w-8" strokeWidth={2} />} label={(look.commentCount ?? 0) > 0 ? fmtCount(look.commentCount as number) : "Comment"} onClick={() => onComment(look)} />
           )}
           <RailButton icon={<Bookmark className="h-8 w-8" fill={saved ? "currentColor" : "none"} strokeWidth={2} />} label={saved ? "Saved" : "Save"} active={saved} onClick={toggleSave} />
           <RailButton icon={<Send className="h-7 w-7" strokeWidth={2} />} label="Share" onClick={share} />
