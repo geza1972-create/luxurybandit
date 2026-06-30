@@ -147,17 +147,19 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     | { type: "cphoto"; url: string; name?: string }
     | { type: "product"; alt: ShopAlt }
   )[] = [
-    // Try-ons are NOT mixed into an Original/Curated post anymore — they live on
-    // their own under The A List. A look post shows only its own video + image.
+    // Community try-ons (members wearing this look) come FIRST — a member's try-on
+    // video, then their photos — so a look opens on a real person wearing it.
+    ...communityVideos,
+    ...communityPhotos,
+    // Then the look's own video.
     ...(look.videoUrl ? [{ type: "video" as const }] : []),
-    // Still image: only the AI creation, or — for a curated "Studio Web" look — only
-    // when there's NO video. A curated look WITH a video never shows a second still
-    // (it's redundant and the render/original can be broken). Never the original photo.
-    ...(heroImg && (look.aiCreated || !look.videoUrl) ? [{ type: "image" as const }] : []),
+    // Then the look's own still as the trailing slide behind the video. heroImg is
+    // licensing-safe (our AI render / video poster) — never the scraped original.
+    ...(heroImg ? [{ type: "image" as const }] : []),
     // Shop options are NOT shown in the feed (no product slides, no list). The
     // dupes are fetched on demand only when the user taps "Bandit the look!".
   ];
-  void shopAlts; void communityVideos; void communityPhotos;
+  void shopAlts;
   // How many people have tried this look on (distinct names, else photo count).
   const tryOnPeople = new Set(community.map(c => c.name).filter(Boolean)).size || community.length;
   const firstTryOnIdx = media.findIndex(m => m.type === "cphoto" || m.type === "cvideo");
