@@ -79,6 +79,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [active, setActive] = useState(0);
   const [inView, setInView] = useState(false);
   const [vidFailed, setVidFailed] = useState(false); // autoplay blocked → show a Play button
+  const [paused, setPaused] = useState(false); // user tapped the video to pause
+  const pausedRef = useRef(false); pausedRef.current = paused;
   const [infoOpen, setInfoOpen] = useState(false);
   // Who-tried-this-on is a business secret → only the admin sees the named list.
   const [isAdmin, setIsAdmin] = useState(false);
@@ -191,7 +193,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         // Videos always play silent — the feed soundtrack is the only audio, so
         // baked-in per-clip music (Pixverse) never clashes with it.
         v.muted = true;
-        v.play().then(() => setVidFailed(false)).catch(() => setVidFailed(true));
+        if (pausedRef.current) v.pause();
+        else v.play().then(() => setVidFailed(false)).catch(() => setVidFailed(true));
       } else {
         v.pause();
         v.muted = true;
@@ -200,7 +203,16 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   };
   useEffect(() => {
     syncVideos();
-  }, [inView, active, muted]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [inView, active, muted, paused]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Leaving the slide / switching carousel item clears a manual pause so it autoplays again.
+  useEffect(() => { setPaused(false); }, [inView, active]);
+  // Tap the video to pause/resume (TikTok/IG behaviour).
+  const togglePause = () => {
+    const v = videoRefs.current[active];
+    if (!v) return;
+    if (v.paused) { setPaused(false); v.muted = true; v.play().then(() => setVidFailed(false)).catch(() => {}); }
+    else { v.pause(); setPaused(true); }
+  };
 
   const img = heroImg;
   const detail = lookPath(look.name, look.id);
@@ -290,7 +302,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 <div className="relative h-full w-full">
                   <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
                     src={look.videoUrl} poster={look.videoPosterUrl || img} className="h-full w-full object-contain"
-                    muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
+                    onClick={togglePause} muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{look.aiCreated ? "✦ AI video" : "Video"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
                 </div>
@@ -306,7 +318,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 // Community try-on video — same sound handling as the curator video.
                 <div className="relative h-full w-full">
                   <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
-                    src={m.url} className="h-full w-full bg-black object-contain" muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
+                    src={m.url} className="h-full w-full bg-black object-contain" onClick={togglePause} muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{m.name ? `${m.name}'s video` : "Member video"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
                 </div>
@@ -324,10 +336,10 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           ))}
         </div>
 
-        {/* Play overlay — if autoplay was blocked, let the user start the video. */}
-        {(media[active]?.type === "video" || media[active]?.type === "cvideo") && vidFailed && (
+        {/* Play overlay — when autoplay was blocked OR the user tapped to pause. */}
+        {(media[active]?.type === "video" || media[active]?.type === "cvideo") && (vidFailed || paused) && (
           <button type="button" aria-label="Play"
-            onClick={() => { const v = videoRefs.current[active]; if (v) { v.muted = true; v.play().then(() => setVidFailed(false)).catch(() => {}); } }}
+            onClick={() => { const v = videoRefs.current[active]; if (v) { setPaused(false); v.muted = true; v.play().then(() => setVidFailed(false)).catch(() => {}); } }}
             className="absolute inset-0 z-10 grid place-items-center bg-black/10">
             <Play className="h-16 w-16 fill-white/90 text-white/90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]" />
           </button>
