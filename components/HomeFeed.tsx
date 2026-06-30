@@ -717,8 +717,12 @@ export default function HomeFeed({ looks, single = false, initialLookId }: { loo
 
   return (
     <>
-      <div ref={scrollRef} className="h-[100dvh] w-full snap-y snap-mandatory overflow-y-scroll overscroll-contain bg-black [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {feed.map((look, i) => <Slide key={look.id} look={look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} index={i} onActive={handleActive} single={single} />)}
+      {/* Phone-width column, centered, so a wide screen doesn't blow the square video
+          up to full width (which pushed the Look/Escape thumbs off the bottom). */}
+      <div className="flex h-[100dvh] w-full justify-center bg-black">
+        <div ref={scrollRef} className="h-[100dvh] w-full max-w-[440px] snap-y snap-mandatory overflow-y-scroll overscroll-contain bg-black [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {feed.map((look, i) => <Slide key={look.id} look={look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} index={i} onActive={handleActive} single={single} />)}
+        </div>
       </div>
       {/* Slide-coupled feed soundtrack — shuffled /public mp3s, the track changes
           as you scroll and resumes where it left off. Only audio source (videos muted). */}
