@@ -29,6 +29,19 @@ export function isSocialSource(url?: string, source?: string): boolean {
 
 type Item = { title?: string; link?: string; source?: string };
 
+// Display-side guard: keep ONLY real bookable stays. Hides blind text, dead links,
+// social profiles and any non-booking source (furniture, fragrance, real-estate ads,
+// editorial) that slipped into a look's escapes list — without deleting stored data.
+export function cleanEscapes<T extends Item>(items: T[]): T[] {
+  return (items ?? []).filter((a) =>
+    !!a.link &&
+    !isBadLink(a.link) &&
+    !isBlindText(a.title, a.source) &&
+    !isSocialSource(a.link, a.source) &&
+    isTravelSource(a.link, a.source),
+  );
+}
+
 // Returns the links that should be DESELECTED for the products list, with reasons.
 export function auditProducts(items: Item[]): { drop: Set<string>; reasons: Record<string, string> } {
   const drop = new Set<string>(); const reasons: Record<string, string> = {};

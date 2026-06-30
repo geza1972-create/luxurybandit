@@ -7,6 +7,7 @@ import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { safeLookImage } from "@/lib/look-image";
+import { cleanEscapes } from "@/lib/reel-audit";
 
 export type FeedLook = {
   id: string;
@@ -425,13 +426,13 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           </button>
         </div>
         {/* Bandit the escape — the look's stays, right in the feed (tap → book). */}
-        {(look.locationDupes?.length ?? 0) > 0 && (
+        {cleanEscapes(look.locationDupes ?? []).length > 0 && (
           <div className="mt-3">
             <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-black/40">
               <MapPin className="h-3.5 w-3.5" /> Bandit the escape — book the stay
             </p>
             <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {look.locationDupes!.slice(0, 8).map((a, i) => (
+              {cleanEscapes(look.locationDupes ?? []).slice(0, 8).map((a, i) => (
                 <a key={i} href={a.link} target="_blank" rel="noopener noreferrer sponsored"
                   onClick={() => { if (look.id && a.link) { try { fetch("/api/try-this-look", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "click", lookId: look.id, link: a.link }) }).catch(() => {}); } catch { /**/ } } }}
                   className="w-32 shrink-0 active:scale-95 transition-transform">
