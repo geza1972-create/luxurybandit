@@ -4,7 +4,6 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { ChevronLeft, Heart, Send, MessageCircle, UserPlus, UserCheck, Loader2, X, Store, Sparkles, EyeOff, Trash2, Info } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
-import TryOnQR from "@/components/TryOnQR";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
 
@@ -531,14 +530,13 @@ export default function PostPage() {
           </a>
         )}
 
-        {/* Try this look (white + credits) · QR · Bandit the look (black → dupes) */}
+        {/* Try this look (white + credits) · Bandit the look (black → dupes) */}
         {!post.creatorDeleted && (
           <div className="flex items-center gap-2">
             <a href={`/tryon/${post.lookId}`}
               className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform">
               <Sparkles className="h-4 w-4" /> Try This Look · Free
             </a>
-            <TryOnQR lookId={post.lookId} lookName={post.lookName} />
             <a href={`${lookPath(post.lookName, post.lookId)}/details`}
               className="flex h-11 shrink-0 items-center justify-center rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
               Bandit the look!
