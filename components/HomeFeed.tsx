@@ -434,7 +434,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             <div key={i} className="relative h-full w-full shrink-0 snap-center">
               {m.type === "video" ? (
                 <div className="relative h-full w-full">
-                  <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
+                  <video ref={el => { if (el) { el.muted = true; videoRefs.current[i] = el; } else delete videoRefs.current[i]; }}
                     src={look.videoUrl} poster={videoStill} className="h-full w-full object-cover cursor-grab active:cursor-grabbing"
                     onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted autoPlay loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos}
                     onPlaying={() => { if (i === active) { setPlaying(true); setVidFailed(false); } }} onPause={() => { if (i === active) setPlaying(false); }} onStalled={() => { if (i === active) setPlaying(false); }} />
@@ -457,7 +457,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               ) : m.type === "cvideo" ? (
                 // Community try-on video — same sound handling as the curator video.
                 <div className="relative h-full w-full">
-                  <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
+                  <video ref={el => { if (el) { el.muted = true; videoRefs.current[i] = el; } else delete videoRefs.current[i]; }}
                     src={m.url} poster={videoStill} className="h-full w-full bg-black object-cover cursor-grab active:cursor-grabbing" onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted autoPlay loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos}
                     onPlaying={() => { if (i === active) { setPlaying(true); setVidFailed(false); } }} onPause={() => { if (i === active) setPlaying(false); }} onStalled={() => { if (i === active) setPlaying(false); }} />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
