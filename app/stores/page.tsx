@@ -2107,7 +2107,7 @@ function StoresPage() {
               <section className="px-4 pt-4 pb-3">
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cobalt">LuxuryBandit</p>
                 <h1 className="mt-1.5 text-[1.7rem] font-black leading-[1.1] tracking-tight text-black">
-                  See how any luxury look looks on <span className="text-cobalt">you</span>.
+                  See yourself in the <span className="text-cobalt">feeling</span>.
                 </h1>
                 <p className="mt-2 max-w-md text-sm font-medium leading-6 text-black/55">
                   Upload your photo and try on any high-end look instantly — then shop the whole
