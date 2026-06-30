@@ -207,15 +207,33 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   }, [inView, active, muted, paused]); // eslint-disable-line react-hooks/exhaustive-deps
   // Leaving the slide / switching carousel item clears a manual pause so it autoplays again.
   useEffect(() => { setPaused(false); }, [inView, active]);
-  // Click on video: seek to position (like YouTube), or pause/resume if paused
-  const handleVideoClick = (e: React.MouseEvent<HTMLVideoElement>) => {
+  // Scrubbing: drag on video to seek (like YouTube)
+  const scrubRef = useRef<{ isScrubbing: boolean; wasPaused: boolean }>({ isScrubbing: false, wasPaused: false });
+  const handleVideoMouseDown = (e: React.MouseEvent<HTMLVideoElement>) => {
+    const v = videoRefs.current[active];
+    if (!v || !v.duration) return;
+    scrubRef.current.isScrubbing = true;
+    scrubRef.current.wasPaused = v.paused;
+    v.pause();
+  };
+  const handleVideoMouseMove = (e: React.MouseEvent<HTMLVideoElement>) => {
+    if (!scrubRef.current.isScrubbing) return;
     const v = videoRefs.current[active];
     if (!v || !v.duration) return;
     const rect = v.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const percentage = Math.max(0, Math.min(1, x / rect.width));
     v.currentTime = percentage * v.duration;
-    if (v.paused) { setPaused(false); v.muted = true; v.play().then(() => setVidFailed(false)).catch(() => {}); }
+  };
+  const handleVideoMouseUp = () => {
+    if (!scrubRef.current.isScrubbing) return;
+    const v = videoRefs.current[active];
+    if (!v) return;
+    scrubRef.current.isScrubbing = false;
+    if (!scrubRef.current.wasPaused) {
+      v.muted = true;
+      v.play().then(() => setVidFailed(false)).catch(() => {});
+    }
   };
 
   const img = heroImg;
@@ -333,8 +351,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               {m.type === "video" ? (
                 <div className="relative h-full w-full">
                   <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
-                    src={look.videoUrl} poster={videoStill || undefined} className="h-full w-full object-cover"
-                    onClick={handleVideoClick} muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
+                    src={look.videoUrl} poster={videoStill || undefined} className="h-full w-full object-cover cursor-grab active:cursor-grabbing"
+                    onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{look.aiCreated ? "✦ AI video" : "Video"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
                 </div>
@@ -350,7 +368,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 // Community try-on video — same sound handling as the curator video.
                 <div className="relative h-full w-full">
                   <video ref={el => { if (el) videoRefs.current[i] = el; else delete videoRefs.current[i]; }}
-                    src={m.url} className="h-full w-full bg-black object-cover" onClick={handleVideoClick} muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
+                    src={m.url} className="h-full w-full bg-black object-cover cursor-grab active:cursor-grabbing" onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos} />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{m.name ? `${m.name}'s video` : "Member video"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
                 </div>
