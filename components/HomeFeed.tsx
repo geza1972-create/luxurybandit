@@ -428,7 +428,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         {(look.locationDupes?.length ?? 0) > 0 && (
           <div className="mt-3">
             <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-black/40">
-              <MapPin className="h-3.5 w-3.5" /> Bandit the escape — similar stays for less
+              <MapPin className="h-3.5 w-3.5" /> Bandit the escape — book the stay
             </p>
             <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {look.locationDupes!.slice(0, 8).map((a, i) => (
