@@ -1800,7 +1800,7 @@ function StoresPage() {
       const srcLook = lookById.get(c.lookId);
       items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, hasBefore: !!c.userPhotoUrl, brand: c.brand, category: c.category ?? srcLook?.category, createdAt: c.createdAt ?? "", name: c.customerName || (srcLook ? publicLookLabel(srcLook) : "Luxury look"), price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName });
     }
-    items.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     // Dedupe only the LOOK tiles by look (one tile per product, prefer the video).
     // EVERY community try-on keeps its own tile — so different people's try-ons
     // (Denisa, Anonymous, …) all show; they are not collapsed into the look.
@@ -1813,7 +1813,7 @@ function StoresPage() {
       const cur = byLook.get(key);
       if (!cur || score(it) > score(cur)) byLook.set(key, it);
     }
-    return [...byLook.values(), ...tryons].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    return [...byLook.values(), ...tryons].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [looks, communityItems]);
 
   // Distinct curators with content (looks or try-ons) — for the header count.
