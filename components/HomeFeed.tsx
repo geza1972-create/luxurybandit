@@ -150,15 +150,17 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const media: (
     | { type: "video" }
     | { type: "image" }
-    | { type: "cvideo"; url: string; name?: string }
+    | { type: "cvideo"; url: string; name?: string; poster?: string }
     | { type: "compare"; afterUrl: string; beforeUrl: string; name?: string }
     | { type: "cphoto"; url: string; name?: string }
     | { type: "product"; alt: ShopAlt }
   )[] = [
     // 1) ALL community try-on videos as separate slides (most engaging content first).
+    //    poster = that member's OWN try-on photo (same person) so a not-yet-playing or
+    //    paused video shows a clear, correct still — never a blurred box or wrong image.
     ...community
       .filter(c => c.videoUrl)
-      .map(c => ({ type: "cvideo" as const, url: c.videoUrl!, name: c.name })),
+      .map(c => ({ type: "cvideo" as const, url: c.videoUrl!, name: c.name, poster: c.imageUrl || c.userPhotoUrl || "" })),
     // If no community videos, fall back to the look's own video.
     ...(!community.some(c => c.videoUrl) && look.videoUrl ? [{ type: "video" as const }] : []),
     // 2) Before/After compare from repTryOn (if it has both video+before photo),
@@ -318,6 +320,10 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   // When the active carousel slide is a shop option, show its buy card on white below
   // AND make "Try This Look" use THAT product (its clean image), not the look's photo.
   const am = media[active];
+  // Clear still for the active video when it isn't playing (covers the iOS case where
+  // play() removes the poster but no frame renders → the blurred fill showed through).
+  // cvideo → that member's own try-on photo; look video → its cover. Never the blur.
+  const activePoster = am?.type === "cvideo" ? (am.poster || videoStill) : videoStill;
   const activeProduct = am && am.type === "product" ? am.alt : null;
   const activeAltIdx = activeProduct
     ? (look.alternatives ?? []).findIndex(a => a?.link === activeProduct.link && a?.thumbnail === activeProduct.thumbnail)
@@ -458,7 +464,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 // Community try-on video — same sound handling as the curator video.
                 <div className="relative h-full w-full">
                   <video ref={el => { if (el) { el.muted = true; videoRefs.current[i] = el; } else delete videoRefs.current[i]; }}
-                    src={m.url} poster={videoStill} className="h-full w-full bg-black object-cover cursor-grab active:cursor-grabbing" onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted autoPlay loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos}
+                    src={m.url} poster={m.poster || videoStill} className="h-full w-full bg-black object-cover cursor-grab active:cursor-grabbing" onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted autoPlay loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos}
                     onPlaying={() => { if (i === active) { setPlaying(true); setVidFailed(false); } }} onPause={() => { if (i === active) setPlaying(false); }} onStalled={() => { if (i === active) setPlaying(false); }} />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>Try-on video<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
@@ -493,8 +499,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         {(media[active]?.type === "video" || media[active]?.type === "cvideo") && inView && !playing && (paused || vidFailed || playHint) && !scrubRef.current.isScrubbing && (
           <button type="button" aria-label="Play"
             onClick={() => { const v = videoRefs.current[active]; if (v) { pausedRef.current = false; setPaused(false); v.muted = true; v.play().then(() => { setVidFailed(false); setPlaying(true); }).catch(() => setVidFailed(true)); } }}
-            className="absolute inset-0 z-10 grid place-items-center bg-black/20">
-            <Play className="relative z-10 h-16 w-16 fill-white/50 text-white/50" />
+            className="absolute inset-0 z-10 grid place-items-center">
+            {/* Clear poster so a not-yet-playing / iOS-stuck video never shows the blurred
+                fill behind it. Sits under the Play button, over the blurred background. */}
+            {activePoster && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={activePoster} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            )}
+            <span className="absolute inset-0 bg-black/20" />
+            <Play className="relative z-10 h-16 w-16 fill-white/60 text-white/60" />
           </button>
         )}
 
