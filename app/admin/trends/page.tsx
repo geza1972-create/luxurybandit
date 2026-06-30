@@ -2091,7 +2091,7 @@ export default function AdminTrends() {
                       </div>
                       <button type="button" onClick={() => openEdit(l)}
                         className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-black py-1.5 text-[11px] font-black text-white transition active:scale-95">
-                        <Pencil className="h-3 w-3" /> Bearbeiten
+                        <Pencil className="h-3 w-3" /> Edit
                       </button>
                       <button type="button" onClick={() => void toggleMyLook(l.id, !l.published)}
                         className={`shrink-0 rounded-md px-2 py-1.5 text-[11px] font-black transition active:scale-95 ${l.published ? "bg-black/5 text-ink/60 hover:bg-black/10" : "bg-emerald-500 text-white"}`}>
@@ -2118,7 +2118,7 @@ export default function AdminTrends() {
                           {/* media preview */}
                           {l.videoUrl ? (
                             // eslint-disable-next-line jsx-a11y/media-has-caption
-                            <video key={l.videoUrl} src={l.videoUrl} poster={l.imageUrl || undefined} controls playsInline className="mb-3 max-h-72 w-full rounded-xl bg-black object-contain" />
+                            <video key={l.videoUrl} src={l.videoUrl} controls playsInline preload="metadata" className="mb-3 max-h-72 w-full rounded-xl bg-black object-contain" />
                           ) : (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={l.imageUrl} alt="" className="mb-3 max-h-72 w-full rounded-xl object-contain" />

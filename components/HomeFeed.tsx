@@ -272,8 +272,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           look page it renders below the image instead (see white caption block). ── */}
       {!single && headerBar}
 
-      {/* ── Image area ── */}
-      <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
+      {/* ── Media area — square format (1:1) ── */}
+      <div className="relative aspect-square w-full shrink-0 overflow-hidden bg-black">
         {/* Blurred fill so the whole look stays visible without empty bars */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={img} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-2xl" />
