@@ -611,6 +611,7 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     colors: unionTags(DEFAULT_COLORS, state.colors ?? []),
     fabrics: unionTags(DEFAULT_FABRICS, state.fabrics ?? []),
     occasions: unionTags(DEFAULT_OCCASIONS, state.occasions ?? []),
+    tryonPaused: state.tryonPaused === true,
   });
 }
 
