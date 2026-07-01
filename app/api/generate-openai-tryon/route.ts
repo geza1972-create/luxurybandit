@@ -26,12 +26,20 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const garment = formData.get("image");
   const modelImage = formData.get("modelImage");
+  const location = formData.get("locationImage");
   const userPrompt = String(formData.get("prompt") ?? "").trim();
   const aspectRatio = String(formData.get("aspectRatio") ?? "9:16").trim();
 
   // Garment is optional: with one, we transfer it onto the person; without one,
   // we style an outfit from the prompt/taste filters instead.
   const hasGarment = garment instanceof File;
+  // Optional curator-uploaded location reference → used as the scene/background.
+  const hasLocation = location instanceof File;
+  // Image order sent to OpenAI: person = 1, garment (if any) = 2, location = next.
+  const locationImgNum = hasLocation ? (hasGarment ? 3 : 2) : 0;
+  const backgroundLine = hasLocation
+    ? `Place the person naturally into the setting shown in Image ${locationImgNum} (a location/background reference). Match that scene's lighting, perspective, depth and mood so the person looks genuinely present there. Keep the person's identity and the garment unchanged. No text, prices, badges or overlays.`
+    : "Natural, realistic result. Simple clean background. No text, prices, badges or overlays.";
   if (!(modelImage instanceof File)) {
     return NextResponse.json({ error: "Bitte ein Foto von dir hochladen." }, { status: 400 });
   }
@@ -67,7 +75,7 @@ export async function POST(request: Request) {
         "Generate ONE photorealistic image of the SAME person from Image 1 now fully dressed in the clothing item from Image 2.",
         "Preserve the person's face, hairstyle, skin tone, body shape and pose from Image 1 as closely as possible — it must clearly be the same person.",
         "The garment must match Image 2 exactly in material, print/pattern, colour, cut and silhouette. Do not redesign or upgrade it.",
-        "Natural, realistic result. Simple clean background. No text, prices, badges or overlays.",
+        backgroundLine,
         coverageRule,
         userPrompt ? `Extra: ${userPrompt}` : "",
       ].filter(Boolean).join("\n\n")
@@ -76,7 +84,7 @@ export async function POST(request: Request) {
         "Generate ONE tasteful, photorealistic editorial fashion image of the SAME person from Image 1, fully dressed in a complete, elegant outfit.",
         "Preserve the person's face, hairstyle and skin tone from Image 1 as closely as possible — it must clearly be the same person — but dress them in a brand-new full outfit.",
         userPrompt ? `Style the full outfit like this: ${userPrompt}` : "Style the full outfit in a tasteful, on-trend look.",
-        "Natural, realistic result. Simple clean background. No text, prices, badges or overlays.",
+        backgroundLine,
         coverageRule,
       ].filter(Boolean).join("\n\n");
 
@@ -90,12 +98,17 @@ export async function POST(request: Request) {
     openAiForm.append("quality", process.env.OPENAI_IMAGE_QUALITY ?? "low");
     openAiForm.append("n", "1");
 
-    // Image 1 = person (base), Image 2 = garment (reference, optional)
+    // Image 1 = person (base), Image 2 = garment (optional), Image 3 = location (optional).
+    // Order MUST match the image numbers referenced in the prompt above.
     const personBuf = await modelImage.arrayBuffer();
     openAiForm.append("image[]", new Blob([personBuf], { type: "image/png" }), "person.png");
     if (hasGarment) {
       const garmentBuf = await garment.arrayBuffer();
       openAiForm.append("image[]", new Blob([garmentBuf], { type: "image/png" }), "garment.png");
+    }
+    if (hasLocation) {
+      const locationBuf = await location.arrayBuffer();
+      openAiForm.append("image[]", new Blob([locationBuf], { type: "image/png" }), "location.png");
     }
 
     const response = await fetch("https://api.openai.com/v1/images/edits", {

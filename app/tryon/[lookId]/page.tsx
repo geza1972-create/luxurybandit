@@ -27,6 +27,8 @@ type Look = {
   id: string; name: string; storeName?: string; storeSlug?: string;
   price?: string; salePrice?: string; inStock?: boolean;
   imageUrl: string; frontImageUrl?: string; garmentFrontImageUrl?: string;
+  clothesImageUrl?: string;   // curator-uploaded garment reference → preferred try-on garment
+  locationImageUrl?: string;  // curator-uploaded location reference → try-on background/scene
   galleryImageUrls?: string[];
   lingerie?: boolean;
   curatorNote?: string; productNote?: string;
@@ -462,7 +464,9 @@ export default function TryonPage() {
         ? [garmentUrl, garmentProxied]
         : altIdx >= 0
           ? [altThumb, altProxied]
-          : [look.garmentFrontImageUrl, look.frontImageUrl, look.imageUrl];
+          // Prefer the curator's uploaded garment reference (clothesImageUrl) — that's the
+          // actual piece — over the look's hero/product image.
+          : [look.clothesImageUrl, look.garmentFrontImageUrl, look.frontImageUrl, look.imageUrl];
       garmentData = await firstValidImageDataUrl(candidates);
     } catch {
       setError("Couldn't load the selected product image. Pick the look again."); setStep("confirm"); return;
@@ -552,18 +556,26 @@ export default function TryonPage() {
       const garmentData = await firstValidImageDataUrl([
         garmentUrl, garmentProxied,
         altThumb, altProxied,
-        // Only fall back to the hero when no specific product was chosen.
-        ...(garmentUrl || altThumb ? [] : [look.garmentFrontImageUrl, look.frontImageUrl, look.imageUrl, look.galleryImageUrls?.[0]]),
+        // No specific product chosen → prefer the curator's uploaded garment reference
+        // (clothesImageUrl), then the look's hero/product images.
+        ...(garmentUrl || altThumb ? [] : [look.clothesImageUrl, look.garmentFrontImageUrl, look.frontImageUrl, look.imageUrl, look.galleryImageUrls?.[0]]),
       ]);
       const coverageRule = "Coverage rule: the generated image must keep the person at least as covered as in the original photo. Never expose more skin, remove undergarments, or show less clothing than the input. No nudity; keep intimate areas (chest, groin, buttocks) covered at all times.";
       const prompt = photo
         ? `Full-body virtual fashion try-on. Show the entire person from head to toe wearing the complete selected outfit. Replace the person's current clothing with the selected garment so the whole look is visible. Preserve the person's face, hair, skin tone, and identity exactly. Full-length framing. ${coverageRule} Look: ${look.name}.`
         : `Full-body fashion campaign image. Professional AI model shown head to toe wearing the complete selected outfit. Full-length framing. ${coverageRule} Look: ${look.name}.`;
+      // Curator-uploaded location reference → sent as a background/scene image for the
+      // try-on (OpenAI path only; FASHN garment-swap ignores it). Best-effort: a failed
+      // fetch just means no location background, never a failed try-on.
+      const locationData = look.locationImageUrl
+        ? await firstValidImageDataUrl([look.locationImageUrl, `/api/img-proxy?url=${encodeURIComponent(look.locationImageUrl)}`]).catch(() => "")
+        : "";
       // Fresh FormData per request (a body can't be reused across two fetches).
       const buildForm = () => {
         const fd = new FormData();
         fd.append("image", dataUrlToBlob(garmentData), `${look.id}.jpg`);
         if (photo) fd.append("modelImage", dataUrlToBlob(photo), "user-photo.jpg");
+        if (locationData) fd.append("locationImage", dataUrlToBlob(locationData), "location.jpg");
         fd.append("visitorId", accountId || "anon");
         fd.append("lookId", look.id);
         fd.append("mode", "fashion-model");
