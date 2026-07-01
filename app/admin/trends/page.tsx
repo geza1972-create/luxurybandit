@@ -777,8 +777,18 @@ export default function AdminTrends() {
     if (file.size > 200 * 1024 * 1024) { setEditErr("Video too large (max. 200 MB)."); setUploadingVideo(""); return; }
     try {
       const url = await uploadVideoDirect(lookId, file);
-      if (url) setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, videoUrl: url } : l));
-      else setEditErr("Video upload failed — please try again.");
+      if (url) {
+        setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, videoUrl: url } : l));
+        // Regenerate the look's poster (imageUrl/frontImage) from the NEW video's first
+        // frame. Otherwise the stored still stays the OLD video's frame — which leaks into
+        // the feed thumbnail AND the Open Graph preview that Meta/social scrape (og:image),
+        // so ads kept showing the old clip. Best-effort: never fail the replace over it.
+        try {
+          const poster = await videoFirstFrame(file);
+          await fetch("/api/try-this-look", { method: "POST", headers: studioHeaders(), body: JSON.stringify({ action: "update-look", id: lookId, frontImage: poster }) });
+          setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, imageUrl: poster } : l));
+        } catch { /* poster regen is best-effort */ }
+      } else setEditErr("Video upload failed — please try again.");
     } catch (e) {
       setEditErr(e instanceof Error ? e.message : "Video upload failed.");
     }
