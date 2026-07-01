@@ -300,6 +300,7 @@ export default function BottomNav() {
             <div className="mt-4 border-t border-black/5 px-5 pt-3">
               <p className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-black/30">Info &amp; legal</p>
               <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-bold text-black/45">
+                <button type="button" onClick={() => navigate("/contact")} className="hover:text-black">Contact</button>
                 <button type="button" onClick={() => navigate("/about")} className="hover:text-black">About</button>
                 <button type="button" onClick={() => navigate("/terms")} className="hover:text-black">Terms</button>
                 <button type="button" onClick={() => navigate("/privacy")} className="hover:text-black">Privacy</button>
