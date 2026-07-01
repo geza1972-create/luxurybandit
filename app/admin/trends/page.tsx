@@ -791,17 +791,23 @@ export default function AdminTrends() {
   const uploadVideoDirect = async (lookId: string, file: File): Promise<string> => {
     const authHeaders = { "Content-Type": "application/json", "x-try-look-admin-pin": getStoredPin(), "x-curator-id": getCuratorId() };
     const ext = (file.name.split(".").pop() || "mp4").toLowerCase();
+    // Wrap fetch so a network-level failure ("Failed to fetch" — server unreachable,
+    // request blocked by an ad-blocker, connection dropped) names the STEP that failed.
+    const netFetch = async (label: string, url: string, init: RequestInit) => {
+      try { return await fetch(url, init); }
+      catch { throw new Error(`Netzwerkfehler bei „${label}" — Verbindung/Server prüfen (ggf. Ad-Blocker aus).`); }
+    };
     // 1) signed upload URL
-    const signRes = await fetch("/api/upload-look-video", { method: "POST", headers: authHeaders, body: JSON.stringify({ lookId, sign: true, ext }) });
+    const signRes = await netFetch("Upload-URL holen", "/api/upload-look-video", { method: "POST", headers: authHeaders, body: JSON.stringify({ lookId, sign: true, ext }) });
     const sign = await signRes.json().catch(() => null);
-    if (!signRes.ok || !sign?.uploadUrl) throw new Error(sign?.error || "Could not start the upload (check admin PIN / ownership).");
+    if (!signRes.ok || !sign?.uploadUrl) throw new Error(sign?.error || "Upload konnte nicht starten (Admin-PIN / Rechte prüfen).");
     // 2) direct PUT to Supabase Storage (no Vercel size limit)
-    const put = await fetch(sign.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type || "video/mp4", "x-upsert": "true" }, body: file });
-    if (!put.ok) throw new Error(`Upload to storage failed (${put.status}).`);
+    const put = await netFetch("Video zu Supabase hochladen", sign.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type || "video/mp4", "x-upsert": "true" }, body: file });
+    if (!put.ok) throw new Error(`Upload zu Supabase fehlgeschlagen (${put.status}).`);
     // 3) attach the uploaded path to the look
-    const attachRes = await fetch("/api/upload-look-video", { method: "POST", headers: authHeaders, body: JSON.stringify({ lookId, videoPath: sign.path }) });
+    const attachRes = await netFetch("Video anhängen", "/api/upload-look-video", { method: "POST", headers: authHeaders, body: JSON.stringify({ lookId, videoPath: sign.path }) });
     const attach = await attachRes.json().catch(() => null);
-    if (!attachRes.ok || !attach?.videoUrl) throw new Error(attach?.error || "Could not attach the video.");
+    if (!attachRes.ok || !attach?.videoUrl) throw new Error(attach?.error || "Video konnte nicht angehängt werden.");
     return attach.videoUrl as string;
   };
   // The "Reel hochladen" tool: take an own finished video (e.g. a Pixverse reel) and
@@ -886,22 +892,25 @@ export default function AdminTrends() {
       const poster = await videoFirstFrame(reelFile);
       // 1) create the look (funnel post) with the poster as the safe still
       setReelStep("Feed-Post anlegen…");
-      const r1 = await fetch("/api/try-this-look", { method: "POST", headers: studioHeaders(), body: JSON.stringify({
-        action: "upload-look",
-        name: reelDesc.trim().slice(0, 80) || "Reel",
-        productNote: reelDesc.trim(),
-        category: reelCategory,
-        lingerie: reelCategory === "boudoir" ? true : undefined,
-        productType: "real",
-        aiCreated: false,
-        published: true,
-        image: poster,
-        frontImage: poster,
-        curatorId: getCuratorId(),
-      }) });
-      const d1 = await r1.json();
-      const lookId = d1.lookId || d1.look?.id;
-      if (!r1.ok || !lookId) { setReelErr(d1.error ?? "Look konnte nicht angelegt werden."); setReelBusy(false); setReelStep(""); return; }
+      let r1: Response;
+      try {
+        r1 = await fetch("/api/try-this-look", { method: "POST", headers: studioHeaders(), body: JSON.stringify({
+          action: "upload-look",
+          name: reelDesc.trim().slice(0, 80) || "Reel",
+          productNote: reelDesc.trim(),
+          category: reelCategory,
+          lingerie: reelCategory === "boudoir" ? true : undefined,
+          productType: "real",
+          aiCreated: false,
+          published: true,
+          image: poster,
+          frontImage: poster,
+          curatorId: getCuratorId(),
+        }) });
+      } catch { setReelErr("Netzwerkfehler beim „Feed-Post anlegen“ — Verbindung/Server prüfen (ggf. Ad-Blocker aus)."); setReelBusy(false); setReelStep(""); return; }
+      const d1 = await r1.json().catch(() => null);
+      const lookId = d1?.lookId || d1?.look?.id;
+      if (!r1.ok || !lookId) { setReelErr(d1?.error ?? `Look konnte nicht angelegt werden (Status ${r1.status}).`); setReelBusy(false); setReelStep(""); return; }
       // 2) attach the video — direct-to-Supabase (no Vercel 4.5 MB body limit).
       setReelStep("Video hochladen…");
       let reelVideoUrl = "";
