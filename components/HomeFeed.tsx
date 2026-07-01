@@ -30,8 +30,8 @@ export type FeedLook = {
   likeCount?: number;
   commentCount?: number;
   createdAt?: string;
-  alternatives?: { title?: string; link?: string; source?: string; thumbnail?: string; price?: string; priceValue?: number; currency?: string; lingerie?: boolean }[];
-  locationDupes?: { title?: string; link?: string; source?: string; thumbnail?: string; price?: string; region?: string }[];
+  alternatives?: { title?: string; link?: string; source?: string; thumbnail?: string; price?: string; priceValue?: number; currency?: string; lingerie?: boolean; affiliate?: boolean }[];
+  locationDupes?: { title?: string; link?: string; source?: string; thumbnail?: string; price?: string; region?: string; affiliate?: boolean }[];
   price?: string;
   salePrice?: string;
   buyUrl?: string;
@@ -580,12 +580,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             router.push(`${detail}/details`);
           };
           // No row titles — the last tile carries a "+N More Looks/Escapes" overlay instead.
-          const thumb = (a: { thumbnail?: string; price?: string; title?: string; source?: string; link?: string }, key: string, more: number, moreLabel: string) => (
+          const thumb = (a: { thumbnail?: string; price?: string; title?: string; source?: string; link?: string; affiliate?: boolean }, key: string, more: number, moreLabel: string) => (
             <button key={key} type="button" onClick={() => goDetail(a)}
               className="relative block aspect-square min-w-0 flex-1 overflow-hidden rounded-lg bg-black/5 active:scale-95 transition-transform">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={a.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover"
+              <img src={a.thumbnail} alt="" loading="lazy" className={`h-full w-full ${a.affiliate ? "bg-white object-contain p-2" : "object-cover"}`}
                 onError={(e) => { const el = e.currentTarget; if (a.thumbnail && !el.dataset.proxied) { el.dataset.proxied = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(a.thumbnail)}`; } }} />
+              {a.affiliate && more === 0 && (
+                <span className="absolute left-1 top-1 rounded bg-black/70 px-1 py-0.5 text-[7px] font-black uppercase tracking-wide text-white">Affiliate</span>
+              )}
               {more > 0 && (
                 <span className="absolute inset-0 grid place-items-center bg-black/60 px-1 text-center text-white">
                   <span className="text-lg font-black leading-none">+{more}</span>

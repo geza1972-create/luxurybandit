@@ -147,13 +147,15 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     deliveryTime: look.deliveryTime,
     productNote: look.productNote,
     buyUrl: wrap((look as any).buyUrl),
+    // Curator's own affiliate links (a.affiliate) are kept 1:1 — their tracking is
+    // already baked in, so we must NOT re-wrap them in a partner template.
     alternatives: Array.isArray((look as any).alternatives)
-      ? (look as any).alternatives.map((a: any) => ({ ...a, link: wrap(a.link) }))
+      ? (look as any).alternatives.map((a: any) => ({ ...a, link: a?.affiliate ? a.link : wrap(a.link) }))
       : (look as any).alternatives,
     hashtags: (look as any).hashtags,
     // Similar-escapes (travel) results found from the reel's location photo.
     locationDupes: Array.isArray((look as any).locationDupes)
-      ? (look as any).locationDupes.map((a: any) => ({ ...a, link: wrap(a.link) }))
+      ? (look as any).locationDupes.map((a: any) => ({ ...a, link: a?.affiliate ? a.link : wrap(a.link) }))
       : undefined,
     // Reel source images (admin-only) — the clothes + location used for the searches.
     clothesImageUrl: (look as any).clothesImageUrl || undefined,
@@ -1235,6 +1237,7 @@ export async function POST(request: Request) {
               price: a.price ? String(a.price).slice(0, 40) : undefined,
               priceValue: typeof a.priceValue === "number" ? a.priceValue : undefined,
               currency: a.currency ? String(a.currency).slice(0, 8) : undefined,
+              ...(a.affiliate === true ? { affiliate: true } : {}),
             }))
         : undefined;
       const hashtags = String(payload.hashtags ?? "").trim();
@@ -1512,6 +1515,7 @@ export async function POST(request: Request) {
               price: a.price ? String(a.price).slice(0, 40) : undefined,
               priceValue: typeof a.priceValue === "number" ? a.priceValue : undefined,
               currency: a.currency ? String(a.currency).slice(0, 8) : undefined,
+              ...(a.affiliate === true ? { affiliate: true } : {}),
             }))
         : undefined;
       // Similar-escapes results (reverse-image search on the reel's location photo) —
@@ -1527,6 +1531,7 @@ export async function POST(request: Request) {
               thumbnail: String(a.thumbnail),
               price: a.price ? String(a.price).slice(0, 40) : undefined,
               region: a.region ? String(a.region).slice(0, 80) : undefined,
+              ...(a.affiliate === true ? { affiliate: true } : {}),
             }))
         : undefined;
       const backImagePath = payload.backImage?.startsWith("data:image/")

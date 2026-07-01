@@ -17,8 +17,8 @@ type Look = {
   availableSizes?: string[];
   productNote?: string;
   buyUrl?: string;
-  alternatives?: { title: string; link: string; source?: string; thumbnail: string; price?: string; priceValue?: number; currency?: string; lingerie?: boolean }[];
-  locationDupes?: { title: string; link: string; source?: string; thumbnail: string; price?: string; region?: string }[];
+  alternatives?: { title: string; link: string; source?: string; thumbnail: string; price?: string; priceValue?: number; currency?: string; lingerie?: boolean; affiliate?: boolean }[];
+  locationDupes?: { title: string; link: string; source?: string; thumbnail: string; price?: string; region?: string; affiliate?: boolean }[];
   lingerie?: boolean;
   imageUrl: string;
   frontImageUrl?: string;
@@ -272,16 +272,17 @@ export default function LookDetailsPage() {
           <div className="grid gap-2.5">
             {alts.map((a, i) => (
                 <div key={i} className="flex w-full min-w-0 gap-3 rounded-2xl border border-black/10 bg-white p-2.5">
-                  <a href={a.link} target="_blank" rel="noopener noreferrer sponsored" className="shrink-0 active:scale-95 transition-transform">
+                  <a href={a.link} target="_blank" rel="noopener noreferrer sponsored" className="relative shrink-0 active:scale-95 transition-transform">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={a.thumbnail} alt=""
                       onError={(e) => { const el = e.currentTarget; if (!el.dataset.proxied) { el.dataset.proxied = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(a.thumbnail)}`; } }}
-                      className="h-28 w-24 rounded-xl bg-black/5 object-cover" />
+                      className={`h-28 w-24 rounded-xl bg-black/5 ${a.affiliate ? "bg-white object-contain p-2" : "object-cover"}`} />
+                    {a.affiliate && <span className="absolute left-1 top-1 rounded bg-black/70 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wide text-white">Affiliate</span>}
                   </a>
                   <div className="flex min-w-0 flex-1 flex-col gap-2 py-0.5">
                     <a href={a.link} target="_blank" rel="noopener noreferrer sponsored" className="min-w-0 active:opacity-70">
                       <p className="line-clamp-2 text-sm font-black text-black">{a.title || a.source || ""}</p>
-                      {a.source && <p className="mt-0.5 truncate text-[11px] font-bold text-black/40">{a.source}</p>}
+                      {a.source && <p className="mt-0.5 truncate text-[11px] font-bold text-black/40">{a.source}{a.affiliate ? " · Affiliate" : ""}</p>}
                     </a>
                     {/* Products are affiliate shop links only — no "Try-on" here (try-on is
                         on the look itself, not on a random dupe). */}
@@ -309,11 +310,12 @@ export default function LookDetailsPage() {
             {cleanEscapes(look.locationDupes ?? []).map((a, i) => (
               <a key={i} href={a.link} target="_blank" rel="noopener noreferrer sponsored" onClick={() => trackClick(a.link)}
                 className="flex flex-col overflow-hidden rounded-2xl border border-black/10 bg-white active:scale-[0.98] transition-transform">
-                <div className="aspect-[4/3] w-full bg-black/5">
+                <div className="relative aspect-[4/3] w-full bg-black/5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={a.thumbnail} alt=""
                     onError={(e) => { const el = e.currentTarget; if (!el.dataset.proxied) { el.dataset.proxied = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(a.thumbnail)}`; } }}
-                    className="h-full w-full object-cover" />
+                    className={`h-full w-full ${(a as { affiliate?: boolean }).affiliate ? "bg-white object-contain p-3" : "object-cover"}`} />
+                  {(a as { affiliate?: boolean }).affiliate && <span className="absolute left-1.5 top-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wide text-white">Affiliate</span>}
                 </div>
                 <div className="flex flex-1 flex-col gap-1 p-2.5">
                   <p className="line-clamp-2 text-[13px] font-black text-black">{a.title || a.source || ""}</p>

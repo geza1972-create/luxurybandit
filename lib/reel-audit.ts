@@ -27,18 +27,22 @@ export function isSocialSource(url?: string, source?: string): boolean {
   return SOCIAL_RE.test(`${url ?? ""} ${source ?? ""}`);
 }
 
-type Item = { title?: string; link?: string; source?: string };
+type Item = { title?: string; link?: string; source?: string; affiliate?: boolean };
 
 // Display-side guard: keep ONLY real bookable stays. Hides blind text, dead links,
 // social profiles and any non-booking source (furniture, fragrance, real-estate ads,
 // editorial) that slipped into a look's escapes list — without deleting stored data.
+// EXCEPTION: the curator's own affiliate links (a.affiliate) are always kept — they
+// picked them on purpose, so we don't second-guess the domain against the travel list.
 export function cleanEscapes<T extends Item>(items: T[]): T[] {
   return (items ?? []).filter((a) =>
     !!a.link &&
     !isBadLink(a.link) &&
-    !isBlindText(a.title, a.source) &&
-    !isSocialSource(a.link, a.source) &&
-    isTravelSource(a.link, a.source),
+    (a.affiliate === true || (
+      !isBlindText(a.title, a.source) &&
+      !isSocialSource(a.link, a.source) &&
+      isTravelSource(a.link, a.source)
+    )),
   );
 }
 

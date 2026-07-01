@@ -663,6 +663,8 @@ export default function AdminTrends() {
   const [reelLocationFile, setReelLocationFile] = useState<File | null>(null);  // place → similar escapes
   const [reelLocationQuery, setReelLocationQuery] = useState("");               // place keyword (reliable)
   const [reelDesc, setReelDesc] = useState("");
+  const [reelClothesLinks, setReelClothesLinks] = useState(""); // own affiliate links (clothes), one per line
+  const [reelLocationLinks, setReelLocationLinks] = useState(""); // own affiliate links (vacation), one per line
   const [reelCategory, setReelCategory] = useState<LookCategory>("after-dark");
   const [reelBusy, setReelBusy] = useState(false);
   const [reelStep, setReelStep] = useState("");
@@ -912,6 +914,19 @@ export default function AdminTrends() {
       let alternatives: any[] = [];
       let locationDupes: any[] = [];
       const triedLocation = !!reelLocationFile || !!reelLocationQuery.trim();
+      // Own pasted affiliate links → shoppable items, tagged affiliate (kept as-is).
+      const parseAffiliate = (text: string) => text.split(/[\n,]/).map(s => s.trim()).filter(Boolean)
+        .map(link => { try {
+          const u = new URL(link.startsWith("http") ? link : `https://${link}`);
+          const host = u.hostname.replace(/^www\./, "");
+          // Auto thumbnail = the shop's favicon, so pasted links still render as tiles
+          // without the curator uploading an image ("nur URL").
+          return { link: u.href, title: host, source: host, thumbnail: `https://www.google.com/s2/favicons?domain=${host}&sz=128`, affiliate: true };
+        } catch { return null; } })
+        .filter((x): x is { link: string; title: string; source: string; thumbnail: string; affiliate: true } => !!x);
+      const clothesAffiliate = parseAffiliate(reelClothesLinks);
+      const locationAffiliate = parseAffiliate(reelLocationLinks);
+
       if (reelClothesCands.length || reelLocCands.length) {
         // The curator already searched + ticked — use exactly their selection.
         alternatives = reelClothesCands.filter(c => reelClothesSel.has(c.link)).slice(0, 16);
@@ -928,6 +943,9 @@ export default function AdminTrends() {
           if (!locationDupes.length && reelLocationFile) { try { locationDupes = await callDupes("", await fileToDataUrl(reelLocationFile)); } catch { /**/ } }
         }
       }
+      // Prepend the curator's own affiliate links (they come first in "Bandit the look").
+      alternatives = [...clothesAffiliate, ...alternatives].slice(0, 20);
+      locationDupes = [...locationAffiliate, ...locationDupes].slice(0, 16);
       if (alternatives.length || locationDupes.length || reelClothesFile || reelLocationFile) {
         setReelStep("Treffer & Bilder speichern…");
         await fetch("/api/try-this-look", { method: "POST", headers: studioHeaders(), body: JSON.stringify({
@@ -940,7 +958,7 @@ export default function AdminTrends() {
       }
       const locNote = triedLocation && !locationDupes.length ? " · keine Orte gefunden (Suchbegriff eingeben?)" : locationDupes.length ? ` · ${locationDupes.length} Orte` : "";
       setReelMsg(`Reel ist live im Feed ✨${alternatives.length ? ` · ${alternatives.length} ähnliche Looks` : ""}${locNote}`);
-      setReelFile(null); setReelClothesFile(null); setReelLocationFile(null); setReelLocationQuery(""); setReelDesc("");
+      setReelFile(null); setReelClothesFile(null); setReelLocationFile(null); setReelLocationQuery(""); setReelDesc(""); setReelClothesLinks(""); setReelLocationLinks("");
       setReelClothesCands([]); setReelClothesSel(new Set()); setReelLocCands([]); setReelLocSel(new Set()); setReelAuditMsg("");
       void fetch("/api/curator?mylooks=1", { headers: studioHeaders() }).then(r => r.json()).then((d: any) => setMyLooks(d.looks ?? [])).catch(() => {});
     } catch (e) {
@@ -1510,6 +1528,30 @@ export default function AdminTrends() {
                 placeholder="z. B. „Greece, Thailand“ — mehrere mit Komma"
                 className="h-10 w-full rounded-md border border-black/10 bg-panel px-3 text-sm font-semibold text-ink outline-none focus:border-cobalt disabled:opacity-60" />
               <p className="-mt-1 text-[10px] font-bold text-ink/35">Mehrere Orte mit Komma: <code>Greece, Thailand</code> sucht beide (ersetzt die Liste). Mit <code>+</code> pro Ort (<code>+Thailand, +Greece</code>) wird stattdessen <b>hinzugefügt</b>. (max. 5 pro Suche)</p>
+
+              {/* Own affiliate links — pasted manually, one URL per line, tagged as
+                  affiliate (kept as-is, never re-wrapped) and shown with an Affiliate badge. */}
+              <div className="rounded-lg border border-cobalt/20 bg-cobalt/[0.03] p-3">
+                <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wide text-cobalt">
+                  <Link2 className="h-3.5 w-3.5" /> Eigene Affiliate-Links
+                  <span className="rounded-full bg-cobalt/15 px-1.5 py-0.5 text-[8px] tracking-normal">Affiliate</span>
+                </p>
+                <p className="mt-1 text-[10px] font-bold text-ink/40">Je eine URL pro Zeile. Wird 1:1 übernommen (dein Tracking bleibt) und im Feed als <b>Affiliate</b> gekennzeichnet.</p>
+                <div className="mt-2 grid gap-2">
+                  <label className="grid gap-1">
+                    <span className="text-[10px] font-black uppercase tracking-wide text-ink/45">👗 Klamotten-Links</span>
+                    <textarea value={reelClothesLinks} onChange={e => setReelClothesLinks(e.target.value)} disabled={reelBusy} rows={3}
+                      placeholder={"https://partner.shop/dress?tag=deinID\nhttps://..."}
+                      className="rounded-md border border-black/10 bg-white p-2.5 text-[12px] font-semibold text-ink outline-none focus:border-cobalt disabled:opacity-60" />
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-[10px] font-black uppercase tracking-wide text-ink/45">🏝️ Urlaub-Links</span>
+                    <textarea value={reelLocationLinks} onChange={e => setReelLocationLinks(e.target.value)} disabled={reelBusy} rows={3}
+                      placeholder={"https://booking.com/hotel?aid=deinID\nhttps://..."}
+                      className="rounded-md border border-black/10 bg-white p-2.5 text-[12px] font-semibold text-ink outline-none focus:border-cobalt disabled:opacity-60" />
+                  </label>
+                </div>
+              </div>
               {/* Search the SerpApi candidates now → tick which appear in "Bandit the look". */}
               {(reelClothesFile || reelLocationFile || reelLocationQuery.trim()) && (
                 <button type="button" onClick={() => void runReelSearch()} disabled={reelSearching || reelBusy}
