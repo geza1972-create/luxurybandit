@@ -992,16 +992,18 @@ export default function TryonPage() {
   // Lingerie if the look is lingerie OR the chosen shop card is the lingerie upsell.
   const effectiveLingerie = look.lingerie === true || (previewAltIdx >= 0 && look.alternatives?.[previewAltIdx]?.lingerie === true);
 
-  // Use frontImageUrl for display — it always has a fresh signed URL.
-  // garmentFrontImageUrl is for AI generation only (may be expired on legacy looks).
-  const garmentPreviewUrl = previewAltThumb || look.frontImageUrl || look.imageUrl || (look.galleryImageUrls?.[0] ?? "");
+  // "THE LOOK" preview = the exact piece we try on. Prefer the curator's uploaded
+  // garment reference (clothesImageUrl) so the shown image MATCHES what the AI dresses
+  // you in — not the (possibly stale) look hero/video still.
+  const garmentPreviewUrl = previewAltThumb || look.clothesImageUrl || look.frontImageUrl || look.imageUrl || (look.galleryImageUrls?.[0] ?? "");
   // Garment image for AI generation is resolved at call time in handleGenerate
   // (firstValidImageDataUrl), with a validated fallback chain.
   const lookBackPath = `/look/${look.id}`;
 
-  // On error: a chosen card falls back to its proxied URL; otherwise the hero chain.
+  // On error: a chosen card falls back to its proxied URL; otherwise the garment chain.
   const garmentFallbacks = [
     previewAltThumb ? `/api/img-proxy?url=${encodeURIComponent(previewAltThumb)}` : undefined,
+    look.clothesImageUrl,
     look.frontImageUrl,
     look.imageUrl,
     ...(look.galleryImageUrls ?? []),
