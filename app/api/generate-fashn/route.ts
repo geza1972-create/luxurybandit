@@ -1,5 +1,6 @@
 import { completeReservation, getAccountId, refundReservation, reserveCredits } from "@/lib/billing";
 import { chargeCredits, getCuratorCredits, TRYON_CREDITS } from "@/lib/curator-budget";
+import { tryonAllowed, TRYON_PAUSED_MESSAGE } from "@/lib/tryon-gate";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -62,6 +63,11 @@ export async function POST(request: Request) {
 
   if (!(image instanceof File)) {
     return NextResponse.json({ error: "Kein Produktbild erhalten." }, { status: 400 });
+  }
+
+  // Global kill-switch: if try-on is paused, only admin/staff may generate.
+  if (!(await tryonAllowed(request, String(formData.get("curatorId") ?? "")))) {
+    return NextResponse.json({ error: TRYON_PAUSED_MESSAGE, paused: true }, { status: 403 });
   }
 
   if (!prompt) {

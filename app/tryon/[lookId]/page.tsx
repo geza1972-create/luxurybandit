@@ -161,6 +161,7 @@ export default function TryonPage() {
   const lookId = String(params?.lookId ?? "");
 
   const [look, setLook] = useState<Look | null>(null);
+  const [tryonPaused, setTryonPaused] = useState(false); // global kill-switch (admin/staff bypass)
   const [isLoadingLook, setIsLoadingLook] = useState(true);
   // Cross-sell: other looks to try on next (shown on the result step).
   const [moreLooks, setMoreLooks] = useState<{ id: string; name: string; img: string; price?: string; lingerie?: boolean }[]>([]);
@@ -292,7 +293,7 @@ export default function TryonPage() {
 
     fetch(`/api/try-this-look?previewId=${encodeURIComponent(lookId)}`)
       .then(r => r.json())
-      .then((p: { look?: Look }) => { if (p.look) setLook(p.look); })
+      .then((p: { look?: Look; tryonPaused?: boolean }) => { if (p.look) setLook(p.look); setTryonPaused(p.tryonPaused === true); })
       .catch(() => {})
       .finally(() => setIsLoadingLook(false));
   }, [lookId]);
@@ -514,7 +515,10 @@ export default function TryonPage() {
   // Staff = acting-as a curator (e.g. Szidonia) → all tiers generate FREE for them,
   // no paywall. End-user charging arrives with Stripe.
   const staffCuratorId = () => { try { return String(JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id ?? ""); } catch { return ""; } };
+  const adminPin = () => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } };
   const isStaff = typeof window !== "undefined" && !!staffCuratorId();
+  // Admin (PIN) OR staff (curator) bypass the try-on kill-switch and can always generate.
+  const canUseTryon = typeof window !== "undefined" && (isStaff || !!adminPin());
 
   // ── Generate ──
   // photoOverride lets callers (e.g. the resume-after-application flow) pass the
@@ -581,6 +585,8 @@ export default function TryonPage() {
         fd.append("mode", "fashion-model");
         fd.append("aspectRatio", "9:16");
         fd.append("prompt", prompt);
+        // Identify staff so they bypass the try-on kill-switch server-side.
+        if (staffCuratorId()) fd.append("curatorId", staffCuratorId());
         return fd;
       };
       // Signed-in users (Supabase OR curator session) bill as a "user-" account so
@@ -591,7 +597,8 @@ export default function TryonPage() {
         : curatorBillingId
         ? `user-${curatorBillingId}`
         : accountId.startsWith("user-") ? accountId : `visitor-${accountId || "anon"}`;
-      const headers = { "x-shopcut-account-id": billingId };
+      // Include the admin PIN so an admin bypasses the kill-switch server-side too.
+      const headers: Record<string, string> = { "x-shopcut-account-id": billingId, ...(adminPin() ? { "x-try-look-admin-pin": adminPin() } : {}) };
       // Engine routing decided UPFRONT from the look (no wasteful double-loop):
       //  • Lingerie/swim → FASHN directly (OpenAI would refuse or cover it up).
       //  • Normal apparel → OpenAI; only if OpenAI unexpectedly safety-blocks do we
@@ -980,6 +987,27 @@ export default function TryonPage() {
         <p className="text-sm font-black text-black/40">Look not found</p>
         <button onClick={() => router.back()} className="text-sm font-black underline">Go back</button>
       </div>
+    );
+  }
+
+  // Kill-switch: try-on is paused for end-users. The visit still reached us (the click
+  // is counted), we just show a "coming soon" screen. Admin/staff bypass and proceed.
+  if (tryonPaused && !canUseTryon) {
+    return (
+      <main className="grid min-h-[100dvh] place-items-center bg-white px-6 text-center">
+        <div className="max-w-sm">
+          <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-full bg-black/[0.06]">
+            <Sparkles className="h-7 w-7 text-black/60" />
+          </div>
+          <h1 className="text-xl font-black text-black">Try-on is coming soon</h1>
+          <p className="mt-2 text-sm font-medium text-black/55">
+            Virtual try-on for <span className="font-bold text-black">{look.name}</span> is almost ready — we&apos;re putting the final touches on it. Check back very soon to dress this look on your own photo.
+          </p>
+          <button onClick={() => router.back()} className="mt-6 rounded-full bg-black px-6 py-3 text-sm font-black text-white active:scale-95 transition-transform">
+            Back to the feed
+          </button>
+        </div>
+      </main>
     );
   }
 

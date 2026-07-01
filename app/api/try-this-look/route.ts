@@ -272,7 +272,9 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
     activeLook: activeLook ? sl(activeLook) : undefined,
     activeLooks: activeLooks.map(sl),
     stores: forAdmin ? (state.stores ?? []) : publicStores,
-    looks: visibleLooks.map(sl)
+    looks: visibleLooks.map(sl),
+    // Global try-on kill-switch (admin-toggleable). Clients show "coming soon" when true.
+    tryonPaused: state.tryonPaused === true,
   };
 }
 
@@ -408,7 +410,7 @@ export async function GET(request: Request) {
       const look = state.looks.find(l => l.id === previewLookId);
       if (!look) return NextResponse.json({ error: "Look not found." }, { status: 404 });
       const genCount = state.generations.filter(g => g.lookId === previewLookId).length;
-      return NextResponse.json({ look: serializeLook(look, genCount, state.partnerStores ?? [], state.curators ?? []), isDraft: look.published === false });
+      return NextResponse.json({ look: serializeLook(look, genCount, state.partnerStores ?? [], state.curators ?? []), isDraft: look.published === false, tryonPaused: state.tryonPaused === true });
     }
 
     // Admin: ALL comments across every look (for the admin inbox).
@@ -1207,6 +1209,15 @@ export async function POST(request: Request) {
       const curators = all ? [] : (state.curators ?? []).filter(c => c.id !== id);
       await saveTryThisLookState({ ...state, curators });
       return NextResponse.json({ ok: true, curators });
+    }
+
+    // Global try-on kill-switch (admin-only). Flip it to instantly pause/resume end-user
+    // try-on generation site-wide — no redeploy. Admin/staff always bypass the pause.
+    if (payload.action === "set-tryon-paused") {
+      const paused = (payload as any).paused === true;
+      const state = await readTryThisLookState();
+      await saveTryThisLookState({ ...state, tryonPaused: paused });
+      return NextResponse.json({ ok: true, tryonPaused: paused });
     }
 
     if (payload.action === "upload-look") {

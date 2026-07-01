@@ -1,5 +1,6 @@
 import { completeReservation, getAccountId, refundReservation, reserveCredits } from "@/lib/billing";
 import { chargeCredits, refundCredits, TRYON_CREDITS } from "@/lib/curator-budget";
+import { tryonAllowed, TRYON_PAUSED_MESSAGE } from "@/lib/tryon-gate";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -33,6 +34,10 @@ export async function POST(request: Request) {
   // Garment is optional: with one, we transfer it onto the person; without one,
   // we style an outfit from the prompt/taste filters instead.
   const hasGarment = garment instanceof File;
+  // Global kill-switch: if try-on is paused, only admin/staff may generate.
+  if (!(await tryonAllowed(request, String(formData.get("curatorId") ?? "")))) {
+    return NextResponse.json({ error: TRYON_PAUSED_MESSAGE, paused: true }, { status: 403 });
+  }
   // Optional curator-uploaded location reference → used as the scene/background.
   const hasLocation = location instanceof File;
   // Image order sent to OpenAI: person = 1, garment (if any) = 2, location = next.

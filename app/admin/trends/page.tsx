@@ -616,6 +616,22 @@ export default function AdminTrends() {
     })();
     return () => { cancelled = true; };
   }, []);
+  // Global try-on kill-switch (admin-only). Read current value on mount; toggle instantly.
+  const [tryonPausedGlobal, setTryonPausedGlobal] = useState(false);
+  const [tryonToggleBusy, setTryonToggleBusy] = useState(false);
+  useEffect(() => {
+    if (!getStoredPin()) return; // admin-only
+    fetch("/api/try-this-look").then(r => r.json()).then((d) => setTryonPausedGlobal(d?.tryonPaused === true)).catch(() => {});
+  }, []);
+  const toggleTryonPaused = async () => {
+    setTryonToggleBusy(true);
+    const next = !tryonPausedGlobal;
+    try {
+      const res = await fetch("/api/try-this-look", { method: "POST", headers: studioHeaders(), body: JSON.stringify({ action: "set-tryon-paused", paused: next }) });
+      if (res.ok) setTryonPausedGlobal(next);
+    } catch { /**/ }
+    setTryonToggleBusy(false);
+  };
   const [urls, setUrls] = useState("");
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [importing, setImporting] = useState(false);
@@ -1430,6 +1446,27 @@ export default function AdminTrends() {
               </div>
             </section>
           )
+        )}
+
+        {/* Global try-on kill-switch — admin only. Flip it to instantly pause end-user
+            try-on generation site-wide ("coming soon"); clicks are still counted, and
+            admin/staff keep full access. Use it if generation volume/cost spikes. */}
+        {studioIsAdmin() && (
+          <section className={`mt-4 flex items-center gap-3 rounded-2xl border p-3.5 shadow-soft ${tryonPausedGlobal ? "border-amber-300 bg-amber-50" : "border-black/10 bg-white"}`}>
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/[0.06] text-base">{tryonPausedGlobal ? "⏸️" : "▶️"}</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black text-ink">Try-on {tryonPausedGlobal ? "is PAUSED" : "is live"}</p>
+              <p className="text-[11px] font-bold text-ink/45">
+                {tryonPausedGlobal
+                  ? "End-users see “coming soon” (clicks still counted). You & curators keep full access."
+                  : "End-users can generate for free. Pause it instantly if volume/cost spikes."}
+              </p>
+            </div>
+            <button type="button" onClick={toggleTryonPaused} disabled={tryonToggleBusy}
+              className={`shrink-0 rounded-full px-4 py-2 text-xs font-black text-white active:scale-95 transition-transform disabled:opacity-50 ${tryonPausedGlobal ? "bg-emerald-600" : "bg-black"}`}>
+              {tryonToggleBusy ? "…" : tryonPausedGlobal ? "Resume" : "Pause"}
+            </button>
+          </section>
         )}
 
         {/* Credits — your allowance to prove yourself */}

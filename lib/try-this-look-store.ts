@@ -283,6 +283,9 @@ export type TryThisLookState = {
   colors?: string[];
   fabrics?: string[];
   occasions?: string[];
+  // Global kill-switch: when true, end-user try-on generation is paused ("coming soon").
+  // Admin/staff bypass it. Toggled instantly from the admin panel (no redeploy).
+  tryonPaused?: boolean;
 };
 
 const BUCKET = process.env.SUPABASE_STORAGE_BUCKET ?? "shopcut-images";
@@ -690,6 +693,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     colors: (state.colors ?? []).slice(0, 5000),
     fabrics: (state.fabrics ?? []).slice(0, 5000),
     occasions: (state.occasions ?? []).slice(0, 5000),
+    tryonPaused: state.tryonPaused === true,
   };
 
   const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(STATE_PATH)}`, {
