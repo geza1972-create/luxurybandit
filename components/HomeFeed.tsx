@@ -496,23 +496,28 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           ))}
         </div>
 
-        {/* Play overlay — shown whenever the ACTIVE video isn't actually playing
-            (paused, autoplay blocked, OR iOS' play() "succeeded" but never started —
-            the latter left a frozen still with no way to start it). The <video>'s
-            native poster (videoStill) prevents a black/blank box underneath, so the
-            overlay is just the tappable Play button. Hidden while the user is scrubbing. */}
+        {/* Overlay — shown whenever the ACTIVE video isn't actually playing. Two modes:
+            • LOADING (autoplay still spinning up / clip buffering, not user-paused, not
+              blocked): a BLURRED still + a loading spinner. We deliberately do NOT show a
+              crisp poster here — a poster can be stale (e.g. after the video was replaced),
+              so a blurred placeholder + spinner is honest until the real video renders.
+            • PAUSED (user tapped) / BLOCKED (autoplay denied): a tappable Play button. On a
+              user pause we leave the browser's current frame visible (no blurred cover).
+            The whole overlay is tappable → plays. Hidden while scrubbing. */}
         {(media[active]?.type === "video" || media[active]?.type === "cvideo") && inView && !playing && (paused || vidFailed || playHint) && !scrubRef.current.isScrubbing && (
-          <button type="button" aria-label="Play"
+          <button type="button" aria-label={paused || vidFailed ? "Play" : "Loading"}
             onClick={() => { const v = videoRefs.current[active]; if (v) { pausedRef.current = false; setPaused(false); v.muted = true; v.play().then(() => { setVidFailed(false); setPlaying(true); }).catch(() => setVidFailed(true)); } }}
             className="absolute inset-0 z-10 grid place-items-center">
-            {/* Clear poster so a not-yet-playing / iOS-stuck video never shows the blurred
-                fill behind it. Sits under the Play button, over the blurred background. */}
-            {activePoster && (
+            {/* Blurred backdrop while loading / when autoplay was blocked (no real frame yet).
+                Skipped on a user pause so the current video frame stays crisp underneath. */}
+            {!paused && (activePoster || videoStill) && (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={activePoster} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <img src={activePoster || videoStill} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl" />
             )}
-            <span className="absolute inset-0 bg-black/20" />
-            <Play className="relative z-10 h-16 w-16 fill-white/60 text-white/60" />
+            <span className="absolute inset-0 bg-black/30" />
+            {paused || vidFailed
+              ? <Play className="relative z-10 h-16 w-16 fill-white/70 text-white/70" />
+              : <Loader2 className="relative z-10 h-12 w-12 animate-spin text-white/85" />}
           </button>
         )}
 
