@@ -22,6 +22,8 @@ export type FeedLook = {
   videoUrl?: string;
   videoPosterUrl?: string;
   tryOnImageUrl?: string;
+  clothesImageUrl?: string;   // curator-uploaded garment reference (shown as a carousel slide + used for try-on)
+  locationImageUrl?: string;  // curator-uploaded location reference (used for try-on)
   communityTryOns?: { imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string }[];
   feedOrder?: number;
   aiCreated?: boolean;
@@ -154,6 +156,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     | { type: "cvideo"; url: string; name?: string; poster?: string }
     | { type: "compare"; afterUrl: string; beforeUrl: string; name?: string }
     | { type: "cphoto"; url: string; name?: string }
+    | { type: "refimage"; url: string; label: string }
     | { type: "product"; alt: ShopAlt }
   )[] = [
     // 1) ALL community try-on videos as separate slides (most engaging content first).
@@ -170,6 +173,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       ? [{ type: "compare" as const, afterUrl: repTryOn.imageUrl, beforeUrl: repTryOn.userPhotoUrl, name: repTryOn.name }]
       : repTryOn?.imageUrl ? [{ type: "cphoto" as const, url: repTryOn.imageUrl, name: repTryOn.name }]
       : (heroImg ? [{ type: "image" as const }] : [])),
+    // 3) Curator-uploaded garment reference (the actual piece) as its own slide.
+    ...(look.clothesImageUrl ? [{ type: "refimage" as const, url: look.clothesImageUrl, label: "The garment" }] : []),
   ];
   void shopAlts;
   // How many people have tried this look on (distinct names, else photo count).
@@ -481,6 +486,16 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   <img src={m.url} alt={`${m.name ?? "member"} try-on`} className="h-full w-full object-cover" />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{m.name ? `${m.name}'s try-on` : "Try-on photo"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
+                </div>
+              ) : m.type === "refimage" ? (
+                // Curator-uploaded garment reference — the actual piece, shown whole
+                // (object-contain on a blurred fill so odd aspect ratios aren't cropped).
+                <div className="relative h-full w-full bg-black">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={m.url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-2xl" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={m.url} alt={m.label} className="absolute inset-0 h-full w-full object-contain" />
+                  <span className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 rounded-full bg-white/85 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-black/70 backdrop-blur`}>{m.label}</span>
                 </div>
               ) : m.type === "image" ? (
                 <div className="relative h-full w-full">
