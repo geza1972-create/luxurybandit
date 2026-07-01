@@ -430,6 +430,31 @@ export async function getSignedUrl(path: string, expiresIn = 60 * 60 * 24) {
   return signedUrl.startsWith("http") ? signedUrl : `${url}/storage/v1${signedUrl}`;
 }
 
+// Create a one-time signed UPLOAD url so the browser can PUT a large file straight
+// to Supabase Storage — bypassing Vercel's ~4.5 MB serverless request-body limit
+// (which silently killed 14 MB video uploads that went through our API function).
+// The returned `uploadUrl` is PUT directly from the client with the raw file bytes.
+export async function createSignedUploadUrl(folder: "videos" | "uploads", extension: string) {
+  await ensureBucket();
+  const { url } = getSupabaseConfig();
+  const ext = (extension || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "") || "mp4";
+  const path = `try-this-look/${folder}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+  const response = await supabaseFetch(`/storage/v1/object/upload/sign/${BUCKET}/${encodeStoragePath(path)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  });
+  if (!response.ok) {
+    const p = await response.json().catch(() => null);
+    throw new Error(p?.message ?? "Could not create upload URL.");
+  }
+  const payload = await response.json().catch(() => null);
+  const signed = payload?.url || payload?.signedURL || payload?.signedUrl || "";
+  if (!signed) throw new Error("Could not create upload URL.");
+  const uploadUrl = signed.startsWith("http") ? signed : `${url}/storage/v1${signed}`;
+  return { path, uploadUrl };
+}
+
 // Batch signing — one request for all paths (replaces N individual calls)
 async function batchGetSignedUrls(paths: string[]): Promise<Map<string, string>> {
   const unique = [...new Set(paths.filter(Boolean))];

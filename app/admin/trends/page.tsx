@@ -766,18 +766,41 @@ export default function AdminTrends() {
     setUploadingVideo("");
   };
   // Upload / replace the look's video with an own clip (e.g. a fresh Pixverse reel).
+  // Uploads the file DIRECTLY to Supabase Storage via a signed upload URL, so large
+  // clips (14 MB+) don't hit Vercel's ~4.5 MB API request-body limit (which used to
+  // fail silently and show the misleading "Anmeldung/Pin prüfen" message).
   const replaceLookVideo = async (lookId: string, file: File) => {
     setUploadingVideo(lookId); setEditErr("");
-    if (!file.type.startsWith("video/")) { setEditErr("Datei ist kein Video."); setUploadingVideo(""); return; }
-    if (file.size > 50 * 1024 * 1024) { setEditErr("Video zu groß (max. 50 MB)."); setUploadingVideo(""); return; }
-    const fd = new FormData(); fd.append("lookId", lookId); fd.append("curatorId", getCuratorId()); fd.append("video", file);
+    if (!file.type.startsWith("video/")) { setEditErr("File is not a video."); setUploadingVideo(""); return; }
+    if (file.size > 200 * 1024 * 1024) { setEditErr("Video too large (max. 200 MB)."); setUploadingVideo(""); return; }
     try {
-      const res = await fetch("/api/upload-look-video", { method: "POST", headers: { "x-try-look-admin-pin": getStoredPin(), "x-curator-id": getCuratorId() }, body: fd });
-      const d = await res.json().catch(() => null);
-      if (res.ok && d?.videoUrl) setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, videoUrl: d.videoUrl } : l));
-      else setEditErr(d?.error || "Video-Upload fehlgeschlagen — Anmeldung/Pin prüfen.");
-    } catch { setEditErr("Video-Upload fehlgeschlagen."); }
+      const url = await uploadVideoDirect(lookId, file);
+      if (url) setMyLooks((ls) => ls.map(l => l.id === lookId ? { ...l, videoUrl: url } : l));
+      else setEditErr("Video upload failed — please try again.");
+    } catch (e) {
+      setEditErr(e instanceof Error ? e.message : "Video upload failed.");
+    }
     setUploadingVideo("");
+  };
+
+  // Shared 3-step direct upload: (1) ask our API for a signed upload URL, (2) PUT the
+  // file straight to Supabase, (3) tell our API to attach the uploaded path. Returns
+  // the playable videoUrl (or throws with a clear message).
+  const uploadVideoDirect = async (lookId: string, file: File): Promise<string> => {
+    const authHeaders = { "Content-Type": "application/json", "x-try-look-admin-pin": getStoredPin(), "x-curator-id": getCuratorId() };
+    const ext = (file.name.split(".").pop() || "mp4").toLowerCase();
+    // 1) signed upload URL
+    const signRes = await fetch("/api/upload-look-video", { method: "POST", headers: authHeaders, body: JSON.stringify({ lookId, sign: true, ext }) });
+    const sign = await signRes.json().catch(() => null);
+    if (!signRes.ok || !sign?.uploadUrl) throw new Error(sign?.error || "Could not start the upload (check admin PIN / ownership).");
+    // 2) direct PUT to Supabase Storage (no Vercel size limit)
+    const put = await fetch(sign.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type || "video/mp4", "x-upsert": "true" }, body: file });
+    if (!put.ok) throw new Error(`Upload to storage failed (${put.status}).`);
+    // 3) attach the uploaded path to the look
+    const attachRes = await fetch("/api/upload-look-video", { method: "POST", headers: authHeaders, body: JSON.stringify({ lookId, videoPath: sign.path }) });
+    const attach = await attachRes.json().catch(() => null);
+    if (!attachRes.ok || !attach?.videoUrl) throw new Error(attach?.error || "Could not attach the video.");
+    return attach.videoUrl as string;
   };
   // The "Reel hochladen" tool: take an own finished video (e.g. a Pixverse reel) and
   // post it as a NEW feed look — a funnel post (Try-on / Bandit). Creates the look
@@ -877,15 +900,13 @@ export default function AdminTrends() {
       const d1 = await r1.json();
       const lookId = d1.lookId || d1.look?.id;
       if (!r1.ok || !lookId) { setReelErr(d1.error ?? "Look konnte nicht angelegt werden."); setReelBusy(false); setReelStep(""); return; }
-      // 2) attach the video
+      // 2) attach the video — direct-to-Supabase (no Vercel 4.5 MB body limit).
       setReelStep("Video hochladen…");
-      const fd = new FormData();
-      fd.append("lookId", lookId);
-      fd.append("curatorId", getCuratorId());
-      fd.append("video", reelFile);
-      const r2 = await fetch("/api/upload-look-video", { method: "POST", headers: { "x-try-look-admin-pin": getStoredPin(), "x-curator-id": getCuratorId() }, body: fd });
-      const d2 = await r2.json();
-      if (!r2.ok || !d2.videoUrl) { setReelErr(d2.error ?? "Video-Upload fehlgeschlagen (Look wurde angelegt)."); setReelBusy(false); setReelStep(""); return; }
+      let reelVideoUrl = "";
+      try { reelVideoUrl = await uploadVideoDirect(lookId, reelFile); } catch (e) {
+        setReelErr(e instanceof Error ? e.message : "Video-Upload fehlgeschlagen (Look wurde angelegt)."); setReelBusy(false); setReelStep(""); return;
+      }
+      if (!reelVideoUrl) { setReelErr("Video-Upload fehlgeschlagen (Look wurde angelegt)."); setReelBusy(false); setReelStep(""); return; }
       // 3) clothes image → shop dupes (similar looks for less). 4) location image →
       // similar escapes (reverse-image search). Both stored on the look for "Bandit the look".
       let alternatives: any[] = [];
