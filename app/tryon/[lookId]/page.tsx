@@ -992,6 +992,54 @@ export default function TryonPage() {
   // Lingerie if the look is lingerie OR the chosen shop card is the lingerie upsell.
   const effectiveLingerie = look.lingerie === true || (previewAltIdx >= 0 && look.alternatives?.[previewAltIdx]?.lingerie === true);
 
+  // Run the paid video deliverable once payment is confirmed. Same routing as the
+  // staff (free) branch: 360° + lingerie video use the reference-video pipeline; a
+  // normal video animates the user's own result photo.
+  const runPaidVideo = (tier: "video" | "video360") => {
+    if (tier === "video360") { void startReferenceVideo(true); return; }
+    if (effectiveLingerie) { void startReferenceVideo(false); return; }
+    if (resultImage) void startTryonVideo(resultImage, false);
+  };
+
+  // Paid tier → Stripe Checkout in a POPUP (keeps the user's photo/result in memory —
+  // a full-page redirect would lose them). We poll the session; on paid → generate.
+  const startCheckout = async (tier: "video" | "video360") => {
+    setError(null);
+    // Open the popup synchronously in the click gesture so it isn't blocked.
+    const popup = typeof window !== "undefined" ? window.open("about:blank", "lb-checkout", "width=480,height=760") : null;
+    try {
+      const res = await fetch("/api/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lookId: look.id, tier }),
+      });
+      const d = await res.json().catch(() => null);
+      if (!res.ok || !d?.url || !d?.sessionId) {
+        try { popup?.close(); } catch { /**/ }
+        setError(d?.error || "Could not start checkout. Please try again.");
+        return;
+      }
+      if (popup) popup.location.href = d.url; else window.location.href = d.url;
+      const sid = String(d.sessionId);
+      const deadline = Date.now() + 6 * 60 * 1000; // give them 6 min to pay
+      const poll = async () => {
+        if (Date.now() > deadline) return;
+        let paid = false;
+        try {
+          const s = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(sid)}`).then(r => r.json());
+          paid = !!s?.paid;
+        } catch { /* transient — keep polling */ }
+        if (paid) { try { popup?.close(); } catch { /**/ } runPaidVideo(tier); return; }
+        if (popup?.closed) return; // user closed the popup without paying
+        window.setTimeout(poll, 2500);
+      };
+      window.setTimeout(poll, 2500);
+    } catch {
+      try { popup?.close(); } catch { /**/ }
+      setError("Could not start checkout. Please try again.");
+    }
+  };
+
   // "THE LOOK" preview = the exact piece we try on. Prefer the curator's uploaded
   // garment reference (clothesImageUrl) so the shown image MATCHES what the AI dresses
   // you in — not the (possibly stale) look hero/video still.
@@ -1316,11 +1364,11 @@ export default function TryonPage() {
                 <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-black">{isStaff ? "Free" : effectiveLingerie ? "$4.90" : "$2.90"}</span>
               </div>
               <button type="button"
-                onClick={() => { if (isStaff) { if (effectiveLingerie) void startReferenceVideo(false); else if (resultImage) void startTryonVideo(resultImage, false); } else setPaidSoon("video"); }}
+                onClick={() => { if (isStaff) { if (effectiveLingerie) void startReferenceVideo(false); else if (resultImage) void startTryonVideo(resultImage, false); } else void startCheckout("video"); }}
                 className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-black text-black active:scale-95 transition-transform">
                 <Film className="h-4 w-4" /> Make it a video
               </button>
-              {paidSoon === "video" && !isStaff && <p className="mt-2 text-center text-[12px] font-bold text-white/70">Coming very soon — activates at checkout.</p>}
+              {paidSoon === "video" && !isStaff && <p className="mt-2 text-center text-[12px] font-bold text-white/70">Opening secure checkout…</p>}
             </div>
           )}
 
@@ -1336,11 +1384,11 @@ export default function TryonPage() {
                 <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-black">{isStaff ? "Free" : "$7.90"}</span>
               </div>
               <button type="button" disabled={isStaff && videoStatus === "generating"}
-                onClick={() => { if (isStaff) void startReferenceVideo(true); else setShow360Note(true); }}
+                onClick={() => { if (isStaff) void startReferenceVideo(true); else void startCheckout("video360"); }}
                 className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-black text-black active:scale-95 transition-transform disabled:opacity-50">
                 {isStaff && videoStatus === "generating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Get the 360° video
               </button>
-              {show360Note && !isStaff && <p className="mt-2 text-center text-[12px] font-bold text-white/70">Coming very soon — activates at checkout.</p>}
+              {show360Note && !isStaff && <p className="mt-2 text-center text-[12px] font-bold text-white/70">Opening secure checkout…</p>}
             </div>
           )}
 

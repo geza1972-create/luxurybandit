@@ -59,6 +59,15 @@ export async function POST(request: Request) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
+
+    // Per-try-on payments (create-checkout marks metadata.kind = "tryon") are fulfilled
+    // client-side via /api/checkout-status on return — they must NOT add credits here.
+    const kind = String((session.metadata as Record<string, unknown> | undefined)?.kind ?? "");
+    if (kind === "tryon") {
+      console.info("[stripe-webhook] tryon payment completed (no credits) —", session.id);
+      return NextResponse.json({ received: true });
+    }
+
     const accountId = String(session.client_reference_id ?? "").trim();
 
     if (!accountId) {
