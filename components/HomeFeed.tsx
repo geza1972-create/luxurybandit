@@ -330,10 +330,6 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   // When the active carousel slide is a shop option, show its buy card on white below
   // AND make "Try This Look" use THAT product (its clean image), not the look's photo.
   const am = media[active];
-  // Clear still for the active video when it isn't playing (covers the iOS case where
-  // play() removes the poster but no frame renders → the blurred fill showed through).
-  // cvideo → that member's own try-on photo; look video → its cover. Never the blur.
-  const activePoster = am?.type === "cvideo" ? (am.poster || videoStill) : videoStill;
   const activeProduct = am && am.type === "product" ? am.alt : null;
   const activeAltIdx = activeProduct
     ? (look.alternatives ?? []).findIndex(a => a?.link === activeProduct.link && a?.thumbnail === activeProduct.thumbnail)
@@ -451,7 +447,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               {m.type === "video" ? (
                 <div className="relative h-full w-full">
                   <video ref={el => { if (el) { el.muted = true; videoRefs.current[i] = el; } else delete videoRefs.current[i]; }}
-                    src={look.videoUrl} poster={videoStill} className="h-full w-full object-cover cursor-grab active:cursor-grabbing"
+                    src={look.videoUrl} className="h-full w-full bg-black object-cover cursor-grab active:cursor-grabbing"
                     onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted autoPlay loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos}
                     onPlaying={() => { if (i === active) { setPlaying(true); setVidFailed(false); } }} onPause={() => { if (i === active) setPlaying(false); }} onStalled={() => { if (i === active) setPlaying(false); }} />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
@@ -512,24 +508,18 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         </div>
 
         {/* Overlay — shown whenever the ACTIVE video isn't actually playing. Two modes:
-            • LOADING (autoplay still spinning up / clip buffering, not user-paused, not
-              blocked): a BLURRED still + a loading spinner. We deliberately do NOT show a
-              crisp poster here — a poster can be stale (e.g. after the video was replaced),
-              so a blurred placeholder + spinner is honest until the real video renders.
+            • LOADING (autoplay spinning up / buffering): just a spinner on a dark scrim —
+              NO preview image at all. The curator video carries no poster (bg-black), so a
+              still-loading clip shows black + spinner, never a stale look photo; once it
+              renders it shows the video's OWN frame.
             • PAUSED (user tapped) / BLOCKED (autoplay denied): a tappable Play button. On a
-              user pause we leave the browser's current frame visible (no blurred cover).
+              user pause the browser's current frame stays visible under the light scrim.
             The whole overlay is tappable → plays. Hidden while scrubbing. */}
         {(media[active]?.type === "video" || media[active]?.type === "cvideo") && inView && !playing && (paused || vidFailed || playHint) && !scrubRef.current.isScrubbing && (
           <button type="button" aria-label={paused || vidFailed ? "Play" : "Loading"}
             onClick={() => { const v = videoRefs.current[active]; if (v) { pausedRef.current = false; setPaused(false); v.muted = true; v.play().then(() => { setVidFailed(false); setPlaying(true); }).catch(() => setVidFailed(true)); } }}
             className="absolute inset-0 z-10 grid place-items-center">
-            {/* Blurred backdrop while loading / when autoplay was blocked (no real frame yet).
-                Skipped on a user pause so the current video frame stays crisp underneath. */}
-            {!paused && (activePoster || videoStill) && (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={activePoster || videoStill} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl" />
-            )}
-            <span className="absolute inset-0 bg-black/30" />
+            <span className={`absolute inset-0 ${paused ? "bg-black/25" : "bg-black/45"}`} />
             {paused || vidFailed
               ? <Play className="relative z-10 h-16 w-16 fill-white/70 text-white/70" />
               : <Loader2 className="relative z-10 h-12 w-12 animate-spin text-white/85" />}
