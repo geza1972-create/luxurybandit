@@ -73,7 +73,15 @@ export default function AdminPage() {
   const [gateMode, setGateMode] = useState<"login" | "pin">("login");
   const [note, setNote] = useState("");
   const [authed, setAuthed] = useState(false);
-  const [tab, setTab] = useState<"looks" | "curators" | "inbox" | "posts" | "insights">("looks");
+  const [tab, setTab] = useState<"looks" | "curators" | "users" | "inbox" | "posts" | "insights">("looks");
+  // "Users" tab: everyone who signed up — email-gate leads + Google/FB/password (Supabase auth).
+  type AdminUser = { kind: "lead" | "auth"; id: string; email: string; name: string; provider: string; status?: string; createdAt?: string; lookName?: string };
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [usersLoaded, setUsersLoaded] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersAuthError, setUsersAuthError] = useState("");
+  const [userEditId, setUserEditId] = useState("");
+  const [userNameDraft, setUserNameDraft] = useState("");
   type AdminPost = { id: string; lookId: string; imageUrl: string; videoUrl?: string; customerName: string; curatorId: string; lookName: string; feed: boolean; createdAt: string };
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [postsLoaded, setPostsLoaded] = useState(false);
@@ -451,6 +459,43 @@ export default function AdminPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, postsLoaded]);
 
+  // ── Users tab: email-gate leads + Supabase auth users (Google/FB/password) ──
+  const loadUsers = () => {
+    setUsersLoading(true);
+    fetch("/api/admin-users", { headers: headers() })
+      .then(r => r.ok ? r.json() : { leads: [], authUsers: [], authError: "Admin only" })
+      .then((d: { leads?: any[]; authUsers?: any[]; authError?: string }) => {
+        const leads: AdminUser[] = (d.leads ?? []).filter((l: any) => l.email).map((l: any) => ({ kind: "lead", id: l.id, email: l.email, name: l.name || "", provider: l.source || "email", status: l.status, createdAt: l.createdAt, lookName: l.lookName }));
+        const auth: AdminUser[] = (d.authUsers ?? []).map((a: any) => ({ kind: "auth", id: a.id, email: a.email, name: a.name || "", provider: a.provider || "email", createdAt: a.createdAt }));
+        setUsers([...leads, ...auth].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""))));
+        setUsersAuthError(d.authError ?? "");
+        setUsersLoaded(true);
+      })
+      .catch(() => {})
+      .finally(() => setUsersLoading(false));
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (tab === "users" && !usersLoaded) loadUsers(); }, [tab, usersLoaded]);
+
+  const saveUserName = async (u: AdminUser, name: string) => {
+    setUsers(us => us.map(x => (x.kind === u.kind && x.id === u.id) ? { ...x, name } : x));
+    setUserEditId("");
+    const url = u.kind === "auth" ? "/api/admin-users" : "/api/try-this-look";
+    const body = u.kind === "auth" ? { action: "update-auth-user", id: u.id, name } : { action: "update-lead", id: u.id, name };
+    await fetch(url, { method: "POST", headers: headers(), body: JSON.stringify(body) }).catch(() => {});
+  };
+  const setLeadStatus = async (u: AdminUser, status: string) => {
+    if (u.kind !== "lead") return;
+    setUsers(us => us.map(x => (x.kind === "lead" && x.id === u.id) ? { ...x, status } : x));
+    await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "update-lead", id: u.id, status }) }).catch(() => {});
+  };
+  const deleteUser = async (u: AdminUser) => {
+    setUsers(us => us.filter(x => !(x.kind === u.kind && x.id === u.id)));
+    const url = u.kind === "auth" ? "/api/admin-users" : "/api/try-this-look";
+    const body = u.kind === "auth" ? { action: "delete-auth-user", id: u.id } : { action: "delete-lead", id: u.id };
+    await fetch(url, { method: "POST", headers: headers(), body: JSON.stringify(body) }).catch(() => {});
+  };
+
   // ── Insights "Live": poll recent events every 4s while watching, so clicks stream in ──
   useEffect(() => {
     if (tab !== "insights" || !liveOn) return;
@@ -628,6 +673,10 @@ export default function AdminPage() {
           <button type="button" onClick={() => setTab("curators")}
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "curators" ? "bg-black text-white" : "text-ink/50"}`}>
             <Users className="h-4 w-4" /> Curators <span className="opacity-60">{curators.length}</span>
+          </button>
+          <button type="button" onClick={() => setTab("users")}
+            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "users" ? "bg-black text-white" : "text-ink/50"}`}>
+            <UserPlus className="h-4 w-4" /> Users {usersLoaded && <span className="opacity-60">{users.length}</span>}
           </button>
           <button type="button" onClick={() => setTab("posts")}
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "posts" ? "bg-black text-white" : "text-ink/50"}`}>
@@ -932,6 +981,61 @@ export default function AdminPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* ── Users: everyone who signed up (email-gate leads + Google/FB/password) ── */}
+        {tab === "users" && (
+          <div className="mt-3 pb-16">
+            {usersAuthError && (
+              <p className="mb-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-bold text-amber-700">
+                Google/Facebook/Passwort-User konnten nicht geladen werden ({usersAuthError}). E-Mail-Leads werden trotzdem angezeigt.
+              </p>
+            )}
+            {usersLoading && !usersLoaded ? (
+              <div className="flex items-center justify-center py-10 text-ink/40"><Loader2 className="h-5 w-5 animate-spin" /></div>
+            ) : (() => {
+              const q = query.trim().toLowerCase();
+              const shown = q ? users.filter(u => `${u.name} ${u.email}`.toLowerCase().includes(q)) : users;
+              if (shown.length === 0) return <p className="py-10 text-center text-sm font-bold text-ink/40">Noch keine User.</p>;
+              const providerLabel = (u: AdminUser) => u.kind === "auth" ? (u.provider === "google" ? "Google" : u.provider === "facebook" ? "Facebook" : "Passwort") : "E-Mail";
+              return (
+                <div className="flex flex-col gap-2">
+                  {shown.map(u => {
+                    const key = `${u.kind}-${u.id}`;
+                    return (
+                      <div key={key} className="flex items-center gap-2.5 rounded-xl border border-black/10 bg-white p-3">
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${u.kind === "auth" ? "bg-cobalt/10 text-cobalt" : "bg-black/[0.06] text-ink/60"}`}>{providerLabel(u)}</span>
+                        <div className="min-w-0 flex-1">
+                          {userEditId === key ? (
+                            <input autoFocus value={userNameDraft} onChange={e => setUserNameDraft(e.target.value)}
+                              onKeyDown={e => { if (e.key === "Enter") void saveUserName(u, userNameDraft); if (e.key === "Escape") setUserEditId(""); }}
+                              className="h-8 w-full rounded-lg border border-cobalt px-2 text-sm font-bold outline-none" placeholder="Name…" />
+                          ) : (
+                            <p className="truncate text-sm font-black text-ink">{u.name || <span className="text-ink/30">Kein Name</span>}</p>
+                          )}
+                          <p className="truncate text-[12px] font-bold text-ink/50">{u.email}</p>
+                          <p className="truncate text-[10px] font-bold text-ink/35">{u.createdAt ? new Date(u.createdAt).toLocaleString() : ""}{u.lookName ? ` · ${u.lookName}` : ""}</p>
+                        </div>
+                        {u.kind === "lead" && (
+                          <select value={u.status ?? "new"} onChange={e => void setLeadStatus(u, e.target.value)}
+                            className="h-8 shrink-0 rounded-lg border border-black/10 bg-white px-1.5 text-[11px] font-black text-ink/70 outline-none">
+                            <option value="new">Neu</option><option value="contacted">Kontaktiert</option><option value="closed">Erledigt</option>
+                          </select>
+                        )}
+                        {userEditId === key ? (
+                          <button type="button" onClick={() => void saveUserName(u, userNameDraft)} className="shrink-0 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[11px] font-black text-white active:scale-95 transition-transform">Save</button>
+                        ) : (
+                          <button type="button" onClick={() => { setUserEditId(key); setUserNameDraft(u.name); }} title="Name bearbeiten" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-black/10 text-ink/60 active:scale-95 transition-transform"><Pencil className="h-3.5 w-3.5" /></button>
+                        )}
+                        <button type="button" onClick={() => armOrRun(`u-${key}`, () => void deleteUser(u))} title="Löschen"
+                          className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg border active:scale-95 transition-transform ${confirmId === `u-${key}` ? "border-red-500 bg-red-500 text-white" : "border-black/10 text-red-500"}`}><Trash2 className="h-3.5 w-3.5" /></button>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
 

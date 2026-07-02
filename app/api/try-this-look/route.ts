@@ -974,6 +974,36 @@ export async function POST(request: Request) {
       });
     }
 
+    // Edit a lead (email-gate signup): admin can set/correct the name and/or status.
+    if (payload.action === "update-lead") {
+      if (!(await isAdmin(request))) {
+        return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      }
+      const leadId = String(payload.id ?? "");
+      if (!state.leads.some((lead) => lead.id === leadId)) {
+        return NextResponse.json({ error: "Lead was not found." }, { status: 404 });
+      }
+      const hasName = Object.prototype.hasOwnProperty.call(payload, "name");
+      const nextStatus = String((payload as any).status ?? "");
+      const statusValid = ["new", "contacted", "closed"].includes(nextStatus);
+      state.leads = state.leads.map((lead) =>
+        lead.id === leadId
+          ? {
+              ...lead,
+              ...(hasName ? { name: String((payload as any).name ?? "").trim() } : {}),
+              ...(statusValid ? { status: nextStatus as "new" | "contacted" | "closed" } : {}),
+            }
+          : lead
+      );
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json({
+        ...ps(updatedState),
+        events: updatedState.events,
+        leads: updatedState.leads,
+        generations: updatedState.generations
+      });
+    }
+
     if (payload.action === "delete-lead") {
       if (!(await isAdmin(request))) {
         return NextResponse.json({ error: "Admin access required." }, { status: 401 });
