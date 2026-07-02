@@ -41,6 +41,13 @@ export default function AboutPage() {
         shop you buy from.
       </p>
 
+      <h2>Contact</h2>
+      <address className="not-italic text-black/70">
+        <strong>LuxuryBandit</strong><br />
+        Luisenstr. 51<br />
+        Berlin
+      </address>
+
       <p className="mt-6 text-xs text-black/40">
         Questions? Reach us through your <Link href="/curators">curator profile</Link> or the in-app messages.
       </p>
