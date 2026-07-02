@@ -174,9 +174,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       ? [{ type: "compare" as const, afterUrl: repTryOn.imageUrl, beforeUrl: repTryOn.userPhotoUrl, name: repTryOn.name }]
       : repTryOn?.imageUrl ? [{ type: "cphoto" as const, url: repTryOn.imageUrl, name: repTryOn.name }]
       : (heroImg ? [{ type: "image" as const }] : [])),
-    // 3) Curator-uploaded garment reference (the actual piece) as its own slide.
-    ...(look.clothesImageUrl ? [{ type: "refimage" as const, url: look.clothesImageUrl, label: "The garment" }] : []),
-    // 4) Shop products as swipeable slides — each with a "Shop Now" button on the image.
+    // 3) Shop products as swipeable slides — each with a "Shop Now" button on the image.
+    //    NOTE: the curator's uploaded garment reference (clothesImageUrl) is deliberately
+    //    NOT shown here — it's our internal reference, not a shoppable product.
     ...shopAlts.slice(0, 5).map(a => ({ type: "product" as const, alt: a })),
   ];
   // How many people have tried this look on (distinct names, else photo count).
