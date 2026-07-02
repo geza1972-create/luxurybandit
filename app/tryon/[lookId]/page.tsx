@@ -574,7 +574,7 @@ export default function TryonPage() {
       ]);
       const coverageRule = "Coverage rule: the generated image must keep the person at least as covered as in the original photo. Never expose more skin, remove undergarments, or show less clothing than the input. No nudity; keep intimate areas (chest, groin, buttocks) covered at all times.";
       const prompt = photo
-        ? `Full-body virtual fashion try-on. Show the entire person from head to toe wearing the complete selected outfit. Replace the person's current clothing with the selected garment so the whole look is visible. Preserve the person's face, hair, skin tone, and identity exactly. Full-length framing. ${coverageRule} Look: ${look.name}.`
+        ? `Virtual fashion try-on. Dress the SAME person from the uploaded photo in the complete selected outfit and render them full-length, from head to toe, in a natural standing fashion pose. IMPORTANT: the uploaded photo may show only part of the person (a face, a head-and-shoulders selfie, or an upper body). If so, realistically extend it into a complete full-length body that matches their apparent age, build, and skin tone — do NOT ask for or require a full-body photo, just generate the rest of the body naturally. Preserve the person's face, hair, skin tone, and identity exactly. Professional editorial framing. ${coverageRule} Look: ${look.name}.`
         : `Full-body fashion campaign image. Professional AI model shown head to toe wearing the complete selected outfit. Full-length framing. ${coverageRule} Look: ${look.name}.`;
       // Curator-uploaded location reference → sent as a background/scene image for the
       // try-on (OpenAI path only; FASHN garment-swap ignores it). Best-effort: a failed
@@ -1649,9 +1649,9 @@ export default function TryonPage() {
               <p className="font-black">{error}</p>
               {error.toLowerCase().includes("rejected") && (
                 <ul className="mt-1.5 text-xs text-white/80 list-disc pl-4 space-y-0.5">
-                  <li>Use a full-body standing photo to see the whole look</li>
+                  <li>Any clear photo of you works — selfie or full-length</li>
                   <li>Good lighting, face clearly visible</li>
-                  <li>No heavy filters or cropped faces</li>
+                  <li>No heavy filters</li>
                 </ul>
               )}
             </div>
@@ -1748,7 +1748,7 @@ export default function TryonPage() {
               className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-black/25 bg-black/[0.02] px-2 text-center transition active:scale-95 hover:border-black/45">
               <span className="grid h-11 w-11 place-items-center rounded-full bg-black text-white shadow-lg"><ImagePlus className="h-5 w-5" /></span>
               <span className="text-sm font-black leading-tight text-black">Upload your photo</span>
-              <span className="text-[11px] font-bold leading-tight text-black/40">Tap to add a full-body photo</span>
+              <span className="text-[11px] font-bold leading-tight text-black/40">Tap to add any photo of yourself</span>
             </button>
             <p className="mt-1.5 text-center text-[11px] font-black uppercase tracking-[0.12em] text-black/40">You</p>
           </div>
@@ -1770,7 +1770,7 @@ export default function TryonPage() {
         <div className="w-full max-w-xs rounded-xl border border-black/8 bg-black/[0.03] p-4">
           <p className="text-xs font-black text-black/50 mb-2">Photo tips for best results:</p>
           <ul className="text-xs text-black/40 space-y-1 list-disc pl-4">
-            <li>Full body, standing — to see the whole look</li>
+            <li>Any photo of you — a selfie or full-length both work</li>
             <li>Good lighting, face clearly visible</li>
             <li>No heavy filters</li>
           </ul>

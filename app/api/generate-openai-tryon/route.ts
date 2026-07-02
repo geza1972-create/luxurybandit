@@ -77,8 +77,8 @@ export async function POST(request: Request) {
   const prompt = hasGarment
     ? [
         "Image 1 is a photo of a real person. Image 2 is a clothing item (it may be worn by a different model or shown as a product photo).",
-        "Generate ONE photorealistic image of the SAME person from Image 1 now fully dressed in the clothing item from Image 2.",
-        "Preserve the person's face, hairstyle, skin tone, body shape and pose from Image 1 as closely as possible — it must clearly be the same person.",
+        "Generate ONE photorealistic, full-length editorial image (head to toe) of the SAME person from Image 1, standing in a natural fashion pose, now fully dressed in the clothing item from Image 2.",
+        "Preserve the person's face, hairstyle, skin tone and identity from Image 1 exactly — it must clearly be the same person. IMPORTANT: Image 1 may show only part of the person (just a face, a head-and-shoulders selfie, or an upper body). If so, realistically extend it into a complete full-length body that matches their apparent age, build and skin tone. Never require or assume a full-body input photo — invent the unseen body naturally and proportionally.",
         "The garment must match Image 2 exactly in material, print/pattern, colour, cut and silhouette. Do not redesign or upgrade it.",
         backgroundLine,
         coverageRule,
