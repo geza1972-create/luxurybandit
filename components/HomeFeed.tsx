@@ -235,14 +235,13 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     setBanditRevealed(false);
   }, [look.id]);
 
-  // Show the "Bandit the feeling" button on the video 2s after it's in view.
+  // Show the "Bandit the feeling" button on the video IMMEDIATELY (no delay, no wait
+  // for the video to buffer/come into view) — it must be there right away.
   useEffect(() => {
     if (banditRevealed || showBanditBtn || shopAlts.length === 0) return;
     const isVideo = media[active]?.type === "video" || media[active]?.type === "cvideo";
-    if (!isVideo || !inView) return;
-    const t = window.setTimeout(() => setShowBanditBtn(true), 500);
-    return () => window.clearTimeout(t);
-  }, [active, inView, banditRevealed, showBanditBtn]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (isVideo) setShowBanditBtn(true);
+  }, [active, banditRevealed, showBanditBtn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Track how far the user swipes the carousel. Fire once per NEW deepest slide
   // (slide is 1-based) → count(slide==k) in Insights = viewers who reached ≥ slide k.
