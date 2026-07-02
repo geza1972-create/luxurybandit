@@ -102,7 +102,7 @@ export function FeedGate({
   const field = "h-12 w-full rounded-xl border border-black/12 bg-black/[0.02] px-4 text-sm font-bold text-black outline-none focus:border-black/40";
 
   return (
-    <div className="lb-phone-col fixed inset-0 z-[60] flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+    <div className="lb-phone-col fixed inset-0 z-[80] flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="relative w-full rounded-t-3xl bg-white p-5 shadow-2xl" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" }} onClick={(e) => e.stopPropagation()}>
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-black/15" />
         <button type="button" onClick={onClose} aria-label="Close" className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full text-black/40 active:bg-black/5">
