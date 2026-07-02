@@ -75,7 +75,7 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [tab, setTab] = useState<"looks" | "curators" | "users" | "inbox" | "posts" | "insights">("looks");
   // "Users" tab: everyone who signed up — email-gate leads + Google/FB/password (Supabase auth).
-  type AdminUser = { kind: "lead" | "auth"; id: string; email: string; name: string; provider: string; status?: string; createdAt?: string; lookName?: string };
+  type AdminUser = { email: string; name: string; provider: string; status?: string; createdAt?: string; lookName?: string; leadId?: string; authId?: string };
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [usersLoaded, setUsersLoaded] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
@@ -459,15 +459,32 @@ export default function AdminPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, postsLoaded]);
 
-  // ── Users tab: email-gate leads + Supabase auth users (Google/FB/password) ──
+  // ── Users tab: everyone who signed up, DEDUPED by email — a person who both signed
+  //    up (Supabase auth) AND left their email at the try-on gate (lead) is ONE row. ──
   const loadUsers = () => {
     setUsersLoading(true);
     fetch("/api/admin-users", { headers: headers() })
       .then(r => r.ok ? r.json() : { leads: [], authUsers: [], authError: "Admin only" })
       .then((d: { leads?: any[]; authUsers?: any[]; authError?: string }) => {
-        const leads: AdminUser[] = (d.leads ?? []).filter((l: any) => l.email).map((l: any) => ({ kind: "lead", id: l.id, email: l.email, name: l.name || "", provider: l.source || "email", status: l.status, createdAt: l.createdAt, lookName: l.lookName }));
-        const auth: AdminUser[] = (d.authUsers ?? []).map((a: any) => ({ kind: "auth", id: a.id, email: a.email, name: a.name || "", provider: a.provider || "email", createdAt: a.createdAt }));
-        setUsers([...leads, ...auth].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""))));
+        const byEmail = new Map<string, AdminUser>();
+        for (const a of (d.authUsers ?? [])) { // auth accounts first (the real login)
+          const email = String(a.email ?? "").toLowerCase();
+          if (!email) continue;
+          byEmail.set(email, { email, name: a.name || "", provider: a.provider || "email", createdAt: a.createdAt, authId: a.id });
+        }
+        for (const l of (d.leads ?? [])) { // merge in email-gate leads by email
+          const email = String(l.email ?? "").toLowerCase();
+          if (!email) continue;
+          const cur = byEmail.get(email);
+          if (cur) {
+            cur.leadId = l.id; cur.status = l.status; cur.lookName = l.lookName;
+            if (!cur.name && l.name) cur.name = l.name;
+            if (l.createdAt && (!cur.createdAt || String(l.createdAt) < String(cur.createdAt))) cur.createdAt = l.createdAt;
+          } else {
+            byEmail.set(email, { email, name: l.name || "", provider: "email", status: l.status, createdAt: l.createdAt, lookName: l.lookName, leadId: l.id });
+          }
+        }
+        setUsers([...byEmail.values()].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""))));
         setUsersAuthError(d.authError ?? "");
         setUsersLoaded(true);
       })
@@ -477,23 +494,23 @@ export default function AdminPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (tab === "users" && !usersLoaded) loadUsers(); }, [tab, usersLoaded]);
 
+  const patchUser = (email: string, patch: Partial<AdminUser>) => setUsers(us => us.map(x => x.email === email ? { ...x, ...patch } : x));
+  // Edit name → update BOTH underlying records (lead + auth account) so they stay in sync.
   const saveUserName = async (u: AdminUser, name: string) => {
-    setUsers(us => us.map(x => (x.kind === u.kind && x.id === u.id) ? { ...x, name } : x));
+    patchUser(u.email, { name });
     setUserEditId("");
-    const url = u.kind === "auth" ? "/api/admin-users" : "/api/try-this-look";
-    const body = u.kind === "auth" ? { action: "update-auth-user", id: u.id, name } : { action: "update-lead", id: u.id, name };
-    await fetch(url, { method: "POST", headers: headers(), body: JSON.stringify(body) }).catch(() => {});
+    if (u.leadId) await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "update-lead", id: u.leadId, name }) }).catch(() => {});
+    if (u.authId) await fetch("/api/admin-users", { method: "POST", headers: headers(), body: JSON.stringify({ action: "update-auth-user", id: u.authId, name }) }).catch(() => {});
   };
   const setLeadStatus = async (u: AdminUser, status: string) => {
-    if (u.kind !== "lead") return;
-    setUsers(us => us.map(x => (x.kind === "lead" && x.id === u.id) ? { ...x, status } : x));
-    await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "update-lead", id: u.id, status }) }).catch(() => {});
+    if (!u.leadId) return;
+    patchUser(u.email, { status });
+    await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "update-lead", id: u.leadId, status }) }).catch(() => {});
   };
   const deleteUser = async (u: AdminUser) => {
-    setUsers(us => us.filter(x => !(x.kind === u.kind && x.id === u.id)));
-    const url = u.kind === "auth" ? "/api/admin-users" : "/api/try-this-look";
-    const body = u.kind === "auth" ? { action: "delete-auth-user", id: u.id } : { action: "delete-lead", id: u.id };
-    await fetch(url, { method: "POST", headers: headers(), body: JSON.stringify(body) }).catch(() => {});
+    setUsers(us => us.filter(x => x.email !== u.email));
+    if (u.leadId) await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-lead", id: u.leadId }) }).catch(() => {});
+    if (u.authId) await fetch("/api/admin-users", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-auth-user", id: u.authId }) }).catch(() => {});
   };
 
   // ── Insights "Live": poll recent events every 4s while watching, so clicks stream in ──
@@ -998,14 +1015,14 @@ export default function AdminPage() {
               const q = query.trim().toLowerCase();
               const shown = q ? users.filter(u => `${u.name} ${u.email}`.toLowerCase().includes(q)) : users;
               if (shown.length === 0) return <p className="py-10 text-center text-sm font-bold text-ink/40">Noch keine User.</p>;
-              const providerLabel = (u: AdminUser) => u.kind === "auth" ? (u.provider === "google" ? "Google" : u.provider === "facebook" ? "Facebook" : "Passwort") : "E-Mail";
+              const providerLabel = (u: AdminUser) => u.authId ? (u.provider === "google" ? "Google" : u.provider === "facebook" ? "Facebook" : "Passwort") : "E-Mail";
               return (
                 <div className="flex flex-col gap-2">
                   {shown.map(u => {
-                    const key = `${u.kind}-${u.id}`;
+                    const key = u.email;
                     return (
                       <div key={key} className="flex items-center gap-2.5 rounded-xl border border-black/10 bg-white p-3">
-                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${u.kind === "auth" ? "bg-cobalt/10 text-cobalt" : "bg-black/[0.06] text-ink/60"}`}>{providerLabel(u)}</span>
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${u.authId ? "bg-cobalt/10 text-cobalt" : "bg-black/[0.06] text-ink/60"}`}>{providerLabel(u)}</span>
                         <div className="min-w-0 flex-1">
                           {userEditId === key ? (
                             <input autoFocus value={userNameDraft} onChange={e => setUserNameDraft(e.target.value)}
@@ -1015,9 +1032,9 @@ export default function AdminPage() {
                             <p className="truncate text-sm font-black text-ink">{u.name || <span className="text-ink/30">Kein Name</span>}</p>
                           )}
                           <p className="truncate text-[12px] font-bold text-ink/50">{u.email}</p>
-                          <p className="truncate text-[10px] font-bold text-ink/35">{u.createdAt ? new Date(u.createdAt).toLocaleString() : ""}{u.lookName ? ` · ${u.lookName}` : ""}</p>
+                          <p className="truncate text-[10px] font-bold text-ink/35">{u.createdAt ? new Date(u.createdAt).toLocaleString() : ""}{u.lookName ? ` · ${u.lookName}` : ""}{u.authId && u.leadId ? " · auch Try-on-Lead" : ""}</p>
                         </div>
-                        {u.kind === "lead" && (
+                        {u.leadId && (
                           <select value={u.status ?? "new"} onChange={e => void setLeadStatus(u, e.target.value)}
                             className="h-8 shrink-0 rounded-lg border border-black/10 bg-white px-1.5 text-[11px] font-black text-ink/70 outline-none">
                             <option value="new">Neu</option><option value="contacted">Kontaktiert</option><option value="closed">Erledigt</option>
