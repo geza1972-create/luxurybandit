@@ -67,5 +67,8 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
     }
   }
 
-  return { ok: true, skipped: "no-mailer" };
+  // Nothing configured — DON'T pretend it sent. Callers that must not break on a
+  // missing mailer can check `skipped`; the contact form treats this as a failure.
+  console.warn("[email-send] No mailer configured (set SMTP_HOST/SMTP_USER/SMTP_PASS on Vercel) — email NOT sent:", opts.subject);
+  return { ok: false, skipped: "no-mailer", error: "no mailer configured" };
 }

@@ -78,15 +78,19 @@ export function FeedGate({
 
   const submitFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
+    const mail = email.trim();
     if (busy || !message.trim()) return;
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { setErr("Please add your email so we can reply."); return; }
     setBusy(true); setErr("");
     try {
       const r = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim() || "Feed user", email: email.trim(), reason: "App feedback", message: message.trim() }),
+        // reason must be one of the API's allowed values (support/complaint/general).
+        body: JSON.stringify({ name: name.trim() || "Feed user", email: mail, reason: "general", message: `[App feedback] ${message.trim()}` }),
       });
-      if (!r.ok) throw new Error("Could not send. Please try again.");
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d?.error || "Could not send. Please try again.");
       setDone("sent");
     } catch (e2) {
       setErr(e2 instanceof Error ? e2.message : "Could not send. Please try again.");
@@ -120,7 +124,7 @@ export function FeedGate({
                 <p className="text-[13px] font-bold text-black/45">Feedback, a wish, a bug — we want to hear it.</p>
               </div>
               <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={4} placeholder="Your message…" className="w-full rounded-xl border border-black/12 bg-black/[0.02] p-4 text-sm font-bold text-black outline-none focus:border-black/40" />
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Your email (optional, if you want a reply)" className={field} />
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Your email (so we can reply)" className={field} />
               {err && <p className="rounded-lg bg-red-50 px-3 py-2 text-[12px] font-black text-red-600">{err}</p>}
               <button type="submit" disabled={busy || !message.trim()} className="flex h-12 items-center justify-center gap-2 rounded-full bg-black text-sm font-black text-white active:scale-95 transition-transform disabled:opacity-40">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
