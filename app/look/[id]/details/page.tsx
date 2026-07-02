@@ -332,7 +332,7 @@ export default function LookDetailsPage() {
       )}
 
       {/* Sticky action bar */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-black/8 bg-white/95 px-4 pt-3 backdrop-blur"
+      <div className="lb-phone-col fixed inset-x-0 bottom-0 z-20 border-t border-black/8 bg-white/95 px-4 pt-3 backdrop-blur"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
         <div className="grid gap-2">
           {look.buyUrl && alts.length === 0 && (

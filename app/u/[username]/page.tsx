@@ -512,7 +512,7 @@ export default function UserGalleryPage() {
           />
           {/* Sheet */}
           <div
-            className="fixed inset-x-0 bottom-0 z-[56] rounded-t-3xl bg-white shadow-2xl"
+            className="lb-phone-col fixed inset-x-0 bottom-0 z-[56] rounded-t-3xl bg-white shadow-2xl"
             style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
           >
             {/* Handle */}

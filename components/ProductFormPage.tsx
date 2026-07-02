@@ -612,7 +612,7 @@ export default function ProductFormPage({ editId }: { editId: string | null }) {
       {showLuxFit && (
         <>
           <div className="fixed inset-0 z-[201] bg-black/50 backdrop-blur-sm" onClick={() => !luxLoading && setShowLuxFit(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-[202] rounded-t-3xl bg-white shadow-2xl overflow-y-auto overscroll-contain"
+          <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[202] rounded-t-3xl bg-white shadow-2xl overflow-y-auto overscroll-contain"
             style={{ maxHeight: "80dvh", paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
             <div className="flex justify-center pt-3 pb-1"><div className="h-1 w-10 rounded-full bg-black/15" /></div>
             <div className="flex items-center justify-between px-5 py-3 border-b border-black/5">

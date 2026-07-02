@@ -1133,7 +1133,7 @@ export default function TryonPage() {
   const authModal = showAuth ? (
     <>
       <div className="fixed inset-0 z-[60] bg-black/50" onClick={() => setShowAuth(false)} />
-      <div className="fixed inset-x-0 bottom-0 z-[61] max-h-[88dvh] overflow-y-auto rounded-t-2xl bg-white px-5 pt-5"
+      <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[61] max-h-[88dvh] overflow-y-auto rounded-t-2xl bg-white px-5 pt-5"
         style={{ paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" }}>
         <div className="flex items-center justify-between mb-2">
           <p className="text-base font-black">Sign in to reveal your look</p>
@@ -1781,7 +1781,7 @@ export default function TryonPage() {
       {showPhotoConsent && (
         <>
           <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setShowPhotoConsent(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-[51] rounded-t-2xl bg-white px-5 pt-5"
+          <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[51] rounded-t-2xl bg-white px-5 pt-5"
             style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
             <div className="mb-3 flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}

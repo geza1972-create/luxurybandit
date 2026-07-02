@@ -783,7 +783,7 @@ function CommentsSheet({ look, onClose }: { look: FeedLook; onClose: () => void 
   return (
     <>
       <div className="fixed inset-0 z-[60] bg-black/40" onClick={onClose} />
-      <div className="fixed inset-x-0 bottom-0 z-[61] flex max-h-[75dvh] flex-col rounded-t-2xl bg-white">
+      <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[61] flex max-h-[75dvh] flex-col rounded-t-2xl bg-white">
         <div className="flex items-center justify-between border-b border-black/8 px-4 py-3">
           <p className="text-sm font-black text-black">Comments{comments.length ? ` · ${comments.length}` : ""}</p>
           <button type="button" onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full bg-black/5"><X className="h-4 w-4" /></button>

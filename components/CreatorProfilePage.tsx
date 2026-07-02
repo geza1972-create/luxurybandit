@@ -458,7 +458,7 @@ export default function CreatorProfilePage({ creatorSlug }: { creatorSlug: strin
       {showMsg && (
         <>
           <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={() => setShowMsg(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-[51] rounded-t-2xl bg-white shadow-2xl px-5 pt-4"
+          <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[51] rounded-t-2xl bg-white shadow-2xl px-5 pt-4"
             style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
             <div className="flex items-center justify-between mb-4">
               <p className="text-sm font-black">Message {displayName}</p>

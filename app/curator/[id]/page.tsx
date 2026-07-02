@@ -254,7 +254,7 @@ export default function CuratorPublicPage() {
       {showMsg && (
         <>
           <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setShowMsg(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-[51] rounded-t-2xl bg-white px-5 pt-5" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
+          <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[51] rounded-t-2xl bg-white px-5 pt-5" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
             <div className="mb-3 flex items-center justify-between">
               <p className="text-base font-black text-black">Message {name}</p>
               <button type="button" onClick={() => setShowMsg(false)} className="grid h-8 w-8 place-items-center rounded-full bg-black/5"><X className="h-4 w-4" /></button>

@@ -235,7 +235,7 @@ export default function CuratorApplyPage() {
       </div>
 
       {/* Submit */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-black/8 bg-white/95 px-5 pt-3 backdrop-blur"
+      <div className="lb-phone-col fixed inset-x-0 bottom-0 z-20 border-t border-black/8 bg-white/95 px-5 pt-3 backdrop-blur"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
         <button type="button" onClick={() => void submit()} disabled={submitting}
           className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-black text-base font-black text-white shadow-lg disabled:opacity-50 active:scale-95 transition-transform">
