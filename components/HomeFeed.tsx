@@ -667,15 +667,13 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               <Sparkles className="h-4 w-4" /> Try this look
             </button>
           ) : (
-            <div className={`absolute inset-x-0 bottom-6 z-20 flex flex-col items-center gap-1.5 transition-all duration-200 ${showBanditBtn && !banditCreating ? "scale-100 opacity-100" : "pointer-events-none scale-90 opacity-0"}`}>
-              <span className="rounded-full bg-black/55 px-3 py-1 text-[12px] font-black text-white backdrop-blur">Watch the video and:</span>
-              <button type="button"
-                onClick={(e) => { e.stopPropagation(); revealBandit(); }}
-                onPointerDown={(e) => e.stopPropagation()}
-                className="flex items-center gap-2 whitespace-nowrap rounded-full bg-black px-8 py-3.5 text-sm font-black text-white shadow-xl transition-transform active:scale-95">
-                Bandit the feeling!
-              </button>
-            </div>
+            <button type="button"
+              onClick={(e) => { e.stopPropagation(); revealBandit(); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className={`absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center whitespace-nowrap rounded-full bg-black px-8 py-2.5 text-white shadow-xl transition-all duration-200 active:scale-95 ${showBanditBtn && !banditCreating ? "scale-100 opacity-100" : "pointer-events-none scale-90 opacity-0"}`}>
+              <span className="text-[10px] font-light leading-tight text-white/75">Watch the video and:</span>
+              <span className="text-sm font-black leading-tight">Bandit the feeling!</span>
+            </button>
           )
         )}
 
