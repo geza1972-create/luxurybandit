@@ -570,13 +570,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   </button>
                 </div>
               ) : m.type === "product" ? (
-                // Shop product slide — ORIGINAL image centered (object-contain, not
-                // stretched) over a soft blurred fill of itself (no black bars). ONE CTA.
-                <div className="relative h-full w-full bg-neutral-200">
+                // Shop product slide — the ORIGINAL image at its native size, centered
+                // (never upscaled/stretched), over a soft blurred fill of itself.
+                <div className="relative h-full w-full overflow-hidden bg-neutral-200">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={m.alt.thumbnail} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl" />
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.alt.thumbnail} alt={m.alt.title || "Shop this look"} className="absolute inset-0 h-full w-full object-contain" />
+                  <div className="absolute inset-0 flex items-center justify-center p-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={m.alt.thumbnail} alt={m.alt.title || "Shop this look"} className="max-h-full max-w-full rounded-lg object-contain shadow-2xl" />
+                  </div>
                   {/* Bottom scrim so the title + button stay legible over any image. */}
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-2/5 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
                   {/* Title above the single CTA, stacked (never overlapping). */}
@@ -593,13 +595,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   </div>
                 </div>
               ) : m.type === "escape" ? (
-                // Escape ("Urlaubsslide") — ORIGINAL image centered over a soft blurred
-                // fill (no stretching, no black bars) + ONE "Explore" CTA.
-                <div className="relative h-full w-full bg-neutral-200">
+                // Escape ("Urlaubsslide") — ORIGINAL image at native size, centered
+                // (never upscaled/stretched), over a soft blurred fill + ONE "Explore" CTA.
+                <div className="relative h-full w-full overflow-hidden bg-neutral-200">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={m.esc.thumbnail} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl" />
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.esc.thumbnail} alt={m.esc.title || m.esc.region || "Escape"} className="absolute inset-0 h-full w-full object-contain" />
+                  <div className="absolute inset-0 flex items-center justify-center p-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={m.esc.thumbnail} alt={m.esc.title || m.esc.region || "Escape"} className="max-h-full max-w-full rounded-lg object-contain shadow-2xl" />
+                  </div>
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-2/5 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
                   <div className="absolute inset-x-0 bottom-7 z-20 flex flex-col items-center gap-2 px-6">
                     {(m.esc.title || m.esc.region || m.esc.source) && (
