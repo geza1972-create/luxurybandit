@@ -1516,6 +1516,17 @@ export async function POST(request: Request) {
       });
     }
 
+    // Set a look's vanity social-proof counts (admin). likeCount/commentCount are stored
+    // display numbers (formatted 85000 → "85k" in the feed rail), not real events.
+    if (payload.action === "set-look-counts") {
+      const lk = state.looks.find((look) => look.id === String(payload.id ?? ""));
+      if (!lk) return NextResponse.json({ error: "Look was not found." }, { status: 404 });
+      if (Object.prototype.hasOwnProperty.call(payload, "likeCount")) (lk as any).likeCount = Math.max(0, Math.floor(Number((payload as any).likeCount) || 0));
+      if (Object.prototype.hasOwnProperty.call(payload, "commentCount")) (lk as any).commentCount = Math.max(0, Math.floor(Number((payload as any).commentCount) || 0));
+      const updated = await saveTryThisLookState(state);
+      return NextResponse.json(ps(updated));
+    }
+
     if (payload.action === "update-look") {
       const lookId = String(payload.id ?? "");
       const existingLook = state.looks.find((look) => look.id === lookId);

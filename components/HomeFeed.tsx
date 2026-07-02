@@ -7,7 +7,6 @@ import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { safeLookImage } from "@/lib/look-image";
-import { cleanEscapes } from "@/lib/reel-audit";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 
 export type FeedLook = {
@@ -673,54 +672,6 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             Bandit the feeling!
           </button>
         </div>
-        {/* ── Mini preview: two full-width rows — "Look" (garments) + "Escape" (stays).
-            Each thumb opens the full list (Bandit the feeling! detail). ── */}
-        {(() => {
-          const allClothes = (look.alternatives ?? []).filter(a => a.thumbnail && a.link);
-          const allStays = cleanEscapes(look.locationDupes ?? []);
-          const clothes = allClothes.slice(0, 4);
-          const stays = allStays.slice(0, 4);
-          if (!clothes.length && !stays.length) return null;
-          const goDetail = (a?: { title?: string; source?: string; price?: string; link?: string; thumbnail?: string }) => {
-            const label = (a?.title || a?.source || "").trim();
-            trackEvent("product_click", {
-              productLabel: label ? `${label}${a?.price ? ` · ${a.price}` : ""}` : (a?.price || ""),
-              productLink: a?.link || "",
-              productThumb: a?.thumbnail || "",
-            });
-            router.push(`${detail}/details`);
-          };
-          // No row titles — the last tile carries a "+N More Looks/Escapes" overlay instead.
-          const thumb = (a: { thumbnail?: string; price?: string; title?: string; source?: string; link?: string; affiliate?: boolean }, key: string, more: number, moreLabel: string) => (
-            <button key={key} type="button" onClick={() => goDetail(a)}
-              className="relative block aspect-square min-w-0 flex-1 overflow-hidden rounded-lg bg-black/5 active:scale-95 transition-transform">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={a.thumbnail} alt="" loading="lazy" className={`h-full w-full ${a.affiliate ? "bg-white object-contain p-2" : "object-cover"}`}
-                onError={(e) => { const el = e.currentTarget; if (a.thumbnail && !el.dataset.proxied) { el.dataset.proxied = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(a.thumbnail)}`; } }} />
-              {a.affiliate && more === 0 && (
-                <span className="absolute left-1 top-1 rounded bg-black/70 px-1 py-0.5 text-[7px] font-black uppercase tracking-wide text-white">Affiliate</span>
-              )}
-              {more > 0 && (
-                <span className="absolute inset-0 grid place-items-center bg-black/60 px-1 text-center text-white">
-                  <span className="text-lg font-black leading-none">+{more}</span>
-                  <span className="mt-0.5 text-[9px] font-bold uppercase leading-tight tracking-wide">{moreLabel}</span>
-                </span>
-              )}
-            </button>
-          );
-          const row = (items: typeof clothes, total: number, prefix: string, moreLabel: string) => (
-            <div className="flex gap-1.5">
-              {items.map((a, i) => thumb(a, `${prefix}${i}`, (i === items.length - 1 ? total - items.length : 0), moreLabel))}
-            </div>
-          );
-          return (
-            <div className="mb-2.5 flex flex-col gap-1.5">
-              <p className="text-[13px] font-black leading-snug text-black">We banditted the feeling for you — here are the results:</p>
-              {clothes.length > 0 && row(clothes, allClothes.length, "c", "More Looks")}
-              {stays.length > 0 && row(stays, allStays.length, "s", "More Escapes")}
-            </div>
-          );
-        })()}
         {/* Who recreated this look — ADMIN ONLY (business secret). Sits under the
             caption. Replaces the old "Shop now" card; shopping is via "Bandit the look!". */}
         {single && isAdmin && (
