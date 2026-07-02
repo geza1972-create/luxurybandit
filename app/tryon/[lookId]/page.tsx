@@ -34,7 +34,7 @@ type Look = {
   alternatives?: { title: string; link: string; thumbnail: string; price?: string; source?: string }[];
 };
 
-type Step = "upload" | "crop" | "confirm" | "generating" | "result" | "locked";
+type Step = "upload" | "crop" | "confirm" | "generating" | "result" | "locked" | "paused";
 
 // Exact wording the user actively consents to before publishing (FIX 4). Logged
 // verbatim on the generation alongside a timestamp so consent is provable.
@@ -611,7 +611,7 @@ export default function TryonPage() {
       // card (?alt=N) is the injected lingerie upsell → FASHN in both cases.
       const isLingerie = look.lingerie === true || (altIdx >= 0 && look.alternatives?.[altIdx]?.lingerie === true);
       let res: Response;
-      let payload: { image?: string; error?: string; outOfCredits?: boolean };
+      let payload: { image?: string; error?: string; outOfCredits?: boolean; paused?: boolean };
       if (isLingerie) {
         res = await fetch("/api/generate-fashn", { method: "POST", body: buildForm(), headers });
         payload = await res.json() as typeof payload;
@@ -631,6 +631,9 @@ export default function TryonPage() {
           if (res.status === 402) { setError(payload.error ?? "You're out of credits."); setStep("confirm"); return; }
         }
       }
+      // Kill-switch: try-on is paused. The account/email is already captured (the gate ran
+      // before this), so we show a friendly "coming soon" screen instead of an error.
+      if (res.status === 403 && payload.paused) { setTryonPaused(true); setStep("paused"); return; }
       if (!res.ok || !payload.image) throw new Error(payload.error ?? "Generation failed.");
       setResultImage(payload.image);
       setProgress(100);
@@ -1213,6 +1216,25 @@ export default function TryonPage() {
         {/* Cross-sell while they wait */}
         <div className="mt-2 w-full max-w-md px-5">{crossSellRow(true)}</div>
       </div>
+    );
+  }
+
+  // ─── PAUSED — kill-switch is on. Reached only AFTER the account/email was captured,
+  //     so we keep the lead and show a friendly "coming soon" instead of an error. ───
+  if (step === "paused") {
+    return (
+      <main className="grid min-h-[100dvh] place-items-center bg-white px-6 text-center">
+        <div className="max-w-sm">
+          <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-black/[0.06] text-3xl">✨</div>
+          <h1 className="text-xl font-black text-black">Try-on is coming very soon</h1>
+          <p className="mt-2 text-sm font-medium text-black/55">
+            You&apos;re on the list{ownerEmailRef.current ? <> — we&apos;ll email <span className="font-bold text-black">{ownerEmailRef.current}</span></> : ""} the moment it goes live. Thanks for your patience!
+          </p>
+          <a href="/stores" className="mt-6 inline-flex h-12 items-center justify-center rounded-full bg-black px-6 text-sm font-black text-white active:scale-95 transition-transform">
+            Explore the feed
+          </a>
+        </div>
+      </main>
     );
   }
 
