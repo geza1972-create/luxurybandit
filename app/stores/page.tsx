@@ -1501,6 +1501,17 @@ function StoresPage() {
     void tab;
   }, [searchParams]);
 
+  // Closing a deep-linked panel MUST also drop ?panel=… from the URL, otherwise
+  // showReels stays false (panel param present) and we render a blank white page.
+  const stripPanelParam = () => {
+    const sp = new URLSearchParams(Array.from(searchParams.entries()));
+    if (sp.has("panel")) {
+      sp.delete("panel");
+      const qs = sp.toString();
+      router.replace(qs ? `/stores?${qs}` : "/stores");
+    }
+  };
+
   const toggleFollow = (slug: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setFollowed((prev) => {
@@ -1970,8 +1981,8 @@ function StoresPage() {
             <Search className="h-4 w-4" />
           </button>
         </div>
-        {showMerkliste && <MerklistePanel onClose={() => setShowMerkliste(false)} />}
-        {showUserPanel && <UserPanel onClose={() => { setShowUserPanel(false); setSavedAutoOpen(false); }} openSaved={savedAutoOpen} />}
+        {showMerkliste && <MerklistePanel onClose={() => { setShowMerkliste(false); stripPanelParam(); }} />}
+        {showUserPanel && <UserPanel onClose={() => { setShowUserPanel(false); setSavedAutoOpen(false); stripPanelParam(); }} openSaved={savedAutoOpen} />}
       </div>
     );
   }
@@ -2656,10 +2667,10 @@ function StoresPage() {
       </main>
 
       {/* Merkliste panel */}
-      {showMerkliste && <MerklistePanel onClose={() => setShowMerkliste(false)} />}
+      {showMerkliste && <MerklistePanel onClose={() => { setShowMerkliste(false); stripPanelParam(); }} />}
 
       {/* User panel */}
-      {showUserPanel && <UserPanel onClose={() => { setShowUserPanel(false); setSavedAutoOpen(false); }} openSaved={savedAutoOpen} />}
+      {showUserPanel && <UserPanel onClose={() => { setShowUserPanel(false); setSavedAutoOpen(false); stripPanelParam(); }} openSaved={savedAutoOpen} />}
 
       {/* ── Community detail fullscreen ── */}
       {communitySelectedIndex !== null && (reelItems ?? filteredCommunity).length > 0 && (
