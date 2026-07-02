@@ -8,6 +8,7 @@ import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { safeLookImage } from "@/lib/look-image";
 import { cleanEscapes } from "@/lib/reel-audit";
+import { trackMetaPixel } from "@/lib/meta-pixel";
 
 export type FeedLook = {
   id: string;
@@ -352,6 +353,11 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         || meta?.full_name || meta?.username || sess?.user?.email || "";
     } catch { /**/ }
     fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "event", lookId: look.id, event, lookName: look.name, utmSource, referrer, visitor, internal: isAdminNow(), ...extra }) }).catch(() => {});
+    // Mirror key funnel actions to the Meta Pixel for ad optimization (skip admin/test traffic).
+    if (!isAdminNow()) {
+      const pixelEvent = event === "tryon_click" ? "TryOn" : event === "bandit_click" ? "BanditClick" : event === "product_click" ? "ShopClick" : "";
+      if (pixelEvent) trackMetaPixel(pixelEvent, { content_name: look.name, content_category: "feed" });
+    }
   };
 
   const toggleLike = () => {
