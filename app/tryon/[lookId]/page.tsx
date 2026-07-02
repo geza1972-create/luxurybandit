@@ -9,7 +9,6 @@ import {
   getStoredAuthSession,
   signInWithPassword,
   signUpWithPassword,
-  sendMagicLink,
   resetPassword,
   signInWithOAuth,
   type SupabaseAuthSession,
@@ -213,6 +212,11 @@ export default function TryonPage() {
   const [gatePassed, setGatePassed] = useState(false);
   const [gateEmail, setGateEmail] = useState("");
   const [gateSending, setGateSending] = useState(false);
+  // Registration gate (no more anonymous email-only reveals): email + password create a
+  // real account, then reveal. gateInfo carries the "confirm your email" case.
+  const [gatePassword, setGatePassword] = useState("");
+  const [gateBusy, setGateBusy] = useState(false);
+  const [gateInfo, setGateInfo] = useState("");
   // Active publish consent (FIX 4): a separate, NOT pre-checked box the user must tick
   // before the real generation starts. We log the exact wording + timestamp on the
   // generation so active consent is provable. Kept separate from Terms/Privacy.
@@ -897,29 +901,46 @@ export default function TryonPage() {
   };
 
   // ── Email GATE: reveal the result after the visitor drops their email ──
-  // Captures the email (lead) AND creates a passwordless account (magic link), then
-  // reveals the result. Never blocks the reveal if a network call fails.
-  const revealWithEmail = () => {
-    const email = gateEmail.trim();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !look) return;
+  // Registration required to reveal (no more anonymous email-only reveals): create a real
+  // account with email + password — or sign in if it already exists — record consent,
+  // capture the lead (WITH the name) for the funnel, then reveal.
+  const gateRegister = async () => {
+    const email = gateEmail.trim().toLowerCase();
+    const pw = gatePassword;
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || pw.length < 6 || !look) return;
     if (!rightsConsent || !shareNameInput.trim()) return; // name + rights attestation required
+    setError(null); setGateInfo(""); setGateBusy(true);
     const isPublic = visibility === "public" && !effectiveLingerie; // lingerie is never public
-    // Record consents (verbatim wording + timestamp). Publish consent only when the
-    // user actively chose "Public"; rights consent always.
     consentRef.current = { at: new Date().toISOString(), publishText: isPublic ? PUBLISH_CONSENT_TEXT : "", rightsText: RIGHTS_CONSENT_TEXT };
-    setShowInFeed(isPublic); // public choice → shared to the community; private → account only
-    // Bind the upcoming try-on to this email so it shows in the account they create.
-    ownerEmailRef.current = email.toLowerCase();
-    // Capture the email (lead) + create a passwordless account — in the background.
+    setShowInFeed(isPublic);
+    ownerEmailRef.current = email;
+    const name = shareNameInput.trim();
+    // Capture the lead (with the name) too — feeds the funnel + the admin Users list.
     void fetch("/api/try-this-look", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "lead", email, lookId: look.id, lookName: look.name, leadSource: "tryon", marketingConsent: true, visitorId: accountId || "anon" }),
+      body: JSON.stringify({ action: "lead", email, customerName: name, lookId: look.id, lookName: look.name, leadSource: "tryon", marketingConsent: true, visitorId: accountId || "anon" }),
     }).catch(() => {});
-    void sendMagicLink(email).catch(() => {});
-    // NOW run the REAL generation (credits are only spent AFTER the email is captured).
-    setGatePassed(true);
-    const a = pendingGenRef.current;
-    void handleGenerate(a?.photoOverride, a?.tier ?? "photo", true);
+    const reveal = (session: SupabaseAuthSession) => {
+      setAuthSession(session); setGatePassed(true); setGateBusy(false);
+      const a = pendingGenRef.current;
+      void handleGenerate(a?.photoOverride, a?.tier ?? "photo", true);
+    };
+    try {
+      const { session, confirmationRequired } = await signUpWithPassword(email, pw, name);
+      if (session) return reveal(session);
+      if (confirmationRequired) {
+        setGateInfo("Wir haben dir eine Bestätigungs-Mail geschickt. Bestätige deine E-Mail und melde dich dann an, um deinen Look zu sehen.");
+        setGateBusy(false);
+        return;
+      }
+    } catch {
+      // Email likely already registered → try signing in with the given password.
+      try { const s = await signInWithPassword(email, pw); if (s) return reveal(s); } catch { /**/ }
+      setError("E-Mail schon registriert oder Passwort falsch. Bitte einloggen oder anderes Passwort wählen.");
+      setGateBusy(false);
+      return;
+    }
+    setGateBusy(false);
   };
 
   // Reveal via Google/Facebook: save where to resume, then bounce through OAuth.
@@ -1275,21 +1296,26 @@ export default function TryonPage() {
               </button>
               <div className="my-1 flex items-center gap-3">
                 <div className="h-px flex-1 bg-black/10" />
-                <span className="text-[11px] font-black uppercase tracking-wider text-black/30">or with email</span>
+                <span className="text-[11px] font-black uppercase tracking-wider text-black/30">or register with email</span>
                 <div className="h-px flex-1 bg-black/10" />
               </div>
-              <input type="email" inputMode="email" value={gateEmail}
+              <input type="email" inputMode="email" autoComplete="email" value={gateEmail}
                 onChange={e => setGateEmail(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") void revealWithEmail(); }}
                 placeholder="you@email.com"
                 className="h-13 w-full rounded-2xl border-2 border-black/15 bg-black/[0.02] px-4 py-3.5 text-base font-bold text-black placeholder:text-black/35 outline-none focus:border-black" />
-              <button onClick={() => void revealWithEmail()}
-                disabled={!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(gateEmail.trim()) || !rightsConsent || !shareNameInput.trim()}
+              <input type="password" autoComplete="new-password" value={gatePassword}
+                onChange={e => setGatePassword(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") void gateRegister(); }}
+                placeholder="Choose a password (min. 6)"
+                className="h-13 w-full rounded-2xl border-2 border-black/15 bg-black/[0.02] px-4 py-3.5 text-base font-bold text-black placeholder:text-black/35 outline-none focus:border-black" />
+              <button onClick={() => void gateRegister()}
+                disabled={gateBusy || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(gateEmail.trim()) || gatePassword.length < 6 || !rightsConsent || !shareNameInput.trim()}
                 className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-black py-3.5 text-base font-black text-white active:scale-95 transition-transform disabled:opacity-30">
-                <Sparkles className="h-4 w-4" /> Reveal my look
+                {gateBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Create account &amp; reveal
               </button>
+              {gateInfo && <p className="rounded-xl bg-cobalt/10 px-3 py-2 text-[12px] font-bold text-cobalt">{gateInfo}</p>}
             </div>
-            <p className="mt-2.5 text-[11px] font-bold text-black/40">We&apos;ll email your look + a link to your free account. No spam.</p>
+            <p className="mt-2.5 text-[11px] font-bold text-black/40">Your look is saved to your account — you can manage it anytime.</p>
             <button onClick={() => { pendingGenerateRef.current = false; discardPhoto(); setStep("upload"); }}
               className="mt-1 flex h-10 w-full items-center justify-center text-sm font-black text-black/50 active:opacity-70">
               Use a different photo
