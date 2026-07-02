@@ -504,10 +504,20 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
     const locPath = (look as any).locationImagePath ?? extractPathFromUrl((look as any).locationImageUrl);
     if (locPath) allPaths.push(locPath);
     for (const p of look.galleryImagePaths ?? []) if (p) allPaths.push(p);
+    // Videos + posters are stored as signed URLs; re-sign them each read (like images)
+    // so they never expire (was: stored 24h URL that died after a day → black feed).
+    const vidPath = (look as any).videoPath ?? extractPathFromUrl((look as any).videoUrl);
+    if (vidPath) allPaths.push(vidPath);
+    const posterPath = (look as any).videoPosterPath ?? extractPathFromUrl((look as any).videoPosterUrl);
+    if (posterPath) allPaths.push(posterPath);
   }
   for (const gen of state.generations) {
     if (gen.imagePath) allPaths.push(gen.imagePath);
     if ((gen as any).userPhotoPath) allPaths.push((gen as any).userPhotoPath);
+    const gVidPath = (gen as any).videoPath ?? extractPathFromUrl((gen as any).videoUrl);
+    if (gVidPath) allPaths.push(gVidPath);
+    const gPosterPath = (gen as any).videoPosterPath ?? extractPathFromUrl((gen as any).videoPosterUrl);
+    if (gPosterPath) allPaths.push(gPosterPath);
   }
   for (const lead of state.leads ?? []) {
     if (lead.uploadedPhotoPath) allPaths.push(lead.uploadedPhotoPath);
@@ -537,6 +547,12 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
     ),
     clothesImageUrl: s((look as any).clothesImagePath ?? extractPathFromUrl((look as any).clothesImageUrl), (look as any).clothesImageUrl),
     locationImageUrl: s((look as any).locationImagePath ?? extractPathFromUrl((look as any).locationImageUrl), (look as any).locationImageUrl),
+    videoUrl: (look as any).videoUrl
+      ? s((look as any).videoPath ?? extractPathFromUrl((look as any).videoUrl), (look as any).videoUrl)
+      : (look as any).videoUrl,
+    videoPosterUrl: (look as any).videoPosterUrl
+      ? s((look as any).videoPosterPath ?? extractPathFromUrl((look as any).videoPosterUrl), (look as any).videoPosterUrl)
+      : (look as any).videoPosterUrl,
     galleryImageUrls: look.galleryImagePaths?.length
       ? look.galleryImagePaths.map(p => signed.get(p) ?? "").filter(Boolean)
       : (look.galleryImageUrls ?? []).map(u => {
@@ -551,6 +567,12 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
     userPhotoUrl: (gen as any).userPhotoPath
       ? signed.get((gen as any).userPhotoPath)
       : undefined,
+    videoUrl: (gen as any).videoUrl
+      ? s((gen as any).videoPath ?? extractPathFromUrl((gen as any).videoUrl), (gen as any).videoUrl)
+      : (gen as any).videoUrl,
+    videoPosterUrl: (gen as any).videoPosterUrl
+      ? s((gen as any).videoPosterPath ?? extractPathFromUrl((gen as any).videoPosterUrl), (gen as any).videoPosterUrl)
+      : (gen as any).videoPosterUrl,
   }));
 
   const leads = (state.leads ?? []).map(lead => ({
