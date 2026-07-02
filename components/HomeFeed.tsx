@@ -777,7 +777,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
 
       {/* Join / feedback sheet — Follow gate (register/sign-in) or "write us" feedback. */}
       {gate && (
-        <FeedGate mode={gate.mode} reason={gate.reason} onClose={() => setGate(null)} onAuthed={gate.mode === "auth" ? doFollow : undefined} />
+        <FeedGate mode={gate.mode} reason={gate.reason} lookId={look.id} lookName={look.name} onClose={() => setGate(null)} onAuthed={gate.mode === "auth" ? doFollow : undefined} />
       )}
 
       {/* Info / history sheet — public provenance for this look */}
