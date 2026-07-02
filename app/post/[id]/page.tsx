@@ -284,7 +284,7 @@ export default function PostPage() {
   const isOwn = session?.user.id === profile?.userId;
 
   return (
-    <div className="min-h-screen bg-white pb-20">
+    <div className="mx-auto min-h-screen w-full max-w-[480px] overflow-x-hidden bg-white pb-20 shadow-sm">
       {/* Header */}
       <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/8 bg-white/95 px-3 py-2 backdrop-blur">
         <button type="button" onClick={() => { if (typeof window !== "undefined" && window.history.length > 1) router.back(); else router.push("/stores"); }}
