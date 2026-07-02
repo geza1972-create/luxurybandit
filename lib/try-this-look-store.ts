@@ -91,6 +91,10 @@ export type TryThisLookEvent = {
   productLabel?: string;
   productLink?: string;
   productThumb?: string;
+  // Carousel swipe depth (carousel_swipe events): the slide reached (1-based) and the
+  // total number of slides — lets Insights show how far people swipe (e.g. 4/6).
+  slide?: number;
+  slides?: number;
   visitor?: string; // logged-in name/email if known, else undefined (shown as "Guest")
   internal?: boolean; // fired by an admin/test session → excluded from the funnel counts
 };

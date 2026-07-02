@@ -819,6 +819,8 @@ export async function POST(request: Request) {
         productLabel: String(payload.productLabel ?? "").trim() || undefined,
         productLink: String(payload.productLink ?? "").trim() || undefined,
         productThumb: String(payload.productThumb ?? "").trim() || undefined,
+        slide: Number(payload.slide) > 0 ? Number(payload.slide) : undefined,
+        slides: Number(payload.slides) > 0 ? Number(payload.slides) : undefined,
         visitor: String(payload.visitor ?? "").trim().slice(0, 80) || undefined,
         internal: (payload as any).internal === true || undefined,
       });

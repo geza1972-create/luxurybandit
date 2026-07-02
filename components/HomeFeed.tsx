@@ -124,6 +124,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const sectionRef = useRef<HTMLElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
   const captionRef = useRef<HTMLParagraphElement>(null);
+  // Deepest carousel slide reached in this view — fires one "carousel_swipe" event per
+  // NEW max slide so Insights can show how far people swipe (funnel: reached slide 2,3,4…).
+  const maxSlideRef = useRef(0);
   // Carousel order: ALL curator-created content first — try-on VIDEOS, then try-on
   // PHOTOS (most engaging — what the user asked for) — then the look's own video,
   // the product image, and finally the shop options.
@@ -194,7 +197,17 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   useEffect(() => {
     if (carouselRef.current) carouselRef.current.scrollLeft = 0;
     setActive(0);
+    maxSlideRef.current = 0;
   }, [look.id]);
+
+  // Track how far the user swipes the carousel. Fire once per NEW deepest slide
+  // (slide is 1-based) → count(slide==k) in Insights = viewers who reached ≥ slide k.
+  useEffect(() => {
+    if (media.length > 1 && active > maxSlideRef.current) {
+      maxSlideRef.current = active;
+      if (active >= 1) trackEvent("carousel_swipe", { slide: String(active + 1), slides: String(media.length) });
+    }
+  }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Detect whether the caption is actually truncated (only then show "more").
   useEffect(() => {

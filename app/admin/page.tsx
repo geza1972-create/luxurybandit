@@ -95,7 +95,7 @@ export default function AdminPage() {
   const [followerDir, setFollowerDir] = useState<"desc" | "asc">("desc");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [comments, setComments] = useState<Cmt[]>([]);
-  type FeedEvent = { id: string; name: string; lookId: string; createdAt: string; lookName?: string; source?: string; country?: string; city?: string; productLabel?: string; productLink?: string; productThumb?: string; visitor?: string };
+  type FeedEvent = { id: string; name: string; lookId: string; createdAt: string; lookName?: string; source?: string; country?: string; city?: string; productLabel?: string; productLink?: string; productThumb?: string; slide?: number; slides?: number; visitor?: string };
   const [feedEvents, setFeedEvents] = useState<FeedEvent[]>([]);
   const [insightsRange, setInsightsRange] = useState<"today" | "7d" | "30d" | "all">("7d");
   const [insightsGroup, setInsightsGroup] = useState<"day" | "hour">("day");
@@ -1231,6 +1231,7 @@ export default function AdminPage() {
             bandit_click: { label: "tapped Bandit the feeling", emoji: "🛍️" },
             product_click: { label: "opened a product", emoji: "👗" },
             like_click: { label: "liked a look", emoji: "❤️" },
+            carousel_swipe: { label: "swiped the carousel", emoji: "↔️" },
           };
           const ago = (iso: string) => {
             const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
@@ -1314,6 +1315,22 @@ export default function AdminPage() {
           })).sort((a, b) => (b.tryonClicks + b.likes + b.productClicks) - (a.tryonClicks + a.likes + a.productClicks) || b.views - a.views);
           const totalViews = rows.reduce((s, r) => s + r.views, 0);
 
+          // Carousel swipe depth — how far people swipe. Each carousel_swipe event marks a
+          // NEW deepest slide, so count(slide==k) = viewers who reached AT LEAST slide k.
+          const swipeEvents = evs.filter(e => e.name === "carousel_swipe" && (e.slide ?? 0) >= 2);
+          const swipeBySlide = new Map<number, number>();
+          for (const e of swipeEvents) swipeBySlide.set(e.slide!, (swipeBySlide.get(e.slide!) ?? 0) + 1);
+          const maxSwipeSlide = swipeBySlide.size ? Math.max(...swipeBySlide.keys()) : 0;
+          // Typical total slide count (mode) for the "k/N" label.
+          const totalMode = (() => {
+            const m = new Map<number, number>();
+            for (const e of swipeEvents) if (e.slides) m.set(e.slides, (m.get(e.slides) ?? 0) + 1);
+            return [...m.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? maxSwipeSlide;
+          })();
+          const swipeBase = countOf("view") || (swipeBySlide.get(2) ?? 0); // denominator for %
+          const swipeFunnel: { slide: number; count: number }[] = [];
+          for (let k = 2; k <= maxSwipeSlide; k++) swipeFunnel.push({ slide: k, count: swipeBySlide.get(k) ?? 0 });
+
           const Bars = ({ data, accent = "bg-cobalt" }: { data: [string, number][]; accent?: string }) => {
             const rows2 = (data ?? []).filter(Array.isArray);
             const max = Math.max(1, ...rows2.map(r => Number(r[1]) || 0));
@@ -1366,6 +1383,31 @@ export default function AdminPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Carousel swipe depth — how far people swipe the product carousel */}
+              {swipeFunnel.length > 0 && (
+                <div className="mt-4 rounded-xl border border-black/10 bg-white p-4">
+                  <p className="flex items-center gap-1.5 text-sm font-black text-ink">↔️ Carousel — wie weit wischen sie?</p>
+                  <p className="mt-0.5 text-[11px] font-bold text-ink/45">
+                    Betrachter, die mindestens bis zur jeweiligen Folie gewischt haben{swipeBase > 0 ? ` (von ${fmt(swipeBase)} Aufrufen)` : ""}.
+                  </p>
+                  <div className="mt-3 space-y-1.5">
+                    {swipeFunnel.map(({ slide, count }) => {
+                      const pct = swipeBase > 0 ? Math.round((count / swipeBase) * 100) : 0;
+                      return (
+                        <div key={slide} className="flex items-center gap-2">
+                          <span className="w-10 shrink-0 text-[11px] font-black text-ink/60">{slide}/{totalMode || slide}</span>
+                          <div className="relative h-5 flex-1 overflow-hidden rounded-md bg-black/[0.06]">
+                            <div className="absolute inset-y-0 left-0 rounded-md bg-cobalt/80" style={{ width: `${Math.min(100, Math.max(2, pct))}%` }} />
+                          </div>
+                          <span className="w-20 shrink-0 text-right text-[11px] font-black text-ink">{fmt(count)}{swipeBase > 0 ? ` · ${pct}%` : ""}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-2 text-[10px] font-bold text-ink/35">Höhere Folie = weiter gewischt. Folie 1 = nur das Video gesehen (nicht gewischt).</p>
+                </div>
+              )}
 
               {/* Live activity stream — auto-polls every 4s */}
               <div className="mt-4 flex items-center justify-between">
