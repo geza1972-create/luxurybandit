@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
+import MetaPixel from "@/components/MetaPixel";
 
 export const metadata: Metadata = {
   metadataBase: new URL((process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "")),
@@ -28,6 +29,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        {/* Meta Pixel — loads fbevents.js + fires PageView on load and every SPA nav. */}
+        <Suspense fallback={null}>
+          <MetaPixel />
+        </Suspense>
         {/* The app is designed mobile-only. On desktop we render it inside a centered
             phone-width frame. The frame uses `transform` so that descendant
             `position: fixed` elements (reels, modals, bottom nav) are contained by the
