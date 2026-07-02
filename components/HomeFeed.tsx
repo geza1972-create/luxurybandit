@@ -229,7 +229,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     if (banditRevealed || showBanditBtn || shopAlts.length === 0) return;
     const isVideo = media[active]?.type === "video" || media[active]?.type === "cvideo";
     if (!isVideo || !inView) return;
-    const t = window.setTimeout(() => setShowBanditBtn(true), 2000);
+    const t = window.setTimeout(() => setShowBanditBtn(true), 1000);
     return () => window.clearTimeout(t);
   }, [active, inView, banditRevealed, showBanditBtn]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -614,17 +614,18 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           <button type="button"
             onClick={(e) => { e.stopPropagation(); revealBandit(); }}
             onPointerDown={(e) => e.stopPropagation()}
-            className={`absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-black px-7 py-3.5 text-sm font-black text-white shadow-xl transition-all duration-500 active:scale-95 ${showBanditBtn && !banditCreating ? "opacity-100 translate-y-0" : "pointer-events-none translate-y-3 opacity-0"}`}>
-            <Sparkles className="h-4 w-4" /> Bandit the feeling
+            className={`absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-black px-8 py-3.5 text-sm font-black text-white shadow-xl transition-all duration-500 active:scale-95 ${showBanditBtn && !banditCreating ? "opacity-100 translate-y-0" : "pointer-events-none translate-y-3 opacity-0"}`}>
+            Bandit the feeling!
           </button>
         )}
 
         {/* "Creating slides" hint while the carousel is being built. */}
         {banditCreating && (
           <div className="absolute inset-0 z-30 grid place-items-center bg-black/60 backdrop-blur-sm">
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-3 px-6 text-center">
               <Loader2 className="h-10 w-10 animate-spin text-white" />
-              <p className="text-sm font-black text-white">Slides werden erstellt…</p>
+              <p className="text-lg font-black text-white">You bandit the look!</p>
+              <p className="text-xs font-bold text-white/80">Die Ergebnisse werden gesucht …</p>
             </div>
           </div>
         )}
