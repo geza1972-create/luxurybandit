@@ -31,10 +31,28 @@ export default function TermsPage() {
         personal use. [Describe content ownership, licensing, and acceptable use here.]
       </p>
 
-      <h2>5. Liability &amp; changes</h2>
+      <h2>5. Your data</h2>
+      <p>
+        We take your privacy seriously. We do <strong>not sell your personal data</strong>, and we
+        do <strong>not pass it on to third parties</strong> for their own purposes. We only use the
+        data we actually need to run LuxuryBandit — such as your account details and the photo you
+        upload for a try-on — and we keep it <strong>only as long as it is needed</strong> for that
+        purpose. When your data is no longer needed, we delete it, and you can ask us to delete your
+        account and data at any time.
+      </p>
+
+      <h2>6. Cookies</h2>
+      <p>
+        We use cookies to make the site work (for example, to keep you signed in) and to understand,
+        in aggregate, how LuxuryBandit is used so we can improve it. We do not use cookies to sell
+        your data. You can view, block, or delete cookies at any time in your browser settings —
+        though some features may not work without the essential ones.
+      </p>
+
+      <h2>7. Liability &amp; changes</h2>
       <p>[Add limitation of liability, governing law, and how terms may change.]</p>
 
-      <p className="mt-6 text-xs text-black/40">Last updated: [date]</p>
+      <p className="mt-6 text-xs text-black/40">Last updated: 2 July 2026</p>
     </InfoPage>
   );
 }

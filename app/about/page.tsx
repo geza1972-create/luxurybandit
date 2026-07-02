@@ -53,8 +53,7 @@ export default function AboutPage() {
       <h2>Contact</h2>
       <address className="not-italic text-black/70">
         <strong>LuxuryBandit</strong><br />
-        Luisenstr. 51<br />
-        Berlin
+        Timișoara, Romania
       </address>
 
       <p className="mt-6 text-xs text-black/40">
