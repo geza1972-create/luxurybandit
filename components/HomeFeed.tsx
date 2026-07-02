@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, Home } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, Home, ShoppingBag } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -176,8 +176,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       : (heroImg ? [{ type: "image" as const }] : [])),
     // 3) Curator-uploaded garment reference (the actual piece) as its own slide.
     ...(look.clothesImageUrl ? [{ type: "refimage" as const, url: look.clothesImageUrl, label: "The garment" }] : []),
+    // 4) Shop products as swipeable slides — each with a "Shop Now" button on the image.
+    ...shopAlts.slice(0, 5).map(a => ({ type: "product" as const, alt: a })),
   ];
-  void shopAlts;
   // How many people have tried this look on (distinct names, else photo count).
   const tryOnPeople = new Set(community.map(c => c.name).filter(Boolean)).size || community.length;
   const firstTryOnIdx = media.findIndex(m => m.type === "cvideo" || m.type === "compare");
@@ -507,6 +508,29 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide backdrop-blur transition active:opacity-70 ${look.aiCreated ? "bg-black/70 text-white hover:bg-black/85" : "bg-white/85 text-black/70 hover:bg-white"}`}>
                     {look.aiCreated ? "✦ Original" : "Curated"}<Info className="ml-1 h-3 w-3 opacity-80" />
                   </button>
+                </div>
+              ) : m.type === "product" ? (
+                // Shop product slide — the item's image with a "Shop Now" button on it.
+                <div className="relative h-full w-full bg-black">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={m.alt.thumbnail} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-2xl" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={m.alt.thumbnail} alt={m.alt.title || "Shop this look"} className="absolute inset-0 h-full w-full object-contain" />
+                  <span className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 rounded-full bg-white/85 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-black/70 backdrop-blur`}>
+                    <ShoppingBag className="h-3 w-3" /> Shop the look
+                  </span>
+                  {m.alt.price && (
+                    <span className="absolute right-3 top-3 z-20 rounded-full bg-black/70 px-3 py-1.5 text-[11px] font-black text-white backdrop-blur">{m.alt.price}</span>
+                  )}
+                  {(m.alt.title || m.alt.source) && (
+                    <span className="absolute bottom-32 left-1/2 z-20 max-w-[82%] -translate-x-1/2 truncate rounded-full bg-black/55 px-3 py-1 text-center text-[11px] font-bold text-white/95 backdrop-blur">{m.alt.title || m.alt.source}</span>
+                  )}
+                  <a href={m.alt.link} target="_blank" rel="sponsored noopener noreferrer"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); trackEvent("product_click", { productLabel: `${m.alt.title || m.alt.source || ""}${m.alt.price ? ` · ${m.alt.price}` : ""}`, productLink: m.alt.link || "" }); }}
+                    className="absolute bottom-20 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-black text-black shadow-xl active:scale-95 transition-transform">
+                    <ShoppingBag className="h-4 w-4" /> Shop Now
+                  </a>
                 </div>
               ) : null}
             </div>
