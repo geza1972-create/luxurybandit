@@ -9,6 +9,7 @@ import { isAdminEmail } from "@/lib/is-admin-email";
 import { safeLookImage } from "@/lib/look-image";
 import { cleanEscapes } from "@/lib/reel-audit";
 import { trackMetaPixel } from "@/lib/meta-pixel";
+import { FeedGate } from "@/components/FeedGate";
 
 export type FeedLook = {
   id: string;
@@ -99,6 +100,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [showBanditBtn, setShowBanditBtn] = useState(false);
   const [banditCreating, setBanditCreating] = useState(false);
   const [banditRevealed, setBanditRevealed] = useState(false);
+  // Join/feedback sheet (register/sign-in gate for Follow, or "write us" feedback).
+  const [gate, setGate] = useState<null | { mode: "auth" | "feedback"; reason?: string }>(null);
   const pausedRef = useRef(false); pausedRef.current = paused;
   const [infoOpen, setInfoOpen] = useState(false);
   // Who-tried-this-on is a business secret → only the admin sees the named list.
@@ -444,7 +447,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   useEffect(() => {
     try { const l = JSON.parse(localStorage.getItem("lb_following") ?? "[]"); setFollowing(Array.isArray(l) && l.includes(creatorSlug)); } catch { /**/ }
   }, [creatorSlug]);
-  const toggleFollow = () => {
+  // Actually record/unrecord the follow (only reached once the user is signed in).
+  const doFollow = () => {
     if (!creatorSlug) return;
     const next = !following;
     setFollowing(next);
@@ -453,6 +457,13 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       localStorage.setItem("lb_following", JSON.stringify(next ? [...new Set([...l, creatorSlug])] : l.filter(s => s !== creatorSlug)));
     } catch { /**/ }
     try { fetch("/api/follow", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug: creatorSlug, type: "user" }) }).catch(() => {}); } catch { /**/ }
+  };
+  // Follow requires an account — anonymous "follows" are meaningless. If not signed in,
+  // open the join sheet and complete the follow after they register/sign in.
+  const toggleFollow = () => {
+    if (!creatorSlug) return;
+    if (!getStoredAuthSession()) { setGate({ mode: "auth", reason: `Create a free account to follow ${look.curatorName || "this curator"}.` }); return; }
+    doFollow();
   };
 
   // Curator + badge row. Always renders BELOW the video (name + description under
@@ -756,10 +767,18 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             {tryOnPeople} {tryOnPeople === 1 ? "person" : "people"} tried this on →
           </button>
         )}
-        {!look.commentsOff && (
-          <button type="button" onClick={() => onComment(look)} className="mt-0.5 text-[12px] font-bold text-black/40">View comments</button>
-        )}
+        <div className="mt-1 flex items-center gap-3">
+          {!look.commentsOff && (
+            <button type="button" onClick={() => onComment(look)} className="text-[12px] font-bold text-black/40">View comments</button>
+          )}
+          <button type="button" onClick={() => setGate({ mode: "feedback" })} className="text-[12px] font-bold text-black/40">💬 Feedback / Contact</button>
+        </div>
       </div>
+
+      {/* Join / feedback sheet — Follow gate (register/sign-in) or "write us" feedback. */}
+      {gate && (
+        <FeedGate mode={gate.mode} reason={gate.reason} onClose={() => setGate(null)} onAuthed={gate.mode === "auth" ? doFollow : undefined} />
+      )}
 
       {/* Info / history sheet — public provenance for this look */}
       {infoOpen && (
