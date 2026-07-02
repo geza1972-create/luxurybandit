@@ -13,6 +13,7 @@ import {
   signInWithOAuth,
   type SupabaseAuthSession,
 } from "@/lib/supabase-auth-client";
+import { trackMetaPixel } from "@/lib/meta-pixel";
 import { useParams, useRouter } from "next/navigation";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import {
@@ -297,7 +298,10 @@ export default function TryonPage() {
 
     fetch(`/api/try-this-look?previewId=${encodeURIComponent(lookId)}`)
       .then(r => r.json())
-      .then((p: { look?: Look; tryonPaused?: boolean }) => { if (p.look) setLook(p.look); setTryonPaused(p.tryonPaused === true); })
+      .then((p: { look?: Look; tryonPaused?: boolean }) => {
+        if (p.look) { setLook(p.look); trackMetaPixel("ViewContent", { content_name: p.look.name, content_category: "tryon" }); }
+        setTryonPaused(p.tryonPaused === true);
+      })
       .catch(() => {})
       .finally(() => setIsLoadingLook(false));
   }, [lookId]);
@@ -684,6 +688,10 @@ export default function TryonPage() {
     if (!isCurator && !authSession) return;
     resumedRef.current = true;
     try { sessionStorage.removeItem("lb_resume_tryon"); } catch { /**/ }
+    // Gate conversion via Google/Facebook — fire the pixel events (this effect only runs
+    // when the visitor came back from an OAuth sign-in they started at the try-on gate).
+    trackMetaPixel("Lead", { content_name: look.name, content_category: "tryon" });
+    trackMetaPixel("CompleteRegistration", { content_name: look.name, method: "social" });
     // Restore the consent the user gave at the gate BEFORE the OAuth redirect, so the
     // resumed generation logs it and respects the public/private choice.
     if (resume.visibility) {
@@ -924,13 +932,14 @@ export default function TryonPage() {
       body: JSON.stringify({ action: "lead", email, customerName: name, lookId: look.id, lookName: look.name, leadSource: "tryon", marketingConsent: true, visitorId: accountId || "anon" }),
     }).catch(() => {});
     const reveal = (session: SupabaseAuthSession) => {
+      trackMetaPixel("Lead", { content_name: look.name, content_category: "tryon" });
       setAuthSession(session); setGatePassed(true); setGateBusy(false);
       const a = pendingGenRef.current;
       void handleGenerate(a?.photoOverride, a?.tier ?? "photo", true);
     };
     try {
       const { session, confirmationRequired } = await signUpWithPassword(email, pw, name);
-      if (session) return reveal(session);
+      if (session) { trackMetaPixel("CompleteRegistration", { content_name: look.name }); return reveal(session); }
       if (confirmationRequired) {
         setGateInfo("Wir haben dir eine Bestätigungs-Mail geschickt. Bestätige deine E-Mail und melde dich dann an, um deinen Look zu sehen.");
         setGateBusy(false);
