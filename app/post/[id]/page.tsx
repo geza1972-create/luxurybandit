@@ -494,8 +494,10 @@ export default function PostPage() {
         </button>
       </div>
 
-      {/* Caption / look link */}
-      <div className="px-4 py-3 grid gap-3">
+      {/* Caption / look link. flex-col (not grid): a grid's auto column blows out to the
+          min-content width of the look card's nowrap `truncate` title, dragging the whole
+          column (and the CTA row) wider than the phone frame. */}
+      <div className="px-4 py-3 flex flex-col gap-3">
         <p className="text-sm text-black/80 leading-relaxed">
           <a href={`/${username}`} className="font-black text-black hover:underline">{displayName}</a>
           {" "}tried on{" "}
