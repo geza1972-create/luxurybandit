@@ -1435,6 +1435,7 @@ export default function AdminPage() {
                         <p className="truncate text-[11px] font-bold text-ink/80">
                           <span className="font-black text-ink">{who}</span> {m.label}
                           {e.name === "product_click" && e.productLabel ? <span className="text-ink/50"> · {e.productLabel}</span> : null}
+                          {e.slide ? <span className="font-black text-cobalt"> · Slide {e.slide}/{e.slides || "?"}</span> : null}
                         </p>
                         <p className="truncate text-[9px] font-bold text-ink/40">
                           {e.lookName || "Look"}

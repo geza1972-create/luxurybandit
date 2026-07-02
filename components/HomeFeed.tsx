@@ -399,7 +399,10 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       visitor = (cur?.firstName ? `${cur.firstName}${cur.lastName ? " " + cur.lastName : ""}` : "")
         || meta?.full_name || meta?.username || sess?.user?.email || "";
     } catch { /**/ }
-    fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "event", lookId: look.id, event, lookName: look.name, utmSource, referrer, visitor, internal: isAdminNow(), ...extra }) }).catch(() => {});
+    // Attach the current carousel position to EVERY event so each button click can be
+    // placed on its feed (lookId/lookName) AND the slide the user was on when they tapped.
+    // (carousel_swipe passes its own slide/slides via extra, which override these.)
+    fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "event", lookId: look.id, event, lookName: look.name, slide: active + 1, slides: media.length, utmSource, referrer, visitor, internal: isAdminNow(), ...extra }) }).catch(() => {});
     // Mirror key funnel actions to the Meta Pixel for ad optimization (skip admin/test traffic).
     if (!isAdminNow()) {
       const pixelEvent = event === "tryon_click" ? "TryOn" : event === "bandit_click" ? "BanditClick" : event === "product_click" ? "ShopClick" : "";
