@@ -7,6 +7,7 @@ import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { safeLookImage } from "@/lib/look-image";
+import { cleanEscapes } from "@/lib/reel-audit";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 
 export type FeedLook = {
@@ -41,6 +42,7 @@ export type FeedLook = {
 };
 
 type ShopAlt = NonNullable<FeedLook["alternatives"]>[number];
+type ShopEscape = NonNullable<FeedLook["locationDupes"]>[number];
 
 // Shoppable price range across a look's options — "$35–$475".
 function priceRange(look: FeedLook): string | null {
@@ -147,6 +149,13 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       })
       .slice(0, 8);
   })();
+  // Escapes ("Urlaubsslides") — where to live the look (stays/destinations). Deduped.
+  const shopEscapes = (() => {
+    const seen = new Set<string>();
+    return cleanEscapes(look.locationDupes ?? [])
+      .filter(e => e?.thumbnail && e?.link && !seen.has(e.link!) && seen.add(e.link!))
+      .slice(0, 4);
+  })();
   // Licensing-safe hero still: our created image only (AI render / video poster),
   // never the scraped original product photo of a curated look.
   const heroImg = safeLookImage(look);
@@ -166,6 +175,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     | { type: "cphoto"; url: string; name?: string }
     | { type: "refimage"; url: string; label: string }
     | { type: "product"; alt: ShopAlt }
+    | { type: "escape"; esc: ShopEscape }
   )[] = [
     // 1) ALL community try-on videos as separate slides (most engaging content first).
     //    poster = that member's OWN try-on photo (same person) so a not-yet-playing or
@@ -186,13 +196,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     //    NOTE: the curator's uploaded garment reference (clothesImageUrl) is deliberately
     //    NOT shown here — it's our internal reference, not a shoppable product.
     ...(banditRevealed ? shopAlts.slice(0, 5).map(a => ({ type: "product" as const, alt: a })) : []),
+    // 4) Escapes ("Urlaubsslides") — the destinations to live the look, after the products.
+    ...(banditRevealed ? shopEscapes.map(e => ({ type: "escape" as const, esc: e })) : []),
   ];
   // How many people have tried this look on (distinct names, else photo count).
   const tryOnPeople = new Set(community.map(c => c.name).filter(Boolean)).size || community.length;
   const firstTryOnIdx = media.findIndex(m => m.type === "cvideo" || m.type === "compare");
   const scrollToSlide = (i: number) => carouselRef.current?.scrollTo({ left: i * (carouselRef.current.clientWidth || 0), behavior: "smooth" });
-  // First product slide index = number of non-product slides (products are appended last).
-  const productStartIdx = media.filter(m => m.type !== "product").length;
+  // First shop slide index = number of content slides (products/escapes are appended last).
+  const productStartIdx = media.filter(m => m.type !== "product" && m.type !== "escape").length;
 
   // Tap "Bandit the feeling" on the video → show a "creating slides" hint, then reveal
   // the product carousel and glide to the first product slide.
@@ -575,6 +587,25 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                       onClick={(e) => { e.stopPropagation(); trackEvent("product_click", { productLabel: `${m.alt.title || m.alt.source || ""}${m.alt.price ? ` · ${m.alt.price}` : ""}`, productLink: m.alt.link || "" }); }}
                       className="flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-black text-black shadow-xl active:scale-95 transition-transform">
                       <ShoppingBag className="h-4 w-4" /> Shop Now{m.alt.price ? ` · ${m.alt.price}` : ""}
+                    </a>
+                  </div>
+                </div>
+              ) : m.type === "escape" ? (
+                // Escape ("Urlaubsslide") — the destination to live the look. Full-bleed
+                // image + ONE "Explore" CTA (→ the stay's link).
+                <div className="relative h-full w-full bg-neutral-100">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={m.esc.thumbnail} alt={m.esc.title || m.esc.region || "Escape"} className="h-full w-full object-cover" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-2/5 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-7 z-20 flex flex-col items-center gap-2 px-6">
+                    {(m.esc.title || m.esc.region || m.esc.source) && (
+                      <span className="max-w-full truncate text-center text-[12px] font-bold text-white drop-shadow-lg">{m.esc.title || m.esc.region || m.esc.source}</span>
+                    )}
+                    <a href={m.esc.link} target="_blank" rel="sponsored noopener noreferrer"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.stopPropagation(); trackEvent("product_click", { productLabel: `🏝️ ${m.esc.title || m.esc.region || m.esc.source || "Escape"}${m.esc.price ? ` · ${m.esc.price}` : ""}`, productLink: m.esc.link || "", productThumb: m.esc.thumbnail || "" }); }}
+                      className="flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-black text-black shadow-xl active:scale-95 transition-transform">
+                      <MapPin className="h-4 w-4" /> Explore{m.esc.price ? ` · ${m.esc.price}` : ""}
                     </a>
                   </div>
                 </div>
