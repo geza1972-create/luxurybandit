@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus, Video, BarChart3, Eye, MousePointerClick } from "lucide-react";
 import { signInWithPassword, getStoredAuthSession, saveAuthSession, signOut, resetPassword } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -51,6 +51,25 @@ const slugify = (s?: string) => (s ?? "").trim().toLowerCase().replace(/[^a-z0-9
 type Msg = { id: string; text: string; createdAt: string; readAt?: string; fromUserId: string; fromName?: string; fromEmail?: string; toUserId: string; toName?: string; toIsCurator?: boolean };
 type Cmt = { id: string; lookId: string; text: string; authorName?: string; createdAt: string; lookName?: string; curatorId?: string; curatorName?: string; parentId?: string; replyToName?: string };
 
+// Lightweight Markdown → JSX for the AI report (headings, bullets, **bold**). No deps.
+function renderReportInline(text: string): ReactNode[] {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((p, i) =>
+    p.startsWith("**") && p.endsWith("**")
+      ? <strong key={i} className="font-black text-ink">{p.slice(2, -2)}</strong>
+      : <span key={i}>{p}</span>
+  );
+}
+function renderReport(md: string): ReactNode {
+  return md.split("\n").map((line, i) => {
+    const h = line.match(/^(#{1,4})\s+(.*)$/);
+    if (h) return <p key={i} className="mt-3 mb-1 text-sm font-black text-ink">{renderReportInline(h[2])}</p>;
+    const b = line.match(/^\s*(?:[-*•]|\d+\.)\s+(.*)$/);
+    if (b) return <p key={i} className="ml-1 mt-1 flex gap-1.5"><span className="text-ink/40">•</span><span>{renderReportInline(b[1])}</span></p>;
+    if (!line.trim()) return <div key={i} className="h-2" />;
+    return <p key={i} className="mt-0.5">{renderReportInline(line)}</p>;
+  });
+}
+
 const fullName = (c: Curator) => [c.firstName, c.lastName].filter(Boolean).join(" ").trim() || "—";
 const initials = (c: Curator) => (`${c.firstName?.[0] ?? ""}${c.lastName?.[0] ?? ""}`.toUpperCase() || "?");
 const fmtDate = (s?: string) => { if (!s) return ""; try { return new Date(s).toLocaleDateString(); } catch { return ""; } };
@@ -82,6 +101,11 @@ export default function AdminPage() {
   const [usersAuthError, setUsersAuthError] = useState("");
   const [userEditId, setUserEditId] = useState("");
   const [userNameDraft, setUserNameDraft] = useState("");
+  // AI insights report (Insights tab) — Claude analyzes the funnel + suggests optimizations.
+  const [aiReport, setAiReport] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiAt, setAiAt] = useState("");
   type AdminPost = { id: string; lookId: string; imageUrl: string; videoUrl?: string; customerName: string; curatorId: string; lookName: string; feed: boolean; createdAt: string };
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [postsLoaded, setPostsLoaded] = useState(false);
@@ -511,6 +535,17 @@ export default function AdminPage() {
     setUsers(us => us.filter(x => x.email !== u.email));
     if (u.leadId) await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-lead", id: u.leadId }) }).catch(() => {});
     if (u.authId) await fetch("/api/admin-users", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-auth-user", id: u.authId }) }).catch(() => {});
+  };
+
+  const runAiInsights = async () => {
+    setAiLoading(true); setAiError("");
+    try {
+      const r = await fetch("/api/ai-insights", { method: "POST", headers: headers() });
+      const d = await r.json().catch(() => null);
+      if (r.ok && d?.report) { setAiReport(d.report); setAiAt(d.generatedAt || new Date().toISOString()); }
+      else setAiError(d?.error || "KI-Analyse fehlgeschlagen.");
+    } catch { setAiError("KI-Analyse fehlgeschlagen."); }
+    finally { setAiLoading(false); }
   };
 
   // ── Insights "Live": poll recent events every 4s while watching, so clicks stream in ──
@@ -1338,6 +1373,29 @@ export default function AdminPage() {
 
           return (
             <div className="mt-3 pb-16">
+              {/* AI report — Claude reads the funnel and says what to optimize */}
+              <div className="mb-3 rounded-2xl border border-black/10 bg-black/[0.02] p-3.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-1.5 text-sm font-black text-ink"><Sparkles className="h-4 w-4" /> KI-Analyse</p>
+                    <p className="mt-0.5 text-[11px] font-bold leading-snug text-ink/45">Claude liest deinen Funnel: was die Leute suchen, wo sie abspringen & was du optimieren kannst.</p>
+                  </div>
+                  <button type="button" onClick={() => void runAiInsights()} disabled={aiLoading}
+                    className="shrink-0 inline-flex h-9 items-center gap-1.5 rounded-full bg-black px-4 text-xs font-black text-white transition active:scale-95 disabled:opacity-50">
+                    {aiLoading
+                      ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Analysiere…</>
+                      : (aiReport ? "Neu analysieren" : "Analyse starten")}
+                  </button>
+                </div>
+                {aiError && <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-[11px] font-black text-red-600">{aiError}</p>}
+                {aiReport && (
+                  <div className="mt-3 border-t border-black/10 pt-3">
+                    <div className="text-[13px] font-medium leading-relaxed text-ink/85">{renderReport(aiReport)}</div>
+                    {aiAt && <p className="mt-3 text-[10px] font-bold text-ink/35">Erstellt {fmtTs(aiAt)}</p>}
+                  </div>
+                )}
+              </div>
+
               {/* Time-range filter + reset */}
               <div className="flex items-center gap-1.5">
                 {([["today", "Today"], ["7d", "7 days"], ["30d", "30 days"], ["all", "All"]] as const).map(([k, label]) => (
