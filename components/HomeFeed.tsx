@@ -93,6 +93,11 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [vidFailed, setVidFailed] = useState(false); // autoplay blocked → show a Play button
   const [paused, setPaused] = useState(false); // user tapped the video to pause
   const [playing, setPlaying] = useState(false); // active video is ACTUALLY playing (onPlaying)
+  // "Bandit the feeling" reveal: on the video, a button fades in after 2s; tapping it
+  // shows a "Slides werden erstellt…" hint, then reveals the shop product carousel.
+  const [showBanditBtn, setShowBanditBtn] = useState(false);
+  const [banditCreating, setBanditCreating] = useState(false);
+  const [banditRevealed, setBanditRevealed] = useState(false);
   const pausedRef = useRef(false); pausedRef.current = paused;
   const [infoOpen, setInfoOpen] = useState(false);
   // Who-tried-this-on is a business secret → only the admin sees the named list.
@@ -177,15 +182,31 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       ? [{ type: "compare" as const, afterUrl: repTryOn.imageUrl, beforeUrl: repTryOn.userPhotoUrl, name: repTryOn.name }]
       : repTryOn?.imageUrl ? [{ type: "cphoto" as const, url: repTryOn.imageUrl, name: repTryOn.name }]
       : (heroImg ? [{ type: "image" as const }] : [])),
-    // 3) Shop products as swipeable slides — each with a "Shop Now" button on the image.
+    // 3) Shop products as swipeable slides — REVEALED only after the user taps
+    //    "Bandit the feeling" on the video (banditRevealed). Each has a "Shop Now" button.
     //    NOTE: the curator's uploaded garment reference (clothesImageUrl) is deliberately
     //    NOT shown here — it's our internal reference, not a shoppable product.
-    ...shopAlts.slice(0, 5).map(a => ({ type: "product" as const, alt: a })),
+    ...(banditRevealed ? shopAlts.slice(0, 5).map(a => ({ type: "product" as const, alt: a })) : []),
   ];
   // How many people have tried this look on (distinct names, else photo count).
   const tryOnPeople = new Set(community.map(c => c.name).filter(Boolean)).size || community.length;
   const firstTryOnIdx = media.findIndex(m => m.type === "cvideo" || m.type === "compare");
   const scrollToSlide = (i: number) => carouselRef.current?.scrollTo({ left: i * (carouselRef.current.clientWidth || 0), behavior: "smooth" });
+  // First product slide index = number of non-product slides (products are appended last).
+  const productStartIdx = media.filter(m => m.type !== "product").length;
+
+  // Tap "Bandit the feeling" on the video → show a "creating slides" hint, then reveal
+  // the product carousel and glide to the first product slide.
+  const revealBandit = () => {
+    if (banditCreating || banditRevealed || shopAlts.length === 0) return;
+    trackEvent("bandit_click");
+    setBanditCreating(true);
+    window.setTimeout(() => {
+      setBanditRevealed(true);
+      setBanditCreating(false);
+      window.setTimeout(() => { setActive(productStartIdx); scrollToSlide(productStartIdx); }, 90);
+    }, 1600);
+  };
 
   useEffect(() => {
     try { setLiked(!!JSON.parse(localStorage.getItem("lb_post_likes") ?? "{}")[look.id]); } catch { /**/ }
@@ -198,7 +219,19 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     if (carouselRef.current) carouselRef.current.scrollLeft = 0;
     setActive(0);
     maxSlideRef.current = 0;
+    setShowBanditBtn(false);
+    setBanditCreating(false);
+    setBanditRevealed(false);
   }, [look.id]);
+
+  // Show the "Bandit the feeling" button on the video 2s after it's in view.
+  useEffect(() => {
+    if (banditRevealed || showBanditBtn || shopAlts.length === 0) return;
+    const isVideo = media[active]?.type === "video" || media[active]?.type === "cvideo";
+    if (!isVideo || !inView) return;
+    const t = window.setTimeout(() => setShowBanditBtn(true), 2000);
+    return () => window.clearTimeout(t);
+  }, [active, inView, banditRevealed, showBanditBtn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Track how far the user swipes the carousel. Fire once per NEW deepest slide
   // (slide is 1-based) → count(slide==k) in Insights = viewers who reached ≥ slide k.
@@ -575,6 +608,27 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
         </button>
 
+        {/* "Bandit the feeling" — on the video, fades in after 2s. Tap → reveal the shop
+            product carousel (with a "creating slides" hint). Hidden once revealed. */}
+        {!banditRevealed && shopAlts.length > 0 && (media[active]?.type === "video" || media[active]?.type === "cvideo") && (
+          <button type="button"
+            onClick={(e) => { e.stopPropagation(); revealBandit(); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className={`absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-black px-7 py-3.5 text-sm font-black text-white shadow-xl transition-all duration-500 active:scale-95 ${showBanditBtn && !banditCreating ? "opacity-100 translate-y-0" : "pointer-events-none translate-y-3 opacity-0"}`}>
+            <Sparkles className="h-4 w-4" /> Bandit the feeling
+          </button>
+        )}
+
+        {/* "Creating slides" hint while the carousel is being built. */}
+        {banditCreating && (
+          <div className="absolute inset-0 z-30 grid place-items-center bg-black/60 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="h-10 w-10 animate-spin text-white" />
+              <p className="text-sm font-black text-white">Slides werden erstellt…</p>
+            </div>
+          </div>
+        )}
+
 
         {/* Right rail (on the image) — anchored to the TOP edge of the video so it
             clears the model's body and the bottom action buttons. */}
@@ -609,7 +663,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform">
             <Sparkles className="h-4 w-4" /> Try This Look · {look.lingerie ? "$2.90" : "Free"}
           </button>
-          <button type="button" onClick={() => { trackEvent("bandit_click"); router.push(`${detail}/details`); }}
+          <button type="button"
+            onClick={() => { if (!banditRevealed && shopAlts.length > 0) revealBandit(); else { trackEvent("bandit_click"); router.push(`${detail}/details`); } }}
             className="flex h-11 shrink-0 items-center justify-center rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
             Bandit the feeling!
           </button>
