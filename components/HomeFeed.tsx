@@ -570,11 +570,13 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   </button>
                 </div>
               ) : m.type === "product" ? (
-                // Shop product slide — full-bleed product image with ONE "Shop Now" CTA
-                // (price on the button). No letterbox bars, no redundant top chip.
-                <div className="relative h-full w-full bg-neutral-100">
+                // Shop product slide — ORIGINAL image centered (object-contain, not
+                // stretched) over a soft blurred fill of itself (no black bars). ONE CTA.
+                <div className="relative h-full w-full bg-neutral-200">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.alt.thumbnail} alt={m.alt.title || "Shop this look"} className="h-full w-full object-cover" />
+                  <img src={m.alt.thumbnail} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={m.alt.thumbnail} alt={m.alt.title || "Shop this look"} className="absolute inset-0 h-full w-full object-contain" />
                   {/* Bottom scrim so the title + button stay legible over any image. */}
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-2/5 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
                   {/* Title above the single CTA, stacked (never overlapping). */}
@@ -591,11 +593,13 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   </div>
                 </div>
               ) : m.type === "escape" ? (
-                // Escape ("Urlaubsslide") — the destination to live the look. Full-bleed
-                // image + ONE "Explore" CTA (→ the stay's link).
-                <div className="relative h-full w-full bg-neutral-100">
+                // Escape ("Urlaubsslide") — ORIGINAL image centered over a soft blurred
+                // fill (no stretching, no black bars) + ONE "Explore" CTA.
+                <div className="relative h-full w-full bg-neutral-200">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.esc.thumbnail} alt={m.esc.title || m.esc.region || "Escape"} className="h-full w-full object-cover" />
+                  <img src={m.esc.thumbnail} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={m.esc.thumbnail} alt={m.esc.title || m.esc.region || "Escape"} className="absolute inset-0 h-full w-full object-contain" />
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-2/5 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
                   <div className="absolute inset-x-0 bottom-7 z-20 flex flex-col items-center gap-2 px-6">
                     {(m.esc.title || m.esc.region || m.esc.source) && (
@@ -700,18 +704,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
 
       {/* ── White caption + actions (Instagram-style, below the image) ── */}
       <div className="shrink-0 bg-white px-4 pt-2.5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4rem)" }}>
-        {/* ── Action buttons directly under the video ── */}
-        <div className="mb-2.5 flex items-center gap-2">
-          <button type="button" onClick={() => { trackEvent("tryon_click"); router.push(tryOnHref); }}
-            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform">
-            <Sparkles className="h-4 w-4" /> Try This Look · {look.lingerie ? "$2.90" : "Free"}
-          </button>
-          <button type="button"
-            onClick={() => { if (!banditRevealed && shopAlts.length > 0) revealBandit(); else { trackEvent("bandit_click"); router.push(`${detail}/details`); } }}
-            className="flex h-11 shrink-0 items-center justify-center rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
-            Bandit the feeling!
-          </button>
-        </div>
+        {/* Action buttons live ON the video now (Bandit → Try this look), so the caption
+            keeps just the text + comments below. */}
         {/* Who recreated this look — ADMIN ONLY (business secret). Sits under the
             caption. Replaces the old "Shop now" card; shopping is via "Bandit the look!". */}
         {single && isAdmin && (
