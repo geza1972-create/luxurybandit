@@ -641,9 +641,11 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           <button type="button" aria-label={paused || vidFailed ? "Play" : "Loading"}
             onClick={() => { const v = videoRefs.current[active]; if (v) { pausedRef.current = false; setPaused(false); v.muted = true; v.play().then(() => { setVidFailed(false); setPlaying(true); }).catch(() => setVidFailed(true)); } }}
             className="absolute inset-0 z-10 grid place-items-center">
-            <span className={`absolute inset-0 ${paused ? "bg-black/25" : "bg-black/45"}`} />
+            {/* On a user pause keep it VERY subtle (no dark scrim, faint small icon);
+                only the autoplay-blocked case gets a prominent prompt. */}
+            <span className={`absolute inset-0 ${paused ? "" : vidFailed ? "bg-black/40" : "bg-black/45"}`} />
             {paused || vidFailed
-              ? <Play className="relative z-10 h-16 w-16 fill-white/70 text-white/70" />
+              ? <Play className={`relative z-10 ${paused ? "h-12 w-12 fill-white/25 text-white/25" : "h-16 w-16 fill-white/70 text-white/70"}`} />
               : <Loader2 className="relative z-10 h-12 w-12 animate-spin text-white/85" />}
           </button>
         )}
