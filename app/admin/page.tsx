@@ -116,6 +116,8 @@ export default function AdminPage() {
   const [editLook, setEditLook] = useState<Look | null>(null); // listing being edited
   const [creditsDraft, setCreditsDraft] = useState(""); // credits input in curator sheet
   const [saving, setSaving] = useState(false);
+  const [tryonPaused, setTryonPaused] = useState(false); // global try-on kill-switch
+  const [tryonBusy, setTryonBusy] = useState(false);
 
   const headers = (p = pin, t = token): Record<string, string> => ({
     "Content-Type": "application/json",
@@ -126,6 +128,22 @@ export default function AdminPage() {
   const armOrRun = (id: string, run: () => void) => {
     if (confirmId === id) { setConfirmId(""); run(); }
     else { setConfirmId(id); setTimeout(() => setConfirmId(c => (c === id ? "" : c)), 3500); }
+  };
+
+  // Global try-on kill-switch: read the live state on mount, flip via the admin action.
+  useEffect(() => {
+    fetch("/api/try-this-look").then(r => r.json()).then(d => setTryonPaused(d?.tryonPaused === true)).catch(() => {});
+  }, []);
+  const toggleTryonPaused = async () => {
+    if (tryonBusy) return;
+    setTryonBusy(true);
+    const next = !tryonPaused;
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "set-tryon-paused", paused: next }) });
+      if (r.ok) setTryonPaused(next);
+      else setError("Could not toggle try-on (admin only).");
+    } catch { setError("Could not toggle try-on."); }
+    finally { setTryonBusy(false); }
   };
 
   const load = async (p = pin, t = token) => {
@@ -624,6 +642,24 @@ export default function AdminPage() {
             <BarChart3 className="h-4 w-4" /> Insights
           </button>
         </div>
+
+        {/* Global try-on kill-switch — flip it to instantly pause end-user generation
+            ("coming soon"); clicks are still counted, and you + curators keep full access. */}
+        <section className={`mt-3 flex items-center gap-3 rounded-xl border p-3 ${tryonPaused ? "border-amber-300 bg-amber-50" : "border-black/10 bg-white"}`}>
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/[0.06] text-base">{tryonPaused ? "⏸️" : "▶️"}</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-black text-ink">Try-on {tryonPaused ? "is PAUSED" : "is live"}</p>
+            <p className="text-[11px] font-bold text-ink/45">
+              {tryonPaused
+                ? "End-users see “coming soon” (clicks still counted). You & curators keep full access."
+                : "End-users generate for free. Pause instantly if volume or cost spikes."}
+            </p>
+          </div>
+          <button type="button" onClick={toggleTryonPaused} disabled={tryonBusy}
+            className={`shrink-0 rounded-full px-4 py-2 text-xs font-black text-white active:scale-95 transition-transform disabled:opacity-50 ${tryonPaused ? "bg-emerald-600" : "bg-black"}`}>
+            {tryonBusy ? "…" : tryonPaused ? "Resume" : "Pause"}
+          </button>
+        </section>
 
         {tab !== "inbox" && tab !== "insights" && (
           <div className="mt-3 flex items-center gap-2">
