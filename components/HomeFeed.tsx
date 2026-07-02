@@ -671,7 +671,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               onClick={(e) => { e.stopPropagation(); revealBandit(); }}
               onPointerDown={(e) => e.stopPropagation()}
               className={`absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center whitespace-nowrap rounded-full bg-black px-8 py-2.5 text-white shadow-xl transition-all duration-200 active:scale-95 ${showBanditBtn && !banditCreating ? "scale-100 opacity-100" : "pointer-events-none scale-90 opacity-0"}`}>
-              <span className="text-[10px] font-light leading-tight text-white/75">Watch the video and</span>
+              <span className="text-[10px] font-light leading-tight text-white/75">Enjoy the video first, then</span>
               <span className="text-sm font-black leading-tight">bandit the FEELING!</span>
             </button>
           )
