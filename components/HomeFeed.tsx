@@ -228,7 +228,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     if (banditRevealed || showBanditBtn || shopAlts.length === 0) return;
     const isVideo = media[active]?.type === "video" || media[active]?.type === "cvideo";
     if (!isVideo || !inView) return;
-    const t = window.setTimeout(() => setShowBanditBtn(true), 1000);
+    const t = window.setTimeout(() => setShowBanditBtn(true), 500);
     return () => window.clearTimeout(t);
   }, [active, inView, banditRevealed, showBanditBtn]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -610,15 +610,24 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
         </button>
 
-        {/* "Bandit the feeling" — on the video, fades in after 2s. Tap → reveal the shop
-            product carousel (with a "creating slides" hint). Hidden once revealed. */}
-        {!banditRevealed && shopAlts.length > 0 && (media[active]?.type === "video" || media[active]?.type === "cvideo") && (
-          <button type="button"
-            onClick={(e) => { e.stopPropagation(); revealBandit(); }}
-            onPointerDown={(e) => e.stopPropagation()}
-            className={`absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-black px-8 py-3.5 text-sm font-black text-white shadow-xl transition-all duration-500 active:scale-95 ${showBanditBtn && !banditCreating ? "opacity-100 translate-y-0" : "pointer-events-none translate-y-3 opacity-0"}`}>
-            Bandit the feeling!
-          </button>
+        {/* On the video, EITHER "Bandit the feeling!" (before reveal, pops in after 0.5s)
+            OR "Try this look" (after reveal, → try-on) — never both. */}
+        {shopAlts.length > 0 && (media[active]?.type === "video" || media[active]?.type === "cvideo") && (
+          banditRevealed ? (
+            <button type="button"
+              onClick={(e) => { e.stopPropagation(); trackEvent("tryon_click"); router.push(tryOnHref); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-white px-8 py-3.5 text-sm font-black text-black shadow-xl transition-transform active:scale-95">
+              <Sparkles className="h-4 w-4" /> Try this look
+            </button>
+          ) : (
+            <button type="button"
+              onClick={(e) => { e.stopPropagation(); revealBandit(); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className={`absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-black px-8 py-3.5 text-sm font-black text-white shadow-xl transition-all duration-200 active:scale-95 ${showBanditBtn && !banditCreating ? "scale-100 opacity-100" : "pointer-events-none scale-90 opacity-0"}`}>
+              Bandit the feeling!
+            </button>
+          )
         )}
 
         {/* "Creating slides" hint while the carousel is being built. */}
