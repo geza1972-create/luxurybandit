@@ -202,9 +202,6 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     // 4) Escapes ("Urlaubsslides") — the destinations to live the look, after the products.
     ...(banditRevealed ? shopEscapes.map(e => ({ type: "escape" as const, esc: e })) : []),
   ];
-  // How many people have tried this look on (distinct names, else photo count).
-  const tryOnPeople = new Set(community.map(c => c.name).filter(Boolean)).size || community.length;
-  const firstTryOnIdx = media.findIndex(m => m.type === "cvideo" || m.type === "compare");
   const scrollToSlide = (i: number) => carouselRef.current?.scrollTo({ left: i * (carouselRef.current.clientWidth || 0), behavior: "smooth" });
   // First shop slide index = number of content slides (products/escapes are appended last).
   const productStartIdx = media.filter(m => m.type !== "product" && m.type !== "escape").length;
@@ -754,19 +751,6 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             <p className="mt-2 px-0.5 text-[12px] font-bold text-black/40">Admin · no try-ons yet</p>
           )
         )}
-        {/* Social proof — how many people tried this look on (tap → their try-ons) */}
-        {tryOnPeople > 0 && firstTryOnIdx >= 0 && (
-          <button type="button" onClick={() => scrollToSlide(firstTryOnIdx)}
-            className="mt-1 flex items-center gap-1.5 text-[12px] font-black text-black active:opacity-70">
-            <span className="flex -space-x-1.5">
-              {community.slice(0, 3).map((c, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img key={i} src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(c.name || "LB")}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-4 w-4 rounded-full border border-white object-cover" />
-              ))}
-            </span>
-            {tryOnPeople} {tryOnPeople === 1 ? "person" : "people"} tried this on →
-          </button>
-        )}
         <div className="mt-1 flex items-center gap-3">
           {!look.commentsOff && (
             <button type="button" onClick={() => onComment(look)} className="text-[12px] font-bold text-black/40">View comments</button>
@@ -856,14 +840,13 @@ function timeAgo(iso: string): string {
 
 // Instagram-style comments bottom sheet.
 function CommentsSheet({ look, onClose }: { look: FeedLook; onClose: () => void }) {
-  const router = useRouter();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [posting, setPosting] = useState(false);
+  const [gate, setGate] = useState(false); // inline register sheet when commenting logged-out
 
   const me = (() => { try { return JSON.parse(localStorage.getItem("lb_curator") ?? "{}"); } catch { return {}; } })();
-  const authed = !!me?.id;
 
   useEffect(() => {
     fetch(`/api/try-this-look?comments=1&lookId=${encodeURIComponent(look.id)}`)
@@ -876,12 +859,20 @@ function CommentsSheet({ look, onClose }: { look: FeedLook; onClose: () => void 
   const post = async () => {
     const t = text.trim();
     if (!t) return;
-    if (!authed) { router.push("/stores?panel=account"); return; }
+    // Accept EITHER a curator login OR a Supabase account. Logged out → open the SAME
+    // inline register sheet as Follow (no navigation, no white-page risk).
+    const sess = getStoredAuthSession();
+    if (!me?.id && !sess) { setGate(true); return; }
+    const authorName = me.firstName
+      || (sess?.user as any)?.user_metadata?.full_name
+      || (sess?.user as any)?.user_metadata?.name
+      || sess?.user?.email?.split("@")[0]
+      || "You";
     setPosting(true);
-    const optimistic: Comment = { id: `tmp-${Date.now()}`, authorName: me.firstName || "You", text: t, createdAt: new Date().toISOString() };
+    const optimistic: Comment = { id: `tmp-${Date.now()}`, authorName, text: t, createdAt: new Date().toISOString() };
     setComments(c => [optimistic, ...c]); setText("");
     try {
-      const res = await fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "add-comment", lookId: look.id, text: t, authorName: me.firstName || "" }) });
+      const res = await fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "add-comment", lookId: look.id, text: t, authorName }) });
       const d = await res.json();
       if (Array.isArray(d.comments)) setComments(d.comments);
     } catch { /* keep optimistic */ }
@@ -946,7 +937,7 @@ function CommentsSheet({ look, onClose }: { look: FeedLook; onClose: () => void 
           <div className="flex items-center gap-2 px-3 pb-2.5">
             <input value={text} onChange={e => setText(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") void post(); }}
-              placeholder={authed ? "Add a comment…" : "Sign in to comment…"}
+              placeholder="Add a comment…"
               className="h-11 flex-1 rounded-full border border-black/12 bg-black/[0.03] px-4 text-sm outline-none focus:border-black" />
             <button type="button" onClick={() => void post()} disabled={posting || !text.trim()}
               className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-black text-white disabled:opacity-30">
@@ -955,6 +946,10 @@ function CommentsSheet({ look, onClose }: { look: FeedLook; onClose: () => void 
           </div>
         </div>
       </div>
+      {gate && (
+        <FeedGate mode="auth" reason="Create a free account to comment." lookId={look.id} lookName={look.name}
+          onClose={() => setGate(false)} onAuthed={() => { setGate(false); void post(); }} />
+      )}
     </>
   );
 }
