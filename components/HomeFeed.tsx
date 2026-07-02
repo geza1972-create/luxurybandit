@@ -523,27 +523,25 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   </button>
                 </div>
               ) : m.type === "product" ? (
-                // Shop product slide — the item's image with a "Shop Now" button on it.
-                <div className="relative h-full w-full bg-black">
+                // Shop product slide — full-bleed product image with ONE "Shop Now" CTA
+                // (price on the button). No letterbox bars, no redundant top chip.
+                <div className="relative h-full w-full bg-neutral-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.alt.thumbnail} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-2xl" />
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.alt.thumbnail} alt={m.alt.title || "Shop this look"} className="absolute inset-0 h-full w-full object-contain" />
-                  <span className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 rounded-full bg-white/85 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-black/70 backdrop-blur`}>
-                    <ShoppingBag className="h-3 w-3" /> Shop the look
-                  </span>
-                  {m.alt.price && (
-                    <span className="absolute right-3 top-3 z-20 rounded-full bg-black/70 px-3 py-1.5 text-[11px] font-black text-white backdrop-blur">{m.alt.price}</span>
-                  )}
-                  {(m.alt.title || m.alt.source) && (
-                    <span className="absolute bottom-32 left-1/2 z-20 max-w-[82%] -translate-x-1/2 truncate rounded-full bg-black/55 px-3 py-1 text-center text-[11px] font-bold text-white/95 backdrop-blur">{m.alt.title || m.alt.source}</span>
-                  )}
-                  <a href={m.alt.link} target="_blank" rel="sponsored noopener noreferrer"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); trackEvent("product_click", { productLabel: `${m.alt.title || m.alt.source || ""}${m.alt.price ? ` · ${m.alt.price}` : ""}`, productLink: m.alt.link || "" }); }}
-                    className="absolute bottom-20 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-black text-black shadow-xl active:scale-95 transition-transform">
-                    <ShoppingBag className="h-4 w-4" /> Shop Now
-                  </a>
+                  <img src={m.alt.thumbnail} alt={m.alt.title || "Shop this look"} className="h-full w-full object-cover" />
+                  {/* Bottom scrim so the title + button stay legible over any image. */}
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-2/5 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+                  {/* Title above the single CTA, stacked (never overlapping). */}
+                  <div className="absolute inset-x-0 bottom-7 z-20 flex flex-col items-center gap-2 px-6">
+                    {(m.alt.title || m.alt.source) && (
+                      <span className="max-w-full truncate text-center text-[12px] font-bold text-white drop-shadow-lg">{m.alt.title || m.alt.source}</span>
+                    )}
+                    <a href={m.alt.link} target="_blank" rel="sponsored noopener noreferrer"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.stopPropagation(); trackEvent("product_click", { productLabel: `${m.alt.title || m.alt.source || ""}${m.alt.price ? ` · ${m.alt.price}` : ""}`, productLink: m.alt.link || "" }); }}
+                      className="flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-black text-black shadow-xl active:scale-95 transition-transform">
+                      <ShoppingBag className="h-4 w-4" /> Shop Now{m.alt.price ? ` · ${m.alt.price}` : ""}
+                    </a>
+                  </div>
                 </div>
               ) : null}
             </div>
@@ -591,19 +589,20 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         </div>
       </div>
 
+      {/* Carousel dots — directly under the video (Instagram-style) */}
+      {media.length > 1 && (
+        <div className="shrink-0 flex justify-center gap-1.5 bg-white pt-2 pb-1">
+          {media.map((_, i) => (
+            <span key={i} className={`h-1.5 w-1.5 rounded-full transition-colors ${active === i ? "bg-black" : "bg-black/25"}`} />
+          ))}
+        </div>
+      )}
+
       {/* Curator + badge — always below the video (name + description under the post). */}
       <div className="shrink-0">{headerBar}</div>
 
       {/* ── White caption + actions (Instagram-style, below the image) ── */}
       <div className="shrink-0 bg-white px-4 pt-2.5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4rem)" }}>
-        {/* Carousel dots — on white, below the image (Instagram-style) */}
-        {media.length > 1 && (
-          <div className="mb-2 flex justify-center gap-1.5">
-            {media.map((_, i) => (
-              <span key={i} className={`h-1.5 w-1.5 rounded-full transition-colors ${active === i ? "bg-black" : "bg-black/20"}`} />
-            ))}
-          </div>
-        )}
         {/* ── Action buttons directly under the video ── */}
         <div className="mb-2.5 flex items-center gap-2">
           <button type="button" onClick={() => { trackEvent("tryon_click"); router.push(tryOnHref); }}
