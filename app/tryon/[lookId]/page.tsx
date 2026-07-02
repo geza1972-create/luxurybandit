@@ -1239,11 +1239,11 @@ export default function TryonPage() {
             <p className="mt-3 mb-1.5 text-left text-[11px] font-black uppercase tracking-wider text-black/40">Who can see this?</p>
             <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-black/[0.05] p-1">
               <button type="button" disabled={effectiveLingerie} onClick={() => setVisibility("public")}
-                className={`flex h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-black transition disabled:opacity-30 ${(visibility === "public" && !effectiveLingerie) ? "bg-black text-white shadow" : "text-black/55"}`}>
+                className={`flex h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-black transition disabled:opacity-30 ${(visibility === "public" && !effectiveLingerie) ? "bg-white text-black shadow-sm ring-1 ring-black/5" : "text-black/45"}`}>
                 <Sparkles className="h-4 w-4" /> Public
               </button>
               <button type="button" onClick={() => setVisibility("private")}
-                className={`flex h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-black transition ${(visibility === "private" || effectiveLingerie) ? "bg-black text-white shadow" : "text-black/55"}`}>
+                className={`flex h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-black transition ${(visibility === "private" || effectiveLingerie) ? "bg-white text-black shadow-sm ring-1 ring-black/5" : "text-black/45"}`}>
                 🔒 Only me
               </button>
             </div>
