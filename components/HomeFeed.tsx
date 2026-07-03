@@ -581,10 +581,14 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 // (never upscaled/stretched), over a soft blurred fill of itself.
                 <div className="relative h-full w-full overflow-hidden bg-neutral-200">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.alt.thumbnail} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl" />
+                  <img src={m.alt.thumbnail} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl"
+                    onLoad={(e) => { if (e.currentTarget.naturalWidth < 100) e.currentTarget.style.display = "none"; }}
+                    onError={(e) => { const el = e.currentTarget; const u = m.alt.thumbnail || ""; if (!el.dataset.px && u) { el.dataset.px = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(u)}`; } else { el.style.display = "none"; } }} />
                   <div className="absolute inset-0 flex items-center justify-center p-3">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={m.alt.thumbnail} alt={m.alt.title || "Shop this look"} className="max-h-full max-w-full rounded-lg object-contain shadow-2xl" />
+                    <img src={m.alt.thumbnail} alt="" className="max-h-full max-w-full rounded-lg object-contain shadow-2xl"
+                      onLoad={(e) => { if (e.currentTarget.naturalWidth < 100) e.currentTarget.style.display = "none"; }}
+                      onError={(e) => { const el = e.currentTarget; const u = m.alt.thumbnail || ""; if (!el.dataset.px && u) { el.dataset.px = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(u)}`; } else { el.style.display = "none"; } }} />
                   </div>
                   {/* Bottom scrim so the title + button stay legible over any image. */}
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-2/5 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
@@ -602,15 +606,27 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   </div>
                 </div>
               ) : m.type === "escape" ? (
-                // Escape ("Urlaubsslide") — ORIGINAL image at native size, centered
-                // (never upscaled/stretched), over a soft blurred fill + ONE "Explore" CTA.
-                <div className="relative h-full w-full overflow-hidden bg-neutral-200">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.esc.thumbnail} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl" />
-                  <div className="absolute inset-0 flex items-center justify-center p-3">
+                // Escape ("Urlaubsslide") — a real photo when we have one; otherwise a clean
+                // placeholder. Favicons/tiny/dead thumbnails are hidden (never shown broken):
+                // onLoad hides sub-100px images (favicons), onError proxies then hides.
+                <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-neutral-600 to-neutral-900">
+                  {/* Placeholder base — visible only when no real photo (the photo covers it). */}
+                  <div className="absolute inset-0 grid place-items-center text-white/25"><MapPin className="h-20 w-20" strokeWidth={1.5} /></div>
+                  {/* Only render the photo when it's a real image — skip favicons (which come back
+                      as tiny google.com/s2/favicons icons and look broken). onLoad also hides any
+                      other sub-100px image; onError proxies then hides. */}
+                  {m.esc.thumbnail && !/s2\/favicons|favicon/i.test(m.esc.thumbnail) && (<>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={m.esc.thumbnail} alt={m.esc.title || m.esc.region || "Escape"} className="max-h-full max-w-full rounded-lg object-contain shadow-2xl" />
-                  </div>
+                    <img src={m.esc.thumbnail} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl"
+                      onLoad={(e) => { if (e.currentTarget.naturalWidth < 100) e.currentTarget.style.display = "none"; }}
+                      onError={(e) => { const el = e.currentTarget; const u = m.esc.thumbnail || ""; if (!el.dataset.px && u) { el.dataset.px = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(u)}`; } else { el.style.display = "none"; } }} />
+                    <div className="absolute inset-0 flex items-center justify-center p-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={m.esc.thumbnail} alt="" className="max-h-full max-w-full rounded-lg object-contain shadow-2xl"
+                        onLoad={(e) => { if (e.currentTarget.naturalWidth < 100) e.currentTarget.style.display = "none"; }}
+                        onError={(e) => { const el = e.currentTarget; const u = m.esc.thumbnail || ""; if (!el.dataset.px && u) { el.dataset.px = "1"; el.src = `/api/img-proxy?url=${encodeURIComponent(u)}`; } else { el.style.display = "none"; } }} />
+                    </div>
+                  </>)}
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-2/5 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
                   <div className="absolute inset-x-0 bottom-7 z-20 flex flex-col items-center gap-2 px-6">
                     {(m.esc.title || m.esc.region || m.esc.source) && (
