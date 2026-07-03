@@ -191,8 +191,10 @@ export default function TryonPage() {
   // CONSENT: proceeding past the confirm step (which clearly says the look will be
   // posted, with a "No, cancel" out) publishes it — and they can Remove it anytime
   // on the result. Lingerie stays private regardless.
-  const [showInFeed, setShowInFeed] = useState(true);
-  const showInFeedRef = useRef(true); // mirror so async saves read the latest toggle
+  // OPT-IN: try-ons are PRIVATE by default. Nothing appears in the feed unless the user
+  // actively ticks "show in feed". (User rule: no try-on may auto-appear.)
+  const [showInFeed, setShowInFeed] = useState(false);
+  const showInFeedRef = useRef(false); // mirror so async saves read the latest toggle
   useEffect(() => { showInFeedRef.current = showInFeed; }, [showInFeed]);
   const sharedGenIdRef = useRef<string>("");
   // Public (signed) URL of the posted try-on — used to show the image in the email.
@@ -222,8 +224,8 @@ export default function TryonPage() {
   // before the real generation starts. We log the exact wording + timestamp on the
   // generation so active consent is provable. Kept separate from Terms/Privacy.
   // Visibility choice at the gate: "public" = shared to the community (= active publish
-  // consent), "private" = only in the user's own account. Default public.
-  const [visibility, setVisibility] = useState<"public" | "private">("public");
+  // consent), "private" = only in the user's own account. Default PRIVATE (opt-in).
+  const [visibility, setVisibility] = useState<"public" | "private">("private");
   const [rightsConsent, setRightsConsent] = useState(false); // I'm in the photo / have permission
   const consentRef = useRef<{ at: string; publishText: string; rightsText: string } | null>(null);
   // The email this try-on belongs to (gate email, or the logged-in account's email).
@@ -282,7 +284,7 @@ export default function TryonPage() {
       const c = JSON.parse(localStorage.getItem("lb_curator") ?? "{}");
       if (c?.id) {
         setCuratorId(c.id);
-        setShowInFeed(true); // staff/curators deliberately create feed content → default ON
+        setShowInFeed(false); // OPT-IN for everyone now — even staff must tick "show in feed"
         // Pre-fill the "share to gallery" name from the session right away (editable).
         if (c.firstName) setShareNameInput((prev) => prev || c.firstName);
         fetch(`/api/curator?profile=${encodeURIComponent(c.id)}`)

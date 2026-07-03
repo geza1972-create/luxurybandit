@@ -268,7 +268,9 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
   );
   for (const g of state.generations ?? []) {
     const url = (g as any).imageUrl;
-    if (!url || (g as any).hidden || (g as any).feed === false || g.visitorId?.startsWith("admin-")) continue;
+    // OPT-IN: a try-on is public ONLY if feed === true (an explicit checkbox). Anything
+    // else (undefined/false) stays private — no try-on auto-appears in the feed.
+    if (!url || (g as any).hidden || (g as any).feed !== true || g.visitorId?.startsWith("admin-")) continue;
     if (lingerieLookIds.has(g.lookId)) continue; // never surface lingerie try-ons publicly
     const cid = curatorIdByLook.get(g.lookId);
     const isCurator = !!(cid && normalizeSlug((g as any).customerName ?? "") === curatorSlugById.get(cid));
@@ -522,7 +524,7 @@ export async function GET(request: Request) {
       const myCuratorId = request.headers.get("x-curator-id")?.trim() ?? "";
       const community = state.generations
         .filter(g => {
-          if (!(g as any).imageUrl || (g as any).hidden || (g as any).feed === false) return false;
+          if (!(g as any).imageUrl || (g as any).hidden || (g as any).feed !== true) return false; // OPT-IN: only explicit feed===true
           // Lingerie/intimate try-ons are PRIVATE — keep them out of the public feed entirely.
           const look = lookById.get(g.lookId);
           const isLing = look ? (typeof (look as any).lingerie === "boolean"
@@ -576,7 +578,7 @@ export async function GET(request: Request) {
       const nameSlug = cur ? normalizeSlug([cur.firstName, cur.lastName].filter(Boolean).join(" ")) : "";
       const matched = state.generations.filter(g => {
         if (g.visitorId?.startsWith("admin-") || (g as any).hidden) return false;
-        if (!manage && (g as any).feed === false) return false;
+        if (!manage && (g as any).feed !== true) return false; // OPT-IN: public profile shows only feed===true
         if ((g as any).curatorId === curatorTryonsId) return true;
         return nameSlug && normalizeSlug((g as any).customerName ?? "") === nameSlug;
       });
@@ -640,7 +642,7 @@ export async function GET(request: Request) {
       const matched = state.generations.filter(g => {
         const name = (g as any).customerName ?? "";
         // Public profile → exclude Hidden (feed:false) try-ons so they don't leak.
-        return name && normalizeSlug(name) === querySlug && !g.visitorId?.startsWith("admin-") && !(g as any).hidden && (g as any).feed !== false;
+        return name && normalizeSlug(name) === querySlug && !g.visitorId?.startsWith("admin-") && !(g as any).hidden && (g as any).feed === true;
       });
       const lookById = new Map(state.looks.map(l => [l.id, l]));
       const userGallery = matched.map(g => {
@@ -1086,7 +1088,7 @@ export async function POST(request: Request) {
           ? String(payload.genKind)
           : "photo") as "photo" | "video" | "video360",
         // Consent to show this try-on in the look's feed carousel (default on).
-        feed: payload.feed !== false,
+        feed: payload.feed === true, // OPT-IN default: private unless the checkbox explicitly set feed:true
         createdAt: now
       } as any);
       state.events.unshift({
