@@ -17,6 +17,7 @@ export function FeedGate({
   lookName,
   onClose,
   onAuthed,
+  advanceOnSignup,
 }: {
   mode: "auth" | "feedback";
   reason?: string;
@@ -24,6 +25,10 @@ export function FeedGate({
   lookName?: string;
   onClose: () => void;
   onAuthed?: () => void;
+  // When true, a fresh signup that still needs email confirmation ALSO proceeds
+  // (calls onAuthed) instead of stopping at a "check your email" message. Used by the
+  // Try-On funnel so the flow continues to the plans step after registering.
+  advanceOnSignup?: boolean;
 }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -62,6 +67,8 @@ export function FeedGate({
       const { session, confirmationRequired } = await signUpWithPassword(mail, password, nm);
       if (session) { trackMetaPixel("CompleteRegistration", { content_category: "feed" }); return finish(); }
       if (confirmationRequired) {
+        // Funnel: registration is enough to continue (email can be confirmed later).
+        if (advanceOnSignup) { trackMetaPixel("CompleteRegistration", { content_category: "feed" }); return finish(); }
         setInfo("Wir haben dir eine Bestätigungs-Mail geschickt. Bestätige deine E-Mail und melde dich dann an.");
         setBusy(false);
         return;

@@ -85,24 +85,29 @@ async function pixverseUpload(key: string, image: string): Promise<number | null
 async function pixverseStartReference(key: string, garment: string, person: string, turnaround: boolean, customPrompt?: string): Promise<{ videoId?: string; error?: string; promptUsed?: string }> {
   const [gId, pId] = await Promise.all([pixverseUpload(key, garment), pixverseUpload(key, person)]);
   if (!gId || !pId) return { error: "Pixverse upload failed (reference images)." };
-  // Prompt: caller (the try-on window) can override so we can tune it live.
+  // Send the caller's prompt EXACTLY as written (no remapping, no extra clauses) — same
+  // as typing it into Pixverse yourself. Bind the two reference images to the exact
+  // @-tokens used in the prompt: the FIRST distinct token = the person, the SECOND = the
+  // outfit (matches "…die Frau aus @Bild1 angezogen in @Bild2/@0…").
   const promptUsed = (customPrompt && customPrompt.trim())
     ? customPrompt.trim()
     : (turnaround ? REF_TURNAROUND_PROMPT : REF_PRESENT_PROMPT);
-  // Fusion (reference-to-video): @person = the face to keep, @outfit = the garment.
+  const tokens = [...new Set((promptUsed.match(/@([A-Za-z0-9_]+)/g) || []).map(t => t.slice(1)))];
+  const personRef = tokens[0] || "person";  // e.g. "Bild1"
+  const outfitRef = tokens[1] || "outfit";  // e.g. "Bild2" / "0"
   const reqBody = {
     image_references: [
-      { type: "subject", img_id: pId, ref_name: "person" },
-      { type: "subject", img_id: gId, ref_name: "outfit" },
+      { type: "subject", img_id: pId, ref_name: personRef },
+      { type: "subject", img_id: gId, ref_name: outfitRef },
     ],
     prompt: promptUsed,
     // TEST settings (initial — we'll raise these once the prompt is right):
     // 360p / 3:4 / 3s for the normal present video; 360° turnaround keeps V6/10s.
-    model: turnaround ? "v6" : "v4.5",
-    duration: turnaround ? 10 : 3,
+    model: "v6",                     // V6 keeps the reference outfit/person (v4.5 ignored it)
+    duration: turnaround ? 10 : 5,   // 5s; 360p keeps cost low
     quality: turnaround ? "720p" : "360p",
     aspect_ratio: turnaround ? "9:16" : "3:4",
-    sound_effect_switch: true,
+    sound_effect_switch: turnaround,           // no sound on the cheap present video (cost)
     sound_effect_content: MUSIC,
   };
   const genRes = await fetch(`${PV_BASE}/video/fusion/generate`, {
@@ -146,7 +151,7 @@ async function pixversePoll(key: string, id: string): Promise<{ status: "done" |
 // POST { lookId, image } → charge owner, start the right provider, return
 // { videoId: "<provider>:<id>", curatorId } for polling.
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean; garment?: string; person?: string; prompt?: string };
+  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean; garment?: string; person?: string; prompt?: string; dryRun?: boolean };
   const lookId = String(body.lookId ?? "").trim();
   const image = String(body.image ?? "");
   const turnaround = body.turnaround === true; // 360° tier
@@ -161,6 +166,17 @@ export async function POST(request: Request) {
   const { curatorId } = await lookOf(lookId);
   const key = process.env.PIXVERSE_API_KEY?.trim();
   if (!key) return NextResponse.json({ error: "PIXVERSE_API_KEY missing." }, { status: 400 });
+
+  // PROOF mode: upload the two reference images to Pixverse and return the IDs Pixverse
+  // assigns — this shows the images actually reach Pixverse, WITHOUT generating a video.
+  if (body.dryRun && reference) {
+    const [gId, pId] = await Promise.all([pixverseUpload(key, garment), pixverseUpload(key, person)]);
+    return NextResponse.json({
+      dryRun: true,
+      pixverseReceivedPerson: !!pId, personImgId: pId, personBytes: person.startsWith("data:") ? "(data url)" : person.slice(0, 60),
+      pixverseReceivedGarment: !!gId, garmentImgId: gId, garmentBytes: garment.startsWith("data:") ? "(data url)" : garment.slice(0, 60),
+    });
+  }
 
   // Staff (admin or an acting-as curator session, e.g. Szidonia) generate for FREE
   // — no credit charge, no paywall. End-user charging comes with Stripe.

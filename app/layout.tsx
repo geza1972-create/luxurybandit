@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import MetaPixel from "@/components/MetaPixel";
+import AdminUrlMirror from "@/components/AdminUrlMirror";
 
 export const metadata: Metadata = {
   metadataBase: new URL((process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "")),
@@ -37,6 +38,10 @@ export default function RootLayout({
             phone-width frame. The frame uses `transform` so that descendant
             `position: fixed` elements (reels, modals, bottom nav) are contained by the
             frame instead of spanning the whole wide viewport. On phones it's full-width. */}
+        {/* Mirror every public page under /admin/… when signed in as admin. */}
+        <Suspense fallback={null}>
+          <AdminUrlMirror />
+        </Suspense>
         <div className="lb-frame">
           {children}
           {/* Suspense so BottomNav's useSearchParams doesn't force CSR bailout on

@@ -13,7 +13,7 @@ import {
   type SupabaseAuthSession,
 } from "@/lib/supabase-auth-client";
 import { useScrollLock } from "@/lib/use-scroll-lock";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, usePathname } from "next/navigation";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -274,7 +274,21 @@ function ScrollLock() { useScrollLock(); return null; }
 export default function LookPage() {
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname();
   const lookId = String(params?.id ?? "");
+
+  // When signed in as admin (Studio PIN present), mirror this page under /admin/look/…
+  // so the URL reflects admin mode (matches /admin/stores, /admin/tryon).
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    try { setIsAdmin(!!(localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "")); } catch { /**/ }
+  }, []);
+  useEffect(() => {
+    if (isAdmin && lookId && (pathname ?? "").startsWith("/look/")) {
+      const q = typeof window !== "undefined" ? window.location.search : "";
+      router.replace(`/admin/look/${lookId}${q}`);
+    }
+  }, [isAdmin, pathname, lookId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Look data
   const [look, setLook] = useState<Look | null>(null);

@@ -8,6 +8,17 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
   outputFileTracingRoot: projectRoot,
+  async rewrites() {
+    // Mirror every public page under /admin/… for signed-in admins. `afterFiles` runs
+    // AFTER real pages/files, so genuine admin dashboards (/admin/looks, /admin/trends,
+    // /admin/curators, …) keep priority; only /admin paths with no page of their own
+    // fall through here and render the matching public page (URL stays /admin/…).
+    return {
+      afterFiles: [
+        { source: "/admin/:path*", destination: "/:path*" },
+      ],
+    };
+  },
   async redirects() {
     return [
       {

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, Home, ShoppingBag } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, Home, ShoppingBag, EyeOff, Eye, Trash2, UserPlus, Check } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -26,7 +26,7 @@ export type FeedLook = {
   tryOnImageUrl?: string;
   clothesImageUrl?: string;   // curator-uploaded garment reference (shown as a carousel slide + used for try-on)
   locationImageUrl?: string;  // curator-uploaded location reference (used for try-on)
-  communityTryOns?: { imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string }[];
+  communityTryOns?: { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; hidden?: boolean; pending?: boolean }[];
   feedOrder?: number;
   aiCreated?: boolean;
   lingerie?: boolean;
@@ -91,6 +91,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [expanded, setExpanded] = useState(false);
   const [clamped, setClamped] = useState(false);
   const [active, setActive] = useState(0);
+  // Admin moderation of individual try-ons on this card (curated look stays untouched):
+  //  • hidden override — optimistic hide/show toggle (server feed:false/true). A hidden
+  //    try-on STAYS visible to the admin (as HIDDEN) so it can be re-activated.
+  //  • deleted — try-ons the admin removed for good, dropped from the card.
+  const [tryOnHiddenOverride, setTryOnHiddenOverride] = useState<Record<string, boolean>>({});
+  const [deletedTryOnIds, setDeletedTryOnIds] = useState<Set<string>>(new Set());
+  // Pending publish-requests the admin just approved in this session (optimistic → no
+  // longer shown as PENDING). Rejected ones go into deletedTryOnIds (dropped from view).
+  const [approvedRequestIds, setApprovedRequestIds] = useState<Set<string>>(new Set());
   const [inView, setInView] = useState(false);
   const [vidFailed, setVidFailed] = useState(false); // autoplay blocked → show a Play button
   const [paused, setPaused] = useState(false); // user tapped the video to pause
@@ -162,10 +171,17 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   // Licensing-safe hero still: our created image only (AI render / video poster),
   // never the scraped original product photo of a curated look.
   const heroImg = safeLookImage(look);
-  const community = (look.communityTryOns ?? []).filter(c => c?.imageUrl);
+  const community = (look.communityTryOns ?? [])
+    .filter(c => c?.imageUrl && !(c.id && deletedTryOnIds.has(c.id)))
+    // Effective hidden/pending = local optimistic override, else the server's flag.
+    .map(c => ({
+      ...c,
+      hidden: c.id && c.id in tryOnHiddenOverride ? tryOnHiddenOverride[c.id!] : !!c.hidden,
+      pending: !!c.pending && !(c.id && approvedRequestIds.has(c.id)),
+    }));
   // Representative try-on for the carousel — prefer one WITH video+before (full compare),
   // then video only, then before photo only, then any try-on (at least the photo).
-  const repTryOn = community.find(c => c.videoUrl && c.userPhotoUrl) ?? community.find(c => c.videoUrl) ?? community.find(c => c.userPhotoUrl) ?? community[0];
+  const repTryOn = community.find(c => !c.hidden && c.videoUrl && c.userPhotoUrl) ?? community.find(c => !c.hidden && c.videoUrl) ?? community.find(c => !c.hidden && c.userPhotoUrl) ?? community.find(c => !c.hidden) ?? community[0];
   // LOCKED carousel order (see memory feed-post-carousel-structure):
   //   1) the try-on (member's try-on video, else the look's own video)
   //   2) Before/After compare (uploaded Before | After result) — when a before photo exists
@@ -173,9 +189,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const media: (
     | { type: "video" }
     | { type: "image" }
-    | { type: "cvideo"; url: string; name?: string; poster?: string }
-    | { type: "compare"; afterUrl: string; beforeUrl: string; name?: string }
-    | { type: "cphoto"; url: string; name?: string }
+    | { type: "cvideo"; url: string; name?: string; poster?: string; id?: string; hidden?: boolean; pending?: boolean }
+    | { type: "compare"; afterUrl: string; beforeUrl: string; name?: string; id?: string; hidden?: boolean; pending?: boolean }
+    | { type: "cphoto"; url: string; name?: string; id?: string; hidden?: boolean; pending?: boolean }
     | { type: "refimage"; url: string; label: string }
     | { type: "product"; alt: ShopAlt }
     | { type: "escape"; esc: ShopEscape }
@@ -185,14 +201,14 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     //    paused video shows a clear, correct still — never a blurred box or wrong image.
     ...community
       .filter(c => c.videoUrl)
-      .map(c => ({ type: "cvideo" as const, url: c.videoUrl!, name: c.name, poster: c.imageUrl || c.userPhotoUrl || "" })),
+      .map(c => ({ type: "cvideo" as const, url: c.videoUrl!, name: c.name, poster: c.imageUrl || c.userPhotoUrl || "", id: c.id, hidden: c.hidden, pending: c.pending })),
     // If no community videos, fall back to the look's own video.
     ...(!community.some(c => c.videoUrl) && look.videoUrl ? [{ type: "video" as const }] : []),
     // 2) Before/After compare from repTryOn (if it has both video+before photo),
     //    else try-on photo, else the look's still.
     ...(repTryOn?.userPhotoUrl && repTryOn?.videoUrl
-      ? [{ type: "compare" as const, afterUrl: repTryOn.imageUrl, beforeUrl: repTryOn.userPhotoUrl, name: repTryOn.name }]
-      : repTryOn?.imageUrl ? [{ type: "cphoto" as const, url: repTryOn.imageUrl, name: repTryOn.name }]
+      ? [{ type: "compare" as const, afterUrl: repTryOn.imageUrl, beforeUrl: repTryOn.userPhotoUrl, name: repTryOn.name, id: repTryOn.id, hidden: repTryOn.hidden, pending: repTryOn.pending }]
+      : repTryOn?.imageUrl ? [{ type: "cphoto" as const, url: repTryOn.imageUrl, name: repTryOn.name, id: repTryOn.id, hidden: repTryOn.hidden, pending: repTryOn.pending }]
       : (heroImg ? [{ type: "image" as const }] : [])),
     // 3) Shop products as swipeable slides — REVEALED only after the user taps
     //    "Bandit the feeling" on the video (banditRevealed). Each has a "Shop Now" button.
@@ -209,8 +225,11 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   // Tap "Bandit the feeling" on the video → show a "creating slides" hint, then reveal
   // the product carousel and glide to the first product slide.
   const revealBandit = () => {
-    if (banditCreating || banditRevealed || shopAlts.length === 0) return;
+    if (banditCreating || banditRevealed) return;
     trackEvent("bandit_click");
+    // No shop dupes on this look → nothing to reveal in-feed; open the full look page
+    // (where the "Bandit the feeling" experience continues) instead of a dead tap.
+    if (shopAlts.length === 0) { router.push(`/look/${look.id}`); return; }
     setBanditCreating(true);
     window.setTimeout(() => {
       setBanditRevealed(true);
@@ -238,9 +257,11 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   // Show the "Bandit the feeling" button on the video IMMEDIATELY (no delay, no wait
   // for the video to buffer/come into view) — it must be there right away.
   useEffect(() => {
-    if (banditRevealed || showBanditBtn || shopAlts.length === 0) return;
-    const isVideo = media[active]?.type === "video" || media[active]?.type === "cvideo";
-    if (isVideo) setShowBanditBtn(true);
+    if (banditRevealed || showBanditBtn) return;
+    // Show on any content slide (video, try-on video, before/after, photo, still) — every
+    // look gets the buttons, not just ones with a video. Products/escapes are excluded.
+    const showable = ["video", "cvideo", "compare", "cphoto", "image"].includes(media[active]?.type as string);
+    if (showable) setShowBanditBtn(true);
   }, [active, banditRevealed, showBanditBtn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Track how far the user swipes the carousel. Fire once per NEW deepest slide
@@ -392,7 +413,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const activeAltIdx = activeProduct
     ? (look.alternatives ?? []).findIndex(a => a?.link === activeProduct.link && a?.thumbnail === activeProduct.thumbnail)
     : -1;
-  const tryOnHref = activeAltIdx >= 0 ? `/tryon/${look.id}?alt=${activeAltIdx}` : `/tryon/${look.id}`;
+  // Try On → the new video funnel (outfit gallery → model → teaser → plans).
+  const tryOnHref = `/try/${look.id}`;
   // Curator's own voice first, else the editorial note — never empty in the feed.
   const caption = (look.curatorNote || look.productNote || "").trim();
   const range = priceRange(look);
@@ -466,6 +488,90 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   // Curator + badge row. Always renders BELOW the video (name + description under
   // the post, Instagram-Reels style) — on the single-look page this also keeps the
   // page's fixed back button (top-left) off the logo/name/badge.
+  // ── Admin moderation on a curated look (hide / delete / re-assign curator) ──
+  const [modRemoved, setModRemoved] = useState(false); // hard-deleted → drop the card entirely
+  // Hidden = invisible to end-users, but the admin still sees the card (with a HIDDEN badge).
+  const [modHidden, setModHidden] = useState((look as any).published === false);
+  const [modBusy, setModBusy] = useState<"" | "hide" | "delete" | "assign" | "approve" | "reject">("");
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [curatorList, setCuratorList] = useState<{ id: string; name: string }[]>([]);
+  const adminPinVal = () => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } };
+  const modHeaders = () => ({ "Content-Type": "application/json", ...(adminPinVal() ? { "x-try-look-admin-pin": adminPinVal() } : {}) });
+  // The generation id of the try-on on the CURRENT slide (if any). When set, the admin
+  // buttons act on that try-on ONLY — the curated look (the curator's "Mutter" post) is
+  // left untouched. On a non-try-on (curated) slide they fall back to look-level actions.
+  const activeSlide = media[active];
+  const isTryOnSlide = !!activeSlide && (activeSlide.type === "cvideo" || activeSlide.type === "compare" || activeSlide.type === "cphoto");
+  const activeTryOnId = isTryOnSlide ? (activeSlide as { id?: string }).id : undefined;
+  const activeTryOnHidden = isTryOnSlide ? !!(activeSlide as { hidden?: boolean }).hidden : false;
+  const activeTryOnPending = isTryOnSlide ? !!(activeSlide as { pending?: boolean }).pending : false;
+  // Admin approves a pending publish request → the try-on goes public everywhere.
+  const approveTryOn = async () => {
+    if (!activeTryOnId) return;
+    setModBusy("approve");
+    try {
+      await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "set-generation-feed", generationId: activeTryOnId, feed: true }) });
+      setApprovedRequestIds(prev => { const n = new Set(prev); n.add(activeTryOnId); return n; });
+    } catch { /**/ } finally { setModBusy(""); }
+  };
+  // Admin rejects a pending request → stays private, drops out of the queue.
+  const rejectTryOn = async () => {
+    if (!activeTryOnId) return;
+    setModBusy("reject");
+    try {
+      await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "reject-tryon-request", generationId: activeTryOnId }) });
+      setDeletedTryOnIds(prev => { const n = new Set(prev); n.add(activeTryOnId); return n; });
+      setActive(0);
+    } catch { /**/ } finally { setModBusy(""); }
+  };
+  const hideLook = async () => {
+    setModBusy("hide");
+    try {
+      if (activeTryOnId) {
+        // Toggle THIS try-on's visibility everywhere (grid, community, post, profile) —
+        // the curated look stays. A hidden try-on remains on the card FOR THE ADMIN
+        // (marked HIDDEN) so it can be re-activated; end-users never see it.
+        const nextHidden = !activeTryOnHidden;
+        await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "set-generation-feed", generationId: activeTryOnId, feed: !nextHidden }) });
+        setTryOnHiddenOverride(prev => ({ ...prev, [activeTryOnId]: nextHidden }));
+      } else {
+        const next = !modHidden; // curated slide → unpublish/publish the look
+        await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "update-look", id: look.id, published: !next }) });
+        setModHidden(next);
+      }
+    } catch { /**/ } finally { setModBusy(""); }
+  };
+  const deleteLook = async () => {
+    if (activeTryOnId) {
+      if (typeof window !== "undefined" && !window.confirm("Delete this try-on permanently? (The look stays.)")) return;
+      setModBusy("delete");
+      try {
+        await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "delete-generation", id: activeTryOnId }) });
+        setDeletedTryOnIds(prev => { const n = new Set(prev); n.add(activeTryOnId); return n; });
+        setActive(0);
+      } catch { /**/ } finally { setModBusy(""); }
+      return;
+    }
+    if (typeof window !== "undefined" && !window.confirm("Delete this look permanently?")) return;
+    setModBusy("delete");
+    try { await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "delete-look", id: look.id }) }); setModRemoved(true); }
+    catch { /**/ } finally { setModBusy(""); }
+  };
+  const openAssign = async () => {
+    setAssignOpen(true);
+    if (!curatorList.length) {
+      try {
+        const d = await fetch("/api/try-this-look?curators=1", { headers: modHeaders() }).then(r => r.json());
+        setCuratorList((d.curators || []).map((c: any) => ({ id: c.id, name: [c.firstName, c.lastName].filter(Boolean).join(" ") || c.name || c.id })));
+      } catch { /**/ }
+    }
+  };
+  const assignLook = async (curatorId: string) => {
+    setModBusy("assign");
+    try { await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "set-look-curator", lookId: look.id, curatorId }) }); setAssignOpen(false); }
+    catch { /**/ } finally { setModBusy(""); }
+  };
+
   const headerBar = (
     <div className="z-20 bg-white px-3 pb-2 pt-3">
       <div className="flex items-center gap-2">
@@ -501,6 +607,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     </div>
   );
 
+  if (modRemoved) return null; // admin hid or deleted this look → drop the card
+
   return (
     <section ref={sectionRef} className="relative flex w-full flex-col bg-white">
       {/* ── Media area — vertical format (9:16). Curator name + description render
@@ -509,6 +617,55 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         {/* Blurred fill so the whole look stays visible without empty bars */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={videoStill} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-2xl" />
+
+        {/* Admin moderation — hide / delete / re-assign curator — top-centre over the video.
+            Only the admin sees this; hidden looks stay visible here (with a HIDDEN badge). */}
+        {isAdmin && (
+          <div className="absolute left-1/2 top-3 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/45 px-2 py-1.5 backdrop-blur-sm">
+            {activeTryOnPending ? (
+              // Pending publish request → the admin approves or rejects it.
+              <>
+                <button type="button" onClick={approveTryOn} disabled={!!modBusy} title="Approve — publish this try-on"
+                  className="grid h-9 w-9 place-items-center rounded-full bg-emerald-500/90 text-white active:opacity-70 disabled:opacity-40">
+                  {modBusy === "approve" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                </button>
+                <button type="button" onClick={rejectTryOn} disabled={!!modBusy} title="Reject — keep it private"
+                  className="grid h-9 w-9 place-items-center rounded-full bg-red-500/90 text-white active:opacity-70 disabled:opacity-40">
+                  {modBusy === "reject" ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                </button>
+                <span className="ml-0.5 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-black">
+                  Pending
+                </span>
+              </>
+            ) : (() => {
+              const showAsHidden = activeTryOnId ? activeTryOnHidden : modHidden;
+              const title = activeTryOnId
+                ? (activeTryOnHidden ? "Re-activate this try-on" : "Hide this try-on (look stays)")
+                : (modHidden ? "Show look to users" : "Hide look from users");
+              const label = activeTryOnId ? (activeTryOnHidden ? "Hidden" : "Try-on") : (modHidden ? "Hidden" : "Look");
+              return (
+                <>
+                  <button type="button" onClick={hideLook} disabled={!!modBusy} title={title}
+                    className={`grid h-9 w-9 place-items-center rounded-full text-white active:opacity-70 disabled:opacity-40 ${showAsHidden ? "bg-emerald-500/90" : "bg-amber-400/90"}`}>
+                    {modBusy === "hide" ? <Loader2 className="h-4 w-4 animate-spin" /> : showAsHidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  </button>
+                  <button type="button" onClick={deleteLook} disabled={!!modBusy} title={activeTryOnId ? "Delete this try-on (look stays)" : "Delete look"}
+                    className="grid h-9 w-9 place-items-center rounded-full bg-red-500/90 text-white active:opacity-70 disabled:opacity-40">
+                    {modBusy === "delete" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  </button>
+                  <button type="button" onClick={openAssign} disabled={!!modBusy} title="Assign curator"
+                    className="grid h-9 w-9 place-items-center rounded-full bg-black/70 text-white active:opacity-70 disabled:opacity-40">
+                    <UserPlus className="h-4 w-4" />
+                  </button>
+                  {/* What the buttons currently target — so hiding a try-on vs the look is never ambiguous. */}
+                  <span className={`ml-0.5 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white ${showAsHidden ? "bg-red-600" : "bg-black/60"}`}>
+                    {label}
+                  </span>
+                </>
+              );
+            })()}
+          </div>
+        )}
 
         {/* Horizontal media carousel: video first, image second */}
         <div ref={carouselRef} className="absolute inset-0 flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -676,7 +833,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
 
         {/* On the video, EITHER "Bandit the feeling!" (before reveal, pops in after 0.5s)
             OR "Try this look" (after reveal, → try-on) — never both. */}
-        {shopAlts.length > 0 && (media[active]?.type === "video" || media[active]?.type === "cvideo") && (
+        {["video", "cvideo", "compare", "cphoto", "image"].includes(media[active]?.type as string) && (
           banditRevealed ? (
             <button type="button"
               onClick={(e) => { e.stopPropagation(); trackEvent("tryon_click"); router.push(tryOnHref); }}
@@ -685,13 +842,23 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               <Sparkles className="h-4 w-4" /> Try this look
             </button>
           ) : (
-            <button type="button"
-              onClick={(e) => { e.stopPropagation(); revealBandit(); }}
-              onPointerDown={(e) => e.stopPropagation()}
-              className={`absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center whitespace-nowrap rounded-full bg-black px-8 py-2.5 text-white shadow-xl transition-all duration-200 active:scale-95 ${showBanditBtn && !banditCreating ? "scale-100 opacity-100" : "pointer-events-none scale-90 opacity-0"}`}>
-              <span className="text-[10px] font-light leading-tight text-white/75">enjoy the look then</span>
-              <span className="text-sm font-black leading-tight">Bandit the feeling!</span>
-            </button>
+            <div className={`absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-stretch gap-2 transition-all duration-200 ${showBanditBtn && !banditCreating ? "scale-100 opacity-100" : "pointer-events-none scale-90 opacity-0"}`}>
+              {/* Try On — straight to the try-on (video), from the start */}
+              <button type="button"
+                onClick={(e) => { e.stopPropagation(); trackEvent("tryon_click"); router.push(tryOnHref); }}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-5 text-sm font-black text-black shadow-xl active:scale-95">
+                <Sparkles className="h-4 w-4" /> Try On
+              </button>
+              {/* Bandit the feeling — reveals the shop carousel */}
+              <button type="button"
+                onClick={(e) => { e.stopPropagation(); revealBandit(); }}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="flex flex-col items-center justify-center whitespace-nowrap rounded-full bg-black px-6 py-2 text-white shadow-xl active:scale-95">
+                <span className="text-[10px] font-light leading-tight text-white/75">enjoy the look then</span>
+                <span className="text-sm font-black leading-tight">Bandit the feeling!</span>
+              </button>
+            </div>
           )
         )}
 
@@ -781,6 +948,27 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       {/* Join / feedback sheet — Follow gate (register/sign-in) or "write us" feedback. */}
       {gate && (
         <FeedGate mode={gate.mode} reason={gate.reason} lookId={look.id} lookName={look.name} onClose={() => setGate(null)} onAuthed={gate.mode === "auth" ? doFollow : undefined} />
+      )}
+
+      {/* Admin: assign this curated look to a curator */}
+      {assignOpen && (
+        <div className="lb-phone-col fixed inset-0 z-[80] flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={() => setAssignOpen(false)}>
+          <div className="w-full rounded-t-3xl bg-white p-5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" }} onClick={e => e.stopPropagation()}>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-black text-black">Assign to curator</p>
+              <button type="button" onClick={() => setAssignOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-black/5"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="flex max-h-[55dvh] flex-col gap-1 overflow-y-auto">
+              {curatorList.length === 0 && <p className="py-6 text-center text-[12px] font-bold text-black/35">Loading curators…</p>}
+              {curatorList.map(c => (
+                <button key={c.id} type="button" disabled={!!modBusy} onClick={() => void assignLook(c.id)}
+                  className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-black active:bg-black/[0.04] ${look.curatorId === c.id ? "bg-black/[0.05]" : ""}`}>
+                  {c.name}{look.curatorId === c.id && <span className="text-[11px] font-black text-emerald-600">current</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Info / history sheet — public provenance for this look */}

@@ -14,7 +14,7 @@ import {
   type SupabaseAuthSession,
 } from "@/lib/supabase-auth-client";
 import { trackMetaPixel } from "@/lib/meta-pixel";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, usePathname } from "next/navigation";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import {
   ArrowRight, ChevronLeft, Download, ImagePlus,
@@ -31,6 +31,7 @@ type Look = {
   locationImageUrl?: string;  // curator-uploaded location reference → try-on background/scene
   galleryImageUrls?: string[];
   lingerie?: boolean;
+  videoPrompt?: string;       // admin-set Pixverse prompt for this look's try-on video
   curatorNote?: string; productNote?: string;
   alternatives?: { title: string; link: string; thumbnail: string; price?: string; source?: string }[];
 };
@@ -158,6 +159,8 @@ async function firstValidImageDataUrl(urls: (string | undefined)[]): Promise<str
 export default function TryonPage() {
   const params = useParams();
   const router = useRouter();
+  const pathname = usePathname();
+  const isAdminRoute = (pathname ?? "").startsWith("/admin/"); // /admin/tryon/… = admin editor
   const lookId = String(params?.lookId ?? "");
 
   const [look, setLook] = useState<Look | null>(null);
@@ -194,6 +197,12 @@ export default function TryonPage() {
   const videoPromptRef = useRef(DEFAULT_VIDEO_PROMPT);
   useEffect(() => { videoPromptRef.current = videoPrompt; }, [videoPrompt]);
   const [videoRefImages, setVideoRefImages] = useState<{ garment: string; person: string } | null>(null);
+  // ── ADMIN try-on editor: the admin sets the reference garment + the Pixverse prompt
+  // here and saves them onto the look; end-users then only upload their own photo. ──
+  const [adminRefImg, setAdminRefImg] = useState(""); // newly picked reference (data URL)
+  const [adminSaving, setAdminSaving] = useState(false);
+  const [adminSaved, setAdminSaved] = useState(false);
+  const adminRefInputRef = useRef<HTMLInputElement>(null);
   // Consent to show this try-on in the look's feed carousel (default on).
   // CONSENT: proceeding past the confirm step (which clearly says the look will be
   // posted, with a "No, cancel" out) publishes it — and they can Remove it anytime
@@ -201,6 +210,8 @@ export default function TryonPage() {
   // OPT-IN: try-ons are PRIVATE by default. Nothing appears in the feed unless the user
   // actively ticks "show in feed". (User rule: no try-on may auto-appear.)
   const [showInFeed, setShowInFeed] = useState(false);
+  // A non-admin's "publish" is a REQUEST that an admin must approve — not instantly public.
+  const [pendingReview, setPendingReview] = useState(false);
   const showInFeedRef = useRef(false); // mirror so async saves read the latest toggle
   useEffect(() => { showInFeedRef.current = showInFeed; }, [showInFeed]);
   const sharedGenIdRef = useRef<string>("");
@@ -308,7 +319,7 @@ export default function TryonPage() {
     fetch(`/api/try-this-look?previewId=${encodeURIComponent(lookId)}`)
       .then(r => r.json())
       .then((p: { look?: Look; tryonPaused?: boolean }) => {
-        if (p.look) { setLook(p.look); trackMetaPixel("ViewContent", { content_name: p.look.name, content_category: "tryon" }); }
+        if (p.look) { setLook(p.look); if (p.look.videoPrompt) setVideoPrompt(p.look.videoPrompt); trackMetaPixel("ViewContent", { content_name: p.look.name, content_category: "tryon" }); }
         setTryonPaused(p.tryonPaused === true);
       })
       .catch(() => {})
@@ -535,8 +546,46 @@ export default function TryonPage() {
   const staffCuratorId = () => { try { return String(JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id ?? ""); } catch { return ""; } };
   const adminPin = () => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } };
   const isStaff = typeof window !== "undefined" && !!staffCuratorId();
+  const isAdmin = typeof window !== "undefined" && !!adminPin();
+  // The admin try-on editor lives at /admin/tryon/[id]. Show it only there (so the URL
+  // reflects admin mode); if an admin lands on the plain /tryon route, send them to /admin.
+  const showAdminEditor = isAdmin && isAdminRoute;
+  useEffect(() => {
+    if (isAdmin && !isAdminRoute && lookId) {
+      const q = typeof window !== "undefined" ? window.location.search : "";
+      router.replace(`/admin/tryon/${lookId}${q}`);
+    }
+  }, [isAdmin, isAdminRoute, lookId]); // eslint-disable-line react-hooks/exhaustive-deps
   // Admin (PIN) OR staff (curator) bypass the try-on kill-switch and can always generate.
   const canUseTryon = typeof window !== "undefined" && (isStaff || !!adminPin());
+
+  // Admin picks a reference garment image → preview it locally before saving.
+  const onAdminRefPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => { setAdminRefImg(String(reader.result || "")); setAdminSaved(false); };
+    reader.readAsDataURL(f);
+  };
+  // Admin saves the reference image + Pixverse prompt onto the look (for all users).
+  const saveAdminTryon = async () => {
+    if (!look || adminSaving) return;
+    setAdminSaving(true); setAdminSaved(false);
+    try {
+      const refSmall = adminRefImg ? await compressDataUrl(adminRefImg) : "";
+      const res = await fetch("/api/try-this-look", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(adminPin() ? { "x-try-look-admin-pin": adminPin() } : {}) },
+        body: JSON.stringify({ action: "set-look-tryon", id: look.id, videoPrompt, ...(refSmall ? { referenceImage: refSmall } : {}) }),
+      });
+      if (res.ok) {
+        const d = await res.json().catch(() => null);
+        const saved = d?.look ?? (Array.isArray(d?.looks) ? d.looks.find((l: any) => l.id === look.id) : null);
+        if (saved?.clothesImageUrl) setLook(l => (l ? { ...l, clothesImageUrl: saved.clothesImageUrl } : l));
+        setAdminRefImg(""); setAdminSaved(true);
+      }
+    } catch { /* ignore */ }
+    finally { setAdminSaving(false); }
+  };
 
   // ── Generate ──
   // photoOverride lets callers (e.g. the resume-after-application flow) pass the
@@ -825,6 +874,8 @@ export default function TryonPage() {
   const toggleShowInFeed = async (next: boolean) => {
     if (next && isLingerieTryon() && !isStaff) return; // end-user lingerie stays private; creators/admin may publish
     setShowInFeed(next);
+    // Only an admin publishes instantly; anyone else's "publish" is a pending request.
+    setPendingReview(next && !isAdmin);
     if (next && !sharedGenIdRef.current && resultImage) { await postToFeed(resultImage); return; }
     if (sharedGenIdRef.current) {
       fetch("/api/try-this-look", {
@@ -1560,11 +1611,13 @@ export default function TryonPage() {
               <p className="text-[12px] font-bold text-black/45">Post your {videoUrl ? "photo & video " : "photo "}to the community — the most-liked looks win credits.<span className="text-emerald-600">*</span></p>
             </div>
             {showInFeed ? (
-              <div className="flex items-center justify-between gap-2 rounded-xl bg-emerald-50 px-3 py-2.5">
-                <p className="flex items-center gap-1.5 text-[12px] font-black text-emerald-700">
-                  {isSharing ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Posting…</> : <><Send className="h-3.5 w-3.5" /> Posted to the community</>}
+              <div className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 ${pendingReview ? "bg-amber-50" : "bg-emerald-50"}`}>
+                <p className={`flex items-center gap-1.5 text-[12px] font-black ${pendingReview ? "text-amber-700" : "text-emerald-700"}`}>
+                  {isSharing ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {pendingReview ? "Submitting…" : "Posting…"}</>
+                    : pendingReview ? <><Send className="h-3.5 w-3.5" /> Submitted — pending review</>
+                    : <><Send className="h-3.5 w-3.5" /> Posted to the community</>}
                 </p>
-                <button type="button" onClick={() => void toggleShowInFeed(false)} className="text-[12px] font-black text-black/45 active:opacity-70">Remove</button>
+                <button type="button" onClick={() => void toggleShowInFeed(false)} className="text-[12px] font-black text-black/45 active:opacity-70">{pendingReview ? "Cancel" : "Remove"}</button>
               </div>
             ) : (
               <>
@@ -1577,10 +1630,12 @@ export default function TryonPage() {
                 <button type="button" disabled={isSharing}
                   onClick={async () => { await toggleShowInFeed(true); if (shareNameInput.trim()) await saveName(); }}
                   className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-black text-sm font-black text-white active:scale-95 transition-transform disabled:opacity-50">
-                  {isSharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Publish this
+                  {isSharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} {isAdmin ? "Publish this" : "Submit for review"}
                 </button>
                 <p className="text-center text-[11px] font-bold leading-snug text-black/40">
-                  By publishing you agree to our <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline">Terms</a> &amp; <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>.
+                  {isAdmin
+                    ? <>By publishing you agree to our <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline">Terms</a> &amp; <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>.</>
+                    : <>An admin reviews every post before it goes live. By submitting you agree to our <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline">Terms</a> &amp; <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>.</>}
                 </p>
               </>
             )}
@@ -1771,13 +1826,19 @@ export default function TryonPage() {
         {/* The look + YOUR photo placeholder, side by side — makes the try-on obvious.
             The placeholder IS the upload target. */}
         <div className="flex w-full max-w-sm items-center justify-center gap-2.5">
-          {/* The look */}
+          {/* The look — admin can replace the reference garment here */}
           <div className="flex-1">
-            <div className="aspect-[3/4] overflow-hidden rounded-2xl border border-black/10 bg-black/[0.03] shadow-lg">
+            <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-black/10 bg-black/[0.03] shadow-lg">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-cover object-top" onError={onGarmentError} />
+              <img src={adminRefImg || garmentPreviewUrl} alt={look.name} className="h-full w-full object-cover object-top" onError={onGarmentError} />
+              {showAdminEditor && (
+                <button type="button" onClick={() => adminRefInputRef.current?.click()}
+                  className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/70 px-3 py-1 text-[10px] font-black text-white backdrop-blur active:scale-95">
+                  <ImagePlus className="h-3 w-3" /> Replace
+                </button>
+              )}
             </div>
-            <p className="mt-1.5 text-center text-[11px] font-black uppercase tracking-[0.12em] text-black/40">The look</p>
+            <p className="mt-1.5 text-center text-[11px] font-black uppercase tracking-[0.12em] text-black/40">{showAdminEditor ? "Reference (admin)" : "The look"}</p>
           </div>
           {/* + connector */}
           <span className="shrink-0 pb-5 text-2xl font-black text-black/20">+</span>
@@ -1792,6 +1853,26 @@ export default function TryonPage() {
             <p className="mt-1.5 text-center text-[11px] font-black uppercase tracking-[0.12em] text-black/40">You</p>
           </div>
         </div>
+
+        {/* ── ADMIN try-on editor: reference is set above; here the admin sets the video
+            prompt and saves. End-users never see this — they only upload their photo. ── */}
+        <input ref={adminRefInputRef} type="file" accept="image/*" className="hidden" onChange={onAdminRefPick} />
+        {showAdminEditor && (
+          <div className="w-full max-w-sm rounded-2xl border border-cobalt/30 bg-cobalt/[0.05] p-3.5">
+            <p className="mb-2 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wide text-cobalt">⚙︎ Admin · try-on setup for this look</p>
+            <label className="block text-[11px] font-black text-black/50">Pixverse video prompt (@person = the user, @outfit = the reference)</label>
+            <textarea value={videoPrompt} onChange={(e) => { setVideoPrompt(e.target.value); setAdminSaved(false); }} rows={6}
+              className="mt-1 w-full rounded-xl border border-black/12 bg-white p-3 text-[12px] font-medium leading-snug text-black outline-none focus:border-cobalt/50" />
+            <div className="mt-2 flex items-center gap-2">
+              <button type="button" onClick={() => { setVideoPrompt(DEFAULT_VIDEO_PROMPT); setAdminSaved(false); }} className="text-[11px] font-black text-black/40">↺ Reset prompt</button>
+              <button type="button" disabled={adminSaving} onClick={() => void saveAdminTryon()}
+                className="ml-auto flex h-10 items-center justify-center gap-2 rounded-full bg-black px-7 text-[13px] font-black text-white active:scale-95 transition-transform disabled:opacity-40">
+                {adminSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : adminSaved ? "✓ Saved" : "Save"}
+              </button>
+            </div>
+            <p className="mt-2 text-[10px] font-bold text-black/35">This reference + prompt is what EVERY user's try-on uses. Pixverse blocks intimate words — use neutral wording (outfit / the piece), never lingerie/skin/lace.</p>
+          </div>
+        )}
 
         {/* Profile photo (creators) — alternative to uploading */}
         {curatorPhotoUrl && (

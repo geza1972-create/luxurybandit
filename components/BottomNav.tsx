@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play } from "lucide-react";
+import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession, signOut } from "@/lib/supabase-auth-client";
@@ -23,7 +23,7 @@ function getActiveTab(pathname: string): Tab {
   return "home";
 }
 
-export default function BottomNav() {
+export default function BottomNav({ forceShow = false }: { forceShow?: boolean } = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -32,12 +32,16 @@ export default function BottomNav() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isCurator, setIsCurator] = useState(false);
   const [curatorCredits, setCuratorCredits] = useState<number | null>(null);
+  const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
     setActive(getActiveTab(pathname));
     try {
       const c = JSON.parse(localStorage.getItem("lb_curator") ?? "{}");
       setIsCurator(!!c.id);
+      // Any session counts as signed in: Supabase login, curator, or the studio admin PIN.
+      const adminPin = (() => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } })();
+      setSignedIn(!!getStoredAuthSession() || !!c.id || !!adminPin);
       if (c.id) {
         fetch(`/api/curator?me=1`, { headers: { "x-curator-id": c.id } })
           .then(r => r.ok ? r.json() : null)
@@ -60,6 +64,7 @@ export default function BottomNav() {
                 try { localStorage.setItem("lb_curator", JSON.stringify(d.curator)); } catch { /**/ }
                 try { window.dispatchEvent(new Event("luxurybandit-auth-updated")); } catch { /**/ }
                 setIsCurator(true);
+                setSignedIn(true);
               }
             })
             .catch(() => {});
@@ -103,15 +108,17 @@ export default function BottomNav() {
     return () => window.removeEventListener("lb-open-account", open);
   }, []);
 
-  // Hide on admin, auth, and standalone pages
-  if (
+  // Hide on admin, auth, and standalone pages (unless a page explicitly forces it, e.g.
+  // the Try-On funnel's unlocked/done screen).
+  if (!forceShow && (
     pathname.startsWith("/admin") ||
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/seller/login") ||
     pathname.startsWith("/seller/register") ||
     pathname.startsWith("/curators/apply") ||
-    pathname.startsWith("/tryon") // focused try-on funnel — no bottom nav (it cut off content)
-  ) return null;
+    pathname.startsWith("/tryon") || // focused try-on funnel — no bottom nav (it cut off content)
+    pathname.startsWith("/try/")     // new Try-On funnel — full-screen, no bottom nav
+  )) return null;
 
   const go = (tab: Tab, href: string) => {
     setActive(tab);
@@ -164,6 +171,19 @@ export default function BottomNav() {
           </span>
           <span className="text-[10px] font-bold">Messages</span>
         </button>
+
+        {/* My Try-Ons — promoted out of the Account sheet to a first-class tab.
+            Only for signed-in users (Supabase, curator, or admin PIN). */}
+        {signedIn && (
+          <button
+            type="button"
+            onClick={() => { setActive("account"); router.push("/user/tryons"); }}
+            className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${pathname === "/user/tryons" ? "text-black" : "text-black/35"}`}
+          >
+            <Shirt className="h-5 w-5" />
+            <span className="text-[10px] font-bold">Try-Ons</span>
+          </button>
+        )}
 
         {/* Account */}
         <button type="button" onClick={() => { setActive("account"); setShowProfileMenu(true); }} className={btn("account")}>

@@ -5,6 +5,8 @@ import {
   getSignedUrl,
   readTryThisLookState,
   saveTryThisLookState,
+  readOutfits,
+  writeOutfits,
   uploadTryThisLookImage,
   type CuratorProfile
 } from "@/lib/try-this-look-store";
@@ -111,7 +113,7 @@ function affiliateWrap(url: string | undefined, sid: string, stores: AffiliateSt
     .split("{sid}").join(encodeURIComponent(sid || "house"));
 }
 
-function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number], generationCount = 0, partnerStores: AffiliateStore[] = [], curators: CuratorProfile[] = [], tryOnImageUrl?: string, communityTryOns: { imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string }[] = []) {
+function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number], generationCount = 0, partnerStores: AffiliateStore[] = [], curators: CuratorProfile[] = [], tryOnImageUrl?: string, communityTryOns: { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; hidden?: boolean; pending?: boolean }[] = []) {
   const sid = String((look as any).curatorId ?? "house");
   const wrap = (u: string | undefined) => affiliateWrap(u, sid, partnerStores);
   // Attribute the look to the curator who published it (name, photo, profile link).
@@ -159,6 +161,7 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
       : undefined,
     // Reel source images (admin-only) — the clothes + location used for the searches.
     clothesImageUrl: (look as any).clothesImageUrl || undefined,
+    videoPrompt: (look as any).videoPrompt || undefined,
     locationImageUrl: (look as any).locationImageUrl || undefined,
     // Affiliate click counts per destination link (admin analytics).
     clicks: (look as any).clicks && typeof (look as any).clicks === "object" ? (look as any).clicks : undefined,
@@ -256,7 +259,7 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
   // Try-ons (consented, feed:true) shown as carousel slides AFTER the curator's
   // video + product image and BEFORE the dupes. Includes the curator's OWN try-ons
   // (with their video) and members'. Newest first (generations are newest-first).
-  const communityByLook = new Map<string, { imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; isCurator?: boolean }[]>();
+  const communityByLook = new Map<string, { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; isCurator?: boolean; hidden?: boolean; pending?: boolean }[]>();
   // Lingerie/intimate try-ons are PRIVATE — they show the person in lingerie and must
   // NEVER surface in the public carousel, regardless of the feed flag.
   const lingerieLookIds = new Set(
@@ -268,15 +271,22 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
   );
   for (const g of state.generations ?? []) {
     const url = (g as any).imageUrl;
-    // OPT-IN: a try-on is public ONLY if feed === true (an explicit checkbox). Anything
-    // else (undefined/false) stays private — no try-on auto-appears in the feed.
-    if (!url || (g as any).hidden || (g as any).feed !== true || g.visitorId?.startsWith("admin-")) continue;
+    // OPT-IN: a try-on is public ONLY if feed === true (an explicit checkbox). Admins
+    // ALSO receive try-ons THEY deactivated (lockedByAdmin) — flagged hidden:true so the
+    // card can show them as HIDDEN and let the admin re-activate. End-users never do.
+    if (!url || (g as any).hidden || g.visitorId?.startsWith("admin-")) continue;
+    const isPublic = (g as any).feed === true;
+    const isPending = !isPublic && (g as any).feedRequested === true;       // awaiting admin approval
+    const isAdminHidden = !isPublic && (g as any).lockedByAdmin === true;   // admin deactivated it
+    // End-users see ONLY public try-ons. Admins ALSO receive pending requests (to approve
+    // or reject) and their own deactivated ones (to re-activate) — flagged accordingly.
+    if (!isPublic && !(forAdmin && (isPending || isAdminHidden))) continue;
     if (lingerieLookIds.has(g.lookId)) continue; // never surface lingerie try-ons publicly
     const cid = curatorIdByLook.get(g.lookId);
     const isCurator = !!(cid && normalizeSlug((g as any).customerName ?? "") === curatorSlugById.get(cid));
     const list = communityByLook.get(g.lookId) ?? [];
     if (list.length >= 12) continue;
-    list.push({ imageUrl: url, videoUrl: (g as any).videoUrl || undefined, userPhotoUrl: (g as any).userPhotoUrl || undefined, name: (g as any).customerName || undefined, isCurator });
+    list.push({ id: g.id, imageUrl: url, videoUrl: (g as any).videoUrl || undefined, userPhotoUrl: (g as any).userPhotoUrl || undefined, name: (g as any).customerName || undefined, isCurator, hidden: isAdminHidden, pending: isPending });
     communityByLook.set(g.lookId, list);
   }
   const sl = (look: (typeof visibleLooks)[number]) => serializeLook(look, genCountByLook.get(look.id) ?? 0, state.partnerStores ?? [], state.curators ?? [], selftestByLook.get(look.id)?.url, communityByLook.get(look.id) ?? []);
@@ -287,8 +297,15 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
     looks: visibleLooks.map(sl),
     // Global try-on kill-switch (admin-toggleable). Clients show "coming soon" when true.
     tryonPaused: state.tryonPaused === true,
+    // Admin-managed outfit gallery shown in the Try-On funnel.
+    outfits: (state.outfits ?? []).map(o => ({ id: o.id, name: o.name, imageUrl: o.imageUrl || "", lookId: o.lookId || "" })).filter(o => o.imageUrl),
+    // Admin-editable video prompt template for the funnel (@Bild1 = model, @Bild2 = outfit).
+    funnelVideoPrompt: (state.funnelVideoPrompt ?? "").trim() || DEFAULT_FUNNEL_PROMPT,
   };
 }
+
+// Default Try-On funnel video prompt. @Bild1 = the model/avatar, @Bild2 = the chosen outfit.
+const DEFAULT_FUNNEL_PROMPT = "Mache die Frau aus @Bild1 angezogen in @Bild2 in verschiedenen Urlaubsorten auf der Welt, in unterschiedlichen Locations, wie sie durchläuft.";
 
 export async function GET(request: Request) {
   try {
@@ -607,23 +624,38 @@ export async function GET(request: Request) {
     // it's their own account). Auth required: we never list a gallery by guessed email.
     if (url.searchParams.get("mine") === "1") {
       const token = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
-      if (!token) return NextResponse.json({ mine: [] });
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/\/$/, "") ?? "";
-      const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "").trim();
-      const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, { headers: { apikey: anonKey, Authorization: `Bearer ${token}` } });
-      if (!userRes.ok) return NextResponse.json({ mine: [] });
-      const u = await userRes.json() as { email?: string };
-      const email = (u.email ?? "").trim().toLowerCase();
-      if (!email) return NextResponse.json({ mine: [] });
+      // Admins (PIN or allowlisted Supabase session) also see their own admin-generated
+      // try-ons (visitorId "admin-…") — those aren't email-bound, so mine=1 would miss them.
+      const admin = await isAdmin(request);
+      let email = "";
+      if (token) {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/\/$/, "") ?? "";
+        const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "").trim();
+        const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, { headers: { apikey: anonKey, Authorization: `Bearer ${token}` } });
+        if (userRes.ok) {
+          const u = await userRes.json() as { email?: string };
+          email = (u.email ?? "").trim().toLowerCase();
+        }
+      }
+      if (!email && !admin) return NextResponse.json({ mine: [] });
       const lookById = new Map(state.looks.map(l => [l.id, l]));
       const mine = state.generations
-        .filter(g => String((g as any).ownerEmail ?? "").trim().toLowerCase() === email)
+        .filter(g => {
+          const owner = String((g as any).ownerEmail ?? "").trim().toLowerCase();
+          // Admin's own try-ons: the funnel tags self-generated ones with an "admin-"
+          // visitorId or the default customerName "You" (no Supabase session at gen time).
+          const isAdminGen = !!g.visitorId?.startsWith("admin-")
+            || String((g as any).customerName ?? "").trim().toLowerCase() === "you";
+          return (!!email && owner === email) || (admin && isAdminGen);
+        })
         .map(g => {
           const look = lookById.get(g.lookId);
           return {
             id: g.id,
             lookId: g.lookId,
             imageUrl: (g as any).imageUrl ?? "",
+            videoUrl: (g as any).videoUrl ?? "",
+            genKind: (g as any).genKind ?? "",
             userPhotoUrl: (g as any).userPhotoUrl ?? undefined,
             customerName: (g as any).customerName ?? "",
             lookName: g.lookName ?? look?.name ?? "",
@@ -674,7 +706,16 @@ export async function GET(request: Request) {
       });
     }
 
-    if (!wantsAdminData) return NextResponse.json(publicState(state, storeSlug, lookSlug));
+    // Admins (valid pin/session) get the full feed incl. hidden (published:false) looks so
+    // they can still see & un-hide them; end-users never receive hidden looks.
+    if (!wantsAdminData) {
+      const base = publicState(state, storeSlug, lookSlug, await isAdmin(request));
+      // Outfits + funnel prompt come from their own blob (safe from other saves).
+      const outfitsBlob = await readOutfits();
+      (base as any).outfits = outfitsBlob.outfits.map(o => ({ id: o.id, name: o.name, imageUrl: o.imageUrl || "", lookId: o.lookId || "" })).filter(o => o.imageUrl);
+      (base as any).funnelVideoPrompt = (outfitsBlob.funnelVideoPrompt ?? "").trim() || DEFAULT_FUNNEL_PROMPT;
+      return NextResponse.json(base);
+    }
 
     // Admin: optionally also return Supabase Auth users
     const wantsAuthUsers = url.searchParams.get("authUsers") === "1";
@@ -1062,6 +1103,12 @@ export async function POST(request: Request) {
         ? await uploadTryThisLookImage("generations", payload.userPhotoImage)
         : undefined;
       const generationId = `${Date.now()}-${crypto.randomUUID()}`;
+      // ── Publish gate ──────────────────────────────────────────────────────
+      // A try-on NEVER goes public on the user's own action. If the user opted in
+      // (payload.feed === true) it becomes a REQUEST (feedRequested) that an admin must
+      // approve. Only an admin publishing (their own or an approval) sets feed:true.
+      const creatorIsAdmin = await isAdmin(request);
+      const wantsPublish = payload.feed === true;
       state.generations.unshift({
         id: generationId,
         lookId,
@@ -1087,8 +1134,10 @@ export async function POST(request: Request) {
         genKind: (["photo", "video", "video360"].includes(String(payload.genKind))
           ? String(payload.genKind)
           : "photo") as "photo" | "video" | "video360",
-        // Consent to show this try-on in the look's feed carousel (default on).
-        feed: payload.feed === true, // OPT-IN default: private unless the checkbox explicitly set feed:true
+        // Publish gate: admin opt-in publishes immediately; everyone else's opt-in is a
+        // pending REQUEST (feed stays false until an admin approves it).
+        feed: creatorIsAdmin && wantsPublish,
+        feedRequested: (!creatorIsAdmin && wantsPublish) || undefined,
         createdAt: now
       } as any);
       state.events.unshift({
@@ -1156,11 +1205,73 @@ export async function POST(request: Request) {
           { status: 403 },
         );
       }
+      // Publish gate: only an admin can set feed:true. A non-admin asking to publish
+      // records a REQUEST instead (feed stays false until an admin approves).
+      if (wantFeed && !admin) {
+        (gen as any).feed = false;
+        (gen as any).feedRequested = true;
+        await saveTryThisLookState(state);
+        return NextResponse.json({ ok: true, pending: true });
+      }
       (gen as any).feed = wantFeed;
       // An admin hiding it sets the lock; an admin showing it clears the lock.
       if (admin) (gen as any).lockedByAdmin = !wantFeed;
+      (gen as any).feedRequested = false; // approving or un-publishing both clear the pending request
       await saveTryThisLookState(state);
       return NextResponse.json({ ok: true });
+    }
+    if (payload.action === "reject-tryon-request") {
+      // Admin declines a publish request → back to a plain private try-on (drops out of
+      // the admin queue; the user keeps their private try-on).
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const genId = String(payload.generationId ?? "").trim();
+      const gen = state.generations.find(g => g.id === genId);
+      if (!gen) return NextResponse.json({ error: "Generation not found." }, { status: 404 });
+      (gen as any).feed = false;
+      (gen as any).feedRequested = false;
+      (gen as any).lockedByAdmin = false;
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true });
+    }
+
+    // ── Admin: outfit gallery for the Try-On funnel. Stored in its OWN blob so no
+    //    other action can ever drop them (fixes outfits vanishing). ────────────────
+    const serializeOutfits = (list: { id: string; name: string; imageUrl?: string; lookId?: string }[]) =>
+      list.map(o => ({ id: o.id, name: o.name, imageUrl: o.imageUrl || "", lookId: o.lookId || "" }));
+    if (payload.action === "add-outfit") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      if (!payload.image?.startsWith("data:image/")) return NextResponse.json({ error: "Outfit image is missing." }, { status: 400 });
+      const imagePath = await uploadTryThisLookImage("looks", payload.image);
+      const outfit = { id: `outfit-${Date.now()}-${crypto.randomUUID()}`, name: String(payload.name ?? "").trim().slice(0, 60) || "Outfit", imagePath, lookId: String(payload.lookId ?? "").trim() || undefined, createdAt: now };
+      const blob = await readOutfits();
+      const updated = await writeOutfits([outfit, ...blob.outfits], blob.funnelVideoPrompt);
+      return NextResponse.json({ ok: true, outfits: serializeOutfits(updated.outfits) });
+    }
+    if (payload.action === "delete-outfit") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const id = String(payload.id ?? "").trim();
+      const blob = await readOutfits();
+      const outfit = blob.outfits.find(o => o.id === id);
+      if (outfit?.imagePath) await deleteTryThisLookImage(outfit.imagePath).catch(() => {});
+      const updated = await writeOutfits(blob.outfits.filter(o => o.id !== id), blob.funnelVideoPrompt);
+      return NextResponse.json({ ok: true, outfits: serializeOutfits(updated.outfits) });
+    }
+    if (payload.action === "reorder-outfits") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const ids: string[] = Array.isArray(payload.ids) ? payload.ids.map((x: any) => String(x)) : [];
+      const blob = await readOutfits();
+      const byId = new Map(blob.outfits.map(o => [o.id, o] as const));
+      const ordered = ids.map(id => byId.get(id)).filter(Boolean) as NonNullable<ReturnType<typeof byId.get>>[];
+      const rest = blob.outfits.filter(o => !ids.includes(o.id));
+      const updated = await writeOutfits([...ordered, ...rest], blob.funnelVideoPrompt);
+      return NextResponse.json({ ok: true, outfits: serializeOutfits(updated.outfits) });
+    }
+    if (payload.action === "set-funnel-prompt") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const prompt = String(payload.prompt ?? "").trim().slice(0, 1000);
+      const blob = await readOutfits();
+      await writeOutfits(blob.outfits, prompt);
+      return NextResponse.json({ ok: true, funnelVideoPrompt: prompt || DEFAULT_FUNNEL_PROMPT });
     }
 
     if (payload.action === "add-comment") {
@@ -1543,6 +1654,22 @@ export async function POST(request: Request) {
       if (!lk) return NextResponse.json({ error: "Look was not found." }, { status: 404 });
       if (Object.prototype.hasOwnProperty.call(payload, "likeCount")) (lk as any).likeCount = Math.max(0, Math.floor(Number((payload as any).likeCount) || 0));
       if (Object.prototype.hasOwnProperty.call(payload, "commentCount")) (lk as any).commentCount = Math.max(0, Math.floor(Number((payload as any).commentCount) || 0));
+      const updated = await saveTryThisLookState(state);
+      return NextResponse.json(ps(updated));
+    }
+
+    // Admin try-on editor: set this look's reference garment image + the Pixverse video
+    // prompt. End-users then only upload their own photo; these drive their try-on.
+    if (payload.action === "set-look-tryon") {
+      const lk = state.looks.find((look) => look.id === String(payload.id ?? ""));
+      if (!lk) return NextResponse.json({ error: "Look was not found." }, { status: 404 });
+      if (typeof (payload as any).videoPrompt === "string") (lk as any).videoPrompt = String((payload as any).videoPrompt).slice(0, 4000);
+      const refImg = String((payload as any).referenceImage ?? "");
+      if (refImg.startsWith("data:image/")) {
+        const path = await uploadTryThisLookImage("uploads", refImg);
+        (lk as any).clothesImagePath = path;
+        (lk as any).clothesImageUrl = (await getSignedUrl(path, 60 * 60 * 24 * 365 * 10)) || undefined;
+      }
       const updated = await saveTryThisLookState(state);
       return NextResponse.json(ps(updated));
     }

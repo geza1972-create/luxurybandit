@@ -19,7 +19,7 @@ import { publicLookLabel } from "@/lib/look-title";
 import { safeLookImage } from "@/lib/look-image";
 import { Bookmark, EyeOff, Heart, Home, Image as ImageIcon, Info, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, Sparkles, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 // Serve Supabase images via Next.js' image optimizer (right-sized WebP) instead
@@ -1384,6 +1384,7 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
 function StoresPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [looks, setLooks] = useState<Look[]>([]);
   const [stores, setStores] = useState<{ name: string; slug: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -1411,6 +1412,15 @@ function StoresPage() {
   const [adminPin, setAdminPin] = useState("");
   // Creators list (admin) for the in-feed "Assign to creator" picker (name + photo).
   const [assignCurators, setAssignCurators] = useState<{ id: string; firstName?: string; lastName?: string; photoUrl?: string }[]>([]);
+
+  // When signed in as admin, mirror this page under /admin/stores so the URL reflects
+  // admin mode (matches /admin/tryon, /admin/look). Preserves the query string.
+  useEffect(() => {
+    if (isAdmin && pathname === "/stores") {
+      const q = typeof window !== "undefined" ? window.location.search : "";
+      router.replace(`/admin/stores${q}`);
+    }
+  }, [isAdmin, pathname]); // eslint-disable-line react-hooks/exhaustive-deps
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkWorking, setBulkWorking] = useState(false);
@@ -1733,7 +1743,9 @@ function StoresPage() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/try-this-look")
+    // Send the admin pin (if any) so admins receive hidden (published:false) looks too.
+    const pin = (() => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } })();
+    fetch("/api/try-this-look", pin ? { headers: { "x-try-look-admin-pin": pin } } : undefined)
       .then((r) => r.json())
       .then((payload: Payload) => {
         setLooks(payload.looks ?? []);
@@ -1859,6 +1871,24 @@ function StoresPage() {
     if (q) items = items.filter(it => `${it.name} ${it.curatorName ?? ""}`.toLowerCase().includes(q));
     return items;
   }, [feedItems, categoryFilter, query]);
+  // Grid pagination — render a first fast batch, then load more as you scroll (the grid
+  // was mounting 40+ <video> tiles at once, which stalled the initial paint).
+  const HISTORY_PAGE = 12;
+  const [historyCount, setHistoryCount] = useState(HISTORY_PAGE);
+  useEffect(() => { setHistoryCount(HISTORY_PAGE); }, [categoryFilter, query, typeFilter]);
+  const pagedHistory = useMemo(() => visibleHistory.slice(0, historyCount), [visibleHistory, historyCount]);
+  const historySentinelRef = useRef<HTMLDivElement | null>(null);
+  const hasMoreHistory = historyCount < visibleHistory.length;
+  useEffect(() => {
+    if (!hasMoreHistory) return;
+    const el = historySentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) setHistoryCount(c => Math.min(c + HISTORY_PAGE, visibleHistory.length));
+    }, { rootMargin: "800px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMoreHistory, historyCount, visibleHistory.length]);
   // The visible grid mapped to the scroll-feed's item shape (looks + try-ons), so
   // tapping any tile opens a full-screen vertical reels feed of exactly what's shown.
   const visibleHistoryAsReel = useMemo<CommunityItem[]>(() => {
@@ -1995,15 +2025,17 @@ function StoresPage() {
 
         {/* Brand row */}
         <div className="flex items-center justify-between px-4 pt-2.5 pb-1.5">
-          <div className="flex items-center gap-2">
+          {/* Logo → back to the feeds (the full-screen scrolling reel = /stores default). */}
+          <button type="button" onClick={() => router.push("/stores")} aria-label="Feeds"
+            className="flex items-center gap-2 active:opacity-70 transition-opacity">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-white text-xs font-black tracking-tight select-none">
               LB
             </div>
-            <div>
+            <div className="text-left">
               <div className="text-sm font-black uppercase tracking-widest text-black leading-none">LuxuryBandit</div>
               <div className="text-[10px] font-bold text-black/40 mt-0.5 leading-tight">Watch the video.<br />Bandit the feeling.</div>
             </div>
-          </div>
+          </button>
 
           {/* Right icons */}
           <div className="flex items-center gap-2">
@@ -2176,7 +2208,7 @@ function StoresPage() {
               </div>
             )}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-0.5">
-              {visibleHistory.map((it, idx) => (
+              {pagedHistory.map((it, idx) => (
                 <div key={it.key} className="flex flex-col">
                   <button type="button"
                     onClick={() => router.push(it.kind === "tryon" ? `/post/${it.id}` : lookPath(it.name, it.lookId || it.id))}
@@ -2184,16 +2216,22 @@ function StoresPage() {
                     {it.videoUrl ? (
                       // Video tile — always show a still poster so the tile is never a
                       // black box: the model poster if we have one, else the look's own
-                      // image, and only as a last resort the video's first frame.
+                      // image, and only as a last resort the video's first frame. With a
+                      // poster we load NO video bytes (preload none) — the grid isn't a
+                      // player, tapping navigates away — which keeps the grid fast.
                       (() => { const poster = it.videoPoster || it.thumb; return (
-                        <video src={poster ? it.videoUrl : `${it.videoUrl}#t=0.1`} poster={poster || undefined} muted playsInline preload="metadata"
+                        <video src={poster ? it.videoUrl : `${it.videoUrl}#t=0.1`} poster={poster || undefined} muted playsInline preload={poster ? "none" : "metadata"}
                           className="h-full w-full bg-black object-cover object-top" />
                       ); })()
-                    ) : (
+                    ) : it.thumb ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={optImg(it.thumb, 400)} alt={it.name} loading="lazy" decoding="async"
                         onError={(e) => { const im = e.currentTarget; if (it.thumb && im.src !== it.thumb) im.src = it.thumb; }}
                         className="h-full w-full object-cover object-top" />
+                    ) : (
+                      // No render available — a neutral placeholder (never an empty src,
+                      // which makes the browser re-request the whole page).
+                      <div className="h-full w-full bg-black/[0.06]" />
                     )}
                     {it.videoUrl && (
                       <span className="pointer-events-none absolute inset-0 grid place-items-center"><Play className="h-11 w-11 fill-white text-white opacity-45 drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]" /></span>
@@ -2220,6 +2258,11 @@ function StoresPage() {
                 </div>
               ))}
             </div>
+            {hasMoreHistory && (
+              <div ref={historySentinelRef} className="flex justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-black/25" />
+              </div>
+            )}
             {categoryFilter && visibleHistory.length === 0 && (
               <p className="py-16 text-center text-sm font-black text-black/40">Nothing in this category yet.</p>
             )}

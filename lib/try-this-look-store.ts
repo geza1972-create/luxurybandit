@@ -290,6 +290,21 @@ export type TryThisLookState = {
   // Global kill-switch: when true, end-user try-on generation is paused ("coming soon").
   // Admin/staff bypass it. Toggled instantly from the admin panel (no redeploy).
   tryonPaused?: boolean;
+  // Admin-managed wardrobe: outfit images shown in the Try-On funnel gallery, so a user
+  // can pick an outfit to see the video's model (or their own avatar) wearing it.
+  outfits?: TryThisLookOutfit[];
+  // Admin-editable prompt template for the Try-On funnel video generation. Uses the
+  // tokens @Bild1 (the model/avatar) and @Bild2 (the chosen outfit).
+  funnelVideoPrompt?: string;
+};
+
+export type TryThisLookOutfit = {
+  id: string;
+  name: string;
+  imagePath?: string;   // storage path (signed on read)
+  imageUrl?: string;    // signed URL (hydrated) or legacy stored URL
+  lookId?: string;      // undefined/empty = global (all looks); else only that look
+  createdAt: string;
 };
 
 const BUCKET = process.env.SUPABASE_STORAGE_BUCKET ?? "shopcut-images";
@@ -529,6 +544,10 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
   for (const cur of state.curators ?? []) {
     if (cur.photoPath) allPaths.push(cur.photoPath);
   }
+  for (const outfit of state.outfits ?? []) {
+    const p = outfit.imagePath ?? extractPathFromUrl(outfit.imageUrl);
+    if (p) allPaths.push(p);
+  }
 
   // Single batch request instead of N×2 individual requests
   const signed = await batchGetSignedUrls(allPaths);
@@ -589,7 +608,12 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
     photoUrl: cur.photoPath ? (signed.get(cur.photoPath) ?? cur.photoUrl) : cur.photoUrl,
   }));
 
-  return { ...state, looks, leads, generations, curators };
+  const outfits = (state.outfits ?? []).map(outfit => ({
+    ...outfit,
+    imageUrl: s(outfit.imagePath ?? extractPathFromUrl(outfit.imageUrl), outfit.imageUrl),
+  }));
+
+  return { ...state, looks, leads, generations, curators, outfits };
 }
 
 export async function readTryThisLookState(): Promise<TryThisLookState> {
@@ -638,6 +662,8 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     fabrics: unionTags(DEFAULT_FABRICS, state.fabrics ?? []),
     occasions: unionTags(DEFAULT_OCCASIONS, state.occasions ?? []),
     tryonPaused: state.tryonPaused === true,
+    outfits: state.outfits ?? [],
+    funnelVideoPrompt: state.funnelVideoPrompt,
   });
 }
 
@@ -646,13 +672,20 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
 // posted by other requests in the meantime). Re-read the latest blob and UNION
 // these collections by id so a save can never LOSE records it didn't know about.
 async function fetchRawState(): Promise<Partial<TryThisLookState> | null> {
-  try {
-    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(STATE_PATH)}`);
-    if (!res.ok) return null;
-    const text = await res.text();
-    if (!text.trim()) return null;
-    return JSON.parse(text) as Partial<TryThisLookState>;
-  } catch { return null; }
+  // Retry a few times: a transient read failure here skips the protective read-merge,
+  // which can let a save overwrite (drop) collections it didn't load. Retrying keeps
+  // the merge reliable so outfits/looks are never lost to a momentary hiccup.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(STATE_PATH)}`);
+      if (res.ok) {
+        const text = await res.text();
+        if (text.trim()) return JSON.parse(text) as Partial<TryThisLookState>;
+      }
+    } catch { /* retry */ }
+    if (attempt < 2) await new Promise(r => setTimeout(r, 150));
+  }
+  return null;
 }
 // Append-only union by id (for collections that don't get individually deleted).
 function unionById<T extends { id: string }>(ours: T[] = [], latest: T[] = []): T[] {
@@ -677,7 +710,7 @@ function mergeNewerById<T extends { id: string; createdAt?: string }>(ours: T[] 
   return [...missedNewer, ...ours];
 }
 
-type SaveOptions = { deletedGenerationIds?: string[]; deletedLeadIds?: string[] };
+type SaveOptions = { deletedGenerationIds?: string[]; deletedLeadIds?: string[]; deletedOutfitIds?: string[] };
 
 async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions = {}) {
   await ensureBucket();
@@ -687,9 +720,13 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
   if (latest) {
     const delGen = opts.deletedGenerationIds?.length ? new Set(opts.deletedGenerationIds) : undefined;
     const delLead = opts.deletedLeadIds?.length ? new Set(opts.deletedLeadIds) : undefined;
+    const delOutfit = opts.deletedOutfitIds?.length ? new Set(opts.deletedOutfitIds) : undefined;
     state = {
       ...state,
       generations: mergeNewerById(state.generations as any, latest.generations as any, delGen) as any,
+      // Admin-uploaded outfits CAN be deleted → mergeNewerById (like generations) so a
+      // concurrent/stale save can never DROP them, while a real delete isn't resurrected.
+      outfits: mergeNewerById((state.outfits ?? []) as any, (latest.outfits ?? []) as any, delOutfit) as any,
       comments: unionById((state.comments ?? []) as any, (latest.comments ?? []) as any) as any,
       // Leads CAN be deleted in the admin → use mergeNewerById (like generations) so a
       // deletion isn't resurrected by the read-merge, while concurrent new leads survive.
@@ -714,6 +751,8 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     follows: (state.follows ?? []).slice(0, 5000),
     messages: (state.messages ?? []).slice(0, 2000),
     curators: (state.curators ?? []).map(({ photoUrl, ...curator }) => curator).slice(0, 2000),
+    outfits: (state.outfits ?? []).map(({ imageUrl, ...outfit }) => outfit).slice(0, 500),
+    funnelVideoPrompt: state.funnelVideoPrompt,
     partnerStores: (state.partnerStores ?? []).slice(0, 200),
     brands: (state.brands ?? []).slice(0, 5000),
     styles: (state.styles ?? []).slice(0, 5000),
@@ -811,6 +850,46 @@ export async function deleteTryThisLookImage(path: string) {
 export async function saveTryThisLookState(state: TryThisLookState, opts: SaveOptions = {}) {
   await writeTryThisLookState(state, opts);
   return readTryThisLookState();
+}
+
+// ── Outfits: stored in their OWN blob so no other action (views, try-ons, etc.) can
+// ever overwrite/drop them. Only the outfit admin actions touch this file. ──────────
+const OUTFITS_PATH = "try-this-look/outfits.json";
+export type OutfitsBlob = { outfits: TryThisLookOutfit[]; funnelVideoPrompt?: string };
+
+export async function readOutfits(): Promise<OutfitsBlob> {
+  await ensureBucket();
+  let blob: OutfitsBlob = { outfits: [] };
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(OUTFITS_PATH)}`);
+      if (res.status === 404) break;               // no file yet → empty
+      if (res.ok) { const text = await res.text(); if (text.trim()) { blob = JSON.parse(text) as OutfitsBlob; } break; }
+    } catch { /* retry */ }
+    if (attempt < 2) await new Promise(r => setTimeout(r, 150));
+  }
+  const outfits = blob.outfits ?? [];
+  const paths = outfits.map(o => o.imagePath ?? extractPathFromUrl(o.imageUrl)).filter(Boolean) as string[];
+  const signed = await batchGetSignedUrls(paths);
+  return {
+    outfits: outfits.map(o => ({ ...o, imageUrl: (o.imagePath && signed.get(o.imagePath)) || o.imageUrl || "" })),
+    funnelVideoPrompt: blob.funnelVideoPrompt,
+  };
+}
+
+export async function writeOutfits(outfits: TryThisLookOutfit[], funnelVideoPrompt?: string): Promise<OutfitsBlob> {
+  await ensureBucket();
+  const stripped = outfits.map(({ imageUrl, ...o }) => o); // store paths, not signed URLs
+  const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(OUTFITS_PATH)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body: JSON.stringify({ outfits: stripped, funnelVideoPrompt }),
+  });
+  if (!res.ok) {
+    const p = await res.json().catch(() => null);
+    throw new Error(p?.message ?? "Outfits could not be saved.");
+  }
+  return readOutfits();
 }
 
 export function getActiveTryThisLook(state: TryThisLookState) {
