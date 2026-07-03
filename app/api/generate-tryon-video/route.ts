@@ -82,22 +82,26 @@ async function pixverseUpload(key: string, image: string): Promise<number | null
 
 // Reference mode: dress the person (@Bild2) in the garment (@Bild1) AND animate, in
 // one step — keeps the face (FASHN's photo doesn't). Used for lingerie video/360°.
-async function pixverseStartReference(key: string, garment: string, person: string, turnaround: boolean): Promise<{ videoId?: string; error?: string }> {
+async function pixverseStartReference(key: string, garment: string, person: string, turnaround: boolean, customPrompt?: string): Promise<{ videoId?: string; error?: string; promptUsed?: string }> {
   const [gId, pId] = await Promise.all([pixverseUpload(key, garment), pixverseUpload(key, person)]);
   if (!gId || !pId) return { error: "Pixverse upload failed (reference images)." };
+  // Prompt: caller (the try-on window) can override so we can tune it live.
+  const promptUsed = (customPrompt && customPrompt.trim())
+    ? customPrompt.trim()
+    : (turnaround ? REF_TURNAROUND_PROMPT : REF_PRESENT_PROMPT);
   // Fusion (reference-to-video): @person = the face to keep, @outfit = the garment.
   const reqBody = {
     image_references: [
       { type: "subject", img_id: pId, ref_name: "person" },
       { type: "subject", img_id: gId, ref_name: "outfit" },
     ],
-    prompt: turnaround ? REF_TURNAROUND_PROMPT : REF_PRESENT_PROMPT,
-    // 360° turnaround uses V6 + 10s (user-validated for the rotation); the normal
-    // present video stays on V4.5/5s (proven good face + cheaper).
+    prompt: promptUsed,
+    // TEST settings (initial — we'll raise these once the prompt is right):
+    // 360p / 3:4 / 3s for the normal present video; 360° turnaround keeps V6/10s.
     model: turnaround ? "v6" : "v4.5",
-    duration: turnaround ? 10 : 5,
-    quality: "720p",
-    aspect_ratio: "9:16",
+    duration: turnaround ? 10 : 3,
+    quality: turnaround ? "720p" : "360p",
+    aspect_ratio: turnaround ? "9:16" : "3:4",
     sound_effect_switch: true,
     sound_effect_content: MUSIC,
   };
@@ -106,8 +110,8 @@ async function pixverseStartReference(key: string, garment: string, person: stri
     body: JSON.stringify(reqBody),
   });
   const gen = await genRes.json().catch(() => null);
-  if (gen?.ErrCode !== 0 || !gen?.Resp?.video_id) return { error: `Pixverse fusion failed: ${gen?.ErrMsg ?? genRes.status}` };
-  return { videoId: String(gen.Resp.video_id) };
+  if (gen?.ErrCode !== 0 || !gen?.Resp?.video_id) return { error: `Pixverse fusion failed: ${gen?.ErrMsg ?? genRes.status}`, promptUsed };
+  return { videoId: String(gen.Resp.video_id), promptUsed };
 }
 
 async function pixverseStart(key: string, image: string, turnaround = false): Promise<{ videoId?: string; error?: string }> {
@@ -142,10 +146,11 @@ async function pixversePoll(key: string, id: string): Promise<{ status: "done" |
 // POST { lookId, image } → charge owner, start the right provider, return
 // { videoId: "<provider>:<id>", curatorId } for polling.
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean; garment?: string; person?: string };
+  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean; garment?: string; person?: string; prompt?: string };
   const lookId = String(body.lookId ?? "").trim();
   const image = String(body.image ?? "");
   const turnaround = body.turnaround === true; // 360° tier
+  const customPrompt = String(body.prompt ?? ""); // try-on window can override to tune it
   // Reference mode (lingerie): garment + person photo → Pixverse dresses + animates
   // in one step, keeping the face. Falls back to single-image when not provided.
   const garment = String(body.garment ?? "");
@@ -169,10 +174,10 @@ export async function POST(request: Request) {
 
   try {
     const r = reference
-      ? await pixverseStartReference(key, garment, person, turnaround)
+      ? await pixverseStartReference(key, garment, person, turnaround, customPrompt)
       : await pixverseStart(key, image, turnaround);
-    if (!r.videoId) { refund(); return NextResponse.json({ error: r.error ?? "Video start failed." }, { status: 502 }); }
-    return NextResponse.json({ ok: true, videoId: `pv:${r.videoId}`, curatorId, status: "processing" });
+    if (!r.videoId) { refund(); return NextResponse.json({ error: r.error ?? "Video start failed.", promptUsed: (r as any).promptUsed }, { status: 502 }); }
+    return NextResponse.json({ ok: true, videoId: `pv:${r.videoId}`, curatorId, status: "processing", promptUsed: (r as any).promptUsed });
   } catch (e) {
     refund();
     return NextResponse.json({ error: e instanceof Error ? e.message : "Video generation failed." }, { status: 500 });

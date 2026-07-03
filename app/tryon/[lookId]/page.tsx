@@ -187,6 +187,13 @@ export default function TryonPage() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoNote, setVideoNote] = useState<string | null>(null);
   const [videoMuted, setVideoMuted] = useState(true);
+  // Video-try-on TEST: editable Pixverse prompt + the two reference images we send
+  // (person + garment), shown in the try-on window so we can tune the prompt live.
+  const DEFAULT_VIDEO_PROMPT = "@person presents the @outfit in an elegant studio with soft premium lighting and subtle natural movement — a gentle sway. Keep @person face and appearance and the @outfit exactly the same. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.";
+  const [videoPrompt, setVideoPrompt] = useState(DEFAULT_VIDEO_PROMPT);
+  const videoPromptRef = useRef(DEFAULT_VIDEO_PROMPT);
+  useEffect(() => { videoPromptRef.current = videoPrompt; }, [videoPrompt]);
+  const [videoRefImages, setVideoRefImages] = useState<{ garment: string; person: string } | null>(null);
   // Consent to show this try-on in the look's feed carousel (default on).
   // CONSENT: proceeding past the confirm step (which clearly says the look will be
   // posted, with a "No, cancel" out) publishes it — and they can Remove it anytime
@@ -417,7 +424,7 @@ export default function TryonPage() {
       const res = await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(staffCuratorId() ? { "x-curator-id": staffCuratorId() } : {}) },
-        body: JSON.stringify({ lookId: look.id, image: imageSmall, turnaround, ...(refSmall ?? {}) }),
+        body: JSON.stringify({ lookId: look.id, image: imageSmall, turnaround, prompt: videoPromptRef.current, ...(refSmall ?? {}) }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 402) { setVideoStatus("error"); setVideoNote("No credits left for a video — here's your photo."); return; }
@@ -486,6 +493,7 @@ export default function TryonPage() {
     // (We can't reliably guess where the face is; the user already chose the frame.)
     const personCropped = userPhoto;
     setError(null);
+    setVideoRefImages({ garment: garmentData, person: personCropped }); // show the inputs in the window
     setResultImage(personCropped); // placeholder shown while the video renders
     setStep("result");
     const videoUrl = await startTryonVideo("", turnaround, { garment: garmentData, person: personCropped });
@@ -1379,6 +1387,35 @@ export default function TryonPage() {
 
         {/* Result — VIDEO first so it's never missed, then the photo */}
         <div className="flex-1 overflow-y-auto px-4 pt-4 pb-6 flex flex-col gap-4">
+          {/* VIDEO-TRY-ON TEST panel: the two reference images we send to Pixverse
+              (person + garment) + the editable prompt, so we can tune it live. */}
+          {videoRefImages && (
+            <div className="rounded-2xl border border-black/10 bg-black/[0.02] p-3">
+              <p className="mb-2 text-[11px] font-black uppercase tracking-wide text-black/40">Video inputs → Pixverse</p>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={videoRefImages.person} alt="Person" className="aspect-square w-full rounded-lg object-cover" />
+                  <p className="mt-0.5 text-center text-[10px] font-bold text-black/40">Person (@person)</p>
+                </div>
+                <div className="flex-1">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={videoRefImages.garment} alt="Garment" className="aspect-square w-full rounded-lg bg-white object-contain" />
+                  <p className="mt-0.5 text-center text-[10px] font-bold text-black/40">Outfit (@outfit)</p>
+                </div>
+              </div>
+              <label className="mt-3 block text-[11px] font-black uppercase tracking-wide text-black/40">Prompt · Pixverse v4.5 · 360p · 3:4 · 3s</label>
+              <textarea value={videoPrompt} onChange={(e) => setVideoPrompt(e.target.value)} rows={5}
+                className="mt-1 w-full rounded-xl border border-black/12 bg-white p-3 text-[12px] font-medium leading-snug text-black outline-none focus:border-black/40" />
+              <div className="mt-1 flex items-center justify-between">
+                <button type="button" onClick={() => setVideoPrompt(DEFAULT_VIDEO_PROMPT)} className="text-[11px] font-black text-black/40">↺ Reset prompt</button>
+                <button type="button" disabled={videoStatus === "generating"} onClick={() => void startReferenceVideo(false)}
+                  className="flex h-10 items-center justify-center gap-2 rounded-full bg-black px-5 text-[13px] font-black text-white active:scale-95 transition-transform disabled:opacity-40">
+                  {videoStatus === "generating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Generate video
+                </button>
+              </div>
+            </div>
+          )}
           {/* Try-on video — big "Please wait!" loader over a blurred preview so
               people don't bail before the 5s video is ready */}
           {videoStatus === "generating" && (
