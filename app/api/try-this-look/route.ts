@@ -257,9 +257,19 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
   // video + product image and BEFORE the dupes. Includes the curator's OWN try-ons
   // (with their video) and members'. Newest first (generations are newest-first).
   const communityByLook = new Map<string, { imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; isCurator?: boolean }[]>();
+  // Lingerie/intimate try-ons are PRIVATE — they show the person in lingerie and must
+  // NEVER surface in the public carousel, regardless of the feed flag.
+  const lingerieLookIds = new Set(
+    (state.looks ?? [])
+      .filter(l => (typeof (l as any).lingerie === "boolean"
+        ? (l as any).lingerie
+        : isIntimateName([(l as any).name, (l as any).brand, (l as any).campaignName, (l as any).productNote].filter(Boolean).join(" "))))
+      .map(l => l.id)
+  );
   for (const g of state.generations ?? []) {
     const url = (g as any).imageUrl;
     if (!url || (g as any).hidden || (g as any).feed === false || g.visitorId?.startsWith("admin-")) continue;
+    if (lingerieLookIds.has(g.lookId)) continue; // never surface lingerie try-ons publicly
     const cid = curatorIdByLook.get(g.lookId);
     const isCurator = !!(cid && normalizeSlug((g as any).customerName ?? "") === curatorSlugById.get(cid));
     const list = communityByLook.get(g.lookId) ?? [];
@@ -511,7 +521,15 @@ export async function GET(request: Request) {
       } catch { /* ignore */ }
       const myCuratorId = request.headers.get("x-curator-id")?.trim() ?? "";
       const community = state.generations
-        .filter(g => (g as any).imageUrl && !(g as any).hidden && (g as any).feed !== false)
+        .filter(g => {
+          if (!(g as any).imageUrl || (g as any).hidden || (g as any).feed === false) return false;
+          // Lingerie/intimate try-ons are PRIVATE — keep them out of the public feed entirely.
+          const look = lookById.get(g.lookId);
+          const isLing = look ? (typeof (look as any).lingerie === "boolean"
+            ? (look as any).lingerie
+            : isIntimateName([(look as any).name, (look as any).brand, (look as any).campaignName, (look as any).productNote].filter(Boolean).join(" "))) : false;
+          return !isLing;
+        })
         .slice(0, 200)
         .map(g => {
           const look = lookById.get(g.lookId);
