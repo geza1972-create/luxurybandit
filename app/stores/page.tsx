@@ -2131,10 +2131,6 @@ function StoresPage() {
         {/* Stats row */}
         {!isLoading && (
           <div className="flex gap-6 px-4 pb-1.5">
-            <div className="text-center">
-              <div className="text-sm font-black text-black leading-none">{looks.length}</div>
-              <div className="text-[10px] font-bold text-black/35 mt-0.5">listings</div>
-            </div>
             {curatorCount > 0 && (
               <div className="text-center">
                 <div className="text-sm font-black text-black leading-none">{curatorCount}</div>
@@ -2142,8 +2138,12 @@ function StoresPage() {
               </div>
             )}
             <div className="text-center">
-              <div className="text-sm font-black text-black leading-none">{looks.filter(l => l.inStock !== false).length}</div>
-              <div className="text-[10px] font-bold text-black/35 mt-0.5">available</div>
+              <div className="text-sm font-black text-black leading-none">{looks.length}</div>
+              <div className="text-[10px] font-bold text-black/35 mt-0.5">Looks</div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm font-black text-black leading-none">{communityItems.length}</div>
+              <div className="text-[10px] font-bold text-black/35 mt-0.5">Try-ons</div>
             </div>
           </div>
         )}
