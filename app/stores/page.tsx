@@ -2234,7 +2234,7 @@ function StoresPage() {
                 gallery of models (browse a model, then see her in looks). */}
             <div className="flex items-center gap-2 px-3 pt-1 pb-2">
               <button type="button" onClick={() => setHomeTab("feeds")}
-                className={`rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Feeds</button>
+                className={`rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Fashionshow</button>
               <button type="button" onClick={() => setHomeTab("models")}
                 className={`rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "models" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Models{models.length ? ` · ${models.length}` : ""}</button>
             </div>
