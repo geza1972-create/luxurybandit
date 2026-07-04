@@ -2247,7 +2247,7 @@ function StoresPage() {
               {pagedHistory.map((it, idx) => (
                 <div key={it.key} className="flex flex-col">
                   <button type="button"
-                    onClick={() => router.push(it.kind === "tryon" ? `/post/${it.id}` : lookPath(it.name, it.lookId || it.id))}
+                    onClick={() => { setReelItems(visibleHistoryAsReel); setCommunitySelectedIndex(idx); }}
                     className="relative aspect-square overflow-hidden bg-black/5 transition-opacity active:opacity-80">
                     {it.videoUrl ? (
                       // Video tile — always show a still poster so the tile is never a
