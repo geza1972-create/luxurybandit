@@ -83,7 +83,7 @@ function RailButton({ icon, label, active, onClick }: { icon: React.ReactNode; l
   );
 }
 
-function Slide({ look, onComment, muted, setMuted, index, onActive, single = false }: { look: FeedLook; onComment: (look: FeedLook) => void; muted: boolean; setMuted: (fn: (m: boolean) => boolean) => void; index: number; onActive: (i: number) => void; single?: boolean }) {
+function Slide({ look, onComment, muted, setMuted, index, onActive, single = false, onClose }: { look: FeedLook; onComment: (look: FeedLook) => void; muted: boolean; setMuted: (fn: (m: boolean) => boolean) => void; index: number; onActive: (i: number) => void; single?: boolean; onClose?: () => void }) {
   const router = useRouter();
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(look.likeCount ?? 0);
@@ -883,7 +883,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           )}
           <RailButton icon={<Bookmark className="h-8 w-8" fill={saved ? "currentColor" : "none"} strokeWidth={2} />} label={saved ? "Saved" : "Save"} active={saved} onClick={toggleSave} />
           <RailButton icon={<Send className="h-7 w-7" strokeWidth={2} />} label="Share" onClick={share} />
-          <RailButton icon={<Home className="h-7 w-7" strokeWidth={2} />} label="Home" onClick={() => router.push("/stores?view=grid")} />
+          <RailButton icon={<Home className="h-7 w-7" strokeWidth={2} />} label="Home" onClick={onClose ?? (() => router.push("/stores?view=grid"))} />
         </div>
       </div>
 
@@ -1159,7 +1159,7 @@ function CommentsSheet({ look, onClose }: { look: FeedLook; onClose: () => void 
   );
 }
 
-export default function HomeFeed({ looks, single = false, initialLookId }: { looks: FeedLook[]; single?: boolean; initialLookId?: string }) {
+export default function HomeFeed({ looks, single = false, initialLookId, initialTryOnId, onClose }: { looks: FeedLook[]; single?: boolean; initialLookId?: string; initialTryOnId?: string; onClose?: () => void }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [commentsFor, setCommentsFor] = useState<FeedLook | null>(null);
   // One global sound switch for the whole feed. The audio is a single looping
@@ -1222,7 +1222,9 @@ export default function HomeFeed({ looks, single = false, initialLookId }: { loo
   // target look is first (scrollTop 0). This is rock-solid — unlike scrolling to a
   // computed offset, it doesn't depend on the (variable, still-loading) heights of
   // the posts above the target, which used to land us on the neighbouring look.
-  const startIdx = initialLookId ? expanded.findIndex(e => e.look.id === initialLookId) : -1;
+  const startIdx = initialTryOnId
+    ? expanded.findIndex(e => e.look.communityTryOns?.[0]?.id === initialTryOnId)
+    : initialLookId ? expanded.findIndex(e => e.look.id === initialLookId) : -1;
   const feed = startIdx > 0 ? [...expanded.slice(startIdx), ...expanded.slice(0, startIdx)] : expanded;
 
   // Always open at the FIRST slide. Rotation puts the target look at feed[0], but
@@ -1247,7 +1249,7 @@ export default function HomeFeed({ looks, single = false, initialLookId }: { loo
           up to full width (which pushed the Look/Escape thumbs off the bottom). */}
       <div className="flex h-[100dvh] w-full justify-center bg-black">
         <div ref={scrollRef} className="h-[100dvh] w-full max-w-[440px] snap-y snap-mandatory overflow-y-scroll overscroll-contain bg-black [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {feed.map((entry, i) => <Slide key={entry.key} look={entry.look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} index={i} onActive={handleActive} single={single} />)}
+          {feed.map((entry, i) => <Slide key={entry.key} look={entry.look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} index={i} onActive={handleActive} single={single} onClose={onClose} />)}
         </div>
       </div>
       {/* Slide-coupled feed soundtrack — shuffled /public mp3s, the track changes

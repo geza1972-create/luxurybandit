@@ -1399,6 +1399,9 @@ function StoresPage() {
   // Items the full-screen scroll feed (reels) iterates over — set when opening it
   // from a grid (so the same overlay works for both the history grid and community).
   const [reelItems, setReelItems] = useState<CommunityItem[] | null>(null);
+  // Tapping a grid tile opens the SAME HomeFeed reel (identical layout), positioned at
+  // that try-on (or look, for tryon-less tiles). See the overlay render below.
+  const [feedOpen, setFeedOpen] = useState<{ tryOnId?: string; lookId?: string } | null>(null);
   const [communityLikes, setCommunityLikes] = useState<Record<string, boolean>>({});
   // "Mine" filter for signed-in creators — show only their own try-ons / trends
   const [myCuratorId, setMyCuratorId] = useState("");
@@ -2234,7 +2237,7 @@ function StoresPage() {
               {pagedHistory.map((it, idx) => (
                 <div key={it.key} className="flex flex-col">
                   <button type="button"
-                    onClick={() => { setReelItems(visibleHistoryAsReel); setCommunitySelectedIndex(idx); }}
+                    onClick={() => setFeedOpen({ tryOnId: it.kind === "tryon" ? it.id : undefined, lookId: it.lookId })}
                     className="relative aspect-square overflow-hidden bg-black/5 transition-opacity active:opacity-80">
                     {it.videoUrl ? (
                       // Video tile — always show a still poster so the tile is never a
@@ -2737,30 +2740,18 @@ function StoresPage() {
       {showUserPanel && <UserPanel onClose={() => { setShowUserPanel(false); setSavedAutoOpen(false); stripPanelParam(); }} openSaved={savedAutoOpen} />}
       {paywallModal}
 
-      {/* ── Community detail fullscreen ── */}
-      {communitySelectedIndex !== null && (reelItems ?? filteredCommunity).length > 0 && (
-        <CommunityDetailView
-          allItems={reelItems ?? filteredCommunity}
-          initialIndex={Math.min(communitySelectedIndex, (reelItems ?? filteredCommunity).length - 1)}
-          likes={communityLikes}
-          onClose={() => { setCommunitySelectedIndex(null); setReelItems(null); }}
-          onLikeToggle={(id) => {
-            const next = { ...communityLikes, [id]: !(communityLikes[id] ?? false) };
-            setCommunityLikes(next);
-            try { localStorage.setItem("lb_gen_likes", JSON.stringify(next)); } catch { /**/ }
-          }}
-          onHide={isAdmin ? (id) => { const it = (reelItems ?? filteredCommunity).find(i => i.id === id); if (it) void hideCommunityItem(it); } : undefined}
-          onDelete={isAdmin ? (id) => { const it = (reelItems ?? filteredCommunity).find(i => i.id === id) ?? visibleHistoryAsReel.find(i => i.id === id); if (it) void deleteCommunityItem(it); } : undefined}
-          onAssign={isAdmin ? assignCommunityItem : undefined}
-          onInfo={fetchPostInfo}
-          curators={assignCurators}
-          isAdmin={isAdmin}
-          myCuratorId={myCuratorId}
-          onHideItem={hideReelItem}
-        onMakeVideo={makeLookVideo}
-        makingVideoLookId={makingVideoLookId}
-          router={router}
-        />
+      {/* ── Grid tile detail = the SAME HomeFeed reel (identical layout to the feed),
+           opened at the tapped try-on (or look for tryon-less tiles). Home closes it. ── */}
+      {feedOpen && looks.length > 0 && (
+        <div className="fixed inset-0 z-[90] bg-black">
+          <HomeFeed
+            key={feedOpen.tryOnId || feedOpen.lookId}
+            looks={looks as unknown as FeedLook[]}
+            initialTryOnId={feedOpen.tryOnId}
+            initialLookId={feedOpen.lookId}
+            onClose={() => setFeedOpen(null)}
+          />
+        </div>
       )}
     </div>
   );
