@@ -588,9 +588,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           className="flex min-w-0 items-center gap-2 active:opacity-80">
           <span className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-black/10 bg-black/5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={look.curatorPhotoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(look.curatorName || "LB")}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
+            <img src={look.curatorPhotoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(publicAuthorName(look.curatorName))}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
           </span>
-          <span className="truncate text-sm font-black text-black">{look.curatorName || "LuxuryBandit"}</span>
+          <span className="truncate text-sm font-black text-black">{publicAuthorName(look.curatorName)}</span>
         </button>
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${look.aiCreated ? "bg-black text-white" : "bg-black/[0.06] text-black/60"}`}>
           {look.aiCreated ? "✦ Original" : "Model"}

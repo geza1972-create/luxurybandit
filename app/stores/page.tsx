@@ -2663,11 +2663,11 @@ function StoresPage() {
                         onClick={(e) => { e.stopPropagation(); if (look.curatorId) router.push(`/curator/${look.curatorId}`); else if (look.storeSlug) router.push(`/store/${look.storeSlug}`); }}
                         className="flex h-4 w-4 shrink-0 overflow-hidden rounded-full bg-black/5">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={look.curatorPhotoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(look.curatorName || look.storeSlug || "LB")}&backgroundColor=000000&fontColor=ffffff`}
+                        <img src={look.curatorPhotoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(publicAuthorName(look.curatorName || look.storeSlug))}&backgroundColor=000000&fontColor=ffffff`}
                           alt="" className="h-full w-full object-cover" />
                       </button>
                       <span className="min-w-0 flex-1 truncate text-[9px] font-black text-black/70">
-                        {look.curatorName || look.storeName || look.storeSlug || ""}
+                        {look.curatorName ? publicAuthorName(look.curatorName) : (look.storeName || look.storeSlug || "")}
                       </span>
                       {(() => {
                         const label = feedPrice(look);
