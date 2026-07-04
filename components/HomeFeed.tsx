@@ -7,6 +7,7 @@ import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { safeLookImage } from "@/lib/look-image";
+import { publicAuthorName } from "@/lib/display-name";
 import { cleanEscapes } from "@/lib/reel-audit";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 import { FeedGate } from "@/components/FeedGate";
@@ -737,9 +738,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 // Community try-on photo (no before photo available, just the after result)
                 <div className="relative h-full w-full">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.url} alt={`${m.name ?? "member"} try-on`} className="h-full w-full object-cover" />
+                  <img src={m.url} alt={`${publicAuthorName(m.name)} try-on`} className="h-full w-full object-cover" />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
-                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{m.name ? `${m.name}'s try-on` : "Try-on photo"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
+                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{m.name ? `${publicAuthorName(m.name)}'s try-on` : "Try-on photo"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
                 </div>
               ) : m.type === "refimage" ? (
                 // Curator-uploaded garment reference — the actual piece, shown whole
@@ -936,9 +937,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                     <>
                       <span className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-black/5">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={c.imageUrl} alt={c.name || "Member"} className="h-full w-full object-cover object-top" />
+                        <img src={c.imageUrl} alt={c.name ? publicAuthorName(c.name) : "Member"} className="h-full w-full object-cover object-top" />
                       </span>
-                      <span className="min-w-0 flex-1 truncate text-[13px] font-black text-black">{c.name || "Member"}</span>
+                      <span className="min-w-0 flex-1 truncate text-[13px] font-black text-black">{c.name ? publicAuthorName(c.name) : "Member"}</span>
                       {c.videoUrl && <span className="shrink-0 rounded-full bg-black/5 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-black/45">Video</span>}
                     </>
                   );

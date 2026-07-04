@@ -16,6 +16,7 @@ import HomeFeed, { type FeedLook } from "@/components/HomeFeed";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { LOOK_CATEGORIES, isHiddenFromAll, type LookCategory } from "@/lib/look-category";
 import { publicLookLabel } from "@/lib/look-title";
+import { publicAuthorName } from "@/lib/display-name";
 import { safeLookImage } from "@/lib/look-image";
 import { Bookmark, EyeOff, Heart, Home, Image as ImageIcon, Info, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, Sparkles, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
 import Image from "next/image";
@@ -2278,10 +2279,10 @@ function StoresPage() {
                     {it.curatorName && (
                       <span className="flex h-4 w-4 shrink-0 overflow-hidden rounded-full bg-black/5">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={it.curatorPhoto || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(it.curatorName)}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
+                        <img src={it.curatorPhoto || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(publicAuthorName(it.curatorName))}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
                       </span>
                     )}
-                    <span className="min-w-0 flex-1 truncate text-[9px] font-black text-black/70">{it.curatorName || it.name}</span>
+                    <span className="min-w-0 flex-1 truncate text-[9px] font-black text-black/70">{it.curatorName ? publicAuthorName(it.curatorName) : it.name}</span>
                     {it.price && <span className="shrink-0 text-[9px] font-black text-ink">{it.price}</span>}
                   </div>
                 </div>
@@ -2461,12 +2462,12 @@ function StoresPage() {
                           <a href={`/u/${username}`} onClick={e => e.stopPropagation()}
                             className="flex h-4 w-4 shrink-0 overflow-hidden rounded-full bg-black/5">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(item.customerName)}&backgroundColor=000000&fontColor=ffffff&fontSize=40`}
-                              alt={item.customerName} className="h-full w-full object-cover" />
+                            <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(publicAuthorName(item.customerName))}&backgroundColor=000000&fontColor=ffffff&fontSize=40`}
+                              alt={publicAuthorName(item.customerName)} className="h-full w-full object-cover" />
                           </a>
                         ) : null}
                         <span className="min-w-0 flex-1 truncate text-[9px] font-black text-black/70">
-                          {item.customerName || "Luxury look"}
+                          {publicAuthorName(item.customerName)}
                         </span>
                       </div>
                       {/* Social bar — same as regular feed */}
@@ -2726,7 +2727,7 @@ function StoresPage() {
                       />
                       {item.customerName && (
                         <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5">
-                          <p className="truncate text-[10px] font-black text-white">{item.customerName}</p>
+                          <p className="truncate text-[10px] font-black text-white">{publicAuthorName(item.customerName)}</p>
                         </div>
                       )}
                     </button>

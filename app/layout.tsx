@@ -4,6 +4,7 @@ import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import MetaPixel from "@/components/MetaPixel";
 import AdminUrlMirror from "@/components/AdminUrlMirror";
+import AgeGate from "@/components/AgeGate";
 
 export const metadata: Metadata = {
   metadataBase: new URL((process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "")),
@@ -44,6 +45,9 @@ export default function RootLayout({
         </Suspense>
         <div className="lb-frame">
           {children}
+          {/* The whole portal is 18+ — blocks every page until the visitor confirms a
+              date of birth ≥ 18 (admins bypass). */}
+          <AgeGate />
           {/* Suspense so BottomNav's useSearchParams doesn't force CSR bailout on
               statically-prerendered pages (e.g. 404) — required for the prod build. */}
           <Suspense fallback={null}>
