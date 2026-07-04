@@ -8,7 +8,7 @@ import BottomNav from "@/components/BottomNav";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 type Outfit = { id: string; name: string; imageUrl: string; lookId?: string };
-type Look = { id: string; name: string; imageUrl?: string; frontImageUrl?: string; videoPosterUrl?: string; curatorName?: string };
+type Look = { id: string; name: string; imageUrl?: string; frontImageUrl?: string; videoPosterUrl?: string; modelPhotoUrl?: string; curatorName?: string };
 
 // Downscale a picked avatar so it stays small (never uploaded before payment anyway).
 async function fileToDataUrl(file: File, max = 1000, quality = 0.85): Promise<string> {
@@ -84,7 +84,7 @@ export default function TryFunnelPage() {
 
   // The "woman from the video" reference — the look's own poster/front image, unless the
   // user replaced it with their own avatar.
-  const modelImg = avatar || modelParam || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
+  const modelImg = avatar || modelParam || look?.modelPhotoUrl || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
   const teaserImg = outfit?.imageUrl || modelImg;
 
   const goStep3 = () => {
@@ -123,7 +123,7 @@ export default function TryFunnelPage() {
     setGenStatus("generating"); setGenError("");
     const H = { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}) };
     try {
-      const person = avatar || modelParam || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
+      const person = avatar || modelParam || look?.modelPhotoUrl || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
       const garment = (outfitOverride ?? outfit)?.imageUrl || "";
       if (!person || !garment) throw new Error("Referenzbilder fehlen.");
       // Send the admin prompt EXACTLY as written (tokens like @Bild1 / @Bild2 bind to the

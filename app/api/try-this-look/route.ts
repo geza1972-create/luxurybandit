@@ -432,8 +432,13 @@ export async function GET(request: Request) {
     if (previewLookId) {
       const look = state.looks.find(l => l.id === previewLookId);
       if (!look) return NextResponse.json({ error: "Look not found." }, { status: 404 });
-      const genCount = state.generations.filter(g => g.lookId === previewLookId).length;
-      return NextResponse.json({ look: serializeLook(look, genCount, state.partnerStores ?? [], state.curators ?? []), isDraft: look.published === false, tryonPaused: state.tryonPaused === true });
+      const looksGens = state.generations.filter(g => g.lookId === previewLookId && !(g as any).hidden && (g as any).imageUrl);
+      // The funnel's default model: prefer a real UPLOADED "before" photo (an actual
+      // person who tried this look on), else a try-on result — never the retailer's stock
+      // product still. Independent of feed/public flags (reads every generation).
+      const modelPhotoUrl = (looksGens.find(g => (g as any).userPhotoUrl) as any)?.userPhotoUrl
+        || (looksGens[0] as any)?.imageUrl || "";
+      return NextResponse.json({ look: { ...serializeLook(look, looksGens.length, state.partnerStores ?? [], state.curators ?? []), modelPhotoUrl }, isDraft: look.published === false, tryonPaused: state.tryonPaused === true });
     }
 
     // Admin: ALL comments across every look (for the admin inbox).

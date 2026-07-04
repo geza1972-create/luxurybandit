@@ -532,7 +532,10 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
   }
   for (const gen of state.generations) {
     if (gen.imagePath) allPaths.push(gen.imagePath);
-    if ((gen as any).userPhotoPath) allPaths.push((gen as any).userPhotoPath);
+    // The uploaded "before" photo — accept a legacy stored URL too (extract its path),
+    // so try-ons without a userPhotoPath don't lose their upload on hydration.
+    const upPath = (gen as any).userPhotoPath ?? extractPathFromUrl((gen as any).userPhotoUrl);
+    if (upPath) allPaths.push(upPath);
     const gVidPath = (gen as any).videoPath ?? extractPathFromUrl((gen as any).videoUrl);
     if (gVidPath) allPaths.push(gVidPath);
     const gPosterPath = (gen as any).videoPosterPath ?? extractPathFromUrl((gen as any).videoPosterUrl);
@@ -587,9 +590,7 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
   const generations = state.generations.map(gen => ({
     ...gen,
     imageUrl: s(gen.imagePath, (gen as any).imageUrl),
-    userPhotoUrl: (gen as any).userPhotoPath
-      ? signed.get((gen as any).userPhotoPath)
-      : undefined,
+    userPhotoUrl: s((gen as any).userPhotoPath ?? extractPathFromUrl((gen as any).userPhotoUrl), (gen as any).userPhotoUrl) || undefined,
     videoUrl: (gen as any).videoUrl
       ? s((gen as any).videoPath ?? extractPathFromUrl((gen as any).videoUrl), (gen as any).videoUrl)
       : (gen as any).videoUrl,
