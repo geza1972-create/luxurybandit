@@ -380,7 +380,7 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
                 Owner → opens the try-on flow (video + 360° tiers). Staff keep the
                 inline one-tap generate on any post (content seeding). */}
             {!it.videoUrl && it.mine && !isStaff && (
-              <a href={`/tryon/${it.lookId}?make=video`}
+              <a href={`/try/${it.lookId}${it.userPhotoUrl ? `?model=${encodeURIComponent(it.userPhotoUrl)}` : ""}`}
                 className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-white/80 px-5 text-sm font-black text-black backdrop-blur-md active:scale-95 transition-transform">
                 <Sparkles className="h-4 w-4" /> Make AI-Video
               </a>
@@ -395,7 +395,7 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
             )}
             <a href={`${lookPath(it.lookName, it.lookId)}/details`}
               className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/30 bg-black/35 px-5 text-sm font-black text-white backdrop-blur-md active:scale-95 transition-transform">
-              <ShoppingBag className="h-4 w-4" /> Bandit the look
+              <ShoppingBag className="h-4 w-4" /> Bandit the feeling
             </a>
           </div>
         )}
