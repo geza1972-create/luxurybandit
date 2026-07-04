@@ -372,9 +372,9 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
         {/* ── The two core money buttons over the image ── */}
         {it.lookId && (
           <div className="mb-2.5 flex flex-wrap items-center justify-center gap-2.5">
-            <a href={`/tryon/${it.lookId}`}
+            <a href={`/try/${it.lookId}${it.userPhotoUrl ? `?model=${encodeURIComponent(it.userPhotoUrl)}` : ""}`}
               className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-white/80 px-5 text-sm font-black text-black backdrop-blur-md active:scale-95 transition-transform">
-              <Sparkles className="h-4 w-4" /> Try on you
+              <Sparkles className="h-4 w-4" /> See her in other looks
             </a>
             {/* Make AI-Video — ONLY on the user's OWN AI-picture post (no video yet).
                 Owner → opens the try-on flow (video + 360° tiers). Staff keep the
