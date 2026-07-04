@@ -1876,6 +1876,21 @@ function StoresPage() {
   const [historyCount, setHistoryCount] = useState(HISTORY_PAGE);
   useEffect(() => { setHistoryCount(HISTORY_PAGE); }, [categoryFilter, query, typeFilter]);
   const pagedHistory = useMemo(() => visibleHistory.slice(0, historyCount), [visibleHistory, historyCount]);
+  // The thumbnail grid is built from `communityItems` (?community=1 — the FULL shared set),
+  // but the reel is built from `looks[].communityTryOns`, which the feed-gating trims (some
+  // Community-tier try-ons are missing there). Tapping a thumb that's missing lands on the
+  // wrong post. Fix: rebuild each look's try-ons from the SAME `communityItems` the thumbs
+  // use, so every thumb has a matching reel post.
+  const looksForFeed = useMemo(() => {
+    const byLook = new Map<string, NonNullable<FeedLook["communityTryOns"]>>();
+    for (const c of communityItems) {
+      if (!c.lookId) continue;
+      const list = byLook.get(c.lookId) ?? [];
+      list.push({ id: c.id, imageUrl: c.imageUrl, videoUrl: c.videoUrl, userPhotoUrl: c.userPhotoUrl, name: c.customerName, hidden: false, pending: false });
+      byLook.set(c.lookId, list);
+    }
+    return (looks as unknown as FeedLook[]).map(l => byLook.has(l.id) ? { ...l, communityTryOns: byLook.get(l.id) } : l);
+  }, [looks, communityItems]);
   const historySentinelRef = useRef<HTMLDivElement | null>(null);
   const hasMoreHistory = historyCount < visibleHistory.length;
   useEffect(() => {
@@ -2018,7 +2033,7 @@ function StoresPage() {
         </div>
       );
     }
-    return <HomeFeed looks={looks as unknown as FeedLook[]} />;
+    return <HomeFeed looks={looksForFeed} />;
   }
 
   // ── The A List = HomeFeed of look posts (?view=alist) ──
@@ -2744,7 +2759,7 @@ function StoresPage() {
         <div className="fixed inset-0 z-[90] bg-black">
           <HomeFeed
             key={feedOpen.tryOnId || feedOpen.lookId}
-            looks={looks as unknown as FeedLook[]}
+            looks={looksForFeed}
             initialTryOnId={feedOpen.tryOnId}
             initialLookId={feedOpen.lookId}
             onClose={() => setFeedOpen(null)}
