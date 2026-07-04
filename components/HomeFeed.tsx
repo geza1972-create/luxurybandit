@@ -904,19 +904,6 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         </div>
       )}
 
-      {/* Bandit the feeling — directly BELOW the video (reveals the shop carousel). Hidden
-          once revealed. The try-on CTA ("See her in other looks") stays on the video. */}
-      {!banditRevealed && !banditCreating && (
-        <div className="shrink-0 bg-white px-4 pt-2">
-          <button type="button"
-            onClick={(e) => { e.stopPropagation(); revealBandit(); }}
-            className="flex w-full flex-col items-center justify-center rounded-full bg-black py-2.5 text-white shadow-sm active:scale-[0.99] transition-transform">
-            <span className="text-[10px] font-light leading-tight text-white/75">enjoy the look then</span>
-            <span className="text-sm font-black leading-tight">Bandit the feeling!</span>
-          </button>
-        </div>
-      )}
-
       {/* Curator + badge — always below the video (name + description under the post). */}
       <div className="shrink-0">{headerBar}</div>
 

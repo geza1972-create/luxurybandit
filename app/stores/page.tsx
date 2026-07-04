@@ -394,10 +394,6 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
                 {makingVideoLookId === it.lookId ? "Generating…" : "Make AI-Video"}
               </button>
             )}
-            <a href={`${lookPath(it.lookName, it.lookId)}/details`}
-              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/30 bg-black/35 px-5 text-sm font-black text-white backdrop-blur-md active:scale-95 transition-transform">
-              <ShoppingBag className="h-4 w-4" /> Bandit the feeling
-            </a>
           </div>
         )}
         {/* ── Creator + Follow ── */}
@@ -2063,7 +2059,7 @@ function StoresPage() {
             </div>
             <div className="text-left">
               <div className="text-sm font-black uppercase tracking-widest text-black leading-none">LuxuryBandit</div>
-              <div className="text-[10px] font-bold text-black/40 mt-0.5 leading-tight">Watch the video.<br />Bandit the feeling.</div>
+              <div className="text-[10px] font-bold text-black/40 mt-0.5 leading-tight">Models</div>
             </div>
           </button>
 
@@ -2180,18 +2176,16 @@ function StoresPage() {
                 Hidden while filtering/searching to keep browsing clean. */}
             {!categoryFilter && !searchOpen && (
               <section className="px-4 pt-4 pb-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cobalt">LuxuryBandit</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cobalt">The models marketplace</p>
                 <h1 className="mt-1.5 text-[1.7rem] font-black leading-[1.1] tracking-tight text-black">
-                  Model the <span className="text-cobalt">feeling</span>.
+                  Luxurybandit <span className="text-cobalt">Models</span>
                 </h1>
                 <p className="mt-2 max-w-md text-sm font-medium leading-6 text-black/55">
-                  Become a model for the world&apos;s brands. Try on their outfits, build your look —
-                  and get paid every time someone uses you as their model.
+                  We create the hottest outfits every day — ready for you to wear.
                 </p>
                 <div className="mt-3 grid gap-1.5">
                   {[
                     [<Sparkles key="i" className="h-4 w-4 text-cobalt" />, "Become a model", "Upload your photo and try on any high-end outfit — no agency, no shoot."],
-                    [<ShoppingBag key="i" className="h-4 w-4 text-cobalt" />, "Bandit the feeling", "Get the whole vibe — the original outfit, the budget version, and where to live it."],
                     [<Heart key="i" className="h-4 w-4 text-cobalt" />, "Earn on every look", "When a brand or user picks your look as their model, you get paid."],
                   ].map(([icon, title, text], i) => (
                     <div key={i} className="flex items-start gap-2.5">
@@ -2203,10 +2197,6 @@ function StoresPage() {
                   ))}
                 </div>
                 <div className="mt-3.5 flex items-center gap-2">
-                  <button type="button" onClick={() => router.push("/stores")}
-                    className="flex h-10 items-center justify-center gap-1.5 rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
-                    <Sparkles className="h-4 w-4" /> Bandit the feeling!
-                  </button>
                   <button type="button" onClick={() => router.push("/about")}
                     className="flex h-10 items-center justify-center rounded-full border border-black/15 bg-white px-5 text-sm font-black text-black active:scale-95 transition-transform">
                     How it works

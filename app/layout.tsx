@@ -8,11 +8,11 @@ import AgeGate from "@/components/AgeGate";
 
 export const metadata: Metadata = {
   metadataBase: new URL((process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "")),
-  title: "Luxurybandit — Bandit the Feeling | Virtual Try-On & Luxury Style",
-  description: "Try on any luxury look on your own photo and shop the whole outfit at any price. Discover the high-end style you love — only on Luxurybandit.",
+  title: "Luxurybandit Models — the hottest outfits, worn by you",
+  description: "Luxurybandit Models: become a model for the world's brands. We create the hottest new outfits every day — try them on your own photo and get paid every time someone uses your look.",
   openGraph: {
-    title: "Luxurybandit — Bandit the Feeling | Virtual Try-On & Luxury Style",
-    description: "Try on any luxury look on your own photo and shop the whole outfit at any price. Discover the high-end style you love — only on Luxurybandit.",
+    title: "Luxurybandit Models — the hottest outfits, worn by you",
+    description: "Luxurybandit Models: become a model for the world's brands. We create the hottest new outfits every day — try them on your own photo and get paid every time someone uses your look.",
   }
 };
 
