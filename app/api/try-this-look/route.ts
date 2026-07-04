@@ -1107,6 +1107,12 @@ export async function POST(request: Request) {
       const userPhotoPath = payload.userPhotoImage?.startsWith("data:image/")
         ? await uploadTryThisLookImage("generations", payload.userPhotoImage)
         : undefined;
+      // The funnel generates from a model/before photo passed as a URL (not a base64
+      // upload) — keep it so the Before/After slide works. Hydration extracts + re-signs the
+      // storage path from this URL on every read (falls back to the raw URL for externals).
+      const beforePhotoUrl = !userPhotoPath && typeof payload.userPhotoUrl === "string" && /^https?:\/\//.test(payload.userPhotoUrl)
+        ? payload.userPhotoUrl
+        : undefined;
       const generationId = `${Date.now()}-${crypto.randomUUID()}`;
       // ── Publish gate ──────────────────────────────────────────────────────
       // A try-on NEVER goes public on the user's own action. If the user opted in
@@ -1135,6 +1141,7 @@ export async function POST(request: Request) {
         rightsConsentText: String(payload.rightsConsentText ?? "").trim() || undefined,
         imagePath,
         userPhotoPath,
+        ...(beforePhotoUrl ? { userPhotoUrl: beforePhotoUrl } : {}),
         // Which try-on tier produced this (for the post-info history): photo | video | video360.
         genKind: (["photo", "video", "video360"].includes(String(payload.genKind))
           ? String(payload.genKind)

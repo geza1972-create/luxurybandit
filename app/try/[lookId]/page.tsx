@@ -147,6 +147,8 @@ export default function TryFunnelPage() {
           action: "generation", lookId, image: poster, genKind: "video", feed: false,
           customerName: (session?.user?.email?.split("@")[0]) || "You",
           ownerEmail: session?.user?.email || "", userId: session?.user?.id || "",
+          // Save the model/before photo so the post gets a real Before/After slide.
+          ...(person.startsWith("data:image/") ? { userPhotoImage: person } : person ? { userPhotoUrl: person } : {}),
         }) }).then(r => r.json());
         if (gen.generationId) await fetch("/api/try-this-look", { method: "POST", headers: H, body: JSON.stringify({ action: "attach-generation-video", generationId: gen.generationId, videoUrl }) });
       }
