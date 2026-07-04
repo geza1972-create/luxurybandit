@@ -1861,21 +1861,16 @@ function StoresPage() {
     return LOOK_CATEGORIES.filter(c => present.has(c.slug));
   }, [feedItems]);
   const visibleHistory = useMemo(() => {
-    // The grid mirrors the public feed. A category chip narrows to that world. "All" hides
-    // the gated Community (boudoir) world from regular viewers, but a paying member / admin
-    // sees everything (so the admin's grid shows the Community looks too).
-    let items: typeof feedItems;
-    if (categoryFilter) {
-      items = feedItems.filter(it => it.category === categoryFilter);
-    } else if (isPaidMember) {
-      items = feedItems; // admin / paid → the full mirror, incl. Community looks
-    } else {
-      items = feedItems.filter(it => !(it.category && isHiddenFromAll(it.category)));
-    }
+    // The grid is the EXACT mirror of the public feed. "All" = every post the feed shows
+    // (nothing hidden — the reel already shows every look/try-on). A category chip just
+    // narrows to that world; the Community chip is still the gated filter for browsing.
+    let items: typeof feedItems = categoryFilter
+      ? feedItems.filter(it => it.category === categoryFilter)
+      : feedItems;
     const q = query.trim().toLowerCase();
     if (q) items = items.filter(it => `${it.name} ${it.curatorName ?? ""}`.toLowerCase().includes(q));
     return items;
-  }, [feedItems, categoryFilter, query, isPaidMember]);
+  }, [feedItems, categoryFilter, query]);
   // Grid pagination — render a first fast batch, then load more as you scroll (the grid
   // was mounting 40+ <video> tiles at once, which stalled the initial paint).
   const HISTORY_PAGE = 12;
