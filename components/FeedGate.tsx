@@ -51,13 +51,11 @@ export function FeedGate({
       return;
     }
     setBusy(true); setErr(""); setInfo("");
-    // Date of birth was captured by the global 18+ AgeGate before any signup is reachable —
-    // attach it to the lead so the registration record carries the birthdate (portal is 18+).
-    let dob = ""; try { dob = localStorage.getItem("lb_dob") || ""; } catch { /**/ }
-    // Capture the lead (with the name) → funnel + admin Users list.
+    // Capture the lead (with the name) → funnel + admin Users list. (Age is handled by the
+    // global 18+ AgeGate as a yes/no on entry — no birthdate is collected.)
     void fetch("/api/try-this-look", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "lead", email: mail, customerName: nm, dob, lookId: lookId || "", lookName: lookName || "", leadSource: "feed", marketingConsent: true, visitorId: "anon" }),
+      body: JSON.stringify({ action: "lead", email: mail, customerName: nm, lookId: lookId || "", lookName: lookName || "", leadSource: "feed", marketingConsent: true, visitorId: "anon" }),
     }).catch(() => {});
     const finish = () => {
       window.dispatchEvent(new Event("luxurybandit-auth-updated"));
