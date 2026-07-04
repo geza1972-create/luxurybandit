@@ -34,6 +34,8 @@ export default function TryFunnelPage() {
   // The specific try-on's ORIGINAL image, passed from the feed (?model=…). It's the person
   // who actually did THIS try-on — used as the model instead of the look's stock still.
   const modelParam = searchParams?.get("model") ?? "";
+  // When opened from a model's wardrobe: the exact garment to put her in (its image URL).
+  const garmentParam = searchParams?.get("garment") ?? "";
 
   const [look, setLook] = useState<Look | null>(null);
   const [outfits, setOutfits] = useState<Outfit[]>([]);
@@ -85,7 +87,7 @@ export default function TryFunnelPage() {
   // The "woman from the video" reference — the look's own poster/front image, unless the
   // user replaced it with their own avatar.
   const modelImg = avatar || modelParam || look?.modelPhotoUrl || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
-  const teaserImg = outfit?.imageUrl || modelImg;
+  const teaserImg = garmentParam || outfit?.imageUrl || modelImg;
 
   const goStep3 = () => {
     // Fake render: a short spinner, then the blurred "ready" teaser. No real generation.
@@ -124,7 +126,7 @@ export default function TryFunnelPage() {
     const H = { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}) };
     try {
       const person = avatar || modelParam || look?.modelPhotoUrl || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
-      const garment = (outfitOverride ?? outfit)?.imageUrl || "";
+      const garment = garmentParam || (outfitOverride ?? outfit)?.imageUrl || "";
       if (!person || !garment) throw new Error("Referenzbilder fehlen.");
       // Send the admin prompt EXACTLY as written (tokens like @Bild1 / @Bild2 bind to the
       // reference images server-side) — no remapping, same as typing it into Pixverse.
