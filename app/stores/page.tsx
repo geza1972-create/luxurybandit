@@ -1406,7 +1406,7 @@ function StoresPage() {
   // model profiles). Toggled at the top of the home.
   type GalleryModel = { id: string; name: string; photoUrl: string; style: string; lookCount: number };
   const [models, setModels] = useState<GalleryModel[]>([]);
-  const [homeTab, setHomeTab] = useState<"feeds" | "models">("feeds");
+  const [homeTab, setHomeTab] = useState<"feeds" | "models">("models");
   useEffect(() => {
     fetch("/api/try-this-look?models=1").then(r => r.json()).then(d => setModels(Array.isArray(d.models) ? d.models : [])).catch(() => {});
   }, []);
@@ -2233,10 +2233,10 @@ function StoresPage() {
             {/* Feeds | Models toggle — Home has two views: the try-on feeds, and the
                 gallery of models (browse a model, then see her in looks). */}
             <div className="flex items-center gap-2 px-3 pt-1 pb-2">
-              <button type="button" onClick={() => setHomeTab("feeds")}
-                className={`rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Fashionshow</button>
               <button type="button" onClick={() => setHomeTab("models")}
                 className={`rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "models" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Models{models.length ? ` · ${models.length}` : ""}</button>
+              <button type="button" onClick={() => setHomeTab("feeds")}
+                className={`rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Fashionshow</button>
             </div>
 
             {homeTab === "models" ? (
