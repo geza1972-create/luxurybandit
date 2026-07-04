@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Instagram, Loader2, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play } from "lucide-react";
+import { ArrowLeft, Instagram, Loader2, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play, Sparkles } from "lucide-react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 const fmtN = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`);
@@ -44,6 +44,8 @@ export default function CuratorPublicPage() {
   const id = String(params?.id ?? "");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [looks, setLooks] = useState<Look[]>([]);
+  const [allLooks, setAllLooks] = useState<Look[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [tryons, setTryons] = useState<TryOn[]>([]);
   const [lookPrices, setLookPrices] = useState<Record<string, string>>({});
   const [ownLookIds, setOwnLookIds] = useState<Set<string>>(new Set());
@@ -99,6 +101,7 @@ export default function CuratorPublicPage() {
         ]);
         if (!active) return;
         setProfile(p);
+        setAllLooks(all.filter(l => l.published !== false));
         setLooks(all.filter(l => l.curatorId === id && l.published !== false));
         // Price lookup for try-ons (they reference a shoppable look by id).
         const prices: Record<string, string> = {};
@@ -190,6 +193,15 @@ export default function CuratorPublicPage() {
           ))}
         </div>
 
+        {/* See her in a new look — pick a look → the try-on funnel generates THIS model
+            (her photo = the person) wearing it. */}
+        {profile.photoUrl && (
+          <button type="button" onClick={() => setPickerOpen(true)}
+            className="mt-4 flex w-full max-w-xs items-center justify-center gap-2 rounded-full bg-black px-6 py-3 text-sm font-black text-white active:scale-95 transition-transform">
+            <Sparkles className="h-4 w-4" /> See {profile.firstName || "her"} in a new look
+          </button>
+        )}
+
         {/* Follow + Message + Share moved to sticky header (second row) */}
       </div>
 
@@ -273,6 +285,38 @@ export default function CuratorPublicPage() {
             )}
           </div>
         </>
+      )}
+
+      {/* Look picker — pick any catalogue look → the try-on funnel with THIS model's
+          photo as the person (?model=). Any logged-in user can generate. */}
+      {pickerOpen && profile.photoUrl && (
+        <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={() => setPickerOpen(false)}>
+          <div className="flex max-h-[82dvh] w-full max-w-[440px] flex-col rounded-t-3xl bg-white" onClick={e => e.stopPropagation()} style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+            <div className="flex items-center justify-between border-b border-black/8 px-4 py-3">
+              <div>
+                <p className="text-sm font-black text-black">See {name} in a look</p>
+                <p className="text-[11px] font-bold text-black/40">Pick any look — we generate her wearing it.</p>
+              </div>
+              <button type="button" onClick={() => setPickerOpen(false)} aria-label="Close" className="grid h-8 w-8 place-items-center rounded-full text-black/40 active:bg-black/5"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="grid grid-cols-3 gap-0.5 overflow-y-auto p-0.5">
+              {allLooks.filter(l => l.frontImageUrl || l.imageUrl).map(l => {
+                const thumb = l.frontImageUrl ?? l.imageUrl;
+                return (
+                  <button key={l.id} type="button"
+                    onClick={() => router.push(`/try/${l.id}?model=${encodeURIComponent(profile.photoUrl as string)}`)}
+                    className="relative aspect-[3/4] overflow-hidden bg-black/5 active:opacity-80 transition">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={optImg(thumb, 400)} alt={l.name} loading="lazy" decoding="async"
+                      onError={(e) => { const im = e.currentTarget; if (thumb && im.src !== thumb) im.src = thumb; }}
+                      className="h-full w-full object-cover object-top" />
+                    <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/70 to-transparent px-1.5 py-1 text-[9px] font-black text-white">{l.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
     </main>
   );
