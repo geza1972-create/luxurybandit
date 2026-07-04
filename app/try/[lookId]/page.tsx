@@ -76,6 +76,16 @@ export default function TryFunnelPage() {
     }).catch(() => {});
   }, [lookId]);
 
+  // Opened from a model's wardrobe (a specific garment is passed) → that piece is already
+  // chosen, so skip the "pick an outfit" step and go straight into the flow.
+  useEffect(() => {
+    if (garmentParam && step === 1) {
+      setOutfit({ id: "wardrobe", name: "Selected piece", imageUrl: garmentParam, lookId });
+      setStep(2);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [garmentParam]);
+
   const savePrompt = async () => {
     setPromptSaving(true); setPromptSaved(false);
     try {
