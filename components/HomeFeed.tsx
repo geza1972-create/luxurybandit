@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, Home, ShoppingBag, EyeOff, Eye, Trash2, UserPlus, Check } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, Home, ShoppingBag, EyeOff, Eye, Trash2, UserPlus, Check, ImageOff } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -205,7 +205,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       ? [{ type: "cvideo" as const, url: repTryOn.videoUrl, name: repTryOn.name, poster: repTryOn.imageUrl || repTryOn.userPhotoUrl || "", id: repTryOn.id, hidden: repTryOn.hidden, pending: repTryOn.pending }]
       : look.videoUrl ? [{ type: "video" as const }]
       : repTryOn?.imageUrl ? [{ type: "cphoto" as const, url: repTryOn.imageUrl, name: repTryOn.name, id: repTryOn.id, hidden: repTryOn.hidden, pending: repTryOn.pending }]
-      : (heroImg ? [{ type: "image" as const }] : [])),
+      : [{ type: "image" as const }]),
     // 2) Before/After compare — ONLY when this try-on has a before photo.
     ...(repTryOn?.userPhotoUrl && (repTryOn?.videoUrl || repTryOn?.imageUrl)
       ? [{ type: "compare" as const, afterUrl: repTryOn.imageUrl, beforeUrl: repTryOn.userPhotoUrl, name: repTryOn.name, id: repTryOn.id, hidden: repTryOn.hidden, pending: repTryOn.pending }]
@@ -746,8 +746,18 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 </div>
               ) : m.type === "image" ? (
                 <div className="relative h-full w-full">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img} alt="" className="h-full w-full object-cover" />
+                  {img ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={img} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    // No license-clear still (curated find whose only image is the brand's
+                    // original, which we never show) and no video — nothing safe to display.
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-neutral-900 px-8 text-center">
+                      <ImageOff className="h-9 w-9 text-white/30" />
+                      <p className="text-sm font-black text-white/70">No preview yet</p>
+                      <p className="text-[12px] font-bold leading-snug text-white/40">Add a try-on or video for this look — the original brand photo can’t be shown.</p>
+                    </div>
+                  )}
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide backdrop-blur transition active:opacity-70 ${look.aiCreated ? "bg-black/70 text-white hover:bg-black/85" : "bg-white/85 text-black/70 hover:bg-white"}`}>
                     {look.aiCreated ? "✦ Original" : "Model"}<Info className="ml-1 h-3 w-3 opacity-80" />
@@ -1214,7 +1224,15 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
   const expanded: { look: FeedLook; key: string }[] = [];
   for (const lk of sorted) {
     const tryOns = (lk.communityTryOns ?? []).filter(c => !c.hidden && (c.videoUrl || c.imageUrl));
-    if (tryOns.length === 0) { expanded.push({ look: lk, key: lk.id }); continue; }
+    if (tryOns.length === 0) {
+      // A look-only post needs something SAFE to show — a video or a license-clear still.
+      // Curated finds whose only image is the brand's original render black (safeLookImage
+      // withholds it), so skip them — UNLESS this exact look was deep-linked (so the admin
+      // can still open it and see it needs media).
+      const displayable = !!lk.videoUrl || !!safeLookImage(lk as unknown as Parameters<typeof safeLookImage>[0]);
+      if (displayable || lk.id === initialLookId) expanded.push({ look: lk, key: lk.id });
+      continue;
+    }
     tryOns.forEach((t, idx) => expanded.push({ look: { ...lk, communityTryOns: [t] }, key: `${lk.id}::${t.id ?? idx}` }));
   }
 
