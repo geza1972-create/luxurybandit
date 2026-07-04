@@ -21,9 +21,9 @@ function inferCategory(piece: string, lingerie: boolean): string {
   return "off-duty";
 }
 
-// A model's signup preferences → a set of garment ideas. Always seeds a couple of
-// lingerie pieces (user directive) unless lingerie==="off".
-function buildPieces(prefs: { style?: string; brands?: string; fabrics?: string; occasions?: string; colors?: string }, count: number, lingerie: "off" | "if-provocative" | "always"): Piece[] {
+// A model's signup preferences → a set of garment ideas: `mainCount` luxury garments +
+// `lingerieCount` luxury lingerie pieces (user directive: 3 + 3, all luxury).
+function buildPieces(prefs: { style?: string; brands?: string; fabrics?: string; occasions?: string; colors?: string }, mainCount: number, lingerieCount: number): Piece[] {
   const colors = splitList(prefs.colors);
   const fabrics = splitList(prefs.fabrics);
   const occ = splitList(prefs.occasions).map((o) => o.toLowerCase());
@@ -36,12 +36,9 @@ function buildPieces(prefs: { style?: string; brands?: string; fabrics?: string;
   if (has("everyday", "business", "off-duty", "quiet luxury", "minimal")) main.push("sharply tailored blazer", "silk midi slip dress", "wide-leg trouser suit");
   if (has("vacation", "resort", "garden party", "riviera")) main.push("flowing silk resort maxi dress", "linen co-ord set");
   if (has("bridal")) main.push("delicate white lace bridal gown");
-  if (main.length === 0) main.push("elegant tailored midi dress", "structured blazer", "silk slip dress", "draped satin gown");
+  if (main.length < 3) main.push("elegant tailored midi dress", "structured blazer", "silk slip dress", "draped satin gown", "sculptural one-shoulder gown");
 
-  const lingeriePieces = ["lace lingerie set with balconette bra and high-waist brief", "sheer embroidered bodysuit", "satin slip dress and robe set", "delicate bralette and thong set"];
-  const provocative = has("provocative", "bold", "going out");
-  const wantLingerie = lingerie === "off" ? 0 : lingerie === "always" || provocative ? Math.min(2, count) : 0;
-  const mainCount = Math.max(0, count - wantLingerie);
+  const lingeriePieces = ["lace lingerie set with balconette bra and high-waist brief", "sheer embroidered bodysuit", "satin slip dress and robe set", "delicate bralette and thong set", "corset-style bustier with garter straps"];
 
   const build = (rawPiece: string, i: number, isLingerie: boolean): Piece => {
     const color = pick(colors, i, "black");
@@ -56,7 +53,7 @@ function buildPieces(prefs: { style?: string; brands?: string; fabrics?: string;
 
   const items: Piece[] = [];
   for (let i = 0; i < mainCount; i++) items.push(build(pick(main, i, "elegant midi dress"), i, false));
-  for (let j = 0; j < wantLingerie; j++) items.push(build(pick(lingeriePieces, j, "lace lingerie set"), mainCount + j, true));
+  for (let j = 0; j < lingerieCount; j++) items.push(build(pick(lingeriePieces, j, "lace lingerie set"), mainCount + j, true));
   return items;
 }
 
@@ -83,8 +80,8 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const curatorId = String(body.curatorId ?? "").trim();
-  const count = Math.max(1, Math.min(20, Number(body.count) || 8));
-  const lingerie: "off" | "if-provocative" | "always" = body.lingerie === "off" || body.lingerie === "if-provocative" ? body.lingerie : "always";
+  const mainCount = Math.max(0, Math.min(12, Number(body.mainCount ?? 3)));
+  const lingerieCount = Math.max(0, Math.min(12, Number(body.lingerieCount ?? 3)));
   const store = body.store !== false;
   const model = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1";
 
@@ -93,36 +90,31 @@ export async function POST(request: Request) {
   if (!cur) return NextResponse.json({ error: "Model not found." }, { status: 404 });
   const modelName = [cur.firstName, cur.lastName].filter(Boolean).join(" ").trim();
 
-  const pieces = buildPieces({ style: cur.style, brands: cur.brands, fabrics: cur.fabrics, occasions: cur.occasions, colors: cur.colors }, count, lingerie);
+  const pieces = buildPieces({ style: cur.style, brands: cur.brands, fabrics: cur.fabrics, occasions: cur.occasions, colors: cur.colors }, mainCount, lingerieCount);
 
   const created: { id: string; name: string; category: string; lingerie: boolean; error?: string }[] = [];
   const newLooks: any[] = [];
-  for (const p of pieces) {
+  // Generate + upload all pieces in parallel (much faster for the admin button).
+  const results = await Promise.all(pieces.map(async (p) => {
     const g = await genImage(apiKey, model, p.prompt);
-    if (!g.dataUrl) { created.push({ id: "", name: p.name, category: p.category, lingerie: p.lingerie, error: g.error }); continue; }
-    if (!store) { created.push({ id: "sample", name: p.name, category: p.category, lingerie: p.lingerie }); continue; }
-    try {
-      const path = await uploadTryThisLookImage("looks", g.dataUrl);
-      const id = `look-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
-      newLooks.push({
-        id,
-        name: p.name,
-        published: true,
-        aiCreated: true,
-        productType: "ai",
-        category: p.category,
-        lingerie: p.lingerie || undefined,
-        curatorId,
-        imagePath: path,
-        frontImagePath: path,
-        garmentFrontImagePath: path,
-        galleryImagePaths: [path],
-        createdAt: new Date().toISOString(),
-      });
-      created.push({ id, name: p.name, category: p.category, lingerie: p.lingerie });
-    } catch (e) {
-      created.push({ id: "", name: p.name, category: p.category, lingerie: p.lingerie, error: e instanceof Error ? e.message : "store failed" });
-    }
+    if (!g.dataUrl) return { p, error: g.error };
+    if (!store) return { p, sample: true as const };
+    try { return { p, path: await uploadTryThisLookImage("looks", g.dataUrl) }; }
+    catch (e) { return { p, error: e instanceof Error ? e.message : "store failed" }; }
+  }));
+  for (const r of results) {
+    const p = r.p;
+    if ("error" in r && r.error) { created.push({ id: "", name: p.name, category: p.category, lingerie: p.lingerie, error: r.error }); continue; }
+    if ("sample" in r) { created.push({ id: "sample", name: p.name, category: p.category, lingerie: p.lingerie }); continue; }
+    const id = `look-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+    newLooks.push({
+      id, name: p.name, published: true, aiCreated: true, productType: "ai",
+      category: p.category, lingerie: p.lingerie || undefined, curatorId,
+      imagePath: (r as { path: string }).path, frontImagePath: (r as { path: string }).path,
+      garmentFrontImagePath: (r as { path: string }).path, galleryImagePaths: [(r as { path: string }).path],
+      createdAt: new Date().toISOString(),
+    });
+    created.push({ id, name: p.name, category: p.category, lingerie: p.lingerie });
   }
 
   if (store && newLooks.length) {

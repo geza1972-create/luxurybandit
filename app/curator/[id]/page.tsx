@@ -46,6 +46,10 @@ export default function CuratorPublicPage() {
   const [looks, setLooks] = useState<Look[]>([]);
   const [allLooks, setAllLooks] = useState<Look[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [genBusy, setGenBusy] = useState(false);
+  const [genMsg, setGenMsg] = useState("");
+  useEffect(() => { try { setIsAdmin(!!localStorage.getItem("luxurybandit-try-look-admin-pin")); } catch { /**/ } }, []);
   const [tryons, setTryons] = useState<TryOn[]>([]);
   const [lookPrices, setLookPrices] = useState<Record<string, string>>({});
   const [ownLookIds, setOwnLookIds] = useState<Set<string>>(new Set());
@@ -118,6 +122,28 @@ export default function CuratorPublicPage() {
     })();
     return () => { active = false; };
   }, [id]);
+
+  const adminPin = () => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } };
+  const generateWardrobe = async () => {
+    if (genBusy) return;
+    setGenBusy(true); setGenMsg("Generiere Garderobe … (~1 Min, bitte warten)");
+    try {
+      const res = await fetch("/api/generate-wardrobe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-try-look-admin-pin": adminPin() },
+        body: JSON.stringify({ curatorId: id, mainCount: 3, lingerieCount: 3 }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d?.error || "Fehler");
+      const ok = (d.created ?? []).filter((c: { id?: string }) => c.id && c.id !== "sample").length;
+      setGenMsg(`${ok} Stücke erstellt.`);
+      const all = await fetch("/api/try-this-look").then(r => r.json()).then(x => (x.looks ?? []) as Look[]);
+      setAllLooks(all.filter(l => l.published !== false));
+      setLooks(all.filter(l => l.curatorId === id && l.published !== false));
+    } catch (e) {
+      setGenMsg(e instanceof Error ? e.message : "Fehler");
+    } finally { setGenBusy(false); }
+  };
 
   if (loading) return <main className="grid min-h-[100dvh] place-items-center bg-white"><Loader2 className="h-6 w-6 animate-spin text-black/30" /></main>;
   if (!profile) return (
@@ -200,6 +226,19 @@ export default function CuratorPublicPage() {
             className="mt-4 flex w-full max-w-xs items-center justify-center gap-2 rounded-full bg-black px-6 py-3 text-sm font-black text-white active:scale-95 transition-transform">
             <Sparkles className="h-4 w-4" /> See {profile.firstName || "her"} in a new look
           </button>
+        )}
+
+        {/* Admin-only: generate her personal wardrobe (3 luxury garments + 3 lingerie)
+            from her signup preferences. */}
+        {isAdmin && (
+          <>
+            <button type="button" onClick={generateWardrobe} disabled={genBusy}
+              className="mt-2 flex w-full max-w-xs items-center justify-center gap-2 rounded-full border border-black/15 bg-white px-6 py-2.5 text-[13px] font-black text-black active:scale-95 transition-transform disabled:opacity-50">
+              {genBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {genBusy ? "Generiere Garderobe …" : "Garderobe generieren (3 + 3 Lingerie)"}
+            </button>
+            {genMsg && <p className="mt-1 text-[11px] font-bold text-black/50">{genMsg}</p>}
+          </>
         )}
 
         {/* Follow + Message + Share moved to sticky header (second row) */}
