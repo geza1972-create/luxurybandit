@@ -1856,11 +1856,9 @@ function StoresPage() {
   const feedItems = historyItems;
   // Category chips — only the editorial worlds that actually have looks. Community
   // (boudoir slug) is the gated world; it shows as a chip when boudoir looks exist.
-  const categoryChips = useMemo(() => {
-    const present = new Set<LookCategory>();
-    for (const it of feedItems) if (it.category) present.add(it.category);
-    return LOOK_CATEGORIES.filter(c => present.has(c.slug));
-  }, [feedItems]);
+  // Only two chips remain: "All" (rendered separately) + "Community" (the gated boudoir
+  // filter). After Dark / Off-Duty / Riviera were dropped (user request 2026-07-04).
+  const categoryChips = useMemo(() => LOOK_CATEGORIES.filter(c => c.slug === "boudoir"), []);
   const visibleHistory = useMemo(() => {
     // The grid is the EXACT mirror of the public feed. "All" = every post the feed shows
     // (nothing hidden — the reel already shows every look/try-on). A category chip just
