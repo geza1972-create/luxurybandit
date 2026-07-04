@@ -76,15 +76,19 @@ export default function TryFunnelPage() {
     }).catch(() => {});
   }, [lookId]);
 
-  // Opened from a model's wardrobe (a specific garment is passed) → that piece is already
-  // chosen, so skip the "pick an outfit" step and go straight into the flow.
+  // The garment is always determined (from a model's wardrobe via ?garment=, else the
+  // look's own piece) — so we SKIP the generic outfit picker and start at "Who wears it?".
+  const skipRef = useRef(false);
   useEffect(() => {
-    if (garmentParam && step === 1) {
-      setOutfit({ id: "wardrobe", name: "Selected piece", imageUrl: garmentParam, lookId });
+    if (skipRef.current || step !== 1) return;
+    const g = garmentParam || look?.frontImageUrl || look?.imageUrl || "";
+    if (g) {
+      skipRef.current = true;
+      setOutfit({ id: "wardrobe", name: "Selected piece", imageUrl: g, lookId });
       setStep(2);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [garmentParam]);
+  }, [garmentParam, look]);
 
   const savePrompt = async () => {
     setPromptSaving(true); setPromptSaved(false);
@@ -234,7 +238,7 @@ export default function TryFunnelPage() {
       {/* Top bar */}
       <div className="sticky top-0 z-20 bg-[#0d0b0a]/90 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
-          <button type="button" onClick={() => (step > 1 ? setStep((s) => (s - 1) as 1 | 2 | 3 | 4 | 5) : router.back())}
+          <button type="button" onClick={() => (step > 2 ? setStep((s) => (s - 1) as 1 | 2 | 3 | 4 | 5) : router.back())}
             className="grid h-9 w-9 place-items-center rounded-full bg-white/10 active:opacity-70">
             <ArrowLeft className="h-4 w-4" />
           </button>
@@ -260,29 +264,10 @@ export default function TryFunnelPage() {
         )}
       </div>
 
-      {/* ── Step 1: pick an outfit ─────────────────────────────────────────── */}
+      {/* ── Step 1 is skipped (the garment is already chosen) — brief loader ── */}
       {step === 1 && (
-        <div className="px-4 pb-28 pt-2">
-          <h1 className="text-[22px] font-black leading-tight">See this look on {avatar ? "you" : "the model"} — in any outfit</h1>
-          <p className="mt-2 text-[13px] font-bold text-white/50">Want to see the model (or your own avatar) from this video wearing something else? Pick an outfit to start.</p>
-          {outfits.length === 0 ? (
-            <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-6 text-center text-[13px] font-bold text-white/40">Outfits coming soon.</div>
-          ) : (
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              {outfits.map(o => (
-                <button key={o.id} type="button" onClick={() => { setOutfit(o); setStep(2); }}
-                  className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-[0.98] transition-transform">
-                  <div className="aspect-[3/4] w-full">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={o.imageUrl} alt={o.name} className="h-full w-full object-cover" />
-                  </div>
-                  <div className="absolute inset-x-2 bottom-2 rounded-xl bg-black px-3 py-2">
-                    <span className="line-clamp-1 text-[13px] font-black text-white">{o.name}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="grid place-items-center px-4 py-28">
+          <Loader2 className="h-6 w-6 animate-spin text-white/30" />
         </div>
       )}
 
