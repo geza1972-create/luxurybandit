@@ -219,15 +219,6 @@ export default function CuratorPublicPage() {
           ))}
         </div>
 
-        {/* See her in a new look — pick a look → the try-on funnel generates THIS model
-            (her photo = the person) wearing it. */}
-        {profile.photoUrl && (
-          <button type="button" onClick={() => setPickerOpen(true)}
-            className="mt-4 flex w-full max-w-xs items-center justify-center gap-2 rounded-full bg-black px-6 py-3 text-sm font-black text-white active:scale-95 transition-transform">
-            <Sparkles className="h-4 w-4" /> See {profile.firstName || "her"} in a new look
-          </button>
-        )}
-
         {/* Admin-only: generate her personal wardrobe (3 luxury garments + 3 lingerie)
             from her signup preferences. */}
         {isAdmin && (
@@ -244,61 +235,39 @@ export default function CuratorPublicPage() {
         {/* Follow + Message + Share moved to sticky header (second row) */}
       </div>
 
-      {/* Gallery — published trend looks + the curator's own try-ons (badged) */}
-      <div className="mt-6 px-1">
-        {looks.length === 0 && tryons.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-16 text-center">
-            <ShoppingBag className="h-8 w-8 text-black/15" />
-            <p className="text-sm font-black text-black/40">Nothing published yet.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-3 gap-0.5">
-            {looks.map(l => {
-              const thumb = l.frontImageUrl ?? l.imageUrl;
-              const from = priceFrom(l.alternatives) ?? l.salePrice ?? l.price;
-              return (
-                <button key={l.id} type="button" onClick={() => router.push(`/look/${toSlug(l.name)}--${l.id}`)}
-                  className="flex flex-col text-left active:opacity-80 transition">
-                  <div className="relative aspect-square w-full overflow-hidden bg-black/5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={optImg(thumb)} alt={l.name} loading="lazy" decoding="async"
-                      onError={(e) => { const im = e.currentTarget; if (thumb && im.src !== thumb) im.src = thumb; }}
-                      className="h-full w-full object-cover object-top" />
-                    {/* AI Fashion creation vs curated web find */}
-                    {l.aiCreated ? (
-                      <span className="absolute left-1.5 bottom-1.5 rounded-full bg-black px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">✦ Original</span>
-                    ) : (
-                      <span className="absolute left-1.5 bottom-1.5 rounded-full bg-white/85 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-black/70 backdrop-blur">Model</span>
-                    )}
-                    {/* Look has a presentation video → play indicator (same as try-ons) */}
-                    {l.videoUrl && (
-                      <span className="pointer-events-none absolute inset-0 grid place-items-center"><Play className="h-10 w-10 fill-white text-white opacity-45 drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]" /></span>
-                    )}
-                  </div>
-                  {from && <span className="px-2 pt-1 text-[10px] font-black text-ink">{from}</span>}
-                </button>
-              );
-            })}
-            {tryons.map(t => (
-              <button key={t.id} type="button" onClick={() => router.push(`/post/${t.id}`)}
-                className="flex flex-col text-left active:opacity-80 transition">
-                <div className="relative aspect-square w-full overflow-hidden bg-black/5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={optImg(t.imageUrl)} alt={t.lookName ?? "Try-on"} loading="lazy" decoding="async"
-                    onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
-                    className="h-full w-full object-cover object-top" />
-                  <span className="absolute left-1.5 bottom-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">Try-on</span>
-                  {t.videoUrl && (
-                    <span className="pointer-events-none absolute inset-0 grid place-items-center"><Play className="h-10 w-10 fill-white text-white opacity-45 drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]" /></span>
-                  )}
-                </div>
-                {t.lookId && lookPrices[t.lookId] && (
-                  <span className="px-2 pt-1 text-[10px] font-black text-ink">{lookPrices[t.lookId]}</span>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
+      {/* Her wardrobe = the clothes selection. Tap a piece → the funnel generates HER
+          wearing it. (No try-ons here — the "what's possible" preview lives in the
+          Fashionshow feed.) */}
+      <div className="mt-6 px-2 pb-4">
+        {(() => {
+          const wardrobe = looks.filter(l => l.aiCreated && (l.frontImageUrl || l.imageUrl));
+          if (wardrobe.length === 0) return (
+            <div className="flex flex-col items-center gap-2 py-16 text-center">
+              <ShoppingBag className="h-8 w-8 text-black/15" />
+              <p className="text-sm font-black text-black/40">{isAdmin ? "No wardrobe yet — tap “Garderobe generieren”." : "Wardrobe coming soon."}</p>
+            </div>
+          );
+          return (
+            <div className="grid grid-cols-2 gap-2">
+              {wardrobe.map(l => {
+                const garment = (l.frontImageUrl ?? l.imageUrl) as string;
+                return (
+                  <button key={l.id} type="button"
+                    onClick={() => profile.photoUrl && router.push(`/try/${l.id}?model=${encodeURIComponent(profile.photoUrl)}&garment=${encodeURIComponent(garment)}`)}
+                    className="flex flex-col overflow-hidden rounded-xl border border-black/8 bg-white active:opacity-80 transition">
+                    <div className="aspect-[3/4] w-full bg-neutral-50">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={optImg(garment, 500)} alt={l.name} loading="lazy" decoding="async"
+                        onError={(e) => { const im = e.currentTarget; if (garment && im.src !== garment) im.src = garment; }}
+                        className="h-full w-full object-contain" />
+                    </div>
+                    <span className="truncate px-2 py-1.5 text-[11px] font-black text-black/70">{l.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Message modal */}
@@ -328,50 +297,6 @@ export default function CuratorPublicPage() {
 
       {/* Look picker — pick any catalogue look → the try-on funnel with THIS model's
           photo as the person (?model=). Any logged-in user can generate. */}
-      {pickerOpen && profile.photoUrl && (
-        <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={() => setPickerOpen(false)}>
-          <div className="flex max-h-[82dvh] w-full max-w-[440px] flex-col rounded-t-3xl bg-white" onClick={e => e.stopPropagation()} style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-            <div className="flex items-center justify-between border-b border-black/8 px-4 py-3">
-              <div>
-                <p className="text-sm font-black text-black">See {name} in a look</p>
-                <p className="text-[11px] font-bold text-black/40">Tap a piece — we generate her wearing it.</p>
-              </div>
-              <button type="button" onClick={() => setPickerOpen(false)} aria-label="Close" className="grid h-8 w-8 place-items-center rounded-full text-black/40 active:bg-black/5"><X className="h-5 w-5" /></button>
-            </div>
-            {(() => {
-              // Her own GENERATED wardrobe (clean garment product shots) — not the mixed catalogue.
-              const wardrobe = looks.filter(l => l.aiCreated && (l.frontImageUrl || l.imageUrl));
-              if (wardrobe.length === 0) return (
-                <div className="flex flex-col items-center gap-2 px-8 py-16 text-center">
-                  <Sparkles className="h-8 w-8 text-black/15" />
-                  <p className="text-sm font-black text-black/45">No wardrobe yet</p>
-                  <p className="text-[11px] font-bold text-black/35">{isAdmin ? "Tap “Garderobe generieren” to create her pieces." : "Coming soon."}</p>
-                </div>
-              );
-              return (
-                <div className="grid grid-cols-2 gap-2 overflow-y-auto p-2">
-                  {wardrobe.map(l => {
-                    const garment = (l.frontImageUrl ?? l.imageUrl) as string;
-                    return (
-                      <button key={l.id} type="button"
-                        onClick={() => router.push(`/try/${l.id}?model=${encodeURIComponent(profile.photoUrl as string)}&garment=${encodeURIComponent(garment)}`)}
-                        className="flex flex-col overflow-hidden rounded-xl border border-black/8 bg-white active:opacity-80 transition">
-                        <div className="aspect-[3/4] w-full bg-neutral-50">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={optImg(garment, 500)} alt={l.name} loading="lazy" decoding="async"
-                            onError={(e) => { const im = e.currentTarget; if (garment && im.src !== garment) im.src = garment; }}
-                            className="h-full w-full object-contain" />
-                        </div>
-                        <span className="truncate px-2 py-1.5 text-[11px] font-black text-black/70">{l.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          </div>
-        </div>
-      )}
     </main>
   );
 }
