@@ -359,17 +359,17 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
             </span>
           )
         )}
-        {/* Slide dots — show how many previews there are + where you are */}
-        {slides.length > 1 && (
-          <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
-            {slides.map((_, i) => (
-              <span key={i} className={`h-1.5 rounded-full transition-all ${i === hIdx ? "w-5 bg-white" : "w-1.5 bg-white/45"}`} />
-            ))}
-          </div>
-        )}
         <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-black/50 to-transparent pointer-events-none" />
       </div>
       <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/60 via-black/20 to-transparent px-4 pt-12" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+        {/* Slide dots — uniform + bottom-centered, same style as the feed (HomeFeed) */}
+        {slides.length > 1 && (
+          <div className="mb-3 flex justify-center gap-1.5">
+            {slides.map((_, i) => (
+              <span key={i} className={`h-1.5 w-1.5 rounded-full transition-colors ${i === hIdx ? "bg-white" : "bg-white/40"}`} />
+            ))}
+          </div>
+        )}
         {/* ── The two core money buttons over the image ── */}
         {it.lookId && (
           <div className="mb-2.5 flex flex-wrap items-center justify-center gap-2.5">
@@ -409,10 +409,10 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
                   // eslint-disable-next-line @next/next/no-img-element
                   ? <img src={it.curatorPhotoUrl} alt={creatorName} className="h-9 w-9 shrink-0 rounded-full bg-white/10 object-cover" />
                   // eslint-disable-next-line @next/next/no-img-element
-                  : <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(creatorName)}&backgroundColor=ffffff&fontColor=000000&fontSize=40`}
-                      alt={creatorName} className="h-9 w-9 shrink-0 rounded-full bg-white/10 object-cover" />}
+                  : <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(publicAuthorName(creatorName))}&backgroundColor=ffffff&fontColor=000000&fontSize=40`}
+                      alt={publicAuthorName(creatorName)} className="h-9 w-9 shrink-0 rounded-full bg-white/10 object-cover" />}
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-black text-white">{creatorName}</p>
+                  <p className="truncate text-sm font-black text-white">{publicAuthorName(creatorName)}</p>
                   {it.lookTitle && <p className="truncate text-[11px] font-bold text-white/50">{it.lookTitle}</p>}
                 </div>
               </a>
