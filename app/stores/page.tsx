@@ -136,10 +136,11 @@ type Payload = {
 type Slide = { kind: "video" | "image" | "compare"; url: string; beforeUrl?: string };
 function buildSlides(imageUrl: string, videoUrl: string | undefined, userPhotoUrl?: string): Slide[] {
   const slides: Slide[] = [];
+  // ONLY the try-on video + the Before/After — nothing else.
+  // 1) the try-on video (else the After image as the hero, when there's no video).
   if (videoUrl) slides.push({ kind: "video", url: videoUrl });
-  // 1) the generated (After) image on its own — the hero of the post.
-  if (imageUrl) slides.push({ kind: "image", url: imageUrl });
-  // 2) then the Before | After split (only when there's an uploaded Before photo).
+  else if (imageUrl) slides.push({ kind: "image", url: imageUrl });
+  // 2) the Before | After split — only when there's an uploaded Before photo.
   if (userPhotoUrl && imageUrl) slides.push({ kind: "compare", url: imageUrl, beforeUrl: userPhotoUrl });
   return slides;
 }

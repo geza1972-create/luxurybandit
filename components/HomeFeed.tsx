@@ -197,27 +197,19 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     | { type: "product"; alt: ShopAlt }
     | { type: "escape"; esc: ShopEscape }
   )[] = [
-    // 1) ALL community try-on videos as separate slides (most engaging content first).
-    //    poster = that member's OWN try-on photo (same person) so a not-yet-playing or
-    //    paused video shows a clear, correct still — never a blurred box or wrong image.
-    ...community
-      .filter(c => c.videoUrl)
-      .map(c => ({ type: "cvideo" as const, url: c.videoUrl!, name: c.name, poster: c.imageUrl || c.userPhotoUrl || "", id: c.id, hidden: c.hidden, pending: c.pending })),
-    // If no community videos, fall back to the look's own video.
-    ...(!community.some(c => c.videoUrl) && look.videoUrl ? [{ type: "video" as const }] : []),
-    // 2) Before/After compare from repTryOn (if it has both video+before photo),
-    //    else try-on photo, else the look's still.
-    ...(repTryOn?.userPhotoUrl && repTryOn?.videoUrl
-      ? [{ type: "compare" as const, afterUrl: repTryOn.imageUrl, beforeUrl: repTryOn.userPhotoUrl, name: repTryOn.name, id: repTryOn.id, hidden: repTryOn.hidden, pending: repTryOn.pending }]
+    // Each feed post is a SINGLE try-on: ONLY its video + a Before/After — nothing else
+    // (no other try-ons, no shop products, no escapes). The parent flattens looks into one
+    // post per try-on, so `community`/`repTryOn` is exactly this post's try-on.
+    // 1) the try-on video (else the look's own video, else the try-on's photo).
+    ...(repTryOn?.videoUrl
+      ? [{ type: "cvideo" as const, url: repTryOn.videoUrl, name: repTryOn.name, poster: repTryOn.imageUrl || repTryOn.userPhotoUrl || "", id: repTryOn.id, hidden: repTryOn.hidden, pending: repTryOn.pending }]
+      : look.videoUrl ? [{ type: "video" as const }]
       : repTryOn?.imageUrl ? [{ type: "cphoto" as const, url: repTryOn.imageUrl, name: repTryOn.name, id: repTryOn.id, hidden: repTryOn.hidden, pending: repTryOn.pending }]
       : (heroImg ? [{ type: "image" as const }] : [])),
-    // 3) Shop products as swipeable slides — REVEALED only after the user taps
-    //    "Bandit the feeling" on the video (banditRevealed). Each has a "Shop Now" button.
-    //    NOTE: the curator's uploaded garment reference (clothesImageUrl) is deliberately
-    //    NOT shown here — it's our internal reference, not a shoppable product.
-    ...(banditRevealed ? shopAlts.slice(0, 5).map(a => ({ type: "product" as const, alt: a })) : []),
-    // 4) Escapes ("Urlaubsslides") — the destinations to live the look, after the products.
-    ...(banditRevealed ? shopEscapes.map(e => ({ type: "escape" as const, esc: e })) : []),
+    // 2) Before/After compare — ONLY when this try-on has a before photo.
+    ...(repTryOn?.userPhotoUrl && (repTryOn?.videoUrl || repTryOn?.imageUrl)
+      ? [{ type: "compare" as const, afterUrl: repTryOn.imageUrl, beforeUrl: repTryOn.userPhotoUrl, name: repTryOn.name, id: repTryOn.id, hidden: repTryOn.hidden, pending: repTryOn.pending }]
+      : []),
   ];
   const scrollToSlide = (i: number) => carouselRef.current?.scrollTo({ left: i * (carouselRef.current.clientWidth || 0), behavior: "smooth" });
   // First shop slide index = number of content slides (products/escapes are appended last).
@@ -1216,12 +1208,22 @@ export default function HomeFeed({ looks, single = false, initialLookId }: { loo
   // Newest first — fresh curator posts always surface at the top of the feed.
   const sorted = [...looks].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
 
+  // ONE POST PER TRY-ON. Each community try-on becomes its own post (just its video +
+  // Before/After — see the `media` array). Looks with no try-on stay a single look-video
+  // post. This makes the feed the exact mirror of the grid (one tile per try-on).
+  const expanded: { look: FeedLook; key: string }[] = [];
+  for (const lk of sorted) {
+    const tryOns = (lk.communityTryOns ?? []).filter(c => !c.hidden && (c.videoUrl || c.imageUrl));
+    if (tryOns.length === 0) { expanded.push({ look: lk, key: lk.id }); continue; }
+    tryOns.forEach((t, idx) => expanded.push({ look: { ...lk, communityTryOns: [t] }, key: `${lk.id}::${t.id ?? idx}` }));
+  }
+
   // Deep-link: when opened on a specific post (/look/[id]), ROTATE the feed so the
   // target look is first (scrollTop 0). This is rock-solid — unlike scrolling to a
   // computed offset, it doesn't depend on the (variable, still-loading) heights of
   // the posts above the target, which used to land us on the neighbouring look.
-  const startIdx = initialLookId ? sorted.findIndex(l => l.id === initialLookId) : -1;
-  const feed = startIdx > 0 ? [...sorted.slice(startIdx), ...sorted.slice(0, startIdx)] : sorted;
+  const startIdx = initialLookId ? expanded.findIndex(e => e.look.id === initialLookId) : -1;
+  const feed = startIdx > 0 ? [...expanded.slice(startIdx), ...expanded.slice(0, startIdx)] : expanded;
 
   // Always open at the FIRST slide. Rotation puts the target look at feed[0], but
   // the browser can restore a previous scrollTop on (re)mount and leave us parked
@@ -1245,7 +1247,7 @@ export default function HomeFeed({ looks, single = false, initialLookId }: { loo
           up to full width (which pushed the Look/Escape thumbs off the bottom). */}
       <div className="flex h-[100dvh] w-full justify-center bg-black">
         <div ref={scrollRef} className="h-[100dvh] w-full max-w-[440px] snap-y snap-mandatory overflow-y-scroll overscroll-contain bg-black [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {feed.map((look, i) => <Slide key={look.id} look={look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} index={i} onActive={handleActive} single={single} />)}
+          {feed.map((entry, i) => <Slide key={entry.key} look={entry.look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} index={i} onActive={handleActive} single={single} />)}
         </div>
       </div>
       {/* Slide-coupled feed soundtrack — shuffled /public mp3s, the track changes
