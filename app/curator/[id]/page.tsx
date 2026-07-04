@@ -145,44 +145,44 @@ export default function CuratorPublicPage() {
     } finally { setGenBusy(false); }
   };
 
-  if (loading) return <main className="grid min-h-[100dvh] place-items-center bg-white"><Loader2 className="h-6 w-6 animate-spin text-black/30" /></main>;
+  if (loading) return <main className="grid min-h-[100dvh] place-items-center bg-[#0d0b0a]"><Loader2 className="h-6 w-6 animate-spin text-white/30" /></main>;
   if (!profile) return (
-    <main className="grid min-h-[100dvh] place-items-center gap-3 bg-white">
-      <p className="text-sm font-black text-black/50">Model not found</p>
-      <button type="button" onClick={() => router.back()} className="text-xs font-black text-black/50 underline">Go back</button>
+    <main className="grid min-h-[100dvh] place-items-center gap-3 bg-[#0d0b0a] text-white">
+      <p className="text-sm font-black text-white/50">Model not found</p>
+      <button type="button" onClick={() => router.back()} className="text-xs font-black text-white/50 underline">Go back</button>
     </main>
   );
 
   const name = `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() || "Model";
 
   return (
-    <main className="min-h-[100dvh] bg-white pb-16">
-      <div className="sticky top-0 z-20 border-b border-black/8 bg-white/95 px-4 py-3 backdrop-blur">
+    <main className="lb-phone-col min-h-[100dvh] bg-[#0d0b0a] text-white pb-16">
+      <div className="sticky top-0 z-20 bg-[#0d0b0a]/90 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
-          <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10"><ArrowLeft className="h-4 w-4" /></button>
-          <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-black/5">
+          <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 active:opacity-70"><ArrowLeft className="h-4 w-4" /></button>
+          <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-white/10">
             {profile.photoUrl
               // eslint-disable-next-line @next/next/no-img-element
               ? <img src={profile.photoUrl} alt={name} className="h-full w-full object-cover" />
-              : <div className="grid h-full w-full place-items-center text-xs font-black text-black/30">{name.slice(0, 2).toUpperCase()}</div>}
+              : <div className="grid h-full w-full place-items-center text-xs font-black text-white/40">{name.slice(0, 2).toUpperCase()}</div>}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-black text-black">{name}</p>
-            {profile.motto && <p className="truncate text-[11px] font-medium text-cobalt">{profile.motto}</p>}
+            <p className="truncate text-sm font-black text-white">{name}</p>
+            {profile.motto && <p className="truncate text-[11px] font-medium text-amber-400">{profile.motto}</p>}
           </div>
         </div>
         {!isOwn && (
           <div className="mt-2 flex items-center gap-2">
             <button type="button" onClick={() => void handleFollow()} disabled={followLoading}
-              className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-black transition active:scale-95 disabled:opacity-50 ${following ? "border border-black/15 bg-white text-black/60" : "bg-black text-white"}`}>
+              className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-black transition active:scale-95 disabled:opacity-50 ${following ? "border border-white/20 text-white/70" : "bg-amber-400 text-black"}`}>
               {followLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : following ? <><UserCheck className="h-3.5 w-3.5" /> Following</> : <><UserPlus className="h-3.5 w-3.5" /> Follow</>}
             </button>
             <button type="button" onClick={() => { setShowMsg(true); setSent(false); }}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-black/15 active:scale-95 transition">
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/20 text-white active:scale-95 transition">
               <MessageCircle className="h-4 w-4" />
             </button>
             <button type="button" onClick={() => { const url = window.location.href; if (navigator.share) navigator.share({ title: name, url }).catch(() => {}); else navigator.clipboard?.writeText(url); }}
-              className="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full bg-black px-4 text-xs font-black text-white active:scale-95 transition">
+              className="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full bg-white/10 px-4 text-xs font-black text-white active:scale-95 transition">
               <Send className="h-3.5 w-3.5" /> Share
             </button>
           </div>
@@ -191,19 +191,19 @@ export default function CuratorPublicPage() {
 
       {/* Profile header */}
       <div className="flex flex-col items-center gap-2 px-6 pt-6 text-center">
-        <div className="h-24 w-24 overflow-hidden rounded-full bg-black/5">
+        <div className="h-24 w-24 overflow-hidden rounded-full bg-white/10">
           {profile.photoUrl
             // eslint-disable-next-line @next/next/no-img-element
             ? <img src={profile.photoUrl} alt={name} className="h-full w-full object-cover" />
-            : <div className="grid h-full w-full place-items-center text-2xl font-black text-black/30">{name.slice(0, 1)}</div>}
+            : <div className="grid h-full w-full place-items-center text-2xl font-black text-white/30">{name.slice(0, 1)}</div>}
         </div>
-        <h1 className="mt-1 text-2xl font-black leading-tight text-black">{name}</h1>
-        {profile.motto && <p className="text-sm font-black text-cobalt">{profile.motto}</p>}
-        {profile.bio && <p className="max-w-sm text-sm font-medium leading-relaxed text-black/55">{profile.bio}</p>}
-        <div className="mt-1 flex items-center gap-3 text-[11px] font-bold text-black/40">
-          {profile.genderFocus && <span className="rounded-full bg-black/5 px-2.5 py-1">{profile.genderFocus}</span>}
+        <h1 className="mt-1 text-2xl font-black leading-tight text-white">{name}</h1>
+        {profile.motto && <p className="text-sm font-black text-amber-400">{profile.motto}</p>}
+        {profile.bio && <p className="max-w-sm text-sm font-medium leading-relaxed text-white/55">{profile.bio}</p>}
+        <div className="mt-1 flex items-center gap-3 text-[11px] font-bold text-white/40">
+          {profile.genderFocus && <span className="rounded-full bg-white/10 px-2.5 py-1">{profile.genderFocus}</span>}
           {profile.instagram && (
-            <a href={`https://instagram.com/${profile.instagram}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-cobalt">
+            <a href={`https://instagram.com/${profile.instagram}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-amber-400">
               <Instagram className="h-3.5 w-3.5" /> @{profile.instagram}
             </a>
           )}
@@ -213,8 +213,8 @@ export default function CuratorPublicPage() {
         <div className="mt-3 flex items-center justify-center gap-6">
           {[["Looks", looks.length], ["Followers", fmtN(followerCount)], ["Likes", fmtN(looks.reduce((s, l) => s + ((l as any).likeCount ?? 0), 0))], ["Views", fmtN(looks.reduce((s, l) => s + ((l as any).viewCount ?? 0), 0))]].map(([label, val]) => (
             <div key={label as string} className="flex flex-col items-center">
-              <span className="text-base font-black text-black">{val}</span>
-              <span className="text-[10px] font-bold uppercase tracking-wide text-black/40">{label}</span>
+              <span className="text-base font-black text-white">{val}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wide text-white/40">{label}</span>
             </div>
           ))}
         </div>
@@ -224,11 +224,11 @@ export default function CuratorPublicPage() {
         {isAdmin && (
           <>
             <button type="button" onClick={generateWardrobe} disabled={genBusy}
-              className="mt-2 flex w-full max-w-xs items-center justify-center gap-2 rounded-full border border-black/15 bg-white px-6 py-2.5 text-[13px] font-black text-black active:scale-95 transition-transform disabled:opacity-50">
+              className="mt-4 flex w-full max-w-xs items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-6 py-2.5 text-[13px] font-black text-white active:scale-95 transition-transform disabled:opacity-50">
               {genBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               {genBusy ? "Generiere Garderobe …" : "Garderobe generieren (3 + 3 Lingerie)"}
             </button>
-            {genMsg && <p className="mt-1 text-[11px] font-bold text-black/50">{genMsg}</p>}
+            {genMsg && <p className="mt-1 text-[11px] font-bold text-white/50">{genMsg}</p>}
           </>
         )}
 
@@ -238,30 +238,32 @@ export default function CuratorPublicPage() {
       {/* Her wardrobe = the clothes selection. Tap a piece → the funnel generates HER
           wearing it. (No try-ons here — the "what's possible" preview lives in the
           Fashionshow feed.) */}
-      <div className="mt-6 px-2 pb-4">
+      <div className="mt-6 px-4 pb-8">
         {(() => {
           const wardrobe = looks.filter(l => l.aiCreated && (l.frontImageUrl || l.imageUrl));
           if (wardrobe.length === 0) return (
             <div className="flex flex-col items-center gap-2 py-16 text-center">
-              <ShoppingBag className="h-8 w-8 text-black/15" />
-              <p className="text-sm font-black text-black/40">{isAdmin ? "No wardrobe yet — tap “Garderobe generieren”." : "Wardrobe coming soon."}</p>
+              <ShoppingBag className="h-8 w-8 text-white/15" />
+              <p className="text-sm font-black text-white/40">{isAdmin ? "No wardrobe yet — tap “Garderobe generieren”." : "Wardrobe coming soon."}</p>
             </div>
           );
           return (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               {wardrobe.map(l => {
                 const garment = (l.frontImageUrl ?? l.imageUrl) as string;
                 return (
                   <button key={l.id} type="button"
                     onClick={() => profile.photoUrl && router.push(`/try/${l.id}?model=${encodeURIComponent(profile.photoUrl)}&garment=${encodeURIComponent(garment)}`)}
-                    className="flex flex-col overflow-hidden rounded-xl border border-black/8 bg-white active:opacity-80 transition">
-                    <div className="aspect-[3/4] w-full bg-neutral-50">
+                    className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white active:scale-[0.98] transition-transform">
+                    <div className="aspect-[3/4] w-full">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={optImg(garment, 500)} alt={l.name} loading="lazy" decoding="async"
                         onError={(e) => { const im = e.currentTarget; if (garment && im.src !== garment) im.src = garment; }}
                         className="h-full w-full object-contain" />
                     </div>
-                    <span className="truncate px-2 py-1.5 text-[11px] font-black text-black/70">{l.name}</span>
+                    <div className="absolute inset-x-2 bottom-2 rounded-xl bg-black px-3 py-2">
+                      <span className="line-clamp-1 text-[13px] font-black text-white">{l.name}</span>
+                    </div>
                   </button>
                 );
               })}
