@@ -1402,6 +1402,14 @@ function StoresPage() {
   // Tapping a grid tile opens the SAME HomeFeed reel (identical layout), positioned at
   // that try-on (or look, for tryon-less tiles). See the overlay render below.
   const [feedOpen, setFeedOpen] = useState<{ tryOnId?: string; lookId?: string } | null>(null);
+  // Home has two views: the Feeds thumbnail grid, and the Models gallery (a grid of the
+  // model profiles). Toggled at the top of the home.
+  type GalleryModel = { id: string; name: string; photoUrl: string; style: string; lookCount: number };
+  const [models, setModels] = useState<GalleryModel[]>([]);
+  const [homeTab, setHomeTab] = useState<"feeds" | "models">("feeds");
+  useEffect(() => {
+    fetch("/api/try-this-look?models=1").then(r => r.json()).then(d => setModels(Array.isArray(d.models) ? d.models : [])).catch(() => {});
+  }, []);
   const [communityLikes, setCommunityLikes] = useState<Record<string, boolean>>({});
   // "Mine" filter for signed-in creators — show only their own try-ons / trends
   const [myCuratorId, setMyCuratorId] = useState("");
@@ -2222,8 +2230,41 @@ function StoresPage() {
               </section>
             )}
 
-            {/* Editorial category chips (After Dark / Riviera / Off-Duty / Boudoir) —
-                NEVER brand names. "All" excludes Boudoir; pick the Boudoir chip to see it. */}
+            {/* Feeds | Models toggle — Home has two views: the try-on feeds, and the
+                gallery of models (browse a model, then see her in looks). */}
+            <div className="flex items-center gap-2 px-3 pt-1 pb-2">
+              <button type="button" onClick={() => setHomeTab("feeds")}
+                className={`rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Feeds</button>
+              <button type="button" onClick={() => setHomeTab("models")}
+                className={`rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "models" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Models{models.length ? ` · ${models.length}` : ""}</button>
+            </div>
+
+            {homeTab === "models" ? (
+              models.length === 0 ? (
+                <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-black/30" /></div>
+              ) : (
+              <div className="grid grid-cols-2 gap-2 px-3 pb-8">
+                {models.map(m => (
+                  <a key={m.id} href={`/curator/${m.id}`} className="flex flex-col overflow-hidden rounded-2xl border border-black/8 bg-white active:opacity-80 transition-opacity">
+                    <div className="relative aspect-[3/4] overflow-hidden bg-black/5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={m.photoUrl} alt={m.name} loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
+                      {m.lookCount > 0 && (
+                        <span className="absolute left-2 bottom-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black text-white backdrop-blur">{m.lookCount} look{m.lookCount !== 1 ? "s" : ""}</span>
+                      )}
+                    </div>
+                    <div className="px-2.5 py-2">
+                      <p className="truncate text-[13px] font-black text-black">{m.name}</p>
+                      {m.style && <p className="truncate text-[11px] font-bold text-black/40">{m.style}</p>}
+                    </div>
+                  </a>
+                ))}
+              </div>
+              )
+            ) : (
+            <>
+
+            {/* Category chips (only Feeds view) — "All" + the gated Community chip. */}
             {categoryChips.length > 0 && (
               <div className="flex gap-1.5 overflow-x-auto px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <button type="button" onClick={() => setCategoryFilter(null)}
@@ -2302,6 +2343,8 @@ function StoresPage() {
             )}
             {categoryFilter && visibleHistory.length === 0 && (
               <p className="py-16 text-center text-sm font-black text-black/40">Nothing in this category yet.</p>
+            )}
+            </>
             )}
           </>
           )

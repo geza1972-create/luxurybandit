@@ -324,6 +324,32 @@ export async function GET(request: Request) {
       if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
       return NextResponse.json({ curators: state.curators ?? [] });
     }
+    // PUBLIC: the Models gallery. Only published models WITH a photo, PII stripped
+    // (no email/address/credits). lookCount = how many SHARED (feed:true) try-ons the
+    // model appears in, matched by name.
+    if (url.searchParams.get("models") === "1") {
+      const genCountByName = new Map<string, number>();
+      for (const g of (state.generations ?? [])) {
+        if ((g as any).feed !== true) continue;
+        const nm = String((g as any).customerName ?? "").trim().toLowerCase();
+        if (nm && nm !== "you") genCountByName.set(nm, (genCountByName.get(nm) ?? 0) + 1);
+      }
+      const models = (state.curators ?? [])
+        .filter(c => (c as any).photoUrl && String((c as any).status ?? "active") !== "removed")
+        .map(c => {
+          const cc = c as any;
+          const name = [cc.firstName, cc.lastName].filter(Boolean).join(" ").trim();
+          return {
+            id: cc.id,
+            name,
+            photoUrl: cc.photoUrl as string,
+            style: typeof cc.style === "string" ? cc.style : "",
+            lookCount: genCountByName.get(name.toLowerCase()) ?? 0,
+          };
+        })
+        .sort((a, b) => b.lookCount - a.lookCount || a.name.localeCompare(b.name));
+      return NextResponse.json({ models });
+    }
     // Provenance / history for a single feed post (a generation OR a look).
     // Powers the ℹ️ Info sheet in the reels feed — who made it, when, what kind.
     // PUBLIC: everyone may see the provenance. Internal moderation fields
