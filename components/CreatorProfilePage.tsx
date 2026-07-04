@@ -316,7 +316,7 @@ export default function CreatorProfilePage({ creatorSlug }: { creatorSlug: strin
                 className={`py-3 text-sm font-black capitalize transition border-b-2 ${
                   activeTab === tab ? "border-black text-black" : "border-transparent text-black/35"
                 }`}>
-                {tab === "creator" ? "Curator" : "Tryons"}
+                {tab === "creator" ? "Model" : "Tryons"}
               </button>
             ))}
           </div>

@@ -503,6 +503,14 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const activeSlide = media[active];
   const isTryOnSlide = !!activeSlide && (activeSlide.type === "cvideo" || activeSlide.type === "compare" || activeSlide.type === "cphoto");
   const activeTryOnId = isTryOnSlide ? (activeSlide as { id?: string }).id : undefined;
+  // Pass the ORIGINAL photo this person UPLOADED (their "before" selfie) as the model —
+  // NOT the try-on result — so the funnel dresses the real person in a new outfit.
+  const goTryOn = () => {
+    trackEvent("tryon_click");
+    const ct = (activeTryOnId ? community.find(c => c.id === activeTryOnId) : undefined) ?? repTryOn;
+    const img = ct?.userPhotoUrl || ct?.imageUrl || "";
+    router.push(img ? `${tryOnHref}?model=${encodeURIComponent(img)}` : tryOnHref);
+  };
   const activeTryOnHidden = isTryOnSlide ? !!(activeSlide as { hidden?: boolean }).hidden : false;
   const activeTryOnPending = isTryOnSlide ? !!(activeSlide as { pending?: boolean }).pending : false;
   // Admin approves a pending publish request → the try-on goes public everywhere.
@@ -584,7 +592,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           <span className="truncate text-sm font-black text-black">{look.curatorName || "LuxuryBandit"}</span>
         </button>
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${look.aiCreated ? "bg-black text-white" : "bg-black/[0.06] text-black/60"}`}>
-          {look.aiCreated ? "✦ Original" : "Curated"}
+          {look.aiCreated ? "✦ Original" : "Model"}
         </span>
         {creatorSlug && (
           <button type="button" onClick={toggleFollow}
@@ -730,7 +738,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   <img src={img} alt="" className="h-full w-full object-cover" />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide backdrop-blur transition active:opacity-70 ${look.aiCreated ? "bg-black/70 text-white hover:bg-black/85" : "bg-white/85 text-black/70 hover:bg-white"}`}>
-                    {look.aiCreated ? "✦ Original" : "Curated"}<Info className="ml-1 h-3 w-3 opacity-80" />
+                    {look.aiCreated ? "✦ Original" : "Model"}<Info className="ml-1 h-3 w-3 opacity-80" />
                   </button>
                 </div>
               ) : m.type === "product" ? (
@@ -831,35 +839,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
         </button>
 
-        {/* On the video, EITHER "Bandit the feeling!" (before reveal, pops in after 0.5s)
-            OR "Try this look" (after reveal, → try-on) — never both. */}
+        {/* ON the video: the try-on CTA — "See her in other looks". ("Bandit the feeling"
+            lives BELOW the video now, in the white caption bar.) */}
         {["video", "cvideo", "compare", "cphoto", "image"].includes(media[active]?.type as string) && (
-          banditRevealed ? (
-            <button type="button"
-              onClick={(e) => { e.stopPropagation(); trackEvent("tryon_click"); router.push(tryOnHref); }}
-              onPointerDown={(e) => e.stopPropagation()}
-              className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-white px-8 py-3.5 text-sm font-black text-black shadow-xl transition-transform active:scale-95">
-              <Sparkles className="h-4 w-4" /> Try this look
-            </button>
-          ) : (
-            <div className={`absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-stretch gap-2 transition-all duration-200 ${showBanditBtn && !banditCreating ? "scale-100 opacity-100" : "pointer-events-none scale-90 opacity-0"}`}>
-              {/* Try On — straight to the try-on (video), from the start */}
-              <button type="button"
-                onClick={(e) => { e.stopPropagation(); trackEvent("tryon_click"); router.push(tryOnHref); }}
-                onPointerDown={(e) => e.stopPropagation()}
-                className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-5 text-sm font-black text-black shadow-xl active:scale-95">
-                <Sparkles className="h-4 w-4" /> Try On
-              </button>
-              {/* Bandit the feeling — reveals the shop carousel */}
-              <button type="button"
-                onClick={(e) => { e.stopPropagation(); revealBandit(); }}
-                onPointerDown={(e) => e.stopPropagation()}
-                className="flex flex-col items-center justify-center whitespace-nowrap rounded-full bg-black px-6 py-2 text-white shadow-xl active:scale-95">
-                <span className="text-[10px] font-light leading-tight text-white/75">enjoy the look then</span>
-                <span className="text-sm font-black leading-tight">Bandit the feeling!</span>
-              </button>
-            </div>
-          )
+          <button type="button"
+            onClick={(e) => { e.stopPropagation(); goTryOn(); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className={`absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-white px-8 py-3.5 text-sm font-black text-black shadow-xl transition-all duration-200 active:scale-95 ${(banditRevealed || (showBanditBtn && !banditCreating)) ? "scale-100 opacity-100" : "pointer-events-none scale-90 opacity-0"}`}>
+            <Sparkles className="h-4 w-4" /> See her in other looks
+          </button>
         )}
 
         {/* "Creating slides" hint while the carousel is being built. */}
@@ -896,13 +884,24 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         </div>
       )}
 
+      {/* Bandit the feeling — directly BELOW the video (reveals the shop carousel). Hidden
+          once revealed. The try-on CTA ("See her in other looks") stays on the video. */}
+      {!banditRevealed && !banditCreating && (
+        <div className="shrink-0 bg-white px-4 pt-2">
+          <button type="button"
+            onClick={(e) => { e.stopPropagation(); revealBandit(); }}
+            className="flex w-full flex-col items-center justify-center rounded-full bg-black py-2.5 text-white shadow-sm active:scale-[0.99] transition-transform">
+            <span className="text-[10px] font-light leading-tight text-white/75">enjoy the look then</span>
+            <span className="text-sm font-black leading-tight">Bandit the feeling!</span>
+          </button>
+        </div>
+      )}
+
       {/* Curator + badge — always below the video (name + description under the post). */}
       <div className="shrink-0">{headerBar}</div>
 
       {/* ── White caption + actions (Instagram-style, below the image) ── */}
       <div className="shrink-0 bg-white px-4 pt-2.5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4rem)" }}>
-        {/* Action buttons live ON the video now (Bandit → Try this look), so the caption
-            keeps just the text + comments below. */}
         {/* Who recreated this look — ADMIN ONLY (business secret). Sits under the
             caption. Replaces the old "Shop now" card; shopping is via "Bandit the look!". */}
         {single && isAdmin && (

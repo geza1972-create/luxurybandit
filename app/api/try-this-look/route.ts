@@ -260,28 +260,20 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
   // video + product image and BEFORE the dupes. Includes the curator's OWN try-ons
   // (with their video) and members'. Newest first (generations are newest-first).
   const communityByLook = new Map<string, { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; isCurator?: boolean; hidden?: boolean; pending?: boolean }[]>();
-  // Lingerie/intimate try-ons are PRIVATE — they show the person in lingerie and must
-  // NEVER surface in the public carousel, regardless of the feed flag.
-  const lingerieLookIds = new Set(
-    (state.looks ?? [])
-      .filter(l => (typeof (l as any).lingerie === "boolean"
-        ? (l as any).lingerie
-        : isIntimateName([(l as any).name, (l as any).brand, (l as any).campaignName, (l as any).productNote].filter(Boolean).join(" "))))
-      .map(l => l.id)
-  );
   for (const g of state.generations ?? []) {
     const url = (g as any).imageUrl;
     // OPT-IN: a try-on is public ONLY if feed === true (an explicit checkbox). Admins
     // ALSO receive try-ons THEY deactivated (lockedByAdmin) — flagged hidden:true so the
     // card can show them as HIDDEN and let the admin re-activate. End-users never do.
     if (!url || (g as any).hidden || g.visitorId?.startsWith("admin-")) continue;
-    const isPublic = (g as any).feed === true;
-    const isPending = !isPublic && (g as any).feedRequested === true;       // awaiting admin approval
-    const isAdminHidden = !isPublic && (g as any).lockedByAdmin === true;   // admin deactivated it
-    // End-users see ONLY public try-ons. Admins ALSO receive pending requests (to approve
-    // or reject) and their own deactivated ones (to re-activate) — flagged accordingly.
-    if (!isPublic && !(forAdmin && (isPending || isAdminHidden))) continue;
-    if (lingerieLookIds.has(g.lookId)) continue; // never surface lingerie try-ons publicly
+    // The reel feed is a PUBLIC surface: a member try-on shows here ONLY if an admin made
+    // it fully public (`public === true`). "Community" try-ons (feed:true, public:false)
+    // stay in the paid Community filter, NOT the public feed. Admins additionally receive
+    // pending requests (to approve) and their own deactivated ones (to re-activate).
+    const online = (g as any).public === true;
+    const isPending = !online && ((g as any).publicRequested === true || (g as any).feedRequested === true);
+    const isAdminHidden = !online && (g as any).lockedByAdmin === true;
+    if (!online && !(forAdmin && (isPending || isAdminHidden))) continue;
     const cid = curatorIdByLook.get(g.lookId);
     const isCurator = !!(cid && normalizeSlug((g as any).customerName ?? "") === curatorSlugById.get(cid));
     const list = communityByLook.get(g.lookId) ?? [];
@@ -427,6 +419,8 @@ export async function GET(request: Request) {
             curatorId: (g as any).curatorId ?? "",
             lookName: g.lookName ?? look?.name ?? "",
             feed: (g as any).feed !== false,
+            public: (g as any).public === true,
+            views: (look as any)?.viewCount ?? 0, // views are tracked per look
             createdAt: g.createdAt,
           };
         })
@@ -539,15 +533,16 @@ export async function GET(request: Request) {
         }
       } catch { /* ignore */ }
       const myCuratorId = request.headers.get("x-curator-id")?.trim() ?? "";
+      // Member try-ons are gated by VISIBILITY tier: a signed-in / curator / admin viewer
+      // gets ALL shared (feed:true) try-ons (incl. Community-tier); an anonymous viewer gets
+      // ONLY the fully-public ones (`public:true`). Boudoir/lingerie is no longer special.
+      const viewerGated = !!myEmail || !!myCuratorId || (await isAdmin(request));
       const community = state.generations
         .filter(g => {
           if (!(g as any).imageUrl || (g as any).hidden || (g as any).feed !== true) return false; // OPT-IN: only explicit feed===true
-          // Lingerie/intimate try-ons are PRIVATE — keep them out of the public feed entirely.
-          const look = lookById.get(g.lookId);
-          const isLing = look ? (typeof (look as any).lingerie === "boolean"
-            ? (look as any).lingerie
-            : isIntimateName([(look as any).name, (look as any).brand, (look as any).campaignName, (look as any).productNote].filter(Boolean).join(" "))) : false;
-          return !isLing;
+          const isPublic = (g as any).public === true;
+          if (!viewerGated && !isPublic) return false; // anonymous: only admin-published try-ons
+          return true;
         })
         .slice(0, 200)
         .map(g => {
@@ -565,6 +560,8 @@ export async function GET(request: Request) {
             // hide Boudoir try-ons from "All" too (not just the looks).
             category: look ? categorizeLook(look as any) : undefined,
             lingerie: look ? (typeof (look as any).lingerie === "boolean" ? (look as any).lingerie : isIntimateName([(look as any).name, (look as any).brand, (look as any).campaignName, (look as any).productNote].filter(Boolean).join(" "))) : undefined,
+            // Admin "fully unlocked" → visible to everyone in "All" (not just gated Community).
+            public: (g as any).public === true,
             // Public, licensing-safe label (curator description) — shown instead of the
             // real brand product name. Empty when the look has no description.
             lookTitle: look ? (((look as any).curatorNote || (look as any).productNote || "").trim() || undefined) : undefined,
@@ -662,6 +659,9 @@ export async function GET(request: Request) {
             storeName: g.storeName ?? look?.storeName ?? "",
             lookThumbUrl: look?.frontImageUrl ?? look?.imageUrl ?? "",
             published: (g as any).feed !== false && !(g as any).hidden,
+            public: (g as any).public === true,
+            feedRequested: (g as any).feedRequested === true,
+            publicRequested: (g as any).publicRequested === true,
             createdAt: g.createdAt,
           };
         });
@@ -1205,11 +1205,13 @@ export async function POST(request: Request) {
           { status: 403 },
         );
       }
-      // Publish gate: only an admin can set feed:true. A non-admin asking to publish
-      // records a REQUEST instead (feed stays false until an admin approves).
+      // Publish gate: only an admin publishes instantly. A non-admin asking to be shown in
+      // the (Community) feed records a REQUEST instead (feed stays false until an admin
+      // approves). Choosing Community also cancels any pending "go public" request.
       if (wantFeed && !admin) {
         (gen as any).feed = false;
         (gen as any).feedRequested = true;
+        (gen as any).publicRequested = false;
         await saveTryThisLookState(state);
         return NextResponse.json({ ok: true, pending: true });
       }
@@ -1217,8 +1219,89 @@ export async function POST(request: Request) {
       // An admin hiding it sets the lock; an admin showing it clears the lock.
       if (admin) (gen as any).lockedByAdmin = !wantFeed;
       (gen as any).feedRequested = false; // approving or un-publishing both clear the pending request
+      // Visibility tier: hiding revokes any public unlock. When publishing, an admin may
+      // pass `public` to set the tier in one call (Community = public:false, Public = true).
+      if (!wantFeed) (gen as any).public = false;
+      else if (admin && typeof payload.public === "boolean") (gen as any).public = payload.public;
+      // Re-tiering via feed never leaves a pending public request (unless an admin is
+      // explicitly setting public:true in this same call).
+      if (!(admin && payload.public === true)) (gen as any).publicRequested = false;
       await saveTryThisLookState(state);
       return NextResponse.json({ ok: true });
+    }
+    // Admin "fully unlock" — promote a try-on from the gated Community feed to fully public
+    // (visible to everyone in "All"). Admin-only; implies feed:true. Setting public:false
+    // pulls it back to gated-only. Intimate/lingerie try-ons stay out of anonymous feeds
+    // regardless (enforced server-side in the community/carousel builders).
+    if (payload.action === "set-generation-public") {
+      const genId = String(payload.generationId ?? "").trim();
+      const gen = state.generations.find(g => g.id === genId);
+      if (!gen) return NextResponse.json({ error: "Generation not found." }, { status: 404 });
+      const admin = await isAdmin(request);
+      const makePublic = payload.public !== false;
+      // Only an admin flips a try-on fully public INSTANTLY. A non-admin's ask is recorded
+      // as a REQUEST (publicRequested) for an admin to approve; the try-on stays where it is
+      // (it does NOT auto-enter any feed) until approved.
+      if (!admin) {
+        (gen as any).publicRequested = makePublic;
+        await saveTryThisLookState(state);
+        return NextResponse.json({ ok: true, pending: makePublic });
+      }
+      (gen as any).public = makePublic;
+      (gen as any).publicRequested = false; // approving or denying clears the pending request
+      if (makePublic) {
+        (gen as any).feed = true;          // public implies shared
+        (gen as any).feedRequested = false;
+        (gen as any).lockedByAdmin = false;
+      }
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, public: makePublic });
+    }
+    // Admin bulk: publish EVERY (non-hidden) try-on at once. Used to seed the public feed,
+    // after which the admin re-filters individual posts to Community/Private.
+    if (payload.action === "publish-all-generations") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      let count = 0;
+      for (const g of state.generations ?? []) {
+        if ((g as any).hidden) continue;
+        (g as any).public = true;
+        (g as any).feed = true;
+        (g as any).feedRequested = false;
+        (g as any).publicRequested = false;
+        (g as any).lockedByAdmin = false;
+        count++;
+      }
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, published: count });
+    }
+    // Admin bulk: set the visibility tier (private / community / public) on many posts at once.
+    if (payload.action === "bulk-generation-visibility") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const ids = new Set((Array.isArray(payload.ids) ? payload.ids : []).map((x: unknown) => String(x)));
+      const tier = String(payload.tier ?? "");
+      if (!["private", "community", "public"].includes(tier)) return NextResponse.json({ error: "Bad tier." }, { status: 400 });
+      let updated = 0;
+      for (const g of state.generations ?? []) {
+        if (!ids.has(g.id)) continue;
+        (g as any).feed = tier !== "private";
+        (g as any).public = tier === "public";
+        (g as any).feedRequested = false;
+        (g as any).publicRequested = false;
+        (g as any).lockedByAdmin = false;
+        updated++;
+      }
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, updated });
+    }
+    // Admin bulk: permanently delete many posts at once.
+    if (payload.action === "bulk-delete-generations") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const ids = new Set((Array.isArray(payload.ids) ? payload.ids : []).map((x: unknown) => String(x)));
+      const toDelete = (state.generations ?? []).filter(g => ids.has(g.id));
+      state.generations = (state.generations ?? []).filter(g => !ids.has(g.id));
+      for (const g of toDelete) { try { await purgeGenerationAssets(g); } catch { /**/ } }
+      await saveTryThisLookState(state, { deletedGenerationIds: toDelete.map(g => g.id) });
+      return NextResponse.json({ ok: true, deleted: toDelete.length });
     }
     if (payload.action === "reject-tryon-request") {
       // Admin declines a publish request → back to a plain private try-on (drops out of
@@ -1991,6 +2074,16 @@ export async function POST(request: Request) {
       }
       await saveTryThisLookState(state);
       return NextResponse.json({ ok: true, remaining: state.events.length });
+    }
+
+    // Admin: zero out the real view counters (keeps events + vanity likes). Used to clear
+    // dev/test-inflated view counts so the admin sees REAL end-user views from now on.
+    if (payload.action === "reset-view-counts") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      let n = 0;
+      for (const l of state.looks) { if (((l as any).viewCount ?? 0) !== 0) { (l as any).viewCount = 0; n++; } }
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, cleared: n });
     }
 
     // ── Bulk delete (atomic, avoids parallel race condition) ─────────────────

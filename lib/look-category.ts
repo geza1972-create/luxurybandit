@@ -13,12 +13,13 @@ export interface LookCategoryDef {
   hideFromAll?: boolean;
 }
 
-// Display order. Boudoir is last (and hidden from All).
+// Display order. The "Community" world keeps the "boudoir" slug for back-compat; it's the
+// login/paid-gated chip (🔒) and stays hidden from the default "All" feed.
 export const LOOK_CATEGORIES: LookCategoryDef[] = [
   { slug: "after-dark", label: "After Dark", blurb: "Evening gowns, gold, red-carpet glamour" },
   { slug: "riviera", label: "Riviera", blurb: "Swim, bodysuits, beach-luxe, poolside" },
   { slug: "off-duty", label: "Off-Duty", blurb: "Satin sets, street-luxe, new-money casual" },
-  { slug: "boudoir", label: "Boudoir", blurb: "Lingerie — elegant, suggestive", hideFromAll: true },
+  { slug: "boudoir", label: "Community", blurb: "Members-only try-ons", hideFromAll: true },
 ];
 
 const CATEGORY_SLUGS = new Set<string>(LOOK_CATEGORIES.map((c) => c.slug));
@@ -47,9 +48,8 @@ type CategorizableLook = {
 
 // Resolve a look's category. Priority:
 //   1. an explicit, valid `category` set by a creator/admin (wins)
-//   2. the lingerie flag → Boudoir
-//   3. keyword inference from the name/notes (so the 50 legacy looks get sorted
-//      automatically until someone categorizes them by hand)
+//   2. the lingerie flag → Community (boudoir slug)
+//   3. keyword inference from the name/notes (so legacy looks get sorted automatically)
 // `lingerieOverride` lets the API pass its already-computed lingerie value.
 export function categorizeLook(look: CategorizableLook, lingerieOverride?: boolean): LookCategory {
   if (isLookCategory(look.category)) return look.category;

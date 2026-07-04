@@ -149,7 +149,7 @@ export default function CuratorApplyPage() {
           className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 text-black active:scale-90 transition-transform">
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <p className="text-sm font-black text-black">Become a curator</p>
+        <p className="text-sm font-black text-black">Become a model</p>
       </div>
 
       <div className="px-5 pt-5">

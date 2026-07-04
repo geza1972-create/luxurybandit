@@ -4,10 +4,10 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Trash2, Eye, EyeOff, X, Play } from "lucide-react";
+import { ArrowLeft, Loader2, Trash2, X, Play, Globe, Lock, Users } from "lucide-react";
 import { getStoredAuthSession, getAuthUser } from "@/lib/supabase-auth-client";
 
-type TryOnItem = { id: string; imageUrl: string; videoUrl?: string; genKind?: string; lookName: string; createdAt: string; published?: boolean };
+type TryOnItem = { id: string; imageUrl: string; videoUrl?: string; genKind?: string; lookName: string; createdAt: string; published?: boolean; public?: boolean; feedRequested?: boolean; publicRequested?: boolean };
 
 const mergeById = (prev: TryOnItem[], add: TryOnItem[]) => {
   const seen = new Set(prev.map(t => t.id));
@@ -21,8 +21,65 @@ export default function MyTryOnsPage() {
   const [tryOns, setTryOns] = useState<TryOnItem[]>([]);
   const [accessToken, setAccessToken] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [viewing, setViewing] = useState<TryOnItem | null>(null);
+  const [tierMenu, setTierMenu] = useState<TryOnItem | null>(null);
+  const [tierBusyId, setTierBusyId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => { try { setIsAdmin(!!localStorage.getItem("luxurybandit-try-look-admin-pin")); } catch { /**/ } }, []);
+
+  // Three explicit visibility tiers — so it's always clear WHERE a try-on goes:
+  //   private   → only you (feed:false)
+  //   community → login-gated Community feed (feed:true, public:false)
+  //   public    → the general "All" feed, everyone (public:true) — INSTANT for admins only;
+  //               a non-admin's choice becomes a REQUEST an admin approves.
+  type Tier = "private" | "community" | "public";
+  type DisplayTier = Tier | "community-req" | "public-req";
+  // The visible state (incl. pending requests).
+  const displayTierOf = (t: TryOnItem): DisplayTier =>
+    t.public ? "public"
+      : t.publicRequested ? "public-req"
+        : t.published ? "community"
+          : t.feedRequested ? "community-req"
+            : "private";
+  // The tier the user last CHOSE (a request counts as choosing that tier) — drives the
+  // menu's active marker and the no-op guard.
+  const chosenTierOf = (t: TryOnItem): Tier =>
+    (t.public || t.publicRequested) ? "public" : (t.published || t.feedRequested) ? "community" : "private";
+  const tierMeta = (d: DisplayTier) => ({
+    "public": { label: "Public", cls: "bg-emerald-500 text-white", Icon: Globe },
+    "public-req": { label: "Public · pending", cls: "bg-amber-500 text-white", Icon: Globe },
+    "community": { label: "Community", cls: "bg-black text-white", Icon: Users },
+    "community-req": { label: "Pending", cls: "bg-amber-500 text-white", Icon: Users },
+    "private": { label: "Private", cls: "bg-black/70 text-white", Icon: Lock },
+  }[d]);
+
+  const applyTier = async (t: TryOnItem, tier: Tier) => {
+    setTierMenu(null);
+    if (chosenTierOf(t) === tier) return;
+    setTierBusyId(t.id);
+    const snap = { published: t.published, public: t.public, feedRequested: t.feedRequested, publicRequested: t.publicRequested };
+    const optimistic: Partial<TryOnItem> =
+      tier === "private" ? { published: false, public: false, feedRequested: false, publicRequested: false }
+        : tier === "community"
+          ? (isAdmin ? { published: true, public: false, feedRequested: false, publicRequested: false }
+                     : { published: false, public: false, feedRequested: true, publicRequested: false })
+          : (isAdmin ? { published: true, public: true, feedRequested: false, publicRequested: false }
+                     : { publicRequested: true }); // non-admin public = a request; stays where it is meanwhile
+    setTryOns(prev => prev.map(x => x.id === t.id ? { ...x, ...optimistic } : x));
+    try {
+      const adminPin = (() => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } })();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+      if (adminPin) headers["x-try-look-admin-pin"] = adminPin;
+      const body = tier === "public"
+        ? { action: "set-generation-public", generationId: t.id, public: true }
+        : { action: "set-generation-feed", generationId: t.id, feed: tier !== "private", public: false };
+      const res = await fetch("/api/try-this-look", { method: "POST", headers, body: JSON.stringify(body) });
+      if (!res.ok) throw new Error("Update failed.");
+    } catch {
+      setTryOns(prev => prev.map(x => x.id === t.id ? { ...x, ...snap } : x));
+    } finally { setTierBusyId(null); }
+  };
 
   // Tap a try-on → play THIS generation's own video (not the source look's curated feed,
   // which excludes hidden/admin try-ons). Falls back to the look feed when there's no video.
@@ -102,20 +159,6 @@ export default function MyTryOnsPage() {
     } catch { /**/ } finally { setDeletingId(null); }
   };
 
-  const handleToggleFeed = async (id: string, next: boolean) => {
-    setTogglingId(id);
-    setTryOns(prev => prev.map(t => t.id === id ? { ...t, published: next } : t));
-    try {
-      const res = await fetch("/api/try-this-look", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "set-generation-feed", generationId: id, feed: next }),
-      });
-      if (!res.ok) throw new Error("Toggle failed.");
-    } catch {
-      setTryOns(prev => prev.map(t => t.id === id ? { ...t, published: !next } : t));
-    } finally { setTogglingId(null); }
-  };
-
   return (
     <main className="min-h-[100dvh] bg-[#fafaf8] pb-24">
       <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/8 bg-white/95 px-4 py-3 backdrop-blur">
@@ -135,8 +178,12 @@ export default function MyTryOnsPage() {
         <div className="grid grid-cols-3 gap-px bg-black/8">
           {tryOns.map(t => (
             <div key={t.id} className="relative aspect-[3/4] bg-black/5 overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={t.imageUrl} alt={t.lookName} className={`h-full w-full object-cover object-top ${t.published === false ? "opacity-50" : ""}`} />
+              {t.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={t.imageUrl} alt={t.lookName} className={`h-full w-full object-cover object-top ${t.published === false ? "opacity-50" : ""}`} />
+              ) : (
+                <div className="h-full w-full bg-black/[0.06]" />
+              )}
               {/* Tap the tile → play THIS try-on's own video (buttons above stop propagation). */}
               <button type="button" onClick={() => openTryOn(t)}
                 aria-label={t.videoUrl ? `Play ${t.lookName || "try-on"} video` : `Open ${t.lookName || "look"} in feed`}
@@ -148,21 +195,21 @@ export default function MyTryOnsPage() {
                   </span>
                 </span>
               )}
-              <div className="absolute right-2 top-2 z-10 flex gap-1.5">
-                <button type="button" onClick={(e) => { e.stopPropagation(); void handleToggleFeed(t.id, t.published === false); }} disabled={togglingId === t.id}
-                  aria-label={t.published === false ? "Show in feed" : "Hide from feed"} title={t.published === false ? "Show in feed" : "Hide from feed"}
-                  className="grid h-9 w-9 place-items-center rounded-full bg-black/75 text-white shadow-lg backdrop-blur active:scale-90 transition-transform disabled:opacity-50">
-                  {togglingId === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : t.published === false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              {/* Visibility control — ONE clearly-labeled status pill. It names exactly where
+                  the try-on is shown; tap it to change (Private / Community / Public). */}
+              {(() => { const m = tierMeta(displayTierOf(t)); const Icon = m.Icon; return (
+                <button type="button" onClick={(e) => { e.stopPropagation(); setTierMenu(t); }} disabled={tierBusyId === t.id}
+                  aria-label={`Visibility: ${m.label} — change`}
+                  className={`absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-black shadow-lg backdrop-blur active:scale-95 transition-transform disabled:opacity-50 ${m.cls}`}>
+                  {tierBusyId === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Icon className="h-3 w-3" />}
+                  {m.label}
                 </button>
-                <button type="button" onClick={(e) => { e.stopPropagation(); void handleDelete(t.id); }} disabled={deletingId === t.id}
-                  aria-label="Delete try-on" title="Delete"
-                  className="grid h-9 w-9 place-items-center rounded-full bg-black/75 text-white shadow-lg backdrop-blur active:scale-90 transition-transform disabled:opacity-50">
-                  {deletingId === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                </button>
-              </div>
-              {t.published === false && (
-                <span className="pointer-events-none absolute left-2 top-2 z-10 rounded-full bg-black/75 px-2 py-0.5 text-[10px] font-black text-white shadow-lg backdrop-blur">Hidden</span>
-              )}
+              ); })()}
+              <button type="button" onClick={(e) => { e.stopPropagation(); void handleDelete(t.id); }} disabled={deletingId === t.id}
+                aria-label="Delete try-on" title="Delete"
+                className="absolute right-2 top-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/75 text-white shadow-lg backdrop-blur active:scale-90 transition-transform disabled:opacity-50">
+                {deletingId === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              </button>
               <div className="pointer-events-none absolute bottom-0 inset-x-0 z-10 bg-gradient-to-t from-black/60 to-transparent p-2">
                 <p className="text-[10px] font-black text-white truncate">{t.lookName}</p>
               </div>
@@ -190,6 +237,51 @@ export default function MyTryOnsPage() {
           </button>
         </div>
       )}
+
+      {/* Visibility chooser — makes it explicit WHERE the try-on is shown. */}
+      {tierMenu && (() => {
+        const chosen = chosenTierOf(tierMenu);
+        const pending = displayTierOf(tierMenu).endsWith("-req");
+        const options: { key: Tier; label: string; desc: string; Icon: typeof Globe; dot: string }[] = [
+          { key: "private", label: "Private", desc: "Only you can see it.", Icon: Lock, dot: "bg-black/70 text-white" },
+          { key: "community", label: "Community", desc: isAdmin ? "Signed-in users, Community feed. Instantly visible." : "Signed-in users, Community feed. Submit for admin approval.", Icon: Users, dot: "bg-black text-white" },
+          { key: "public", label: "Public", desc: isAdmin ? "Everyone, in the main feed. Instantly visible." : "Everyone, in the main feed. Submit for admin approval.", Icon: Globe, dot: "bg-emerald-500 text-white" },
+        ];
+        return (
+          <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/50 backdrop-blur-sm px-4 pb-6"
+            onClick={() => setTierMenu(null)}>
+            <div className="w-full max-w-sm rounded-2xl bg-white p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-1 pb-2">
+                <p className="text-base font-black text-black">Where should it appear?</p>
+                <button type="button" onClick={() => setTierMenu(null)} aria-label="Close"
+                  className="grid h-8 w-8 place-items-center rounded-full bg-black/5 text-black/50"><X className="h-4 w-4" /></button>
+              </div>
+              {!isAdmin && (
+                <p className="px-1 pb-2 text-[11px] font-bold leading-4 text-black/40">Community &amp; Public are submitted to an admin for approval.</p>
+              )}
+              <div className="grid gap-1.5">
+                {options.map(o => {
+                  const active = o.key === chosen;
+                  const Icon = o.Icon;
+                  const suffix = active ? (pending ? " · pending" : " · active") : "";
+                  return (
+                    <button key={o.key} type="button" onClick={() => void applyTier(tierMenu, o.key)}
+                      className={`flex items-center gap-3 rounded-xl border p-3 text-left transition active:scale-[0.99] ${active ? "border-black bg-black/[0.04]" : "border-black/10 hover:bg-black/[0.02]"}`}>
+                      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${o.dot}`}>
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-black text-black">{o.label}{suffix}</span>
+                        <span className="block text-[12px] font-medium leading-4 text-black/50">{o.desc}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </main>
   );
 }

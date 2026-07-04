@@ -786,7 +786,7 @@ export default function TryonPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.curator) {
-        setAuthError("No curator found with that email. Become a curator first to try looks on.");
+        setAuthError("No model found with that email. Become a model first to try looks on.");
         return;
       }
       localStorage.setItem("lb_curator", JSON.stringify({ id: data.curator.id, firstName: data.curator.firstName, email: data.curator.email, style: data.curator.style }));
@@ -1231,7 +1231,7 @@ export default function TryonPage() {
             router.push("/curators");
           }}
           className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform">
-          <Sparkles className="h-4 w-4" /> Become a curator — it&apos;s free
+          <Sparkles className="h-4 w-4" /> Become a model — it&apos;s free
         </button>
       </div>
     </>

@@ -37,7 +37,7 @@ export default function AboutPage() {
         before you buy — and share it.
       </p>
 
-      <h2>Become a curator</h2>
+      <h2>Become a model</h2>
       <p>
         Anyone can become a curator: spot trends, publish looks, and earn from what you curate.{" "}
         <Link href="/curators">Start here →</Link>

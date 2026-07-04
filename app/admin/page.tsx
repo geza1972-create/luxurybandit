@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus, Video, BarChart3, Eye, MousePointerClick } from "lucide-react";
+import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus, Video, BarChart3, Eye, MousePointerClick, Check } from "lucide-react";
 import { signInWithPassword, getStoredAuthSession, saveAuthSession, signOut, resetPassword } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { LOOK_CATEGORIES, categorizeLook, type LookCategory } from "@/lib/look-category";
@@ -82,10 +82,14 @@ export default function AdminPage() {
   const [usersAuthError, setUsersAuthError] = useState("");
   const [userEditId, setUserEditId] = useState("");
   const [userNameDraft, setUserNameDraft] = useState("");
-  type AdminPost = { id: string; lookId: string; imageUrl: string; videoUrl?: string; customerName: string; curatorId: string; lookName: string; feed: boolean; createdAt: string };
+  type AdminPost = { id: string; lookId: string; imageUrl: string; videoUrl?: string; customerName: string; curatorId: string; lookName: string; feed: boolean; public?: boolean; views?: number; createdAt: string };
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [postsLoaded, setPostsLoaded] = useState(false);
   const [postDateFrom, setPostDateFrom] = useState("");
+  // Bulk selection: pick many posts, then set their visibility tier or delete them.
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedPostIds, setSelectedPostIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [renaming, setRenaming] = useState<AdminPost | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const openRename = (p: AdminPost) => { setRenaming(p); setRenameValue(p.customerName || ""); };
@@ -593,6 +597,31 @@ export default function AdminPage() {
     });
   }, [posts, q, postDateFrom, lookCatFilter, lookCatById]);
 
+  // ── Bulk selection + actions (visibility tier / delete) ──
+  const postTierOf = (p: AdminPost): "private" | "community" | "public" => (p.public ? "public" : p.feed ? "community" : "private");
+  const toggleSelect = (id: string) => setSelectedPostIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const clearSelection = () => { setSelectedPostIds(new Set()); setSelectMode(false); };
+  const allShownSelected = shownPosts.length > 0 && shownPosts.every(p => selectedPostIds.has(p.id));
+  const toggleSelectAllShown = () => setSelectedPostIds(allShownSelected ? new Set() : new Set(shownPosts.map(p => p.id)));
+  const bulkSetTier = async (tier: "private" | "community" | "public") => {
+    const ids = [...selectedPostIds];
+    if (!ids.length) return;
+    setBulkBusy(true);
+    const feed = tier !== "private", pub = tier === "public";
+    setPosts(ps => ps.map(x => selectedPostIds.has(x.id) ? { ...x, feed, public: pub } : x));
+    try { await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "bulk-generation-visibility", ids, tier }) }); } catch { /**/ }
+    setBulkBusy(false); clearSelection();
+  };
+  const bulkDelete = async () => {
+    const ids = [...selectedPostIds];
+    if (!ids.length) return;
+    if (!confirm(`Delete ${ids.length} post${ids.length > 1 ? "s" : ""} permanently?`)) return;
+    setBulkBusy(true);
+    setPosts(ps => ps.filter(x => !selectedPostIds.has(x.id)));
+    try { await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "bulk-delete-generations", ids }) }); } catch { /**/ }
+    setBulkBusy(false); clearSelection();
+  };
+
   const liveLooks = looks.filter(l => l.published !== false).length;
   const activeCurators = curators.filter(c => c.status !== "deactivated").length;
 
@@ -767,7 +796,37 @@ export default function AdminPage() {
                 </div>
               );
             })()}
-            <p className="mb-3 text-[11px] font-bold text-ink/40">{shownPosts.length} posts{(query || postDateFrom || lookCatFilter) ? " (filtered)" : ""}. Hidden ones are dimmed — tap Show to bring one back into the feeds.</p>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <p className="text-[11px] font-bold text-ink/40">{shownPosts.length} posts{(query || postDateFrom || lookCatFilter) ? " (filtered)" : ""}.</p>
+              <button type="button" onClick={() => { if (selectMode) clearSelection(); else setSelectMode(true); }}
+                className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-black transition ${selectMode ? "bg-ink text-white" : "bg-black/5 text-ink/60 hover:bg-black/10"}`}>
+                {selectMode ? "Cancel" : "Select"}
+              </button>
+            </div>
+            {/* Bulk action bar — set the visibility tier or delete the selected posts. */}
+            {selectMode && (
+              <div className="sticky top-0 z-10 mb-3 rounded-xl border border-black/10 bg-white/95 p-2 shadow-sm backdrop-blur">
+                <div className="mb-2 flex items-center justify-between">
+                  <button type="button" onClick={toggleSelectAllShown}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-cobalt/10 px-3 py-1 text-[11px] font-black text-cobalt active:scale-95 transition">
+                    <span className={`grid h-4 w-4 place-items-center rounded border ${allShownSelected ? "border-cobalt bg-cobalt text-white" : "border-cobalt/40"}`}>{allShownSelected && <Check className="h-3 w-3" />}</span>
+                    {allShownSelected ? "Deselect all" : `Select all ${shownPosts.length}`}
+                  </button>
+                  <span className="text-[11px] font-black text-ink/50">{selectedPostIds.size} selected</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <button type="button" disabled={bulkBusy || !selectedPostIds.size} onClick={() => void bulkSetTier("private")}
+                    className="rounded-full bg-black/[0.07] px-3 py-1.5 text-[11px] font-black text-ink/70 disabled:opacity-40 active:scale-95 transition">Private</button>
+                  <button type="button" disabled={bulkBusy || !selectedPostIds.size} onClick={() => void bulkSetTier("community")}
+                    className="rounded-full bg-ink px-3 py-1.5 text-[11px] font-black text-white disabled:opacity-40 active:scale-95 transition">Community</button>
+                  <button type="button" disabled={bulkBusy || !selectedPostIds.size} onClick={() => void bulkSetTier("public")}
+                    className="rounded-full bg-emerald-500 px-3 py-1.5 text-[11px] font-black text-white disabled:opacity-40 active:scale-95 transition">Public</button>
+                  <button type="button" disabled={bulkBusy || !selectedPostIds.size} onClick={() => void bulkDelete()}
+                    className="ml-auto rounded-full bg-coral px-3 py-1.5 text-[11px] font-black text-white disabled:opacity-40 active:scale-95 transition">Delete</button>
+                  {bulkBusy && <Loader2 className="h-4 w-4 animate-spin self-center text-ink/40" />}
+                </div>
+              </div>
+            )}
             {!postsLoaded ? (
               <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-ink/30" /></div>
             ) : shownPosts.length === 0 ? (
@@ -775,7 +834,13 @@ export default function AdminPage() {
             ) : (
               <div className="flex flex-col gap-2">
                 {shownPosts.map(p => (
-                  <div key={p.id} className={`flex items-center gap-3 rounded-lg border border-black/10 bg-white p-2 transition ${p.feed ? "" : "opacity-60"}`}>
+                  <div key={p.id} onClick={selectMode ? () => toggleSelect(p.id) : undefined}
+                    className={`flex items-center gap-3 rounded-lg border bg-white p-2 transition ${selectMode ? "cursor-pointer " : ""}${selectedPostIds.has(p.id) ? "border-cobalt ring-1 ring-cobalt" : "border-black/10"} ${p.feed ? "" : "opacity-60"}`}>
+                    {selectMode && (
+                      <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border ${selectedPostIds.has(p.id) ? "border-cobalt bg-cobalt text-white" : "border-black/25"}`}>
+                        {selectedPostIds.has(p.id) && <Check className="h-3.5 w-3.5" />}
+                      </span>
+                    )}
                     <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded bg-black/5">
                       {p.imageUrl
                         // eslint-disable-next-line @next/next/no-img-element
@@ -791,24 +856,34 @@ export default function AdminPage() {
                           <span className="truncate text-[11px] font-black text-ink">{p.customerName || "Anonymous"}</span>
                           <Pencil className="h-3 w-3 shrink-0 text-ink/30" />
                         </button>
-                        {!p.feed && <span className="shrink-0 rounded-full bg-black/70 px-1.5 py-px text-[8px] font-black uppercase text-white">Hidden</span>}
+                        {(() => { const t = postTierOf(p); const m = t === "public" ? { l: "Public", c: "bg-emerald-500" } : t === "community" ? { l: "Community", c: "bg-ink" } : { l: "Private", c: "bg-black/70" }; return <span className={`shrink-0 rounded-full ${m.c} px-1.5 py-px text-[8px] font-black uppercase text-white`}>{m.l}</span>; })()}
                       </div>
-                      <p className="truncate text-[10px] font-bold text-ink/40">{p.lookName || "Try-on"} · {new Date(p.createdAt).toLocaleDateString()}</p>
+                      <p className="flex items-center gap-1.5 text-[10px] font-bold text-ink/40">
+                        <span className="min-w-0 truncate">{p.lookName || "Try-on"}</span>
+                        <span className="shrink-0 whitespace-nowrap">· {new Date(p.createdAt).toLocaleDateString()}</span>
+                        <span className="shrink-0 inline-flex items-center gap-0.5 whitespace-nowrap text-ink/55" title="Views (look)"><Eye className="h-3 w-3" />{(p.views ?? 0).toLocaleString()}</span>
+                      </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
-                      <button type="button" onClick={() => void togglePostFeed(p)}
-                        title={p.feed ? "Hide from the feeds" : "Activate — show in the feeds & reels"}
-                        className={`rounded-full px-2 py-1 text-[10px] font-black transition ${p.feed ? "bg-black/[0.07] text-ink/60" : "bg-emerald-500 text-white"}`}>
-                        {p.feed ? "Hide" : "Show"}
-                      </button>
-                      {!p.videoUrl && (
-                        <button type="button" disabled={!!videoBusy} onClick={() => void makePostVideo(p)}
-                          className="grid h-7 w-7 place-items-center rounded text-cobalt transition hover:bg-cobalt/10 disabled:opacity-40" title="Generate video">
-                          {videoBusy === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
-                        </button>
+                      {/* Open in the feed — always available (opens in a new tab; keeps selection). */}
+                      <a href={`/post/${p.id}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                        className="grid h-7 w-7 place-items-center rounded text-cobalt transition hover:bg-cobalt/10" title="Open in feed"><PlayCircle className="h-4 w-4" /></a>
+                      {!selectMode && (
+                        <>
+                          <button type="button" onClick={() => void togglePostFeed(p)}
+                            title={p.feed ? "Hide from the feeds" : "Activate — show in the feeds & reels"}
+                            className={`rounded-full px-2 py-1 text-[10px] font-black transition ${p.feed ? "bg-black/[0.07] text-ink/60" : "bg-emerald-500 text-white"}`}>
+                            {p.feed ? "Hide" : "Show"}
+                          </button>
+                          {!p.videoUrl && (
+                            <button type="button" disabled={!!videoBusy} onClick={() => void makePostVideo(p)}
+                              className="grid h-7 w-7 place-items-center rounded text-cobalt transition hover:bg-cobalt/10 disabled:opacity-40" title="Generate video">
+                              {videoBusy === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
+                            </button>
+                          )}
+                          <button type="button" onClick={() => void deletePost(p)} className="grid h-7 w-7 place-items-center rounded text-coral transition hover:bg-coral/10" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
+                        </>
                       )}
-                      <a href={`/post/${p.id}`} target="_blank" rel="noopener noreferrer" className="grid h-7 w-7 place-items-center rounded text-ink/50 transition hover:bg-black/5" title="Open"><ExternalLink className="h-3.5 w-3.5" /></a>
-                      <button type="button" onClick={() => void deletePost(p)} className="grid h-7 w-7 place-items-center rounded text-coral transition hover:bg-coral/10" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>
                   </div>
                 ))}
@@ -885,7 +960,7 @@ export default function AdminPage() {
                     <div className="truncate text-sm font-black text-ink">{publicLookLabel(l)}</div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${live ? "bg-emerald-100 text-emerald-700" : "bg-black/8 text-ink/50"}`}>{live ? "Live" : "Off"}</span>
-                      <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">{l.aiCreated ? "AI" : "Curated"}</span>
+                      <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">{l.aiCreated ? "AI" : "Model"}</span>
                       {l.videoUrl && <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">Video</span>}
                     </div>
                     {/* Category — a single CHOICE (dropdown, not on/off toggles). Boudoir =

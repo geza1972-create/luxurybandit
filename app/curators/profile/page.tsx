@@ -133,7 +133,7 @@ export default function CuratorProfilePage() {
         window.location.reload(); // reload → loads in profile mode
         return;
       }
-      setError("No curator found with that email. New here? Become a curator below.");
+      setError("No model found with that email. New here? Become a model below.");
     } catch {
       setError("Could not sign in. Try again.");
     } finally { setSending(false); }
@@ -187,14 +187,14 @@ export default function CuratorProfilePage() {
       <main className="flex min-h-[100dvh] flex-col bg-white">
         <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/8 bg-white/95 px-4 py-3 backdrop-blur">
           <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10"><ArrowLeft className="h-4 w-4" /></button>
-          <p className="text-sm font-black text-black">Curator studio</p>
+          <p className="text-sm font-black text-black">Model studio</p>
         </div>
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 text-center">
           <div className="mb-3 text-4xl">✨</div>
           <h1 className="text-2xl font-black text-black">You&apos;re not a curator yet</h1>
-          <p className="mt-1 text-sm font-medium text-black/55">You&apos;re signed in, but this account doesn&apos;t have a curator profile. Become a curator to open your studio — it&apos;s free.</p>
+          <p className="mt-1 text-sm font-medium text-black/55">You&apos;re signed in, but this account doesn&apos;t have a curator profile. Become a model to open your studio — it&apos;s free.</p>
           <a href="/curators" className="mt-5 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-black px-4 py-3.5 text-sm font-black text-white active:scale-95 transition-transform">
-            <Sparkles className="h-4 w-4" /> Become a curator
+            <Sparkles className="h-4 w-4" /> Become a model
           </a>
           <a href="/stores" className="mt-3 text-center text-xs font-black text-black/40">Back to the feed</a>
         </div>

@@ -54,7 +54,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
         setCuratorCredits(null);
         // Signed in via Supabase but no curator session yet? If that email belongs to
         // a curator, adopt it — so a signed-in curator isn't asked to "sign in as
-        // curator" again and "Curator studio" routes them to /studio (not the login).
+        // curator" again and "Model studio" routes them to /studio (not the login).
         const email = getStoredAuthSession()?.user?.email;
         if (email) {
           fetch("/api/curator", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "signin", email }) })
@@ -108,9 +108,12 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
     return () => window.removeEventListener("lb-open-account", open);
   }, []);
 
-  // Hide on admin, auth, and standalone pages (unless a page explicitly forces it, e.g.
-  // the Try-On funnel's unlocked/done screen).
-  if (!forceShow && (
+  // Hide the NAV BAR on admin, auth, and standalone pages (unless a page explicitly
+  // forces it, e.g. the Try-On funnel's unlocked/done screen). NOTE: we no longer
+  // `return null` here — the Account sheet (opened via the "lb-open-account" event from
+  // the feed's top header) must stay mounted, otherwise admins on the /admin-mirrored
+  // feed (/admin/stores) can't open their account menu at all.
+  const hideChrome = !forceShow && (
     pathname.startsWith("/admin") ||
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/seller/login") ||
@@ -118,7 +121,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
     pathname.startsWith("/curators/apply") ||
     pathname.startsWith("/tryon") || // focused try-on funnel — no bottom nav (it cut off content)
     pathname.startsWith("/try/")     // new Try-On funnel — full-screen, no bottom nav
-  )) return null;
+  );
 
   const go = (tab: Tab, href: string) => {
     setActive(tab);
@@ -136,7 +139,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
 
   return (
     <>
-    {!hideBar && (
+    {!hideChrome && !hideBar && (
     <nav
       className="lb-phone-col fixed bottom-0 inset-x-0 z-50 border-t border-black/10 bg-white/95 backdrop-blur-md"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
@@ -244,7 +247,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 {signedIn ? (
                   <p className="flex items-center gap-1 truncate text-[11px] font-bold text-emerald-600">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    {curator?.id ? "Signed in as curator" : isPinAdmin ? "Admin (PIN)" : "Signed in"}{displayEmail ? ` · ${displayEmail}` : ""}
+                    {curator?.id ? "Signed in as model" : isPinAdmin ? "Admin (PIN)" : "Signed in"}{displayEmail ? ` · ${displayEmail}` : ""}
                   </p>
                 ) : (
                   <p className="truncate text-[11px] font-bold text-black/40">Sign in to save & curate</p>
@@ -263,13 +266,13 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
             )}
             {/* Menu items */}
             <div className="grid divide-y divide-black/5">
-              {/* Curator studio — ONLY for actual curators (no self-signup; creators are
+              {/* Model studio — ONLY for actual curators (no self-signup; creators are
                   created by us). Normal users don't see a studio entry. */}
               {isCurator && (
                 <button type="button" onClick={() => navigate("/studio")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
                   <Sparkles className="h-5 w-5 shrink-0 text-black/50" />
-                  <span className="text-sm font-black text-black">Curator studio</span>
+                  <span className="text-sm font-black text-black">Model studio</span>
                 </button>
               )}
               {/* Curator → My profile (their form data); others → generic account */}

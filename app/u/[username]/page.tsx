@@ -450,7 +450,7 @@ export default function UserGalleryPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-black text-black">{displayName}</p>
-                <p className="text-[10px] font-bold text-black/40">Curator · {new Date(selected.createdAt).toLocaleDateString("de-AT", { day: "numeric", month: "short" })}</p>
+                <p className="text-[10px] font-bold text-black/40">Model · {new Date(selected.createdAt).toLocaleDateString("de-AT", { day: "numeric", month: "short" })}</p>
               </div>
             </a>
             <div className="grid grid-cols-2 gap-3">

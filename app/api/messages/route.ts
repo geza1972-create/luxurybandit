@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     senderEmail = (curator as any).email ?? "";
     const firstName = (curator as any).firstName ?? "";
     const lastName = (curator as any).lastName ?? "";
-    senderName = `${firstName} ${lastName}`.trim() || senderEmail.split("@")[0] || "Curator";
+    senderName = `${firstName} ${lastName}`.trim() || senderEmail.split("@")[0] || "Model";
     senderSlug = toSlug(senderName || curatorId);
   }
 

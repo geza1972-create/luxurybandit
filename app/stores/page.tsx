@@ -151,6 +151,7 @@ type CommunityItem = {
   brand?: string;
   lingerie?: boolean;
   category?: LookCategory;
+  public?: boolean; // admin "fully unlocked" → visible to everyone in "All"
   thumbUrl?: string;
   userPhotoUrl?: string;
   customerName: string;
@@ -549,8 +550,11 @@ function CommunityDetailView({
     const lookId = it?.lookId || it?.id;
     if (!lookId || viewedRef.current.has(lookId)) return;
     viewedRef.current.add(lookId);
+    // Don't count the admin's/dev's own scrolling as a real view (internal → skipped
+    // server-side), so the view count reflects REAL end-user impressions only.
+    const internal = (() => { try { return !!localStorage.getItem("luxurybandit-try-look-admin-pin"); } catch { return false; } })();
     try {
-      fetch("/api/try-this-look", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "view", lookId }) }).catch(() => {});
+      fetch("/api/try-this-look", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "view", lookId, internal }) }).catch(() => {});
     } catch { /**/ }
   }, [currentIdx, allItems]);
   const [verticalDrag, setVerticalDrag] = useState(0);
@@ -1189,7 +1193,7 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
       });
       const data = await res.json();
       if (!res.ok || !data.curator) {
-        setError("No curator found with that email. Become a curator first.");
+        setError("No model found with that email. Become a model first.");
         return;
       }
       localStorage.setItem("lb_curator", JSON.stringify({ id: data.curator.id, firstName: data.curator.firstName, email: data.curator.email, style: data.curator.style }));
@@ -1218,7 +1222,7 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
           </button>
         </div>
 
-        {/* Curator studio entry — ONLY for actual curators (separate curator session).
+        {/* Model studio entry — ONLY for actual curators (separate curator session).
             No self-signup: normal users see nothing here. */}
         {curator && (
           <a href="/studio"
@@ -1300,9 +1304,9 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
                 {(curator.firstName ?? "C").slice(0, 1).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-black text-ink">{curator.firstName || "Curator"}</p>
+                <p className="truncate text-sm font-black text-ink">{curator.firstName || "Model"}</p>
                 <p className="flex items-center gap-1 text-[11px] font-bold text-emerald-600">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Signed in as curator
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Signed in as model
                 </p>
               </div>
             </div>
@@ -1371,7 +1375,7 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
             </div>
             <button type="button" disabled={loading || !email.trim()} onClick={() => void handleCuratorSignin()}
               className="flex h-11 items-center justify-center gap-2 rounded-xl border border-black/15 bg-white text-sm font-black text-ink active:scale-95 transition-transform disabled:opacity-40">
-              Sign in as curator (email above)
+              Sign in as model (email above)
             </button>
           </div>
         )}
@@ -1409,6 +1413,11 @@ function StoresPage() {
   const [showMerkliste, setShowMerkliste] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  // Paying member → the Community feed is unlocked (open padlock). Admin is always unlocked.
+  // No real subscription system yet: `lb_paid` is a placeholder the real checkout will set.
+  const [isPaidMember, setIsPaidMember] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [paywallDone, setPaywallDone] = useState(false);
   const [adminPin, setAdminPin] = useState("");
   // Creators list (admin) for the in-feed "Assign to creator" picker (name + photo).
   const [assignCurators, setAssignCurators] = useState<{ id: string; firstName?: string; lastName?: string; photoUrl?: string }[]>([]);
@@ -1465,6 +1474,10 @@ function StoresPage() {
         const pin = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "";
         const admin = !!pin || (!!email && (isAdminEmail(email) || email === "support@luxurybandit.com"));
         setIsAdmin(admin);
+        // Admin is always unlocked; otherwise a paying member (placeholder flag for now).
+        let paid = false;
+        try { paid = localStorage.getItem("lb_paid") === "1"; } catch { /**/ }
+        setIsPaidMember(admin || paid);
         if (admin) setAdminPin(pin);
         // Keep the curator identity in sync too — otherwise a stale id keeps "recognising"
         // a curator (Hide button etc.) after they signed out, while the nav shows signed-out.
@@ -1495,11 +1508,11 @@ function StoresPage() {
     };
   }, []);
 
-  // Boudoir gate: never show lingerie to a signed-out viewer. If the filter is on
-  // Boudoir and there's no session/curator/admin, snap back to "All".
+  // Community (Boudoir slug) gate: it's for PAYING members only. If the filter is on it
+  // and the viewer isn't a paying member (admin always counts), snap back to "All".
   useEffect(() => {
-    if (categoryFilter === "boudoir" && !(isSignedIn || !!myCuratorId || isAdmin)) setCategoryFilter(null);
-  }, [categoryFilter, isSignedIn, myCuratorId, isAdmin]);
+    if (categoryFilter === "boudoir" && !isPaidMember) setCategoryFilter(null);
+  }, [categoryFilter, isPaidMember]);
 
   // React to bottom-nav deep links whenever search params change
   useEffect(() => {
@@ -1727,6 +1740,9 @@ function StoresPage() {
       const h: Record<string, string> = {};
       try { const s = getStoredAuthSession(); if (s?.access_token) h.Authorization = `Bearer ${s.access_token}`; } catch { /**/ }
       try { const id = JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id; if (id) h["x-curator-id"] = String(id); } catch { /**/ }
+      // Send the studio PIN too, so an admin is a "gated" viewer and receives the
+      // login-gated Boudoir try-ons (they only ever render under the Boudoir chip).
+      try { const pin = localStorage.getItem("luxurybandit-try-look-admin-pin"); if (pin) h["x-try-look-admin-pin"] = pin; } catch { /**/ }
       fetch("/api/try-this-look?community=1", { headers: h })
         .then(r => r.json())
         .then((p: { community?: CommunityItem[] }) => { if (alive && p.community) setCommunityItems(p.community); })
@@ -1784,7 +1800,9 @@ function StoresPage() {
 
   const filteredCommunity = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let items = communityItems;
+    // Intimate (Boudoir/lingerie) try-ons only ever appear under the gated Boudoir chip —
+    // never in the open Community tab or search.
+    let items = communityItems.filter((c) => !c.lingerie && !(c.category && isHiddenFromAll(c.category)));
     if (mineOnly && myCuratorId) items = items.filter((c) => c.curatorId === myCuratorId);
     if (!q) return items;
     return items.filter((c) =>
@@ -1800,43 +1818,29 @@ function StoresPage() {
     [communityItems, myCuratorId]
   );
 
-  // Discover = ONE mixed archive: looks, curator videos AND try-ons, by timestamp.
+  // The grid is the EXACT MIRROR of the public feed: one tile per try-on POST (the try-on
+  // videos the feed shows), PLUS a look-video tile for looks that have a video but no
+  // try-on yet. Nothing else — no separately-filtered "curated" list.
   const historyItems = useMemo(() => {
     type HItem = { key: string; kind: "look" | "tryon"; id: string; lookId: string; thumb: string; videoUrl?: string; videoPoster?: string; hasBefore?: boolean; aiCreated?: boolean; brand?: string; category?: LookCategory; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string };
+    const lookById = new Map(looks.map(l => [l.id, l]));
     const items: HItem[] = [];
-    const lookById = new Map(looks.map((l) => [l.id, l]));
-    for (const l of looks) {
-      // Licensing: only our created image (AI render / video poster), never the
-      // scraped original product photo. Curated flat looks with no render → no thumb.
-      const thumb = safeLookImage(l);
-      // Poster only when it's a REAL model frame (never the floating product); else
-      // the video tile shows the video's own first frame.
-      const videoPoster = l.videoPosterUrl || l.tryOnImageUrl || undefined;
-      // Sort by the most recent activity: a freshly generated video beats publish
-      // date. Fall back to the timestamp embedded in the video filename for older ones.
-      const videoTs = l.videoCreatedAt || tsFromVideoUrl(l.videoUrl) || "";
-      const when = videoTs > (l.createdAt ?? "") ? videoTs : (l.createdAt ?? "");
-      items.push({ key: `look-${l.id}`, kind: "look", id: l.id, lookId: l.id, thumb, videoUrl: l.videoUrl, videoPoster, aiCreated: l.aiCreated, brand: l.brand, category: l.category, createdAt: when, name: publicLookLabel(l), price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl });
-    }
+    const looksWithTryOn = new Set<string>();
+    // One tile per shared try-on — exactly what you scroll through in the feed.
     for (const c of communityItems) {
-      // A try-on still IS a real model frame → use it as the video poster.
       const srcLook = lookById.get(c.lookId);
+      looksWithTryOn.add(c.lookId);
       items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, hasBefore: !!c.userPhotoUrl, brand: c.brand, category: c.category ?? srcLook?.category, createdAt: c.createdAt ?? "", name: c.customerName || (srcLook ? publicLookLabel(srcLook) : "Luxury look"), price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName });
     }
-    items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    // Dedupe only the LOOK tiles by look (one tile per product, prefer the video).
-    // EVERY community try-on keeps its own tile — so different people's try-ons
-    // (Denisa, Anonymous, …) all show; they are not collapsed into the look.
-    const score = (it: HItem) => (it.videoUrl ? 2 : 0) + (it.hasBefore ? 1 : 0);
-    const byLook = new Map<string, HItem>();
-    const tryons: HItem[] = [];
-    for (const it of items) {
-      if (it.kind === "tryon") { tryons.push(it); continue; }
-      const key = it.lookId || it.key;
-      const cur = byLook.get(key);
-      if (!cur || score(it) > score(cur)) byLook.set(key, it);
+    // A look-VIDEO tile for looks that have a video but no try-on (so those feed posts are
+    // mirrored too). Looks without a video and without a try-on don't appear in the feed.
+    for (const l of looks) {
+      if (looksWithTryOn.has(l.id) || !l.videoUrl) continue;
+      const videoTs = l.videoCreatedAt || tsFromVideoUrl(l.videoUrl) || "";
+      const when = videoTs > (l.createdAt ?? "") ? videoTs : (l.createdAt ?? "");
+      items.push({ key: `look-${l.id}`, kind: "look", id: l.id, lookId: l.id, thumb: safeLookImage(l), videoUrl: l.videoUrl, videoPoster: l.videoPosterUrl || l.tryOnImageUrl || undefined, aiCreated: l.aiCreated, brand: l.brand, category: l.category, createdAt: when, name: publicLookLabel(l), price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl });
     }
-    return [...byLook.values(), ...tryons].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [looks, communityItems]);
 
   // Distinct curators with content (looks or try-ons) — for the header count.
@@ -1847,30 +1851,31 @@ function StoresPage() {
     return set.size;
   }, [looks, communityItems]);
 
-  // The base feed: what PEOPLE generate (try-ons, image or video) + curator look
-  // VIDEOS. Never a flat product/clothing still — those are "Kleidungsstücke" —
-  // EXCEPT Boudoir: its looks show even without a video (user directive). Boudoir is
-  // login-gated and hidden from "All", so flat lingerie look-tiles stay contained.
-  const feedItems = useMemo(
-    () => historyItems.filter(it => it.kind === "tryon" || !!it.videoUrl || it.category === "boudoir"),
-    [historyItems],
-  );
-  // Category chips — only the editorial categories that actually have content. Boudoir
-  // appears as a chip (so it's reachable) even though it's hidden from "All".
+  // The grid mirrors the public feed = one tile per look-post. Same list.
+  const feedItems = historyItems;
+  // Category chips — only the editorial worlds that actually have looks. Community
+  // (boudoir slug) is the gated world; it shows as a chip when boudoir looks exist.
   const categoryChips = useMemo(() => {
     const present = new Set<LookCategory>();
     for (const it of feedItems) if (it.category) present.add(it.category);
     return LOOK_CATEGORIES.filter(c => present.has(c.slug));
   }, [feedItems]);
   const visibleHistory = useMemo(() => {
-    let items = categoryFilter
-      ? feedItems.filter(it => it.category === categoryFilter)
-      // "All" → everything EXCEPT the hidden-from-All categories (Boudoir/lingerie).
-      : feedItems.filter(it => !(it.category && isHiddenFromAll(it.category)));
+    // The grid mirrors the public feed. A category chip narrows to that world. "All" hides
+    // the gated Community (boudoir) world from regular viewers, but a paying member / admin
+    // sees everything (so the admin's grid shows the Community looks too).
+    let items: typeof feedItems;
+    if (categoryFilter) {
+      items = feedItems.filter(it => it.category === categoryFilter);
+    } else if (isPaidMember) {
+      items = feedItems; // admin / paid → the full mirror, incl. Community looks
+    } else {
+      items = feedItems.filter(it => !(it.category && isHiddenFromAll(it.category)));
+    }
     const q = query.trim().toLowerCase();
     if (q) items = items.filter(it => `${it.name} ${it.curatorName ?? ""}`.toLowerCase().includes(q));
     return items;
-  }, [feedItems, categoryFilter, query]);
+  }, [feedItems, categoryFilter, query, isPaidMember]);
   // Grid pagination — render a first fast batch, then load more as you scroll (the grid
   // was mounting 40+ <video> tiles at once, which stalled the initial paint).
   const HISTORY_PAGE = 12;
@@ -1899,20 +1904,20 @@ function StoresPage() {
         ? { ...commById.get(it.id)!, kind: "tryon" }
         : {
             id: it.id,
-            lookId: it.kind === "look" ? it.id : "",
+            lookId: it.kind === "look" ? it.id : it.lookId,
             imageUrl: it.videoPoster || it.thumb,
             videoUrl: it.videoUrl,
             thumbUrl: it.thumb,
             customerName: it.kind === "tryon" ? (it.curatorName ?? "") : "",
             lookName: it.name,
             lookTitle: it.name, // it.name is already the public label (description), never the brand
-            storeName: lookById.get(it.id)?.storeName ?? "",
-            storeSlug: lookById.get(it.id)?.storeSlug ?? "",
-            curatorId: lookById.get(it.id)?.curatorId,
+            storeName: lookById.get(it.lookId)?.storeName ?? "",
+            storeSlug: lookById.get(it.lookId)?.storeSlug ?? "",
+            curatorId: lookById.get(it.lookId)?.curatorId,
             curatorName: it.curatorName,
             curatorPhotoUrl: it.curatorPhoto,
             brand: it.brand,
-            kind: "look",
+            kind: it.kind,
             createdAt: it.createdAt,
           };
       return { ...base, slides: buildSlides(base.imageUrl, base.videoUrl, base.userPhotoUrl) };
@@ -1979,6 +1984,34 @@ function StoresPage() {
     setLiveLoading(false);
   };
 
+  // Community paywall — shown when a non-paying viewer taps the locked Community chip.
+  // Defined once here so every render branch (reels / A-List / grid) can drop it in.
+  const paywallModal = showPaywall ? (
+    <div className="fixed inset-0 z-[95] flex items-end justify-center bg-black/50 backdrop-blur-sm px-4 pb-6"
+      onClick={() => { setShowPaywall(false); setPaywallDone(false); }}>
+      <div className="w-full max-w-sm rounded-2xl bg-white p-5 text-center shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-black text-xl">{paywallDone ? "✨" : "🔒"}</div>
+        {!paywallDone ? (
+          <>
+            <p className="mt-3 text-lg font-black text-black">Members only</p>
+            <p className="mt-1.5 text-sm font-medium leading-6 text-black/55">The Community feed is only visible to paying members.</p>
+            <button type="button" onClick={() => setPaywallDone(true)}
+              className="mt-4 h-11 w-full rounded-full bg-black text-sm font-black text-white active:scale-95 transition-transform">Subscribe now</button>
+            <button type="button" onClick={() => setShowPaywall(false)}
+              className="mt-1 h-10 w-full text-sm font-black text-black/40 active:scale-95 transition-transform">Maybe later</button>
+          </>
+        ) : (
+          <>
+            <p className="mt-3 text-lg font-black text-black">Coming soon</p>
+            <p className="mt-1.5 text-sm font-medium leading-6 text-black/55">Memberships are launching soon — you&apos;ll be able to subscribe right here.</p>
+            <button type="button" onClick={() => { setShowPaywall(false); setPaywallDone(false); }}
+              className="mt-4 h-11 w-full rounded-full bg-black text-sm font-black text-white active:scale-95 transition-transform">Got it</button>
+          </>
+        )}
+      </div>
+    </div>
+  ) : null;
+
   // ── DEFAULT HOME = the single feed style (HomeFeed: caption on top, Look/Escape
   //    thumbnails, Bandit the feeling!). The old full-screen "Vollansicht" is gone. ──
   // Use ALL looks (same as /look/[id]), not filtered feedLooks. This way /stores and
@@ -2013,6 +2046,7 @@ function StoresPage() {
         </div>
         {showMerkliste && <MerklistePanel onClose={() => { setShowMerkliste(false); stripPanelParam(); }} />}
         {showUserPanel && <UserPanel onClose={() => { setShowUserPanel(false); setSavedAutoOpen(false); stripPanelParam(); }} openSaved={savedAutoOpen} />}
+        {paywallModal}
       </div>
     );
   }
@@ -2104,7 +2138,7 @@ function StoresPage() {
             {curatorCount > 0 && (
               <div className="text-center">
                 <div className="text-sm font-black text-black leading-none">{curatorCount}</div>
-                <div className="text-[10px] font-bold text-black/35 mt-0.5">Curator{curatorCount !== 1 ? "s" : ""}</div>
+                <div className="text-[10px] font-bold text-black/35 mt-0.5">Model{curatorCount !== 1 ? "s" : ""}</div>
               </div>
             )}
             <div className="text-center">
@@ -2152,17 +2186,17 @@ function StoresPage() {
               <section className="px-4 pt-4 pb-3">
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cobalt">LuxuryBandit</p>
                 <h1 className="mt-1.5 text-[1.7rem] font-black leading-[1.1] tracking-tight text-black">
-                  See yourself in the <span className="text-cobalt">feeling</span>.
+                  Model the <span className="text-cobalt">feeling</span>.
                 </h1>
                 <p className="mt-2 max-w-md text-sm font-medium leading-6 text-black/55">
-                  Upload your photo and try on any high-end look instantly — then shop the whole
-                  outfit at any price, from the original to the smartest find.
+                  Become a model for the world&apos;s brands. Try on their outfits, build your look —
+                  and get paid every time someone uses you as their model.
                 </p>
                 <div className="mt-3 grid gap-1.5">
                   {[
-                    [<Sparkles key="i" className="h-4 w-4 text-cobalt" />, "Try it on you", "See any luxury look on your own photo in seconds."],
-                    [<ShoppingBag key="i" className="h-4 w-4 text-cobalt" />, "Bandit the feeling", "Get the whole vibe, from the high-end original and the outfit down to the budget version, plus where to live it."],
-                    [<Heart key="i" className="h-4 w-4 text-cobalt" />, "Save & shop your way", "Like looks, build your feed, and shop when you're ready."],
+                    [<Sparkles key="i" className="h-4 w-4 text-cobalt" />, "Become a model", "Upload your photo and try on any high-end outfit — no agency, no shoot."],
+                    [<ShoppingBag key="i" className="h-4 w-4 text-cobalt" />, "Bandit the feeling", "Get the whole vibe — the original outfit, the budget version, and where to live it."],
+                    [<Heart key="i" className="h-4 w-4 text-cobalt" />, "Earn on every look", "When a brand or user picks your look as their model, you get paid."],
                   ].map(([icon, title, text], i) => (
                     <div key={i} className="flex items-start gap-2.5">
                       <span className="mt-0.5 shrink-0">{icon as React.ReactNode}</span>
@@ -2194,14 +2228,16 @@ function StoresPage() {
                   All
                 </button>
                 {categoryChips.map(c => {
-                  // Boudoir (lingerie) is locked — only viewable when signed in (user
-                  // session, curator or admin). Tapping it signed-out opens sign-in.
-                  const locked = c.slug === "boudoir" && !(isSignedIn || !!myCuratorId || isAdmin);
+                  // Community (boudoir slug) is for PAYING members. Padlock is OPEN for a
+                  // paying member (admin always), CLOSED otherwise — tapping it closed shows
+                  // the paywall prompt instead of the feed.
+                  const isCommunity = c.slug === "boudoir";
+                  const locked = isCommunity && !isPaidMember;
                   return (
                   <button key={c.slug} type="button"
-                    onClick={() => { if (locked) { setShowUserPanel(true); return; } setCategoryFilter(c.slug); }}
+                    onClick={() => { if (locked) { setShowPaywall(true); return; } setCategoryFilter(c.slug); }}
                     className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${categoryFilter === c.slug ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>
-                    {c.slug === "boudoir" ? "🔒 " : ""}{c.label}
+                    {isCommunity ? (isPaidMember ? "🔓 " : "🔒 ") : ""}{c.label}
                   </button>
                   );
                 })}
@@ -2240,9 +2276,7 @@ function StoresPage() {
                     <span className="absolute left-1.5 bottom-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">
                       {it.kind === "tryon"
                         ? (it.videoUrl ? "Try-on · video" : "Try-on")
-                        : it.aiCreated
-                          ? "✦ Original"
-                          : "Curated"}
+                        : it.aiCreated ? "✦ Original" : "Model"}
                     </span>
                   </button>
                   <div className="flex items-center gap-1.5 px-2 pt-1 pb-1.5 bg-white">
@@ -2483,8 +2517,8 @@ function StoresPage() {
               The look — shop it at any price
             </h1>
             <p className="mt-1.5 text-sm font-normal leading-6 text-black/55">
-              Curators spot the trends and pick the real products worth buying. Every look comes with
-              shop options across budgets — and you can try it on with AI, on your own photo, before you buy.
+              Models try on the trends and show the real products worth buying. Every look comes with
+              shop options across budgets — and you can model it yourself, on your own photo, before you buy.
             </p>
           </section>
         )}
@@ -2714,6 +2748,7 @@ function StoresPage() {
 
       {/* User panel */}
       {showUserPanel && <UserPanel onClose={() => { setShowUserPanel(false); setSavedAutoOpen(false); stripPanelParam(); }} openSaved={savedAutoOpen} />}
+      {paywallModal}
 
       {/* ── Community detail fullscreen ── */}
       {communitySelectedIndex !== null && (reelItems ?? filteredCommunity).length > 0 && (

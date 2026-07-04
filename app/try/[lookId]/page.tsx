@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, LayoutGrid } from "lucide-react";
 import { FeedGate } from "@/components/FeedGate";
@@ -29,7 +29,11 @@ const DEFAULT_HINT = "Mache die Frau aus @Bild1 angezogen in @Bild2 in verschied
 export default function TryFunnelPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const lookId = String(params?.lookId ?? "");
+  // The specific try-on's ORIGINAL image, passed from the feed (?model=…). It's the person
+  // who actually did THIS try-on — used as the model instead of the look's stock still.
+  const modelParam = searchParams?.get("model") ?? "";
 
   const [look, setLook] = useState<Look | null>(null);
   const [outfits, setOutfits] = useState<Outfit[]>([]);
@@ -80,7 +84,7 @@ export default function TryFunnelPage() {
 
   // The "woman from the video" reference — the look's own poster/front image, unless the
   // user replaced it with their own avatar.
-  const modelImg = avatar || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
+  const modelImg = avatar || modelParam || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
   const teaserImg = outfit?.imageUrl || modelImg;
 
   const goStep3 = () => {
@@ -119,7 +123,7 @@ export default function TryFunnelPage() {
     setGenStatus("generating"); setGenError("");
     const H = { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}) };
     try {
-      const person = avatar || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
+      const person = avatar || modelParam || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
       const garment = (outfitOverride ?? outfit)?.imageUrl || "";
       if (!person || !garment) throw new Error("Referenzbilder fehlen.");
       // Send the admin prompt EXACTLY as written (tokens like @Bild1 / @Bild2 bind to the

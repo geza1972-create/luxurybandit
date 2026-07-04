@@ -119,12 +119,12 @@ export default function CuratorPublicPage() {
   if (loading) return <main className="grid min-h-[100dvh] place-items-center bg-white"><Loader2 className="h-6 w-6 animate-spin text-black/30" /></main>;
   if (!profile) return (
     <main className="grid min-h-[100dvh] place-items-center gap-3 bg-white">
-      <p className="text-sm font-black text-black/50">Curator not found</p>
+      <p className="text-sm font-black text-black/50">Model not found</p>
       <button type="button" onClick={() => router.back()} className="text-xs font-black text-black/50 underline">Go back</button>
     </main>
   );
 
-  const name = `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() || "Curator";
+  const name = `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() || "Model";
 
   return (
     <main className="min-h-[100dvh] bg-white pb-16">
@@ -217,7 +217,7 @@ export default function CuratorPublicPage() {
                     {l.aiCreated ? (
                       <span className="absolute left-1.5 bottom-1.5 rounded-full bg-black px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">✦ Original</span>
                     ) : (
-                      <span className="absolute left-1.5 bottom-1.5 rounded-full bg-white/85 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-black/70 backdrop-blur">Curated</span>
+                      <span className="absolute left-1.5 bottom-1.5 rounded-full bg-white/85 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-black/70 backdrop-blur">Model</span>
                     )}
                     {/* Look has a presentation video → play indicator (same as try-ons) */}
                     {l.videoUrl && (

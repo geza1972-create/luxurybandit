@@ -549,7 +549,7 @@ export async function POST(request: Request) {
     if (typeof payload.addCredits === "number") opts.addCredits = payload.addCredits;
     if (payload.resetSpent === true) opts.resetSpent = true;
     const info = await setCuratorCredits(id, opts);
-    if (!info) return jsonError("Curator not found.", 404);
+    if (!info) return jsonError("Model not found.", 404);
     return NextResponse.json({ ok: true, credits: info });
   }
 
