@@ -535,7 +535,7 @@ export default function PostPage() {
         {/* Try this look (white + credits) · Bandit the look (black → dupes) */}
         {!post.creatorDeleted && (
           <div className="flex items-center gap-2">
-            <a href={`/tryon/${post.lookId}`}
+            <a href={`/try/${post.lookId}${post.userPhotoUrl ? `?model=${encodeURIComponent(post.userPhotoUrl)}` : ""}`}
               className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform">
               <Sparkles className="h-4 w-4" /> See her in other looks
             </a>
