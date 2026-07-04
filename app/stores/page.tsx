@@ -1872,15 +1872,6 @@ function StoresPage() {
     if (q) items = items.filter(it => `${it.name} ${it.curatorName ?? ""}`.toLowerCase().includes(q));
     return items;
   }, [feedItems, categoryFilter, query]);
-  // The grid view now embeds the SAME reel (no more tiles) — feed the looks, filtered by
-  // the active category chip and the search box.
-  const filteredLooks = useMemo(() => {
-    let ls = looks as unknown as FeedLook[];
-    if (categoryFilter) ls = ls.filter(l => (l as { category?: string }).category === categoryFilter);
-    const q = query.trim().toLowerCase();
-    if (q) ls = ls.filter(l => `${l.name ?? ""} ${(l as { curatorName?: string }).curatorName ?? ""}`.toLowerCase().includes(q));
-    return ls;
-  }, [looks, categoryFilter, query]);
   // Grid pagination — render a first fast batch, then load more as you scroll (the grid
   // was mounting 40+ <video> tiles at once, which stalled the initial paint).
   const HISTORY_PAGE = 12;
@@ -2057,10 +2048,10 @@ function StoresPage() {
   }
 
   return (
-    <div className="flex h-[100dvh] flex-col bg-white overflow-hidden" style={{ maxWidth: "100vw" }}>
+    <div className="min-h-dvh bg-white" style={{ maxWidth: "100vw" }}>
 
       {/* ── Header ── */}
-      <header className="shrink-0 z-20 border-b border-black/8 bg-white/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-black/8 bg-white/95 backdrop-blur">
 
         {/* Brand row */}
         <div className="flex items-center justify-between px-4 pt-2.5 pb-1.5">
@@ -2155,7 +2146,7 @@ function StoresPage() {
 
       </header>
 
-      <main className={typeFilter === "community" ? "flex-1 min-h-0 overflow-y-auto pb-24" : "flex-1 min-h-0 flex flex-col"}>
+      <main className="pb-24">
 
         {/* Saved model photo banner */}
         {savedModel && (
@@ -2185,10 +2176,43 @@ function StoresPage() {
             <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-black/30" /></div>
           ) : (
           <>
-            {/* Category chips — filter the embedded feed below (hero removed: the feed is
-                the content now, branding lives in the header). */}
+            {/* Hero — explains in one glance what LuxuryBandit lets you do.
+                Hidden while filtering/searching to keep browsing clean. */}
+            {!categoryFilter && !searchOpen && (
+              <section className="px-4 pt-4 pb-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cobalt">The models marketplace</p>
+                <h1 className="mt-1.5 text-[1.7rem] font-black leading-[1.1] tracking-tight text-black">
+                  Luxurybandit <span className="text-cobalt">Models</span>
+                </h1>
+                <p className="mt-2 max-w-md text-sm font-medium leading-6 text-black/55">
+                  We create the hottest outfits every day — ready for you to wear.
+                </p>
+                <div className="mt-3 grid gap-1.5">
+                  {[
+                    [<Sparkles key="i" className="h-4 w-4 text-cobalt" />, "Become a model", "Upload your photo and try on any high-end outfit — no agency, no shoot."],
+                    [<Heart key="i" className="h-4 w-4 text-cobalt" />, "Earn on every look", "When a brand or user picks your look as their model, you get paid."],
+                  ].map(([icon, title, text], i) => (
+                    <div key={i} className="flex items-start gap-2.5">
+                      <span className="mt-0.5 shrink-0">{icon as React.ReactNode}</span>
+                      <p className="text-[13px] leading-snug text-black/70">
+                        <span className="font-black text-black">{title as string}</span> — {text as string}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3.5 flex items-center gap-2">
+                  <button type="button" onClick={() => router.push("/about")}
+                    className="flex h-10 items-center justify-center rounded-full border border-black/15 bg-white px-5 text-sm font-black text-black active:scale-95 transition-transform">
+                    How it works
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {/* Editorial category chips (After Dark / Riviera / Off-Duty / Boudoir) —
+                NEVER brand names. "All" excludes Boudoir; pick the Boudoir chip to see it. */}
             {categoryChips.length > 0 && (
-              <div className="shrink-0 flex gap-1.5 overflow-x-auto px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex gap-1.5 overflow-x-auto px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <button type="button" onClick={() => setCategoryFilter(null)}
                   className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${categoryFilter === null ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>
                   All
@@ -2209,12 +2233,63 @@ function StoresPage() {
                 })}
               </div>
             )}
-            {/* The grid IS the feed now — the same reel, filtered by chip/search (no tiles). */}
-            <div className="flex-1 min-h-0">
-              {filteredLooks.length === 0
-                ? <p className="py-16 text-center text-sm font-black text-black/40">Nothing in this category yet.</p>
-                : <HomeFeed embedded looks={filteredLooks} />}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-0.5">
+              {pagedHistory.map((it, idx) => (
+                <div key={it.key} className="flex flex-col">
+                  <button type="button"
+                    onClick={() => setFeedOpen({ tryOnId: it.kind === "tryon" ? it.id : undefined, lookId: it.lookId })}
+                    className="relative aspect-square overflow-hidden bg-black/5 transition-opacity active:opacity-80">
+                    {it.videoUrl ? (
+                      // Video tile — always show a still poster so the tile is never a
+                      // black box: the model poster if we have one, else the look's own
+                      // image, and only as a last resort the video's first frame. With a
+                      // poster we load NO video bytes (preload none) — the grid isn't a
+                      // player, tapping navigates away — which keeps the grid fast.
+                      (() => { const poster = it.videoPoster || it.thumb; return (
+                        <video src={poster ? it.videoUrl : `${it.videoUrl}#t=0.1`} poster={poster || undefined} muted playsInline preload={poster ? "none" : "metadata"}
+                          className="h-full w-full bg-black object-cover object-top" />
+                      ); })()
+                    ) : it.thumb ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={optImg(it.thumb, 400)} alt={it.name} loading="lazy" decoding="async"
+                        onError={(e) => { const im = e.currentTarget; if (it.thumb && im.src !== it.thumb) im.src = it.thumb; }}
+                        className="h-full w-full object-cover object-top" />
+                    ) : (
+                      // No render available — a neutral placeholder (never an empty src,
+                      // which makes the browser re-request the whole page).
+                      <div className="h-full w-full bg-black/[0.06]" />
+                    )}
+                    {it.videoUrl && (
+                      <span className="pointer-events-none absolute inset-0 grid place-items-center"><Play className="h-11 w-11 fill-white text-white opacity-45 drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]" /></span>
+                    )}
+                    {/* Label at the BOTTOM — the face is usually at the top of the crop */}
+                    <span className="absolute left-1.5 bottom-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">
+                      {it.kind === "tryon"
+                        ? (it.videoUrl ? "Try-on · video" : "Try-on")
+                        : it.aiCreated ? "✦ Original" : "Model"}
+                    </span>
+                  </button>
+                  <div className="flex items-center gap-1.5 px-2 pt-1 pb-1.5 bg-white">
+                    {it.curatorName && (
+                      <span className="flex h-4 w-4 shrink-0 overflow-hidden rounded-full bg-black/5">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={it.curatorPhoto || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(publicAuthorName(it.curatorName))}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1 truncate text-[9px] font-black text-black/70">{it.curatorName ? publicAuthorName(it.curatorName) : it.name}</span>
+                    {it.price && <span className="shrink-0 text-[9px] font-black text-ink">{it.price}</span>}
+                  </div>
+                </div>
+              ))}
             </div>
+            {hasMoreHistory && (
+              <div ref={historySentinelRef} className="flex justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-black/25" />
+              </div>
+            )}
+            {categoryFilter && visibleHistory.length === 0 && (
+              <p className="py-16 text-center text-sm font-black text-black/40">Nothing in this category yet.</p>
+            )}
           </>
           )
         )}
