@@ -685,10 +685,19 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             <div key={i} className="relative h-full w-full shrink-0 snap-center">
               {m.type === "video" ? (
                 <div className="relative h-full w-full">
+                  {/* Only MOUNT the <video> when this look-reel is on-screen AND this is the
+                      active horizontal slide (±1) — off-screen/far slides show a static
+                      poster. Mobile browsers cap concurrent video decoders (~16); mounting
+                      every feed video at once made none play. */}
+                  {inView && Math.abs(i - active) <= 1 ? (
                   <video ref={el => { if (el) { el.muted = true; videoRefs.current[i] = el; } else delete videoRefs.current[i]; }}
                     src={look.videoUrl} className="h-full w-full bg-black object-cover cursor-grab active:cursor-grabbing"
                     onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted autoPlay loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos}
                     onPlaying={() => { if (i === active) { setPlaying(true); setVidFailed(false); } }} onPause={() => { if (i === active) setPlaying(false); }} onStalled={() => { if (i === active) setPlaying(false); }} />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={videoStill} alt="" className="h-full w-full bg-black object-cover" />
+                  )}
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{look.aiCreated ? "✦ AI video" : "Video"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
                 </div>
@@ -708,9 +717,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               ) : m.type === "cvideo" ? (
                 // Community try-on video — same sound handling as the curator video.
                 <div className="relative h-full w-full">
+                  {/* Mount the <video> only when on-screen & near the active slide (see note above). */}
+                  {inView && Math.abs(i - active) <= 1 ? (
                   <video ref={el => { if (el) { el.muted = true; videoRefs.current[i] = el; } else delete videoRefs.current[i]; }}
                     src={m.url} poster={m.poster || videoStill} className="h-full w-full bg-black object-cover cursor-grab active:cursor-grabbing" onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted autoPlay loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos}
                     onPlaying={() => { if (i === active) { setPlaying(true); setVidFailed(false); } }} onPause={() => { if (i === active) setPlaying(false); }} onStalled={() => { if (i === active) setPlaying(false); }} />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={m.poster || videoStill} alt="" className="h-full w-full bg-black object-cover" />
+                  )}
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
                     className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>Try-on video<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
                 </div>
