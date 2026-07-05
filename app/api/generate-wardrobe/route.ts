@@ -57,6 +57,20 @@ function buildPieces(prefs: { style?: string; brands?: string; fabrics?: string;
   return items;
 }
 
+// Admin typed a description of the pieces they want → one garment per comma/"and"-separated
+// item (instead of auto-deriving from the model's signup prefs).
+function buildFromBrief(brief: string): Piece[] {
+  const items = splitList(brief.replace(/\s+and\s+/gi, ", "));
+  return (items.length ? items : [brief.trim()]).slice(0, 10).map((raw) => {
+    const lingerie = /lingerie|bra\b|bralette|bodysuit|thong|corset|bustier|garter|negligee|nightdress|\bslip\b|\brobe\b/i.test(raw);
+    const name = cap(raw).slice(0, 80);
+    const prompt = lingerie
+      ? `Professional luxury lingerie e-commerce product photograph, a SINGLE ${raw} laid flat / on an invisible ghost-mannequin on a pure seamless white background, no human, no body, no face, tasteful catalog product shot, elegant, sharp studio lighting, full garment visible, no text, no logo.`
+      : `Professional e-commerce fashion product photograph of a SINGLE luxury garment on a pure seamless white background, ghost-mannequin (invisible model) style, no human, no face, sharp even studio lighting, the complete garment centered and fully visible top to bottom. The garment: ${raw}. High-end catalog quality, crisp fabric detail, realistic, no text, no logo.`;
+    return { piece: raw, prompt, lingerie, category: inferCategory(raw, lingerie), name };
+  });
+}
+
 async function genImage(apiKey: string, model: string, prompt: string): Promise<{ dataUrl?: string; error?: string }> {
   try {
     const res = await fetch("https://api.openai.com/v1/images/generations", {
@@ -90,7 +104,11 @@ export async function POST(request: Request) {
   if (!cur) return NextResponse.json({ error: "Model not found." }, { status: 404 });
   const modelName = [cur.firstName, cur.lastName].filter(Boolean).join(" ").trim();
 
-  const pieces = buildPieces({ style: cur.style, brands: cur.brands, fabrics: cur.fabrics, occasions: cur.occasions, colors: cur.colors }, mainCount, lingerieCount);
+  // If the admin described what they want, build from that; else auto-derive from her prefs.
+  const brief = String(body.brief ?? "").trim();
+  const pieces = brief
+    ? buildFromBrief(brief)
+    : buildPieces({ style: cur.style, brands: cur.brands, fabrics: cur.fabrics, occasions: cur.occasions, colors: cur.colors }, mainCount, lingerieCount);
 
   const created: { id: string; name: string; category: string; lingerie: boolean; error?: string }[] = [];
   const newLooks: any[] = [];

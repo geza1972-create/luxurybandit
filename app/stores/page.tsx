@@ -2388,7 +2388,7 @@ function StoresPage() {
               <button type="button" onClick={() => setHomeTab("models")}
                 className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "models" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>Models{models.length ? ` · ${models.length}` : ""}</button>
               <button type="button" onClick={() => setHomeTab("garderobe")}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "garderobe" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>Garderobe{garments.length ? ` · ${garments.length}` : ""}</button>
+                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "garderobe" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>Wardrobe{garments.length ? ` · ${garments.length}` : ""}</button>
               <button type="button" onClick={() => setHomeTab("feeds")}
                 className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>Fashionshow</button>
             </div>

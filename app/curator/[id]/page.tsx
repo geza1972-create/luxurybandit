@@ -53,11 +53,16 @@ export default function CuratorPublicPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [genBusy, setGenBusy] = useState(false);
   const [genMsg, setGenMsg] = useState("");
+  // Admin: describe the pieces to generate (else auto from her prefs).
+  const [genOpen, setGenOpen] = useState(false);
+  const [genBrief, setGenBrief] = useState("");
   // Her videos live BEHIND the profile photo — tapping it opens a fullscreen carousel,
   // so they never compete with the wardrobe for attention.
   const [motionOpen, setMotionOpen] = useState(false);
   // "See her in other looks" scrolls down to her wardrobe (her outfits).
   const wardrobeRef = useRef<HTMLDivElement>(null);
+  // "Load more looks" also pulls in garments from OTHER models so she can wear anything.
+  const [moreLooks, setMoreLooks] = useState(false);
   // Wardrobe category filter (mirrors the Garderobe tab).
   const [wardrobeCat, setWardrobeCat] = useState<"all" | LookCategory>("all");
   // Admin per-item management sheet (delete / hide / replace / move category / edit text).
@@ -162,14 +167,24 @@ export default function CuratorPublicPage() {
     setAllLooks(all.filter(l => l.published !== false));
     setLooks(all.filter(l => l.curatorId === id));
   };
+  // Admin: delete an "in motion" video (the underlying try-on generation).
+  const deleteVideo = async (t: TryOn) => {
+    if (!window.confirm("Dieses Video endgültig löschen?")) return;
+    try {
+      await fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ action: "delete-generation", id: t.id }) });
+      setTryons(prev => prev.filter(x => x.id !== t.id));
+    } catch { /**/ }
+  };
   const generateWardrobe = async () => {
     if (genBusy) return;
+    const brief = genBrief.trim();
+    setGenOpen(false);
     setGenBusy(true); setGenMsg("Generiere Garderobe … (~1 Min, bitte warten)");
     try {
       const res = await fetch("/api/generate-wardrobe", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-try-look-admin-pin": adminPin() },
-        body: JSON.stringify({ curatorId: id, mainCount: 3, lingerieCount: 3 }),
+        body: JSON.stringify({ curatorId: id, mainCount: 3, lingerieCount: 3, ...(brief ? { brief } : {}) }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d?.error || "Fehler");
@@ -333,13 +348,17 @@ export default function CuratorPublicPage() {
           // De-dupe: repeated "Generieren" runs can create identical garments (same
           // deterministic name) — show each unique piece once so nothing appears doubled.
           const seen = new Set<string>();
-          const wardrobeAll = looks.filter(l => {
-            if (!(l.aiCreated && (l.frontImageUrl || l.imageUrl))) return false;
+          const isGarment = (l: Look) => l.aiCreated && (l.frontImageUrl || l.imageUrl);
+          const dedupe = (l: Look) => {
             const key = (l.name ?? "").trim().toLowerCase();
             if (key && seen.has(key)) return false;
             if (key) seen.add(key);
             return true;
-          });
+          };
+          const herWardrobe = looks.filter(l => isGarment(l) && dedupe(l));
+          // "Load more looks" appends garments from OTHER models (she can wear anything).
+          const moreWardrobe = moreLooks ? allLooks.filter(l => l.curatorId !== id && isGarment(l) && dedupe(l)) : [];
+          const wardrobeAll = [...herWardrobe, ...moreWardrobe];
           const catOf = (l: Look): LookCategory => (isLookCategory(l.category) ? l.category : categorizeLook(l as never));
           const presentCats = LOOK_CATEGORIES.filter(c => wardrobeAll.some(l => catOf(l) === c.slug));
           const wardrobe = wardrobeCat === "all" ? wardrobeAll : wardrobeAll.filter(l => catOf(l) === wardrobeCat);
@@ -349,10 +368,10 @@ export default function CuratorPublicPage() {
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-[15px] font-black text-white">Wardrobe</h2>
                 {isAdmin && (
-                  <button type="button" onClick={generateWardrobe} disabled={genBusy}
+                  <button type="button" onClick={() => { setGenBrief(""); setGenOpen(true); }} disabled={genBusy}
                     className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3.5 py-1.5 text-[11px] font-black text-white active:scale-95 transition disabled:opacity-50">
                     {genBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                    {genBusy ? "Generiere …" : "Generieren (3 + 3)"}
+                    {genBusy ? "Generiere …" : "Generieren"}
                   </button>
                 )}
               </div>
@@ -380,25 +399,25 @@ export default function CuratorPublicPage() {
                   {wardrobe.map(l => {
                     const garment = (l.frontImageUrl ?? l.imageUrl) as string;
                     const hidden = l.published === false;
+                    const notMine = l.curatorId !== id;
                     return (
-                      <div key={l.id} className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white">
+                      <div key={l.id} className="relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white">
                         <button type="button"
                           onClick={() => profile.photoUrl && router.push(`/try/${l.id}?model=${encodeURIComponent(profile.photoUrl)}&garment=${encodeURIComponent(garment)}&modelId=${encodeURIComponent(id)}&modelName=${encodeURIComponent(name)}`)}
-                          className="block w-full active:scale-[0.98] transition-transform">
-                          <div className="aspect-[3/4] w-full">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={optImg(garment, 500)} alt={l.name} loading="lazy" decoding="async"
-                              onError={(e) => { const im = e.currentTarget; if (garment && im.src !== garment) im.src = garment; }}
-                              className={`h-full w-full object-contain ${hidden ? "opacity-40" : ""}`} />
-                          </div>
-                          <div className="absolute inset-x-2 bottom-2 rounded-xl bg-black px-3 py-2">
-                            <span className="line-clamp-1 text-[13px] font-black text-white">{l.name}</span>
-                          </div>
+                          className="relative aspect-[3/4] w-full bg-neutral-50 active:opacity-80 transition-opacity">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={optImg(garment, 500)} alt={l.name} loading="lazy" decoding="async"
+                            onError={(e) => { const im = e.currentTarget; if (garment && im.src !== garment) im.src = garment; }}
+                            className={`h-full w-full object-contain ${hidden ? "opacity-40" : ""}`} />
+                          {/* Make it obvious tapping generates a try-on VIDEO. */}
+                          {!hidden && <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur"><Play className="h-2.5 w-2.5" fill="currentColor" /> Video erstellen</span>}
                         </button>
-                        {/* Make it obvious tapping generates a try-on VIDEO. */}
-                        {!hidden && <span className="pointer-events-none absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur"><Play className="h-2.5 w-2.5" fill="currentColor" /> Video erstellen</span>}
+                        <div className="px-2 py-1.5">
+                          <span className="block truncate text-[11px] font-black text-black/70">{l.name}</span>
+                        </div>
                         {hidden && <span className="absolute left-2 top-2 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-black text-white">Ausgeblendet</span>}
-                        {isAdmin && (
+                        {/* Only admins manage — and only HER own pieces (not the borrowed "more looks"). */}
+                        {isAdmin && !notMine && (
                           <button type="button" onClick={() => openManage(l)}
                             className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/70 text-white backdrop-blur active:scale-90 transition">
                             <SlidersHorizontal className="h-4 w-4" />
@@ -408,6 +427,14 @@ export default function CuratorPublicPage() {
                     );
                   })}
                 </div>
+              )}
+
+              {/* Load garments from OTHER models too — she can wear anything. */}
+              {!moreLooks && allLooks.some(l => l.curatorId !== id && l.aiCreated && (l.frontImageUrl || l.imageUrl)) && (
+                <button type="button" onClick={() => setMoreLooks(true)}
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-full border border-white/20 bg-white/[0.04] px-5 py-3 text-[13px] font-black text-white active:scale-95 transition">
+                  <Sparkles className="h-4 w-4 text-amber-400" /> Load more looks
+                </button>
               )}
             </>
           );
@@ -428,20 +455,28 @@ export default function CuratorPublicPage() {
           <div ref={reelRef} onScroll={onReelScroll}
             className="flex flex-1 snap-x snap-mandatory items-center gap-3 overflow-x-auto px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {videos.map(t => (
-              <button key={t.id} type="button" onClick={() => setPlayingId(p => (p === t.id ? "" : t.id))}
-                className="relative aspect-[9/16] h-[74vh] max-h-[80vh] w-[84vw] max-w-[430px] shrink-0 snap-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
-                {playingId === t.id ? (
-                  <video src={t.videoUrl} autoPlay loop playsInline className="h-full w-full object-cover" />
-                ) : (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={optImg(t.imageUrl, 700)} alt="" loading="lazy" decoding="async"
-                      onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
-                      className="h-full w-full object-cover object-top" />
-                    <span className="absolute inset-0 grid place-items-center text-white/90"><Play className="h-14 w-14 drop-shadow-[0_1px_6px_rgba(0,0,0,0.6)]" fill="currentColor" /></span>
-                  </>
+              <div key={t.id} className="relative aspect-[9/16] h-[74vh] max-h-[80vh] w-[84vw] max-w-[430px] shrink-0 snap-center">
+                <button type="button" onClick={() => setPlayingId(p => (p === t.id ? "" : t.id))}
+                  className="h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+                  {playingId === t.id ? (
+                    <video src={t.videoUrl} autoPlay loop playsInline className="h-full w-full object-cover" />
+                  ) : (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={optImg(t.imageUrl, 700)} alt="" loading="lazy" decoding="async"
+                        onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
+                        className="h-full w-full object-cover object-top" />
+                      <span className="absolute inset-0 grid place-items-center text-white/90"><Play className="h-14 w-14 drop-shadow-[0_1px_6px_rgba(0,0,0,0.6)]" fill="currentColor" /></span>
+                    </>
+                  )}
+                </button>
+                {isAdmin && (
+                  <button type="button" onClick={() => deleteVideo(t)}
+                    className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-red-500/90 text-white backdrop-blur active:scale-90 transition" aria-label="Video löschen">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 )}
-              </button>
+              </div>
             ))}
           </div>
           {videos.length > 1 && (
@@ -450,6 +485,28 @@ export default function CuratorPublicPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Admin: describe the pieces to generate (else auto from her prefs). */}
+      {isAdmin && genOpen && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/60" onClick={() => setGenOpen(false)} />
+          <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[51] rounded-t-2xl border-t border-white/10 bg-[#161311] px-5 pt-4 text-white" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-base font-black">Kleidungsstücke generieren</p>
+              <button type="button" onClick={() => setGenOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10"><X className="h-4 w-4" /></button>
+            </div>
+            <p className="mb-2 text-[12px] font-bold text-white/50">Beschreibe was du willst — ein Stück pro Komma. Leer lassen = automatisch aus ihren Vorlieben (3 Looks + 3 Lingerie).</p>
+            <textarea value={genBrief} onChange={e => setGenBrief(e.target.value)} rows={4}
+              placeholder="z.B. rotes Satin-Abendkleid mit Schlitz, schwarzer Leder-Blazer, schwarzes Spitzen-Dessous-Set"
+              className="w-full resize-none rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2.5 text-[13px] text-white outline-none focus:border-white/40" />
+            <button type="button" onClick={generateWardrobe} disabled={genBusy}
+              className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 text-sm font-black text-black active:scale-95 transition disabled:opacity-50">
+              {genBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {genBrief.trim() ? "Generieren" : "Automatisch (3 + 3)"}
+            </button>
+          </div>
+        </>
       )}
 
       {/* Message modal */}
