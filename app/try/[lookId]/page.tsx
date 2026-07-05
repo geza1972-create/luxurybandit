@@ -50,7 +50,6 @@ export default function TryFunnelPage() {
   }, [pickModel, chooseModel]);
 
   const [look, setLook] = useState<Look | null>(null);
-  const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [outfit, setOutfit] = useState<Outfit | null>(null);
   const [avatar, setAvatar] = useState<string>("");       // user's own photo (data URL)
@@ -82,8 +81,6 @@ export default function TryFunnelPage() {
   useEffect(() => {
     fetch(`/api/try-this-look?previewId=${encodeURIComponent(lookId)}`).then(r => r.json()).then(d => setLook(d.look ?? null)).catch(() => {});
     fetch(`/api/try-this-look`).then(r => r.json()).then(d => {
-      // Show global outfits (no lookId) plus any assigned to THIS look.
-      setOutfits((d.outfits ?? []).filter((o: Outfit) => !o.lookId || o.lookId === lookId));
       setPrompt(d.funnelVideoPrompt ?? "");
     }).catch(() => {});
   }, [lookId]);
@@ -183,14 +180,6 @@ export default function TryFunnelPage() {
     } catch (e) {
       setGenStatus("error"); setGenError(e instanceof Error ? e.message : "Fehler");
     }
-  };
-
-  // Pick another outfit from the under-video gallery → generate a fresh video for it.
-  const regenerateWith = (o: Outfit) => {
-    setOutfit(o);
-    genStartedRef.current = false;
-    setGenVideoUrl(""); setGenStatus("idle"); setGenError("");
-    void generateReal(o);
   };
 
   // Real users generate automatically after paying. Admins do NOT auto-generate (that
@@ -459,29 +448,6 @@ export default function TryFunnelPage() {
           </div>
           <h1 className="mt-6 text-center text-[22px] font-black leading-tight">{genStatus === "done" ? "Enjoy your video 🎉" : "Wir zaubern dein Video…"}</h1>
           <p className="mt-2 text-center text-[13px] font-bold text-white/50">{genStatus === "done" ? "Gespeichert in deiner Galerie — ansehen & verwalten unter Account." : "Dein Try-on wird in voller Qualität erstellt."}</p>
-
-          {/* Under the video: the outfit gallery. Tap another outfit → a fresh video is
-              generated above (each result also saves to your gallery). */}
-          {outfits.length > 0 && (
-            <div className="mt-7">
-              <p className="mb-2 text-[13px] font-black">Try another outfit</p>
-              <div className="grid grid-cols-3 gap-2">
-                {outfits.map(o => (
-                  <button key={o.id} type="button" onClick={() => regenerateWith(o)} disabled={genStatus === "generating"}
-                    className={`relative overflow-hidden rounded-xl border active:scale-95 transition-transform disabled:opacity-40 ${outfit?.id === o.id ? "border-amber-400" : "border-white/10"}`}>
-                    <div className="aspect-[3/4] w-full">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={o.imageUrl} alt={o.name} className="h-full w-full object-cover" />
-                    </div>
-                    <div className="absolute inset-x-1 bottom-1 rounded-lg bg-black px-2 py-1">
-                      <span className="line-clamp-1 text-[10px] font-black text-white">{o.name}</span>
-                    </div>
-                    {outfit?.id === o.id && <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-amber-400 text-black"><Check className="h-3 w-3" /></span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
