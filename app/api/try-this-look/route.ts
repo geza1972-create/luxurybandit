@@ -2243,6 +2243,17 @@ export async function POST(request: Request) {
       if (!gen) return NextResponse.json({ error: "Generated image was not found." }, { status: 404 });
       if (payload.customerName !== undefined) (gen as any).customerName = String(payload.customerName ?? "").trim();
       if (payload.userId !== undefined) (gen as any).userId = String(payload.userId ?? "").trim() || undefined;
+      // Attribute the try-on to a MODEL (curator) too — so it lands under her in the feed
+      // and her profile "In motion". If a curatorId is given, backfill the model's name.
+      if (payload.curatorId !== undefined) {
+        const cid = String(payload.curatorId ?? "").trim();
+        (gen as any).curatorId = cid || undefined;
+        if (cid) {
+          const cur = (state.curators ?? []).find(c => c.id === cid);
+          const nm = cur ? [cur.firstName, cur.lastName].filter(Boolean).join(" ").trim() : "";
+          if (nm) (gen as any).customerName = nm;
+        }
+      }
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json({ ok: true, customerName: (gen as any).customerName, userId: (gen as any).userId });
     }

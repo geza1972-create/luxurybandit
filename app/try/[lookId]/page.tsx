@@ -34,6 +34,11 @@ export default function TryFunnelPage() {
   // The specific try-on's ORIGINAL image, passed from the feed (?model=…). It's the person
   // who actually did THIS try-on — used as the model instead of the look's stock still.
   const modelParam = searchParams?.get("model") ?? "";
+  // The chosen model's identity (so the generated try-on is attributed to HER — feed +
+  // her profile "In motion" — not the garment's owner). Passed from a model page; overridden
+  // when the user switches models in the picker.
+  const modelIdParam = searchParams?.get("modelId") ?? "";
+  const modelNameParam = searchParams?.get("modelName") ?? "";
   // When opened from a model's wardrobe: the exact garment to put her in (its image URL).
   const garmentParam = searchParams?.get("garment") ?? "";
   // Garment-first (from the Garderobe tab): the garment is chosen but not the model yet →
@@ -41,6 +46,8 @@ export default function TryFunnelPage() {
   const pickModel = (searchParams?.get("pick") ?? "") === "1";
   const [gModels, setGModels] = useState<{ id: string; name: string; photoUrl: string }[]>([]);
   const [pickedModel, setPickedModel] = useState("");
+  const [pickedModelId, setPickedModelId] = useState("");
+  const [pickedModelName, setPickedModelName] = useState("");
   // "Choose other model" opens the model picker even when a model was preset (came from
   // a model page with ?model=). Load the models list for both entry points.
   const [chooseModel, setChooseModel] = useState(false);
@@ -73,6 +80,8 @@ export default function TryFunnelPage() {
   const [genVideoUrl, setGenVideoUrl] = useState("");
   const [genError, setGenError] = useState("");
   const genStartedRef = useRef(false);
+  // The chosen model's videos (incl. the one just made) — shown as a gallery on the done screen.
+  const [madeVideos, setMadeVideos] = useState<{ id: string; imageUrl: string; videoUrl?: string; lookName?: string }[]>([]);
 
   useEffect(() => {
     try { setAdminPin(localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""); } catch { /**/ }
@@ -111,6 +120,9 @@ export default function TryFunnelPage() {
   // user replaced it with their own avatar.
   const modelImg = avatar || pickedModel || modelParam || look?.modelPhotoUrl || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
   const teaserImg = garmentParam || outfit?.imageUrl || modelImg;
+  // The model the try-on is attributed to (final pick wins; empty for own-photo try-ons).
+  const chosenModelId = !avatar ? (pickedModelId || modelIdParam) : "";
+  const chosenModelName = !avatar ? (pickedModelName || modelNameParam) : "";
 
   const goStep3 = () => {
     // Fake render: a short spinner, then the blurred "ready" teaser. No real generation.
@@ -167,10 +179,14 @@ export default function TryFunnelPage() {
       // Save it as the signed-in user's own generation (poster + attach video).
       const session = getStoredAuthSession();
       const poster = await posterFromVideo(videoUrl);
+      // Attribute the try-on to the MODEL who's actually wearing it (final pick wins over the
+      // one passed in the URL) — so it lands under HER in the feed + her profile "In motion",
+      // NOT the garment owner. Own-photo try-ons (avatar) stay attributed to the user.
       if (poster) {
         const gen = await fetch("/api/try-this-look", { method: "POST", headers: H, body: JSON.stringify({
           action: "generation", lookId, image: poster, genKind: "video", feed: false,
-          customerName: (session?.user?.email?.split("@")[0]) || "You",
+          customerName: chosenModelName || (session?.user?.email?.split("@")[0]) || "You",
+          ...(chosenModelId ? { curatorId: chosenModelId } : {}),
           ownerEmail: session?.user?.email || "", userId: session?.user?.id || "",
           // Save the model/before photo so the post gets a real Before/After slide.
           ...(person.startsWith("data:image/") ? { userPhotoImage: person } : person ? { userPhotoUrl: person } : {}),
@@ -185,6 +201,21 @@ export default function TryFunnelPage() {
   // Real users generate automatically after paying. Admins do NOT auto-generate (that
   // would burn Pixverse credits on every test) — they trigger it with an explicit button.
   useEffect(() => { if (step === 5 && !adminPin) void generateReal(); }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Once done: load the chosen model's videos (incl. the one just made) → shown as a gallery
+  // on the result screen so the admin sees it landed in her "In motion".
+  useEffect(() => {
+    if (genStatus !== "done" || !chosenModelId) return;
+    const t = setTimeout(() => {
+      // Admins see all of her videos (incl. the just-made, still-unpublished one via manage=1);
+      // end-users only her published ones.
+      fetch(`/api/try-this-look?curatorTryons=${encodeURIComponent(chosenModelId)}${adminPin ? "&manage=1" : ""}`, adminPin ? { headers: { "x-try-look-admin-pin": adminPin } } : undefined)
+        .then(r => r.json())
+        .then(d => setMadeVideos((d.userGallery ?? []).filter((v: { videoUrl?: string }) => v.videoUrl)))
+        .catch(() => {});
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [genStatus, chosenModelId, adminPin]);
 
   const price = plan === "pro" ? (billing === "month" ? "$58.99" : "$29.49") : (billing === "month" ? "$128.99" : "$64.49");
 
@@ -281,7 +312,7 @@ export default function TryFunnelPage() {
               <p className="mt-2 text-[13px] font-bold text-white/50">Pick a model to wear this piece — or use your own photo.</p>
               <div className="mt-4 grid grid-cols-3 gap-2">
                 {gModels.map(m => (
-                  <button key={m.id} type="button" onClick={() => setPickedModel(m.photoUrl)}
+                  <button key={m.id} type="button" onClick={() => { setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); }}
                     className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-[0.98] transition-transform">
                     <div className="aspect-[3/4] w-full">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -448,6 +479,26 @@ export default function TryFunnelPage() {
           </div>
           <h1 className="mt-6 text-center text-[22px] font-black leading-tight">{genStatus === "done" ? "Enjoy your video 🎉" : "Wir zaubern dein Video…"}</h1>
           <p className="mt-2 text-center text-[13px] font-bold text-white/50">{genStatus === "done" ? "Gespeichert in deiner Galerie — ansehen & verwalten unter Account." : "Dein Try-on wird in voller Qualität erstellt."}</p>
+
+          {/* After generating: a gallery of the model's videos (incl. this one) → it's now in
+              her "In motion". Tap a card to open her profile. */}
+          {genStatus === "done" && madeVideos.length > 0 && (
+            <div className="mt-7">
+              <p className="mb-2 text-[13px] font-black">{chosenModelName ? `${chosenModelName}'s Videos` : "Deine Videos"}</p>
+              <div className="grid grid-cols-3 gap-2">
+                {madeVideos.map(v => (
+                  <a key={v.id} href={chosenModelId ? `/curator/${chosenModelId}` : "#"}
+                    className="relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] active:scale-95 transition-transform">
+                    <div className="aspect-[3/4] w-full">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={v.imageUrl} alt={v.lookName ?? ""} loading="lazy" className="h-full w-full object-cover object-top" />
+                    </div>
+                    <span className="absolute inset-0 grid place-items-center text-white/90"><Play className="h-8 w-8 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" fill="currentColor" /></span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

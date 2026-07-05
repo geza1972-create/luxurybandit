@@ -383,7 +383,7 @@ export default function CuratorPublicPage() {
                     return (
                       <div key={l.id} className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white">
                         <button type="button"
-                          onClick={() => profile.photoUrl && router.push(`/try/${l.id}?model=${encodeURIComponent(profile.photoUrl)}&garment=${encodeURIComponent(garment)}`)}
+                          onClick={() => profile.photoUrl && router.push(`/try/${l.id}?model=${encodeURIComponent(profile.photoUrl)}&garment=${encodeURIComponent(garment)}&modelId=${encodeURIComponent(id)}&modelName=${encodeURIComponent(name)}`)}
                           className="block w-full active:scale-[0.98] transition-transform">
                           <div className="aspect-[3/4] w-full">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
