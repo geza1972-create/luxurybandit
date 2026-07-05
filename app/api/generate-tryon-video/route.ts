@@ -104,16 +104,21 @@ async function pixverseStartReference(key: string, garment: string, person: stri
   // as typing it into Pixverse yourself. Bind the two reference images to the exact
   // @-tokens used in the prompt: the FIRST distinct token = the person, the SECOND = the
   // outfit (matches "…die Frau aus @Bild1 angezogen in @Bild2/@0…").
-  const promptUsed = (customPrompt && customPrompt.trim())
+  const promptRaw = (customPrompt && customPrompt.trim())
     ? customPrompt.trim()
     : (turnaround ? REF_TURNAROUND_PROMPT : REF_PRESENT_PROMPT);
-  const tokens = [...new Set((promptUsed.match(/@([A-Za-z0-9_]+)/g) || []).map(t => t.slice(1)))];
-  // The funnel convention is FIXED: @Bild1 = the model/person, @Bild2 = the outfit. Lock the
-  // binding to those names when present so it NEVER depends on token ORDER (an admin can write
-  // the prompt however they like). Otherwise fall back to first=person, second=outfit.
-  const useBild = tokens.includes("Bild1") && tokens.includes("Bild2");
-  const personRef = useBild ? "Bild1" : (tokens[0] || "person");
-  const outfitRef = useBild ? "Bild2" : (tokens[1] || "outfit");
+  const tokens = [...new Set((promptRaw.match(/@([A-Za-z0-9_]+)/g) || []).map(t => t.slice(1)))];
+  // person = @Bild1 / @1 / @person / @model; outfit = a DIFFERENT token. Locked to these two so
+  // the binding never depends on token order.
+  const personRef = tokens.find(t => /^(bild1|1|person|model|frau|woman)$/i.test(t)) ?? tokens[0] ?? "Bild1";
+  const outfitRef = tokens.find(t => t !== personRef && /^(bild2|2|outfit|kleid|garment)$/i.test(t)) ?? tokens.find(t => t !== personRef) ?? "Bild2";
+  // BULLETPROOF the prompt so Pixverse can NEVER error "@name does not match ref_name":
+  //   (1) drop a possessive "'s" after an @token (@Bild1's → @Bild1),
+  //   (2) strip any @token that isn't one of our two bound refs (a stray/edited token).
+  let promptUsed = promptRaw.replace(/(@[A-Za-z0-9_]+)['’]s\b/g, "$1");
+  for (const t of tokens) {
+    if (t !== personRef && t !== outfitRef) promptUsed = promptUsed.split("@" + t).join(t);
+  }
   const reqBody = {
     image_references: [
       { type: "subject", img_id: pId, ref_name: personRef },
@@ -134,7 +139,7 @@ async function pixverseStartReference(key: string, garment: string, person: stri
     body: JSON.stringify(reqBody),
   });
   const gen = await genRes.json().catch(() => null);
-  if (gen?.ErrCode !== 0 || !gen?.Resp?.video_id) return { error: `Pixverse fusion failed: ${gen?.ErrMsg ?? genRes.status}`, promptUsed };
+  if (gen?.ErrCode !== 0 || !gen?.Resp?.video_id) return { error: `Pixverse fusion failed: ${gen?.ErrMsg ?? genRes.status} [refs: @${personRef}, @${outfitRef}]`, promptUsed };
   return { videoId: String(gen.Resp.video_id), promptUsed };
 }
 
