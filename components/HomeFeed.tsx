@@ -500,6 +500,10 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   // NOT the try-on result — so the funnel dresses the real person in a new outfit.
   const goTryOn = () => {
     trackEvent("tryon_click");
+    // Fashionshow is watch-only: "See her in other looks" sends viewers to the MODEL's
+    // page (her clean wardrobe → the new generation flow), NOT the legacy per-look funnel
+    // (whose garment/preview is stale). Fall back to the old funnel only if no model.
+    if (look.curatorId) { router.push(`/curator/${look.curatorId}`); return; }
     const ct = (activeTryOnId ? community.find(c => c.id === activeTryOnId) : undefined) ?? repTryOn;
     const img = ct?.userPhotoUrl || ct?.imageUrl || "";
     router.push(img ? `${tryOnHref}?model=${encodeURIComponent(img)}` : tryOnHref);
