@@ -59,6 +59,9 @@ export default function CuratorPublicPage() {
   const [genBrief, setGenBrief] = useState("");
   const [genRefs, setGenRefs] = useState<string[]>([]);
   const genRefFileRef = useRef<HTMLInputElement>(null);
+  // How many pieces to auto-generate (editable, no longer a fixed 3 + 3).
+  const [genMain, setGenMain] = useState(3);
+  const [genLingerie, setGenLingerie] = useState(3);
   // Her videos live BEHIND the profile photo — tapping it opens a fullscreen carousel,
   // so they never compete with the wardrobe for attention.
   const [motionOpen, setMotionOpen] = useState(false);
@@ -201,9 +204,9 @@ export default function CuratorPublicPage() {
       for (const img of refs) {
         await fetch("/api/add-garment", { method: "POST", headers: H, body: JSON.stringify({ image: img, curatorId: id, extract: true }) }).catch(() => {});
       }
-      // Text brief → generate from it; nothing given → auto from her prefs (3 + 3).
+      // Text brief → generate from it; nothing given → auto from her prefs (chosen counts).
       if (brief || refs.length === 0) {
-        const res = await fetch("/api/generate-wardrobe", { method: "POST", headers: H, body: JSON.stringify({ curatorId: id, mainCount: 3, lingerieCount: 3, ...(brief ? { brief } : {}) }) });
+        const res = await fetch("/api/generate-wardrobe", { method: "POST", headers: H, body: JSON.stringify({ curatorId: id, mainCount: genMain, lingerieCount: genLingerie, ...(brief ? { brief } : {}) }) });
         const d = await res.json();
         if (!res.ok) throw new Error(d?.error || "Fehler");
       }
@@ -512,7 +515,21 @@ export default function CuratorPublicPage() {
               <p className="text-base font-black">Kleidungsstücke generieren</p>
               <button type="button" onClick={() => setGenOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10"><X className="h-4 w-4" /></button>
             </div>
-            <p className="mb-2 text-[12px] font-bold text-white/50">Beschreibe was du willst — ein Stück pro Komma. Leer lassen = automatisch aus ihren Vorlieben (3 Looks + 3 Lingerie).</p>
+            <p className="mb-2 text-[12px] font-bold text-white/50">Beschreibe was du willst — ein Stück pro Komma. Leer lassen = automatisch aus ihren Vorlieben (Anzahl unten).</p>
+
+            {/* How many pieces to auto-generate (editable). */}
+            <div className="mb-2.5 flex items-center gap-3">
+              {([["Looks", genMain, setGenMain], ["Lingerie", genLingerie, setGenLingerie]] as [string, number, (n: number) => void][]).map(([label, val, set]) => (
+                <div key={label} className="flex items-center gap-2">
+                  <span className="text-[12px] font-black text-white/60">{label}</span>
+                  <div className="flex items-center gap-1 rounded-full bg-white/[0.06] p-0.5">
+                    <button type="button" onClick={() => set(Math.max(0, val - 1))} className="grid h-6 w-6 place-items-center rounded-full bg-white/10 text-white active:scale-90">−</button>
+                    <span className="w-5 text-center text-[13px] font-black text-white">{val}</span>
+                    <button type="button" onClick={() => set(Math.min(12, val + 1))} className="grid h-6 w-6 place-items-center rounded-full bg-white/10 text-white active:scale-90">+</button>
+                  </div>
+                </div>
+              ))}
+            </div>
             <textarea value={genBrief} onChange={e => setGenBrief(e.target.value)} onPaste={onGenPaste} rows={3}
               placeholder="z.B. rotes Satin-Abendkleid mit Schlitz, schwarzer Leder-Blazer, schwarzes Spitzen-Dessous-Set"
               className="w-full resize-none rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2.5 text-[13px] text-white outline-none focus:border-white/40" />
@@ -540,7 +557,7 @@ export default function CuratorPublicPage() {
             <button type="button" onClick={generateWardrobe} disabled={genBusy}
               className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 text-sm font-black text-black active:scale-95 transition disabled:opacity-50">
               {genBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              {(genBrief.trim() || genRefs.length) ? "Generieren" : "Automatisch (3 + 3)"}
+              {(genBrief.trim() || genRefs.length) ? "Generieren" : `Automatisch (${genMain} + ${genLingerie})`}
             </button>
           </div>
         </>
