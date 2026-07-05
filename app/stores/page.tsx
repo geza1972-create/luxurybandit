@@ -2214,10 +2214,10 @@ function StoresPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-white" style={{ maxWidth: "100vw" }}>
+    <div className="min-h-dvh bg-[#0d0b0a] text-white" style={{ maxWidth: "100vw" }}>
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-20 border-b border-black/8 bg-white/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0d0b0a]/95 backdrop-blur">
 
         {/* Brand row */}
         <div className="flex items-center justify-between px-4 pt-2.5 pb-1.5">
@@ -2228,8 +2228,8 @@ function StoresPage() {
               LB
             </div>
             <div className="text-left">
-              <div className="text-sm font-black uppercase tracking-widest text-black leading-none">LuxuryBandit</div>
-              <div className="text-[10px] font-bold text-black/40 mt-0.5 leading-tight">Models</div>
+              <div className="text-sm font-black uppercase tracking-widest text-white leading-none">LuxuryBandit</div>
+              <div className="text-[10px] font-bold text-white/40 mt-0.5 leading-tight">Virtual Try-On</div>
             </div>
           </button>
 
@@ -2239,28 +2239,28 @@ function StoresPage() {
             <button type="button"
               onClick={() => { setSearchOpen(v => !v); if (!searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50); else setQuery(""); }}
               className={`flex h-9 w-9 items-center justify-center rounded-full border transition ${
-                searchOpen ? "border-black bg-black text-white" : "border-black/12 bg-black/4 text-black/50 hover:text-black"
+                searchOpen ? "border-white bg-white text-black" : "border-white/15 bg-white/5 text-white/60 hover:text-white"
               }`}
               aria-label="Suche">
               <Search className="h-4 w-4" />
             </button>
 
             <a href={`https://instagram.com/${process.env.NEXT_PUBLIC_INSTAGRAM_HANDLE ?? "luxurybandit"}`} target="_blank" rel="noopener noreferrer"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-black/12 bg-black/4 text-black/50 hover:text-black transition"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/60 hover:text-white transition"
               aria-label="Instagram">
               <Instagram className="h-4 w-4" />
             </a>
 
             {/* Messages — moved up from the (removed) bottom bar */}
             <button type="button" onClick={() => router.push("/messages")}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-black/12 bg-black/4 text-black/50 hover:text-black transition"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/60 hover:text-white transition"
               aria-label="Messages">
               <MessageCircle className="h-4 w-4" />
             </button>
 
             {/* Account — opens the profile sheet (lives in BottomNav, via event) */}
             <button type="button" onClick={() => window.dispatchEvent(new Event("lb-open-account"))}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-black/12 bg-black/4 text-black/50 hover:text-black transition"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/60 hover:text-white transition"
               aria-label="Account">
               <User className="h-4 w-4" />
             </button>
@@ -2271,18 +2271,18 @@ function StoresPage() {
         {searchOpen && (
           <div className="flex items-center gap-2 px-3 pb-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-black/30 pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/30 pointer-events-none" />
               <input
                 ref={searchInputRef}
                 type="search"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder={typeFilter === "community" ? "User, Look oder Store…" : "Look, Store oder Preis…"}
-                className="h-9 w-full rounded-full border border-black/10 bg-black/[0.03] pl-8 pr-8 text-sm font-bold outline-none focus:border-black/30 placeholder:text-black/25"
+                className="h-9 w-full rounded-full border border-white/15 bg-white/5 pl-8 pr-8 text-sm font-bold text-white outline-none focus:border-white/40 placeholder:text-white/25"
               />
               {query && (
                 <button type="button" onClick={() => setQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 grid h-5 w-5 place-items-center rounded-full bg-black/10 text-black/50 active:opacity-70">
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 grid h-5 w-5 place-items-center rounded-full bg-white/15 text-white/60 active:opacity-70">
                   <X className="h-3 w-3" />
                 </button>
               )}
@@ -2295,17 +2295,17 @@ function StoresPage() {
           <div className="flex gap-6 px-4 pb-1.5">
             {curatorCount > 0 && (
               <div className="text-center">
-                <div className="text-sm font-black text-black leading-none">{curatorCount}</div>
-                <div className="text-[10px] font-bold text-black/35 mt-0.5">Model{curatorCount !== 1 ? "s" : ""}</div>
+                <div className="text-sm font-black text-white leading-none">{curatorCount}</div>
+                <div className="text-[10px] font-bold text-white/40 mt-0.5">Model{curatorCount !== 1 ? "s" : ""}</div>
               </div>
             )}
             <div className="text-center">
-              <div className="text-sm font-black text-black leading-none">{looks.length}</div>
-              <div className="text-[10px] font-bold text-black/35 mt-0.5">Looks</div>
+              <div className="text-sm font-black text-white leading-none">{looks.length}</div>
+              <div className="text-[10px] font-bold text-white/40 mt-0.5">Looks</div>
             </div>
             <div className="text-center">
-              <div className="text-sm font-black text-black leading-none">{communityItems.length}</div>
-              <div className="text-[10px] font-bold text-black/35 mt-0.5">Try-ons</div>
+              <div className="text-sm font-black text-white leading-none">{communityItems.length}</div>
+              <div className="text-[10px] font-bold text-white/40 mt-0.5">Try-ons</div>
             </div>
           </div>
         )}
@@ -2346,29 +2346,34 @@ function StoresPage() {
                 Hidden while filtering/searching to keep browsing clean. */}
             {!categoryFilter && !searchOpen && (
               <section className="px-4 pt-4 pb-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cobalt">The models marketplace</p>
-                <h1 className="mt-1.5 text-[1.7rem] font-black leading-[1.1] tracking-tight text-black">
-                  Luxurybandit <span className="text-cobalt">Models</span>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">AI Virtual Try-On · Luxury Fashion</p>
+                <h1 className="mt-1.5 text-[1.8rem] font-black leading-[1.08] tracking-tight text-white">
+                  Try on luxury fashion, <span className="text-amber-400">instantly.</span>
                 </h1>
-                <p className="mt-2 max-w-md text-sm font-medium leading-6 text-black/55">
-                  We create the hottest outfits every day — ready for you to wear.
+                <p className="mt-2 max-w-md text-sm font-medium leading-6 text-white/60">
+                  Pick any outfit, choose a model or upload your own photo, and get a runway-quality
+                  video in seconds. New designer looks dropped every day.
                 </p>
                 <div className="mt-3 grid gap-1.5">
                   {[
-                    [<Sparkles key="i" className="h-4 w-4 text-cobalt" />, "Become a model", "Upload your photo and try on any high-end outfit — no agency, no shoot."],
-                    [<Heart key="i" className="h-4 w-4 text-cobalt" />, "Earn on every look", "When a brand or user picks your look as their model, you get paid."],
+                    [<Sparkles key="i" className="h-4 w-4 text-amber-400" />, "For you", "Wear the hottest designer looks without the price tag — save, share & shop what you love."],
+                    [<Heart key="i" className="h-4 w-4 text-amber-400" />, "For models", "Get styled in high-end outfits and earn every time someone picks your look."],
                   ].map(([icon, title, text], i) => (
                     <div key={i} className="flex items-start gap-2.5">
                       <span className="mt-0.5 shrink-0">{icon as React.ReactNode}</span>
-                      <p className="text-[13px] leading-snug text-black/70">
-                        <span className="font-black text-black">{title as string}</span> — {text as string}
+                      <p className="text-[13px] leading-snug text-white/70">
+                        <span className="font-black text-white">{title as string}</span> — {text as string}
                       </p>
                     </div>
                   ))}
                 </div>
                 <div className="mt-3.5 flex items-center gap-2">
+                  <button type="button" onClick={() => setHomeTab("garderobe")}
+                    className="flex h-10 items-center justify-center gap-1.5 rounded-full bg-amber-400 px-5 text-sm font-black text-black active:scale-95 transition-transform">
+                    <Sparkles className="h-4 w-4" /> Start trying on
+                  </button>
                   <button type="button" onClick={() => router.push("/about")}
-                    className="flex h-10 items-center justify-center rounded-full border border-black/15 bg-white px-5 text-sm font-black text-black active:scale-95 transition-transform">
+                    className="flex h-10 items-center justify-center rounded-full border border-white/20 bg-white/[0.04] px-5 text-sm font-black text-white active:scale-95 transition-transform">
                     How it works
                   </button>
                 </div>
@@ -2379,22 +2384,22 @@ function StoresPage() {
                 gallery of models (browse a model, then see her in looks). */}
             <div className="flex items-center gap-2 overflow-x-auto px-3 pt-1 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <button type="button" onClick={() => setHomeTab("models")}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "models" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Models{models.length ? ` · ${models.length}` : ""}</button>
+                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "models" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>Models{models.length ? ` · ${models.length}` : ""}</button>
               <button type="button" onClick={() => setHomeTab("garderobe")}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "garderobe" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Garderobe{garments.length ? ` · ${garments.length}` : ""}</button>
+                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "garderobe" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>Garderobe{garments.length ? ` · ${garments.length}` : ""}</button>
               <button type="button" onClick={() => setHomeTab("feeds")}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Fashionshow</button>
+                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>Fashionshow</button>
             </div>
 
             {homeTab === "models" ? (
               models.length === 0 ? (
-                <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-black/30" /></div>
+                <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-white/30" /></div>
               ) : (
               <>
                 {isAdmin && (
                   <div className="px-3 pb-1 pt-1">
                     <button type="button" onClick={openModelAdd}
-                      className="flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-black/25 px-4 py-2.5 text-[13px] font-black text-black/60 active:scale-95 transition-transform">
+                      className="flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-white/25 px-4 py-2.5 text-[13px] font-black text-white/70 active:scale-95 transition-transform">
                       <UserPlus className="h-4 w-4" /> Neues Model hinzufügen
                     </button>
                   </div>
@@ -2402,8 +2407,8 @@ function StoresPage() {
                 <div className="grid grid-cols-2 gap-2 px-3 pb-8">
                 {models.map(m => (
                   <div key={m.id} className="relative">
-                    <a href={`/curator/${m.id}`} className="flex flex-col overflow-hidden rounded-2xl border border-black/8 bg-white active:opacity-80 transition-opacity">
-                      <div className="relative aspect-[3/4] overflow-hidden bg-black/5">
+                    <a href={`/curator/${m.id}`} className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:opacity-80 transition-opacity">
+                      <div className="relative aspect-[3/4] overflow-hidden bg-white/5">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={m.photoUrl} alt={m.name} loading="lazy" decoding="async" className={`h-full w-full object-cover object-top ${m.hidden ? "opacity-40" : ""}`} />
                         {m.lookCount > 0 && (
@@ -2411,8 +2416,8 @@ function StoresPage() {
                         )}
                       </div>
                       <div className="px-2.5 py-2">
-                        <p className="truncate text-[13px] font-black text-black">{m.name}</p>
-                        {m.style && <p className="truncate text-[11px] font-bold text-black/40">{m.style}</p>}
+                        <p className="truncate text-[13px] font-black text-white">{m.name}</p>
+                        {m.style && <p className="truncate text-[11px] font-bold text-white/40">{m.style}</p>}
                       </div>
                     </a>
                     {m.hidden && <span className="absolute left-2 top-2 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-black text-white">Ausgeblendet</span>}
@@ -2432,17 +2437,17 @@ function StoresPage() {
                 {garmentTypes.length > 0 && (
                   <div className="flex gap-1.5 overflow-x-auto px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     <button type="button" onClick={() => setGarmentType(null)}
-                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${garmentType === null ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Alle</button>
+                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${garmentType === null ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>Alle</button>
                     {garmentTypes.map(c => (
                       <button key={c.slug} type="button" onClick={() => setGarmentType(c.slug)}
-                        className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${garmentType === c.slug ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>{c.slug === "boudoir" ? "Lingerie" : c.label}</button>
+                        className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${garmentType === c.slug ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>{c.slug === "boudoir" ? "Lingerie" : c.label}</button>
                     ))}
                   </div>
                 )}
                 {isAdmin && (
                   <div className="px-3 pb-1">
                     <button type="button" onClick={() => { setAddOpen(true); setAgMsg(""); }}
-                      className="flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-black/25 px-4 py-2.5 text-[13px] font-black text-black/60 active:scale-95 transition-transform">
+                      className="flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-white/25 px-4 py-2.5 text-[13px] font-black text-white/70 active:scale-95 transition-transform">
                       <UserPlus className="h-4 w-4" /> Luxury-Bandi-Kleidungsstück hinzufügen
                     </button>
                   </div>
@@ -2451,8 +2456,8 @@ function StoresPage() {
                   const items = garmentType ? garments.filter(g => g.category === garmentType) : garments;
                   if (items.length === 0) return (
                     <div className="flex flex-col items-center gap-2 py-16 text-center">
-                      <ImageIcon className="h-8 w-8 text-black/15" />
-                      <p className="text-sm font-black text-black/40">Noch keine Kleidungsstücke — generiere eine Garderobe auf einer Model-Seite.</p>
+                      <ImageIcon className="h-8 w-8 text-white/15" />
+                      <p className="text-sm font-black text-white/40">Noch keine Kleidungsstücke — generiere eine Garderobe auf einer Model-Seite.</p>
                     </div>
                   );
                   return (
