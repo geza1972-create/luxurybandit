@@ -53,6 +53,9 @@ export default function CuratorPublicPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [genBusy, setGenBusy] = useState(false);
   const [genMsg, setGenMsg] = useState("");
+  // Her videos live BEHIND the profile photo — tapping it opens a fullscreen carousel,
+  // so they never compete with the wardrobe for attention.
+  const [motionOpen, setMotionOpen] = useState(false);
   // Wardrobe category filter (mirrors the Garderobe tab).
   const [wardrobeCat, setWardrobeCat] = useState<"all" | LookCategory>("all");
   // Admin per-item management sheet (delete / hide / replace / move category / edit text).
@@ -233,6 +236,7 @@ export default function CuratorPublicPage() {
   );
 
   const name = `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() || "Model";
+  const videos = tryons.filter(t => t.videoUrl);
 
   return (
     <main className="lb-phone-col min-h-[100dvh] bg-[#0d0b0a] text-white pb-16">
@@ -270,13 +274,23 @@ export default function CuratorPublicPage() {
 
       {/* Profile header */}
       <div className="flex flex-col items-center gap-2 px-6 pt-6 text-center">
-        <div className="h-24 w-24 overflow-hidden rounded-full bg-white/10">
-          {profile.photoUrl
-            // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={profile.photoUrl} alt={name} className="h-full w-full object-cover" />
-            : <div className="grid h-full w-full place-items-center text-2xl font-black text-white/30">{name.slice(0, 1)}</div>}
-        </div>
-        <h1 className="mt-1 text-2xl font-black leading-tight text-white">{name}</h1>
+        {/* Profile photo. If she has videos, tapping it opens the "in motion" carousel —
+            so the videos live BEHIND her photo and never distract from the wardrobe. */}
+        <button type="button" disabled={videos.length === 0} onClick={() => setMotionOpen(true)}
+          className="relative h-24 w-24 shrink-0 rounded-full disabled:cursor-default">
+          <span className={`block h-full w-full overflow-hidden rounded-full bg-white/10 ${videos.length ? "ring-2 ring-amber-400/80 ring-offset-2 ring-offset-[#0d0b0a]" : ""}`}>
+            {profile.photoUrl
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={profile.photoUrl} alt={name} className="h-full w-full object-cover" />
+              : <div className="grid h-full w-full place-items-center text-2xl font-black text-white/30">{name.slice(0, 1)}</div>}
+          </span>
+          {videos.length > 0 && (
+            <span className="absolute -bottom-1 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-amber-400 px-2.5 py-1 text-[10px] font-black text-black shadow-lg">
+              <Play className="h-2.5 w-2.5" fill="currentColor" /> In motion
+            </span>
+          )}
+        </button>
+        <h1 className="mt-2 text-2xl font-black leading-tight text-white">{name}</h1>
         {profile.motto && <p className="text-sm font-black text-amber-400">{profile.motto}</p>}
         {profile.bio && <p className="max-w-sm text-sm font-medium leading-relaxed text-white/55">{profile.bio}</p>}
         <div className="mt-1 flex items-center gap-3 text-[11px] font-bold text-white/40">
@@ -301,50 +315,21 @@ export default function CuratorPublicPage() {
         {/* Follow + Message + Share moved to sticky header (second row) */}
       </div>
 
-      {/* "In motion" — a COMPACT strip right under her profile ("get to know her"), kept
-          visually separate (own zone, bottom border) so it doesn't distract from the
-          wardrobe action below. */}
-      {(() => {
-        const videos = tryons.filter(t => t.videoUrl);
-        if (videos.length === 0) return null;
-        return (
-          <div className="mt-5 border-b border-white/10 pb-5">
-            <div className="mb-2 flex items-center gap-1.5 px-4 text-[11px] font-bold uppercase tracking-wide text-white/40">
-              <Play className="h-3 w-3 text-amber-400" fill="currentColor" /> {profile.firstName || "She"} in motion
-            </div>
-            <div ref={reelRef} onScroll={onReelScroll}
-              className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {videos.map(t => (
-                <button key={t.id} type="button" onClick={() => setPlayingId(p => (p === t.id ? "" : t.id))}
-                  className="relative aspect-[9/16] w-[30vw] max-w-[120px] shrink-0 snap-center overflow-hidden rounded-xl border border-white/10 bg-white/[0.05]">
-                  {playingId === t.id ? (
-                    <video src={t.videoUrl} autoPlay loop muted playsInline className="h-full w-full object-cover" />
-                  ) : (
-                    <>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={optImg(t.imageUrl, 400)} alt={t.lookName ?? ""} loading="lazy" decoding="async"
-                        onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
-                        className="h-full w-full object-cover object-top" />
-                      <span className="absolute inset-0 grid place-items-center text-white/90"><Play className="h-8 w-8 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" fill="currentColor" /></span>
-                    </>
-                  )}
-                </button>
-              ))}
-            </div>
-            {videos.length > 1 && (
-              <div className="mt-2 flex justify-center gap-1.5">
-                {videos.map((_, i) => <span key={i} className={`h-1.5 rounded-full transition-all ${i === reelIdx ? "w-4 bg-white" : "w-1.5 bg-white/25"}`} />)}
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* Her wardrobe = the clothes selection (the main action). Tap a piece → the funnel
-          generates HER wearing it. Category filter + (admin) per-piece management. */}
-      <div className="mt-5 px-4 pb-8">
+      {/* Her wardrobe = the clothes selection (the main action, immediately under the
+          profile). Tap a piece → the funnel generates HER wearing it. Category filter +
+          (admin) per-piece management. */}
+      <div className="mt-6 px-4 pb-8">
         {(() => {
-          const wardrobeAll = looks.filter(l => l.aiCreated && (l.frontImageUrl || l.imageUrl));
+          // De-dupe: repeated "Generieren" runs can create identical garments (same
+          // deterministic name) — show each unique piece once so nothing appears doubled.
+          const seen = new Set<string>();
+          const wardrobeAll = looks.filter(l => {
+            if (!(l.aiCreated && (l.frontImageUrl || l.imageUrl))) return false;
+            const key = (l.name ?? "").trim().toLowerCase();
+            if (key && seen.has(key)) return false;
+            if (key) seen.add(key);
+            return true;
+          });
           const catOf = (l: Look): LookCategory => (isLookCategory(l.category) ? l.category : categorizeLook(l as never));
           const presentCats = LOOK_CATEGORIES.filter(c => wardrobeAll.some(l => catOf(l) === c.slug));
           const wardrobe = wardrobeCat === "all" ? wardrobeAll : wardrobeAll.filter(l => catOf(l) === wardrobeCat);
@@ -416,6 +401,44 @@ export default function CuratorPublicPage() {
           );
         })()}
       </div>
+
+      {/* "In motion" carousel — opened by tapping her profile photo. Fullscreen so it
+          doesn't share space with (or distract from) the wardrobe. */}
+      {motionOpen && videos.length > 0 && (
+        <div className="lb-phone-col fixed inset-0 z-[60] flex flex-col bg-black">
+          <div className="flex items-center justify-between px-4 py-3">
+            <p className="flex items-center gap-1.5 text-sm font-black text-white">
+              <Play className="h-3.5 w-3.5 text-amber-400" fill="currentColor" /> {profile.firstName || name} in motion
+            </p>
+            <button type="button" onClick={() => { setMotionOpen(false); setPlayingId(""); }}
+              className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white active:scale-90 transition"><X className="h-5 w-5" /></button>
+          </div>
+          <div ref={reelRef} onScroll={onReelScroll}
+            className="flex flex-1 snap-x snap-mandatory items-center gap-3 overflow-x-auto px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {videos.map(t => (
+              <button key={t.id} type="button" onClick={() => setPlayingId(p => (p === t.id ? "" : t.id))}
+                className="relative aspect-[9/16] h-[74vh] max-h-[80vh] w-[84vw] max-w-[430px] shrink-0 snap-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+                {playingId === t.id ? (
+                  <video src={t.videoUrl} autoPlay loop playsInline className="h-full w-full object-cover" />
+                ) : (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={optImg(t.imageUrl, 700)} alt="" loading="lazy" decoding="async"
+                      onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
+                      className="h-full w-full object-cover object-top" />
+                    <span className="absolute inset-0 grid place-items-center text-white/90"><Play className="h-14 w-14 drop-shadow-[0_1px_6px_rgba(0,0,0,0.6)]" fill="currentColor" /></span>
+                  </>
+                )}
+              </button>
+            ))}
+          </div>
+          {videos.length > 1 && (
+            <div className="flex justify-center gap-1.5 py-4">
+              {videos.map((_, i) => <span key={i} className={`h-1.5 rounded-full transition-all ${i === reelIdx ? "w-5 bg-white" : "w-1.5 bg-white/30"}`} />)}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Message modal */}
       {showMsg && (
