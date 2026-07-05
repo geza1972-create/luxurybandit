@@ -56,6 +56,8 @@ export default function CuratorPublicPage() {
   // Her videos live BEHIND the profile photo — tapping it opens a fullscreen carousel,
   // so they never compete with the wardrobe for attention.
   const [motionOpen, setMotionOpen] = useState(false);
+  // "See her in other looks" scrolls down to her wardrobe (her outfits).
+  const wardrobeRef = useRef<HTMLDivElement>(null);
   // Wardrobe category filter (mirrors the Garderobe tab).
   const [wardrobeCat, setWardrobeCat] = useState<"all" | LookCategory>("all");
   // Admin per-item management sheet (delete / hide / replace / move category / edit text).
@@ -313,13 +315,12 @@ export default function CuratorPublicPage() {
           ))}
         </div>
 
-        {/* Clear entry to her video carousel (same as tapping the photo). */}
-        {videos.length > 0 && (
-          <button type="button" onClick={() => setMotionOpen(true)}
-            className="mt-4 flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/[0.04] px-5 py-2.5 text-[13px] font-black text-white active:scale-95 transition">
-            <Play className="h-3.5 w-3.5 text-amber-400" fill="currentColor" /> See {profile.firstName || "her"} in other looks
-          </button>
-        )}
+        {/* Primary CTA — jumps down to her wardrobe (her outfits). Her videos stay
+            behind the profile photo's play button. */}
+        <button type="button" onClick={() => wardrobeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          className="mt-4 flex items-center justify-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-black text-black active:scale-95 transition">
+          See {profile.firstName || "her"} in other looks
+        </button>
 
         {/* Follow + Message + Share moved to sticky header (second row) */}
       </div>
@@ -327,7 +328,7 @@ export default function CuratorPublicPage() {
       {/* Her wardrobe = the clothes selection (the main action, immediately under the
           profile). Tap a piece → the funnel generates HER wearing it. Category filter +
           (admin) per-piece management. */}
-      <div className="mt-6 px-4 pb-8">
+      <div ref={wardrobeRef} className="scroll-mt-4 mt-6 px-4 pb-8">
         {(() => {
           // De-dupe: repeated "Generieren" runs can create identical garments (same
           // deterministic name) — show each unique piece once so nothing appears doubled.

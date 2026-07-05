@@ -41,10 +41,13 @@ export default function TryFunnelPage() {
   const pickModel = (searchParams?.get("pick") ?? "") === "1";
   const [gModels, setGModels] = useState<{ id: string; name: string; photoUrl: string }[]>([]);
   const [pickedModel, setPickedModel] = useState("");
+  // "Choose other model" opens the model picker even when a model was preset (came from
+  // a model page with ?model=). Load the models list for both entry points.
+  const [chooseModel, setChooseModel] = useState(false);
   useEffect(() => {
-    if (!pickModel) return;
+    if (!pickModel && !chooseModel) return;
     fetch("/api/try-this-look?models=1").then(r => r.json()).then(d => setGModels(Array.isArray(d.models) ? d.models : [])).catch(() => {});
-  }, [pickModel]);
+  }, [pickModel, chooseModel]);
 
   const [look, setLook] = useState<Look | null>(null);
   const [outfits, setOutfits] = useState<Outfit[]>([]);
@@ -284,7 +287,7 @@ export default function TryFunnelPage() {
       {step === 2 && (
         <div className="px-4 pb-28 pt-2">
           <h1 className="text-[22px] font-black leading-tight">Who should wear it?</h1>
-          {pickModel && !pickedModel && !avatar ? (
+          {(pickModel || chooseModel) && !pickedModel && !avatar ? (
             <>
               <p className="mt-2 text-[13px] font-bold text-white/50">Pick a model to wear this piece — or use your own photo.</p>
               <div className="mt-4 grid grid-cols-3 gap-2">
@@ -311,9 +314,9 @@ export default function TryFunnelPage() {
                 <div className="relative aspect-[3/4] w-full">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {modelImg ? <img src={modelImg} alt="" className="h-full w-full object-cover object-top" /> : <div className="h-full w-full bg-white/5" />}
-                  <button type="button" onClick={() => (pickModel && pickedModel ? setPickedModel("") : fileRef.current?.click())}
+                  <button type="button" onClick={() => (avatar ? fileRef.current?.click() : (setPickedModel(""), setChooseModel(true)))}
                     className="absolute inset-x-4 bottom-4 flex items-center justify-center gap-2 rounded-full bg-black/70 px-5 py-3 text-sm font-black backdrop-blur active:scale-95">
-                    <RefreshCw className="h-4 w-4" /> {pickModel && pickedModel ? "Choose another model" : avatar ? "Replace your photo" : "Replace with your Photo"}
+                    <RefreshCw className="h-4 w-4" /> {avatar ? "Replace your photo" : "Choose other model"}
                   </button>
                 </div>
               </div>
@@ -490,7 +493,7 @@ export default function TryFunnelPage() {
             <p className="text-center text-[12px] font-bold text-white/35">Pick an outfit above to continue</p>
           )}
           {step === 2 && (
-            pickModel && !pickedModel && !avatar ? (
+            (pickModel || chooseModel) && !pickedModel && !avatar ? (
               <p className="text-center text-[12px] font-bold text-white/35">Pick a model above to continue</p>
             ) : (
               <button type="button" onClick={goStep3}
