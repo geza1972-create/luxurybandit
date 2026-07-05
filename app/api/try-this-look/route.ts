@@ -297,7 +297,10 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
 }
 
 // Default Try-On funnel video prompt. @Bild1 = the model/avatar, @Bild2 = the chosen outfit.
-const DEFAULT_FUNNEL_PROMPT = "Mache die Frau aus @Bild1 angezogen in @Bild2, wie sie an eleganten Orten durchläuft. WICHTIG: Gesicht, Haare und komplettes Aussehen der Frau aus @Bild1 EXAKT beibehalten — dieselbe Person, nicht neu erfinden. Das Outfit @Bild2 exakt beibehalten (Schnitt, Farbe, Stoff, Details). Ruhige, natürliche Bewegung, fotorealistisch, hochwertiger Fashion-Look.";
+// {ort} is auto-filled by the video route with a scene that matches the look's category
+// (business→office, riviera→pool, boudoir→elegant interior, …). Neutral, lingerie-safe wording:
+// "dreht sich langsam" (NOT "360°"/"dreh um") so Pixverse's moderation doesn't reject it.
+const DEFAULT_FUNNEL_PROMPT = "Mache die Frau aus @Bild1 angezogen in @Bild2 {ort}. Sie läuft ruhig und elegant und dreht sich dabei einmal langsam, sodass das Outfit von vorne und von hinten zu sehen ist. WICHTIG: Gesicht, Haare und komplettes Aussehen der Frau aus @Bild1 EXAKT beibehalten — dieselbe Person, nicht neu erfinden. Das Outfit @Bild2 exakt beibehalten (Schnitt, Farbe, Stoff, Details). Fotorealistisch, hochwertiger Fashion-Look, keine Schrift, keine Logos.";
 
 export async function GET(request: Request) {
   try {

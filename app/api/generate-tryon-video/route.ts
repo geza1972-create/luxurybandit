@@ -2,6 +2,20 @@ import { NextResponse } from "next/server";
 import { readTryThisLookState, uploadTryThisLookBytes, getSignedUrl } from "@/lib/try-this-look-store";
 import { chargeCredits, refundCredits, VIDEO_CREDITS } from "@/lib/curator-budget";
 import { authorizeStudio } from "@/lib/studio-auth";
+import { categorizeLook } from "@/lib/look-category";
+
+// Auto-match the video's SCENE to the look's category. NEUTRAL wording (works for lingerie
+// too — no skin/body/lace words that Pixverse flags). Injected where the prompt has {ort}.
+function sceneForCategory(cat: string): string {
+  switch (cat) {
+    case "business": return "in einer eleganten, modernen Bürolobby mit weichem Tageslicht";
+    case "after-dark": return "bei einem glamourösen Abend-Event mit festlichem, warmem Licht";
+    case "riviera": return "an einem sonnigen Luxus-Pool mit Meerblick";
+    case "off-duty": return "in einer stilvollen, sonnigen Altstadt-Gasse";
+    case "boudoir": return "in einem eleganten, hell und weich beleuchteten Innenraum";
+    default: return "an einem eleganten, stilvollen Ort";
+  }
+}
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -38,13 +52,14 @@ async function persistVideo(remoteUrl: string): Promise<string> {
   return signed;
 }
 
-async function lookOf(lookId: string): Promise<{ curatorId: string }> {
-  if (!lookId) return { curatorId: "" };
+async function lookOf(lookId: string): Promise<{ curatorId: string; category: string }> {
+  if (!lookId) return { curatorId: "", category: "" };
   try {
     const state = await readTryThisLookState();
     const look = state.looks.find((l) => l.id === lookId) as { curatorId?: string } | undefined;
-    return { curatorId: String(look?.curatorId ?? "") };
-  } catch { return { curatorId: "" }; }
+    if (!look) return { curatorId: "", category: "" };
+    return { curatorId: String(look.curatorId ?? ""), category: categorizeLook(look as never) };
+  } catch { return { curatorId: "", category: "" }; }
 }
 
 async function imageToBlob(image: string): Promise<Blob | null> {
@@ -167,7 +182,12 @@ export async function POST(request: Request) {
   const reference = !!garment && !!person;
   if (!image && !reference) return NextResponse.json({ error: "image required." }, { status: 400 });
 
-  const { curatorId } = await lookOf(lookId);
+  const { curatorId, category } = await lookOf(lookId);
+  // Auto-match the scene to the look: replace {ort}/{location}/{umgebung} in the prompt with a
+  // category-appropriate setting. Pure TEXT substitution — the @Bild1/@Bild2 image bindings
+  // are untouched, so it never swaps the model/outfit.
+  const scene = sceneForCategory(category);
+  const promptWithScene = customPrompt ? customPrompt.replace(/\{ort\}|\{location\}|\{umgebung\}/gi, scene) : customPrompt;
   const key = process.env.PIXVERSE_API_KEY?.trim();
   if (!key) return NextResponse.json({ error: "PIXVERSE_API_KEY missing." }, { status: 400 });
 
@@ -194,7 +214,7 @@ export async function POST(request: Request) {
 
   try {
     const r = reference
-      ? await pixverseStartReference(key, garment, person, turnaround, customPrompt)
+      ? await pixverseStartReference(key, garment, person, turnaround, promptWithScene)
       : await pixverseStart(key, image, turnaround);
     if (!r.videoId) { refund(); return NextResponse.json({ error: r.error ?? "Video start failed.", promptUsed: (r as any).promptUsed }, { status: 502 }); }
     return NextResponse.json({ ok: true, videoId: `pv:${r.videoId}`, curatorId, status: "processing", promptUsed: (r as any).promptUsed });
