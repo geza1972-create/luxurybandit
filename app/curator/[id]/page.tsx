@@ -2,8 +2,12 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Instagram, Loader2, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play, Sparkles } from "lucide-react";
+import { ArrowLeft, Instagram, Loader2, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play, Sparkles, SlidersHorizontal, Trash2, EyeOff, Eye, ImageUp } from "lucide-react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
+import { LOOK_CATEGORIES, categorizeLook, isLookCategory, type LookCategory } from "@/lib/look-category";
+
+// Wardrobe category label — "Community"/boudoir reads as "Lingerie" in wardrobe contexts.
+const catLabel = (slug: LookCategory) => (slug === "boudoir" ? "Lingerie" : LOOK_CATEGORIES.find(c => c.slug === slug)?.label ?? slug);
 
 const fmtN = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`);
 // Viewer auth headers: Supabase token OR curator session (our only login).
@@ -15,7 +19,7 @@ function viewerHeaders(): Record<string, string> {
 }
 
 type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; instagram?: string; style?: string; genderFocus?: string };
-type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
+type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
 type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string };
 
 const toSlug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -49,6 +53,16 @@ export default function CuratorPublicPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [genBusy, setGenBusy] = useState(false);
   const [genMsg, setGenMsg] = useState("");
+  // Wardrobe category filter (mirrors the Garderobe tab).
+  const [wardrobeCat, setWardrobeCat] = useState<"all" | LookCategory>("all");
+  // Admin per-item management sheet (delete / hide / replace / move category / edit text).
+  const [manageId, setManageId] = useState("");
+  const [mName, setMName] = useState("");
+  const [mDesc, setMDesc] = useState("");
+  const [mCat, setMCat] = useState<"" | LookCategory>("");
+  const [mBusy, setMBusy] = useState(false);
+  const [mMsg, setMMsg] = useState("");
+  const replaceRef = useRef<HTMLInputElement>(null);
   // "In motion" showcase — swipeable reel of her try-on videos.
   const [playingId, setPlayingId] = useState("");
   const [reelIdx, setReelIdx] = useState(0);
@@ -111,12 +125,14 @@ export default function CuratorPublicPage() {
       try {
         const [p, all] = await Promise.all([
           fetch(`/api/curator?profile=${encodeURIComponent(id)}`).then(r => r.json()).then(d => d.profile as Profile | null),
-          fetch("/api/try-this-look").then(r => r.json()).then(d => (d.looks ?? []) as Look[]),
+          // Admins send the PIN → the API also returns hidden (published:false) looks so
+          // they can be managed/un-hidden here. Non-admins never receive hidden looks.
+          fetch("/api/try-this-look", { headers: adminHeaders() }).then(r => r.json()).then(d => (d.looks ?? []) as Look[]),
         ]);
         if (!active) return;
         setProfile(p);
         setAllLooks(all.filter(l => l.published !== false));
-        setLooks(all.filter(l => l.curatorId === id && l.published !== false));
+        setLooks(all.filter(l => l.curatorId === id));
         // Price lookup for try-ons (they reference a shoppable look by id).
         const prices: Record<string, string> = {};
         for (const l of all) { const f = priceFrom(l.alternatives) ?? l.salePrice ?? l.price; if (f) prices[l.id] = f; }
@@ -134,6 +150,13 @@ export default function CuratorPublicPage() {
   }, [id]);
 
   const adminPin = () => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } };
+  const adminHeaders = (): Record<string, string> => { const pin = adminPin(); return pin ? { "x-try-look-admin-pin": pin } : {}; };
+  // Re-pull looks (admin PIN → hidden looks included) after any edit/delete/generate.
+  const reloadLooks = async () => {
+    const all = await fetch("/api/try-this-look", { headers: adminHeaders() }).then(r => r.json()).then(x => (x.looks ?? []) as Look[]);
+    setAllLooks(all.filter(l => l.published !== false));
+    setLooks(all.filter(l => l.curatorId === id));
+  };
   const generateWardrobe = async () => {
     if (genBusy) return;
     setGenBusy(true); setGenMsg("Generiere Garderobe … (~1 Min, bitte warten)");
@@ -147,12 +170,58 @@ export default function CuratorPublicPage() {
       if (!res.ok) throw new Error(d?.error || "Fehler");
       const ok = (d.created ?? []).filter((c: { id?: string }) => c.id && c.id !== "sample").length;
       setGenMsg(`${ok} Stücke erstellt.`);
-      const all = await fetch("/api/try-this-look").then(r => r.json()).then(x => (x.looks ?? []) as Look[]);
-      setAllLooks(all.filter(l => l.published !== false));
-      setLooks(all.filter(l => l.curatorId === id && l.published !== false));
+      await reloadLooks();
     } catch (e) {
       setGenMsg(e instanceof Error ? e.message : "Fehler");
     } finally { setGenBusy(false); }
+  };
+
+  // --- Admin: manage a single wardrobe piece (delete / hide / replace / re-categorize / edit text) ---
+  const manageItem = looks.find(l => l.id === manageId) ?? null;
+  const openManage = (l: Look) => {
+    setManageId(l.id);
+    setMName(l.name ?? "");
+    setMDesc(l.productNote ?? "");
+    setMCat(isLookCategory(l.category) ? l.category : "");
+    setMMsg("");
+  };
+  const closeManage = () => { setManageId(""); setMBusy(false); setMMsg(""); };
+  const patchLook = async (extra: Record<string, unknown>, successMsg = "Gespeichert ✓") => {
+    if (!manageId || mBusy) return;
+    setMBusy(true); setMMsg("");
+    try {
+      const res = await fetch("/api/try-this-look", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...adminHeaders() },
+        body: JSON.stringify({ action: "update-look", id: manageId, ...extra }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehler");
+      await reloadLooks();
+      setMMsg(successMsg);
+    } catch (e) { setMMsg(e instanceof Error ? e.message : "Fehler"); }
+    finally { setMBusy(false); }
+  };
+  const saveManage = () => patchLook({ name: mName.trim() || undefined, productNote: mDesc.trim(), ...(mCat ? { category: mCat } : {}) });
+  const toggleHide = () => patchLook({ published: manageItem?.published === false }, manageItem?.published === false ? "Sichtbar ✓" : "Ausgeblendet ✓");
+  const replaceImage = async (file: File) => {
+    const dataUrl: string = await new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.onerror = reject; r.readAsDataURL(file); });
+    if (!dataUrl.startsWith("data:image/")) return;
+    await patchLook({ frontImage: dataUrl, garmentFrontImage: dataUrl }, "Bild ersetzt ✓");
+  };
+  const deleteManage = async () => {
+    if (!manageId || mBusy) return;
+    if (!window.confirm("Dieses Kleidungsstück endgültig löschen?")) return;
+    setMBusy(true); setMMsg("");
+    try {
+      const res = await fetch("/api/try-this-look", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...adminHeaders() },
+        body: JSON.stringify({ action: "delete-look", id: manageId }),
+      });
+      if (!res.ok) throw new Error("Fehler");
+      closeManage();
+      await reloadLooks();
+    } catch { setMMsg("Fehler beim Löschen"); setMBusy(false); }
   };
 
   if (loading) return <main className="grid min-h-[100dvh] place-items-center bg-[#0d0b0a]"><Loader2 className="h-6 w-6 animate-spin text-white/30" /></main>;
@@ -229,53 +298,41 @@ export default function CuratorPublicPage() {
           ))}
         </div>
 
-        {/* Admin-only: generate her personal wardrobe (3 luxury garments + 3 lingerie)
-            from her signup preferences. */}
-        {isAdmin && (
-          <>
-            <button type="button" onClick={generateWardrobe} disabled={genBusy}
-              className="mt-4 flex w-full max-w-xs items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-6 py-2.5 text-[13px] font-black text-white active:scale-95 transition-transform disabled:opacity-50">
-              {genBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              {genBusy ? "Generiere Garderobe …" : "Garderobe generieren (3 + 3 Lingerie)"}
-            </button>
-            {genMsg && <p className="mt-1 text-[11px] font-bold text-white/50">{genMsg}</p>}
-          </>
-        )}
-
         {/* Follow + Message + Share moved to sticky header (second row) */}
       </div>
 
-      {/* "In motion" — a swipeable reel of her videos so the user gets to know her. */}
+      {/* "In motion" — a COMPACT strip right under her profile ("get to know her"), kept
+          visually separate (own zone, bottom border) so it doesn't distract from the
+          wardrobe action below. */}
       {(() => {
         const videos = tryons.filter(t => t.videoUrl);
         if (videos.length === 0) return null;
         return (
-          <div className="mt-6">
-            <div className="mb-2 flex items-center gap-1.5 px-4 text-[12px] font-bold text-white/50">
-              <Play className="h-3.5 w-3.5 text-amber-400" /> {profile.firstName || "She"} in motion — get to know her
+          <div className="mt-5 border-b border-white/10 pb-5">
+            <div className="mb-2 flex items-center gap-1.5 px-4 text-[11px] font-bold uppercase tracking-wide text-white/40">
+              <Play className="h-3 w-3 text-amber-400" fill="currentColor" /> {profile.firstName || "She"} in motion
             </div>
             <div ref={reelRef} onScroll={onReelScroll}
-              className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {videos.map(t => (
                 <button key={t.id} type="button" onClick={() => setPlayingId(p => (p === t.id ? "" : t.id))}
-                  className="relative aspect-[3/4] w-[70vw] max-w-[300px] shrink-0 snap-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05]">
+                  className="relative aspect-[9/16] w-[30vw] max-w-[120px] shrink-0 snap-center overflow-hidden rounded-xl border border-white/10 bg-white/[0.05]">
                   {playingId === t.id ? (
                     <video src={t.videoUrl} autoPlay loop muted playsInline className="h-full w-full object-cover" />
                   ) : (
                     <>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={optImg(t.imageUrl, 600)} alt={t.lookName ?? ""} loading="lazy" decoding="async"
+                      <img src={optImg(t.imageUrl, 400)} alt={t.lookName ?? ""} loading="lazy" decoding="async"
                         onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
                         className="h-full w-full object-cover object-top" />
-                      <span className="absolute inset-0 grid place-items-center text-white/90"><Play className="h-12 w-12 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" fill="currentColor" /></span>
+                      <span className="absolute inset-0 grid place-items-center text-white/90"><Play className="h-8 w-8 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" fill="currentColor" /></span>
                     </>
                   )}
-                  {t.lookName && <span className="absolute left-2 bottom-2 line-clamp-1 max-w-[88%] rounded-full bg-black/80 px-3 py-1 text-[11px] font-black text-white backdrop-blur">{t.lookName}</span>}
                 </button>
               ))}
             </div>
             {videos.length > 1 && (
-              <div className="mt-2.5 flex justify-center gap-1.5">
+              <div className="mt-2 flex justify-center gap-1.5">
                 {videos.map((_, i) => <span key={i} className={`h-1.5 rounded-full transition-all ${i === reelIdx ? "w-4 bg-white" : "w-1.5 bg-white/25"}`} />)}
               </div>
             )}
@@ -283,39 +340,79 @@ export default function CuratorPublicPage() {
         );
       })()}
 
-      {/* Her wardrobe = the clothes selection. Tap a piece → the funnel generates HER
-          wearing it. (No try-ons here — the "what's possible" preview lives in the
-          Fashionshow feed.) */}
-      <div className="mt-6 px-4 pb-8">
+      {/* Her wardrobe = the clothes selection (the main action). Tap a piece → the funnel
+          generates HER wearing it. Category filter + (admin) per-piece management. */}
+      <div className="mt-5 px-4 pb-8">
         {(() => {
-          const wardrobe = looks.filter(l => l.aiCreated && (l.frontImageUrl || l.imageUrl));
-          if (wardrobe.length === 0) return (
-            <div className="flex flex-col items-center gap-2 py-16 text-center">
-              <ShoppingBag className="h-8 w-8 text-white/15" />
-              <p className="text-sm font-black text-white/40">{isAdmin ? "No wardrobe yet — tap “Garderobe generieren”." : "Wardrobe coming soon."}</p>
-            </div>
-          );
+          const wardrobeAll = looks.filter(l => l.aiCreated && (l.frontImageUrl || l.imageUrl));
+          const catOf = (l: Look): LookCategory => (isLookCategory(l.category) ? l.category : categorizeLook(l as never));
+          const presentCats = LOOK_CATEGORIES.filter(c => wardrobeAll.some(l => catOf(l) === c.slug));
+          const wardrobe = wardrobeCat === "all" ? wardrobeAll : wardrobeAll.filter(l => catOf(l) === wardrobeCat);
           return (
-            <div className="grid grid-cols-2 gap-3">
-              {wardrobe.map(l => {
-                const garment = (l.frontImageUrl ?? l.imageUrl) as string;
-                return (
-                  <button key={l.id} type="button"
-                    onClick={() => profile.photoUrl && router.push(`/try/${l.id}?model=${encodeURIComponent(profile.photoUrl)}&garment=${encodeURIComponent(garment)}`)}
-                    className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white active:scale-[0.98] transition-transform">
-                    <div className="aspect-[3/4] w-full">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={optImg(garment, 500)} alt={l.name} loading="lazy" decoding="async"
-                        onError={(e) => { const im = e.currentTarget; if (garment && im.src !== garment) im.src = garment; }}
-                        className="h-full w-full object-contain" />
-                    </div>
-                    <div className="absolute inset-x-2 bottom-2 rounded-xl bg-black px-3 py-2">
-                      <span className="line-clamp-1 text-[13px] font-black text-white">{l.name}</span>
-                    </div>
+            <>
+              {/* Section header + admin "generate wardrobe" (moved out of the profile). */}
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-[15px] font-black text-white">Wardrobe</h2>
+                {isAdmin && (
+                  <button type="button" onClick={generateWardrobe} disabled={genBusy}
+                    className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3.5 py-1.5 text-[11px] font-black text-white active:scale-95 transition disabled:opacity-50">
+                    {genBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                    {genBusy ? "Generiere …" : "Generieren (3 + 3)"}
                   </button>
-                );
-              })}
-            </div>
+                )}
+              </div>
+              {isAdmin && genMsg && <p className="mb-2 text-[11px] font-bold text-white/50">{genMsg}</p>}
+
+              {/* Category filter — same worlds as the Garderobe (boudoir → "Lingerie"). */}
+              {presentCats.length > 0 && (
+                <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {(["all", ...presentCats.map(c => c.slug)] as ("all" | LookCategory)[]).map(slug => (
+                    <button key={slug} type="button" onClick={() => setWardrobeCat(slug)}
+                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${wardrobeCat === slug ? "bg-white text-black" : "bg-white/10 text-white/70"}`}>
+                      {slug === "all" ? "Alle" : catLabel(slug)}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {wardrobe.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-16 text-center">
+                  <ShoppingBag className="h-8 w-8 text-white/15" />
+                  <p className="text-sm font-black text-white/40">{wardrobeAll.length === 0 ? (isAdmin ? "No wardrobe yet — tap “Generieren”." : "Wardrobe coming soon.") : "Nichts in dieser Kategorie."}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {wardrobe.map(l => {
+                    const garment = (l.frontImageUrl ?? l.imageUrl) as string;
+                    const hidden = l.published === false;
+                    return (
+                      <div key={l.id} className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white">
+                        <button type="button"
+                          onClick={() => profile.photoUrl && router.push(`/try/${l.id}?model=${encodeURIComponent(profile.photoUrl)}&garment=${encodeURIComponent(garment)}`)}
+                          className="block w-full active:scale-[0.98] transition-transform">
+                          <div className="aspect-[3/4] w-full">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={optImg(garment, 500)} alt={l.name} loading="lazy" decoding="async"
+                              onError={(e) => { const im = e.currentTarget; if (garment && im.src !== garment) im.src = garment; }}
+                              className={`h-full w-full object-contain ${hidden ? "opacity-40" : ""}`} />
+                          </div>
+                          <div className="absolute inset-x-2 bottom-2 rounded-xl bg-black px-3 py-2">
+                            <span className="line-clamp-1 text-[13px] font-black text-white">{l.name}</span>
+                          </div>
+                        </button>
+                        {hidden && <span className="absolute left-2 top-2 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-black text-white">Ausgeblendet</span>}
+                        {isAdmin && (
+                          <button type="button" onClick={() => openManage(l)}
+                            className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/70 text-white backdrop-blur active:scale-90 transition">
+                            <SlidersHorizontal className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           );
         })()}
       </div>
@@ -341,6 +438,69 @@ export default function CuratorPublicPage() {
                 </button>
               </div>
             )}
+          </div>
+        </>
+      )}
+
+      {/* Admin: manage a wardrobe piece — rename, edit description, move category,
+          replace image, hide/show, delete. Dark sheet to match the page. */}
+      {isAdmin && manageItem && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/60" onClick={closeManage} />
+          <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[51] max-h-[88dvh] overflow-y-auto rounded-t-2xl border-t border-white/10 bg-[#161311] px-5 pt-4 text-white" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-base font-black">Kleidungsstück verwalten</p>
+              <button type="button" onClick={closeManage} className="grid h-8 w-8 place-items-center rounded-full bg-white/10"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="flex gap-3">
+              <div className="h-24 w-20 shrink-0 overflow-hidden rounded-xl bg-white">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={optImg(manageItem.frontImageUrl ?? manageItem.imageUrl, 300)} alt=""
+                  onError={(e) => { const raw = manageItem.frontImageUrl ?? manageItem.imageUrl; const im = e.currentTarget; if (raw && im.src !== raw) im.src = raw; }}
+                  className="h-full w-full object-contain" />
+              </div>
+              <div className="grid min-w-0 flex-1 gap-2">
+                <input value={mName} onChange={e => setMName(e.target.value)} placeholder="Name"
+                  className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-sm font-bold text-white outline-none focus:border-white/40" />
+                <textarea value={mDesc} onChange={e => setMDesc(e.target.value)} rows={3} placeholder="Beschreibung"
+                  className="w-full resize-none rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[13px] text-white outline-none focus:border-white/40" />
+              </div>
+            </div>
+
+            {/* Move to another category */}
+            <p className="mb-2 mt-4 text-[11px] font-black uppercase tracking-wide text-white/40">Kategorie</p>
+            <div className="flex flex-wrap gap-2">
+              {LOOK_CATEGORIES.map(c => (
+                <button key={c.slug} type="button" onClick={() => setMCat(c.slug)}
+                  className={`rounded-full px-3 py-1.5 text-[12px] font-black transition ${mCat === c.slug ? "bg-white text-black" : "bg-white/10 text-white/70"}`}>
+                  {catLabel(c.slug)}
+                </button>
+              ))}
+            </div>
+
+            {/* Replace / hide / delete */}
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              <button type="button" onClick={() => replaceRef.current?.click()} disabled={mBusy}
+                className="flex flex-col items-center gap-1 rounded-xl border border-white/15 bg-white/[0.04] py-2.5 text-[11px] font-black text-white active:scale-95 transition disabled:opacity-50">
+                <ImageUp className="h-4 w-4" /> Ersetzen
+              </button>
+              <button type="button" onClick={toggleHide} disabled={mBusy}
+                className="flex flex-col items-center gap-1 rounded-xl border border-white/15 bg-white/[0.04] py-2.5 text-[11px] font-black text-white active:scale-95 transition disabled:opacity-50">
+                {manageItem.published === false ? <><Eye className="h-4 w-4" /> Einblenden</> : <><EyeOff className="h-4 w-4" /> Ausblenden</>}
+              </button>
+              <button type="button" onClick={deleteManage} disabled={mBusy}
+                className="flex flex-col items-center gap-1 rounded-xl border border-red-500/30 bg-red-500/10 py-2.5 text-[11px] font-black text-red-300 active:scale-95 transition disabled:opacity-50">
+                <Trash2 className="h-4 w-4" /> Löschen
+              </button>
+            </div>
+            <input ref={replaceRef} type="file" accept="image/*" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) void replaceImage(f); e.currentTarget.value = ""; }} />
+
+            <button type="button" onClick={saveManage} disabled={mBusy}
+              className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 text-sm font-black text-black active:scale-95 transition disabled:opacity-50">
+              {mBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Speichern"}
+            </button>
+            {mMsg && <p className="mt-2 text-center text-[12px] font-bold text-white/60">{mMsg}</p>}
           </div>
         </>
       )}

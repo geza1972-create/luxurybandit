@@ -89,17 +89,20 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const buyUrl = String(body.url ?? "").trim();
   let image = String(body.image ?? "");
+  let fromUrlImport = false;
   // No uploaded photo but a product URL → pull the garment image out of the page.
   if (!image.startsWith("data:image/") && /^https?:\/\//.test(buyUrl)) {
     const fromUrl = await imageFromUrl(buyUrl);
-    if (fromUrl) image = fromUrl;
+    if (fromUrl) { image = fromUrl; fromUrlImport = true; }
   }
   if (!image.startsWith("data:image/")) return NextResponse.json({ error: "Kein Bild — Foto hochladen oder eine gültige Produkt-URL angeben." }, { status: 400 });
   let name = String(body.name ?? "").trim();
   let category = isLookCategory(body.category) ? (body.category as string) : "";
   let description = "";
   const curatorId = String(body.curatorId ?? "").trim() || undefined;
-  const wantExtract = body.extract === true;
+  // URL imports are ALWAYS extracted onto a clean white product shot so they match the
+  // AI-generated wardrobe pieces (a raw og:image is usually a lifestyle/flat-lay photo).
+  const wantExtract = body.extract === true || fromUrlImport;
 
   // Auto-generate name / description / type from the photo when the admin left them blank.
   if (apiKey && (!name || !category)) {
