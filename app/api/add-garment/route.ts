@@ -2,12 +2,10 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { readTryThisLookState, saveTryThisLookState, uploadTryThisLookImage } from "@/lib/try-this-look-store";
+import { isLookCategory } from "@/lib/look-category";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
-
-const isLookCategory = (c: unknown): c is string =>
-  typeof c === "string" && ["after-dark", "riviera", "boudoir", "off-duty"].includes(c);
 
 // Turn a lifestyle / on-model photo into a clean e-commerce garment product shot (person +
 // background removed) via gpt-image-1 edits. Flat product shots don't need this.
@@ -42,7 +40,7 @@ async function describeGarment(apiKey: string, dataUrl: string): Promise<{ title
       body: JSON.stringify({
         model: process.env.OPENAI_VISION_MODEL ?? "gpt-5-mini",
         input: [{ role: "user", content: [
-          { type: "input_text", text: "Look at this fashion garment photo and return ONLY a JSON object with keys: \"title\" (a short punchy product title, 3-6 words, capitalise each word, no brand names unless clearly visible, no emoji), \"description\" (1-2 elegant sentences a boutique would use — item type, colour, material, style; no invented details, no emoji, no AI wording), \"category\" (exactly one of: after-dark, riviera, off-duty, boudoir — boudoir for lingerie/intimate/sheer sets, after-dark for evening gowns/cocktail/gala, riviera for swim/bikini/resort/beach, off-duty for everyday/tailored/casual)." },
+          { type: "input_text", text: "Look at this fashion garment photo and return ONLY a JSON object with keys: \"title\" (a short punchy product title, 3-6 words, capitalise each word, no brand names unless clearly visible, no emoji), \"description\" (1-2 elegant sentences a boutique would use — item type, colour, material, style; no invented details, no emoji, no AI wording), \"category\" (exactly one of: after-dark, riviera, business, off-duty, boudoir — boudoir for lingerie/intimate/sheer sets, after-dark for evening gowns/cocktail/gala, riviera for swim/bikini/resort/beach, business for tailored suits/blazers/office wear, off-duty for everyday/casual)." },
           { type: "input_image", image_url: dataUrl },
         ] }],
       }),
@@ -61,13 +59,42 @@ async function describeGarment(apiKey: string, dataUrl: string): Promise<{ title
   }
 }
 
+// Pull the main product image out of a product page URL (og:image, else first big <img>).
+async function imageFromUrl(pageUrl: string): Promise<string | null> {
+  try {
+    const res = await fetch(pageUrl, { headers: { "User-Agent": "Mozilla/5.0 (compatible; LuxuryBanditBot/1.0)", Accept: "text/html,*/*" }, redirect: "follow" });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const og = html.match(/<meta[^>]+(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image)["'][^>]+content=["']([^"']+)["']/i)
+      ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image)["']/i);
+    let img = og?.[1] ?? "";
+    if (!img) img = html.match(/<img[^>]+src=["']([^"']+\.(?:jpe?g|png|webp)[^"']*)["']/i)?.[1] ?? "";
+    if (!img) return null;
+    const abs = new URL(img, pageUrl).toString();
+    const ir = await fetch(abs, { headers: { "User-Agent": "Mozilla/5.0 (compatible; LuxuryBanditBot/1.0)" } });
+    if (!ir.ok) return null;
+    const ct = ir.headers.get("content-type") ?? "image/jpeg";
+    if (!ct.startsWith("image/") || ct.includes("svg")) return null;
+    const buf = Buffer.from(await ir.arrayBuffer());
+    return `data:${ct};base64,${buf.toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
   const apiKey = process.env.OPENAI_API_KEY;
 
   const body = await request.json().catch(() => ({}));
-  const image = String(body.image ?? "");
-  if (!image.startsWith("data:image/")) return NextResponse.json({ error: "Kein Bild erhalten." }, { status: 400 });
+  const buyUrl = String(body.url ?? "").trim();
+  let image = String(body.image ?? "");
+  // No uploaded photo but a product URL → pull the garment image out of the page.
+  if (!image.startsWith("data:image/") && /^https?:\/\//.test(buyUrl)) {
+    const fromUrl = await imageFromUrl(buyUrl);
+    if (fromUrl) image = fromUrl;
+  }
+  if (!image.startsWith("data:image/")) return NextResponse.json({ error: "Kein Bild — Foto hochladen oder eine gültige Produkt-URL angeben." }, { status: 400 });
   let name = String(body.name ?? "").trim();
   let category = isLookCategory(body.category) ? (body.category as string) : "";
   let description = "";
@@ -98,6 +125,7 @@ export async function POST(request: Request) {
     id, name, published: true, aiCreated: true, productType: "ai", wardrobe: true, brandOriginal: true,
     category, lingerie: category === "boudoir" || undefined, curatorId,
     productNote: description || undefined,
+    buyUrl: /^https?:\/\//.test(buyUrl) ? buyUrl : undefined,
     imagePath: path, frontImagePath: path, garmentFrontImagePath: path, galleryImagePaths: [path],
     createdAt: new Date().toISOString(),
   } as never);

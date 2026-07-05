@@ -1413,6 +1413,7 @@ function StoresPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [agImage, setAgImage] = useState("");
   const [agName, setAgName] = useState("");
+  const [agUrl, setAgUrl] = useState("");
   const [agCategory, setAgCategory] = useState<LookCategory | "">("");
   const [agExtract, setAgExtract] = useState(true);
   const [agBusy, setAgBusy] = useState(false);
@@ -1422,19 +1423,19 @@ function StoresPage() {
     try { setAgImage(await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f); })); } catch { /**/ }
   };
   const submitAddGarment = async () => {
-    if (agBusy || !agImage) return;
-    setAgBusy(true); setAgMsg(agExtract ? "Name, Beschreibung, Freistellen … (~30s)" : "Name & Beschreibung generieren …");
+    if (agBusy || (!agImage && !agUrl.trim())) return;
+    setAgBusy(true); setAgMsg(agUrl.trim() && !agImage ? "Bild aus URL holen & Details generieren …" : agExtract ? "Name, Beschreibung, Freistellen … (~30s)" : "Name & Beschreibung generieren …");
     try {
       const res = await fetch("/api/add-garment", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}) },
-        body: JSON.stringify({ image: agImage, name: agName.trim(), category: agCategory || undefined, extract: agExtract }),
+        body: JSON.stringify({ image: agImage || undefined, url: agUrl.trim() || undefined, name: agName.trim(), category: agCategory || undefined, extract: agExtract }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d?.error || "Fehler");
       const all = await fetch("/api/try-this-look").then(r => r.json()).then(x => (x.looks ?? []) as Look[]);
       setLooks(all);
-      setAgImage(""); setAgName(""); setAgMsg(""); setAddOpen(false);
+      setAgImage(""); setAgName(""); setAgUrl(""); setAgMsg(""); setAddOpen(false);
     } catch (e) { setAgMsg(e instanceof Error ? e.message : "Fehler"); }
     finally { setAgBusy(false); }
   };
@@ -1932,7 +1933,7 @@ function StoresPage() {
   }, [looks, communityItems]);
   // Garderobe = every generated garment (all wardrobes), newest first, optionally by type.
   const garments = useMemo(() => {
-    const g = (looks as unknown as { id: string; name: string; frontImageUrl?: string; imageUrl?: string; category?: LookCategory; curatorId?: string; productType?: string; wardrobe?: boolean; published?: boolean; createdAt?: string }[])
+    const g = (looks as unknown as { id: string; name: string; frontImageUrl?: string; imageUrl?: string; category?: LookCategory; curatorId?: string; productType?: string; wardrobe?: boolean; published?: boolean; createdAt?: string; buyUrl?: string }[])
       .filter(l => (l.productType === "ai" || l.wardrobe) && (l.frontImageUrl || l.imageUrl) && l.published !== false);
     return g.sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
   }, [looks]);
@@ -2314,7 +2315,7 @@ function StoresPage() {
                       className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${garmentType === null ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Alle</button>
                     {garmentTypes.map(c => (
                       <button key={c.slug} type="button" onClick={() => setGarmentType(c.slug)}
-                        className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${garmentType === c.slug ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>{c.label}</button>
+                        className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${garmentType === c.slug ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>{c.slug === "boudoir" ? "Lingerie" : c.label}</button>
                     ))}
                   </div>
                 )}
@@ -2339,17 +2340,23 @@ function StoresPage() {
                       {items.map(g => {
                         const img = (g.frontImageUrl ?? g.imageUrl) as string;
                         return (
-                          <button key={g.id} type="button"
-                            onClick={() => router.push(`/try/${g.id}?garment=${encodeURIComponent(img)}&pick=1`)}
-                            className="flex flex-col overflow-hidden rounded-2xl border border-black/8 bg-white active:scale-[0.98] transition-transform">
-                            <div className="aspect-[3/4] w-full bg-neutral-50">
+                          <div key={g.id} className="flex flex-col overflow-hidden rounded-2xl border border-black/8 bg-white">
+                            <button type="button"
+                              onClick={() => router.push(`/try/${g.id}?garment=${encodeURIComponent(img)}&pick=1`)}
+                              className="aspect-[3/4] w-full bg-neutral-50 active:opacity-80 transition-opacity">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={optImg(img, 500)} alt={g.name} loading="lazy" decoding="async"
                                 onError={(e) => { const im = e.currentTarget; if (img && im.src !== img) im.src = img; }}
                                 className="h-full w-full object-contain" />
+                            </button>
+                            <div className="flex items-center gap-1.5 px-2 py-1.5">
+                              <span className="min-w-0 flex-1 truncate text-[11px] font-black text-black/70">{g.name}</span>
+                              {g.buyUrl && (
+                                <a href={g.buyUrl} target="_blank" rel="noopener noreferrer sponsored" onClick={e => e.stopPropagation()}
+                                  className="shrink-0 text-black/35 active:opacity-60" aria-label="Shop"><ShoppingBag className="h-3.5 w-3.5" /></a>
+                              )}
                             </div>
-                            <span className="truncate px-2 py-1.5 text-[11px] font-black text-black/70">{g.name}</span>
-                          </button>
+                          </div>
                         );
                       })}
                     </div>
@@ -2907,21 +2914,23 @@ function StoresPage() {
             </button>
             <input ref={agFileRef} type="file" accept="image/*" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) void onAgFile(f); }} />
-            <input type="text" value={agName} onChange={e => setAgName(e.target.value)} placeholder="Name — leer lassen = wird generiert"
+            <input type="url" value={agUrl} onChange={e => setAgUrl(e.target.value)} placeholder="Oder Produkt-/Affiliate-URL einfügen (Bild wird geholt)"
               className="mt-3 h-11 w-full rounded-xl border border-black/12 bg-black/[0.02] px-3 text-sm font-bold text-black outline-none focus:border-black/40" />
+            <input type="text" value={agName} onChange={e => setAgName(e.target.value)} placeholder="Name — leer lassen = wird generiert"
+              className="mt-2 h-11 w-full rounded-xl border border-black/12 bg-black/[0.02] px-3 text-sm font-bold text-black outline-none focus:border-black/40" />
             <div className="mt-2 flex gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <button type="button" onClick={() => setAgCategory("")}
                 className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${agCategory === "" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Auto</button>
               {LOOK_CATEGORIES.map(c => (
                 <button key={c.slug} type="button" onClick={() => setAgCategory(c.slug)}
-                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${agCategory === c.slug ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>{c.label}</button>
+                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${agCategory === c.slug ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>{c.slug === "boudoir" ? "Lingerie" : c.label}</button>
               ))}
             </div>
             <label className="mt-3 flex items-center gap-2 text-[13px] font-black text-black/70">
               <input type="checkbox" checked={agExtract} onChange={e => setAgExtract(e.target.checked)} className="h-4 w-4" />
               Freistellen (Person entfernen → sauberes Produktfoto)
             </label>
-            <button type="button" onClick={submitAddGarment} disabled={agBusy || !agImage}
+            <button type="button" onClick={submitAddGarment} disabled={agBusy || (!agImage && !agUrl.trim())}
               className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-black text-sm font-black text-white active:scale-95 transition-transform disabled:opacity-40">
               {agBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
               {agBusy ? "Wird hinzugefügt …" : "Zur Garderobe hinzufügen"}

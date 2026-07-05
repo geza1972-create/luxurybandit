@@ -3,7 +3,7 @@
 // one of four aspirational "worlds". Boudoir (lingerie) is the only one hidden from
 // the default "All" feed — it only shows when its chip is explicitly selected.
 
-export type LookCategory = "after-dark" | "riviera" | "boudoir" | "off-duty";
+export type LookCategory = "after-dark" | "riviera" | "boudoir" | "off-duty" | "business";
 
 export interface LookCategoryDef {
   slug: LookCategory;
@@ -19,6 +19,7 @@ export const LOOK_CATEGORIES: LookCategoryDef[] = [
   { slug: "after-dark", label: "After Dark", blurb: "Evening gowns, gold, red-carpet glamour" },
   { slug: "riviera", label: "Riviera", blurb: "Swim, bodysuits, beach-luxe, poolside" },
   { slug: "off-duty", label: "Off-Duty", blurb: "Satin sets, street-luxe, new-money casual" },
+  { slug: "business", label: "Business", blurb: "Tailored suits, blazers, workwear" },
   { slug: "boudoir", label: "Community", blurb: "Members-only try-ons", hideFromAll: true },
 ];
 
@@ -69,6 +70,10 @@ export function categorizeLook(look: CategorizableLook, lingerieOverride?: boole
   // After Dark — evening / gown / red-carpet glamour
   if (/\b(gown|evening|cocktail|sequin|sequinned|sequined|embellish|embellished|crystal|metallic|gold|golden|velvet|tulle|couture|ballgown|ball gown|red carpet|beaded|glitter|shimmer|chiffon|satin gown|black tie|maxi dress|floor-length)\b/.test(text)) {
     return "after-dark";
+  }
+  // Business — tailored / office / workwear
+  if (/\b(blazer|suit|tailored|tailoring|trouser suit|pantsuit|office|workwear|business|power suit|waistcoat|pinstripe)\b/.test(text)) {
+    return "business";
   }
   // Off-Duty — everyday luxe (the default bucket)
   return "off-duty";
