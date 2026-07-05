@@ -1409,6 +1409,35 @@ function StoresPage() {
   const [homeTab, setHomeTab] = useState<"feeds" | "models" | "garderobe">("models");
   // Garderobe = every generated garment (all models' wardrobes), browsable by type.
   const [garmentType, setGarmentType] = useState<LookCategory | null>(null);
+  // Admin: add a real Luxury Bandi garment (from a photo) into the Garderobe.
+  const [addOpen, setAddOpen] = useState(false);
+  const [agImage, setAgImage] = useState("");
+  const [agName, setAgName] = useState("");
+  const [agCategory, setAgCategory] = useState<LookCategory>("riviera");
+  const [agExtract, setAgExtract] = useState(true);
+  const [agBusy, setAgBusy] = useState(false);
+  const [agMsg, setAgMsg] = useState("");
+  const agFileRef = useRef<HTMLInputElement>(null);
+  const onAgFile = async (f: File) => {
+    try { setAgImage(await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f); })); } catch { /**/ }
+  };
+  const submitAddGarment = async () => {
+    if (agBusy || !agImage) return;
+    setAgBusy(true); setAgMsg(agExtract ? "Freistellen & hinzufügen … (~30s)" : "Hinzufügen …");
+    try {
+      const res = await fetch("/api/add-garment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}) },
+        body: JSON.stringify({ image: agImage, name: agName.trim(), category: agCategory, extract: agExtract }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d?.error || "Fehler");
+      const all = await fetch("/api/try-this-look").then(r => r.json()).then(x => (x.looks ?? []) as Look[]);
+      setLooks(all);
+      setAgImage(""); setAgName(""); setAgMsg(""); setAddOpen(false);
+    } catch (e) { setAgMsg(e instanceof Error ? e.message : "Fehler"); }
+    finally { setAgBusy(false); }
+  };
   useEffect(() => {
     fetch("/api/try-this-look?models=1").then(r => r.json()).then(d => setModels(Array.isArray(d.models) ? d.models : [])).catch(() => {});
   }, []);
@@ -2289,6 +2318,14 @@ function StoresPage() {
                     ))}
                   </div>
                 )}
+                {isAdmin && (
+                  <div className="px-3 pb-1">
+                    <button type="button" onClick={() => { setAddOpen(true); setAgMsg(""); }}
+                      className="flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-black/25 px-4 py-2.5 text-[13px] font-black text-black/60 active:scale-95 transition-transform">
+                      <UserPlus className="h-4 w-4" /> Luxury-Bandi-Kleidungsstück hinzufügen
+                    </button>
+                  </div>
+                )}
                 {(() => {
                   const items = garmentType ? garments.filter(g => g.category === garmentType) : garments;
                   if (items.length === 0) return (
@@ -2853,6 +2890,44 @@ function StoresPage() {
       {/* User panel */}
       {showUserPanel && <UserPanel onClose={() => { setShowUserPanel(false); setSavedAutoOpen(false); stripPanelParam(); }} openSaved={savedAutoOpen} />}
       {paywallModal}
+
+      {/* ── Admin: add a real Luxury Bandi garment from a photo ── */}
+      {addOpen && (
+        <div className="fixed inset-0 z-[95] flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={() => !agBusy && setAddOpen(false)}>
+          <div className="w-full max-w-[440px] rounded-t-3xl bg-white p-5" onClick={e => e.stopPropagation()} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" }}>
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-black/15" />
+            <p className="text-base font-black text-black">Kleidungsstück hinzufügen</p>
+            <p className="mb-3 text-[12px] font-bold text-black/45">Foto hochladen — optional das Kleidungsstück freistellen (Person/Hintergrund weg).</p>
+            <button type="button" onClick={() => agFileRef.current?.click()}
+              className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-black/15 bg-black/[0.02]">
+              {agImage
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={agImage} alt="" className="h-full w-full object-contain" />
+                : <span className="flex flex-col items-center gap-1 text-black/35"><ImageIcon className="h-8 w-8" /><span className="text-xs font-black">Foto wählen</span></span>}
+            </button>
+            <input ref={agFileRef} type="file" accept="image/*" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) void onAgFile(f); }} />
+            <input type="text" value={agName} onChange={e => setAgName(e.target.value)} placeholder="Name (z.B. Sheer beach robe)"
+              className="mt-3 h-11 w-full rounded-xl border border-black/12 bg-black/[0.02] px-3 text-sm font-bold text-black outline-none focus:border-black/40" />
+            <div className="mt-2 flex gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {LOOK_CATEGORIES.map(c => (
+                <button key={c.slug} type="button" onClick={() => setAgCategory(c.slug)}
+                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${agCategory === c.slug ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>{c.label}</button>
+              ))}
+            </div>
+            <label className="mt-3 flex items-center gap-2 text-[13px] font-black text-black/70">
+              <input type="checkbox" checked={agExtract} onChange={e => setAgExtract(e.target.checked)} className="h-4 w-4" />
+              Freistellen (Person entfernen → sauberes Produktfoto)
+            </label>
+            <button type="button" onClick={submitAddGarment} disabled={agBusy || !agImage}
+              className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-black text-sm font-black text-white active:scale-95 transition-transform disabled:opacity-40">
+              {agBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+              {agBusy ? "Wird hinzugefügt …" : "Zur Garderobe hinzufügen"}
+            </button>
+            {agMsg && <p className="mt-2 text-center text-[12px] font-bold text-black/50">{agMsg}</p>}
+          </div>
+        </div>
+      )}
 
       {/* ── Grid tile detail = the SAME HomeFeed reel (identical layout to the feed),
            opened at the tapped try-on (or look for tryon-less tiles). Home closes it. ── */}
