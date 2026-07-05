@@ -2983,12 +2983,13 @@ function StoresPage() {
               className="mt-3 h-11 w-full rounded-xl border border-black/12 bg-black/[0.02] px-3 text-sm font-bold text-black outline-none focus:border-black/40" />
             <input type="text" value={agName} onChange={e => setAgName(e.target.value)} placeholder="Name — leer lassen = wird generiert"
               className="mt-2 h-11 w-full rounded-xl border border-black/12 bg-black/[0.02] px-3 text-sm font-bold text-black outline-none focus:border-black/40" />
-            <div className="mt-2 flex gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* Wrap (not horizontal scroll) so every category — incl. Lingerie — is visible. */}
+            <div className="mt-2 flex flex-wrap gap-1.5">
               <button type="button" onClick={() => setAgCategory("")}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${agCategory === "" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Auto</button>
+                className={`rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${agCategory === "" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Auto</button>
               {LOOK_CATEGORIES.map(c => (
                 <button key={c.slug} type="button" onClick={() => setAgCategory(c.slug)}
-                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${agCategory === c.slug ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>{c.slug === "boudoir" ? "Lingerie" : c.label}</button>
+                  className={`rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${agCategory === c.slug ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>{c.slug === "boudoir" ? "Lingerie" : c.label}</button>
               ))}
             </div>
             <label className="mt-3 flex items-center gap-2 text-[13px] font-black text-black/70">
