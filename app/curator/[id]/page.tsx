@@ -284,9 +284,10 @@ export default function CuratorPublicPage() {
               ? <img src={profile.photoUrl} alt={name} className="h-full w-full object-cover" />
               : <div className="grid h-full w-full place-items-center text-2xl font-black text-white/30">{name.slice(0, 1)}</div>}
           </span>
+          {/* Just a small play button — no label — so it never covers her face. */}
           {videos.length > 0 && (
-            <span className="absolute -bottom-1 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-amber-400 px-2.5 py-1 text-[10px] font-black text-black shadow-lg">
-              <Play className="h-2.5 w-2.5" fill="currentColor" /> In motion
+            <span className="absolute bottom-0 right-0 grid h-8 w-8 place-items-center rounded-full border-2 border-[#0d0b0a] bg-amber-400 text-black shadow-lg">
+              <Play className="h-4 w-4 translate-x-[1px]" fill="currentColor" />
             </span>
           )}
         </button>
@@ -311,6 +312,14 @@ export default function CuratorPublicPage() {
             </div>
           ))}
         </div>
+
+        {/* Clear entry to her video carousel (same as tapping the photo). */}
+        {videos.length > 0 && (
+          <button type="button" onClick={() => setMotionOpen(true)}
+            className="mt-4 flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/[0.04] px-5 py-2.5 text-[13px] font-black text-white active:scale-95 transition">
+            <Play className="h-3.5 w-3.5 text-amber-400" fill="currentColor" /> See {profile.firstName || "her"} in other looks
+          </button>
+        )}
 
         {/* Follow + Message + Share moved to sticky header (second row) */}
       </div>
