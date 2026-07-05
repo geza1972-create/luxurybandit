@@ -1404,7 +1404,7 @@ function StoresPage() {
   const [feedOpen, setFeedOpen] = useState<{ tryOnId?: string; lookId?: string } | null>(null);
   // Home has two views: the Feeds thumbnail grid, and the Models gallery (a grid of the
   // model profiles). Toggled at the top of the home.
-  type GalleryModel = { id: string; name: string; photoUrl: string; style: string; lookCount: number };
+  type GalleryModel = { id: string; name: string; photoUrl: string; style: string; lookCount: number; bio?: string; motto?: string; hidden?: boolean };
   const [models, setModels] = useState<GalleryModel[]>([]);
   const [homeTab, setHomeTab] = useState<"feeds" | "models" | "garderobe">("models");
   // Garderobe = every generated garment (all models' wardrobes), browsable by type.
@@ -1496,9 +1496,53 @@ function StoresPage() {
       setGmBusy(false);
     } catch { setGmMsg("Fehler beim Löschen"); setGmBusy(false); }
   };
-  useEffect(() => {
-    fetch("/api/try-this-look?models=1").then(r => r.json()).then(d => setModels(Array.isArray(d.models) ? d.models : [])).catch(() => {});
-  }, []);
+  const reloadModels = () => {
+    const pin = (() => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } })();
+    return fetch("/api/try-this-look?models=1", pin ? { headers: { "x-try-look-admin-pin": pin } } : undefined)
+      .then(r => r.json()).then(d => setModels(Array.isArray(d.models) ? d.models : [])).catch(() => {});
+  };
+  useEffect(() => { void reloadModels(); }, []);
+  // Admin: manage a model (edit name/bio, replace photo, hide/show, delete) or add a new one.
+  const [mModelId, setMModelId] = useState("");   // "" = closed, "new" = add form, else edit
+  const [mmName, setMmName] = useState("");
+  const [mmStyle, setMmStyle] = useState("");
+  const [mmBio, setMmBio] = useState("");
+  const [mmPhoto, setMmPhoto] = useState("");      // new data URL (add / replace)
+  const [mmBusy, setMmBusy] = useState(false);
+  const [mmMsg, setMmMsg] = useState("");
+  const mmPhotoRef = useRef<HTMLInputElement>(null);
+  const openModelManage = (m: GalleryModel) => { setMModelId(m.id); setMmName(m.name ?? ""); setMmStyle(m.style ?? ""); setMmBio(m.bio ?? ""); setMmPhoto(""); setMmMsg(""); setMmBusy(false); };
+  const openModelAdd = () => { setMModelId("new"); setMmName(""); setMmStyle(""); setMmBio(""); setMmPhoto(""); setMmMsg(""); setMmBusy(false); };
+  const closeModelManage = () => { setMModelId(""); setMmBusy(false); setMmMsg(""); };
+  const onModelPhoto = async (f: File) => { try { setMmPhoto(await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f); })); } catch { /**/ } };
+  const saveModel = async () => {
+    if (mmBusy) return;
+    const isNew = mModelId === "new";
+    if (isNew && (!mmName.trim() || !mmPhoto)) { setMmMsg("Name und Foto nötig."); return; }
+    setMmBusy(true); setMmMsg("");
+    try {
+      const body: Record<string, unknown> = isNew
+        ? { action: "add-curator", name: mmName.trim(), style: mmStyle.trim(), bio: mmBio.trim(), photoImage: mmPhoto }
+        : { action: "update-curator", id: mModelId, name: mmName.trim(), style: mmStyle.trim(), bio: mmBio.trim(), ...(mmPhoto ? { photoImage: mmPhoto } : {}) };
+      const res = await adminWrite(body);
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehler");
+      await reloadModels();
+      closeModelManage();
+    } catch (e) { setMmMsg(e instanceof Error ? e.message : "Fehler"); setMmBusy(false); }
+  };
+  const toggleModelHidden = async (m: GalleryModel) => {
+    if (mmBusy) return;
+    setMmBusy(true); setMmMsg("");
+    try { const res = await adminWrite({ action: "update-curator", id: m.id, hidden: !m.hidden }); if (!res.ok) throw new Error("Fehler"); await reloadModels(); closeModelManage(); }
+    catch { setMmMsg("Fehler"); setMmBusy(false); }
+  };
+  const deleteModel = async (m: GalleryModel) => {
+    if (mmBusy) return;
+    if (!confirm(`Model "${m.name}" endgültig löschen?`)) return;
+    setMmBusy(true); setMmMsg("");
+    try { const res = await adminWrite({ action: "delete-curator", id: m.id }); if (!res.ok) throw new Error("Fehler"); await reloadModels(); closeModelManage(); }
+    catch { setMmMsg("Fehler beim Löschen"); setMmBusy(false); }
+  };
   const [communityLikes, setCommunityLikes] = useState<Record<string, boolean>>({});
   // "Mine" filter for signed-in creators — show only their own try-ons / trends
   const [myCuratorId, setMyCuratorId] = useState("");
@@ -2346,23 +2390,41 @@ function StoresPage() {
               models.length === 0 ? (
                 <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-black/30" /></div>
               ) : (
-              <div className="grid grid-cols-2 gap-2 px-3 pb-8">
+              <>
+                {isAdmin && (
+                  <div className="px-3 pb-1 pt-1">
+                    <button type="button" onClick={openModelAdd}
+                      className="flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-black/25 px-4 py-2.5 text-[13px] font-black text-black/60 active:scale-95 transition-transform">
+                      <UserPlus className="h-4 w-4" /> Neues Model hinzufügen
+                    </button>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-2 px-3 pb-8">
                 {models.map(m => (
-                  <a key={m.id} href={`/curator/${m.id}`} className="flex flex-col overflow-hidden rounded-2xl border border-black/8 bg-white active:opacity-80 transition-opacity">
-                    <div className="relative aspect-[3/4] overflow-hidden bg-black/5">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={m.photoUrl} alt={m.name} loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
-                      {m.lookCount > 0 && (
-                        <span className="absolute left-2 bottom-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black text-white backdrop-blur">{m.lookCount} look{m.lookCount !== 1 ? "s" : ""}</span>
-                      )}
-                    </div>
-                    <div className="px-2.5 py-2">
-                      <p className="truncate text-[13px] font-black text-black">{m.name}</p>
-                      {m.style && <p className="truncate text-[11px] font-bold text-black/40">{m.style}</p>}
-                    </div>
-                  </a>
+                  <div key={m.id} className="relative">
+                    <a href={`/curator/${m.id}`} className="flex flex-col overflow-hidden rounded-2xl border border-black/8 bg-white active:opacity-80 transition-opacity">
+                      <div className="relative aspect-[3/4] overflow-hidden bg-black/5">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={m.photoUrl} alt={m.name} loading="lazy" decoding="async" className={`h-full w-full object-cover object-top ${m.hidden ? "opacity-40" : ""}`} />
+                        {m.lookCount > 0 && (
+                          <span className="absolute left-2 bottom-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black text-white backdrop-blur">{m.lookCount} look{m.lookCount !== 1 ? "s" : ""}</span>
+                        )}
+                      </div>
+                      <div className="px-2.5 py-2">
+                        <p className="truncate text-[13px] font-black text-black">{m.name}</p>
+                        {m.style && <p className="truncate text-[11px] font-bold text-black/40">{m.style}</p>}
+                      </div>
+                    </a>
+                    {m.hidden && <span className="absolute left-2 top-2 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-black text-white">Ausgeblendet</span>}
+                    {isAdmin && (
+                      <button type="button" onClick={() => openModelManage(m)}
+                        className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/70 text-white backdrop-blur active:scale-90 transition"
+                        aria-label="Model verwalten"><SlidersHorizontal className="h-4 w-4" /></button>
+                    )}
+                  </div>
                 ))}
-              </div>
+                </div>
+              </>
               )
             ) : homeTab === "garderobe" ? (
               <>
@@ -2402,17 +2464,25 @@ function StoresPage() {
                           <div key={g.id} className="relative flex flex-col overflow-hidden rounded-2xl border border-black/8 bg-white">
                             <button type="button"
                               onClick={() => router.push(`/try/${g.id}?garment=${encodeURIComponent(img)}&pick=1`)}
-                              className="aspect-[3/4] w-full bg-neutral-50 active:opacity-80 transition-opacity">
+                              className="relative aspect-[3/4] w-full bg-neutral-50 active:opacity-80 transition-opacity">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={optImg(img, 500)} alt={g.name} loading="lazy" decoding="async"
                                 onError={(e) => { const im = e.currentTarget; if (img && im.src !== img) im.src = img; }}
                                 className={`h-full w-full object-contain ${hidden ? "opacity-40" : ""}`} />
+                              {/* Make it obvious that tapping this piece generates a try-on VIDEO. */}
+                              {!hidden && (
+                                <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur">
+                                  <Play className="h-2.5 w-2.5" fill="currentColor" /> Video erstellen
+                                </span>
+                              )}
                             </button>
-                            <div className="flex items-center gap-1.5 px-2 py-1.5">
-                              <span className="min-w-0 flex-1 truncate text-[11px] font-black text-black/70">{g.name}</span>
+                            <div className="px-2 py-1.5">
+                              <span className="block truncate text-[11px] font-black text-black/70">{g.name}</span>
                               {g.buyUrl && (
                                 <a href={g.buyUrl} target="_blank" rel="noopener noreferrer sponsored" onClick={e => e.stopPropagation()}
-                                  className="shrink-0 text-black/35 active:opacity-60" aria-label="Shop"><ShoppingBag className="h-3.5 w-3.5" /></a>
+                                  className="mt-1.5 flex items-center justify-center gap-1.5 rounded-full bg-black px-3 py-1.5 text-[11px] font-black text-white active:scale-95 transition">
+                                  <ShoppingBag className="h-3.5 w-3.5" /> Shop now
+                                </a>
                               )}
                             </div>
                             {hidden && <span className="absolute left-2 top-2 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-black text-white">Ausgeblendet</span>}
@@ -3005,6 +3075,63 @@ function StoresPage() {
           </div>
         </div>
       )}
+
+      {/* ── Admin: add / manage a Model (name, style, bio, photo, hide, delete) ── */}
+      {isAdmin && mModelId && (() => {
+        const isNew = mModelId === "new";
+        const m = isNew ? null : models.find(x => x.id === mModelId);
+        if (!isNew && !m) return null;
+        const previewPhoto = mmPhoto || m?.photoUrl || "";
+        return (
+          <div className="fixed inset-0 z-[96] flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={() => !mmBusy && closeModelManage()}>
+            <div className="w-full max-w-[440px] max-h-[90dvh] overflow-y-auto rounded-t-3xl bg-white p-5" onClick={e => e.stopPropagation()} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" }}>
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-black/15" />
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-base font-black text-black">{isNew ? "Neues Model" : "Model verwalten"}</p>
+                <button type="button" onClick={closeModelManage} className="grid h-8 w-8 place-items-center rounded-full bg-black/5"><X className="h-4 w-4" /></button>
+              </div>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => mmPhotoRef.current?.click()}
+                  className="relative h-28 w-24 shrink-0 overflow-hidden rounded-xl border border-black/10 bg-neutral-50">
+                  {previewPhoto
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={previewPhoto.startsWith("data:") ? previewPhoto : optImg(previewPhoto, 300)} alt="" className="h-full w-full object-cover object-top"
+                        onError={(e) => { const im = e.currentTarget; if (!previewPhoto.startsWith("data:") && im.src !== previewPhoto) im.src = previewPhoto; }} />
+                    : <span className="grid h-full w-full place-items-center text-black/30"><ImageIcon className="h-6 w-6" /></span>}
+                  <span className="absolute inset-x-0 bottom-0 bg-black/60 py-0.5 text-center text-[9px] font-black text-white">Foto</span>
+                </button>
+                <div className="grid min-w-0 flex-1 gap-2">
+                  <input value={mmName} onChange={e => setMmName(e.target.value)} placeholder="Name"
+                    className="h-10 w-full rounded-lg border border-black/12 bg-black/[0.02] px-3 text-sm font-bold text-black outline-none focus:border-black/40" />
+                  <input value={mmStyle} onChange={e => setMmStyle(e.target.value)} placeholder="Stil (z.B. Drama, tastefully)"
+                    className="h-10 w-full rounded-lg border border-black/12 bg-black/[0.02] px-3 text-sm font-bold text-black outline-none focus:border-black/40" />
+                </div>
+              </div>
+              <textarea value={mmBio} onChange={e => setMmBio(e.target.value)} rows={3} placeholder="Beschreibung / Bio"
+                className="mt-2 w-full resize-none rounded-lg border border-black/12 bg-black/[0.02] px-3 py-2 text-[13px] text-black outline-none focus:border-black/40" />
+              <input ref={mmPhotoRef} type="file" accept="image/*" className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) void onModelPhoto(f); e.currentTarget.value = ""; }} />
+              {!isNew && m && (
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => toggleModelHidden(m)} disabled={mmBusy}
+                    className="flex items-center justify-center gap-1.5 rounded-xl border border-black/12 bg-black/[0.02] py-2.5 text-[12px] font-black text-black active:scale-95 transition disabled:opacity-50">
+                    {m.hidden ? <><Eye className="h-4 w-4" /> Einblenden</> : <><EyeOff className="h-4 w-4" /> Ausblenden</>}
+                  </button>
+                  <button type="button" onClick={() => deleteModel(m)} disabled={mmBusy}
+                    className="flex items-center justify-center gap-1.5 rounded-xl border border-red-500/25 bg-red-500/[0.06] py-2.5 text-[12px] font-black text-red-500 active:scale-95 transition disabled:opacity-50">
+                    <Trash2 className="h-4 w-4" /> Löschen
+                  </button>
+                </div>
+              )}
+              <button type="button" onClick={saveModel} disabled={mmBusy}
+                className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-black text-sm font-black text-white active:scale-95 transition disabled:opacity-40">
+                {mmBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : (isNew ? <><UserPlus className="h-4 w-4" /> Model hinzufügen</> : "Speichern")}
+              </button>
+              {mmMsg && <p className="mt-2 text-center text-[12px] font-bold text-black/50">{mmMsg}</p>}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Admin: manage a Garderobe garment (edit text / move category / replace / hide / delete) ── */}
       {isAdmin && gManageId && (() => {

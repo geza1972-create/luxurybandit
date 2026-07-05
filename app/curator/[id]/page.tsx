@@ -395,6 +395,8 @@ export default function CuratorPublicPage() {
                             <span className="line-clamp-1 text-[13px] font-black text-white">{l.name}</span>
                           </div>
                         </button>
+                        {/* Make it obvious tapping generates a try-on VIDEO. */}
+                        {!hidden && <span className="pointer-events-none absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur"><Play className="h-2.5 w-2.5" fill="currentColor" /> Video erstellen</span>}
                         {hidden && <span className="absolute left-2 top-2 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-black text-white">Ausgeblendet</span>}
                         {isAdmin && (
                           <button type="button" onClick={() => openManage(l)}

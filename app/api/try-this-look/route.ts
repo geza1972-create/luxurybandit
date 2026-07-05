@@ -328,6 +328,8 @@ export async function GET(request: Request) {
     // (no email/address/credits). lookCount = how many SHARED (feed:true) try-ons the
     // model appears in, matched by name.
     if (url.searchParams.get("models") === "1") {
+      // Admins get hidden models too (to un-hide/manage) + editable fields (name parts, bio).
+      const modelsAdmin = await isAdmin(request);
       const genCountByName = new Map<string, number>();
       for (const g of (state.generations ?? [])) {
         if ((g as any).feed !== true) continue;
@@ -335,7 +337,8 @@ export async function GET(request: Request) {
         if (nm && nm !== "you") genCountByName.set(nm, (genCountByName.get(nm) ?? 0) + 1);
       }
       const models = (state.curators ?? [])
-        .filter(c => (c as any).photoUrl && String((c as any).status ?? "active") !== "removed")
+        .filter(c => (c as any).photoUrl && String((c as any).status ?? "active") !== "removed"
+          && (modelsAdmin || (c as any).hidden !== true))
         .map(c => {
           const cc = c as any;
           const name = [cc.firstName, cc.lastName].filter(Boolean).join(" ").trim();
@@ -345,6 +348,13 @@ export async function GET(request: Request) {
             photoUrl: cc.photoUrl as string,
             style: typeof cc.style === "string" ? cc.style : "",
             lookCount: genCountByName.get(name.toLowerCase()) ?? 0,
+            ...(modelsAdmin ? {
+              firstName: cc.firstName ?? "",
+              lastName: cc.lastName ?? "",
+              bio: cc.bio ?? "",
+              motto: cc.motto ?? "",
+              hidden: cc.hidden === true,
+            } : {}),
           };
         })
         .sort((a, b) => b.lookCount - a.lookCount || a.name.localeCompare(b.name));
@@ -1493,6 +1503,52 @@ export async function POST(request: Request) {
       const curators = all ? [] : (state.curators ?? []).filter(c => c.id !== id);
       await saveTryThisLookState({ ...state, curators });
       return NextResponse.json({ ok: true, curators });
+    }
+
+    // Admin: edit a model (curator) — name, bio, motto, style, hidden flag, and/or photo.
+    if (payload.action === "update-curator") {
+      const id = String((payload as any).id ?? "").trim();
+      const idx = (state.curators ?? []).findIndex(c => c.id === id);
+      if (idx < 0) return NextResponse.json({ error: "Model not found." }, { status: 404 });
+      const c = state.curators![idx] as any;
+      const has = (k: string) => Object.prototype.hasOwnProperty.call(payload, k);
+      if (has("name")) { const parts = String((payload as any).name ?? "").trim().split(/\s+/).filter(Boolean); c.firstName = parts.shift() ?? ""; c.lastName = parts.join(" "); }
+      if (has("firstName")) c.firstName = String((payload as any).firstName ?? "").trim();
+      if (has("lastName")) c.lastName = String((payload as any).lastName ?? "").trim();
+      if (has("bio")) c.bio = String((payload as any).bio ?? "").trim() || undefined;
+      if (has("motto")) c.motto = String((payload as any).motto ?? "").trim() || undefined;
+      if (has("style")) c.style = String((payload as any).style ?? "").trim() || undefined;
+      if (has("hidden")) c.hidden = (payload as any).hidden === true || undefined;
+      const photo = (payload as any).photoImage;
+      if (typeof photo === "string" && photo.startsWith("data:image/")) {
+        c.photoPath = await uploadTryThisLookImage("uploads", photo);
+      }
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true });
+    }
+
+    // Admin: add a new model (curator) from a photo + name (no application flow).
+    if (payload.action === "add-curator") {
+      const name = String((payload as any).name ?? "").trim();
+      const photo = (payload as any).photoImage;
+      if (!name) return NextResponse.json({ error: "Name required." }, { status: 400 });
+      if (typeof photo !== "string" || !photo.startsWith("data:image/")) return NextResponse.json({ error: "Photo required." }, { status: 400 });
+      const parts = name.split(/\s+/).filter(Boolean);
+      const photoPath = await uploadTryThisLookImage("uploads", photo);
+      const curator: any = {
+        id: `curator-${Date.now()}-${crypto.randomUUID().slice(0, 5)}`,
+        firstName: parts.shift() ?? name,
+        lastName: parts.join(" "),
+        style: String((payload as any).style ?? "").trim() || undefined,
+        bio: String((payload as any).bio ?? "").trim() || undefined,
+        motto: String((payload as any).motto ?? "").trim() || undefined,
+        photoPath,
+        status: "active",
+        createdAt: now,
+      };
+      state.curators = [curator, ...(state.curators ?? [])];
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, id: curator.id });
     }
 
     // Global try-on kill-switch (admin-only). Flip it to instantly pause/resume end-user
