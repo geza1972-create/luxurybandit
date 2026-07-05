@@ -53,9 +53,12 @@ export default function CuratorPublicPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [genBusy, setGenBusy] = useState(false);
   const [genMsg, setGenMsg] = useState("");
-  // Admin: describe the pieces to generate (else auto from her prefs).
+  // Admin: describe the pieces to generate (else auto from her prefs) + reference images
+  // (paste a screenshot or upload) that get extracted into clean wardrobe pieces.
   const [genOpen, setGenOpen] = useState(false);
   const [genBrief, setGenBrief] = useState("");
+  const [genRefs, setGenRefs] = useState<string[]>([]);
+  const genRefFileRef = useRef<HTMLInputElement>(null);
   // Her videos live BEHIND the profile photo — tapping it opens a fullscreen carousel,
   // so they never compete with the wardrobe for attention.
   const [motionOpen, setMotionOpen] = useState(false);
@@ -175,21 +178,37 @@ export default function CuratorPublicPage() {
       setTryons(prev => prev.filter(x => x.id !== t.id));
     } catch { /**/ }
   };
+  const readFile = (f: File) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f); });
+  const addGenRefs = async (files: FileList | File[]) => {
+    for (const f of Array.from(files)) { if (!f.type.startsWith("image/")) continue; try { const url = await readFile(f); setGenRefs(r => [...r, url].slice(0, 8)); } catch { /**/ } }
+  };
+  // Paste a screenshot (Cmd/Ctrl+V) → add it as a reference image.
+  const onGenPaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items; if (!items) return;
+    const files: File[] = [];
+    for (const it of items) { if (it.type.startsWith("image/")) { const f = it.getAsFile(); if (f) files.push(f); } }
+    if (files.length) { e.preventDefault(); await addGenRefs(files); }
+  };
   const generateWardrobe = async () => {
     if (genBusy) return;
     const brief = genBrief.trim();
+    const refs = genRefs;
     setGenOpen(false);
-    setGenBusy(true); setGenMsg("Generiere Garderobe … (~1 Min, bitte warten)");
+    setGenBusy(true); setGenMsg(refs.length ? "Extrahiere Referenzen & generiere … (bitte warten)" : "Generiere Garderobe … (~1 Min, bitte warten)");
     try {
-      const res = await fetch("/api/generate-wardrobe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-try-look-admin-pin": adminPin() },
-        body: JSON.stringify({ curatorId: id, mainCount: 3, lingerieCount: 3, ...(brief ? { brief } : {}) }),
-      });
-      const d = await res.json();
-      if (!res.ok) throw new Error(d?.error || "Fehler");
-      const ok = (d.created ?? []).filter((c: { id?: string }) => c.id && c.id !== "sample").length;
-      setGenMsg(`${ok} Stücke erstellt.`);
+      const H = { "Content-Type": "application/json", "x-try-look-admin-pin": adminPin() };
+      // Reference images → each is extracted into a clean wardrobe piece (attributed to her).
+      for (const img of refs) {
+        await fetch("/api/add-garment", { method: "POST", headers: H, body: JSON.stringify({ image: img, curatorId: id, extract: true }) }).catch(() => {});
+      }
+      // Text brief → generate from it; nothing given → auto from her prefs (3 + 3).
+      if (brief || refs.length === 0) {
+        const res = await fetch("/api/generate-wardrobe", { method: "POST", headers: H, body: JSON.stringify({ curatorId: id, mainCount: 3, lingerieCount: 3, ...(brief ? { brief } : {}) }) });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d?.error || "Fehler");
+      }
+      setGenMsg("Fertig ✓");
+      setGenRefs([]); setGenBrief("");
       await reloadLooks();
     } catch (e) {
       setGenMsg(e instanceof Error ? e.message : "Fehler");
@@ -360,7 +379,6 @@ export default function CuratorPublicPage() {
           const moreWardrobe = moreLooks ? allLooks.filter(l => l.curatorId !== id && isGarment(l) && dedupe(l)) : [];
           const wardrobeAll = [...herWardrobe, ...moreWardrobe];
           const catOf = (l: Look): LookCategory => (isLookCategory(l.category) ? l.category : categorizeLook(l as never));
-          const presentCats = LOOK_CATEGORIES.filter(c => wardrobeAll.some(l => catOf(l) === c.slug));
           const wardrobe = wardrobeCat === "all" ? wardrobeAll : wardrobeAll.filter(l => catOf(l) === wardrobeCat);
           return (
             <>
@@ -377,17 +395,15 @@ export default function CuratorPublicPage() {
               </div>
               {isAdmin && genMsg && <p className="mb-2 text-[11px] font-bold text-white/50">{genMsg}</p>}
 
-              {/* Category filter — same worlds as the Garderobe (boudoir → "Lingerie"). */}
-              {presentCats.length > 0 && (
-                <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {(["all", ...presentCats.map(c => c.slug)] as ("all" | LookCategory)[]).map(slug => (
-                    <button key={slug} type="button" onClick={() => setWardrobeCat(slug)}
-                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${wardrobeCat === slug ? "bg-white text-black" : "bg-white/10 text-white/70"}`}>
-                      {slug === "all" ? "Alle" : catLabel(slug)}
-                    </button>
-                  ))}
-                </div>
-              )}
+              {/* Category filter — ALL worlds (boudoir → "Lingerie"), same as the Garderobe. */}
+              <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {(["all", ...LOOK_CATEGORIES.map(c => c.slug)] as ("all" | LookCategory)[]).map(slug => (
+                  <button key={slug} type="button" onClick={() => setWardrobeCat(slug)}
+                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${wardrobeCat === slug ? "bg-white text-black" : "bg-white/10 text-white/70"}`}>
+                    {slug === "all" ? "Alle" : catLabel(slug)}
+                  </button>
+                ))}
+              </div>
 
               {wardrobe.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-16 text-center">
@@ -497,13 +513,34 @@ export default function CuratorPublicPage() {
               <button type="button" onClick={() => setGenOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10"><X className="h-4 w-4" /></button>
             </div>
             <p className="mb-2 text-[12px] font-bold text-white/50">Beschreibe was du willst — ein Stück pro Komma. Leer lassen = automatisch aus ihren Vorlieben (3 Looks + 3 Lingerie).</p>
-            <textarea value={genBrief} onChange={e => setGenBrief(e.target.value)} rows={4}
+            <textarea value={genBrief} onChange={e => setGenBrief(e.target.value)} onPaste={onGenPaste} rows={3}
               placeholder="z.B. rotes Satin-Abendkleid mit Schlitz, schwarzer Leder-Blazer, schwarzes Spitzen-Dessous-Set"
               className="w-full resize-none rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2.5 text-[13px] text-white outline-none focus:border-white/40" />
+
+            {/* Reference images — paste a screenshot (Cmd/Ctrl+V) or upload. Each becomes a
+                clean wardrobe piece (freigestellt) attributed to her. */}
+            <div className="mt-2.5 flex flex-wrap items-center gap-2" onPaste={onGenPaste}>
+              {genRefs.map((src, i) => (
+                <div key={i} className="relative h-16 w-12 shrink-0 overflow-hidden rounded-lg border border-white/15 bg-white">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={src} alt="" className="h-full w-full object-cover" />
+                  <button type="button" onClick={() => setGenRefs(r => r.filter((_, x) => x !== i))}
+                    className="absolute right-0.5 top-0.5 grid h-4 w-4 place-items-center rounded-full bg-black/80 text-white"><X className="h-2.5 w-2.5" /></button>
+                </div>
+              ))}
+              <button type="button" onClick={() => genRefFileRef.current?.click()}
+                className="flex h-16 w-12 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-white/25 text-white/50 active:scale-95 transition">
+                <ImageUp className="h-4 w-4" />
+              </button>
+              <span className="text-[11px] font-bold text-white/35">Referenzbild einfügen (Screenshot ⌘V) oder hochladen</span>
+            </div>
+            <input ref={genRefFileRef} type="file" accept="image/*" multiple className="hidden"
+              onChange={e => { if (e.target.files?.length) void addGenRefs(e.target.files); e.currentTarget.value = ""; }} />
+
             <button type="button" onClick={generateWardrobe} disabled={genBusy}
               className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 text-sm font-black text-black active:scale-95 transition disabled:opacity-50">
               {genBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              {genBrief.trim() ? "Generieren" : "Automatisch (3 + 3)"}
+              {(genBrief.trim() || genRefs.length) ? "Generieren" : "Automatisch (3 + 3)"}
             </button>
           </div>
         </>

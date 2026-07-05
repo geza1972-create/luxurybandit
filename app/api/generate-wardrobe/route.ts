@@ -8,7 +8,6 @@ export const maxDuration = 300;
 
 const splitList = (s?: string) =>
   String(s ?? "").split(/[,;]+/).map((x) => x.trim()).filter(Boolean);
-const pick = <T,>(arr: T[], i: number, fb: T) => (arr.length ? arr[i % arr.length] : fb);
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 type Piece = { piece: string; prompt: string; lingerie: boolean; category: string; name: string };
@@ -21,39 +20,49 @@ function inferCategory(piece: string, lingerie: boolean): string {
   return "off-duty";
 }
 
+const rnd = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
+const shuffle = <T,>(a: T[]): T[] => a.map((v) => [Math.random(), v] as const).sort((x, y) => x[0] - y[0]).map(([, v]) => v);
+
 // A model's signup preferences → a set of garment ideas: `mainCount` luxury garments +
-// `lingerieCount` luxury lingerie pieces (user directive: 3 + 3, all luxury).
+// `lingerieCount` luxury lingerie pieces (user directive: 3 + 3, all luxury). RANDOMIZED per
+// call (colour/fabric/detail/piece are shuffled) so no two models get the same wardrobe.
 function buildPieces(prefs: { style?: string; brands?: string; fabrics?: string; occasions?: string; colors?: string }, mainCount: number, lingerieCount: number): Piece[] {
-  const colors = splitList(prefs.colors);
-  const fabrics = splitList(prefs.fabrics);
+  const colorPool = [...splitList(prefs.colors), "black", "ivory", "emerald", "burgundy", "champagne", "midnight blue", "dusty rose", "silver", "gold", "scarlet", "chocolate", "sage", "blush", "onyx", "wine"];
+  const fabricPool = [...splitList(prefs.fabrics), "silk", "satin", "velvet", "lace", "crepe", "chiffon", "organza"];
   const occ = splitList(prefs.occasions).map((o) => o.toLowerCase());
   const brands = splitList(prefs.brands).slice(0, 4);
   const style = String(prefs.style ?? "").trim();
   const has = (...k: string[]) => k.some((x) => occ.some((o) => o.includes(x)) || style.toLowerCase().includes(x));
 
-  const main: string[] = [];
-  if (has("evening", "black tie", "cocktail", "gala", "glam", "statement")) main.push("floor-length evening gown with a thigh-high slit", "embellished cocktail dress", "draped satin column gown");
-  if (has("everyday", "business", "off-duty", "quiet luxury", "minimal")) main.push("sharply tailored blazer", "silk midi slip dress", "wide-leg trouser suit");
-  if (has("vacation", "resort", "garden party", "riviera")) main.push("flowing silk resort maxi dress", "linen co-ord set");
-  if (has("bridal")) main.push("delicate white lace bridal gown");
-  if (main.length < 3) main.push("elegant tailored midi dress", "structured blazer", "silk slip dress", "draped satin gown", "sculptural one-shoulder gown");
+  const mainPool: string[] = [];
+  if (has("evening", "black tie", "cocktail", "gala", "glam", "statement")) mainPool.push("floor-length evening gown", "embellished cocktail dress", "draped satin column gown", "sequin slip gown", "off-shoulder mermaid gown");
+  if (has("everyday", "business", "off-duty", "quiet luxury", "minimal")) mainPool.push("sharply tailored blazer", "silk midi slip dress", "wide-leg trouser suit", "belted wool coat", "tailored waistcoat and trousers");
+  if (has("vacation", "resort", "garden party", "riviera")) mainPool.push("flowing silk resort maxi dress", "linen co-ord set", "cut-out beach maxi", "halter-neck sundress");
+  if (has("bridal")) mainPool.push("delicate white lace bridal gown");
+  // Always add a broad pool so there's plenty of variety to draw from.
+  mainPool.push("elegant tailored midi dress", "structured blazer", "silk slip dress", "draped satin gown", "sculptural one-shoulder gown", "wrap maxi dress", "tailored jumpsuit", "pleated column skirt with a matching top", "off-shoulder cocktail dress", "belted trench coat", "asymmetric ruched dress", "high-neck column gown");
 
-  const lingeriePieces = ["lace lingerie set with balconette bra and high-waist brief", "sheer embroidered bodysuit", "satin slip dress and robe set", "delicate bralette and thong set", "corset-style bustier with garter straps"];
+  const lingeriePool = ["lace lingerie set with balconette bra and high-waist brief", "sheer embroidered bodysuit", "satin slip dress and robe set", "delicate bralette and thong set", "corset-style bustier with garter straps", "strappy cage bra set", "embroidered mesh teddy", "silk cami and short set", "underwire lace bralette set"];
 
-  const build = (rawPiece: string, i: number, isLingerie: boolean): Piece => {
-    const color = pick(colors, i, "black");
-    const fabric = pick(fabrics, i + 1, isLingerie ? "lace" : "satin");
-    const brand = pick(brands, i, "");
-    const name = cap(`${color.toLowerCase()} ${rawPiece}`).slice(0, 80);
+  const details = ["with a thigh-high slit", "with a plunging neckline", "with a cowl back", "with a corset bodice", "with draped detailing", "with a one-shoulder cut", "with delicate straps", "with a fitted silhouette", "with a flowing skirt", ""];
+
+  const build = (rawPiece: string, isLingerie: boolean): Piece => {
+    const color = rnd(colorPool).toLowerCase();
+    const fabric = rnd(fabricPool).toLowerCase();
+    const brand = brands.length ? rnd(brands) : "";
+    const detail = isLingerie ? "" : rnd(details);
+    const name = cap(`${color} ${rawPiece}${detail ? ` ${detail}` : ""}`).slice(0, 80);
     const prompt = isLingerie
-      ? `Professional luxury lingerie e-commerce product photograph, a SINGLE ${color.toLowerCase()} ${fabric.toLowerCase()} ${rawPiece} laid flat / on an invisible ghost-mannequin on a pure seamless white background, no human, no body, no face, tasteful catalog product shot, elegant, sharp studio lighting, full garment visible, no text, no logo.`
-      : `Professional e-commerce fashion product photograph of a SINGLE luxury garment on a pure seamless white background, ghost-mannequin (invisible model) style, no human, no face, sharp even studio lighting, the complete garment centered and fully visible top to bottom. The garment: a ${color.toLowerCase()} ${fabric.toLowerCase()} ${rawPiece}. Aesthetic: ${style || "modern luxury"}${brand ? `, in the spirit of ${brand}` : ""}. High-end catalog quality, crisp fabric detail, realistic, no text, no logo.`;
+      ? `Professional luxury lingerie e-commerce product photograph, a SINGLE ${color} ${fabric} ${rawPiece} laid flat / on an invisible ghost-mannequin on a pure seamless white background, no human, no body, no face, tasteful catalog product shot, elegant, sharp studio lighting, full garment visible, no text, no logo.`
+      : `Professional e-commerce fashion product photograph of a SINGLE luxury garment on a pure seamless white background, ghost-mannequin (invisible model) style, no human, no face, sharp even studio lighting, the complete garment centered and fully visible top to bottom. The garment: a ${color} ${fabric} ${rawPiece}${detail ? `, ${detail}` : ""}. Aesthetic: ${style || "modern luxury"}${brand ? `, in the spirit of ${brand}` : ""}. High-end catalog quality, crisp fabric detail, realistic, no text, no logo.`;
     return { piece: rawPiece, prompt, lingerie: isLingerie, category: inferCategory(rawPiece, isLingerie), name };
   };
 
+  const mains = shuffle(mainPool);
+  const lings = shuffle(lingeriePool);
   const items: Piece[] = [];
-  for (let i = 0; i < mainCount; i++) items.push(build(pick(main, i, "elegant midi dress"), i, false));
-  for (let j = 0; j < lingerieCount; j++) items.push(build(pick(lingeriePieces, j, "lace lingerie set"), mainCount + j, true));
+  for (let i = 0; i < mainCount; i++) items.push(build(mains[i % mains.length], false));
+  for (let j = 0; j < lingerieCount; j++) items.push(build(lings[j % lings.length], true));
   return items;
 }
 

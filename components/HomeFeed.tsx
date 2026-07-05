@@ -566,15 +566,23 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     setAssignOpen(true);
     if (!curatorList.length) {
       try {
-        const d = await fetch("/api/try-this-look?curators=1", { headers: modHeaders() }).then(r => r.json());
-        setCuratorList((d.curators || []).map((c: any) => ({ id: c.id, name: [c.firstName, c.lastName].filter(Boolean).join(" ") || c.name || c.id })));
+        // Public models list (no admin gate) so the picker always populates.
+        const d = await fetch("/api/try-this-look?models=1", { headers: modHeaders() }).then(r => r.json());
+        setCuratorList((d.models || []).map((c: any) => ({ id: c.id, name: c.name || c.id })));
       } catch { /**/ }
     }
   };
   const assignLook = async (curatorId: string) => {
     setModBusy("assign");
-    try { await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "set-look-curator", lookId: look.id, curatorId }) }); setAssignOpen(false); }
-    catch { /**/ } finally { setModBusy(""); }
+    try {
+      // A try-on slide → re-home the VIDEO to this model (sets its curatorId + name);
+      // a plain look → reassign the look's owner.
+      const body = activeTryOnId
+        ? { action: "assign-generation", id: activeTryOnId, curatorId }
+        : { action: "set-look-curator", lookId: look.id, curatorId };
+      await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify(body) });
+      setAssignOpen(false);
+    } catch { /**/ } finally { setModBusy(""); }
   };
 
   const headerBar = (
@@ -967,11 +975,11 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         <div className="lb-phone-col fixed inset-0 z-[80] flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={() => setAssignOpen(false)}>
           <div className="w-full rounded-t-3xl bg-white p-5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" }} onClick={e => e.stopPropagation()}>
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-black text-black">Assign to curator</p>
+              <p className="text-sm font-black text-black">Assign to a model</p>
               <button type="button" onClick={() => setAssignOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-black/5"><X className="h-4 w-4" /></button>
             </div>
             <div className="flex max-h-[55dvh] flex-col gap-1 overflow-y-auto">
-              {curatorList.length === 0 && <p className="py-6 text-center text-[12px] font-bold text-black/35">Loading curators…</p>}
+              {curatorList.length === 0 && <p className="py-6 text-center text-[12px] font-bold text-black/35">Loading models…</p>}
               {curatorList.map(c => (
                 <button key={c.id} type="button" disabled={!!modBusy} onClick={() => void assignLook(c.id)}
                   className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-black active:bg-black/[0.04] ${look.curatorId === c.id ? "bg-black/[0.05]" : ""}`}>
