@@ -1413,7 +1413,7 @@ function StoresPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [agImage, setAgImage] = useState("");
   const [agName, setAgName] = useState("");
-  const [agCategory, setAgCategory] = useState<LookCategory>("riviera");
+  const [agCategory, setAgCategory] = useState<LookCategory | "">("");
   const [agExtract, setAgExtract] = useState(true);
   const [agBusy, setAgBusy] = useState(false);
   const [agMsg, setAgMsg] = useState("");
@@ -1423,12 +1423,12 @@ function StoresPage() {
   };
   const submitAddGarment = async () => {
     if (agBusy || !agImage) return;
-    setAgBusy(true); setAgMsg(agExtract ? "Freistellen & hinzufügen … (~30s)" : "Hinzufügen …");
+    setAgBusy(true); setAgMsg(agExtract ? "Name, Beschreibung, Freistellen … (~30s)" : "Name & Beschreibung generieren …");
     try {
       const res = await fetch("/api/add-garment", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}) },
-        body: JSON.stringify({ image: agImage, name: agName.trim(), category: agCategory, extract: agExtract }),
+        body: JSON.stringify({ image: agImage, name: agName.trim(), category: agCategory || undefined, extract: agExtract }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d?.error || "Fehler");
@@ -2897,7 +2897,7 @@ function StoresPage() {
           <div className="w-full max-w-[440px] rounded-t-3xl bg-white p-5" onClick={e => e.stopPropagation()} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" }}>
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-black/15" />
             <p className="text-base font-black text-black">Kleidungsstück hinzufügen</p>
-            <p className="mb-3 text-[12px] font-bold text-black/45">Foto hochladen — optional das Kleidungsstück freistellen (Person/Hintergrund weg).</p>
+            <p className="mb-3 text-[12px] font-bold text-black/45">Foto hochladen — Name, Beschreibung &amp; Typ werden automatisch generiert. Optional das Stück freistellen (Person/Hintergrund weg).</p>
             <button type="button" onClick={() => agFileRef.current?.click()}
               className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-black/15 bg-black/[0.02]">
               {agImage
@@ -2907,9 +2907,11 @@ function StoresPage() {
             </button>
             <input ref={agFileRef} type="file" accept="image/*" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) void onAgFile(f); }} />
-            <input type="text" value={agName} onChange={e => setAgName(e.target.value)} placeholder="Name (z.B. Sheer beach robe)"
+            <input type="text" value={agName} onChange={e => setAgName(e.target.value)} placeholder="Name — leer lassen = wird generiert"
               className="mt-3 h-11 w-full rounded-xl border border-black/12 bg-black/[0.02] px-3 text-sm font-bold text-black outline-none focus:border-black/40" />
             <div className="mt-2 flex gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <button type="button" onClick={() => setAgCategory("")}
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${agCategory === "" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Auto</button>
               {LOOK_CATEGORIES.map(c => (
                 <button key={c.slug} type="button" onClick={() => setAgCategory(c.slug)}
                   className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${agCategory === c.slug ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>{c.label}</button>
