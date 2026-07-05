@@ -36,6 +36,15 @@ export default function TryFunnelPage() {
   const modelParam = searchParams?.get("model") ?? "";
   // When opened from a model's wardrobe: the exact garment to put her in (its image URL).
   const garmentParam = searchParams?.get("garment") ?? "";
+  // Garment-first (from the Garderobe tab): the garment is chosen but not the model yet →
+  // step 2 shows a model picker.
+  const pickModel = (searchParams?.get("pick") ?? "") === "1";
+  const [gModels, setGModels] = useState<{ id: string; name: string; photoUrl: string }[]>([]);
+  const [pickedModel, setPickedModel] = useState("");
+  useEffect(() => {
+    if (!pickModel) return;
+    fetch("/api/try-this-look?models=1").then(r => r.json()).then(d => setGModels(Array.isArray(d.models) ? d.models : [])).catch(() => {});
+  }, [pickModel]);
 
   const [look, setLook] = useState<Look | null>(null);
   const [outfits, setOutfits] = useState<Outfit[]>([]);
@@ -100,7 +109,7 @@ export default function TryFunnelPage() {
 
   // The "woman from the video" reference — the look's own poster/front image, unless the
   // user replaced it with their own avatar.
-  const modelImg = avatar || modelParam || look?.modelPhotoUrl || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
+  const modelImg = avatar || pickedModel || modelParam || look?.modelPhotoUrl || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
   const teaserImg = garmentParam || outfit?.imageUrl || modelImg;
 
   const goStep3 = () => {
@@ -139,7 +148,7 @@ export default function TryFunnelPage() {
     setGenStatus("generating"); setGenError("");
     const H = { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}) };
     try {
-      const person = avatar || modelParam || look?.modelPhotoUrl || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
+      const person = avatar || pickedModel || modelParam || look?.modelPhotoUrl || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
       const garment = garmentParam || (outfitOverride ?? outfit)?.imageUrl || "";
       if (!person || !garment) throw new Error("Referenzbilder fehlen.");
       // Send the admin prompt EXACTLY as written (tokens like @Bild1 / @Bild2 bind to the
@@ -275,18 +284,41 @@ export default function TryFunnelPage() {
       {step === 2 && (
         <div className="px-4 pb-28 pt-2">
           <h1 className="text-[22px] font-black leading-tight">Who should wear it?</h1>
-          <p className="mt-2 text-[13px] font-bold text-white/50">The model from the video is ready. Keep her, or replace her with your own photo.</p>
-
-          <div className="mx-auto mt-4 max-w-[78vw] overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04]">
-            <div className="relative aspect-[3/4] w-full">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              {modelImg ? <img src={modelImg} alt="" className="h-full w-full object-cover object-top" /> : <div className="h-full w-full bg-white/5" />}
+          {pickModel && !pickedModel && !avatar ? (
+            <>
+              <p className="mt-2 text-[13px] font-bold text-white/50">Pick a model to wear this piece — or use your own photo.</p>
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                {gModels.map(m => (
+                  <button key={m.id} type="button" onClick={() => setPickedModel(m.photoUrl)}
+                    className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-[0.98] transition-transform">
+                    <div className="aspect-[3/4] w-full">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={m.photoUrl} alt={m.name} className="h-full w-full object-cover object-top" />
+                    </div>
+                    <div className="px-1.5 py-1"><span className="line-clamp-1 text-[11px] font-black">{m.name}</span></div>
+                  </button>
+                ))}
+              </div>
               <button type="button" onClick={() => fileRef.current?.click()}
-                className="absolute inset-x-4 bottom-4 flex items-center justify-center gap-2 rounded-full bg-black/70 px-5 py-3 text-sm font-black backdrop-blur active:scale-95">
-                <RefreshCw className="h-4 w-4" /> {avatar ? "Replace your photo" : "Replace with your Photo"}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-5 py-3 text-sm font-black active:scale-95">
+                <RefreshCw className="h-4 w-4" /> Use your own photo
               </button>
-            </div>
-          </div>
+            </>
+          ) : (
+            <>
+              <p className="mt-2 text-[13px] font-bold text-white/50">{pickedModel ? "Great pick — or replace her with your own photo." : "The model from the video is ready. Keep her, or replace her with your own photo."}</p>
+              <div className="mx-auto mt-4 max-w-[78vw] overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04]">
+                <div className="relative aspect-[3/4] w-full">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {modelImg ? <img src={modelImg} alt="" className="h-full w-full object-cover object-top" /> : <div className="h-full w-full bg-white/5" />}
+                  <button type="button" onClick={() => (pickModel && pickedModel ? setPickedModel("") : fileRef.current?.click())}
+                    className="absolute inset-x-4 bottom-4 flex items-center justify-center gap-2 rounded-full bg-black/70 px-5 py-3 text-sm font-black backdrop-blur active:scale-95">
+                    <RefreshCw className="h-4 w-4" /> {pickModel && pickedModel ? "Choose another model" : avatar ? "Replace your photo" : "Replace with your Photo"}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
           <input ref={fileRef} type="file" accept="image/*" className="hidden"
             onChange={async e => { const f = e.target.files?.[0]; if (f) try { setAvatar(await fileToDataUrl(f)); } catch { /**/ } }} />
 
@@ -458,10 +490,14 @@ export default function TryFunnelPage() {
             <p className="text-center text-[12px] font-bold text-white/35">Pick an outfit above to continue</p>
           )}
           {step === 2 && (
-            <button type="button" onClick={goStep3}
-              className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-amber-400 text-base font-black text-black active:scale-95 transition-transform">
-              <Sparkles className="h-5 w-5" /> Generate my video
-            </button>
+            pickModel && !pickedModel && !avatar ? (
+              <p className="text-center text-[12px] font-bold text-white/35">Pick a model above to continue</p>
+            ) : (
+              <button type="button" onClick={goStep3}
+                className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-amber-400 text-base font-black text-black active:scale-95 transition-transform">
+                <Sparkles className="h-5 w-5" /> Generate my video
+              </button>
+            )
           )}
           {step === 3 && !rendering && (
             <button type="button" onClick={onUnlock}

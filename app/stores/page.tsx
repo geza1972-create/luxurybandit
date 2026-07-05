@@ -1406,7 +1406,9 @@ function StoresPage() {
   // model profiles). Toggled at the top of the home.
   type GalleryModel = { id: string; name: string; photoUrl: string; style: string; lookCount: number };
   const [models, setModels] = useState<GalleryModel[]>([]);
-  const [homeTab, setHomeTab] = useState<"feeds" | "models">("models");
+  const [homeTab, setHomeTab] = useState<"feeds" | "models" | "garderobe">("models");
+  // Garderobe = every generated garment (all models' wardrobes), browsable by type.
+  const [garmentType, setGarmentType] = useState<LookCategory | null>(null);
   useEffect(() => {
     fetch("/api/try-this-look?models=1").then(r => r.json()).then(d => setModels(Array.isArray(d.models) ? d.models : [])).catch(() => {});
   }, []);
@@ -1899,6 +1901,17 @@ function StoresPage() {
     }
     return (looks as unknown as FeedLook[]).map(l => byLook.has(l.id) ? { ...l, communityTryOns: byLook.get(l.id) } : l);
   }, [looks, communityItems]);
+  // Garderobe = every generated garment (all wardrobes), newest first, optionally by type.
+  const garments = useMemo(() => {
+    const g = (looks as unknown as { id: string; name: string; frontImageUrl?: string; imageUrl?: string; category?: LookCategory; curatorId?: string; productType?: string; wardrobe?: boolean; published?: boolean; createdAt?: string }[])
+      .filter(l => (l.productType === "ai" || l.wardrobe) && (l.frontImageUrl || l.imageUrl) && l.published !== false);
+    return g.sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
+  }, [looks]);
+  const garmentTypes = useMemo(() => {
+    const present = new Set<LookCategory>();
+    for (const g of garments) if (g.category) present.add(g.category);
+    return LOOK_CATEGORIES.filter(c => present.has(c.slug));
+  }, [garments]);
   const historySentinelRef = useRef<HTMLDivElement | null>(null);
   const hasMoreHistory = historyCount < visibleHistory.length;
   useEffect(() => {
@@ -2232,11 +2245,13 @@ function StoresPage() {
 
             {/* Feeds | Models toggle — Home has two views: the try-on feeds, and the
                 gallery of models (browse a model, then see her in looks). */}
-            <div className="flex items-center gap-2 px-3 pt-1 pb-2">
+            <div className="flex items-center gap-2 overflow-x-auto px-3 pt-1 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <button type="button" onClick={() => setHomeTab("models")}
-                className={`rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "models" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Models{models.length ? ` · ${models.length}` : ""}</button>
+                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "models" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Models{models.length ? ` · ${models.length}` : ""}</button>
+              <button type="button" onClick={() => setHomeTab("garderobe")}
+                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "garderobe" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Garderobe{garments.length ? ` · ${garments.length}` : ""}</button>
               <button type="button" onClick={() => setHomeTab("feeds")}
-                className={`rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Fashionshow</button>
+                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Fashionshow</button>
             </div>
 
             {homeTab === "models" ? (
@@ -2261,6 +2276,49 @@ function StoresPage() {
                 ))}
               </div>
               )
+            ) : homeTab === "garderobe" ? (
+              <>
+                {/* Type filter — Alle + garment types (gowns / dresses / resort / lingerie). */}
+                {garmentTypes.length > 0 && (
+                  <div className="flex gap-1.5 overflow-x-auto px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <button type="button" onClick={() => setGarmentType(null)}
+                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${garmentType === null ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>Alle</button>
+                    {garmentTypes.map(c => (
+                      <button key={c.slug} type="button" onClick={() => setGarmentType(c.slug)}
+                        className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${garmentType === c.slug ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>{c.label}</button>
+                    ))}
+                  </div>
+                )}
+                {(() => {
+                  const items = garmentType ? garments.filter(g => g.category === garmentType) : garments;
+                  if (items.length === 0) return (
+                    <div className="flex flex-col items-center gap-2 py-16 text-center">
+                      <ImageIcon className="h-8 w-8 text-black/15" />
+                      <p className="text-sm font-black text-black/40">Noch keine Kleidungsstücke — generiere eine Garderobe auf einer Model-Seite.</p>
+                    </div>
+                  );
+                  return (
+                    <div className="grid grid-cols-2 gap-2 px-3 pb-8">
+                      {items.map(g => {
+                        const img = (g.frontImageUrl ?? g.imageUrl) as string;
+                        return (
+                          <button key={g.id} type="button"
+                            onClick={() => router.push(`/try/${g.id}?garment=${encodeURIComponent(img)}&pick=1`)}
+                            className="flex flex-col overflow-hidden rounded-2xl border border-black/8 bg-white active:scale-[0.98] transition-transform">
+                            <div className="aspect-[3/4] w-full bg-neutral-50">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={optImg(img, 500)} alt={g.name} loading="lazy" decoding="async"
+                                onError={(e) => { const im = e.currentTarget; if (img && im.src !== img) im.src = img; }}
+                                className="h-full w-full object-contain" />
+                            </div>
+                            <span className="truncate px-2 py-1.5 text-[11px] font-black text-black/70">{g.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </>
             ) : (
             <>
 
