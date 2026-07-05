@@ -297,10 +297,11 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
 }
 
 // Default Try-On funnel video prompt. @Bild1 = the model/avatar, @Bild2 = the chosen outfit.
-// {ort} is auto-filled by the video route with a scene that matches the look's category
-// (business→office, riviera→pool, boudoir→elegant interior, …). Neutral, lingerie-safe wording:
-// "dreht sich langsam" (NOT "360°"/"dreh um") so Pixverse's moderation doesn't reject it.
-const DEFAULT_FUNNEL_PROMPT = "Mache die Frau aus @Bild1 angezogen in @Bild2 {ort}. Sie läuft ruhig und elegant und dreht sich dabei einmal langsam, sodass das Outfit von vorne und von hinten zu sehen ist. WICHTIG: Gesicht, Haare und komplettes Aussehen der Frau aus @Bild1 EXAKT beibehalten — dieselbe Person, nicht neu erfinden. Das Outfit @Bild2 exakt beibehalten (Schnitt, Farbe, Stoff, Details). Fotorealistisch, hochwertiger Fashion-Look, keine Schrift, keine Logos.";
+// {ort} is auto-filled by the video route with a scene matching the look's category
+// (business→luxury conference hotel, riviera→pool, boudoir→elegant interior, …).
+// User's proven wording: the magic word "rumlaufen" makes her WALK + TURN (shows front+back);
+// keep it NEUTRAL (no "360°"/"dreh um") so lingerie isn't moderation-rejected.
+const DEFAULT_FUNNEL_PROMPT = "Mache die Frau aus @Bild1 angezogen in @Bild2. Lass die Frau {ort} rumlaufen, damit sie sich dreht und das Outfit von vorne und von hinten zeigt. Gesicht nicht ändern, Outfit @Bild2 exakt gleich lassen.";
 
 export async function GET(request: Request) {
   try {

@@ -6,10 +6,11 @@ import { categorizeLook } from "@/lib/look-category";
 
 // Auto-match the video's SCENE to the look's category. NEUTRAL wording (works for lingerie
 // too — no skin/body/lace words that Pixverse flags). Injected where the prompt has {ort}.
+// Locative phrase that reads naturally as "Lass die Frau {ort} rumlaufen".
 function sceneForCategory(cat: string): string {
   switch (cat) {
-    case "business": return "in einer eleganten, modernen Bürolobby mit weichem Tageslicht";
-    case "after-dark": return "bei einem glamourösen Abend-Event mit festlichem, warmem Licht";
+    case "business": return "in der eleganten Lobby eines Luxus-Konferenzhotels";
+    case "after-dark": return "auf einem glamourösen Abend-Event mit festlichem, warmem Licht";
     case "riviera": return "an einem sonnigen Luxus-Pool mit Meerblick";
     case "off-duty": return "in einer stilvollen, sonnigen Altstadt-Gasse";
     case "boudoir": return "in einem eleganten, hell und weich beleuchteten Innenraum";
