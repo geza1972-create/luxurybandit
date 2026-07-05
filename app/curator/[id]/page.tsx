@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Instagram, Loader2, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play, Sparkles } from "lucide-react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
@@ -49,6 +49,16 @@ export default function CuratorPublicPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [genBusy, setGenBusy] = useState(false);
   const [genMsg, setGenMsg] = useState("");
+  // "In motion" showcase — swipeable reel of her try-on videos.
+  const [playingId, setPlayingId] = useState("");
+  const [reelIdx, setReelIdx] = useState(0);
+  const reelRef = useRef<HTMLDivElement>(null);
+  const onReelScroll = () => {
+    const el = reelRef.current; if (!el) return;
+    const first = el.children[0] as HTMLElement | undefined;
+    const w = first ? first.clientWidth + 12 : el.clientWidth;
+    setReelIdx(Math.round(el.scrollLeft / w));
+  };
   useEffect(() => { try { setIsAdmin(!!localStorage.getItem("luxurybandit-try-look-admin-pin")); } catch { /**/ } }, []);
   const [tryons, setTryons] = useState<TryOn[]>([]);
   const [lookPrices, setLookPrices] = useState<Record<string, string>>({});
@@ -234,6 +244,44 @@ export default function CuratorPublicPage() {
 
         {/* Follow + Message + Share moved to sticky header (second row) */}
       </div>
+
+      {/* "In motion" — a swipeable reel of her videos so the user gets to know her. */}
+      {(() => {
+        const videos = tryons.filter(t => t.videoUrl);
+        if (videos.length === 0) return null;
+        return (
+          <div className="mt-6">
+            <div className="mb-2 flex items-center gap-1.5 px-4 text-[12px] font-bold text-white/50">
+              <Play className="h-3.5 w-3.5 text-amber-400" /> {profile.firstName || "She"} in motion — get to know her
+            </div>
+            <div ref={reelRef} onScroll={onReelScroll}
+              className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {videos.map(t => (
+                <button key={t.id} type="button" onClick={() => setPlayingId(p => (p === t.id ? "" : t.id))}
+                  className="relative aspect-[3/4] w-[70vw] max-w-[300px] shrink-0 snap-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05]">
+                  {playingId === t.id ? (
+                    <video src={t.videoUrl} autoPlay loop muted playsInline className="h-full w-full object-cover" />
+                  ) : (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={optImg(t.imageUrl, 600)} alt={t.lookName ?? ""} loading="lazy" decoding="async"
+                        onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
+                        className="h-full w-full object-cover object-top" />
+                      <span className="absolute inset-0 grid place-items-center text-white/90"><Play className="h-12 w-12 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" fill="currentColor" /></span>
+                    </>
+                  )}
+                  {t.lookName && <span className="absolute left-2 bottom-2 line-clamp-1 max-w-[88%] rounded-full bg-black/80 px-3 py-1 text-[11px] font-black text-white backdrop-blur">{t.lookName}</span>}
+                </button>
+              ))}
+            </div>
+            {videos.length > 1 && (
+              <div className="mt-2.5 flex justify-center gap-1.5">
+                {videos.map((_, i) => <span key={i} className={`h-1.5 rounded-full transition-all ${i === reelIdx ? "w-4 bg-white" : "w-1.5 bg-white/25"}`} />)}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Her wardrobe = the clothes selection. Tap a piece → the funnel generates HER
           wearing it. (No try-ons here — the "what's possible" preview lives in the
