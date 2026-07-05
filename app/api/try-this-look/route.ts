@@ -297,7 +297,7 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
 }
 
 // Default Try-On funnel video prompt. @Bild1 = the model/avatar, @Bild2 = the chosen outfit.
-const DEFAULT_FUNNEL_PROMPT = "Mache die Frau aus @Bild1 angezogen in @Bild2 in verschiedenen Urlaubsorten auf der Welt, in unterschiedlichen Locations, wie sie durchläuft.";
+const DEFAULT_FUNNEL_PROMPT = "Mache die Frau aus @Bild1 angezogen in @Bild2, wie sie an eleganten Orten durchläuft. WICHTIG: Gesicht, Haare und komplettes Aussehen der Frau aus @Bild1 EXAKT beibehalten — dieselbe Person, nicht neu erfinden. Das Outfit @Bild2 exakt beibehalten (Schnitt, Farbe, Stoff, Details). Ruhige, natürliche Bewegung, fotorealistisch, hochwertiger Fashion-Look.";
 
 export async function GET(request: Request) {
   try {

@@ -93,8 +93,12 @@ async function pixverseStartReference(key: string, garment: string, person: stri
     ? customPrompt.trim()
     : (turnaround ? REF_TURNAROUND_PROMPT : REF_PRESENT_PROMPT);
   const tokens = [...new Set((promptUsed.match(/@([A-Za-z0-9_]+)/g) || []).map(t => t.slice(1)))];
-  const personRef = tokens[0] || "person";  // e.g. "Bild1"
-  const outfitRef = tokens[1] || "outfit";  // e.g. "Bild2" / "0"
+  // The funnel convention is FIXED: @Bild1 = the model/person, @Bild2 = the outfit. Lock the
+  // binding to those names when present so it NEVER depends on token ORDER (an admin can write
+  // the prompt however they like). Otherwise fall back to first=person, second=outfit.
+  const useBild = tokens.includes("Bild1") && tokens.includes("Bild2");
+  const personRef = useBild ? "Bild1" : (tokens[0] || "person");
+  const outfitRef = useBild ? "Bild2" : (tokens[1] || "outfit");
   const reqBody = {
     image_references: [
       { type: "subject", img_id: pId, ref_name: personRef },
