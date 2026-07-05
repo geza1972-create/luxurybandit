@@ -1230,7 +1230,11 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
       // withholds it), so skip them — UNLESS this exact look was deep-linked (so the admin
       // can still open it and see it needs media).
       const displayable = !!lk.videoUrl || !!safeLookImage(lk as unknown as Parameters<typeof safeLookImage>[0]);
-      if (displayable || lk.id === initialLookId) expanded.push({ look: lk, key: lk.id });
+      // A generated wardrobe garment (productType "ai" / flat clothing) is a MODEL-PAGE
+      // selectable piece, NOT feed content — it only earns a feed post via its try-ons
+      // (a model actually wearing it), handled in the else branch. So skip its flat post.
+      const isWardrobe = (lk as { productType?: string }).productType === "ai" || (lk as { wardrobe?: boolean }).wardrobe === true;
+      if (((displayable && !isWardrobe) || lk.id === initialLookId)) expanded.push({ look: lk, key: lk.id });
       continue;
     }
     tryOns.forEach((t, idx) => expanded.push({ look: { ...lk, communityTryOns: [t] }, key: `${lk.id}::${t.id ?? idx}` }));

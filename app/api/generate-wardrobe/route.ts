@@ -108,7 +108,7 @@ export async function POST(request: Request) {
     if ("sample" in r) { created.push({ id: "sample", name: p.name, category: p.category, lingerie: p.lingerie }); continue; }
     const id = `look-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     newLooks.push({
-      id, name: p.name, published: true, aiCreated: true, productType: "ai",
+      id, name: p.name, published: true, aiCreated: true, productType: "ai", wardrobe: true,
       category: p.category, lingerie: p.lingerie || undefined, curatorId,
       imagePath: (r as { path: string }).path, frontImagePath: (r as { path: string }).path,
       garmentFrontImagePath: (r as { path: string }).path, galleryImagePaths: [(r as { path: string }).path],
