@@ -14,11 +14,11 @@ import { useScrollLock } from "@/lib/use-scroll-lock";
 import { lookPath } from "@/lib/look-slug";
 import HomeFeed, { type FeedLook } from "@/components/HomeFeed";
 import { isAdminEmail } from "@/lib/is-admin-email";
-import { LOOK_CATEGORIES, isHiddenFromAll, type LookCategory } from "@/lib/look-category";
+import { LOOK_CATEGORIES, isHiddenFromAll, isLookCategory, type LookCategory } from "@/lib/look-category";
 import { publicLookLabel } from "@/lib/look-title";
 import { publicAuthorName } from "@/lib/display-name";
 import { safeLookImage } from "@/lib/look-image";
-import { Bookmark, EyeOff, Heart, Home, Image as ImageIcon, Info, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, Sparkles, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
+import { Bookmark, Eye, EyeOff, Heart, Home, Image as ImageIcon, ImageUp, Info, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, SlidersHorizontal, Sparkles, Trash2, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -1439,6 +1439,63 @@ function StoresPage() {
     } catch (e) { setAgMsg(e instanceof Error ? e.message : "Fehler"); }
     finally { setAgBusy(false); }
   };
+
+  // Admin: manage a single Garderobe garment (edit text / move category / replace / hide / delete).
+  const [gManageId, setGManageId] = useState("");
+  const [gmName, setGmName] = useState("");
+  const [gmDesc, setGmDesc] = useState("");
+  const [gmCat, setGmCat] = useState<"" | LookCategory>("");
+  const [gmBusy, setGmBusy] = useState(false);
+  const [gmMsg, setGmMsg] = useState("");
+  const gmReplaceRef = useRef<HTMLInputElement>(null);
+  const reloadLooksAdmin = async () => {
+    const pin = adminPin || (() => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } })();
+    const payload = await fetch("/api/try-this-look", pin ? { headers: { "x-try-look-admin-pin": pin } } : undefined).then(r => r.json());
+    setLooks((payload.looks ?? []) as Look[]);
+  };
+  // Admin write with BOTH the PIN and the Supabase token (admin-email sessions have no PIN).
+  const adminWrite = (body: Record<string, unknown>) => {
+    const token = getStoredAuthSession()?.access_token;
+    return fetch("/api/try-this-look", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify(body),
+    });
+  };
+  const openGManage = (g: { id: string; name?: string; productNote?: string; category?: LookCategory }) => {
+    setGManageId(g.id); setGmName(g.name ?? ""); setGmDesc(String(g.productNote ?? "")); setGmCat(isLookCategory(g.category) ? g.category : ""); setGmMsg(""); setGmBusy(false);
+  };
+  const closeGManage = () => { setGManageId(""); setGmBusy(false); setGmMsg(""); };
+  const patchGarment = async (extra: Record<string, unknown>, successMsg = "Gespeichert ✓") => {
+    if (!gManageId || gmBusy) return;
+    setGmBusy(true); setGmMsg("");
+    try {
+      const res = await adminWrite({ action: "update-look", id: gManageId, ...extra });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehler");
+      await reloadLooksAdmin();
+      setGmMsg(successMsg);
+    } catch (e) { setGmMsg(e instanceof Error ? e.message : "Fehler"); }
+    finally { setGmBusy(false); }
+  };
+  const saveGManage = () => patchGarment({ name: gmName.trim() || undefined, productNote: gmDesc.trim(), ...(gmCat ? { category: gmCat } : {}) });
+  const replaceGImage = async (file: File) => {
+    const dataUrl = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file); });
+    if (!dataUrl.startsWith("data:image/")) return;
+    await patchGarment({ frontImage: dataUrl, garmentFrontImage: dataUrl }, "Bild ersetzt ✓");
+  };
+  const deleteGManage = async () => {
+    if (!gManageId || gmBusy) return;
+    if (!confirm("Dieses Kleidungsstück endgültig löschen?")) return;
+    const id = gManageId;
+    setGmBusy(true); setGmMsg("");
+    try {
+      const res = await adminWrite({ action: "delete-look", id });
+      if (!res.ok) throw new Error("Fehler");
+      setGManageId("");
+      setLooks(prev => prev.filter(l => l.id !== id));
+      setGmBusy(false);
+    } catch { setGmMsg("Fehler beim Löschen"); setGmBusy(false); }
+  };
   useEffect(() => {
     fetch("/api/try-this-look?models=1").then(r => r.json()).then(d => setModels(Array.isArray(d.models) ? d.models : [])).catch(() => {});
   }, []);
@@ -1933,10 +1990,11 @@ function StoresPage() {
   }, [looks, communityItems]);
   // Garderobe = every generated garment (all wardrobes), newest first, optionally by type.
   const garments = useMemo(() => {
-    const g = (looks as unknown as { id: string; name: string; frontImageUrl?: string; imageUrl?: string; category?: LookCategory; curatorId?: string; productType?: string; wardrobe?: boolean; published?: boolean; createdAt?: string; buyUrl?: string }[])
-      .filter(l => (l.productType === "ai" || l.wardrobe) && (l.frontImageUrl || l.imageUrl) && l.published !== false);
+    const g = (looks as unknown as { id: string; name: string; frontImageUrl?: string; imageUrl?: string; category?: LookCategory; curatorId?: string; productType?: string; wardrobe?: boolean; published?: boolean; productNote?: string; createdAt?: string; buyUrl?: string }[])
+      // Admins also see hidden (published:false) garments so they can un-hide them.
+      .filter(l => (l.productType === "ai" || l.wardrobe) && (l.frontImageUrl || l.imageUrl) && (l.published !== false || isAdmin));
     return g.sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
-  }, [looks]);
+  }, [looks, isAdmin]);
   const garmentTypes = useMemo(() => {
     const present = new Set<LookCategory>();
     for (const g of garments) if (g.category) present.add(g.category);
@@ -2339,15 +2397,16 @@ function StoresPage() {
                     <div className="grid grid-cols-2 gap-2 px-3 pb-8">
                       {items.map(g => {
                         const img = (g.frontImageUrl ?? g.imageUrl) as string;
+                        const hidden = g.published === false;
                         return (
-                          <div key={g.id} className="flex flex-col overflow-hidden rounded-2xl border border-black/8 bg-white">
+                          <div key={g.id} className="relative flex flex-col overflow-hidden rounded-2xl border border-black/8 bg-white">
                             <button type="button"
                               onClick={() => router.push(`/try/${g.id}?garment=${encodeURIComponent(img)}&pick=1`)}
                               className="aspect-[3/4] w-full bg-neutral-50 active:opacity-80 transition-opacity">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={optImg(img, 500)} alt={g.name} loading="lazy" decoding="async"
                                 onError={(e) => { const im = e.currentTarget; if (img && im.src !== img) im.src = img; }}
-                                className="h-full w-full object-contain" />
+                                className={`h-full w-full object-contain ${hidden ? "opacity-40" : ""}`} />
                             </button>
                             <div className="flex items-center gap-1.5 px-2 py-1.5">
                               <span className="min-w-0 flex-1 truncate text-[11px] font-black text-black/70">{g.name}</span>
@@ -2356,6 +2415,12 @@ function StoresPage() {
                                   className="shrink-0 text-black/35 active:opacity-60" aria-label="Shop"><ShoppingBag className="h-3.5 w-3.5" /></a>
                               )}
                             </div>
+                            {hidden && <span className="absolute left-2 top-2 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-black text-white">Ausgeblendet</span>}
+                            {isAdmin && (
+                              <button type="button" onClick={() => openGManage(g)}
+                                className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/70 text-white backdrop-blur active:scale-90 transition"
+                                aria-label="Verwalten"><SlidersHorizontal className="h-4 w-4" /></button>
+                            )}
                           </div>
                         );
                       })}
@@ -2939,6 +3004,67 @@ function StoresPage() {
           </div>
         </div>
       )}
+
+      {/* ── Admin: manage a Garderobe garment (edit text / move category / replace / hide / delete) ── */}
+      {isAdmin && gManageId && (() => {
+        const gm = garments.find(g => g.id === gManageId);
+        if (!gm) return null;
+        const img = (gm.frontImageUrl ?? gm.imageUrl) as string;
+        const hidden = gm.published === false;
+        return (
+          <div className="fixed inset-0 z-[96] flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={() => !gmBusy && closeGManage()}>
+            <div className="w-full max-w-[440px] max-h-[90dvh] overflow-y-auto rounded-t-3xl bg-white p-5" onClick={e => e.stopPropagation()} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" }}>
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-black/15" />
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-base font-black text-black">Kleidungsstück verwalten</p>
+                <button type="button" onClick={closeGManage} className="grid h-8 w-8 place-items-center rounded-full bg-black/5"><X className="h-4 w-4" /></button>
+              </div>
+              <div className="flex gap-3">
+                <div className="h-24 w-20 shrink-0 overflow-hidden rounded-xl border border-black/8 bg-neutral-50">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={optImg(img, 300)} alt="" onError={(e) => { const im = e.currentTarget; if (img && im.src !== img) im.src = img; }} className="h-full w-full object-contain" />
+                </div>
+                <div className="grid min-w-0 flex-1 gap-2">
+                  <input value={gmName} onChange={e => setGmName(e.target.value)} placeholder="Name"
+                    className="h-10 w-full rounded-lg border border-black/12 bg-black/[0.02] px-3 text-sm font-bold text-black outline-none focus:border-black/40" />
+                  <textarea value={gmDesc} onChange={e => setGmDesc(e.target.value)} rows={3} placeholder="Beschreibung"
+                    className="w-full resize-none rounded-lg border border-black/12 bg-black/[0.02] px-3 py-2 text-[13px] text-black outline-none focus:border-black/40" />
+                </div>
+              </div>
+              <p className="mb-2 mt-4 text-[11px] font-black uppercase tracking-wide text-black/40">Kategorie</p>
+              <div className="flex flex-wrap gap-2">
+                {LOOK_CATEGORIES.map(c => (
+                  <button key={c.slug} type="button" onClick={() => setGmCat(c.slug)}
+                    className={`rounded-full px-3 py-1.5 text-[12px] font-black transition ${gmCat === c.slug ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>
+                    {c.slug === "boudoir" ? "Lingerie" : c.label}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <button type="button" onClick={() => gmReplaceRef.current?.click()} disabled={gmBusy}
+                  className="flex flex-col items-center gap-1 rounded-xl border border-black/12 bg-black/[0.02] py-2.5 text-[11px] font-black text-black active:scale-95 transition disabled:opacity-50">
+                  <ImageUp className="h-4 w-4" /> Ersetzen
+                </button>
+                <button type="button" onClick={() => patchGarment({ published: hidden }, hidden ? "Sichtbar ✓" : "Ausgeblendet ✓")} disabled={gmBusy}
+                  className="flex flex-col items-center gap-1 rounded-xl border border-black/12 bg-black/[0.02] py-2.5 text-[11px] font-black text-black active:scale-95 transition disabled:opacity-50">
+                  {hidden ? <><Eye className="h-4 w-4" /> Einblenden</> : <><EyeOff className="h-4 w-4" /> Ausblenden</>}
+                </button>
+                <button type="button" onClick={deleteGManage} disabled={gmBusy}
+                  className="flex flex-col items-center gap-1 rounded-xl border border-red-500/25 bg-red-500/[0.06] py-2.5 text-[11px] font-black text-red-500 active:scale-95 transition disabled:opacity-50">
+                  <Trash2 className="h-4 w-4" /> Löschen
+                </button>
+              </div>
+              <input ref={gmReplaceRef} type="file" accept="image/*" className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) void replaceGImage(f); e.currentTarget.value = ""; }} />
+              <button type="button" onClick={saveGManage} disabled={gmBusy}
+                className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-black text-sm font-black text-white active:scale-95 transition disabled:opacity-40">
+                {gmBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Speichern"}
+              </button>
+              {gmMsg && <p className="mt-2 text-center text-[12px] font-bold text-black/50">{gmMsg}</p>}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Grid tile detail = the SAME HomeFeed reel (identical layout to the feed),
            opened at the tapped try-on (or look for tryon-less tiles). Home closes it. ── */}
