@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, LayoutGrid } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, LayoutGrid, Trash2 } from "lucide-react";
 import { FeedGate } from "@/components/FeedGate";
 import BottomNav from "@/components/BottomNav";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
@@ -81,7 +81,24 @@ export default function TryFunnelPage() {
   const [genError, setGenError] = useState("");
   const genStartedRef = useRef(false);
   // The chosen model's videos (incl. the one just made) — shown as a gallery on the done screen.
-  const [madeVideos, setMadeVideos] = useState<{ id: string; imageUrl: string; videoUrl?: string; lookName?: string }[]>([]);
+  const [madeVideos, setMadeVideos] = useState<{ id: string; imageUrl: string; videoUrl?: string; lookName?: string; feed?: boolean; public?: boolean }[]>([]);
+  // Admin: per-video visibility controls on the result gallery.
+  const vidAction = async (body: Record<string, unknown>) => {
+    await fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}) }, body: JSON.stringify(body) }).catch(() => {});
+  };
+  const setVideoFeed = async (id: string, feed: boolean) => {
+    setMadeVideos(m => m.map(x => x.id === id ? { ...x, feed, ...(feed ? {} : { public: false }) } : x));
+    await vidAction({ action: "set-generation-feed", generationId: id, feed });
+  };
+  const setVideoPublic = async (id: string, pub: boolean) => {
+    setMadeVideos(m => m.map(x => x.id === id ? { ...x, public: pub, ...(pub ? { feed: true } : {}) } : x));
+    await vidAction({ action: "set-generation-public", generationId: id, public: pub });
+  };
+  const deleteVideoGen = async (id: string) => {
+    if (!window.confirm("Dieses Video endgültig löschen?")) return;
+    setMadeVideos(m => m.filter(x => x.id !== id));
+    await vidAction({ action: "delete-generation", id });
+  };
 
   useEffect(() => {
     try { setAdminPin(localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""); } catch { /**/ }
@@ -480,22 +497,36 @@ export default function TryFunnelPage() {
           <h1 className="mt-6 text-center text-[22px] font-black leading-tight">{genStatus === "done" ? "Enjoy your video 🎉" : "Wir zaubern dein Video…"}</h1>
           <p className="mt-2 text-center text-[13px] font-bold text-white/50">{genStatus === "done" ? "Gespeichert in deiner Galerie — ansehen & verwalten unter Account." : "Dein Try-on wird in voller Qualität erstellt."}</p>
 
-          {/* After generating: a gallery of the model's videos (incl. this one) → it's now in
-              her "In motion". Tap a card to open her profile. */}
+          {/* After generating: a gallery of the model's videos (incl. this one). Admins set
+              each one's visibility right here — Fashionshow (feed + her profile "In motion"),
+              Öffentlich (everyone vs members-only), or delete. */}
           {genStatus === "done" && madeVideos.length > 0 && (
             <div className="mt-7">
               <p className="mb-2 text-[13px] font-black">{chosenModelName ? `${chosenModelName}'s Videos` : "Deine Videos"}</p>
-              <div className="grid grid-cols-3 gap-2">
-                {madeVideos.map(v => (
-                  <a key={v.id} href={chosenModelId ? `/curator/${chosenModelId}` : "#"}
-                    className="relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] active:scale-95 transition-transform">
-                    <div className="aspect-[3/4] w-full">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={v.imageUrl} alt={v.lookName ?? ""} loading="lazy" className="h-full w-full object-cover object-top" />
+              <div className={`grid gap-3 ${adminPin ? "grid-cols-2" : "grid-cols-3"}`}>
+                {madeVideos.map(v => {
+                  const status = v.public ? "Öffentlich" : v.feed ? "Fashionshow" : "Privat";
+                  return (
+                    <div key={v.id} className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.04]">
+                      <a href={chosenModelId ? `/curator/${chosenModelId}` : "#"} className="relative block aspect-[3/4] active:opacity-80">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={v.imageUrl} alt={v.lookName ?? ""} loading="lazy" className="h-full w-full object-cover object-top" />
+                        <span className="absolute inset-0 grid place-items-center text-white/90"><Play className="h-8 w-8 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" fill="currentColor" /></span>
+                        <span className={`absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[9px] font-black backdrop-blur ${v.public ? "bg-emerald-500 text-white" : v.feed ? "bg-amber-400 text-black" : "bg-black/70 text-white"}`}>{status}</span>
+                      </a>
+                      {adminPin && (
+                        <div className="flex items-center gap-1 p-1.5">
+                          <button type="button" onClick={() => setVideoFeed(v.id, !v.feed)}
+                            className={`flex-1 rounded-lg px-1.5 py-1.5 text-[10px] font-black transition ${v.feed ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>Fashionshow</button>
+                          <button type="button" onClick={() => setVideoPublic(v.id, !v.public)}
+                            className={`flex-1 rounded-lg px-1.5 py-1.5 text-[10px] font-black transition ${v.public ? "bg-emerald-500 text-white" : "bg-white/10 text-white/60"}`}>{v.public ? "Öffentlich" : "Mitglieder"}</button>
+                          <button type="button" onClick={() => deleteVideoGen(v.id)}
+                            className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-red-500/20 text-red-300 active:scale-90"><Trash2 className="h-3.5 w-3.5" /></button>
+                        </div>
+                      )}
                     </div>
-                    <span className="absolute inset-0 grid place-items-center text-white/90"><Play className="h-8 w-8 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" fill="currentColor" /></span>
-                  </a>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
