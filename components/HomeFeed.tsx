@@ -564,12 +564,14 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   };
   // Admin: upscale the active try-on video to HD (1080p) via Pixverse, then replace it.
   const [upscaling, setUpscaling] = useState(false);
+  const [idOpen, setIdOpen] = useState(false);   // paste-Pixverse-ID dialog
+  const [idInput, setIdInput] = useState("");
   const upscaleActive = async () => {
     if (!activeTryOnId || upscaling) return;
     const ct = community.find(c => c.id === activeTryOnId);
     const vurl = ct?.videoUrl || look.videoUrl || "";
     if (!vurl) return;
-    if (typeof window !== "undefined" && !window.confirm("Dieses Video in HD (1080p) hochskalieren und ersetzen? (kostet Pixverse-Credits)")) return;
+    if (typeof window !== "undefined" && !window.confirm("Dieses Video in HD (1080p) hochskalieren und ersetzen? (kostet Pixverse-API-Credits)")) return;
     setUpscaling(true);
     try {
       const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: modHeaders(), body: JSON.stringify({ upscale: true, videoUrl: vurl }) }).then(r => r.json());
@@ -584,20 +586,27 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       if (!hdUrl) throw new Error("Zeitüberschreitung");
       await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "attach-generation-video", generationId: activeTryOnId, videoUrl: hdUrl }) });
       alert("HD-Video erstellt & ersetzt ✓ — neu laden zum Ansehen.");
-    } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Hochskalieren"); }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Fehler beim Hochskalieren";
+      // The Pixverse API balance is separate from the web-UI subscription — guide to the ID button.
+      alert(/balance|insufficient/i.test(msg)
+        ? "Kein Pixverse-API-Guthaben. Skaliere das Video stattdessen direkt in der Pixverse-App hoch und füge die neue ID über den „ID“-Button ein."
+        : msg);
+    }
     finally { setUpscaling(false); }
   };
   // Admin: you upscaled the video IN Pixverse yourself → paste the new video-ID (or URL) to
   // fetch + persist it and replace this try-on's video.
-  const replaceFromPixverse = async () => {
+  const replaceFromPixverse = async (ref: string) => {
     if (!activeTryOnId || upscaling) return;
-    const ref = typeof window !== "undefined" ? window.prompt("Pixverse Video-ID (oder URL) der hochskalierten Version einfügen:") : "";
-    if (!ref || !ref.trim()) return;
+    const val = ref.trim();
+    if (!val) return;
+    setIdOpen(false);
     setUpscaling(true);
     try {
       let videoUrl = "";
       for (let i = 0; i < 60; i++) {
-        const r = await fetch("/api/generate-tryon-video", { method: "POST", headers: modHeaders(), body: JSON.stringify({ importVideo: true, ref: ref.trim() }) }).then(r => r.json());
+        const r = await fetch("/api/generate-tryon-video", { method: "POST", headers: modHeaders(), body: JSON.stringify({ importVideo: true, ref: val }) }).then(r => r.json());
         if (r.error) throw new Error(r.error);
         if (r.videoUrl) { videoUrl = r.videoUrl; break; }
         if (r.status === "processing") { await new Promise(res => setTimeout(res, 4000)); continue; }
@@ -726,9 +735,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   )}
                   {/* Paste a Pixverse video-ID you upscaled yourself → replace this video. */}
                   {activeTryOnId && (
-                    <button type="button" onClick={replaceFromPixverse} disabled={!!modBusy || upscaling} title="Pixverse-ID der hochskalierten Version einfügen & ersetzen"
+                    <button type="button" onClick={() => { setIdInput(""); setIdOpen(true); }} disabled={!!modBusy || upscaling} title="Pixverse-ID/URL der hochskalierten Version einfügen & ersetzen"
                       className="grid h-9 min-w-9 place-items-center rounded-full bg-black/70 px-2.5 text-[11px] font-black text-white active:opacity-70 disabled:opacity-40">
-                      ID
+                      {upscaling ? <Loader2 className="h-4 w-4 animate-spin" /> : "ID"}
                     </button>
                   )}
                   {/* What the buttons currently target — so hiding a try-on vs the look is never ambiguous. */}
@@ -1032,6 +1041,27 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       )}
 
       {/* Admin: assign this curated look to a curator */}
+      {/* Paste the Pixverse video-ID/URL you upscaled yourself → replace this try-on's video. */}
+      {idOpen && (
+        <div className="lb-phone-col fixed inset-0 z-[90] flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={() => !upscaling && setIdOpen(false)}>
+          <div className="w-full rounded-t-3xl bg-white p-5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" }} onClick={e => e.stopPropagation()}>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-black text-black">Hochskaliertes Video ersetzen</p>
+              <button type="button" onClick={() => setIdOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-black/5"><X className="h-4 w-4" /></button>
+            </div>
+            <p className="mb-3 text-[12px] font-bold text-black/45">Skaliere das Video in der Pixverse-App hoch und füge hier die <b>Video-ID</b> oder die <b>Video-URL</b> der HD-Version ein.</p>
+            <input value={idInput} onChange={e => setIdInput(e.target.value)} autoFocus
+              placeholder="Pixverse Video-ID oder https://…-URL"
+              className="h-11 w-full rounded-xl border border-black/12 bg-black/[0.02] px-3 text-sm font-bold text-black outline-none focus:border-black/40" />
+            <button type="button" onClick={() => void replaceFromPixverse(idInput)} disabled={upscaling || !idInput.trim()}
+              className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-black text-sm font-black text-white active:scale-95 transition disabled:opacity-40">
+              {upscaling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              {upscaling ? "Wird ersetzt …" : "Ersetzen"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {assignOpen && (
         <div className="lb-phone-col fixed inset-0 z-[80] flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={() => setAssignOpen(false)}>
           <div className="w-full rounded-t-3xl bg-white p-5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" }} onClick={e => e.stopPropagation()}>
