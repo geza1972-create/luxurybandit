@@ -15,7 +15,7 @@ function sceneForCategory(cat: string): string {
     case "riviera": return "an einem sonnigen Luxus-Pool mit Meerblick";
     case "off-duty": return "in einer stilvollen, sonnigen Altstadt-Gasse";
     case "boudoir": return "in einem eleganten, hell und weich beleuchteten Innenraum";
-    default: return "an einem eleganten, stilvollen Ort";
+    default: return "in einem schönen Urlaubsort"; // user's default: a beautiful holiday spot
   }
 }
 
@@ -32,6 +32,13 @@ const FASHION_PROMPT =
   "Elegant high-fashion catalogue presentation: the person presents the outfit with subtle, slow, natural movement — a soft sway or a gentle quarter turn. CRITICAL: keep the outfit IDENTICAL — the exact same shape, cut, colour, fabric, pattern and details; do not redesign, restyle or change it. Keep the person's appearance unchanged. Minimal, refined camera motion, soft premium studio lighting. No text or logos.";
 const MUSIC =
   "Soft, elegant instrumental background music — a gentle, chic fashion soundtrack. ONLY music: absolutely no footsteps, no voices, no talking, no ambient or foley sound effects.";
+
+// User-facing "Motion" choice in the funnel. "dance" swaps the whole prompt (the
+// stored funnel prompt is the walk/turn one) — user-proven wording: "@Bild2 exakt
+// gleich lassen. Lass die Frau tanzen." Pixverse then GENERATES fitting music, so
+// dance videos are created WITH sound (sound_effect_switch on).
+const DANCE_PROMPT =
+  "Mache die Frau aus @Bild1 angezogen in @Bild2. @Bild2 exakt gleich lassen. Gesicht nicht ändern. Lass die Frau {ort} tanzen.";
 
 // 360° turnaround (premium tier). NEUTRAL wording only (no lingerie/skin/lace) or
 // Pixverse flags it. User-tested & confirmed working. 10s.
@@ -121,6 +128,10 @@ async function pixverseStartReference(key: string, garment: string, person: stri
   for (const t of tokens) {
     if (t !== personRef && t !== outfitRef) promptUsed = promptUsed.split("@" + t).join(t);
   }
+  //   (3) Pixverse regression (~2026-07): punctuation directly after a token is parsed INTO
+  //   the @name ("@Bild2." ≠ ref "Bild2" → error 400017), verified by direct API test.
+  //   Insert a space between the token and any following punctuation.
+  promptUsed = promptUsed.replace(/(@[A-Za-z0-9_]+)(?=[.,!?;:)\]])/g, "$1 ");
   const reqBody = {
     image_references: [
       { type: "subject", img_id: pId, ref_name: personRef },
@@ -133,8 +144,9 @@ async function pixverseStartReference(key: string, garment: string, person: stri
     duration: turnaround ? 10 : 5,   // 5s; 360p keeps cost low
     quality: turnaround ? "720p" : "360p",
     aspect_ratio: turnaround ? "9:16" : "3:4",
-    sound_effect_switch: turnaround,           // no sound on the cheap present video (cost)
-    sound_effect_content: MUSIC,
+    // NO sound flags: V6 rejects sound_effect_switch (API error 400017 "not supported
+    // in model v6", verified 2026-07-06). V6 decides sound ITSELF from the prompt —
+    // "tanzen" → fitting music — which is exactly what the dance motion wants.
   };
   const genRes = await fetch(`${PV_BASE}/video/fusion/generate`, {
     method: "POST", headers: pvHeaders(key, true),
@@ -199,7 +211,7 @@ async function pixversePoll(key: string, id: string): Promise<{ status: "done" |
 // POST { lookId, image } → charge owner, start the right provider, return
 // { videoId: "<provider>:<id>", curatorId } for polling.
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean; garment?: string; person?: string; prompt?: string; dryRun?: boolean; upscale?: boolean; videoUrl?: string; importVideo?: boolean; ref?: string };
+  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean; garment?: string; person?: string; prompt?: string; motion?: string; dryRun?: boolean; upscale?: boolean; videoUrl?: string; importVideo?: boolean; ref?: string };
   const lookId = String(body.lookId ?? "").trim();
   const image = String(body.image ?? "");
   const turnaround = body.turnaround === true; // 360° tier
@@ -261,11 +273,16 @@ export async function POST(request: Request) {
   if (!image && !reference) return NextResponse.json({ error: "image required." }, { status: 400 });
 
   const { curatorId, category } = await lookOf(lookId);
+  // User "Motion" pick: "dance" swaps the WHOLE prompt for the proven dance one
+  // (the stored funnel prompt is walk/turn); default/unset = turn. The user only
+  // ever sees the chip labels — never the prompt.
+  const motion = String(body.motion ?? "").toLowerCase() === "dance" ? "dance" : "turn";
+  const basePrompt = motion === "dance" ? DANCE_PROMPT : customPrompt;
   // Auto-match the scene to the look: replace {ort}/{location}/{umgebung} in the prompt with a
   // category-appropriate setting. Pure TEXT substitution — the @Bild1/@Bild2 image bindings
   // are untouched, so it never swaps the model/outfit.
   const scene = sceneForCategory(category);
-  const promptWithScene = customPrompt ? customPrompt.replace(/\{ort\}|\{location\}|\{umgebung\}/gi, scene) : customPrompt;
+  const promptWithScene = basePrompt ? basePrompt.replace(/\{ort\}|\{location\}|\{umgebung\}/gi, scene) : basePrompt;
   const key = process.env.PIXVERSE_API_KEY?.trim();
   if (!key) return NextResponse.json({ error: "PIXVERSE_API_KEY missing." }, { status: 400 });
 
@@ -278,6 +295,16 @@ export async function POST(request: Request) {
       pixverseReceivedPerson: !!pId, personImgId: pId, personBytes: person.startsWith("data:") ? "(data url)" : person.slice(0, 60),
       pixverseReceivedGarment: !!gId, garmentImgId: gId, garmentBytes: garment.startsWith("data:") ? "(data url)" : garment.slice(0, 60),
     });
+  }
+
+  // MODELS may not generate videos: they create PHOTOS of themselves in outfits,
+  // and the team turns the best ones into videos (admin one-click). Blocks the
+  // expensive Pixverse path for curator sessions — admin (PIN/session) passes.
+  if (request.headers.get("x-curator-id") && !(await isAdminRequest(request))) {
+    return NextResponse.json(
+      { error: "Models create photos — the LuxuryBandit team turns your best photos into videos.", modelsPhotoOnly: true },
+      { status: 403 }
+    );
   }
 
   // Staff (admin or an acting-as curator session, e.g. Szidonia) generate for FREE

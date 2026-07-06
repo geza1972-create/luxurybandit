@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Instagram, Loader2, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play, Sparkles, SlidersHorizontal, Trash2, EyeOff, Eye, ImageUp } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Instagram, Loader2, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play, Sparkles, SlidersHorizontal, Trash2, EyeOff, Eye, ImageUp, Video } from "lucide-react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { LOOK_CATEGORIES, categorizeLook, isLookCategory, type LookCategory } from "@/lib/look-category";
 
@@ -18,7 +18,7 @@ function viewerHeaders(): Record<string, string> {
   return h;
 }
 
-type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; instagram?: string; style?: string; genderFocus?: string };
+type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number };
 type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
 type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string };
 
@@ -65,6 +65,20 @@ export default function CuratorPublicPage() {
   // Her videos live BEHIND the profile photo — tapping it opens a fullscreen carousel,
   // so they never compete with the wardrobe for attention.
   const [motionOpen, setMotionOpen] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false); // profile photo fullscreen lightbox
+  // Slim "she's a REAL model" trust banner — every 2nd model-page visit ("ab und zu"),
+  // so users learn the models are real people who earn. Doubles as recruiting.
+  const [showRealBanner, setShowRealBanner] = useState(false);
+  const bannerRolledFor = useRef(""); // guard: StrictMode double-invokes effects in dev
+  useEffect(() => {
+    if (bannerRolledFor.current === id) return;
+    bannerRolledFor.current = id;
+    try {
+      const n = (parseInt(localStorage.getItem("lb_real_banner_n") ?? "0", 10) + 1) % 2;
+      localStorage.setItem("lb_real_banner_n", String(n));
+      setShowRealBanner(n === 1);
+    } catch { setShowRealBanner(true); }
+  }, [id]);
   // "See her in other looks" scrolls down to her wardrobe (her outfits).
   const wardrobeRef = useRef<HTMLDivElement>(null);
   // "Load more looks" also pulls in garments from OTHER models so she can wear anything.
@@ -76,6 +90,7 @@ export default function CuratorPublicPage() {
   const [mName, setMName] = useState("");
   const [mDesc, setMDesc] = useState("");
   const [mCat, setMCat] = useState<"" | LookCategory>("");
+  const [mBuy, setMBuy] = useState(""); // shop link ("Shop now" on the tile)
   const [mBusy, setMBusy] = useState(false);
   const [mMsg, setMMsg] = useState("");
   const replaceRef = useRef<HTMLInputElement>(null);
@@ -83,13 +98,25 @@ export default function CuratorPublicPage() {
   const [playingId, setPlayingId] = useState("");
   const [reelIdx, setReelIdx] = useState(0);
   const reelRef = useRef<HTMLDivElement>(null);
+  // Open the fullscreen "In motion" carousel AT a specific clip (from the gallery strip).
+  const openMotionAt = (i: number) => {
+    setMotionOpen(true);
+    setReelIdx(i);
+    setTimeout(() => {
+      const el = reelRef.current?.children[i] as HTMLElement | undefined;
+      el?.scrollIntoView({ inline: "center", block: "nearest" });
+    }, 60);
+  };
   const onReelScroll = () => {
     const el = reelRef.current; if (!el) return;
     const first = el.children[0] as HTMLElement | undefined;
     const w = first ? first.clientWidth + 12 : el.clientWidth;
     setReelIdx(Math.round(el.scrollLeft / w));
   };
-  useEffect(() => { try { setIsAdmin(!!localStorage.getItem("luxurybandit-try-look-admin-pin")); } catch { /**/ } }, []);
+  // Admin "view as her" preview: while lb_preview_model is set, the admin PIN is
+  // IGNORED so the page renders exactly what the model herself sees (owner mode,
+  // no admin buttons). The floating banner (BottomNav) exits the preview.
+  useEffect(() => { try { setIsAdmin(!!localStorage.getItem("luxurybandit-try-look-admin-pin") && !localStorage.getItem("lb_preview_model")); } catch { /**/ } }, []);
   const [tryons, setTryons] = useState<TryOn[]>([]);
   const [lookPrices, setLookPrices] = useState<Record<string, string>>({});
   const [ownLookIds, setOwnLookIds] = useState<Set<string>>(new Set());
@@ -156,7 +183,9 @@ export default function CuratorPublicPage() {
         // Looks this curator created — a try-on of one of these is a self-test.
         setOwnLookIds(new Set(all.filter(l => l.curatorId === id).map(l => l.id)));
         // Try-ons attributed to this curator ACCOUNT (any display name they used).
-        const g = await fetch(`/api/try-this-look?curatorTryons=${encodeURIComponent(id)}`).then(r => r.json()).catch(() => null);
+        // Admin/owner also get UNPUBLISHED ones (manage=1) — her photo drafts live there.
+        const canManage = (() => { try { return !!localStorage.getItem("luxurybandit-try-look-admin-pin") || JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id === id; } catch { return false; } })();
+        const g = await fetch(`/api/try-this-look?curatorTryons=${encodeURIComponent(id)}${canManage ? "&manage=1" : ""}`).then(r => r.json()).catch(() => null);
         if (active && Array.isArray(g?.userGallery)) setTryons(g.userGallery as TryOn[]);
       } catch { /* ignore */ } finally {
         if (active) setLoading(false);
@@ -165,7 +194,8 @@ export default function CuratorPublicPage() {
     return () => { active = false; };
   }, [id]);
 
-  const adminPin = () => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } };
+  // While the admin previews HER view, the PIN is ignored everywhere on this page.
+  const adminPin = () => { try { return localStorage.getItem("lb_preview_model") ? "" : (localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""); } catch { return ""; } };
   const adminHeaders = (): Record<string, string> => { const pin = adminPin(); return pin ? { "x-try-look-admin-pin": pin } : {}; };
   // Re-pull looks (admin PIN → hidden looks included) after any edit/delete/generate.
   const reloadLooks = async () => {
@@ -181,6 +211,114 @@ export default function CuratorPublicPage() {
       setTryons(prev => prev.filter(x => x.id !== t.id));
     } catch { /**/ }
   };
+  // ── Admin: upload a self-made video (e.g. generated in the Pixverse UI) as a NEW
+  // "In motion" video for this model. Direct-to-Supabase (signed URL, no 4.5MB limit),
+  // first frame becomes the poster. Defaults to Fashionshow (members + her profile).
+  const vidFileRef = useRef<HTMLInputElement>(null);
+  const [vidBusy, setVidBusy] = useState(false);
+  const firstFrameDataUrl = (file: File): Promise<string> => new Promise((resolve) => {
+    try {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement("video");
+      v.muted = true; v.preload = "metadata"; v.src = url;
+      const done = (out: string) => { try { URL.revokeObjectURL(url); } catch { /**/ } resolve(out); };
+      v.onloadeddata = () => { try { v.currentTime = Math.min(0.1, (v.duration || 1) * 0.02); } catch { done(""); } };
+      v.onseeked = () => {
+        try {
+          const c = document.createElement("canvas");
+          c.width = v.videoWidth || 720; c.height = v.videoHeight || 1280;
+          const ctx = c.getContext("2d");
+          if (ctx) { ctx.drawImage(v, 0, 0, c.width, c.height); done(c.toDataURL("image/webp", 0.82)); } else done("");
+        } catch { done(""); }
+      };
+      v.onerror = () => done("");
+      setTimeout(() => done(""), 6000);
+    } catch { resolve(""); }
+  });
+  const uploadModelVideo = async (file: File) => {
+    if (vidBusy) return;
+    if (!file.type.startsWith("video/")) { alert("Bitte eine Videodatei wählen."); return; }
+    setVidBusy(true);
+    try {
+      const H = { "Content-Type": "application/json", ...adminHeaders() };
+      const ext = (file.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "") || "mp4";
+      const posterImage = await firstFrameDataUrl(file); // capture BEFORE upload (file still in memory)
+      const sig = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ importVideo: true, sign: true, ext }) }).then(r => r.json());
+      if (!sig.uploadUrl || !sig.path) throw new Error(sig.error || "Upload konnte nicht starten (Rechte prüfen)");
+      const put = await fetch(sig.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type || "video/mp4", "x-upsert": "true" }, body: file });
+      if (!put.ok) throw new Error("Upload zu Supabase fehlgeschlagen");
+      const att = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ importVideo: true, videoPath: sig.path }) }).then(r => r.json());
+      if (!att.videoUrl) throw new Error(att.error || "Signieren fehlgeschlagen");
+      const add = await fetch("/api/try-this-look", { method: "POST", headers: H, body: JSON.stringify({ action: "add-model-video", curatorId: id, videoUrl: att.videoUrl, ...(posterImage ? { posterImage } : {}) }) }).then(r => r.json());
+      if (!add.ok) throw new Error(add.error || "Video konnte nicht gespeichert werden");
+      // Refresh her videos so it shows up immediately.
+      await reloadTryons();
+      alert("Video hochgeladen ✓ — es ist jetzt in ihrem Profil (Play-Button am Foto).");
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Hochladen"); }
+    finally { setVidBusy(false); }
+  };
+
+  // Re-pull her try-ons (admin/owner incl. unpublished photo drafts).
+  const reloadTryons = async () => {
+    const canManage = (() => { try { return !!localStorage.getItem("luxurybandit-try-look-admin-pin") || JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id === id; } catch { return false; } })();
+    const g = await fetch(`/api/try-this-look?curatorTryons=${encodeURIComponent(id)}${canManage ? "&manage=1" : ""}`).then(r => r.json()).catch(() => null);
+    if (Array.isArray(g?.userGallery)) setTryons(g.userGallery as TryOn[]);
+  };
+
+  // ── Admin: one-tap vanity stats. ALWAYS above the floors the user set
+  // (>100k followers, >200k likes, >300k views) with natural-looking randomness;
+  // tapping again re-rolls. Saved as boosts on the curator (admin-only fields).
+  const [boostBusy, setBoostBusy] = useState(false);
+  const boostStats = async () => {
+    if (boostBusy) return;
+    setBoostBusy(true);
+    try {
+      const rnd = (min: number, spread: number) => min + Math.floor(Math.random() * spread);
+      const followerBoost = rnd(100_000, 250_000); // 100k–350k
+      const likeBoost = rnd(200_000, 350_000);     // 200k–550k
+      const viewBoost = rnd(300_000, 600_000);     // 300k–900k
+      const res = await fetch("/api/curator", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...adminHeaders() },
+        body: JSON.stringify({ action: "update", id, followerBoost, likeBoost, viewBoost }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Boost fehlgeschlagen");
+      // Reflect immediately: like/view baselines live on the profile; followers are
+      // re-fetched from the follow API (boost + real follows).
+      fetch(`/api/follow?slug=${encodeURIComponent(id)}&type=user`, { headers: viewerHeaders() })
+        .then(r => r.ok ? r.json() : null).then(d => { if (d) setFollowerCount(d.followerCount ?? followerBoost); }).catch(() => {});
+      setProfile(p => (p ? { ...p, likeBoost, viewBoost } : p));
+    } catch (e) { alert(e instanceof Error ? e.message : "Boost fehlgeschlagen"); }
+    finally { setBoostBusy(false); }
+  };
+
+  // ── Admin one-click: turn a model's PHOTO try-on into a VIDEO (Pixverse animates the
+  // dressed photo; single-image mode — no reference binding needed). The video attaches
+  // to the SAME generation, so the photo becomes its poster.
+  const [photoVidBusy, setPhotoVidBusy] = useState("");
+  const makeVideoFromPhoto = async (t: TryOn) => {
+    if (photoVidBusy) return;
+    if (!window.confirm("Aus diesem Foto ein Video generieren? (Pixverse-Credits)")) return;
+    setPhotoVidBusy(t.id);
+    try {
+      const H = { "Content-Type": "application/json", ...adminHeaders() };
+      const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ lookId: t.lookId || "", image: t.imageUrl }) }).then(r => r.json());
+      if (!start.videoId) throw new Error(start.error || "Start fehlgeschlagen.");
+      let videoUrl = "";
+      for (let i = 0; i < 45; i++) {
+        await new Promise(r => setTimeout(r, 5000));
+        const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || "")}`).then(r => r.json());
+        if (p.status === "done" && p.videoUrl) { videoUrl = p.videoUrl; break; }
+        if (p.status === "failed") throw new Error(p.error || "Generierung fehlgeschlagen.");
+      }
+      if (!videoUrl) throw new Error("Zeitüberschreitung.");
+      await fetch("/api/try-this-look", { method: "POST", headers: H, body: JSON.stringify({ action: "attach-generation-video", generationId: t.id, videoUrl }) });
+      await reloadTryons();
+      alert("Video erstellt ✓ — jetzt in ihrem Reel (Sichtbarkeit wie gehabt steuerbar).");
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehler bei der Video-Generierung"); }
+    finally { setPhotoVidBusy(""); }
+  };
+
   const readFile = (f: File) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f); });
   const addGenRefs = async (files: FileList | File[]) => {
     for (const f of Array.from(files)) { if (!f.type.startsWith("image/")) continue; try { const url = await readFile(f); setGenRefs(r => [...r, url].slice(0, 8)); } catch { /**/ } }
@@ -225,6 +363,7 @@ export default function CuratorPublicPage() {
     setMName(l.name ?? "");
     setMDesc(l.productNote ?? "");
     setMCat(isLookCategory(l.category) ? l.category : "");
+    setMBuy((l as any).buyUrl ?? "");
     setMMsg("");
   };
   const closeManage = () => { setManageId(""); setMBusy(false); setMMsg(""); };
@@ -243,7 +382,25 @@ export default function CuratorPublicPage() {
     } catch (e) { setMMsg(e instanceof Error ? e.message : "Fehler"); }
     finally { setMBusy(false); }
   };
-  const saveManage = () => patchLook({ name: mName.trim() || undefined, productNote: mDesc.trim(), ...(mCat ? { category: mCat } : {}) });
+  // Save — empty title/description get filled by AI from the garment photo first.
+  const saveManage = async () => {
+    let name = mName.trim(), desc = mDesc.trim();
+    if ((!name || !desc) && manageItem) {
+      setMBusy(true); setMMsg("KI schreibt Titel & Beschreibung …");
+      try {
+        const img = manageItem.frontImageUrl || manageItem.imageUrl || "";
+        const blob = await fetch(img).then(r => r.blob());
+        const fd = new FormData();
+        fd.append("image", new File([blob], "garment.jpg", { type: blob.type || "image/jpeg" }));
+        if (name) fd.append("name", name);
+        const ai = await fetch("/api/generate-product-description", { method: "POST", body: fd }).then(r => r.json());
+        if (!name && ai.title) { name = String(ai.title); setMName(name); }
+        if (!desc && ai.description) { desc = String(ai.description); setMDesc(desc); }
+      } catch { /* AI is best-effort — save whatever we have */ }
+      setMBusy(false);
+    }
+    return patchLook({ name: name || undefined, productNote: desc, buyUrl: mBuy.trim(), ...(mCat ? { category: mCat } : {}) });
+  };
   const toggleHide = () => patchLook({ published: manageItem?.published === false }, manageItem?.published === false ? "Sichtbar ✓" : "Ausgeblendet ✓");
   const replaceImage = async (file: File) => {
     const dataUrl: string = await new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.onerror = reject; r.readAsDataURL(file); });
@@ -276,6 +433,9 @@ export default function CuratorPublicPage() {
 
   const name = `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() || "Model";
   const videos = tryons.filter(t => t.videoUrl);
+  // Photo drafts (no video yet): the model's self-made photos. Visible to admin +
+  // the model herself in the gallery strip; the admin turns good ones into videos.
+  const photoDrafts = (isAdmin || isOwn) ? tryons.filter(t => !t.videoUrl && t.imageUrl) : [];
 
   return (
     <main className="lb-phone-col min-h-[100dvh] bg-[#0d0b0a] text-white pb-16">
@@ -296,7 +456,7 @@ export default function CuratorPublicPage() {
         {!isOwn && (
           <div className="mt-2 flex items-center gap-2">
             <button type="button" onClick={() => void handleFollow()} disabled={followLoading}
-              className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-black transition active:scale-95 disabled:opacity-50 ${following ? "border border-white/20 text-white/70" : "bg-amber-400 text-black"}`}>
+              className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-black transition active:scale-95 disabled:opacity-50 ${following ? "border border-white/20 text-white/70" : "lb-gold"}`}>
               {followLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : following ? <><UserCheck className="h-3.5 w-3.5" /> Following</> : <><UserPlus className="h-3.5 w-3.5" /> Follow</>}
             </button>
             <button type="button" onClick={() => { setShowMsg(true); setSent(false); }}
@@ -313,22 +473,16 @@ export default function CuratorPublicPage() {
 
       {/* Profile header */}
       <div className="flex flex-col items-center gap-2 px-6 pt-6 text-center">
-        {/* Profile photo. If she has videos, tapping it opens the "in motion" carousel —
-            so the videos live BEHIND her photo and never distract from the wardrobe. */}
-        <button type="button" disabled={videos.length === 0} onClick={() => setMotionOpen(true)}
-          className="relative h-24 w-24 shrink-0 rounded-full disabled:cursor-default">
-          <span className={`block h-full w-full overflow-hidden rounded-full bg-white/10 ${videos.length ? "ring-2 ring-amber-400/80 ring-offset-2 ring-offset-[#0d0b0a]" : ""}`}>
+        {/* Profile photo — tap opens it LARGE (lightbox). Her videos live in the
+            gallery strip below, so no play badge here anymore. */}
+        <button type="button" disabled={!profile.photoUrl} onClick={() => setPhotoOpen(true)}
+          className="relative h-24 w-24 shrink-0 rounded-full disabled:cursor-default active:scale-95 transition">
+          <span className="block h-full w-full overflow-hidden rounded-full bg-white/10 ring-2 ring-amber-400/80 ring-offset-2 ring-offset-[#0d0b0a]">
             {profile.photoUrl
               // eslint-disable-next-line @next/next/no-img-element
               ? <img src={profile.photoUrl} alt={name} className="h-full w-full object-cover" />
               : <div className="grid h-full w-full place-items-center text-2xl font-black text-white/30">{name.slice(0, 1)}</div>}
           </span>
-          {/* Just a small play button — no label — so it never covers her face. */}
-          {videos.length > 0 && (
-            <span className="absolute bottom-0 right-0 grid h-8 w-8 place-items-center rounded-full border-2 border-[#0d0b0a] bg-amber-400 text-black shadow-lg">
-              <Play className="h-4 w-4 translate-x-[1px]" fill="currentColor" />
-            </span>
-          )}
         </button>
         <h1 className="mt-2 text-2xl font-black leading-tight text-white">{name}</h1>
         {profile.motto && <p className="text-sm font-black text-amber-400">{profile.motto}</p>}
@@ -342,22 +496,109 @@ export default function CuratorPublicPage() {
           )}
         </div>
 
-        {/* Stats */}
+        {/* Stats — likes/views = real sums + the admin-set vanity baselines. */}
         <div className="mt-3 flex items-center justify-center gap-6">
-          {[["Looks", looks.length], ["Followers", fmtN(followerCount)], ["Likes", fmtN(looks.reduce((s, l) => s + ((l as any).likeCount ?? 0), 0))], ["Views", fmtN(looks.reduce((s, l) => s + ((l as any).viewCount ?? 0), 0))]].map(([label, val]) => (
+          {[["Looks", looks.length], ["Followers", fmtN(followerCount)], ["Likes", fmtN((profile.likeBoost ?? 0) + looks.reduce((s, l) => s + ((l as any).likeCount ?? 0), 0))], ["Views", fmtN((profile.viewBoost ?? 0) + looks.reduce((s, l) => s + ((l as any).viewCount ?? 0), 0))]].map(([label, val]) => (
             <div key={label as string} className="flex flex-col items-center">
               <span className="text-base font-black text-white">{val}</span>
               <span className="text-[10px] font-bold uppercase tracking-wide text-white/40">{label}</span>
             </div>
           ))}
+          {/* Admin: one tap gives her healthy vanity numbers (always >100k/200k/300k);
+              tap again to re-roll. Stored as boosts, real engagement adds on top. */}
+          {isAdmin && (
+            <button type="button" onClick={() => void boostStats()} disabled={boostBusy} title="Followers/Likes/Views boosten"
+              className="grid h-8 w-8 place-items-center rounded-full border border-amber-400/40 bg-amber-400/10 text-amber-400 active:scale-90 transition disabled:opacity-50">
+              {boostBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            </button>
+          )}
         </div>
+
+        {/* Trust badge in gold (~every 2nd visit): the models are REAL people.
+            PURE trust signal for VISITORS — the model herself never sees it
+            (also hidden in the admin "view as her" preview). */}
+        {showRealBanner && !isOwn && (
+          <div className="lb-gold mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[12px] font-black">
+            <BadgeCheck className="h-4 w-4 shrink-0" />
+            <span className="min-w-0 truncate">{profile.firstName || "She"} is a real LuxuryBandit Model</span>
+          </div>
+        )}
+
+        {/* Video gallery — her clips as a thumbnail strip. Tap one → the SAME fullscreen
+            "In motion" carousel opens at exactly that clip. (Photo play-ring stays too.)
+            Admin/owner additionally see her PHOTO drafts here — the admin turns them
+            into videos with one tap. */}
+        {(videos.length > 0 || photoDrafts.length > 0) && (
+          <div className="mt-4 w-full">
+            <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {videos.map((t, i) => (
+                <button key={t.id} type="button" onClick={() => openMotionAt(i)}
+                  className="relative aspect-[9/16] h-40 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] active:scale-95 transition">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={optImg(t.imageUrl, 300)} alt="" loading="lazy" decoding="async"
+                    onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
+                    className="h-full w-full object-cover object-top" />
+                  <span className="absolute bottom-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur">
+                    <Play className="h-3 w-3 translate-x-[0.5px]" fill="currentColor" />
+                  </span>
+                </button>
+              ))}
+              {photoDrafts.map(t => (
+                <div key={t.id} className="relative aspect-[9/16] h-40 shrink-0 overflow-hidden rounded-xl border border-dashed border-amber-400/40 bg-white/[0.04]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={optImg(t.imageUrl, 300)} alt="" loading="lazy" decoding="async"
+                    onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
+                    className="h-full w-full object-cover object-top" />
+                  <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">Foto</span>
+                  {isAdmin ? (
+                    <button type="button" onClick={() => void makeVideoFromPhoto(t)} disabled={!!photoVidBusy}
+                      className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-center gap-1 rounded-full bg-amber-400 py-1 text-[10px] font-black text-black active:scale-95 transition disabled:opacity-60">
+                      {photoVidBusy === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" fill="currentColor" />}
+                      {photoVidBusy === t.id ? "Generiert…" : "Video"}
+                    </button>
+                  ) : (
+                    <span className="absolute inset-x-1.5 bottom-1.5 rounded-full bg-black/70 py-1 text-center text-[9px] font-black text-white/80 backdrop-blur">Team macht dein Video</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Primary CTA — jumps down to her wardrobe (her outfits). Her videos stay
             behind the profile photo's play button. */}
         <button type="button" onClick={() => wardrobeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-          className="mt-4 flex items-center justify-center gap-2 rounded-full bg-amber-400 px-6 py-3 text-sm font-black text-black active:scale-95 transition">
+          className="lb-gold mt-4 flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-black active:scale-95 transition">
           See {profile.firstName || "her"} in other looks
         </button>
+
+        {/* Admin: import a self-made video (e.g. from the Pixverse UI) into her reel,
+            and "view as her" — a true preview of what SHE sees after signing in. */}
+        {isAdmin && (
+          <>
+            <div className="mt-2 flex items-center gap-2">
+              <button type="button" onClick={() => vidFileRef.current?.click()} disabled={vidBusy}
+                className="flex items-center justify-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-[11px] font-black text-white active:scale-95 transition disabled:opacity-50">
+                {vidBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
+                {vidBusy ? "Lade hoch …" : "Video hochladen"}
+              </button>
+              <button type="button" onClick={() => {
+                // Enter HER session (preview): lb_curator = her + the preview flag that
+                // suppresses the admin PIN on her pages. Exit via the floating banner.
+                try {
+                  localStorage.setItem("lb_curator", JSON.stringify({ id, firstName: profile.firstName ?? "", email: "", style: profile.style ?? "" }));
+                  localStorage.setItem("lb_preview_model", "1");
+                } catch { /**/ }
+                window.location.reload();
+              }}
+                className="flex items-center justify-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 px-4 py-2 text-[11px] font-black text-amber-400 active:scale-95 transition">
+                <Eye className="h-3.5 w-3.5" /> Ihre Ansicht testen
+              </button>
+            </div>
+            <input ref={vidFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) void uploadModelVideo(f); e.target.value = ""; }} />
+          </>
+        )}
 
         {/* Follow + Message + Share moved to sticky header (second row) */}
       </div>
@@ -431,8 +672,14 @@ export default function CuratorPublicPage() {
                           {/* Make it obvious tapping generates a try-on VIDEO. */}
                           {!hidden && <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur"><Play className="h-2.5 w-2.5" fill="currentColor" /> Video erstellen</span>}
                         </button>
-                        <div className="px-2 py-1.5">
-                          <span className="block truncate text-[11px] font-black text-black/70">{l.name}</span>
+                        <div className="flex items-center gap-1.5 px-2 py-1.5">
+                          <span className="block min-w-0 flex-1 truncate text-[11px] font-black text-black/70">{l.name}</span>
+                          {(l as any).buyUrl && (
+                            <a href={(l as any).buyUrl} target="_blank" rel="noopener noreferrer sponsored" onClick={e => e.stopPropagation()}
+                              className="flex shrink-0 items-center gap-1 rounded-full bg-black px-2 py-1 text-[10px] font-black text-white active:scale-95 transition">
+                              <ShoppingBag className="h-3 w-3" /> Shop
+                            </a>
+                          )}
                         </div>
                         {hidden && <span className="absolute left-2 top-2 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-black text-white">Ausgeblendet</span>}
                         {/* Only admins manage — and only HER own pieces (not the borrowed "more looks"). */}
@@ -460,7 +707,23 @@ export default function CuratorPublicPage() {
         })()}
       </div>
 
-      {/* "In motion" carousel — opened by tapping her profile photo. Fullscreen so it
+      {/* Profile photo lightbox — tap anywhere (or X) to close. */}
+      {photoOpen && profile.photoUrl && (
+        <div className="lb-phone-col fixed inset-0 z-[70] flex flex-col bg-black/95" onClick={() => setPhotoOpen(false)}>
+          <div className="flex items-center justify-between px-4 py-3">
+            <p className="text-sm font-black text-white">{name}</p>
+            <button type="button" onClick={() => setPhotoOpen(false)}
+              className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white active:scale-90 transition"><X className="h-5 w-5" /></button>
+          </div>
+          <div className="flex flex-1 items-center justify-center px-3 pb-8">
+            {/* Prefer the UNCROPPED original (portrait) — the avatar is a square crop. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={profile.photoFullUrl || profile.photoUrl} alt={name} className="max-h-full w-full rounded-2xl object-contain" />
+          </div>
+        </div>
+      )}
+
+      {/* "In motion" carousel — opened from the video gallery strip. Fullscreen so it
           doesn't share space with (or distract from) the wardrobe. */}
       {motionOpen && videos.length > 0 && (
         <div className="lb-phone-col fixed inset-0 z-[60] flex flex-col bg-black">
@@ -606,9 +869,9 @@ export default function CuratorPublicPage() {
                   className="h-full w-full object-contain" />
               </div>
               <div className="grid min-w-0 flex-1 gap-2">
-                <input value={mName} onChange={e => setMName(e.target.value)} placeholder="Name"
+                <input value={mName} onChange={e => setMName(e.target.value)} placeholder="Name (leer = KI schreibt ihn)"
                   className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-sm font-bold text-white outline-none focus:border-white/40" />
-                <textarea value={mDesc} onChange={e => setMDesc(e.target.value)} rows={3} placeholder="Beschreibung"
+                <textarea value={mDesc} onChange={e => setMDesc(e.target.value)} rows={3} placeholder="Beschreibung (leer = KI schreibt sie)"
                   className="w-full resize-none rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[13px] text-white outline-none focus:border-white/40" />
               </div>
             </div>
@@ -623,6 +886,11 @@ export default function CuratorPublicPage() {
                 </button>
               ))}
             </div>
+
+            {/* Shop link — powers the "Shop now" button on the tile */}
+            <p className="mb-2 mt-4 text-[11px] font-black uppercase tracking-wide text-white/40">Shop-Link</p>
+            <input value={mBuy} onChange={e => setMBuy(e.target.value)} type="url" inputMode="url" placeholder="https://shop.example.com/produkt…"
+              className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[13px] font-bold text-white outline-none focus:border-white/40 placeholder:text-white/25" />
 
             {/* Replace / hide / delete */}
             <div className="mt-4 grid grid-cols-3 gap-2">

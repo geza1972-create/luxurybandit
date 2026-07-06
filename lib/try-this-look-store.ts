@@ -185,10 +185,16 @@ export type CuratorProfile = {
   ageFocus?: string;          // target audience age range
   motto?: string;             // short tagline (AI-suggested, editable)
   bio?: string;               // short profile description (AI-suggested, editable)
-  photoPath?: string;         // storage path of the curator's photo
+  photoPath?: string;         // storage path of the curator's photo (square avatar crop)
   photoUrl?: string;          // hydrated signed URL (read side only)
+  photoFullPath?: string;     // storage path of the ORIGINAL (uncropped, e.g. portrait) photo
+  photoFullUrl?: string;      // hydrated signed URL (read side only)
+  photoBodyPaths?: string[];  // full-body dressed photos (3:4 crops, up to 2) — try-on references
+  photoBodyUrls?: string[];   // hydrated signed URLs (read side only)
   instagram?: string;         // handle for promotion
   followerBoost?: number;     // baseline followers added to the real follow count (admin-set)
+  likeBoost?: number;         // vanity likes baseline on her profile stats (admin-set)
+  viewBoost?: number;         // vanity views baseline on her profile stats (admin-set)
   status: "active" | "pending" | "deactivated";
   createdAt: string;
   // Creator credits (communicated to creators as "credits", never money).
@@ -546,6 +552,8 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
   }
   for (const cur of state.curators ?? []) {
     if (cur.photoPath) allPaths.push(cur.photoPath);
+    if (cur.photoFullPath) allPaths.push(cur.photoFullPath);
+    for (const p of cur.photoBodyPaths ?? []) allPaths.push(p);
   }
   for (const outfit of state.outfits ?? []) {
     const p = outfit.imagePath ?? extractPathFromUrl(outfit.imageUrl);
@@ -607,6 +615,8 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
   const curators = (state.curators ?? []).map(cur => ({
     ...cur,
     photoUrl: cur.photoPath ? (signed.get(cur.photoPath) ?? cur.photoUrl) : cur.photoUrl,
+    photoFullUrl: cur.photoFullPath ? (signed.get(cur.photoFullPath) ?? cur.photoFullUrl) : cur.photoFullUrl,
+    photoBodyUrls: (cur.photoBodyPaths ?? []).map(p => signed.get(p)).filter((u): u is string => !!u),
   }));
 
   const outfits = (state.outfits ?? []).map(outfit => ({
@@ -751,7 +761,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     comments: (state.comments ?? []).slice(0, 2000),
     follows: (state.follows ?? []).slice(0, 5000),
     messages: (state.messages ?? []).slice(0, 2000),
-    curators: (state.curators ?? []).map(({ photoUrl, ...curator }) => curator).slice(0, 2000),
+    curators: (state.curators ?? []).map(({ photoUrl, photoFullUrl, photoBodyUrls, ...curator }) => curator).slice(0, 2000),
     outfits: (state.outfits ?? []).map(({ imageUrl, ...outfit }) => outfit).slice(0, 500),
     funnelVideoPrompt: state.funnelVideoPrompt,
     partnerStores: (state.partnerStores ?? []).slice(0, 200),

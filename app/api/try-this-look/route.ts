@@ -113,7 +113,7 @@ function affiliateWrap(url: string | undefined, sid: string, stores: AffiliateSt
     .split("{sid}").join(encodeURIComponent(sid || "house"));
 }
 
-function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number], generationCount = 0, partnerStores: AffiliateStore[] = [], curators: CuratorProfile[] = [], tryOnImageUrl?: string, communityTryOns: { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; hidden?: boolean; pending?: boolean }[] = []) {
+function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number], generationCount = 0, partnerStores: AffiliateStore[] = [], curators: CuratorProfile[] = [], tryOnImageUrl?: string, communityTryOns: { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; hidden?: boolean; pending?: boolean; curatorId?: string; curatorPhotoUrl?: string }[] = []) {
   const sid = String((look as any).curatorId ?? "house");
   const wrap = (u: string | undefined) => affiliateWrap(u, sid, partnerStores);
   // Attribute the look to the curator who published it (name, photo, profile link).
@@ -259,7 +259,17 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
   // Try-ons (consented, feed:true) shown as carousel slides AFTER the curator's
   // video + product image and BEFORE the dupes. Includes the curator's OWN try-ons
   // (with their video) and members'. Newest first (generations are newest-first).
-  const communityByLook = new Map<string, { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; isCurator?: boolean; hidden?: boolean; pending?: boolean }[]>();
+  const communityByLook = new Map<string, { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; isCurator?: boolean; hidden?: boolean; pending?: boolean; curatorId?: string; curatorPhotoUrl?: string }[]>();
+  // Model attribution per try-on: the feed post must show the TRY-ON's model (assign-
+  // generation sets gen.curatorId), not the look's owner. Legacy try-ons often carry
+  // only the model's NAME (customerName) — resolve those to a curator by name slug so
+  // the post links to HER profile (not the look owner's).
+  const curatorPhotoById = new Map((state.curators ?? []).map(c => [c.id, ((c as any).photoUrl as string) || ""]));
+  const curatorIdByName = new Map<string, string>();
+  for (const c of state.curators ?? []) {
+    const slug = normalizeSlug([c.firstName, c.lastName].filter(Boolean).join(" "));
+    if (slug && !curatorIdByName.has(slug)) curatorIdByName.set(slug, c.id);
+  }
   for (const g of state.generations ?? []) {
     const url = (g as any).imageUrl;
     // OPT-IN: a try-on is public ONLY if feed === true (an explicit checkbox). Admins
@@ -278,7 +288,9 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
     const isCurator = !!(cid && normalizeSlug((g as any).customerName ?? "") === curatorSlugById.get(cid));
     const list = communityByLook.get(g.lookId) ?? [];
     if (list.length >= 12) continue;
-    list.push({ id: g.id, imageUrl: url, videoUrl: (g as any).videoUrl || undefined, userPhotoUrl: (g as any).userPhotoUrl || undefined, name: (g as any).customerName || undefined, isCurator, hidden: isAdminHidden, pending: isPending });
+    const genCuratorId = String((g as any).curatorId ?? "").trim()
+      || curatorIdByName.get(normalizeSlug((g as any).customerName ?? "")) || "";
+    list.push({ id: g.id, imageUrl: url, videoUrl: (g as any).videoUrl || undefined, userPhotoUrl: (g as any).userPhotoUrl || undefined, name: (g as any).customerName || undefined, isCurator, hidden: isAdminHidden, pending: isPending, curatorId: genCuratorId || undefined, curatorPhotoUrl: (genCuratorId && curatorPhotoById.get(genCuratorId)) || undefined });
     communityByLook.set(g.lookId, list);
   }
   const sl = (look: (typeof visibleLooks)[number]) => serializeLook(look, genCountByLook.get(look.id) ?? 0, state.partnerStores ?? [], state.curators ?? [], selftestByLook.get(look.id)?.url, communityByLook.get(look.id) ?? []);
@@ -326,7 +338,42 @@ export async function GET(request: Request) {
     // Admin: list curators (for management/cleanup).
     if (url.searchParams.get("curators") === "1") {
       if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
-      return NextResponse.json({ curators: state.curators ?? [] });
+      // Per-model engagement for the admin list: comments on her posts, total views
+      // (boost + real), and how many people tapped "See her in other looks".
+      const nameSlugById = new Map((state.curators ?? []).map(c => [c.id, normalizeSlug([c.firstName, c.lastName].filter(Boolean).join(" "))]));
+      const postLooksByCurator = new Map<string, Set<string>>();
+      for (const c of state.curators ?? []) postLooksByCurator.set(c.id, new Set());
+      for (const g of state.generations ?? []) {
+        if ((g as any).feed !== true || (g as any).hidden) continue;
+        const gname = normalizeSlug((g as any).customerName ?? "");
+        for (const c of state.curators ?? []) {
+          if ((g as any).curatorId === c.id || (gname && gname === nameSlugById.get(c.id))) {
+            if (g.lookId) postLooksByCurator.get(c.id)!.add(g.lookId);
+          }
+        }
+      }
+      for (const l of state.looks ?? []) { // her own looks count too
+        const cid = (l as any).curatorId;
+        if (cid && postLooksByCurator.has(cid)) postLooksByCurator.get(cid)!.add(l.id);
+      }
+      const commentsByLook = new Map<string, number>();
+      for (const c of state.comments ?? []) commentsByLook.set(c.lookId, (commentsByLook.get(c.lookId) ?? 0) + 1);
+      const tryonClicksByLook = new Map<string, number>();
+      for (const e of (state.events ?? []) as any[]) {
+        if (e.event === "tryon_click" && e.lookId) tryonClicksByLook.set(e.lookId, (tryonClicksByLook.get(e.lookId) ?? 0) + 1);
+      }
+      const viewsByCuratorLooks = new Map<string, number>();
+      for (const l of state.looks ?? []) {
+        const cid = (l as any).curatorId;
+        if (cid) viewsByCuratorLooks.set(cid, (viewsByCuratorLooks.get(cid) ?? 0) + ((l as any).viewCount ?? 0));
+      }
+      const curators = (state.curators ?? []).map(c => {
+        const lookSet = postLooksByCurator.get(c.id) ?? new Set<string>();
+        let commentCount = 0, tryonClicks = 0;
+        for (const id of lookSet) { commentCount += commentsByLook.get(id) ?? 0; tryonClicks += tryonClicksByLook.get(id) ?? 0; }
+        return { ...c, commentCount, tryonClicks, viewTotal: ((c as any).viewBoost ?? 0) + (viewsByCuratorLooks.get(c.id) ?? 0) };
+      });
+      return NextResponse.json({ curators });
     }
     // PUBLIC: the Models gallery. Only published models WITH a photo, PII stripped
     // (no email/address/credits). lookCount = how many SHARED (feed:true) try-ons the
@@ -341,8 +388,10 @@ export async function GET(request: Request) {
         if (nm && nm !== "you") genCountByName.set(nm, (genCountByName.get(nm) ?? 0) + 1);
       }
       const models = (state.curators ?? [])
+        // Public: only APPROVED (active) models. Admins also see pending applications
+        // and hidden models so they can review/unhide them.
         .filter(c => (c as any).photoUrl && String((c as any).status ?? "active") !== "removed"
-          && (modelsAdmin || (c as any).hidden !== true))
+          && (modelsAdmin || (String((c as any).status ?? "active") === "active" && (c as any).hidden !== true)))
         .map(c => {
           const cc = c as any;
           const name = [cc.firstName, cc.lastName].filter(Boolean).join(" ").trim();
@@ -351,6 +400,8 @@ export async function GET(request: Request) {
             name,
             photoUrl: cc.photoUrl as string,
             style: typeof cc.style === "string" ? cc.style : "",
+            hairColor: typeof cc.hairColor === "string" ? cc.hairColor : "",
+            createdAt: typeof cc.createdAt === "string" ? cc.createdAt : "",
             lookCount: genCountByName.get(name.toLowerCase()) ?? 0,
             ...(modelsAdmin ? {
               firstName: cc.firstName ?? "",
@@ -582,6 +633,14 @@ export async function GET(request: Request) {
       // gets ALL shared (feed:true) try-ons (incl. Community-tier); an anonymous viewer gets
       // ONLY the fully-public ones (`public:true`). Boudoir/lingerie is no longer special.
       const viewerGated = !!myEmail || !!myCuratorId || (await isAdmin(request));
+      // Model attribution (same rules as the looks payload): explicit gen.curatorId wins,
+      // else resolve by customerName slug — so posts link to the try-on's model.
+      const cPhotoById = new Map((state.curators ?? []).map(c => [c.id, ((c as any).photoUrl as string) || ""]));
+      const cIdByName = new Map<string, string>();
+      for (const c of state.curators ?? []) {
+        const slug = normalizeSlug([c.firstName, c.lastName].filter(Boolean).join(" "));
+        if (slug && !cIdByName.has(slug)) cIdByName.set(slug, c.id);
+      }
       const community = state.generations
         .filter(g => {
           if (!(g as any).imageUrl || (g as any).hidden || (g as any).feed !== true) return false; // OPT-IN: only explicit feed===true
@@ -613,7 +672,12 @@ export async function GET(request: Request) {
             // The original uploaded photo → the feed shows it as the "Before" slide.
             userPhotoUrl: (g as any).userPhotoUrl ?? undefined,
             customerName: (g as any).customerName ?? "",
-            curatorId: (g as any).curatorId ?? "",
+            curatorId: String((g as any).curatorId ?? "").trim()
+              || cIdByName.get(normalizeSlug((g as any).customerName ?? "")) || "",
+            curatorPhotoUrl: (() => {
+              const cid = String((g as any).curatorId ?? "").trim() || cIdByName.get(normalizeSlug((g as any).customerName ?? "")) || "";
+              return (cid && cPhotoById.get(cid)) || undefined;
+            })(),
             mine, // this post belongs to the signed-in user → show owner-only actions
             lookName: g.lookName ?? look?.name ?? "",
             storeName: g.storeName ?? look?.storeName ?? "",
@@ -1221,6 +1285,38 @@ export async function POST(request: Request) {
 
     // Attach a finished try-on video to a gallery generation (best-effort, from the
     // try-on tool once Pixverse is done) so it can play in the look's feed carousel.
+    // Admin: import a self-made video (e.g. generated in the Pixverse UI) as a NEW
+    // try-on for a model. The file is already in Supabase (signed-upload flow) —
+    // this creates the generation record so it shows in her "In motion" reel.
+    // Defaults to Fashionshow (feed:true, public:false); admin can flip it later.
+    if (payload.action === "add-model-video") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 401 });
+      const curatorId = String((payload as any).curatorId ?? "").trim();
+      const videoUrl = String((payload as any).videoUrl ?? "").trim();
+      const cur = (state.curators ?? []).find(c => c.id === curatorId);
+      if (!cur) return NextResponse.json({ error: "Model not found." }, { status: 404 });
+      if (!videoUrl) return NextResponse.json({ error: "videoUrl required." }, { status: 400 });
+      const gen: any = {
+        id: `${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
+        lookId: String((payload as any).lookId ?? ""),
+        lookName: String((payload as any).title ?? "").trim() || "In motion",
+        curatorId,
+        customerName: [cur.firstName, cur.lastName].filter(Boolean).join(" "),
+        videoUrl,
+        feed: true,
+        public: false,
+        imported: true, // uploaded by the admin, not generated through the funnel
+        createdAt: new Date().toISOString(),
+      };
+      const posterImage = (payload as any).posterImage;
+      if (typeof posterImage === "string" && posterImage.startsWith("data:image/")) {
+        gen.imagePath = await uploadTryThisLookImage("generations", posterImage);
+      }
+      state.generations = [gen, ...state.generations];
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, id: gen.id });
+    }
+
     if (payload.action === "attach-generation-video") {
       const genId = String(payload.generationId ?? "").trim();
       const videoUrl = String(payload.videoUrl ?? "").trim();
@@ -1530,6 +1626,7 @@ export async function POST(request: Request) {
       if (has("bio")) c.bio = String((payload as any).bio ?? "").trim() || undefined;
       if (has("motto")) c.motto = String((payload as any).motto ?? "").trim() || undefined;
       if (has("style")) c.style = String((payload as any).style ?? "").trim() || undefined;
+      if (has("hairColor")) c.hairColor = String((payload as any).hairColor ?? "").trim() || undefined;
       if (has("hidden")) c.hidden = (payload as any).hidden === true || undefined;
       const photo = (payload as any).photoImage;
       if (typeof photo === "string" && photo.startsWith("data:image/")) {
@@ -2045,6 +2142,8 @@ export async function POST(request: Request) {
             ? ((payload as any).category === "boudoir" ? true : (hasField("lingerie") ? payload.lingerie === true : false))
             : (hasField("lingerie") ? payload.lingerie === true : (look as any).lingerie),
           published: typeof payload.published === "boolean" ? payload.published : existingLook.published,
+          // Shop link ("Shop now" on the garment tile) — admin-editable.
+          buyUrl: hasField("buyUrl") ? (String((payload as any).buyUrl ?? "").trim() || undefined) : (look as any).buyUrl,
           // Admin may reassign the owning curator (e.g. distribute seeded looks).
           ...(adminRequest && typeof payload.curatorId === "string" && payload.curatorId.trim()
             ? { curatorId: payload.curatorId.trim() }

@@ -8,12 +8,12 @@ import AgeGate from "@/components/AgeGate";
 
 export const metadata: Metadata = {
   metadataBase: new URL((process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "")),
-  title: "LuxuryBandit — Virtual Try-On for Luxury Fashion",
-  description: "Try on luxury fashion instantly. Pick any designer outfit, choose a model or upload your own photo, and get a runway-quality try-on video in seconds. New looks every day — save, share and shop what you love, or become a model and earn on every look.",
-  keywords: ["virtual try-on", "AI fashion", "luxury fashion", "try on clothes online", "outfit video", "AI model", "designer looks", "fashion try-on app", "LuxuryBandit"],
+  title: "LuxuryBandit — Your Dream Model, In Any Look",
+  description: "Pick a model, choose a designer outfit, and watch her wear it in a runway-quality AI video — dancing or turning, your call. Follow her, message her, shop her looks. Models: upload one photo, get styled in luxury looks and earn with every look.",
+  keywords: ["AI fashion models", "virtual try-on", "AI fashion", "luxury fashion", "fashion model video", "outfit video", "AI model", "designer looks", "become a model", "LuxuryBandit"],
   openGraph: {
-    title: "LuxuryBandit — Virtual Try-On for Luxury Fashion",
-    description: "Try on luxury fashion instantly. Pick any outfit, choose a model or upload your photo, and get a runway-quality try-on video in seconds. New designer looks every day.",
+    title: "LuxuryBandit — Your Dream Model, In Any Look",
+    description: "Pick a model, choose a designer outfit, and watch her wear it in a runway-quality AI video. Follow her, message her, shop her looks. New looks every day.",
     type: "website",
   }
 };

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, Home, ShoppingBag, EyeOff, Eye, Trash2, UserPlus, Check, ImageOff, RefreshCw } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, Home, ShoppingBag, EyeOff, Eye, Trash2, UserPlus, Check, ImageOff, RefreshCw, BadgeCheck } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -27,7 +27,7 @@ export type FeedLook = {
   tryOnImageUrl?: string;
   clothesImageUrl?: string;   // curator-uploaded garment reference (shown as a carousel slide + used for try-on)
   locationImageUrl?: string;  // curator-uploaded location reference (used for try-on)
-  communityTryOns?: { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; hidden?: boolean; pending?: boolean }[];
+  communityTryOns?: { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; hidden?: boolean; pending?: boolean; curatorId?: string; curatorPhotoUrl?: string }[];
   feedOrder?: number;
   aiCreated?: boolean;
   lingerie?: boolean;
@@ -83,7 +83,7 @@ function RailButton({ icon, label, active, onClick }: { icon: React.ReactNode; l
   );
 }
 
-function Slide({ look, onComment, muted, setMuted, index, onActive, single = false, onClose }: { look: FeedLook; onComment: (look: FeedLook) => void; muted: boolean; setMuted: (fn: (m: boolean) => boolean) => void; index: number; onActive: (i: number) => void; single?: boolean; onClose?: () => void }) {
+function Slide({ look, onComment, muted, setMuted, index, onActive, single = false, onClose, recruitAd = false }: { look: FeedLook; onComment: (look: FeedLook) => void; muted: boolean; setMuted: (fn: (m: boolean) => boolean) => void; index: number; onActive: (i: number) => void; single?: boolean; onClose?: () => void; recruitAd?: boolean }) {
   const router = useRouter();
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(look.likeCount ?? 0);
@@ -183,6 +183,14 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   // Representative try-on for the carousel — prefer one WITH video+before (full compare),
   // then video only, then before photo only, then any try-on (at least the photo).
   const repTryOn = community.find(c => !c.hidden && c.videoUrl && c.userPhotoUrl) ?? community.find(c => !c.hidden && c.videoUrl) ?? community.find(c => !c.hidden && c.userPhotoUrl) ?? community.find(c => !c.hidden) ?? community[0];
+  // AUTHOR of this post: a try-on post belongs to the try-on's MODEL ("Assign to a
+  // model" sets gen.curatorId/customerName) — NOT the look's owner. Curated posts
+  // (no try-on) fall back to the look's curator. Name, avatar, profile link and the
+  // "See her in other looks" CTA all follow this attribution.
+  const rep = repTryOn as (typeof repTryOn & { curatorId?: string; curatorPhotoUrl?: string }) | undefined;
+  const authorName = rep?.name || look.curatorName;
+  const authorPhotoUrl = (rep?.name ? rep?.curatorPhotoUrl || rep?.userPhotoUrl : "") || look.curatorPhotoUrl;
+  const authorCuratorId = (rep?.name ? rep?.curatorId : "") || look.curatorId;
   // LOCKED carousel order (see memory feed-post-carousel-structure):
   //   1) the try-on (member's try-on video, else the look's own video)
   //   2) Before/After compare (uploaded Before | After result) — when a before photo exists
@@ -455,7 +463,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   };
   // Follow the curator (next to the name). Mirrors the localStorage + /api/follow
   // pattern used elsewhere; keyed by the curator's name slug.
-  const creatorSlug = (look.curatorName || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const creatorSlug = (authorName || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   useEffect(() => {
     try { const l = JSON.parse(localStorage.getItem("lb_following") ?? "[]"); setFollowing(Array.isArray(l) && l.includes(creatorSlug)); } catch { /**/ }
   }, [creatorSlug]);
@@ -474,7 +482,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   // open the join sheet and complete the follow after they register/sign in.
   const toggleFollow = () => {
     if (!creatorSlug) return;
-    if (!getStoredAuthSession()) { setGate({ mode: "auth", reason: `Create a free account to follow ${look.curatorName || "this curator"}.` }); return; }
+    if (!getStoredAuthSession()) { setGate({ mode: "auth", reason: `Create a free account to follow ${authorName || "this curator"}.` }); return; }
     doFollow();
   };
 
@@ -487,7 +495,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [modHidden, setModHidden] = useState((look as any).published === false);
   const [modBusy, setModBusy] = useState<"" | "hide" | "delete" | "assign" | "approve" | "reject">("");
   const [assignOpen, setAssignOpen] = useState(false);
-  const [curatorList, setCuratorList] = useState<{ id: string; name: string }[]>([]);
+  const [curatorList, setCuratorList] = useState<{ id: string; name: string; photoUrl?: string }[]>([]);
   const adminPinVal = () => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } };
   const modHeaders = () => ({ "Content-Type": "application/json", ...(adminPinVal() ? { "x-try-look-admin-pin": adminPinVal() } : {}) });
   // The generation id of the try-on on the CURRENT slide (if any). When set, the admin
@@ -503,7 +511,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     // Fashionshow is watch-only: "See her in other looks" sends viewers to the MODEL's
     // page (her clean wardrobe → the new generation flow), NOT the legacy per-look funnel
     // (whose garment/preview is stale). Fall back to the old funnel only if no model.
-    if (look.curatorId) { router.push(`/curator/${look.curatorId}`); return; }
+    if (authorCuratorId) { router.push(`/curator/${authorCuratorId}`); return; }
     const ct = (activeTryOnId ? community.find(c => c.id === activeTryOnId) : undefined) ?? repTryOn;
     const img = ct?.userPhotoUrl || ct?.imageUrl || "";
     router.push(img ? `${tryOnHref}?model=${encodeURIComponent(img)}` : tryOnHref);
@@ -637,7 +645,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       try {
         // Public models list (no admin gate) so the picker always populates.
         const d = await fetch("/api/try-this-look?models=1", { headers: modHeaders() }).then(r => r.json());
-        setCuratorList((d.models || []).map((c: any) => ({ id: c.id, name: c.name || c.id })));
+        setCuratorList((d.models || []).map((c: any) => ({ id: c.id, name: c.name || c.id, photoUrl: c.photoUrl || "" })));
       } catch { /**/ }
     }
   };
@@ -649,28 +657,35 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       const body = activeTryOnId
         ? { action: "assign-generation", id: activeTryOnId, curatorId }
         : { action: "set-look-curator", lookId: look.id, curatorId };
-      await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify(body) });
+      const res = await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify(body) });
+      const out = await res.json().catch(() => ({} as { error?: string; customerName?: string }));
+      // The old silent version LOOKED broken: errors were swallowed and the feed kept
+      // showing the previous name (it renders from props). Now: surface errors, and on
+      // success confirm + reload so the new attribution is visible immediately.
+      if (!res.ok || out.error) { alert(out.error || "Zuweisen fehlgeschlagen — Admin-PIN prüfen."); return; }
       setAssignOpen(false);
-    } catch { /**/ } finally { setModBusy(""); }
+      alert(`Zugewiesen ✓${out.customerName ? ` an ${out.customerName}` : ""}`);
+      window.location.reload();
+    } catch { alert("Netzwerkfehler beim Zuweisen."); } finally { setModBusy(""); }
   };
 
   const headerBar = (
-    <div className="z-20 bg-white px-3 pb-2 pt-3">
+    <div className="z-20 bg-[#0d0b0a] px-3 pb-2 pt-3">
       <div className="flex items-center gap-2">
-        <button type="button" onClick={() => look.curatorId && router.push(`/curator/${look.curatorId}`)}
+        <button type="button" onClick={() => authorCuratorId && router.push(`/curator/${authorCuratorId}`)}
           className="flex min-w-0 items-center gap-2 active:opacity-80">
-          <span className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-black/10 bg-black/5">
+          <span className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-white/15 bg-white/10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={look.curatorPhotoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(publicAuthorName(look.curatorName))}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
+            <img src={authorPhotoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(publicAuthorName(authorName))}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
           </span>
-          <span className="truncate text-sm font-black text-black">{publicAuthorName(look.curatorName)}</span>
+          <span className="truncate text-sm font-black text-white">{publicAuthorName(authorName)}</span>
         </button>
-        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${look.aiCreated ? "bg-black text-white" : "bg-black/[0.06] text-black/60"}`}>
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${look.aiCreated ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
           {look.aiCreated ? "✦ Original" : "Model"}
         </span>
         {creatorSlug && (
           <button type="button" onClick={toggleFollow}
-            className={`ml-auto shrink-0 rounded-full px-3.5 py-1 text-xs font-black transition active:scale-95 ${following ? "border border-black/20 text-black/60" : "bg-black text-white"}`}>
+            className={`ml-auto shrink-0 rounded-full px-3.5 py-1 text-xs font-black transition active:scale-95 ${following ? "border border-white/25 text-white/60" : "lb-gold"}`}>
             {following ? "Following" : "Follow"}
           </button>
         )}
@@ -678,9 +693,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       {/* Caption (description) right under the name, above the video. */}
       {caption && (
         <>
-          <p ref={captionRef} className={`mt-1 text-[13px] leading-snug text-black ${expanded ? "" : "line-clamp-1"}`}>{caption}</p>
+          <p ref={captionRef} className={`mt-1 text-[13px] leading-snug text-white/85 ${expanded ? "" : "line-clamp-1"}`}>{caption}</p>
           {clamped && (
-            <button type="button" onClick={() => setExpanded(e => !e)} className="mt-0.5 text-[12px] font-bold text-black/40">
+            <button type="button" onClick={() => setExpanded(e => !e)} className="mt-0.5 text-[12px] font-bold text-white/45">
               {expanded ? "less" : "more"}
             </button>
           )}
@@ -692,7 +707,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   if (modRemoved) return null; // admin hid or deleted this look → drop the card
 
   return (
-    <section ref={sectionRef} className="relative flex w-full flex-col bg-white">
+    <section ref={sectionRef} className="relative flex w-full flex-col bg-[#0d0b0a]">
       {/* ── Media area — vertical format (9:16). Curator name + description render
           BELOW the video (see headerBar block after the media). ── */}
       <div ref={mediaRef} className="relative aspect-[9/16] w-full shrink-0 overflow-hidden bg-black">
@@ -987,9 +1002,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
 
       {/* Carousel dots — directly under the video (Instagram-style) */}
       {media.length > 1 && (
-        <div className="shrink-0 flex justify-center gap-1.5 bg-white pt-2 pb-1">
+        <div className="shrink-0 flex justify-center gap-1.5 bg-[#0d0b0a] pt-2 pb-1">
           {media.map((_, i) => (
-            <span key={i} className={`h-1.5 w-1.5 rounded-full transition-colors ${active === i ? "bg-black" : "bg-black/25"}`} />
+            <span key={i} className={`h-1.5 w-1.5 rounded-full transition-colors ${active === i ? "bg-white" : "bg-white/30"}`} />
           ))}
         </div>
       )}
@@ -997,14 +1012,14 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       {/* Curator + badge — always below the video (name + description under the post). */}
       <div className="shrink-0">{headerBar}</div>
 
-      {/* ── White caption + actions (Instagram-style, below the image) ── */}
-      <div className="shrink-0 bg-white px-4 pt-2.5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4rem)" }}>
+      {/* ── Dark caption + actions (Instagram-style, below the image) ── */}
+      <div className="shrink-0 bg-[#0d0b0a] px-4 pt-2.5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4rem)" }}>
         {/* Who recreated this look — ADMIN ONLY (business secret). Sits under the
             caption. Replaces the old "Shop now" card; shopping is via "Bandit the look!". */}
         {single && isAdmin && (
           community.length > 0 ? (
-            <div className="mt-2 rounded-2xl border border-black/10 bg-black/[0.02] p-2.5">
-              <p className="mb-2 px-0.5 text-[11px] font-black uppercase tracking-wide text-black/40">
+            <div className="mt-2 rounded-2xl border border-white/10 bg-white/[0.04] p-2.5">
+              <p className="mb-2 px-0.5 text-[11px] font-black uppercase tracking-wide text-white/45">
                 Admin · {community.length} {community.length === 1 ? "person tried this on" : "people tried this on"}
               </p>
               <div className="flex flex-col gap-1.5">
@@ -1016,8 +1031,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={c.imageUrl} alt={c.name ? publicAuthorName(c.name) : "Member"} className="h-full w-full object-cover object-top" />
                       </span>
-                      <span className="min-w-0 flex-1 truncate text-[13px] font-black text-black">{c.name ? publicAuthorName(c.name) : "Member"}</span>
-                      {c.videoUrl && <span className="shrink-0 rounded-full bg-black/5 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-black/45">Video</span>}
+                      <span className="min-w-0 flex-1 truncate text-[13px] font-black text-white">{c.name ? publicAuthorName(c.name) : "Member"}</span>
+                      {c.videoUrl && <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white/50">Video</span>}
                     </>
                   );
                   return slug ? (
@@ -1030,15 +1045,23 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               </div>
             </div>
           ) : (
-            <p className="mt-2 px-0.5 text-[12px] font-bold text-black/40">Admin · no try-ons yet</p>
+            <p className="mt-2 px-0.5 text-[12px] font-bold text-white/45">Admin · no try-ons yet</p>
           )
         )}
         <div className="mt-1 flex items-center gap-3">
           {!look.commentsOff && (
-            <button type="button" onClick={() => onComment(look)} className="text-[12px] font-bold text-black/40">View comments</button>
+            <button type="button" onClick={() => onComment(look)} className="text-[12px] font-bold text-white/45">View comments</button>
           )}
-          <button type="button" onClick={() => setGate({ mode: "feedback" })} className="text-[12px] font-bold text-black/40">💬 Feedback / Contact</button>
+          <button type="button" onClick={() => setGate({ mode: "feedback" })} className="text-[12px] font-bold text-white/45">💬 Feedback / Contact</button>
         </div>
+        {/* Slim recruiting ad — a GOLD BUTTON on every ~4th post (parent decides),
+            scrolls with the caption so the snap feed stays untouched. */}
+        {recruitAd && (
+          <a href="/become-a-model"
+            className="lb-gold mt-3 flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[12px] font-black active:scale-95 transition">
+            <BadgeCheck className="h-4 w-4 shrink-0" /> Become a LuxuryBandit Model — every look pays →
+          </a>
+        )}
       </div>
 
       {/* Join / feedback sheet — Follow gate (register/sign-in) or "write us" feedback. */}
@@ -1089,8 +1112,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               {curatorList.length === 0 && <p className="py-6 text-center text-[12px] font-bold text-black/35">Loading models…</p>}
               {curatorList.map(c => (
                 <button key={c.id} type="button" disabled={!!modBusy} onClick={() => void assignLook(c.id)}
-                  className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-black active:bg-black/[0.04] ${look.curatorId === c.id ? "bg-black/[0.05]" : ""}`}>
-                  {c.name}{look.curatorId === c.id && <span className="text-[11px] font-black text-emerald-600">current</span>}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-black active:bg-black/[0.04] ${authorCuratorId === c.id ? "bg-black/[0.05]" : ""}`}>
+                  <span className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-black/5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {c.photoUrl
+                      ? <img src={c.photoUrl} alt="" loading="lazy" className="h-full w-full object-cover object-top" />
+                      : <span className="grid h-full w-full place-items-center text-xs font-black text-black/30">{c.name.slice(0, 1)}</span>}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate">{c.name}</span>
+                  {authorCuratorId === c.id && <span className="shrink-0 text-[11px] font-black text-emerald-600">current</span>}
                 </button>
               ))}
             </div>
@@ -1390,7 +1420,7 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
           up to full width (which pushed the Look/Escape thumbs off the bottom). */}
       <div className="flex h-[100dvh] w-full justify-center bg-black">
         <div ref={scrollRef} className="h-[100dvh] w-full max-w-[440px] snap-y snap-mandatory overflow-y-scroll overscroll-contain bg-black [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {feed.map((entry, i) => <Slide key={entry.key} look={entry.look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} index={i} onActive={handleActive} single={single} onClose={onClose} />)}
+          {feed.map((entry, i) => <Slide key={entry.key} look={entry.look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} index={i} onActive={handleActive} single={single} onClose={onClose} recruitAd={i % 4 === 1} />)}
         </div>
       </div>
       {/* Slide-coupled feed soundtrack — shuffled /public mp3s, the track changes

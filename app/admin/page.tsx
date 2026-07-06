@@ -21,6 +21,9 @@ type Curator = {
   motto?: string; bio?: string;
   status?: "active" | "pending" | "deactivated";
   photoUrl?: string; credits?: number; creditsSpent?: number; createdAt?: string;
+  // Server-computed engagement (curators=1): comments on her posts, total views
+  // (boost + real), and "See her in other looks" taps.
+  commentCount?: number; viewTotal?: number; tryonClicks?: number;
 };
 
 type Look = {
@@ -73,7 +76,19 @@ export default function AdminPage() {
   const [gateMode, setGateMode] = useState<"login" | "pin">("login");
   const [note, setNote] = useState("");
   const [authed, setAuthed] = useState(false);
-  const [tab, setTab] = useState<"looks" | "curators" | "users" | "inbox" | "posts" | "insights">("looks");
+  // Deep-linkable tab: /admin?tab=curators opens the Models list directly.
+  const [tab, setTab] = useState<"looks" | "curators" | "users" | "inbox" | "posts" | "insights">(() => {
+    if (typeof window !== "undefined") {
+      const t = new URLSearchParams(window.location.search).get("tab");
+      if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights") return t;
+    }
+    return "looks";
+  });
+  // Client-side navigations can mount before the state initializer sees the new URL — re-sync.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights") setTab(t);
+  }, []);
   // "Users" tab: everyone who signed up — email-gate leads + Google/FB/password (Supabase auth).
   type AdminUser = { email: string; name: string; provider: string; status?: string; createdAt?: string; lookName?: string; leadId?: string; authId?: string };
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -258,6 +273,54 @@ export default function AdminPage() {
       else await fail(r, "Could not save curator");
     } catch { setError("Network error."); }
     setSaving(false);
+  };
+
+  // ── Upload a self-made video (e.g. from the Pixverse UI) for a model, straight
+  // from this list. Direct-to-Supabase; first frame becomes the poster; lands in
+  // her "In motion" reel as Fashionshow (members + profile, not public).
+  const vidFileRef = useRef<HTMLInputElement>(null);
+  const vidTargetRef = useRef<string>("");
+  const [vidBusyId, setVidBusyId] = useState("");
+  const pickModelVideo = (curatorId: string) => { vidTargetRef.current = curatorId; vidFileRef.current?.click(); };
+  const videoFirstFrame = (file: File): Promise<string> => new Promise((resolve) => {
+    try {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement("video");
+      v.muted = true; v.preload = "metadata"; v.src = url;
+      const done = (out: string) => { try { URL.revokeObjectURL(url); } catch { /**/ } resolve(out); };
+      v.onloadeddata = () => { try { v.currentTime = Math.min(0.1, (v.duration || 1) * 0.02); } catch { done(""); } };
+      v.onseeked = () => {
+        try {
+          const c = document.createElement("canvas");
+          c.width = v.videoWidth || 720; c.height = v.videoHeight || 1280;
+          const ctx = c.getContext("2d");
+          if (ctx) { ctx.drawImage(v, 0, 0, c.width, c.height); done(c.toDataURL("image/webp", 0.82)); } else done("");
+        } catch { done(""); }
+      };
+      v.onerror = () => done("");
+      setTimeout(() => done(""), 6000);
+    } catch { resolve(""); }
+  });
+  const uploadModelVideo = async (file: File) => {
+    const curatorId = vidTargetRef.current;
+    if (!curatorId || vidBusyId) return;
+    if (!file.type.startsWith("video/")) { setError("Bitte eine Videodatei wählen."); return; }
+    setVidBusyId(curatorId); setError("");
+    try {
+      const ext = (file.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "") || "mp4";
+      const posterImage = await videoFirstFrame(file);
+      const sig = await fetch("/api/generate-tryon-video", { method: "POST", headers: headers(), body: JSON.stringify({ importVideo: true, sign: true, ext }) }).then(r => r.json());
+      if (!sig.uploadUrl || !sig.path) throw new Error(sig.error || "Upload konnte nicht starten");
+      const put = await fetch(sig.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type || "video/mp4", "x-upsert": "true" }, body: file });
+      if (!put.ok) throw new Error("Upload zu Supabase fehlgeschlagen");
+      const att = await fetch("/api/generate-tryon-video", { method: "POST", headers: headers(), body: JSON.stringify({ importVideo: true, videoPath: sig.path }) }).then(r => r.json());
+      if (!att.videoUrl) throw new Error(att.error || "Signieren fehlgeschlagen");
+      const add = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "add-model-video", curatorId, videoUrl: att.videoUrl, ...(posterImage ? { posterImage } : {}) }) }).then(r => r.json());
+      if (!add.ok) throw new Error(add.error || "Video konnte nicht gespeichert werden");
+      setNote("Video hochgeladen ✓ — im Profil hinter dem Foto (Play-Button) abrufbar.");
+      await load();
+    } catch (e) { setError(e instanceof Error ? e.message : "Fehler beim Hochladen"); }
+    finally { setVidBusyId(""); vidTargetRef.current = ""; }
   };
 
   // Impersonate a curator: set the local curator session so the Studio + try-on
@@ -718,7 +781,7 @@ export default function AdminPage() {
           </button>
           <button type="button" onClick={() => setTab("curators")}
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "curators" ? "bg-black text-white" : "text-ink/50"}`}>
-            <Users className="h-4 w-4" /> Curators <span className="opacity-60">{curators.length}</span>
+            <Users className="h-4 w-4" /> Models <span className="opacity-60">{curators.length}</span>
           </button>
           <button type="button" onClick={() => setTab("users")}
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "users" ? "bg-black text-white" : "text-ink/50"}`}>
@@ -1023,12 +1086,19 @@ export default function AdminPage() {
                 {sortC === key && (sortDir === "desc" ? <ArrowDown className="h-3.5 w-3.5" /> : <ArrowUp className="h-3.5 w-3.5" />)}
               </button>
             ))}
+            <a href="/admin/curators/apply"
+              className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-black px-3.5 text-xs font-black text-white active:scale-95 transition">
+              <UserPlus className="h-4 w-4" /> New model
+            </a>
           </div>
         )}
 
         {tab === "curators" && (
           <div className="mt-2 grid grid-cols-1 gap-2 pb-16">
-            {shownCurators.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No curators.</p>}
+            {/* One shared file input — pickModelVideo() sets the target model, then opens it. */}
+            <input ref={vidFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) void uploadModelVideo(f); e.target.value = ""; }} />
+            {shownCurators.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No models yet.</p>}
             {shownCurators.map(c => {
               const off = c.status === "deactivated";
               const pending = c.status === "pending";
@@ -1057,13 +1127,26 @@ export default function AdminPage() {
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${sortC === "looks" ? "bg-cobalt/10 text-cobalt" : "bg-black/5 text-ink/50"}`}>{looksByCurator.get(c.id) ?? 0} looks</span>
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${sortC === "tryons" ? "bg-cobalt/10 text-cobalt" : "bg-black/5 text-ink/50"}`}>{tryonsByCurator.get(c.id) ?? 0} try-ons</span>
                       {!house && typeof c.credits === "number" && <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">{c.credits} cr</span>}
+                      {/* Engagement: comments on her posts · views (boost+real) · "See her in other looks" taps */}
+                      {!house && (() => { const k = (n?: number) => (n ?? 0) >= 1000 ? `${((n ?? 0) / 1000).toFixed((n ?? 0) >= 10000 ? 0 : 1)}k` : String(n ?? 0); return (
+                        <>
+                          <span title="Kommentare auf ihren Posts" className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">💬 {k(c.commentCount)}</span>
+                          <span title="Views (Boost + echt)" className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">👁 {k(c.viewTotal)}</span>
+                          <span title="Wollten sie in anderen Looks sehen (Taps)" className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">✨ {k(c.tryonClicks)}</span>
+                        </>
+                      ); })()}
                       {!house && c.brands && <span className="truncate rounded-full bg-cobalt/10 px-2 py-0.5 text-[10px] font-black text-cobalt">{c.brands.split(",")[0]}</span>}
                     </div>
                     {!house && c.createdAt && <div className="mt-1 flex items-center gap-1 truncate text-[11px] font-bold text-ink/40"><Clock className="h-3 w-3 shrink-0" /> {fmtTs(c.createdAt)}</div>}
                   </div>
                   {!house && (
                     <div className="flex shrink-0 items-center gap-1.5" onClick={e => e.stopPropagation()}>
-                      <span className="rounded-lg border border-black/10 px-2.5 py-1.5 text-[11px] font-black text-ink/60">Edit</span>
+                      <button type="button" disabled={!!vidBusyId} onClick={() => pickModelVideo(c.id)} title="Video für dieses Model hochladen (z. B. aus Pixverse)"
+                        className="grid h-9 w-9 place-items-center rounded-lg border border-black/10 text-ink/60 active:scale-95 transition disabled:opacity-50">
+                        {vidBusyId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
+                      </button>
+                      <a href={`/admin/curators/apply?edit=${c.id}`} title="Edit the full model profile"
+                        className="rounded-lg border border-black/10 px-2.5 py-1.5 text-[11px] font-black text-ink/60 active:scale-95 transition">Edit</a>
                       <button type="button" disabled={busy === c.id} onClick={() => void setCuratorStatus(c.id, (off || pending) ? "active" : "deactivated")} title={pending ? "Approve" : off ? "Activate" : "Deactivate"}
                         className={`grid h-9 w-9 place-items-center rounded-lg border active:scale-95 transition ${(off || pending) ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-black/10 text-ink/60"}`}>
                         <Power className="h-4 w-4" />

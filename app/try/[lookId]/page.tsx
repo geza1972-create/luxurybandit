@@ -78,6 +78,17 @@ export default function TryFunnelPage() {
   // generation → play here. Appears in /user/tryons + admin Posts.
   const [genStatus, setGenStatus] = useState<"idle" | "generating" | "done" | "error">("idle");
   const [genVideoUrl, setGenVideoUrl] = useState("");
+  const [genPhotoUrl, setGenPhotoUrl] = useState(""); // model self-service result (photo-only)
+  // "Motion" pick: what she DOES in the video. The user only sees the two chips —
+  // the prompt swap happens server-side. Dance = Pixverse also generates music.
+  const [motion, setMotion] = useState<"turn" | "dance">("turn");
+  // A signed-in MODEL (curator session): she generates PHOTOS of herself — the team
+  // turns the best ones into videos. Admin keeps the full video flow.
+  const [myModel, setMyModel] = useState<{ id: string; firstName?: string } | null>(null);
+  useEffect(() => {
+    try { const c = JSON.parse(localStorage.getItem("lb_curator") ?? "null"); if (c?.id) setMyModel(c); } catch { /**/ }
+  }, []);
+  const isModelSession = !!myModel && !adminPin;
   const [genError, setGenError] = useState("");
   const genStartedRef = useRef(false);
   // The chosen model's videos (incl. the one just made) — shown as a gallery on the done screen.
@@ -101,7 +112,9 @@ export default function TryFunnelPage() {
   };
 
   useEffect(() => {
-    try { setAdminPin(localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""); } catch { /**/ }
+    // Admin "view as her" preview: PIN ignored so the funnel behaves exactly like
+    // for the model herself (photo path, no admin panels).
+    try { setAdminPin(localStorage.getItem("lb_preview_model") ? "" : (localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "")); } catch { /**/ }
   }, []);
 
   useEffect(() => {
@@ -180,9 +193,34 @@ export default function TryFunnelPage() {
       const person = avatar || pickedModel || modelParam || look?.modelPhotoUrl || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
       const garment = garmentParam || (outfitOverride ?? outfit)?.imageUrl || "";
       if (!person || !garment) throw new Error("Referenzbilder fehlen.");
+
+      // ── MODEL self-service: PHOTO ONLY (OpenAI dress-up, cents) — no Pixverse video.
+      // The photo is saved privately, attributed to her; the team makes videos from it.
+      if (isModelSession && myModel) {
+        const toFile = async (src: string, name: string) => {
+          const blob = await fetch(src).then(r => r.blob());
+          return new File([blob], name, { type: blob.type || "image/jpeg" });
+        };
+        const fd = new FormData();
+        fd.append("modelImage", await toFile(person, "person.jpg"));
+        fd.append("image", await toFile(garment, "garment.jpg"));
+        fd.append("curatorId", myModel.id);
+        const res = await fetch("/api/generate-openai-tryon", { method: "POST", headers: { "x-curator-id": myModel.id }, body: fd });
+        const out = await res.json();
+        if (!res.ok || !out.image) throw new Error(out.error || "Foto-Generierung fehlgeschlagen.");
+        setGenPhotoUrl(out.image); setGenStatus("done");
+        // Save as HER generation (private; the admin reviews + makes the video).
+        await fetch("/api/try-this-look", { method: "POST", headers: { ...H, "x-curator-id": myModel.id }, body: JSON.stringify({
+          action: "generation", lookId, image: out.image, genKind: "photo", feed: false,
+          customerName: chosenModelName || myModel.firstName || "Model",
+          curatorId: myModel.id,
+          ...(person.startsWith("data:image/") ? { userPhotoImage: person } : person ? { userPhotoUrl: person } : {}),
+        }) });
+        return;
+      }
       // Send the admin prompt EXACTLY as written (tokens like @Bild1 / @Bild2 bind to the
       // reference images server-side) — no remapping, same as typing it into Pixverse.
-      const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ lookId, garment, person, prompt: prompt || "" }) }).then(r => r.json());
+      const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ lookId, garment, person, prompt: prompt || "", motion }) }).then(r => r.json());
       if (!start.videoId) throw new Error(start.error || "Start fehlgeschlagen.");
       let videoUrl = "";
       for (let i = 0; i < 45; i++) {
@@ -235,6 +273,23 @@ export default function TryFunnelPage() {
   }, [genStatus, chosenModelId, adminPin]);
 
   const price = plan === "pro" ? (billing === "month" ? "$58.99" : "$29.49") : (billing === "month" ? "$128.99" : "$64.49");
+
+  // "Motion" picker — what she does in the video. Users see ONLY these two chips;
+  // the actual prompt swap (walk/turn vs dance + music) happens server-side.
+  // Hidden for model sessions (they generate photos, no motion).
+  const motionPicker = !isModelSession ? (
+    <div className="mt-5">
+      <p className="mb-2 text-center text-[11px] font-black uppercase tracking-wide text-white/40">Was soll sie machen?</p>
+      <div className="flex justify-center gap-2">
+        {([["turn", "🔄 Sich einfach drehen"], ["dance", "💃 Tanzen · mit Musik"]] as const).map(([key, label]) => (
+          <button key={key} type="button" onClick={() => setMotion(key)}
+            className={`rounded-full px-4 py-2 text-[12px] font-black transition active:scale-95 ${motion === key ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  ) : null;
 
   // Admin-only: preview + edit the video-generation prompt with the two live references
   // (@Bild1 = model/avatar, @Bild2 = chosen outfit). Global template, saved on the state.
@@ -331,7 +386,7 @@ export default function TryFunnelPage() {
 
       {/* ── Step 2: model / replace avatar ─────────────────────────────────── */}
       {step === 2 && (
-        <div className="px-4 pb-28 pt-2">
+        <div className="px-4 pb-48 pt-2">
           <h1 className="text-[22px] font-black leading-tight">Who should wear it?</h1>
           {(pickModel || chooseModel) && !pickedModel && !avatar ? (
             <>
@@ -414,6 +469,7 @@ export default function TryFunnelPage() {
             <>
               <h1 className="mt-6 text-center text-[22px] font-black leading-tight">Your video is ready.</h1>
               <p className="mt-2 text-center text-[13px] font-bold text-white/50">Sign in to watch and download it in full quality.</p>
+              {motionPicker}
               {adminPromptPanel}
             </>
           )}
@@ -467,10 +523,16 @@ export default function TryFunnelPage() {
       {/* ── Step 5: unlocked / paid result ─────────────────────────────────── */}
       {step === 5 && (
         <div className="px-4 pb-40 pt-2">
+          {genStatus === "idle" && <div className="mb-3">{motionPicker}</div>}
           <div className="relative mx-auto mt-2 max-w-[78vw] overflow-hidden rounded-3xl border border-emerald-400/30 bg-black">
             <div className="relative aspect-[3/4] w-full">
               {genStatus === "done" && genVideoUrl ? (
-                <video src={genVideoUrl} className="h-full w-full object-cover" autoPlay loop muted playsInline controls />
+                // Dance videos carry Pixverse's generated music — play the ORIGINAL sound
+                // (not muted). Turn videos stay muted as before.
+                <video src={genVideoUrl} className="h-full w-full object-cover" autoPlay loop muted={motion !== "dance"} playsInline controls />
+              ) : genStatus === "done" && genPhotoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={genPhotoUrl} alt="" className="h-full w-full object-cover object-top" />
               ) : (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -479,8 +541,8 @@ export default function TryFunnelPage() {
                     {genStatus === "generating" ? (
                       <div className="flex flex-col items-center gap-3 px-6 text-center text-white/90">
                         <Loader2 className="h-9 w-9 animate-spin" />
-                        <span className="text-sm font-black">Dein Video wird generiert…</span>
-                        <span className="text-[12px] font-bold text-white/50">Das dauert ~1–2 Minuten. Bleib dran.</span>
+                        <span className="text-sm font-black">{isModelSession ? "Dein Foto wird generiert…" : "Dein Video wird generiert…"}</span>
+                        <span className="text-[12px] font-bold text-white/50">{isModelSession ? "Dauert ~30 Sekunden." : "Das dauert ~1–2 Minuten. Bleib dran."}</span>
                       </div>
                     ) : genStatus === "error" ? (
                       <div className="flex flex-col items-center gap-2 px-6 text-center">
@@ -503,8 +565,14 @@ export default function TryFunnelPage() {
               {genStatus === "done" && <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black"><Check className="h-3.5 w-3.5" /> Ready</span>}
             </div>
           </div>
-          <h1 className="mt-6 text-center text-[22px] font-black leading-tight">{genStatus === "done" ? "Enjoy your video 🎉" : "Wir zaubern dein Video…"}</h1>
-          <p className="mt-2 text-center text-[13px] font-bold text-white/50">{genStatus === "done" ? "Gespeichert in deiner Galerie — ansehen & verwalten unter Account." : "Dein Try-on wird in voller Qualität erstellt."}</p>
+          <h1 className="mt-6 text-center text-[22px] font-black leading-tight">
+            {genStatus === "done" ? (genPhotoUrl ? "Dein Foto ist fertig 🎉" : "Enjoy your video 🎉") : isModelSession ? "Wir zaubern dein Foto…" : "Wir zaubern dein Video…"}
+          </h1>
+          <p className="mt-2 text-center text-[13px] font-bold text-white/50">
+            {genStatus === "done"
+              ? (genPhotoUrl ? "Gespeichert. Das Team macht aus deinen besten Fotos Videos für dein Profil." : "Gespeichert in deiner Galerie — ansehen & verwalten unter Account.")
+              : "Dein Try-on wird in voller Qualität erstellt."}
+          </p>
 
           {/* After generating: a gallery of the model's videos (incl. this one). Admins set
               each one's visibility right here — Fashionshow (feed + her profile "In motion"),
@@ -553,21 +621,25 @@ export default function TryFunnelPage() {
             (pickModel || chooseModel) && !pickedModel && !avatar ? (
               <p className="text-center text-[12px] font-bold text-white/35">Pick a model above to continue</p>
             ) : (
-              <button type="button" onClick={goStep3}
-                className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-amber-400 text-base font-black text-black active:scale-95 transition-transform">
-                <Sparkles className="h-5 w-5" /> Generate my video
-              </button>
+              <>
+                {/* Motion pick lives right at the decision point (also on steps 3+5). */}
+                {motionPicker && <div className="mb-3 -mt-2">{motionPicker}</div>}
+                <button type="button" onClick={goStep3}
+                  className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
+                  <Sparkles className="h-5 w-5" /> {isModelSession ? "Generate my photo" : "Generate my video"}
+                </button>
+              </>
             )
           )}
           {step === 3 && !rendering && (
             <button type="button" onClick={onUnlock}
-              className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-amber-400 text-base font-black text-black active:scale-95 transition-transform">
+              className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
               {(isAuthed() || (adminPin && !previewAsUser)) ? "Continue" : "Sign in & watch"}
             </button>
           )}
           {step === 4 && (
             <button type="button" onClick={() => alert("Checkout — subscription billing wird als Nächstes verdrahtet.")}
-              className="flex h-14 w-full items-center justify-center rounded-full bg-amber-400 text-base font-black text-black active:scale-95 transition-transform">
+              className="lb-gold flex h-14 w-full items-center justify-center rounded-full text-base font-black active:scale-95 transition-transform">
               Continue — {price}/{billing === "month" ? "mo" : "mo, billed yearly"}
             </button>
           )}

@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, Trash2, Loader2, Instagram, Mail } from "lucide-react";
+import { ArrowLeft, Trash2, Loader2, Instagram, Mail, UserPlus } from "lucide-react";
 
 const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
 function getPin() { try { return localStorage.getItem(ADMIN_PIN_KEY) ?? ""; } catch { return ""; } }
@@ -101,15 +101,21 @@ export default function AdminCurators() {
             <ArrowLeft className="h-3.5 w-3.5" /> Back to dashboard
           </a>
           <div className="text-xs font-black uppercase tracking-[0.16em] text-cobalt">LuxuryBandit Admin</div>
-          <h1 className="text-3xl font-black leading-none text-ink">Curators</h1>
-          <p className="text-sm font-semibold leading-6 text-ink/55">Everyone who applied. Edit their email & details, or remove them.</p>
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="text-3xl font-black leading-none text-ink">Models</h1>
+            <a href="/admin/curators/apply"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-black px-4 py-2.5 text-xs font-black text-white active:scale-95 transition">
+              <UserPlus className="h-4 w-4" /> New model
+            </a>
+          </div>
+          <p className="text-sm font-semibold leading-6 text-ink/55">Everyone who applied, plus models you create. Edit their details, or remove them.</p>
         </header>
 
         {loading ? (
           <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-ink/30" /></div>
         ) : (
           <div className="mt-5 grid gap-3">
-            {curators.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No curators yet.</p>}
+            {curators.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No models yet.</p>}
             {curators.map(c => (
               <div key={c.id} className="flex items-start gap-3 rounded-xl border border-black/10 bg-white p-4">
                 <a href={`/curator/${c.id}`} title="View their public profile & looks"
@@ -154,7 +160,7 @@ export default function AdminCurators() {
         {edit && (
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" onClick={e => { if (e.target === e.currentTarget) setEdit(null); }}>
             <div className="w-full max-w-lg rounded-t-3xl bg-white p-5 sm:rounded-3xl">
-              <p className="text-lg font-black text-ink">Edit curator</p>
+              <p className="text-lg font-black text-ink">Edit model</p>
               <div className="mt-4 grid gap-3">
                 <div><span className={label}>Email (login)</span><input className={field} value={edit.email ?? ""} onChange={e => setEdit({ ...edit, email: e.target.value })} placeholder="name@email.com" /></div>
                 <div className="grid grid-cols-2 gap-3">
@@ -203,6 +209,7 @@ export default function AdminCurators() {
             </div>
           </div>
         )}
+
       </div>
     </main>
   );

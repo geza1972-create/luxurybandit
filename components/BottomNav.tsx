@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt } from "lucide-react";
+import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession, signOut } from "@/lib/supabase-auth-client";
@@ -31,6 +31,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
   const [active, setActive] = useState<Tab>("home");
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isCurator, setIsCurator] = useState(false);
+  const [curatorId, setCuratorId] = useState("");
+  const [previewModel, setPreviewModel] = useState(false); // admin "view as her" mode
+  const [previewName, setPreviewName] = useState("");
   const [curatorCredits, setCuratorCredits] = useState<number | null>(null);
   const [signedIn, setSignedIn] = useState(false);
 
@@ -39,6 +42,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
     try {
       const c = JSON.parse(localStorage.getItem("lb_curator") ?? "{}");
       setIsCurator(!!c.id);
+      setCuratorId(c.id ?? "");
+      setPreviewModel(!!localStorage.getItem("lb_preview_model"));
+      setPreviewName(c.firstName ?? "");
       // Any session counts as signed in: Supabase login, curator, or the studio admin PIN.
       const adminPin = (() => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } })();
       setSignedIn(!!getStoredAuthSession() || !!c.id || !!adminPin);
@@ -139,6 +145,19 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
 
   return (
     <>
+    {/* Admin "view as model" preview — floating banner on EVERY page while active.
+        Exit restores the admin (clears her session + the preview flag). */}
+    {previewModel && (
+      <div className="lb-phone-col fixed inset-x-0 top-0 z-[200] flex items-center justify-center gap-2 bg-amber-400 px-3 py-2 text-[12px] font-black text-black">
+        <Eye className="h-4 w-4" /> Ansicht als Model{previewName ? `: ${previewName}` : ""}
+        <button type="button" onClick={() => {
+          try { localStorage.removeItem("lb_curator"); localStorage.removeItem("lb_preview_model"); } catch { /**/ }
+          window.location.reload();
+        }} className="ml-2 rounded-full bg-black px-3 py-1 text-[11px] font-black text-amber-400 active:scale-95 transition">
+          Beenden
+        </button>
+      </div>
+    )}
     {!hideChrome && !hideBar && (
     <nav
       className="lb-phone-col fixed bottom-0 inset-x-0 z-50 border-t border-black/10 bg-white/95 backdrop-blur-md"
@@ -266,13 +285,13 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
             )}
             {/* Menu items */}
             <div className="grid divide-y divide-black/5">
-              {/* Model studio — ONLY for actual curators (no self-signup; creators are
-                  created by us). Normal users don't see a studio entry. */}
+              {/* Models land on THEIR OWN page (wardrobe + photos) — the old Studio
+                  tool is retired for models; the team handles videos & publishing. */}
               {isCurator && (
-                <button type="button" onClick={() => navigate("/studio")}
+                <button type="button" onClick={() => navigate(curatorId ? `/curator/${curatorId}` : "/stores")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
                   <Sparkles className="h-5 w-5 shrink-0 text-black/50" />
-                  <span className="text-sm font-black text-black">Model studio</span>
+                  <span className="text-sm font-black text-black">My model page</span>
                 </button>
               )}
               {/* Curator → My profile (their form data); others → generic account */}

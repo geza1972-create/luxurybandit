@@ -2,16 +2,22 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Camera, Sparkles, Loader2, Check } from "lucide-react";
-import { TagField, PillRow, PhotoCropper, readPhotoFile } from "../taste-form";
+import { ArrowLeft, Camera, Sparkles, Loader2, Check, Coins } from "lucide-react";
+import { TagField, PhotoCropper, readPhotoFile } from "../taste-form";
 
 export default function CuratorApplyPage() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [photo, setPhoto] = useState("");
+  const [photoFull, setPhotoFull] = useState(""); // the UNCROPPED original (portrait) — shown large on her profile
   const [photoError, setPhotoError] = useState("");
   const [cropSrc, setCropSrc] = useState("");
+  // Full-body dressed photos (3:4 crop, up to 2) — the try-on references.
+  const [bodyPhotos, setBodyPhotos] = useState<string[]>([]); // new picks (data URLs)
+  const [bodyExisting, setBodyExisting] = useState<string[]>([]); // edit mode: already stored
+  const [bodyCropSrc, setBodyCropSrc] = useState("");
+  const bodyFileRef = useRef<HTMLInputElement>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -28,7 +34,6 @@ export default function CuratorApplyPage() {
   const [genderFocus, setGenderFocus] = useState("");
   const [priceTiers, setPriceTiers] = useState<string[]>([]);
   const [fitFocus, setFitFocus] = useState<string[]>([]);
-  const [ageFocus, setAgeFocus] = useState("");
 
   const [db, setDb] = useState<{ brands: string[]; styles: string[]; colors: string[]; fabrics: string[]; occasions: string[] }>(
     { brands: [], styles: [], colors: [], fabrics: [], occasions: [] }
@@ -44,12 +49,47 @@ export default function CuratorApplyPage() {
 
   const [motto, setMotto] = useState("");
   const [bio, setBio] = useState("");
+  const [aiHint, setAiHint] = useState(""); // rough free-text for the AI (optional)
 
   const [mottoIdeas, setMottoIdeas] = useState<string[]>([]);
   const [suggesting, setSuggesting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [applied, setApplied] = useState(false);
   const [error, setError] = useState("");
+
+  // ── Edit mode: /admin/curators/apply?edit=<id> opens this SAME form prefilled
+  // with an existing model and saves via the "update" action (admin only).
+  const [editId, setEditId] = useState("");
+  const getPin = () => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } };
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("edit") || "";
+    if (!id) return;
+    setEditId(id);
+    fetch("/api/try-this-look?curators=1", { headers: { "x-try-look-admin-pin": getPin() } })
+      .then(r => r.json())
+      .then((d: any) => {
+        const c = (d.curators ?? []).find((x: any) => x.id === id);
+        if (!c) { setError("Model not found."); return; }
+        const split = (s?: string) => String(s ?? "").split(",").map(t => t.trim()).filter(Boolean);
+        setFirstName(c.firstName ?? ""); setLastName(c.lastName ?? "");
+        setEmail(c.email ?? ""); setPhone(c.phone ?? ""); setAddress(c.address ?? "");
+        setInstagram(c.instagram ?? "");
+        setBrandChips(split(c.brands)); setStyleChips(split(c.style));
+        setColorChips(split(c.colors)); setFabricChips(split(c.fabrics)); setOccasionChips(split(c.occasions));
+        setGenderFocus(c.genderFocus ?? ""); setPriceTiers(split(c.priceTiers)); setFitFocus(split(c.fitFocus));
+        setMotto(c.motto ?? ""); setBio(c.bio ?? "");
+        if (c.photoUrl) setPhoto(c.photoUrl); // signed URL — only re-sent if she picks a new one
+        setBodyExisting(Array.isArray(c.photoBodyUrls) ? c.photoBodyUrls : []);
+      })
+      .catch(() => setError("Could not load the model."));
+  }, []);
+
+  // Cancel/back: from the admin ("New model") this returns to the Models list;
+  // from the public signup it just goes back to wherever the user came from.
+  const cancel = () => {
+    if (window.location.pathname.startsWith("/admin")) router.push("/admin?tab=curators");
+    else router.back();
+  };
 
   const onPickPhoto = async (file?: File) => {
     if (!file) return;
@@ -58,21 +98,28 @@ export default function CuratorApplyPage() {
     if (error) { setPhotoError(error); return; }
     if (src) setCropSrc(src);
   };
+  const onPickBody = async (file?: File) => {
+    if (!file) return;
+    setPhotoError("");
+    const { src, error } = await readPhotoFile(file);
+    if (error) { setPhotoError(error); return; }
+    if (src) setBodyCropSrc(src);
+  };
 
   const suggest = async () => {
-    if (!brands.trim() && !style.trim()) { setError("Add a few brands or your style first."); return; }
     setError(""); setSuggesting(true);
     try {
       const res = await fetch("/api/curator", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "suggest", brands, style }),
+        body: JSON.stringify({ action: "suggest", brands, style, hint: aiHint }),
       });
       const data = await res.json();
       if (!res.ok || data.error) { setError(data.error || "Could not get suggestions."); return; }
       setMottoIdeas(Array.isArray(data.mottos) ? data.mottos : []);
-      if (data.bio && !bio) setBio(data.bio);
-      if (data.mottos?.[0] && !motto) setMotto(data.mottos[0]);
+      // She asked for suggestions — apply them (she can still edit or pick another motto).
+      if (data.bio) setBio(data.bio);
+      if (data.mottos?.[0]) setMotto(data.mottos[0]);
     } catch {
       setError("Could not get suggestions.");
     } finally {
@@ -86,24 +133,45 @@ export default function CuratorApplyPage() {
     }
     setError(""); setSubmitting(true);
     try {
+      const shared = {
+        firstName, lastName, email, phone, address, instagram, brands, style, motto, bio,
+        genderFocus,
+        colors: colorChips.join(", "),
+        fabrics: fabricChips.join(", "),
+        occasions: occasionChips.join(", "),
+        priceTiers: priceTiers.join(", "),
+        fitFocus: fitFocus.join(", "),
+      };
+
+      if (editId) {
+        // Edit mode: save changes to the existing model, then back to the list.
+        const res = await fetch("/api/curator", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-try-look-admin-pin": getPin() },
+          body: JSON.stringify({
+            action: "update", id: editId, ...shared,
+            // Only send the photo if she picked a NEW one (data URL) — a signed
+            // URL from prefill means "unchanged". The uncropped original goes along.
+            ...(photo.startsWith("data:image/") ? { photo, ...(photoFull.startsWith("data:image/") ? { photoFull } : {}) } : {}),
+            // New full-body picks REPLACE the stored set; none picked = unchanged.
+            ...(bodyPhotos.length ? { bodyPhotos } : {}),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) { setError(data.error || "Could not save."); return; }
+        router.push("/admin?tab=curators");
+        return;
+      }
+
       const res = await fetch("/api/curator", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "apply",
-          firstName, lastName, email, phone, address, instagram, brands, style, motto, bio, photo,
-          genderFocus,
-          colors: colorChips.join(", "),
-          fabrics: fabricChips.join(", "),
-          occasions: occasionChips.join(", "),
-          priceTiers: priceTiers.join(", "),
-          fitFocus: fitFocus.join(", "),
-          ageFocus,
-        }),
+        body: JSON.stringify({ action: "apply", ...shared, photo, ...(photoFull.startsWith("data:image/") ? { photoFull } : {}), ...(bodyPhotos.length ? { bodyPhotos } : {}) }),
       });
       const data = await res.json();
       if (!res.ok || data.error) { setError(data.error || "Could not submit."); return; }
-      // Auto-approved for now → log them straight in so they can start curating.
+      // Applications are REVIEWED — no session yet. (If the API ever auto-approves
+      // again it returns `curator`, which we'd store; pending returns none.)
       if (data.curator?.id) {
         try { localStorage.setItem("lb_curator", JSON.stringify(data.curator)); } catch { /**/ }
         try { window.dispatchEvent(new Event("luxurybandit-auth-updated")); } catch { /**/ }
@@ -116,24 +184,21 @@ export default function CuratorApplyPage() {
     }
   };
 
-  const field = "h-12 w-full rounded-xl border border-black/12 bg-black/[0.02] px-4 text-sm font-bold text-black outline-none focus:border-black placeholder:text-black/30";
-  const label = "mb-1 block text-[11px] font-black uppercase tracking-wider text-black/45";
+  const field = "h-12 w-full rounded-xl border border-amber-400/50 bg-white/[0.04] px-4 text-sm font-bold text-white outline-none focus:border-amber-400 placeholder:text-white/30";
+  const label = "mb-1 block text-[11px] font-black uppercase tracking-wider text-amber-400";
 
   if (applied) {
     return (
-      <div className="grid min-h-[100dvh] place-items-center bg-white px-6 text-center">
+      <div className="grid min-h-[100dvh] place-items-center bg-[#0d0b0a] px-6 text-center text-white">
         <div className="max-w-sm">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-100 text-2xl">✓</div>
-          <h1 className="mt-4 text-xl font-black text-black">You&apos;re in{firstName ? `, ${firstName}` : ""}!</h1>
-          <p className="mt-2 text-sm font-semibold leading-6 text-black/55">
-            Your curator account is active. Head to the Studio to create your first look — or sign in any time with your email.
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-amber-400 text-2xl text-black">✓</div>
+          <h1 className="mt-4 text-xl font-black text-white">Application received{firstName ? `, ${firstName}` : ""}!</h1>
+          <p className="mt-2 text-sm font-semibold leading-6 text-white/55">
+            Our team reviews every LuxuryBandit Model personally. You&apos;ll get an email as soon
+            as you&apos;re approved — then just sign in and start earning.
           </p>
-          <button type="button" onClick={() => router.push("/studio")}
-            className="mt-5 inline-flex h-12 items-center justify-center rounded-2xl bg-black px-6 text-sm font-black text-white active:scale-95 transition-transform">
-            Go to Studio →
-          </button>
           <button type="button" onClick={() => router.push("/stores")}
-            className="mt-2 inline-flex h-11 items-center justify-center rounded-2xl px-6 text-sm font-black text-black/55 active:scale-95 transition-transform">
+            className="lb-gold mt-5 inline-flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-black active:scale-95 transition-transform">
             Back to LuxuryBandit
           </button>
         </div>
@@ -142,34 +207,97 @@ export default function CuratorApplyPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-white" style={{ paddingBottom: "calc(130px + env(safe-area-inset-bottom))" }}>
+    <div className="min-h-[100dvh] bg-[#0d0b0a] text-white" style={{ paddingBottom: "calc(130px + env(safe-area-inset-bottom))" }}>
       {/* Header */}
-      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/8 bg-white/95 px-4 py-3 backdrop-blur">
-        <button type="button" onClick={() => router.back()}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 text-black active:scale-90 transition-transform">
+      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-white/10 bg-[#0d0b0a]/95 px-4 py-3 backdrop-blur">
+        <button type="button" onClick={cancel}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 text-white active:scale-90 transition-transform">
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <p className="text-sm font-black text-black">Become a model</p>
+        <p className="flex-1 text-sm font-black text-white">{editId ? `Edit model${firstName ? ` — ${firstName}` : ""}` : "Become a LuxuryBandit Model"}</p>
+        <button type="button" onClick={cancel}
+          className="shrink-0 rounded-full border border-white/15 px-4 py-2 text-xs font-black text-white/70 active:scale-95 transition-transform">
+          Cancel
+        </button>
       </div>
 
-      <div className="px-5 pt-5">
+      <div className="px-5 pt-6">
+        {/* Hero — signup pitch only; skipped when editing an existing model.
+            The campaign banner stays visible until she completes the signup. */}
+        {!editId && <div className="text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/become-a-model-banner.jpg" alt="Make money daily — become a LuxuryBandit Model"
+            className="mb-4 w-full rounded-2xl border border-amber-400/30" />
+          <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 shadow-[0_0_30px_rgba(251,191,36,0.35)]">
+            <Coins className="h-7 w-7 text-black" />
+          </div>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">AI Virtual Try-On · Luxury Fashion</p>
+          <h1 className="mt-2 text-[28px] font-black leading-tight text-white">
+            Sign up &amp; earn money <span className="text-amber-400">with every look.</span>
+          </h1>
+          <p className="mx-auto mt-2 max-w-xs text-sm font-semibold leading-6 text-white/55">
+            Get styled in high-end outfits by AI — and get paid every time someone tries on your look.
+          </p>
+        </div>}
+
         {/* Photo */}
-        <div className="flex flex-col items-center gap-2">
+        <div className="mt-6 flex flex-col items-center gap-2">
           <button type="button" onClick={() => fileRef.current?.click()}
-            className="relative grid h-24 w-24 place-items-center overflow-hidden rounded-full border-2 border-dashed border-black/15 bg-black/[0.03] active:scale-95 transition-transform">
+            className="relative grid h-24 w-24 place-items-center overflow-hidden rounded-full border-2 border-dashed border-amber-400/40 bg-white/[0.04] active:scale-95 transition-transform">
             {photo ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={photo} alt="" className="h-full w-full object-cover" />
             ) : (
-              <Camera className="h-6 w-6 text-black/30" />
+              <>
+                {/* Example placeholder — shows WHAT kind of photo we expect. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/apply-example-face.jpg" alt="" className="h-full w-full object-cover object-top opacity-45" />
+                <span className="absolute inset-0 grid place-items-center"><Camera className="h-6 w-6 text-white drop-shadow" /></span>
+                <span className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-white">Example</span>
+              </>
             )}
           </button>
-          <button type="button" onClick={() => fileRef.current?.click()} className="text-xs font-black text-cobalt">
+          <button type="button" onClick={() => fileRef.current?.click()} className="text-xs font-black text-amber-400">
             {photo ? "Change photo" : "Add your photo"}
           </button>
-          {photoError && <p className="max-w-xs text-center text-xs font-bold text-red-500">{photoError}</p>}
+          {photoError && <p className="max-w-xs text-center text-xs font-bold text-red-400">{photoError}</p>}
           <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
             onChange={e => { void onPickPhoto(e.target.files?.[0]); e.target.value = ""; }} />
+
+          {/* ONE full-body dressed photo (3:4 crop) — it powers her try-ons. */}
+          <span className={`${label} mt-4 text-center`}>Full-body photo · dressed</span>
+          <div className="flex justify-center">
+            {(() => {
+              const src = bodyPhotos[0] ?? bodyExisting[0];
+              const isNew = !!bodyPhotos[0];
+              return (
+                <div className="relative">
+                  <button type="button" onClick={() => bodyFileRef.current?.click()}
+                    className="relative grid h-44 w-[132px] place-items-center overflow-hidden rounded-2xl border-2 border-dashed border-amber-400/50 bg-white/[0.04] active:scale-95 transition-transform">
+                    {src ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={src} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <>
+                        {/* Example placeholder — head-to-toe, dressed. */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/apply-example-body.jpg" alt="" className="h-full w-full object-cover opacity-45" />
+                        <span className="absolute inset-0 grid place-items-center"><Camera className="h-6 w-6 text-white drop-shadow" /></span>
+                        <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-white">Example</span>
+                      </>
+                    )}
+                  </button>
+                  {isNew && (
+                    <button type="button" onClick={() => setBodyPhotos([])}
+                      className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black text-white ring-1 ring-white/25">×</button>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+          <p className="max-w-xs text-center text-[11px] font-bold text-white/40">Head to toe, dressed — this is what the AI styles. One good photo is enough.</p>
+          <input ref={bodyFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
+            onChange={e => { void onPickBody(e.target.files?.[0]); e.target.value = ""; }} />
         </div>
 
         {/* Identity */}
@@ -188,24 +316,25 @@ export default function CuratorApplyPage() {
 
         {/* Taste */}
         <div className="mt-6">
-          <p className="text-sm font-black text-black">Your taste</p>
-          <p className="mt-0.5 text-xs font-medium text-black/50">AI uses this to suggest your motto & bio.</p>
+          <p className="text-sm font-black text-white">Your taste</p>
+          <p className="mt-0.5 text-xs font-medium text-white/50">AI uses this to suggest your motto & bio.</p>
+          {/* Kept SHORT on purpose: just brands + a rough free-text — the AI hint
+              replaces the old style/colors/fabrics/occasions/price/fit battery.
+              (States remain so edit-mode preserves existing models' data.) */}
           <div className="mt-3 grid gap-4">
-            <TagField label="Brands you love" list={db.brands} value={brandChips} onChange={setBrandChips} placeholder="Start typing… Zimmermann, Gucci…" />
-            <TagField label="Your style" list={db.styles} value={styleChips} onChange={setStyleChips} placeholder="Start typing… boho, old money…" />
-            <PillRow label="Who do you curate for?" options={["Womenswear", "Menswear", "Unisex"]} value={genderFocus} onChange={(v) => setGenderFocus(v as string)} />
-            <TagField label="Colors you love" list={db.colors} value={colorChips} onChange={setColorChips} placeholder="Start typing… black, blush…" />
-            <TagField label="Fabrics" list={db.fabrics} value={fabricChips} onChange={setFabricChips} placeholder="Start typing… linen, silk…" />
-            <TagField label="Occasions" list={db.occasions} value={occasionChips} onChange={setOccasionChips} placeholder="Start typing… evening, resort…" />
-            <PillRow label="Price tier" options={["Budget", "Mid-range", "Luxury"]} value={priceTiers} onChange={(v) => setPriceTiers(v as string[])} multi />
-            <PillRow label="Fit focus" options={["Standard", "Petite", "Curve / Plus", "Tall"]} value={fitFocus} onChange={(v) => setFitFocus(v as string[])} multi />
-            <PillRow label="Audience age" options={["18–25", "25–35", "35–45", "45+"]} value={ageFocus} onChange={(v) => setAgeFocus(v as string)} />
+            <TagField dark label="Brands you love" list={db.brands} value={brandChips} onChange={setBrandChips} placeholder="Start typing… Zimmermann, Gucci…" />
+          </div>
+
+          <div className="mt-4">
+            <span className={label}>Tell the AI roughly what you&apos;re about (optional)</span>
+            <textarea className={`${field} h-auto py-3 leading-5`} rows={2} value={aiHint} onChange={e => setAiHint(e.target.value)}
+              placeholder="e.g. beach girl, loves gold & silk, dreams of Dubai…" />
           </div>
 
           <button type="button" onClick={() => void suggest()} disabled={suggesting}
-            className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-cobalt/30 bg-cobalt/[0.05] text-sm font-black text-cobalt disabled:opacity-50 active:scale-95 transition-transform">
+            className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/[0.08] text-sm font-black text-amber-400 disabled:opacity-50 active:scale-95 transition-transform">
             {suggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {suggesting ? "Thinking…" : "Suggest my motto & bio with AI"}
+            {suggesting ? "Thinking…" : "Write my motto & bio with AI"}
           </button>
         </div>
 
@@ -218,7 +347,7 @@ export default function CuratorApplyPage() {
               <div className="mt-2 flex flex-wrap gap-2">
                 {mottoIdeas.map((m, i) => (
                   <button key={i} type="button" onClick={() => setMotto(m)}
-                    className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-black transition ${motto === m ? "border-cobalt bg-cobalt text-white" : "border-black/12 bg-black/[0.03] text-black/70"}`}>
+                    className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-black transition ${motto === m ? "border-amber-400 bg-amber-400 text-black" : "border-white/15 bg-white/[0.04] text-white/70"}`}>
                     {motto === m && <Check className="h-3 w-3" />}{m}
                   </button>
                 ))}
@@ -231,25 +360,29 @@ export default function CuratorApplyPage() {
           </div>
         </div>
 
-        {error && <p className="mt-4 text-center text-xs font-bold text-red-500">{error}</p>}
+        {error && <p className="mt-4 text-center text-xs font-bold text-red-400">{error}</p>}
       </div>
 
       {/* Submit */}
-      <div className="lb-phone-col fixed inset-x-0 bottom-0 z-20 border-t border-black/8 bg-white/95 px-5 pt-3 backdrop-blur"
+      <div className="lb-phone-col fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-[#0d0b0a]/95 px-5 pt-3 backdrop-blur"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
         <button type="button" onClick={() => void submit()} disabled={submitting}
-          className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-black text-base font-black text-white shadow-lg disabled:opacity-50 active:scale-95 transition-transform">
-          {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-          {submitting ? "Setting up…" : "Start curating"}
+          className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black disabled:opacity-50 active:scale-95 transition-transform">
+          {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Coins className="h-5 w-5" />}
+          {submitting ? (editId ? "Saving…" : "Setting up…") : (editId ? "Save changes" : "Sign up & start earning")}
         </button>
-        <p className="mt-1.5 text-center text-[10px] font-bold text-black/35">
-          Start with free credits to prove yourself · earn more from likes &amp; try-ons
+        <p className="mt-1.5 text-center text-[10px] font-bold text-white/35">
+          {editId ? "Changes go live immediately" : <>Start with free credits · earn more from likes &amp; try-ons</>}
         </p>
       </div>
 
       {cropSrc && (
         <PhotoCropper src={cropSrc} onCancel={() => setCropSrc("")}
-          onDone={(dataUrl) => { setPhoto(dataUrl); setCropSrc(""); }} />
+          onDone={(dataUrl) => { setPhoto(dataUrl); setPhotoFull(cropSrc); setCropSrc(""); }} />
+      )}
+      {bodyCropSrc && (
+        <PhotoCropper src={bodyCropSrc} aspect="portrait" onCancel={() => setBodyCropSrc("")}
+          onDone={(dataUrl) => { setBodyPhotos([dataUrl]); setBodyCropSrc(""); }} />
       )}
     </div>
   );

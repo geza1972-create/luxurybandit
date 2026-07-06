@@ -1145,7 +1145,7 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
   const [credits, setCredits] = useState<number | null>(null);
   const [isSeller, setIsSeller] = useState(false);
   // Curator session (separate from the auth login) → entry to their studio.
-  const [curator, setCurator] = useState<{ firstName?: string } | null>(null);
+  const [curator, setCurator] = useState<{ id?: string; firstName?: string } | null>(null);
   useEffect(() => {
     try { const c = JSON.parse(localStorage.getItem("lb_curator") ?? "null"); setCurator(c?.id ? c : null); } catch { setCurator(null); }
   }, []);
@@ -1234,14 +1234,14 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
           </button>
         </div>
 
-        {/* Model studio entry — ONLY for actual curators (separate curator session).
-            No self-signup: normal users see nothing here. */}
+        {/* Model entry — her OWN page (wardrobe + photos). The old Studio tool is
+            retired for models; the team turns her photos into videos. */}
         {curator && (
-          <a href="/studio"
+          <a href={curator.id ? `/curator/${curator.id}` : "/stores"}
             className="mb-5 flex items-center justify-between gap-3 rounded-2xl bg-black px-4 py-3.5 text-white active:scale-[0.99] transition-transform">
             <span className="min-w-0">
-              <span className="block text-sm font-black">Open your studio{curator.firstName ? `, ${curator.firstName}` : ""}</span>
-              <span className="block text-[11px] font-bold text-white/55">Find trends · publish looks</span>
+              <span className="block text-sm font-black">Open your page{curator.firstName ? `, ${curator.firstName}` : ""}</span>
+              <span className="block text-[11px] font-bold text-white/55">Pick outfits · create your photos</span>
             </span>
             <span className="shrink-0 text-lg font-black">→</span>
           </a>
@@ -1418,8 +1418,23 @@ function StoresPage() {
   const [feedOpen, setFeedOpen] = useState<{ tryOnId?: string; lookId?: string } | null>(null);
   // Home has two views: the Feeds thumbnail grid, and the Models gallery (a grid of the
   // model profiles). Toggled at the top of the home.
-  type GalleryModel = { id: string; name: string; photoUrl: string; style: string; lookCount: number; bio?: string; motto?: string; hidden?: boolean };
+  type GalleryModel = { id: string; name: string; photoUrl: string; style: string; lookCount: number; bio?: string; motto?: string; hidden?: boolean; hairColor?: string; createdAt?: string };
   const [models, setModels] = useState<GalleryModel[]>([]);
+  // Models tab: sort (newest first by default, so a freshly added model is on top)
+  // + optional hair-color filter (models are AI-tagged blond/brunette/black/red).
+  const [modelSort, setModelSort] = useState<"new" | "looks">("new");
+  const [hairFilter, setHairFilter] = useState("");
+  const HAIR_LABELS: Record<string, string> = { blond: "Blonde", brunette: "Brunette", black: "Black", red: "Red", other: "Other" };
+  const shownModels = useMemo(() => {
+    let base = hairFilter ? models.filter(m => (m.hairColor || "") === hairFilter) : models;
+    // The header search filters THIS grid too (name / style / hair color).
+    const q = query.trim().toLowerCase();
+    if (q) base = base.filter(m => `${m.name} ${m.style || ""} ${m.hairColor || ""}`.toLowerCase().includes(q));
+    return [...base].sort(modelSort === "new"
+      ? (a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
+      : (a, b) => b.lookCount - a.lookCount || a.name.localeCompare(b.name));
+  }, [models, modelSort, hairFilter, query]);
+  const hairColorsPresent = useMemo(() => [...new Set(models.map(m => m.hairColor || "").filter(Boolean))], [models]);
   const [homeTab, setHomeTab] = useState<"feeds" | "models" | "garderobe">("models");
   // Garderobe = every generated garment (all models' wardrobes), browsable by type.
   const [garmentType, setGarmentType] = useState<LookCategory | null>(null);
@@ -1459,6 +1474,7 @@ function StoresPage() {
   const [gmName, setGmName] = useState("");
   const [gmDesc, setGmDesc] = useState("");
   const [gmCat, setGmCat] = useState<"" | LookCategory>("");
+  const [gmBuy, setGmBuy] = useState(""); // shop link ("Shop now" on the tile)
   const [gmBusy, setGmBusy] = useState(false);
   const [gmMsg, setGmMsg] = useState("");
   const gmReplaceRef = useRef<HTMLInputElement>(null);
@@ -1476,8 +1492,8 @@ function StoresPage() {
       body: JSON.stringify(body),
     });
   };
-  const openGManage = (g: { id: string; name?: string; productNote?: string; category?: LookCategory }) => {
-    setGManageId(g.id); setGmName(g.name ?? ""); setGmDesc(String(g.productNote ?? "")); setGmCat(isLookCategory(g.category) ? g.category : ""); setGmMsg(""); setGmBusy(false);
+  const openGManage = (g: { id: string; name?: string; productNote?: string; category?: LookCategory; buyUrl?: string }) => {
+    setGManageId(g.id); setGmName(g.name ?? ""); setGmDesc(String(g.productNote ?? "")); setGmCat(isLookCategory(g.category) ? g.category : ""); setGmBuy(g.buyUrl ?? ""); setGmMsg(""); setGmBusy(false);
   };
   const closeGManage = () => { setGManageId(""); setGmBusy(false); setGmMsg(""); };
   const patchGarment = async (extra: Record<string, unknown>, successMsg = "Gespeichert ✓") => {
@@ -1491,7 +1507,26 @@ function StoresPage() {
     } catch (e) { setGmMsg(e instanceof Error ? e.message : "Fehler"); }
     finally { setGmBusy(false); }
   };
-  const saveGManage = () => patchGarment({ name: gmName.trim() || undefined, productNote: gmDesc.trim(), ...(gmCat ? { category: gmCat } : {}) });
+  // Save — empty title/description get filled by AI from the garment photo first.
+  const saveGManage = async () => {
+    let name = gmName.trim(), desc = gmDesc.trim();
+    const gm = garments.find(g => g.id === gManageId);
+    if ((!name || !desc) && gm) {
+      setGmBusy(true); setGmMsg("KI schreibt Titel & Beschreibung …");
+      try {
+        const img = gm.frontImageUrl || gm.imageUrl || "";
+        const blob = await fetch(img).then(r => r.blob());
+        const fd = new FormData();
+        fd.append("image", new File([blob], "garment.jpg", { type: blob.type || "image/jpeg" }));
+        if (name) fd.append("name", name);
+        const ai = await fetch("/api/generate-product-description", { method: "POST", body: fd }).then(r => r.json());
+        if (!name && ai.title) { name = String(ai.title); setGmName(name); }
+        if (!desc && ai.description) { desc = String(ai.description); setGmDesc(desc); }
+      } catch { /* AI is best-effort — save whatever we have */ }
+      setGmBusy(false);
+    }
+    return patchGarment({ name: name || undefined, productNote: desc, buyUrl: gmBuy.trim(), ...(gmCat ? { category: gmCat } : {}) });
+  };
   const replaceGImage = async (file: File) => {
     const dataUrl = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file); });
     if (!dataUrl.startsWith("data:image/")) return;
@@ -2041,7 +2076,9 @@ function StoresPage() {
     for (const c of communityItems) {
       if (!c.lookId) continue;
       const list = byLook.get(c.lookId) ?? [];
-      list.push({ id: c.id, imageUrl: c.imageUrl, videoUrl: c.videoUrl, userPhotoUrl: c.userPhotoUrl, name: c.customerName, hidden: false, pending: false });
+      // Keep the MODEL attribution (curatorId + photo) — dropping it here made every
+      // post link to the LOOK's owner instead of the try-on's model.
+      list.push({ id: c.id, imageUrl: c.imageUrl, videoUrl: c.videoUrl, userPhotoUrl: c.userPhotoUrl, name: c.customerName, hidden: false, pending: false, curatorId: c.curatorId, curatorPhotoUrl: c.curatorPhotoUrl });
       byLook.set(c.lookId, list);
     }
     return (looks as unknown as FeedLook[]).map(l => byLook.has(l.id) ? { ...l, communityTryOns: byLook.get(l.id) } : l);
@@ -2360,18 +2397,18 @@ function StoresPage() {
                 Hidden while filtering/searching to keep browsing clean. */}
             {!categoryFilter && !searchOpen && (
               <section className="px-4 pt-4 pb-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">AI Virtual Try-On · Luxury Fashion</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">AI Fashion Models · Luxury Looks</p>
                 <h1 className="mt-1.5 text-[1.8rem] font-black leading-[1.08] tracking-tight text-white">
-                  Try on luxury fashion, <span className="text-amber-400">instantly.</span>
+                  Your dream model, <span className="text-amber-400">in any look.</span>
                 </h1>
                 <p className="mt-2 max-w-md text-sm font-medium leading-6 text-white/60">
-                  Pick any outfit, choose a model or upload your own photo, and get a runway-quality
-                  video in seconds. New designer looks dropped every day.
+                  Pick a model, choose a designer outfit, and watch her wear it in a runway-quality
+                  video — dancing or turning, your call. New looks drop every day.
                 </p>
                 <div className="mt-3 grid gap-1.5">
                   {[
-                    [<Sparkles key="i" className="h-4 w-4 text-amber-400" />, "For you", "Wear the hottest designer looks without the price tag — save, share & shop what you love."],
-                    [<Heart key="i" className="h-4 w-4 text-amber-400" />, "For models", "Get styled in high-end outfits and earn every time someone picks your look."],
+                    [<Sparkles key="i" className="h-4 w-4 text-amber-400" />, "See her in any look", "Put your favorite model in the outfit YOU choose — like it, share it, shop it."],
+                    [<MessageCircle key="i" className="h-4 w-4 text-amber-400" />, "Get in touch", "Follow her and send her a message right from her profile."],
                   ].map(([icon, title, text], i) => (
                     <div key={i} className="flex items-start gap-2.5">
                       <span className="mt-0.5 shrink-0">{icon as React.ReactNode}</span>
@@ -2382,15 +2419,20 @@ function StoresPage() {
                   ))}
                 </div>
                 <div className="mt-3.5 flex items-center gap-2">
-                  <button type="button" onClick={() => setHomeTab("garderobe")}
-                    className="flex h-10 items-center justify-center gap-1.5 rounded-full bg-amber-400 px-5 text-sm font-black text-black active:scale-95 transition-transform">
-                    <Sparkles className="h-4 w-4" /> Start trying on
+                  <button type="button" onClick={() => setHomeTab("models")}
+                    className="lb-gold flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-black active:scale-95 transition-transform">
+                    <Sparkles className="h-4 w-4" /> Pick your model
                   </button>
                   <button type="button" onClick={() => router.push("/about")}
                     className="flex h-10 items-center justify-center rounded-full border border-white/20 bg-white/[0.04] px-5 text-sm font-black text-white active:scale-95 transition-transform">
                     How it works
                   </button>
                 </div>
+                {/* Model recruiting lives on its OWN landing page — one quiet line here. */}
+                <button type="button" onClick={() => router.push("/become-a-model")}
+                  className="mt-3 flex items-center gap-1.5 text-[12px] font-black text-white/45 active:opacity-70">
+                  <Heart className="h-3.5 w-3.5 text-amber-400" /> Become a LuxuryBandit Model — earn with every look →
+                </button>
               </section>
             )}
 
@@ -2414,12 +2456,25 @@ function StoresPage() {
                   <div className="px-3 pb-1 pt-1">
                     <button type="button" onClick={openModelAdd}
                       className="flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-white/25 px-4 py-2.5 text-[13px] font-black text-white/70 active:scale-95 transition-transform">
-                      <UserPlus className="h-4 w-4" /> Neues Model hinzufügen
+                      <UserPlus className="h-4 w-4" /> Add a new model
                     </button>
                   </div>
                 )}
+                {/* Sort (newest first = default) + hair-color filter */}
+                <div className="flex gap-2 overflow-x-auto px-3 pb-2 pt-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <button type="button" onClick={() => setModelSort("new")}
+                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${modelSort === "new" && !hairFilter ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>New</button>
+                  <button type="button" onClick={() => setModelSort("looks")}
+                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${modelSort === "looks" && !hairFilter ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>Most looks</button>
+                  {hairColorsPresent.map(h => (
+                    <button key={h} type="button" onClick={() => setHairFilter(f => f === h ? "" : h)}
+                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${hairFilter === h ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
+                      {HAIR_LABELS[h] ?? h}
+                    </button>
+                  ))}
+                </div>
                 <div className="grid grid-cols-2 gap-2 px-3 pb-8">
-                {models.map(m => (
+                {shownModels.map(m => (
                   <div key={m.id} className="relative">
                     <a href={`/curator/${m.id}`} className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:opacity-80 transition-opacity">
                       <div className="relative aspect-[3/4] overflow-hidden bg-white/5">
@@ -2543,12 +2598,13 @@ function StoresPage() {
                 })}
               </div>
             )}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-0.5">
+            {/* Rounded cards like the Models grid (gap + rounded-2xl on the dark home). */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 px-3 pb-8">
               {pagedHistory.map((it, idx) => (
-                <div key={it.key} className="flex flex-col">
+                <div key={it.key} className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
                   <button type="button"
                     onClick={() => setFeedOpen({ tryOnId: it.kind === "tryon" ? it.id : undefined, lookId: it.lookId })}
-                    className="relative aspect-square overflow-hidden bg-black/5 transition-opacity active:opacity-80">
+                    className="relative aspect-[3/4] overflow-hidden bg-white/5 transition-opacity active:opacity-80">
                     {it.videoUrl ? (
                       // Video tile — always show a still poster so the tile is never a
                       // black box: the model poster if we have one, else the look's own
@@ -2579,15 +2635,15 @@ function StoresPage() {
                         : it.aiCreated ? "✦ Original" : "Model"}
                     </span>
                   </button>
-                  <div className="flex items-center gap-1.5 px-2 pt-1 pb-1.5 bg-white">
+                  <div className="flex items-center gap-1.5 px-2.5 pt-1.5 pb-2">
                     {it.curatorName && (
-                      <span className="flex h-4 w-4 shrink-0 overflow-hidden rounded-full bg-black/5">
+                      <span className="flex h-5 w-5 shrink-0 overflow-hidden rounded-full bg-white/10">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={it.curatorPhoto || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(publicAuthorName(it.curatorName))}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
                       </span>
                     )}
-                    <span className="min-w-0 flex-1 truncate text-[9px] font-black text-black/70">{it.curatorName ? publicAuthorName(it.curatorName) : it.name}</span>
-                    {it.price && <span className="shrink-0 text-[9px] font-black text-ink">{it.price}</span>}
+                    <span className="min-w-0 flex-1 truncate text-[11px] font-black text-white">{it.curatorName ? publicAuthorName(it.curatorName) : it.name}</span>
+                    {it.price && <span className="shrink-0 text-[10px] font-black text-white/60">{it.price}</span>}
                   </div>
                 </div>
               ))}
@@ -3172,9 +3228,9 @@ function StoresPage() {
                   <img src={optImg(img, 300)} alt="" onError={(e) => { const im = e.currentTarget; if (img && im.src !== img) im.src = img; }} className="h-full w-full object-contain" />
                 </div>
                 <div className="grid min-w-0 flex-1 gap-2">
-                  <input value={gmName} onChange={e => setGmName(e.target.value)} placeholder="Name"
+                  <input value={gmName} onChange={e => setGmName(e.target.value)} placeholder="Name (leer = KI schreibt ihn)"
                     className="h-10 w-full rounded-lg border border-black/12 bg-black/[0.02] px-3 text-sm font-bold text-black outline-none focus:border-black/40" />
-                  <textarea value={gmDesc} onChange={e => setGmDesc(e.target.value)} rows={3} placeholder="Beschreibung"
+                  <textarea value={gmDesc} onChange={e => setGmDesc(e.target.value)} rows={3} placeholder="Beschreibung (leer = KI schreibt sie)"
                     className="w-full resize-none rounded-lg border border-black/12 bg-black/[0.02] px-3 py-2 text-[13px] text-black outline-none focus:border-black/40" />
                 </div>
               </div>
@@ -3187,6 +3243,9 @@ function StoresPage() {
                   </button>
                 ))}
               </div>
+              <p className="mb-2 mt-4 text-[11px] font-black uppercase tracking-wide text-black/40">Shop-Link</p>
+              <input value={gmBuy} onChange={e => setGmBuy(e.target.value)} type="url" inputMode="url" placeholder="https://shop.example.com/produkt…"
+                className="h-10 w-full rounded-lg border border-black/12 bg-black/[0.02] px-3 text-[13px] font-bold text-black outline-none focus:border-black/40 placeholder:text-black/30" />
               <div className="mt-4 grid grid-cols-3 gap-2">
                 <button type="button" onClick={() => gmReplaceRef.current?.click()} disabled={gmBusy}
                   className="flex flex-col items-center gap-1 rounded-xl border border-black/12 bg-black/[0.02] py-2.5 text-[11px] font-black text-black active:scale-95 transition disabled:opacity-50">

@@ -53,7 +53,9 @@ export async function GET(request: Request) {
     if (!c) return NextResponse.json({ profile: null });
     return NextResponse.json({ profile: {
       id: c.id, firstName: c.firstName, lastName: c.lastName, motto: c.motto, bio: c.bio,
-      photoUrl: c.photoUrl, instagram: c.instagram, style: c.style, brands: c.brands, genderFocus: c.genderFocus,
+      photoUrl: c.photoUrl, photoFullUrl: (c as any).photoFullUrl, photoBodyUrls: (c as any).photoBodyUrls ?? [], instagram: c.instagram, style: c.style, brands: c.brands, genderFocus: c.genderFocus,
+      // Vanity baselines (admin-set) — added to the real sums on her stats row.
+      likeBoost: (c as any).likeBoost ?? 0, viewBoost: (c as any).viewBoost ?? 0,
     } });
   }
 
@@ -155,16 +157,19 @@ export async function POST(request: Request) {
     if (!apiKey) return jsonError("ANTHROPIC_API_KEY missing.", 500);
     const brands = String(payload.brands ?? "").trim().slice(0, 300);
     const style = String(payload.style ?? "").trim().slice(0, 300);
-    if (!brands && !style) return jsonError("Tell us a few brands or a style first.");
+    // Optional rough free-text from the model ("what I'm about / what I want") — enough
+    // on its own; with nothing at all the AI writes a generic luxury-fashion persona.
+    const hint = String(payload.hint ?? "").trim().slice(0, 500);
 
     const client = new Anthropic({ apiKey });
     const prompt =
-      `A new fashion curator is joining LuxuryBandit. Brands they love: ${brands || "(not given)"}. ` +
-      `Their style: ${style || "(not given)"}.\n\n` +
+      `A new fashion model is joining LuxuryBandit (AI virtual try-on for luxury fashion). ` +
+      `Brands they love: ${brands || "(not given)"}. Their style: ${style || "(not given)"}. ` +
+      `In their own rough words: ${hint || "(nothing — invent a tasteful luxury-fashion persona)"}.\n\n` +
       `Return STRICT JSON only, no prose, shape:\n` +
       `{"mottos":["...","...","..."],"bio":"..."}\n` +
-      `- "mottos": 3 short, punchy English taglines (max 6 words each) that fit this curator's taste. Aspirational, on-brand with "Bandit the look!". No hashtags, no quotes inside.\n` +
-      `- "bio": one English sentence (max 160 chars) describing this curator's eye/taste for their public profile.`;
+      `- "mottos": 3 short, punchy English taglines (max 6 words each) that fit this model's taste. Aspirational, on-brand with "Bandit the look!". No hashtags, no quotes inside.\n` +
+      `- "bio": one English sentence (max 160 chars) describing this model's eye/taste for their public profile.`;
 
     try {
       const res = await client.messages.create({
@@ -263,13 +268,30 @@ export async function POST(request: Request) {
     }
 
     let photoPath: string | undefined;
+    let photoFullPath: string | undefined;
+    let photoBodyPaths: string[] | undefined;
     const photo = String(payload.photo ?? "");
+    // The cropper exports a SQUARE avatar — also keep the ORIGINAL (portrait) photo
+    // so her profile lightbox/hero can show it uncropped.
+    const photoFull = String((payload as any).photoFull ?? "");
+    // Full-body dressed photos (3:4 crops, up to 2) — the try-on references.
+    const bodyPhotos = Array.isArray((payload as any).bodyPhotos)
+      ? ((payload as any).bodyPhotos as unknown[]).filter((b): b is string => typeof b === "string" && b.startsWith("data:image/")).slice(0, 2)
+      : [];
     if (photo.startsWith("data:image/")) {
       try {
         photoPath = await uploadTryThisLookImage("uploads", photo);
-      } catch {
-        // Photo is optional — don't fail the whole application on upload error.
-        photoPath = undefined;
+        if (photoFull.startsWith("data:image/")) {
+          photoFullPath = await uploadTryThisLookImage("uploads", photoFull);
+        }
+        if (bodyPhotos.length) {
+          photoBodyPaths = await Promise.all(bodyPhotos.map(b => uploadTryThisLookImage("uploads", b)));
+        }
+      } catch (e) {
+        // She DID pick a photo — losing it silently made profiles ship without one.
+        // Fail loudly so she can retry instead of discovering it later.
+        console.error("apply: photo upload failed", e);
+        return jsonError("Your photo could not be uploaded — please try again (or use a smaller image).", 500);
       }
     }
 
@@ -293,10 +315,12 @@ export async function POST(request: Request) {
       bio: String(payload.bio ?? "").trim() || undefined,
       instagram: String(payload.instagram ?? "").trim().replace(/^@/, "") || undefined,
       photoPath,
-      // TEMPORARY (admin choice): new curators are AUTO-APPROVED for now — they go
-      // straight to "active" and can sign in / publish immediately. Flip this back to
-      // "pending" to re-enable manual review & ID verification.
-      status: "active",
+      photoFullPath,
+      photoBodyPaths,
+      // Model applications are REVIEWED: they start "pending" and the admin approves
+      // (Power button in the Models list) before they can sign in. This gates the
+      // "Werde Model" ad traffic — no self-service accounts go live unchecked.
+      status: "pending",
       createdAt: new Date().toISOString(),
       credits: STARTER_CREDITS, // starter grant to prove themselves
       creditLog: [{ at: new Date().toISOString(), credits: STARTER_CREDITS, label: "Starter credits" }],
@@ -314,15 +338,11 @@ export async function POST(request: Request) {
 
     await saveTryThisLookState({ ...state, curators, brands, styles, colors, fabrics, occasions });
 
-    notifyAdminWhatsApp(`👤 New curator (auto-approved): ${[firstName, lastName].filter(Boolean).join(" ")} (${email}). ${ADMIN_URL}`);
+    notifyAdminWhatsApp(`👤 New MODEL application (pending review): ${[firstName, lastName].filter(Boolean).join(" ")} (${email}). Approve: ${ADMIN_URL}`);
 
-    // Auto-approved → return the curator so the front-end can log them straight into
-    // the studio. (Re-enable review by setting status:"pending" above and dropping this.)
-    return NextResponse.json({
-      approved: true,
-      firstName: curator.firstName,
-      curator: { id: curator.id, firstName: curator.firstName, email: curator.email, style: curator.style ?? "" },
-    });
+    // Pending review → NO session is returned (she cannot act until the admin
+    // approves her via the Models list; signin blocks "pending" too).
+    return NextResponse.json({ approved: false, pending: true, firstName: curator.firstName });
   }
 
   // Email-only sign in (fallback while Supabase email/magic-link isn't set up).
@@ -522,11 +542,36 @@ export async function POST(request: Request) {
       followerBoost: isAdmin && payload.followerBoost !== undefined
         ? Math.max(0, Math.floor(Number(payload.followerBoost) || 0))
         : cur.followerBoost,
+      // Vanity likes/views baselines shown on her profile stats — admin only.
+      likeBoost: isAdmin && (payload as any).likeBoost !== undefined
+        ? Math.max(0, Math.floor(Number((payload as any).likeBoost) || 0))
+        : (cur as any).likeBoost,
+      viewBoost: isAdmin && (payload as any).viewBoost !== undefined
+        ? Math.max(0, Math.floor(Number((payload as any).viewBoost) || 0))
+        : (cur as any).viewBoost,
     };
     // Optional new photo
     const photo = String(payload.photo ?? "");
-    if (photo.startsWith("data:image/")) {
-      try { updated.photoPath = await uploadTryThisLookImage("uploads", photo); } catch { /* keep old */ }
+    const photoFull2 = String((payload as any).photoFull ?? "");
+    // New full-body set REPLACES the old one (only sent when she picked new ones).
+    const bodyPhotos2 = Array.isArray((payload as any).bodyPhotos)
+      ? ((payload as any).bodyPhotos as unknown[]).filter((b): b is string => typeof b === "string" && b.startsWith("data:image/")).slice(0, 2)
+      : [];
+    try {
+      if (photo.startsWith("data:image/")) {
+        updated.photoPath = await uploadTryThisLookImage("uploads", photo);
+        // Keep the uncropped original too (portrait) — used by the profile lightbox.
+        if (photoFull2.startsWith("data:image/")) {
+          updated.photoFullPath = await uploadTryThisLookImage("uploads", photoFull2);
+        }
+      }
+      if (bodyPhotos2.length) {
+        updated.photoBodyPaths = await Promise.all(bodyPhotos2.map(b => uploadTryThisLookImage("uploads", b)));
+      }
+    }
+    catch (e) {
+      console.error("update: photo upload failed", e);
+      return jsonError("The new photo could not be uploaded — please try again (or use a smaller image).", 500);
     }
 
     const curators = [...state.curators!]; curators[idx] = updated;

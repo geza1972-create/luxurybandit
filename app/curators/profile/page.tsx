@@ -233,8 +233,8 @@ export default function CuratorProfilePage() {
           <p className="text-sm font-black text-black">{email}</p>
         </div>
 
-        <a href="/studio" className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-black text-sm font-black text-white active:scale-95 transition-transform">
-          <Sparkles className="h-4 w-4" /> Open my studio
+        <a href={curatorId ? `/curator/${curatorId}` : "/stores"} className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-black text-sm font-black text-white active:scale-95 transition-transform">
+          <Sparkles className="h-4 w-4" /> Open my model page
         </a>
 
         {/* Identity */}
