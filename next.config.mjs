@@ -44,6 +44,12 @@ const nextConfig = {
     ];
   },
   images: {
+    // optImg() requests w=300/400/500/700 + q=70 — those MUST be whitelisted or
+    // /_next/image responds 400 and every tile flashes a broken (white) image
+    // before the raw-URL fallback kicks in ("weiße Blitzer").
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 300, 384, 400, 500],
+    deviceSizes: [640, 700, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    qualities: [70, 75],
     remotePatterns: [
       {
         protocol: "https",
