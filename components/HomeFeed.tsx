@@ -27,7 +27,8 @@ export type FeedLook = {
   tryOnImageUrl?: string;
   clothesImageUrl?: string;   // curator-uploaded garment reference (shown as a carousel slide + used for try-on)
   locationImageUrl?: string;  // curator-uploaded location reference (used for try-on)
-  communityTryOns?: { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; hidden?: boolean; pending?: boolean; curatorId?: string; curatorPhotoUrl?: string; pinned?: boolean }[];
+  communityTryOns?: { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; hidden?: boolean; pending?: boolean; curatorId?: string; curatorPhotoUrl?: string; pinned?: boolean; createdAt?: string }[];
+  videoCreatedAt?: string;
   feedOrder?: number;
   aiCreated?: boolean;
   lingerie?: boolean;
@@ -1368,8 +1369,9 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
     else if (curTrack.current < 0 && tracksRef.current.length) playTrack(0);
     else void a.play().catch(() => {});
   }, [muted, playTrack]);
-  // Newest first — fresh curator posts always surface at the top of the feed.
-  const sorted = [...looks].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
+  // Looks in given order — the FINAL order is decided per POST below (pinned first,
+  // then the post's own date), so the reel runs in the SAME row as the grid.
+  const sorted = [...looks];
 
   // ONE POST PER TRY-ON. Each community try-on becomes its own post (just its video +
   // Before/After — see the `media` array). Looks with no try-on stay a single look-video
@@ -1397,9 +1399,19 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
   // target look is first (scrollTop 0). This is rock-solid — unlike scrolling to a
   // computed offset, it doesn't depend on the (variable, still-loading) heights of
   // the posts above the target, which used to land us on the neighbouring look.
-  // Admin-pinned posts lead the reel (stable sort keeps newest-first within groups).
+  // EXACT grid order: pinned posts first, then per-post date (a try-on sorts by ITS
+  // createdAt, a look-video post by its video/look date) — the reel and the
+  // Fashionshow grid run in the same row.
+  const postDate = (e: { look: FeedLook }) => {
+    const t = e.look.communityTryOns?.[0];
+    if (t) return String(t.createdAt ?? e.look.createdAt ?? "");
+    const v = String(e.look.videoCreatedAt ?? "");
+    const c = String(e.look.createdAt ?? "");
+    return v > c ? v : c;
+  };
   const pinnedFirst = [...expanded].sort((a, b) =>
-    ((b.look.communityTryOns?.[0]?.pinned ? 1 : 0) - (a.look.communityTryOns?.[0]?.pinned ? 1 : 0)));
+    ((b.look.communityTryOns?.[0]?.pinned ? 1 : 0) - (a.look.communityTryOns?.[0]?.pinned ? 1 : 0))
+    || postDate(b).localeCompare(postDate(a)));
   const startIdx = initialTryOnId
     ? pinnedFirst.findIndex(e => e.look.communityTryOns?.[0]?.id === initialTryOnId)
     : initialLookId ? pinnedFirst.findIndex(e => e.look.id === initialLookId) : -1;

@@ -2176,6 +2176,9 @@ function StoresPage() {
     // mirrored too). Looks without a video and without a try-on don't appear in the feed.
     for (const l of looks) {
       if (looksWithTryOn.has(l.id) || !l.videoUrl) continue;
+      // Same rule as the reel: a generated wardrobe garment is NOT feed content —
+      // it only earns a post via its try-ons (grid and reel must run identically).
+      if ((l as { productType?: string }).productType === "ai" || (l as { wardrobe?: boolean }).wardrobe === true) continue;
       const videoTs = l.videoCreatedAt || tsFromVideoUrl(l.videoUrl) || "";
       const when = videoTs > (l.createdAt ?? "") ? videoTs : (l.createdAt ?? "");
       items.push({ key: `look-${l.id}`, kind: "look", id: l.id, lookId: l.id, thumb: safeLookImage(l), videoUrl: l.videoUrl, videoPoster: l.videoPosterUrl || l.tryOnImageUrl || undefined, aiCreated: l.aiCreated, brand: l.brand, category: l.category, createdAt: when, name: publicLookLabel(l), price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl, visibility: "public" });
@@ -2225,15 +2228,19 @@ function StoresPage() {
       const list = byLook.get(c.lookId) ?? [];
       // Keep the MODEL attribution (curatorId + photo) — dropping it here made every
       // post link to the LOOK's owner instead of the try-on's model.
-      list.push({ id: c.id, imageUrl: c.imageUrl, videoUrl: c.videoUrl, userPhotoUrl: c.userPhotoUrl, name: c.customerName, hidden: false, pending: false, curatorId: c.curatorId, curatorPhotoUrl: c.curatorPhotoUrl, pinned: c.pinned });
+      list.push({ id: c.id, imageUrl: c.imageUrl, videoUrl: c.videoUrl, userPhotoUrl: c.userPhotoUrl, name: c.customerName, hidden: false, pending: false, curatorId: c.curatorId, curatorPhotoUrl: c.curatorPhotoUrl, pinned: c.pinned, createdAt: (c as { createdAt?: string }).createdAt });
       byLook.set(c.lookId, list);
     }
-    const enriched = (looks as unknown as FeedLook[]).map(l => byLook.has(l.id) ? { ...l, communityTryOns: byLook.get(l.id) } : l);
+    const enriched = (looks as unknown as FeedLook[]).map(l => {
+      const withTs = { ...l, videoCreatedAt: (l as unknown as { videoCreatedAt?: string }).videoCreatedAt || tsFromVideoUrl((l as unknown as { videoUrl?: string }).videoUrl) || undefined } as FeedLook;
+      return byLook.has(l.id) ? { ...withTs, communityTryOns: byLook.get(l.id) } : withTs;
+    });
     // Try-ons WITHOUT a look (e.g. uploaded "In motion" model clips, lookId "") can
     // never ride an existing look into the reel — synthesize a stub post per clip so
     // "public" really means "in the feed" for them too.
+    const lookIds = new Set(looks.map(l => l.id));
     const orphans = communityItems
-      .filter(c => !c.lookId)
+      .filter(c => !c.lookId || !lookIds.has(c.lookId))
       .map(c => ({
         id: `clip-${c.id}`,
         name: c.lookName || "In motion",
@@ -2243,7 +2250,7 @@ function StoresPage() {
         curatorName: c.customerName,
         curatorPhotoUrl: c.curatorPhotoUrl,
         category: c.category,
-        communityTryOns: [{ id: c.id, imageUrl: c.imageUrl, videoUrl: c.videoUrl, userPhotoUrl: c.userPhotoUrl, name: c.customerName, hidden: false, pending: false, curatorId: c.curatorId, curatorPhotoUrl: c.curatorPhotoUrl, pinned: c.pinned }],
+        communityTryOns: [{ id: c.id, imageUrl: c.imageUrl, videoUrl: c.videoUrl, userPhotoUrl: c.userPhotoUrl, name: c.customerName, hidden: false, pending: false, curatorId: c.curatorId, curatorPhotoUrl: c.curatorPhotoUrl, pinned: c.pinned, createdAt: (c as { createdAt?: string }).createdAt }],
       } as unknown as FeedLook));
     return [...enriched, ...orphans];
   }, [looks, communityItems]);
