@@ -116,15 +116,17 @@ export default async function BecomeAModelPage() {
             {/* 4 · Money lands */}
             <div className="rounded-2xl border border-amber-400/40 bg-amber-400/[0.08] p-4">
               <p className="text-sm font-black text-amber-400"><span className="mr-2 inline-grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[12px] text-black">4</span>Every paid try-on pays her</p>
+              {/* NO concrete amounts — we don't promise numbers, only the mechanism:
+                  fans PAY for premium try-ons, and she gets her share of each one. */}
               <div className="mt-3 grid gap-1.5">
-                {[["Fan try-on · Riviera look", "$2.90"], ["Video try-on · Evening look", "$4.90"], ["360° view · Premium", "$7.90"]].map(([label, amount]) => (
+                {["Fan try-on · Riviera look", "Video try-on · Evening look", "360° view · Premium"].map(label => (
                   <div key={label} className="flex items-center justify-between rounded-xl bg-black/30 px-3.5 py-2.5">
                     <span className="flex items-center gap-2 text-[13px] font-bold text-white/70"><Coins className="h-4 w-4 text-amber-400" /> {label}</span>
-                    <span className="text-sm font-black text-amber-400">+{amount}</span>
+                    <span className="text-[13px] font-black text-amber-400">→ her share</span>
                   </div>
                 ))}
               </div>
-              <p className="mt-2.5 text-[12px] font-semibold leading-5 text-white/50">She earns a share of every paid try-on — automatically, day and night.</p>
+              <p className="mt-2.5 text-[12px] font-semibold leading-5 text-white/50">Fans pay for premium try-ons — she gets her share of every single one, automatically, day and night.</p>
             </div>
           </section>
         )}
@@ -213,6 +215,20 @@ export default async function BecomeAModelPage() {
             className="lb-gold flex items-center justify-center gap-2 rounded-full px-6 py-4 text-base font-black active:scale-95 transition-transform">
             <Coins className="h-5 w-5" /> Become a LuxuryBandit Model — it&apos;s free
           </Link>
+          {/* Share — plain sharer links, no JS: Facebook builds its card from our
+              OG banner (1280x720), WhatsApp from the same preview. */}
+          <div className="flex items-center justify-center gap-2">
+            <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent("https://luxurybandit.com/become-a-model")}`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex flex-1 items-center justify-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/[0.08] px-4 py-3 text-[13px] font-black text-amber-400 active:scale-95 transition-transform">
+              Share on Facebook
+            </a>
+            <a href={`https://wa.me/?text=${encodeURIComponent("Become a LuxuryBandit Model — make money daily 💛 https://luxurybandit.com/become-a-model")}`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex flex-1 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/[0.04] px-4 py-3 text-[13px] font-black text-white active:scale-95 transition-transform">
+              Share on WhatsApp
+            </a>
+          </div>
           <Link href="/stores"
             className="flex items-center justify-center rounded-full px-6 py-3 text-sm font-black text-white/50 active:scale-95 transition-transform">
             Back to LuxuryBandit
