@@ -1228,6 +1228,13 @@ export async function POST(request: Request) {
       if (!gen) return NextResponse.json({ error: "Generation not found." }, { status: 404 });
       if (videoUrl) (gen as any).videoUrl = videoUrl;
       if (typeof payload.feed === "boolean") (gen as any).feed = payload.feed;
+      // Replacing the video? Also refresh the POSTER (a frame of the new video), else the feed
+      // shows the OLD video's still first. imagePath drives the hydrated imageUrl.
+      const posterImage = (payload as any).posterImage;
+      if (typeof posterImage === "string" && posterImage.startsWith("data:image/")) {
+        (gen as any).imagePath = await uploadTryThisLookImage("generations", posterImage);
+        delete (gen as any).imageUrl;
+      }
       await saveTryThisLookState(state);
       return NextResponse.json({ ok: true });
     }

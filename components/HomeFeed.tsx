@@ -592,19 +592,40 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   // Admin: upload a downloaded (HD) video FILE straight to Supabase → replace this try-on's video.
   // Direct signed-upload PUT so big files don't hit the ~4.5MB API-body limit.
   const videoFileRef = useRef<HTMLInputElement>(null);
+  // Grab a poster frame from a video file (so the replaced post doesn't flash the OLD still).
+  const firstFrameDataUrl = (file: File): Promise<string> => new Promise((resolve) => {
+    try {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement("video");
+      v.muted = true; v.preload = "metadata"; v.src = url;
+      const done = (out: string) => { try { URL.revokeObjectURL(url); } catch { /**/ } resolve(out); };
+      v.onloadeddata = () => { try { v.currentTime = Math.min(0.1, (v.duration || 1) * 0.02); } catch { done(""); } };
+      v.onseeked = () => {
+        try {
+          const c = document.createElement("canvas");
+          c.width = v.videoWidth || 720; c.height = v.videoHeight || 1280;
+          const ctx = c.getContext("2d");
+          if (ctx) { ctx.drawImage(v, 0, 0, c.width, c.height); done(c.toDataURL("image/webp", 0.82)); } else done("");
+        } catch { done(""); }
+      };
+      v.onerror = () => done("");
+      setTimeout(() => done(""), 6000);
+    } catch { resolve(""); }
+  });
   const uploadReplace = async (file: File) => {
     if (!activeTryOnId || upscaling) return;
     if (!file.type.startsWith("video/")) { alert("Bitte eine Videodatei wählen."); return; }
     setUpscaling(true);
     try {
       const ext = (file.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "") || "mp4";
+      const posterImage = await firstFrameDataUrl(file); // capture BEFORE upload (file still in memory)
       const sig = await fetch("/api/generate-tryon-video", { method: "POST", headers: modHeaders(), body: JSON.stringify({ importVideo: true, sign: true, ext }) }).then(r => r.json());
       if (!sig.uploadUrl || !sig.path) throw new Error(sig.error || "Upload konnte nicht starten (Rechte prüfen)");
       const put = await fetch(sig.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type || "video/mp4", "x-upsert": "true" }, body: file });
       if (!put.ok) throw new Error("Upload zu Supabase fehlgeschlagen");
       const att = await fetch("/api/generate-tryon-video", { method: "POST", headers: modHeaders(), body: JSON.stringify({ importVideo: true, videoPath: sig.path }) }).then(r => r.json());
       if (!att.videoUrl) throw new Error(att.error || "Signieren fehlgeschlagen");
-      await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "attach-generation-video", generationId: activeTryOnId, videoUrl: att.videoUrl }) });
+      await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "attach-generation-video", generationId: activeTryOnId, videoUrl: att.videoUrl, ...(posterImage ? { posterImage } : {}) }) });
       setIdOpen(false);
       alert("Video ersetzt ✓ — neu laden zum Ansehen.");
     } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Hochladen"); }
@@ -1034,7 +1055,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               <p className="text-sm font-black text-black">Video ersetzen (HD)</p>
               <button type="button" onClick={() => !upscaling && setIdOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-black/5"><X className="h-4 w-4" /></button>
             </div>
-            <p className="mb-3 text-[12px] font-bold text-black/45">Lade das in Pixverse heruntergeladene HD-Video hoch — es wird bei uns gespeichert und ersetzt das alte.</p>
+            <p className="mb-1 text-[12px] font-bold text-black/45">Lade das in Pixverse heruntergeladene HD-Video hoch — es wird bei uns gespeichert und ersetzt das alte.</p>
+            {(() => { const n = (community.find(c => c.id === activeTryOnId) as { name?: string } | undefined)?.name; return n ? <p className="mb-3 text-[12px] font-black text-black">Ersetzt das Video von: {publicAuthorName(n)}</p> : <div className="mb-2" />; })()}
             {/* Primary: upload the downloaded file (works with ANY Pixverse account). */}
             <button type="button" onClick={() => videoFileRef.current?.click()} disabled={upscaling}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-black text-sm font-black text-white active:scale-95 transition disabled:opacity-40">
