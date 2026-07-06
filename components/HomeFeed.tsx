@@ -645,7 +645,10 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       try {
         // Public models list (no admin gate) so the picker always populates.
         const d = await fetch("/api/try-this-look?models=1", { headers: modHeaders() }).then(r => r.json());
-        setCuratorList((d.models || []).map((c: any) => ({ id: c.id, name: c.name || c.id, photoUrl: c.photoUrl || "" })));
+        setCuratorList((d.models || [])
+          .map((c: any) => ({ id: c.id, name: c.name || c.id, photoUrl: c.photoUrl || "" }))
+          // Alphabetical by first name so the admin finds a model instantly.
+          .sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, "en", { sensitivity: "base" })));
       } catch { /**/ }
     }
   };
