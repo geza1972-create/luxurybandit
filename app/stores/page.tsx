@@ -155,6 +155,7 @@ type CommunityItem = {
   lingerie?: boolean;
   category?: LookCategory;
   public?: boolean; // admin "fully unlocked" → visible to everyone in "All"
+  visibility?: "public" | "community" | "private"; // moderation tier (All | Community | Private chips)
   thumbUrl?: string;
   userPhotoUrl?: string;
   customerName: string;
@@ -1688,6 +1689,27 @@ function StoresPage() {
   // Editorial category filter (After Dark / Riviera / Boudoir / Off-Duty). Replaces
   // brand names as the top-level chips. null = "All" (Boudoir hidden from All).
   const [categoryFilter, setCategoryFilter] = useState<LookCategory | null>(null);
+  // Fashionshow grid moderation tier — "public" (All) | "community" | "private" (admin).
+  const [tierFilter, setTierFilter] = useState<"public" | "community" | "private">("public");
+  // Admin bulk moderation: select try-on tiles, then move them to another tier.
+  const [tierSelect, setTierSelect] = useState(false);
+  const [tierSelected, setTierSelected] = useState<Set<string>>(new Set());
+  const [tierBusy, setTierBusy] = useState(false);
+  const moveSelectedTo = async (vis: "public" | "community" | "private") => {
+    if (tierBusy || !tierSelected.size) return;
+    setTierBusy(true);
+    try {
+      const ids = [...tierSelected];
+      const res = await adminWrite({ action: "set-visibility", ids, visibility: vis });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehler");
+      // Reflect instantly: retag moved items locally (feed + grid + reel all derive
+      // from communityItems). Private items vanish for non-admin payloads anyway.
+      setCommunityItems(prev => prev.map(c => ids.includes(c.id) ? { ...c, visibility: vis, public: vis === "public" } : c));
+      setTierSelected(new Set());
+      setTierSelect(false);
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Verschieben"); }
+    finally { setTierBusy(false); }
+  };
   const [feedSelectMode, setFeedSelectMode] = useState(false);
   // Boudoir is gated: if the viewer is on it and signs out, drop them back to "All"
   // so lingerie never shows without a session. (Effect added after auth state below.)
@@ -1753,7 +1775,8 @@ function StoresPage() {
   // and the viewer isn't a paying member (admin always counts), snap back to "All".
   useEffect(() => {
     if (categoryFilter === "boudoir" && !isPaidMember) setCategoryFilter(null);
-  }, [categoryFilter, isPaidMember]);
+    if (tierFilter !== "public" && !isPaidMember) setTierFilter("public");
+  }, [categoryFilter, tierFilter, isPaidMember]);
 
   // React to bottom-nav deep links whenever search params change
   useEffect(() => {
@@ -2063,7 +2086,7 @@ function StoresPage() {
   // videos the feed shows), PLUS a look-video tile for looks that have a video but no
   // try-on yet. Nothing else — no separately-filtered "curated" list.
   const historyItems = useMemo(() => {
-    type HItem = { key: string; kind: "look" | "tryon"; id: string; lookId: string; thumb: string; videoUrl?: string; videoPoster?: string; hasBefore?: boolean; aiCreated?: boolean; brand?: string; category?: LookCategory; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string };
+    type HItem = { key: string; kind: "look" | "tryon"; id: string; lookId: string; thumb: string; videoUrl?: string; videoPoster?: string; hasBefore?: boolean; aiCreated?: boolean; brand?: string; category?: LookCategory; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string; visibility: "public" | "community" | "private" };
     const lookById = new Map(looks.map(l => [l.id, l]));
     const items: HItem[] = [];
     const looksWithTryOn = new Set<string>();
@@ -2071,7 +2094,7 @@ function StoresPage() {
     for (const c of communityItems) {
       const srcLook = lookById.get(c.lookId);
       looksWithTryOn.add(c.lookId);
-      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, hasBefore: !!c.userPhotoUrl, brand: c.brand, category: c.category ?? srcLook?.category, createdAt: c.createdAt ?? "", name: c.customerName || (srcLook ? publicLookLabel(srcLook) : "Luxury look"), price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName });
+      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, hasBefore: !!c.userPhotoUrl, brand: c.brand, category: c.category ?? srcLook?.category, createdAt: c.createdAt ?? "", name: c.customerName || (srcLook ? publicLookLabel(srcLook) : "Luxury look"), price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName, visibility: c.visibility ?? (c.public ? "public" : "community") });
     }
     // A look-VIDEO tile for looks that have a video but no try-on (so those feed posts are
     // mirrored too). Looks without a video and without a try-on don't appear in the feed.
@@ -2079,7 +2102,7 @@ function StoresPage() {
       if (looksWithTryOn.has(l.id) || !l.videoUrl) continue;
       const videoTs = l.videoCreatedAt || tsFromVideoUrl(l.videoUrl) || "";
       const when = videoTs > (l.createdAt ?? "") ? videoTs : (l.createdAt ?? "");
-      items.push({ key: `look-${l.id}`, kind: "look", id: l.id, lookId: l.id, thumb: safeLookImage(l), videoUrl: l.videoUrl, videoPoster: l.videoPosterUrl || l.tryOnImageUrl || undefined, aiCreated: l.aiCreated, brand: l.brand, category: l.category, createdAt: when, name: publicLookLabel(l), price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl });
+      items.push({ key: `look-${l.id}`, kind: "look", id: l.id, lookId: l.id, thumb: safeLookImage(l), videoUrl: l.videoUrl, videoPoster: l.videoPosterUrl || l.tryOnImageUrl || undefined, aiCreated: l.aiCreated, brand: l.brand, category: l.category, createdAt: when, name: publicLookLabel(l), price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl, visibility: "public" });
     }
     return items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [looks, communityItems]);
@@ -2100,21 +2123,19 @@ function StoresPage() {
   // filter). After Dark / Off-Duty / Riviera were dropped (user request 2026-07-04).
   const categoryChips = useMemo(() => LOOK_CATEGORIES.filter(c => c.slug === "boudoir"), []);
   const visibleHistory = useMemo(() => {
-    // The grid is the EXACT mirror of the public feed. "All" = every post the feed shows
-    // (nothing hidden — the reel already shows every look/try-on). A category chip just
-    // narrows to that world; the Community chip is still the gated filter for browsing.
-    let items: typeof feedItems = categoryFilter
-      ? feedItems.filter(it => it.category === categoryFilter)
-      : feedItems;
+    // Moderation tiers (user request 2026-07-06): "All" = the PUBLIC feed (visibility
+    // public only); "Community" = the member pool the admin reviews (new user videos
+    // land here) and promotes from; "Private" = admin-only view of unshared try-ons.
+    let items: typeof feedItems = feedItems.filter(it => it.visibility === tierFilter);
     const q = query.trim().toLowerCase();
     if (q) items = items.filter(it => `${it.name} ${it.curatorName ?? ""}`.toLowerCase().includes(q));
     return items;
-  }, [feedItems, categoryFilter, query]);
+  }, [feedItems, tierFilter, query]);
   // Grid pagination — render a first fast batch, then load more as you scroll (the grid
   // was mounting 40+ <video> tiles at once, which stalled the initial paint).
   const HISTORY_PAGE = 12;
   const [historyCount, setHistoryCount] = useState(HISTORY_PAGE);
-  useEffect(() => { setHistoryCount(HISTORY_PAGE); }, [categoryFilter, query, typeFilter]);
+  useEffect(() => { setHistoryCount(HISTORY_PAGE); }, [categoryFilter, tierFilter, query, typeFilter]);
   const pagedHistory = useMemo(() => visibleHistory.slice(0, historyCount), [visibleHistory, historyCount]);
   // The thumbnail grid is built from `communityItems` (?community=1 — the FULL shared set),
   // but the reel is built from `looks[].communityTryOns`, which the feed-gating trims (some
@@ -2133,6 +2154,15 @@ function StoresPage() {
     }
     return (looks as unknown as FeedLook[]).map(l => byLook.has(l.id) ? { ...l, communityTryOns: byLook.get(l.id) } : l);
   }, [looks, communityItems]);
+  // The MAIN reels feed is the PUBLIC feed: community/private try-ons stay out — a post
+  // the admin demotes to Community disappears from the feed instantly. The grid overlay
+  // keeps `looksForFeed` (full tier-gated set) so Community/Private tiles still open.
+  const looksForFeedPublic = useMemo(() => {
+    const publicIds = new Set(communityItems.filter(c => (c.visibility ?? (c.public ? "public" : "community")) === "public").map(c => c.id));
+    return looksForFeed.map(l => l.communityTryOns?.length
+      ? { ...l, communityTryOns: l.communityTryOns.filter(t => publicIds.has(t.id)) }
+      : l);
+  }, [looksForFeed, communityItems]);
   // Garderobe = every generated garment (all wardrobes), newest first, optionally by type.
   const garments = useMemo(() => {
     const g = (looks as unknown as { id: string; name: string; frontImageUrl?: string; imageUrl?: string; category?: LookCategory; curatorId?: string; productType?: string; wardrobe?: boolean; published?: boolean; productNote?: string; createdAt?: string; buyUrl?: string }[])
@@ -2287,7 +2317,7 @@ function StoresPage() {
         </div>
       );
     }
-    return <HomeFeed looks={looksForFeed} />;
+    return <HomeFeed looks={looksForFeedPublic} />;
   }
 
   // ── The A List = HomeFeed of look posts (?view=alist) ──
@@ -2627,37 +2657,56 @@ function StoresPage() {
             ) : (
             <>
 
-            {/* Category chips (only Feeds view) — "All" + the gated Community chip. */}
-            {categoryChips.length > 0 && (
-              <div className="flex gap-1.5 overflow-x-auto px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <button type="button" onClick={() => setCategoryFilter(null)}
-                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${categoryFilter === null ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
-                  All
+            {/* Moderation-tier chips: All = the PUBLIC feed; Community = the gated member
+                pool (new user videos land here — the admin reviews & promotes); Private =
+                admin-only view of unshared try-ons. Admin also gets a select toggle for
+                bulk-moving posts between tiers. */}
+            <div className="flex items-center gap-1.5 overflow-x-auto px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <button type="button" onClick={() => setTierFilter("public")}
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "public" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
+                All
+              </button>
+              <button type="button"
+                onClick={() => { if (!isPaidMember) { setShowPaywall(true); return; } setTierFilter("community"); }}
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "community" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
+                {isPaidMember ? "🔓 " : "🔒 "}Community
+              </button>
+              {isAdmin && (
+                <button type="button" onClick={() => setTierFilter("private")}
+                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "private" ? "bg-amber-400 text-black" : "bg-amber-400/15 text-amber-400"}`}>
+                  Private
                 </button>
-                {categoryChips.map(c => {
-                  // Community (boudoir slug) is for PAYING members. Padlock is OPEN for a
-                  // paying member (admin always), CLOSED otherwise — tapping it closed shows
-                  // the paywall prompt instead of the feed.
-                  const isCommunity = c.slug === "boudoir";
-                  const locked = isCommunity && !isPaidMember;
-                  return (
-                  <button key={c.slug} type="button"
-                    onClick={() => { if (locked) { setShowPaywall(true); return; } setCategoryFilter(c.slug); }}
-                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${categoryFilter === c.slug ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
-                    {isCommunity ? (isPaidMember ? "🔓 " : "🔒 ") : ""}{c.label}
-                  </button>
-                  );
-                })}
-              </div>
-            )}
+              )}
+              {isAdmin && (
+                <button type="button"
+                  onClick={() => { setTierSelect(v => !v); setTierSelected(new Set()); }}
+                  className={`ml-auto shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-black transition ${tierSelect ? "border-amber-400 bg-amber-400 text-black" : "border-white/20 bg-white/5 text-white/70"}`}>
+                  {tierSelect ? "Fertig" : "Auswählen"}
+                </button>
+              )}
+            </div>
             {/* Rounded cards like the Models grid (gap + rounded-2xl on the dark home). */}
             {/* Always exactly 3 per row (user request) — the page is a mobile column anyway. */}
             <div className="grid grid-cols-3 gap-1.5 px-3 pb-8">
               {pagedHistory.map((it, idx) => (
                 <div key={it.key} className="flex flex-col overflow-hidden rounded-2xl bg-white/[0.04]">
                   <button type="button"
-                    onClick={() => openFeedOverlay({ tryOnId: it.kind === "tryon" ? it.id : undefined, lookId: it.lookId })}
-                    className="relative aspect-[3/4] overflow-hidden lb-media-bg transition-opacity active:opacity-80">
+                    onClick={() => {
+                      if (tierSelect && isAdmin) {
+                        if (it.kind !== "tryon") return; // only try-ons carry a tier
+                        setTierSelected(prev => { const n = new Set(prev); if (n.has(it.id)) n.delete(it.id); else n.add(it.id); return n; });
+                        return;
+                      }
+                      openFeedOverlay({ tryOnId: it.kind === "tryon" ? it.id : undefined, lookId: it.lookId });
+                    }}
+                    className={`relative aspect-[3/4] overflow-hidden lb-media-bg transition-opacity active:opacity-80 ${
+                      tierSelect && isAdmin
+                        ? (it.kind !== "tryon" ? "opacity-30" : tierSelected.has(it.id) ? "ring-2 ring-inset ring-amber-400" : "")
+                        : ""
+                    }`}>
+                    {tierSelect && isAdmin && it.kind === "tryon" && (
+                      <span className={`absolute right-1.5 top-1.5 z-10 grid h-6 w-6 place-items-center rounded-full text-[13px] font-black ${tierSelected.has(it.id) ? "bg-amber-400 text-black" : "bg-black/60 text-white/60"}`}>✓</span>
+                    )}
                     {it.videoUrl ? (
                       // Video tile — the grid is NOT a player (tapping opens the reel), so
                       // with a poster we render a plain lazy <img>: sized-down (400px) and
@@ -2711,8 +2760,8 @@ function StoresPage() {
                 <Loader2 className="h-5 w-5 animate-spin text-black/25" />
               </div>
             )}
-            {categoryFilter && visibleHistory.length === 0 && (
-              <p className="py-16 text-center text-sm font-black text-black/40">Nothing in this category yet.</p>
+            {tierFilter !== "public" && visibleHistory.length === 0 && (
+              <p className="py-16 text-center text-sm font-black text-white/40">Nothing here yet.</p>
             )}
             </>
             )}
@@ -3342,6 +3391,34 @@ function StoresPage() {
           </div>
         );
       })()}
+
+      {/* Admin bulk-move bar — appears while selecting try-on tiles in the grid. */}
+      {isAdmin && tierSelect && (
+        <div className="fixed inset-x-0 bottom-0 z-[85] flex items-center gap-2 border-t border-white/10 bg-[#0d0b0a]/95 px-4 py-3 backdrop-blur"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}>
+          <span className="shrink-0 text-[12px] font-black text-white/70">{tierSelected.size} ausgewählt</span>
+          <div className="ml-auto flex items-center gap-1.5">
+            {tierFilter !== "public" && (
+              <button type="button" disabled={tierBusy || !tierSelected.size} onClick={() => void moveSelectedTo("public")}
+                className="lb-gold flex items-center gap-1 rounded-full px-3.5 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-40">
+                {tierBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} → Public
+              </button>
+            )}
+            {tierFilter !== "community" && (
+              <button type="button" disabled={tierBusy || !tierSelected.size} onClick={() => void moveSelectedTo("community")}
+                className="flex items-center gap-1 rounded-full bg-white/10 px-3.5 py-2 text-[12px] font-black text-white active:scale-95 transition disabled:opacity-40">
+                {tierBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} → Community
+              </button>
+            )}
+            {tierFilter !== "private" && (
+              <button type="button" disabled={tierBusy || !tierSelected.size} onClick={() => void moveSelectedTo("private")}
+                className="flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/10 px-3.5 py-2 text-[12px] font-black text-amber-400 active:scale-95 transition disabled:opacity-40">
+                {tierBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} → Private
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Grid tile detail = the SAME HomeFeed reel (identical layout to the feed),
            opened at the tapped try-on (or look for tryon-less tiles). Home closes it. ── */}

@@ -632,7 +632,8 @@ export async function GET(request: Request) {
       // Member try-ons are gated by VISIBILITY tier: a signed-in / curator / admin viewer
       // gets ALL shared (feed:true) try-ons (incl. Community-tier); an anonymous viewer gets
       // ONLY the fully-public ones (`public:true`). Boudoir/lingerie is no longer special.
-      const viewerGated = !!myEmail || !!myCuratorId || (await isAdmin(request));
+      const adminViewer = await isAdmin(request);
+      const viewerGated = !!myEmail || !!myCuratorId || adminViewer;
       // Model attribution (same rules as the looks payload): explicit gen.curatorId wins,
       // else resolve by customerName slug — so posts link to the try-on's model.
       const cPhotoById = new Map((state.curators ?? []).map(c => [c.id, ((c as any).photoUrl as string) || ""]));
@@ -643,7 +644,9 @@ export async function GET(request: Request) {
       }
       const community = state.generations
         .filter(g => {
-          if (!(g as any).imageUrl || (g as any).hidden || (g as any).feed !== true) return false; // OPT-IN: only explicit feed===true
+          if (!(g as any).imageUrl || (g as any).hidden) return false;
+          const shared = (g as any).feed === true; // OPT-IN: only explicit feed===true is in the pool
+          if (!shared) return adminViewer; // PRIVATE tier — the admin's "Private" chip sees it
           const isPublic = (g as any).public === true;
           if (!viewerGated && !isPublic) return false; // anonymous: only admin-published try-ons
           return true;
@@ -666,6 +669,8 @@ export async function GET(request: Request) {
             lingerie: look ? (typeof (look as any).lingerie === "boolean" ? (look as any).lingerie : isIntimateName([(look as any).name, (look as any).brand, (look as any).campaignName, (look as any).productNote].filter(Boolean).join(" "))) : undefined,
             // Admin "fully unlocked" → visible to everyone in "All" (not just gated Community).
             public: (g as any).public === true,
+            // Moderation tier — drives the All | Community | Private chips.
+            visibility: (g as any).feed !== true ? "private" : ((g as any).public === true ? "public" : "community"),
             // Public, licensing-safe label (curator description) — shown instead of the
             // real brand product name. Empty when the look has no description.
             lookTitle: look ? (((look as any).curatorNote || (look as any).productNote || "").trim() || undefined) : undefined,
@@ -2367,6 +2372,29 @@ export async function POST(request: Request) {
       }
       const updatedState = await saveTryThisLookState(state);
       return NextResponse.json({ ok: true, customerName: (gen as any).customerName, userId: (gen as any).userId });
+    }
+
+    // ── Bulk visibility tier for try-ons (admin moderation) ──────────────────
+    // public    = in the public "All" feed (feed:true + public:true)
+    // community = member pool only, NOT in the public feed (feed:true, public off)
+    // private   = shared nowhere (feed off) — admin sees it under the Private chip
+    if (payload.action === "set-visibility") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const ids = Array.isArray(payload.ids) ? (payload.ids as unknown[]).map(x => String(x)) : [];
+      const vis = String(payload.visibility ?? "");
+      if (!ids.length || !["public", "community", "private"].includes(vis)) {
+        return NextResponse.json({ error: "ids + visibility (public|community|private) required." }, { status: 400 });
+      }
+      let count = 0;
+      for (const g of state.generations) {
+        if (!ids.includes(g.id)) continue;
+        (g as any).feed = vis !== "private";
+        (g as any).public = vis === "public" ? true : undefined;
+        count++;
+      }
+      if (count === 0) return NextResponse.json({ error: "No matching try-ons found." }, { status: 404 });
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, updated: count, visibility: vis });
     }
 
     // ── Bulk reassign generations from one customer name to another ──────────
