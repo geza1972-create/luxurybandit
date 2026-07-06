@@ -2152,16 +2152,37 @@ function StoresPage() {
       list.push({ id: c.id, imageUrl: c.imageUrl, videoUrl: c.videoUrl, userPhotoUrl: c.userPhotoUrl, name: c.customerName, hidden: false, pending: false, curatorId: c.curatorId, curatorPhotoUrl: c.curatorPhotoUrl });
       byLook.set(c.lookId, list);
     }
-    return (looks as unknown as FeedLook[]).map(l => byLook.has(l.id) ? { ...l, communityTryOns: byLook.get(l.id) } : l);
+    const enriched = (looks as unknown as FeedLook[]).map(l => byLook.has(l.id) ? { ...l, communityTryOns: byLook.get(l.id) } : l);
+    // Try-ons WITHOUT a look (e.g. uploaded "In motion" model clips, lookId "") can
+    // never ride an existing look into the reel — synthesize a stub post per clip so
+    // "public" really means "in the feed" for them too.
+    const orphans = communityItems
+      .filter(c => !c.lookId)
+      .map(c => ({
+        id: `clip-${c.id}`,
+        name: c.lookName || "In motion",
+        createdAt: (c as { createdAt?: string }).createdAt ?? "",
+        imageUrl: c.imageUrl,
+        curatorId: c.curatorId,
+        curatorName: c.customerName,
+        curatorPhotoUrl: c.curatorPhotoUrl,
+        category: c.category,
+        communityTryOns: [{ id: c.id, imageUrl: c.imageUrl, videoUrl: c.videoUrl, userPhotoUrl: c.userPhotoUrl, name: c.customerName, hidden: false, pending: false, curatorId: c.curatorId, curatorPhotoUrl: c.curatorPhotoUrl }],
+      } as unknown as FeedLook));
+    return [...enriched, ...orphans];
   }, [looks, communityItems]);
   // The MAIN reels feed is the PUBLIC feed: community/private try-ons stay out — a post
   // the admin demotes to Community disappears from the feed instantly. The grid overlay
   // keeps `looksForFeed` (full tier-gated set) so Community/Private tiles still open.
   const looksForFeedPublic = useMemo(() => {
     const publicIds = new Set(communityItems.filter(c => (c.visibility ?? (c.public ? "public" : "community")) === "public").map(c => c.id));
-    return looksForFeed.map(l => l.communityTryOns?.length
-      ? { ...l, communityTryOns: l.communityTryOns.filter(t => publicIds.has(t.id)) }
-      : l);
+    return looksForFeed
+      .map(l => l.communityTryOns?.length
+        ? { ...l, communityTryOns: l.communityTryOns.filter(t => publicIds.has(t.id)) }
+        : l)
+      // A stub clip-post whose try-on is not public has NO content left — drop it,
+      // or it would surface its poster as a flat look post in the public feed.
+      .filter(l => !String(l.id).startsWith("clip-") || (l.communityTryOns?.length ?? 0) > 0);
   }, [looksForFeed, communityItems]);
   // Garderobe = every generated garment (all wardrobes), newest first, optionally by type.
   const garments = useMemo(() => {
