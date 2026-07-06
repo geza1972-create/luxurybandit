@@ -128,3 +128,15 @@ svg {
     0 4px 14px rgba(233, 174, 43, 0.28);
 }
 .lb-gold:active { filter: brightness(0.95); }
+
+/* ── Media-frame backdrop: a warm, blurred-looking color wash behind every
+   photo/video tile. While the image is still loading (or momentarily broken)
+   the frame shows THIS instead of flashing white — reads as an intentional
+   soft-focus luxury backdrop, never as a broken tile. ── */
+.lb-media-bg {
+  background-color: #171009;
+  background-image:
+    radial-gradient(120% 90% at 18% 8%, rgba(246, 207, 81, 0.30), transparent 62%),
+    radial-gradient(140% 110% at 88% 92%, rgba(122, 58, 22, 0.45), transparent 68%),
+    radial-gradient(90% 75% at 75% 25%, rgba(88, 44, 78, 0.28), transparent 60%);
+}

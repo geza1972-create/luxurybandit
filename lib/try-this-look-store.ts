@@ -195,6 +195,7 @@ export type CuratorProfile = {
   followerBoost?: number;     // baseline followers added to the real follow count (admin-set)
   likeBoost?: number;         // vanity likes baseline on her profile stats (admin-set)
   viewBoost?: number;         // vanity views baseline on her profile stats (admin-set)
+  realBadge?: boolean;        // gold "is a real LuxuryBandit Model" banner — admin-set per model, off by default
   status: "active" | "pending" | "deactivated";
   createdAt: string;
   // Creator credits (communicated to creators as "credits", never money).

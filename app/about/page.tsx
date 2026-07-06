@@ -60,7 +60,7 @@ export default async function AboutPage() {
               {clips.map((c, i) => (
                 /* eslint-disable-next-line jsx-a11y/media-has-caption */
                 <video key={i} src={c.video} poster={c.poster || undefined} muted loop playsInline autoPlay preload="metadata"
-                  className="aspect-[3/4] h-64 shrink-0 rounded-2xl bg-black/40 object-cover" />
+                  className="aspect-[3/4] h-64 shrink-0 rounded-2xl lb-media-bg object-cover" />
               ))}
             </div>
             {curatorId && (

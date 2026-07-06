@@ -56,6 +56,7 @@ export async function GET(request: Request) {
       photoUrl: c.photoUrl, photoFullUrl: (c as any).photoFullUrl, photoBodyUrls: (c as any).photoBodyUrls ?? [], instagram: c.instagram, style: c.style, brands: c.brands, genderFocus: c.genderFocus,
       // Vanity baselines (admin-set) — added to the real sums on her stats row.
       likeBoost: (c as any).likeBoost ?? 0, viewBoost: (c as any).viewBoost ?? 0,
+      realBadge: (c as any).realBadge === true,
     } });
   }
 
@@ -549,6 +550,10 @@ export async function POST(request: Request) {
       viewBoost: isAdmin && (payload as any).viewBoost !== undefined
         ? Math.max(0, Math.floor(Number((payload as any).viewBoost) || 0))
         : (cur as any).viewBoost,
+      // Gold trust banner on her page — admin only, per model (off by default).
+      realBadge: isAdmin && (payload as any).realBadge !== undefined
+        ? (payload as any).realBadge === true
+        : (cur as any).realBadge,
     };
     // Optional new photo
     const photo = String(payload.photo ?? "");

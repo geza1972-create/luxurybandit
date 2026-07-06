@@ -435,19 +435,19 @@ export default function PostPage() {
       <div className="relative bg-black/5">
         {post.userPhotoUrl ? (
           <div className="grid grid-cols-2 gap-0.5">
-            <div className="relative aspect-[3/4] overflow-hidden bg-black/5">
+            <div className="relative aspect-[3/4] overflow-hidden lb-media-bg">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={post.userPhotoUrl} alt="Before" className="h-full w-full object-cover object-top" />
               <div className="absolute bottom-2 left-2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-black text-white/80">Before</div>
             </div>
-            <div className="relative aspect-[3/4] overflow-hidden bg-black/5">
+            <div className="relative aspect-[3/4] overflow-hidden lb-media-bg">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={post.imageUrl} alt="After" className="h-full w-full object-cover object-top" />
               <div className="absolute bottom-2 left-2 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-black text-white/80">After</div>
             </div>
           </div>
         ) : (
-          <div className="aspect-[3/4] max-h-[75dvh] w-full overflow-hidden">
+          <div className="aspect-[3/4] max-h-[75dvh] w-full overflow-hidden lb-media-bg">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={post.imageUrl} alt={post.lookName} className="h-full w-full object-cover object-top" />
           </div>

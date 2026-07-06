@@ -18,7 +18,7 @@ function viewerHeaders(): Record<string, string> {
   return h;
 }
 
-type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number };
+type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean };
 type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
 type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string };
 
@@ -292,6 +292,25 @@ export default function CuratorPublicPage() {
     finally { setBoostBusy(false); }
   };
 
+  // ── Admin: toggle the gold "real LuxuryBandit Model" banner for THIS model.
+  // Off by default (AI models must never claim to be real).
+  const [badgeBusy, setBadgeBusy] = useState(false);
+  const toggleRealBadge = async () => {
+    if (badgeBusy || !profile) return;
+    setBadgeBusy(true);
+    try {
+      const next = !(profile.realBadge === true);
+      const res = await fetch("/api/curator", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...adminHeaders() },
+        body: JSON.stringify({ action: "update", id, realBadge: next }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Speichern fehlgeschlagen");
+      setProfile(p => (p ? { ...p, realBadge: next } : p));
+    } catch (e) { alert(e instanceof Error ? e.message : "Speichern fehlgeschlagen"); }
+    finally { setBadgeBusy(false); }
+  };
+
   // ── Admin one-click: turn a model's PHOTO try-on into a VIDEO (Pixverse animates the
   // dressed photo; single-image mode — no reference binding needed). The video attaches
   // to the SAME generation, so the photo becomes its poster.
@@ -512,12 +531,22 @@ export default function CuratorPublicPage() {
               {boostBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             </button>
           )}
+          {isAdmin && (
+            <button type="button" onClick={() => void toggleRealBadge()} disabled={badgeBusy}
+              title={profile.realBadge ? "Real-Banner ausschalten" : "Real-Banner einschalten"}
+              className={`grid h-8 w-8 place-items-center rounded-full border active:scale-90 transition disabled:opacity-50 ${
+                profile.realBadge ? "border-amber-400 bg-amber-400 text-black" : "border-white/20 bg-white/5 text-white/40"
+              }`}>
+              {badgeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />}
+            </button>
+          )}
         </div>
 
         {/* Trust badge in gold (~every 2nd visit): the models are REAL people.
             PURE trust signal for VISITORS — the model herself never sees it
-            (also hidden in the admin "view as her" preview). */}
-        {showRealBanner && !isOwn && (
+            (also hidden in the admin "view as her" preview). Shows ONLY for models
+            the admin explicitly marked as real (realBadge) — never on AI models. */}
+        {showRealBanner && !isOwn && profile.realBadge === true && (
           <div className="lb-gold mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[12px] font-black">
             <BadgeCheck className="h-4 w-4 shrink-0" />
             <span className="min-w-0 truncate">{profile.firstName || "She"} is a real LuxuryBandit Model</span>
@@ -533,7 +562,7 @@ export default function CuratorPublicPage() {
             <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {videos.map((t, i) => (
                 <button key={t.id} type="button" onClick={() => openMotionAt(i)}
-                  className="relative aspect-[3/4] h-40 shrink-0 overflow-hidden rounded-xl bg-black/30 active:scale-95 transition">
+                  className="relative aspect-[3/4] h-40 shrink-0 overflow-hidden rounded-xl lb-media-bg active:scale-95 transition">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={optImg(t.imageUrl, 300)} alt="" loading="lazy" decoding="async"
                     onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
@@ -544,7 +573,7 @@ export default function CuratorPublicPage() {
                 </button>
               ))}
               {photoDrafts.map(t => (
-                <div key={t.id} className="relative aspect-[3/4] h-40 shrink-0 overflow-hidden rounded-xl border border-dashed border-amber-400/40 bg-white/[0.04]">
+                <div key={t.id} className="relative aspect-[3/4] h-40 shrink-0 overflow-hidden rounded-xl border border-dashed border-amber-400/40 lb-media-bg">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={optImg(t.imageUrl, 300)} alt="" loading="lazy" decoding="async"
                     onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
@@ -740,7 +769,7 @@ export default function CuratorPublicPage() {
               // 3:4 like the generated videos — width drives the height (no crop).
               <div key={t.id} className="relative aspect-[3/4] w-[84vw] max-w-[400px] shrink-0 snap-center">
                 <button type="button" onClick={() => setPlayingId(p => (p === t.id ? "" : t.id))}
-                  className="h-full w-full overflow-hidden rounded-2xl bg-black/40">
+                  className="h-full w-full overflow-hidden rounded-2xl lb-media-bg">
                   {playingId === t.id ? (
                     <video src={t.videoUrl} autoPlay loop playsInline className="h-full w-full object-cover" />
                   ) : (
