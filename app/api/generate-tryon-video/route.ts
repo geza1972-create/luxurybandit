@@ -199,7 +199,7 @@ async function pixversePoll(key: string, id: string): Promise<{ status: "done" |
 // POST { lookId, image } → charge owner, start the right provider, return
 // { videoId: "<provider>:<id>", curatorId } for polling.
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean; garment?: string; person?: string; prompt?: string; dryRun?: boolean; upscale?: boolean; videoUrl?: string };
+  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean; garment?: string; person?: string; prompt?: string; dryRun?: boolean; upscale?: boolean; videoUrl?: string; importVideo?: boolean; ref?: string };
   const lookId = String(body.lookId ?? "").trim();
   const image = String(body.image ?? "");
   const turnaround = body.turnaround === true; // 360° tier
@@ -209,6 +209,27 @@ export async function POST(request: Request) {
   const garment = String(body.garment ?? "");
   const person = String(body.person ?? "");
   const reference = !!garment && !!person;
+
+  // ── Import mode (admin): the admin upscaled the video IN Pixverse directly and pastes the new
+  //    Pixverse video-ID (same account → we fetch it) or a direct video URL. We persist it to
+  //    our storage and return the URL; the client then replaces the feed video. ──
+  if (body.importVideo) {
+    if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    const ref = String(body.ref ?? "").trim();
+    if (!ref) return NextResponse.json({ error: "ref (Pixverse-ID oder URL) required." }, { status: 400 });
+    // A direct video URL → persist it to our bucket (re-signed long-lived).
+    if (/^https?:\/\//i.test(ref)) {
+      try { return NextResponse.json({ ok: true, videoUrl: await persistVideo(ref) }); }
+      catch { return NextResponse.json({ error: "Video-URL konnte nicht geladen werden." }, { status: 502 }); }
+    }
+    // Otherwise a Pixverse video-ID → poll its result (same account key), persist on done.
+    const key = process.env.PIXVERSE_API_KEY?.trim();
+    if (!key) return NextResponse.json({ error: "PIXVERSE_API_KEY missing." }, { status: 400 });
+    const r = await pixversePoll(key, ref.replace(/^pv:/i, ""));
+    if (r.status === "done" && r.videoUrl) return NextResponse.json({ ok: true, videoUrl: r.videoUrl });
+    if (r.status === "failed") return NextResponse.json({ error: r.error || "Pixverse-Video fehlgeschlagen." }, { status: 502 });
+    return NextResponse.json({ ok: true, status: "processing" }); // still rendering in Pixverse
+  }
 
   // ── Upscale mode (admin): turn a good (360p) try-on video into HD, then replace it. ──
   if (body.upscale) {

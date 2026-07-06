@@ -587,6 +587,28 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Hochskalieren"); }
     finally { setUpscaling(false); }
   };
+  // Admin: you upscaled the video IN Pixverse yourself → paste the new video-ID (or URL) to
+  // fetch + persist it and replace this try-on's video.
+  const replaceFromPixverse = async () => {
+    if (!activeTryOnId || upscaling) return;
+    const ref = typeof window !== "undefined" ? window.prompt("Pixverse Video-ID (oder URL) der hochskalierten Version einfügen:") : "";
+    if (!ref || !ref.trim()) return;
+    setUpscaling(true);
+    try {
+      let videoUrl = "";
+      for (let i = 0; i < 60; i++) {
+        const r = await fetch("/api/generate-tryon-video", { method: "POST", headers: modHeaders(), body: JSON.stringify({ importVideo: true, ref: ref.trim() }) }).then(r => r.json());
+        if (r.error) throw new Error(r.error);
+        if (r.videoUrl) { videoUrl = r.videoUrl; break; }
+        if (r.status === "processing") { await new Promise(res => setTimeout(res, 4000)); continue; }
+        break;
+      }
+      if (!videoUrl) throw new Error("Kein Video erhalten (ID prüfen).");
+      await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "attach-generation-video", generationId: activeTryOnId, videoUrl }) });
+      alert("Video ersetzt ✓ — neu laden zum Ansehen.");
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Ersetzen"); }
+    finally { setUpscaling(false); }
+  };
   const openAssign = async () => {
     setAssignOpen(true);
     if (!curatorList.length) {
@@ -695,11 +717,18 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                     className="grid h-9 w-9 place-items-center rounded-full bg-black/70 text-white active:opacity-70 disabled:opacity-40">
                     <UserPlus className="h-4 w-4" />
                   </button>
-                  {/* Upscale the active try-on VIDEO to HD (1080p) and replace it. */}
+                  {/* Upscale the active try-on VIDEO to HD (1080p) and replace it (uses Pixverse credits). */}
                   {activeTryOnId && (
-                    <button type="button" onClick={upscaleActive} disabled={!!modBusy || upscaling} title="In HD (1080p) hochskalieren & ersetzen"
+                    <button type="button" onClick={upscaleActive} disabled={!!modBusy || upscaling} title="In HD (1080p) hochskalieren & ersetzen (Pixverse-Credits)"
                       className="grid h-9 min-w-9 place-items-center rounded-full bg-black/70 px-2.5 text-[11px] font-black text-white active:opacity-70 disabled:opacity-40">
                       {upscaling ? <Loader2 className="h-4 w-4 animate-spin" /> : "HD"}
+                    </button>
+                  )}
+                  {/* Paste a Pixverse video-ID you upscaled yourself → replace this video. */}
+                  {activeTryOnId && (
+                    <button type="button" onClick={replaceFromPixverse} disabled={!!modBusy || upscaling} title="Pixverse-ID der hochskalierten Version einfügen & ersetzen"
+                      className="grid h-9 min-w-9 place-items-center rounded-full bg-black/70 px-2.5 text-[11px] font-black text-white active:opacity-70 disabled:opacity-40">
+                      ID
                     </button>
                   )}
                   {/* What the buttons currently target — so hiding a try-on vs the look is never ambiguous. */}
