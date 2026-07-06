@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, Home, ShoppingBag, EyeOff, Eye, Trash2, UserPlus, Check, ImageOff } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, Home, ShoppingBag, EyeOff, Eye, Trash2, UserPlus, Check, ImageOff, RefreshCw } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -564,37 +564,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   };
   // Admin: upscale the active try-on video to HD (1080p) via Pixverse, then replace it.
   const [upscaling, setUpscaling] = useState(false);
-  const [idOpen, setIdOpen] = useState(false);   // paste-Pixverse-ID dialog
+  const [idOpen, setIdOpen] = useState(false);   // "Video ersetzen" dialog (upload HD file / paste ID)
   const [idInput, setIdInput] = useState("");
-  const upscaleActive = async () => {
-    if (!activeTryOnId || upscaling) return;
-    const ct = community.find(c => c.id === activeTryOnId);
-    const vurl = ct?.videoUrl || look.videoUrl || "";
-    if (!vurl) return;
-    if (typeof window !== "undefined" && !window.confirm("Dieses Video in HD (1080p) hochskalieren und ersetzen? (kostet Pixverse-API-Credits)")) return;
-    setUpscaling(true);
-    try {
-      const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: modHeaders(), body: JSON.stringify({ upscale: true, videoUrl: vurl }) }).then(r => r.json());
-      if (!start.videoId) throw new Error(start.error || "Upscale-Start fehlgeschlagen");
-      let hdUrl = "";
-      for (let i = 0; i < 120; i++) {
-        await new Promise(r => setTimeout(r, 4000));
-        const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}`).then(r => r.json());
-        if (p.status === "done" && p.videoUrl) { hdUrl = p.videoUrl; break; }
-        if (p.status === "failed") throw new Error(p.error || "Upscale fehlgeschlagen");
-      }
-      if (!hdUrl) throw new Error("Zeitüberschreitung");
-      await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "attach-generation-video", generationId: activeTryOnId, videoUrl: hdUrl }) });
-      alert("HD-Video erstellt & ersetzt ✓ — neu laden zum Ansehen.");
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Fehler beim Hochskalieren";
-      // The Pixverse API balance is separate from the web-UI subscription — guide to the ID button.
-      alert(/balance|insufficient/i.test(msg)
-        ? "Kein Pixverse-API-Guthaben. Skaliere das Video stattdessen direkt in der Pixverse-App hoch und füge die neue ID über den „ID“-Button ein."
-        : msg);
-    }
-    finally { setUpscaling(false); }
-  };
   // Admin: you upscaled the video IN Pixverse yourself → paste the new video-ID (or URL) to
   // fetch + persist it and replace this try-on's video.
   const replaceFromPixverse = async (ref: string) => {
@@ -747,18 +718,11 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                     className="grid h-9 w-9 place-items-center rounded-full bg-black/70 text-white active:opacity-70 disabled:opacity-40">
                     <UserPlus className="h-4 w-4" />
                   </button>
-                  {/* Upscale the active try-on VIDEO to HD (1080p) and replace it (uses Pixverse credits). */}
+                  {/* Replace this try-on's video with a downloaded HD file (or a Pixverse ID/URL). */}
                   {activeTryOnId && (
-                    <button type="button" onClick={upscaleActive} disabled={!!modBusy || upscaling} title="In HD (1080p) hochskalieren & ersetzen (Pixverse-Credits)"
-                      className="grid h-9 min-w-9 place-items-center rounded-full bg-black/70 px-2.5 text-[11px] font-black text-white active:opacity-70 disabled:opacity-40">
-                      {upscaling ? <Loader2 className="h-4 w-4 animate-spin" /> : "HD"}
-                    </button>
-                  )}
-                  {/* Paste a Pixverse video-ID you upscaled yourself → replace this video. */}
-                  {activeTryOnId && (
-                    <button type="button" onClick={() => { setIdInput(""); setIdOpen(true); }} disabled={!!modBusy || upscaling} title="Pixverse-ID/URL der hochskalierten Version einfügen & ersetzen"
-                      className="grid h-9 min-w-9 place-items-center rounded-full bg-black/70 px-2.5 text-[11px] font-black text-white active:opacity-70 disabled:opacity-40">
-                      {upscaling ? <Loader2 className="h-4 w-4 animate-spin" /> : "ID"}
+                    <button type="button" onClick={() => { setIdInput(""); setIdOpen(true); }} disabled={!!modBusy || upscaling} title="Video ersetzen (HD hochladen)"
+                      className="grid h-9 w-9 place-items-center rounded-full bg-black/70 text-white active:opacity-70 disabled:opacity-40">
+                      {upscaling ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                     </button>
                   )}
                   {/* What the buttons currently target — so hiding a try-on vs the look is never ambiguous. */}
