@@ -18,10 +18,11 @@ import { LOOK_CATEGORIES, isHiddenFromAll, isLookCategory, type LookCategory } f
 import { publicLookLabel } from "@/lib/look-title";
 import { publicAuthorName } from "@/lib/display-name";
 import { safeLookImage } from "@/lib/look-image";
-import { Bookmark, Eye, EyeOff, Heart, Home, Image as ImageIcon, ImageUp, Info, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, SlidersHorizontal, Sparkles, Trash2, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
+import { Bookmark, Crop, Eye, EyeOff, Heart, Home, Image as ImageIcon, ImageUp, Info, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, SlidersHorizontal, Sparkles, Trash2, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { PhotoCropper } from "../curators/taste-form";
 
 // Serve Supabase images via Next.js' image optimizer (right-sized WebP) instead
 // of full-resolution PNGs. Non-Supabase/empty URLs pass through unchanged.
@@ -1564,6 +1565,34 @@ function StoresPage() {
   const openModelAdd = () => { setMModelId("new"); setMmName(""); setMmStyle(""); setMmBio(""); setMmPhoto(""); setMmMsg(""); setMmBusy(false); };
   const closeModelManage = () => { setMModelId(""); setMmBusy(false); setMmMsg(""); };
   const onModelPhoto = async (f: File) => { try { setMmPhoto(await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f); })); } catch { /**/ } };
+  // Crop the CURRENT photo (baked-in white edges from AI shots) — loads it as a
+  // data URL (canvas would taint on the remote URL), opens the 3:4 cropper, and
+  // saves the crop as her new photo in one go.
+  const [mmCropSrc, setMmCropSrc] = useState("");
+  const startModelCrop = async (m: GalleryModel) => {
+    if (mmBusy) return;
+    const raw = mmPhoto || m.photoUrl || "";
+    if (!raw) { setMmMsg("Kein Foto vorhanden."); return; }
+    if (raw.startsWith("data:")) { setMmCropSrc(raw); return; }
+    setMmBusy(true); setMmMsg("");
+    try {
+      const blob = await (await fetch(raw)).blob();
+      const dataUrl = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(blob); });
+      setMmCropSrc(dataUrl);
+    } catch { setMmMsg("Foto konnte nicht geladen werden."); }
+    finally { setMmBusy(false); }
+  };
+  const finishModelCrop = async (dataUrl: string) => {
+    setMmCropSrc("");
+    if (mModelId === "new") { setMmPhoto(dataUrl); return; } // new model: crop is just the preview
+    setMmBusy(true); setMmMsg("");
+    try {
+      const res = await adminWrite({ action: "update-curator", id: mModelId, photoImage: dataUrl });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehler");
+      await reloadModels();
+      closeModelManage();
+    } catch (e) { setMmMsg(e instanceof Error ? e.message : "Fehler beim Speichern"); setMmBusy(false); }
+  };
   const saveModel = async () => {
     if (mmBusy) return;
     const isNew = mModelId === "new";
@@ -3188,7 +3217,11 @@ function StoresPage() {
               <input ref={mmPhotoRef} type="file" accept="image/*" className="hidden"
                 onChange={e => { const f = e.target.files?.[0]; if (f) void onModelPhoto(f); e.currentTarget.value = ""; }} />
               {!isNew && m && (
-                <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <button type="button" onClick={() => void startModelCrop(m)} disabled={mmBusy}
+                    className="flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/[0.08] py-2.5 text-[12px] font-black text-amber-600 active:scale-95 transition disabled:opacity-50">
+                    <Crop className="h-4 w-4" /> Zuschneiden
+                  </button>
                   <button type="button" onClick={() => toggleModelHidden(m)} disabled={mmBusy}
                     className="flex items-center justify-center gap-1.5 rounded-xl border border-black/12 bg-black/[0.02] py-2.5 text-[12px] font-black text-black active:scale-95 transition disabled:opacity-50">
                     {m.hidden ? <><Eye className="h-4 w-4" /> Einblenden</> : <><EyeOff className="h-4 w-4" /> Ausblenden</>}
@@ -3205,6 +3238,15 @@ function StoresPage() {
               </button>
               {mmMsg && <p className="mt-2 text-center text-[12px] font-bold text-black/50">{mmMsg}</p>}
             </div>
+            {/* 3:4 cropper for the CURRENT photo — z-raised above the sheet (z-96);
+                stopPropagation so taps inside don't hit the close-backdrop. */}
+            {mmCropSrc && (
+              <div className="relative z-[120]" onClick={e => e.stopPropagation()}>
+                <PhotoCropper src={mmCropSrc} aspect="portrait"
+                  onCancel={() => setMmCropSrc("")}
+                  onDone={(dataUrl) => { void finishModelCrop(dataUrl); }} />
+              </div>
+            )}
           </div>
         );
       })()}
