@@ -24,6 +24,37 @@ type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: strin
 
 const toSlug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 function optImg(url?: string, w = 600) { if (!url) return ""; if (url.startsWith("data:") || url.startsWith("blob:")) return url; return `/_next/image?url=${encodeURIComponent(url)}&w=${w}&q=70`; }
+
+// Strip thumb that PLAYS her clip (muted loop). The <video> mounts only while the
+// thumb is on screen — mobile Safari/Chrome cap hardware decoders (~16), so an
+// off-screen strip must not hold any (see feed-video-decoder-limit).
+function StripClip({ t, onOpen }: { t: TryOn; onOpen: () => void }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const io = new IntersectionObserver(es => es.forEach(e => setInView(e.isIntersecting)), { rootMargin: "60px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <button ref={ref} type="button" onClick={onOpen}
+      className="relative aspect-[3/4] h-40 shrink-0 overflow-hidden rounded-xl lb-media-bg active:scale-95 transition">
+      {inView ? (
+        <video src={t.videoUrl} poster={t.imageUrl || undefined} muted loop playsInline autoPlay preload="metadata"
+          className="h-full w-full object-cover object-top" />
+      ) : (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={optImg(t.imageUrl, 300)} alt="" loading="lazy" decoding="async"
+          onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
+          className="h-full w-full object-cover object-top" />
+      )}
+      <span className="absolute bottom-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur">
+        <Play className="h-3 w-3 translate-x-[0.5px]" fill="currentColor" />
+      </span>
+    </button>
+  );
+}
 // Map a currency value (symbol or ISO code, possibly empty) to a display symbol.
 // Missing/unknown currency defaults to "$" so prices never render bare ("from 55").
 function currencySymbol(c?: string): string {
@@ -561,16 +592,7 @@ export default function CuratorPublicPage() {
           <div className="mt-4 w-full">
             <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {videos.map((t, i) => (
-                <button key={t.id} type="button" onClick={() => openMotionAt(i)}
-                  className="relative aspect-[3/4] h-40 shrink-0 overflow-hidden rounded-xl lb-media-bg active:scale-95 transition">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={optImg(t.imageUrl, 300)} alt="" loading="lazy" decoding="async"
-                    onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
-                    className="h-full w-full object-cover object-top" />
-                  <span className="absolute bottom-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur">
-                    <Play className="h-3 w-3 translate-x-[0.5px]" fill="currentColor" />
-                  </span>
-                </button>
+                <StripClip key={t.id} t={t} onOpen={() => openMotionAt(i)} />
               ))}
               {photoDrafts.map(t => (
                 <div key={t.id} className="relative aspect-[3/4] h-40 shrink-0 overflow-hidden rounded-xl border border-dashed border-amber-400/40 lb-media-bg">
