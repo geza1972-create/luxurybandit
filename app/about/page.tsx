@@ -1,12 +1,32 @@
 import Link from "next/link";
-import { ArrowLeft, Sparkles, Heart, Coins, ShoppingBag, MessageCircle, Music } from "lucide-react";
+import { ArrowLeft, Sparkles, Heart, Coins, ShoppingBag, MessageCircle, Music, Play } from "lucide-react";
+import { readTryThisLookState } from "@/lib/try-this-look-store";
 
 export const metadata = { title: "How it works — LuxuryBandit" };
+// Signed video URLs expire — render fresh on each request.
+export const dynamic = "force-dynamic";
+
+// Gina's public clips — the living proof: ONE model, completely different looks.
+async function exampleClips() {
+  try {
+    const state = await readTryThisLookState();
+    const gina = (state.curators ?? []).find(c => c.firstName === "Gina" && c.lastName === "Popescu");
+    if (!gina) return { clips: [] as { poster: string; video: string }[], curatorId: "" };
+    // PUBLIC page → only fully public clips (public:true), never members-only
+    // Fashionshow/Community content (lingerie stays out of public surfaces).
+    const clips = (state.generations ?? [])
+      .filter(g => (g as { curatorId?: string }).curatorId === gina.id && (g as { videoUrl?: string }).videoUrl && (g as { public?: boolean }).public === true && !(g as { hidden?: boolean }).hidden)
+      .slice(0, 4)
+      .map(g => ({ poster: ((g as { imageUrl?: string }).imageUrl ?? "") as string, video: (g as { videoUrl?: string }).videoUrl as string }));
+    return { clips, curatorId: gina.id };
+  } catch { return { clips: [] as { poster: string; video: string }[], curatorId: "" }; }
+}
 
 // Dark "How it works" — written for USERS: see your dream model in any look,
 // message her, shop the look. Model recruiting lives on its own landing page
 // (/become-a-model) and only gets a teaser here.
-export default function AboutPage() {
+export default async function AboutPage() {
+  const { clips, curatorId } = await exampleClips();
   const step = "grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-400 text-sm font-black text-black";
   const card = "flex items-start gap-3.5 rounded-2xl border border-white/10 bg-white/[0.04] p-4";
 
@@ -31,6 +51,25 @@ export default function AboutPage() {
           wears next. Pick any designer outfit, and the AI creates a runway-quality video of her
           wearing it. Follow her, message her, shop her looks.
         </p>
+
+        {/* Living proof: GINA — one model, completely different looks (her real feed clips). */}
+        {clips.length > 0 && (
+          <div className="mt-8">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">One model · any look</p>
+            <div className="mt-3 flex gap-2.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {clips.map((c, i) => (
+                /* eslint-disable-next-line jsx-a11y/media-has-caption */
+                <video key={i} src={c.video} poster={c.poster || undefined} muted loop playsInline autoPlay preload="metadata"
+                  className="aspect-[9/16] h-64 shrink-0 rounded-2xl bg-black/40 object-cover" />
+              ))}
+            </div>
+            {curatorId && (
+              <Link href={`/curator/${curatorId}`} className="mt-2.5 inline-flex items-center gap-1.5 text-[12px] font-black text-amber-400">
+                <Play className="h-3.5 w-3.5" fill="currentColor" /> This is Gina — same model, every look. See her page →
+              </Link>
+            )}
+          </div>
+        )}
 
         {/* 3 steps */}
         <h2 className="mt-9 flex items-center gap-2 text-lg font-black"><Sparkles className="h-5 w-5 text-amber-400" /> In 3 steps</h2>
