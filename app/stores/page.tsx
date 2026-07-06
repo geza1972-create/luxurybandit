@@ -2636,13 +2636,17 @@ function StoresPage() {
                     onClick={() => setFeedOpen({ tryOnId: it.kind === "tryon" ? it.id : undefined, lookId: it.lookId })}
                     className="relative aspect-[3/4] overflow-hidden lb-media-bg transition-opacity active:opacity-80">
                     {it.videoUrl ? (
-                      // Video tile — always show a still poster so the tile is never a
-                      // black box: the model poster if we have one, else the look's own
-                      // image, and only as a last resort the video's first frame. With a
-                      // poster we load NO video bytes (preload none) — the grid isn't a
-                      // player, tapping navigates away — which keeps the grid fast.
-                      (() => { const poster = it.videoPoster || it.thumb; return (
-                        <video src={poster ? it.videoUrl : `${it.videoUrl}#t=0.1`} poster={poster || undefined} muted playsInline preload={poster ? "none" : "metadata"}
+                      // Video tile — the grid is NOT a player (tapping opens the reel), so
+                      // with a poster we render a plain lazy <img>: sized-down (400px) and
+                      // loaded only near the viewport — 12+ full-res posters used to load
+                      // all at once. Only posterless videos mount a <video> (first frame).
+                      (() => { const poster = it.videoPoster || it.thumb; return poster ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={optImg(poster, 400)} alt={it.name} loading="lazy" decoding="async"
+                          onError={(e) => { const im = e.currentTarget; if (poster && im.src !== poster) im.src = poster; }}
+                          className="h-full w-full object-cover object-top" />
+                      ) : (
+                        <video src={`${it.videoUrl}#t=0.1`} muted playsInline preload="metadata"
                           className="h-full w-full bg-black object-cover object-top" />
                       ); })()
                     ) : it.thumb ? (
@@ -2658,12 +2662,13 @@ function StoresPage() {
                     {it.videoUrl && (
                       <span className="pointer-events-none absolute inset-0 grid place-items-center"><Play className="h-11 w-11 fill-white text-white opacity-45 drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]" /></span>
                     )}
-                    {/* Label at the BOTTOM — the face is usually at the top of the crop */}
-                    <span className="absolute left-1.5 bottom-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">
-                      {it.kind === "tryon"
-                        ? (it.videoUrl ? "Try-on · video" : "Try-on")
-                        : it.aiCreated ? "✦ Original" : "Model"}
-                    </span>
+                    {/* Label at the BOTTOM — the face is usually at the top of the crop.
+                        Try-on tiles carry NO badge (user request) — only look posts do. */}
+                    {it.kind !== "tryon" && (
+                      <span className="absolute left-1.5 bottom-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">
+                        {it.aiCreated ? "✦ Original" : "Model"}
+                      </span>
+                    )}
                   </button>
                   <div className="flex items-center gap-1.5 px-2.5 pt-1.5 pb-2">
                     {it.curatorName && (
