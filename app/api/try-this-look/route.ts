@@ -402,6 +402,7 @@ export async function GET(request: Request) {
             style: typeof cc.style === "string" ? cc.style : "",
             hairColor: typeof cc.hairColor === "string" ? cc.hairColor : "",
             createdAt: typeof cc.createdAt === "string" ? cc.createdAt : "",
+            pinned: cc.pinned === true, // admin-pinned → shown first in the Models grid
             lookCount: genCountByName.get(name.toLowerCase()) ?? 0,
             ...(modelsAdmin ? {
               firstName: cc.firstName ?? "",
@@ -671,6 +672,7 @@ export async function GET(request: Request) {
             public: (g as any).public === true,
             // Moderation tier — drives the All | Community | Private chips.
             visibility: (g as any).feed !== true ? "private" : ((g as any).public === true ? "public" : "community"),
+            pinned: (g as any).pinned === true, // admin-pinned → first in grid + reel
             // Public, licensing-safe label (curator description) — shown instead of the
             // real brand product name. Empty when the look has no description.
             lookTitle: look ? (((look as any).curatorNote || (look as any).productNote || "").trim() || undefined) : undefined,
@@ -2395,6 +2397,27 @@ export async function POST(request: Request) {
       if (count === 0) return NextResponse.json({ error: "No matching try-ons found." }, { status: 404 });
       await saveTryThisLookState(state);
       return NextResponse.json({ ok: true, updated: count, visibility: vis });
+    }
+
+    // ── Bulk pin/unpin (admin): pinned models lead the Models grid, pinned
+    //    try-ons lead the Fashionshow grid AND the reel. ──────────────────────
+    if (payload.action === "set-pinned") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const ids = Array.isArray(payload.ids) ? (payload.ids as unknown[]).map(x => String(x)) : [];
+      const pinned = payload.pinned === true;
+      const kind = String(payload.kind ?? "tryon");
+      if (!ids.length || !["model", "tryon"].includes(kind)) {
+        return NextResponse.json({ error: "ids + kind (model|tryon) required." }, { status: 400 });
+      }
+      let count = 0;
+      if (kind === "model") {
+        for (const c of state.curators ?? []) if (ids.includes(c.id)) { (c as any).pinned = pinned || undefined; count++; }
+      } else {
+        for (const g of state.generations) if (ids.includes(g.id)) { (g as any).pinned = pinned || undefined; count++; }
+      }
+      if (count === 0) return NextResponse.json({ error: "Nothing matched." }, { status: 404 });
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, updated: count, pinned });
     }
 
     // ── Bulk reassign generations from one customer name to another ──────────

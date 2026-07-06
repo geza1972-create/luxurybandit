@@ -156,6 +156,7 @@ type CommunityItem = {
   category?: LookCategory;
   public?: boolean; // admin "fully unlocked" → visible to everyone in "All"
   visibility?: "public" | "community" | "private"; // moderation tier (All | Community | Private chips)
+  pinned?: boolean; // admin-pinned → first in grid + reel
   thumbUrl?: string;
   userPhotoUrl?: string;
   customerName: string;
@@ -1441,7 +1442,7 @@ function StoresPage() {
   }, []);
   // Home has two views: the Feeds thumbnail grid, and the Models gallery (a grid of the
   // model profiles). Toggled at the top of the home.
-  type GalleryModel = { id: string; name: string; photoUrl: string; style: string; lookCount: number; bio?: string; motto?: string; hidden?: boolean; hairColor?: string; createdAt?: string };
+  type GalleryModel = { id: string; name: string; photoUrl: string; style: string; lookCount: number; bio?: string; motto?: string; hidden?: boolean; hairColor?: string; createdAt?: string; pinned?: boolean };
   const [models, setModels] = useState<GalleryModel[]>([]);
   // Models tab: sort (newest first by default, so a freshly added model is on top)
   // + optional hair-color filter (models are AI-tagged blond/brunette/black/red).
@@ -1453,9 +1454,11 @@ function StoresPage() {
     // The header search filters THIS grid too (name / style / hair color).
     const q = query.trim().toLowerCase();
     if (q) base = base.filter(m => `${m.name} ${m.style || ""} ${m.hairColor || ""}`.toLowerCase().includes(q));
-    return [...base].sort(modelSort === "new"
-      ? (a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
-      : (a, b) => b.lookCount - a.lookCount || a.name.localeCompare(b.name));
+    const cmp = modelSort === "new"
+      ? (a: GalleryModel, b: GalleryModel) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
+      : (a: GalleryModel, b: GalleryModel) => b.lookCount - a.lookCount || a.name.localeCompare(b.name);
+    // Admin-pinned models ALWAYS lead the gallery, then the chosen sort.
+    return [...base].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || cmp(a, b));
   }, [models, modelSort, hairFilter, query]);
   const hairColorsPresent = useMemo(() => [...new Set(models.map(m => m.hairColor || "").filter(Boolean))], [models]);
   const [homeTab, setHomeTab] = useState<"feeds" | "models" | "garderobe">("models");
@@ -1709,6 +1712,37 @@ function StoresPage() {
       setTierSelect(false);
     } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Verschieben"); }
     finally { setTierBusy(false); }
+  };
+  // Pin/unpin the selected try-on posts — pinned lead the grid AND the reel.
+  const pinSelected = async (pinned: boolean) => {
+    if (tierBusy || !tierSelected.size) return;
+    setTierBusy(true);
+    try {
+      const ids = [...tierSelected];
+      const res = await adminWrite({ action: "set-pinned", kind: "tryon", ids, pinned });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehler");
+      setCommunityItems(prev => prev.map(c => ids.includes(c.id) ? { ...c, pinned } : c));
+      setTierSelected(new Set());
+      setTierSelect(false);
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Fixieren"); }
+    finally { setTierBusy(false); }
+  };
+  // Same for MODELS: select in the gallery → pin to the top.
+  const [modelSelect, setModelSelect] = useState(false);
+  const [modelSelected, setModelSelected] = useState<Set<string>>(new Set());
+  const [modelPinBusy, setModelPinBusy] = useState(false);
+  const pinSelectedModels = async (pinned: boolean) => {
+    if (modelPinBusy || !modelSelected.size) return;
+    setModelPinBusy(true);
+    try {
+      const ids = [...modelSelected];
+      const res = await adminWrite({ action: "set-pinned", kind: "model", ids, pinned });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehler");
+      setModels(prev => prev.map(m => ids.includes(m.id) ? { ...m, pinned } : m));
+      setModelSelected(new Set());
+      setModelSelect(false);
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Fixieren"); }
+    finally { setModelPinBusy(false); }
   };
   const [feedSelectMode, setFeedSelectMode] = useState(false);
   // Boudoir is gated: if the viewer is on it and signs out, drop them back to "All"
@@ -2086,7 +2120,7 @@ function StoresPage() {
   // videos the feed shows), PLUS a look-video tile for looks that have a video but no
   // try-on yet. Nothing else — no separately-filtered "curated" list.
   const historyItems = useMemo(() => {
-    type HItem = { key: string; kind: "look" | "tryon"; id: string; lookId: string; thumb: string; videoUrl?: string; videoPoster?: string; hasBefore?: boolean; aiCreated?: boolean; brand?: string; category?: LookCategory; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string; visibility: "public" | "community" | "private" };
+    type HItem = { key: string; kind: "look" | "tryon"; id: string; lookId: string; thumb: string; videoUrl?: string; videoPoster?: string; hasBefore?: boolean; aiCreated?: boolean; brand?: string; category?: LookCategory; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string; visibility: "public" | "community" | "private"; pinned?: boolean };
     const lookById = new Map(looks.map(l => [l.id, l]));
     const items: HItem[] = [];
     const looksWithTryOn = new Set<string>();
@@ -2094,7 +2128,7 @@ function StoresPage() {
     for (const c of communityItems) {
       const srcLook = lookById.get(c.lookId);
       looksWithTryOn.add(c.lookId);
-      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, hasBefore: !!c.userPhotoUrl, brand: c.brand, category: c.category ?? srcLook?.category, createdAt: c.createdAt ?? "", name: c.customerName || (srcLook ? publicLookLabel(srcLook) : "Luxury look"), price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName, visibility: c.visibility ?? (c.public ? "public" : "community") });
+      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, hasBefore: !!c.userPhotoUrl, brand: c.brand, category: c.category ?? srcLook?.category, createdAt: c.createdAt ?? "", name: c.customerName || (srcLook ? publicLookLabel(srcLook) : "Luxury look"), price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName, visibility: c.visibility ?? (c.public ? "public" : "community"), pinned: c.pinned });
     }
     // A look-VIDEO tile for looks that have a video but no try-on (so those feed posts are
     // mirrored too). Looks without a video and without a try-on don't appear in the feed.
@@ -2104,7 +2138,7 @@ function StoresPage() {
       const when = videoTs > (l.createdAt ?? "") ? videoTs : (l.createdAt ?? "");
       items.push({ key: `look-${l.id}`, kind: "look", id: l.id, lookId: l.id, thumb: safeLookImage(l), videoUrl: l.videoUrl, videoPoster: l.videoPosterUrl || l.tryOnImageUrl || undefined, aiCreated: l.aiCreated, brand: l.brand, category: l.category, createdAt: when, name: publicLookLabel(l), price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl, visibility: "public" });
     }
-    return items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return items.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [looks, communityItems]);
 
   // Distinct curators with content (looks or try-ons) — for the header count.
@@ -2149,7 +2183,7 @@ function StoresPage() {
       const list = byLook.get(c.lookId) ?? [];
       // Keep the MODEL attribution (curatorId + photo) — dropping it here made every
       // post link to the LOOK's owner instead of the try-on's model.
-      list.push({ id: c.id, imageUrl: c.imageUrl, videoUrl: c.videoUrl, userPhotoUrl: c.userPhotoUrl, name: c.customerName, hidden: false, pending: false, curatorId: c.curatorId, curatorPhotoUrl: c.curatorPhotoUrl });
+      list.push({ id: c.id, imageUrl: c.imageUrl, videoUrl: c.videoUrl, userPhotoUrl: c.userPhotoUrl, name: c.customerName, hidden: false, pending: false, curatorId: c.curatorId, curatorPhotoUrl: c.curatorPhotoUrl, pinned: c.pinned });
       byLook.set(c.lookId, list);
     }
     const enriched = (looks as unknown as FeedLook[]).map(l => byLook.has(l.id) ? { ...l, communityTryOns: byLook.get(l.id) } : l);
@@ -2167,7 +2201,7 @@ function StoresPage() {
         curatorName: c.customerName,
         curatorPhotoUrl: c.curatorPhotoUrl,
         category: c.category,
-        communityTryOns: [{ id: c.id, imageUrl: c.imageUrl, videoUrl: c.videoUrl, userPhotoUrl: c.userPhotoUrl, name: c.customerName, hidden: false, pending: false, curatorId: c.curatorId, curatorPhotoUrl: c.curatorPhotoUrl }],
+        communityTryOns: [{ id: c.id, imageUrl: c.imageUrl, videoUrl: c.videoUrl, userPhotoUrl: c.userPhotoUrl, name: c.customerName, hidden: false, pending: false, curatorId: c.curatorId, curatorPhotoUrl: c.curatorPhotoUrl, pinned: c.pinned }],
       } as unknown as FeedLook));
     return [...enriched, ...orphans];
   }, [looks, communityItems]);
@@ -2574,13 +2608,31 @@ function StoresPage() {
                       {HAIR_LABELS[h] ?? h}
                     </button>
                   ))}
+                  {isAdmin && (
+                    <button type="button" onClick={() => { setModelSelect(v => !v); setModelSelected(new Set()); }}
+                      className={`ml-auto shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-black transition ${modelSelect ? "border-amber-400 bg-amber-400 text-black" : "border-white/20 bg-white/5 text-white/70"}`}>
+                      {modelSelect ? "Fertig" : "Auswählen"}
+                    </button>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-2 px-3 pb-8">
                 {shownModels.map(m => (
                   <div key={m.id} className="relative">
                     {/* No light border — bright photo edges made it flash white on dark. */}
-                    <a href={`/curator/${m.id}`} className="flex flex-col overflow-hidden rounded-2xl bg-white/[0.04] active:opacity-80 transition-opacity">
+                    <a href={`/curator/${m.id}`}
+                      onClick={(e) => {
+                        if (!(modelSelect && isAdmin)) return;
+                        e.preventDefault();
+                        setModelSelected(prev => { const n = new Set(prev); if (n.has(m.id)) n.delete(m.id); else n.add(m.id); return n; });
+                      }}
+                      className={`flex flex-col overflow-hidden rounded-2xl bg-white/[0.04] active:opacity-80 transition-opacity ${modelSelect && isAdmin && modelSelected.has(m.id) ? "ring-2 ring-amber-400" : ""}`}>
                       <div className="relative aspect-[3/4] overflow-hidden lb-media-bg">
+                        {modelSelect && isAdmin && (
+                          <span className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-full text-[13px] font-black ${modelSelected.has(m.id) ? "bg-amber-400 text-black" : "bg-black/60 text-white/60"}`}>✓</span>
+                        )}
+                        {isAdmin && m.pinned && (
+                          <span className="absolute right-2 bottom-2 z-10 rounded-full bg-black/70 px-1.5 py-0.5 text-[11px] backdrop-blur">📌</span>
+                        )}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={m.photoUrl} alt={m.name} loading="lazy" decoding="async" className={`h-full w-full object-cover object-top ${m.hidden ? "opacity-40" : ""}`} />
                         {m.lookCount > 0 && (
@@ -2727,6 +2779,9 @@ function StoresPage() {
                     }`}>
                     {tierSelect && isAdmin && it.kind === "tryon" && (
                       <span className={`absolute right-1.5 top-1.5 z-10 grid h-6 w-6 place-items-center rounded-full text-[13px] font-black ${tierSelected.has(it.id) ? "bg-amber-400 text-black" : "bg-black/60 text-white/60"}`}>✓</span>
+                    )}
+                    {isAdmin && it.pinned && (
+                      <span className="absolute left-1.5 top-1.5 z-10 rounded-full bg-black/70 px-1.5 py-0.5 text-[11px] backdrop-blur">📌</span>
                     )}
                     {it.videoUrl ? (
                       // Video tile — the grid is NOT a player (tapping opens the reel), so
@@ -3413,12 +3468,34 @@ function StoresPage() {
         );
       })()}
 
+      {/* Admin pin bar — appears while selecting MODELS in the gallery. */}
+      {isAdmin && modelSelect && (
+        <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[85] flex flex-wrap items-center gap-2 border-t border-white/10 bg-[#0d0b0a]/95 px-4 py-3 backdrop-blur"
+          style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}>
+          <span className="shrink-0 text-[12px] font-black text-white/70">{modelSelected.size} ausgewählt</span>
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
+            <button type="button" disabled={modelPinBusy || !modelSelected.size} onClick={() => void pinSelectedModels(true)}
+              className="lb-gold flex items-center gap-1 rounded-full px-3.5 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-40">
+              {modelPinBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} 📌 Oben fixieren
+            </button>
+            <button type="button" disabled={modelPinBusy || !modelSelected.size} onClick={() => void pinSelectedModels(false)}
+              className="flex items-center gap-1 rounded-full bg-white/10 px-3.5 py-2 text-[12px] font-black text-white active:scale-95 transition disabled:opacity-40">
+              Lösen
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Admin bulk-move bar — appears while selecting try-on tiles in the grid. */}
       {isAdmin && tierSelect && (
         <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[85] flex flex-wrap items-center gap-2 border-t border-white/10 bg-[#0d0b0a]/95 px-4 py-3 backdrop-blur"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}>
           <span className="shrink-0 text-[12px] font-black text-white/70">{tierSelected.size} ausgewählt</span>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
+            <button type="button" disabled={tierBusy || !tierSelected.size} onClick={() => void pinSelected(true)}
+              className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white active:scale-95 transition disabled:opacity-40">📌 Oben</button>
+            <button type="button" disabled={tierBusy || !tierSelected.size} onClick={() => void pinSelected(false)}
+              className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white/70 active:scale-95 transition disabled:opacity-40">Lösen</button>
             {tierFilter !== "public" && (
               <button type="button" disabled={tierBusy || !tierSelected.size} onClick={() => void moveSelectedTo("public")}
                 className="lb-gold flex items-center gap-1 rounded-full px-3.5 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-40">

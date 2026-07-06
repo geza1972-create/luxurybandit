@@ -27,7 +27,7 @@ export type FeedLook = {
   tryOnImageUrl?: string;
   clothesImageUrl?: string;   // curator-uploaded garment reference (shown as a carousel slide + used for try-on)
   locationImageUrl?: string;  // curator-uploaded location reference (used for try-on)
-  communityTryOns?: { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; hidden?: boolean; pending?: boolean; curatorId?: string; curatorPhotoUrl?: string }[];
+  communityTryOns?: { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; hidden?: boolean; pending?: boolean; curatorId?: string; curatorPhotoUrl?: string; pinned?: boolean }[];
   feedOrder?: number;
   aiCreated?: boolean;
   lingerie?: boolean;
@@ -1397,10 +1397,13 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
   // target look is first (scrollTop 0). This is rock-solid — unlike scrolling to a
   // computed offset, it doesn't depend on the (variable, still-loading) heights of
   // the posts above the target, which used to land us on the neighbouring look.
+  // Admin-pinned posts lead the reel (stable sort keeps newest-first within groups).
+  const pinnedFirst = [...expanded].sort((a, b) =>
+    ((b.look.communityTryOns?.[0]?.pinned ? 1 : 0) - (a.look.communityTryOns?.[0]?.pinned ? 1 : 0)));
   const startIdx = initialTryOnId
-    ? expanded.findIndex(e => e.look.communityTryOns?.[0]?.id === initialTryOnId)
-    : initialLookId ? expanded.findIndex(e => e.look.id === initialLookId) : -1;
-  const feed = startIdx > 0 ? [...expanded.slice(startIdx), ...expanded.slice(0, startIdx)] : expanded;
+    ? pinnedFirst.findIndex(e => e.look.communityTryOns?.[0]?.id === initialTryOnId)
+    : initialLookId ? pinnedFirst.findIndex(e => e.look.id === initialLookId) : -1;
+  const feed = startIdx > 0 ? [...pinnedFirst.slice(startIdx), ...pinnedFirst.slice(0, startIdx)] : pinnedFirst;
 
   // Always open at the FIRST slide. Rotation puts the target look at feed[0], but
   // the browser can restore a previous scrollTop on (re)mount and leave us parked
