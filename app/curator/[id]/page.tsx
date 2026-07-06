@@ -533,7 +533,7 @@ export default function CuratorPublicPage() {
             <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {videos.map((t, i) => (
                 <button key={t.id} type="button" onClick={() => openMotionAt(i)}
-                  className="relative aspect-[9/16] h-40 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] active:scale-95 transition">
+                  className="relative aspect-[9/16] h-40 shrink-0 overflow-hidden rounded-xl bg-black/30 active:scale-95 transition">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={optImg(t.imageUrl, 300)} alt="" loading="lazy" decoding="async"
                     onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
@@ -661,7 +661,7 @@ export default function CuratorPublicPage() {
                     const hidden = l.published === false;
                     const notMine = l.curatorId !== id;
                     return (
-                      <div key={l.id} className="relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white">
+                      <div key={l.id} className="relative flex flex-col overflow-hidden rounded-2xl bg-white">
                         <button type="button"
                           onClick={() => profile.photoUrl && router.push(`/try/${l.id}?model=${encodeURIComponent(profile.photoUrl)}&garment=${encodeURIComponent(garment)}&modelId=${encodeURIComponent(id)}&modelName=${encodeURIComponent(name)}`)}
                           className="relative aspect-[3/4] w-full bg-neutral-50 active:opacity-80 transition-opacity">
@@ -739,7 +739,7 @@ export default function CuratorPublicPage() {
             {videos.map(t => (
               <div key={t.id} className="relative aspect-[9/16] h-[74vh] max-h-[80vh] w-[84vw] max-w-[430px] shrink-0 snap-center">
                 <button type="button" onClick={() => setPlayingId(p => (p === t.id ? "" : t.id))}
-                  className="h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+                  className="h-full w-full overflow-hidden rounded-2xl bg-black/40">
                   {playingId === t.id ? (
                     <video src={t.videoUrl} autoPlay loop playsInline className="h-full w-full object-cover" />
                   ) : (

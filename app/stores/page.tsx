@@ -2476,8 +2476,9 @@ function StoresPage() {
                 <div className="grid grid-cols-2 gap-2 px-3 pb-8">
                 {shownModels.map(m => (
                   <div key={m.id} className="relative">
-                    <a href={`/curator/${m.id}`} className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:opacity-80 transition-opacity">
-                      <div className="relative aspect-[3/4] overflow-hidden bg-white/5">
+                    {/* No light border — bright photo edges made it flash white on dark. */}
+                    <a href={`/curator/${m.id}`} className="flex flex-col overflow-hidden rounded-2xl bg-white/[0.04] active:opacity-80 transition-opacity">
+                      <div className="relative aspect-[3/4] overflow-hidden bg-black/30">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={m.photoUrl} alt={m.name} loading="lazy" decoding="async" className={`h-full w-full object-cover object-top ${m.hidden ? "opacity-40" : ""}`} />
                         {m.lookCount > 0 && (
@@ -2601,10 +2602,10 @@ function StoresPage() {
             {/* Rounded cards like the Models grid (gap + rounded-2xl on the dark home). */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 px-3 pb-8">
               {pagedHistory.map((it, idx) => (
-                <div key={it.key} className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+                <div key={it.key} className="flex flex-col overflow-hidden rounded-2xl bg-white/[0.04]">
                   <button type="button"
                     onClick={() => setFeedOpen({ tryOnId: it.kind === "tryon" ? it.id : undefined, lookId: it.lookId })}
-                    className="relative aspect-[3/4] overflow-hidden bg-white/5 transition-opacity active:opacity-80">
+                    className="relative aspect-[3/4] overflow-hidden bg-black/30 transition-opacity active:opacity-80">
                     {it.videoUrl ? (
                       // Video tile — always show a still poster so the tile is never a
                       // black box: the model poster if we have one, else the look's own
