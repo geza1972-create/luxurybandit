@@ -1417,6 +1417,27 @@ function StoresPage() {
   // Tapping a grid tile opens the SAME HomeFeed reel (identical layout), positioned at
   // that try-on (or look, for tryon-less tiles). See the overlay render below.
   const [feedOpen, setFeedOpen] = useState<{ tryOnId?: string; lookId?: string } | null>(null);
+  // The reel is an in-page OVERLAY, so the browser back button knows nothing about
+  // it — pressing back used to leave /stores entirely (landing on the default reels
+  // instead of the grid you came from). Push a history entry when the overlay opens;
+  // popstate (= back) then only closes the overlay and the grid is still there.
+  const openFeedOverlay = (v: { tryOnId?: string; lookId?: string }) => {
+    setFeedOpen(v);
+    try { window.history.pushState({ lbReel: 1 }, ""); } catch { /**/ }
+  };
+  const closeFeedOverlay = () => {
+    // X button: consume our history entry so back/forward stays consistent —
+    // the popstate handler does the actual close.
+    try {
+      if (window.history.state?.lbReel) { window.history.back(); return; }
+    } catch { /**/ }
+    setFeedOpen(null);
+  };
+  useEffect(() => {
+    const onPop = () => setFeedOpen(cur => (cur ? null : cur));
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
   // Home has two views: the Feeds thumbnail grid, and the Models gallery (a grid of the
   // model profiles). Toggled at the top of the home.
   type GalleryModel = { id: string; name: string; photoUrl: string; style: string; lookCount: number; bio?: string; motto?: string; hidden?: boolean; hairColor?: string; createdAt?: string };
@@ -2630,11 +2651,12 @@ function StoresPage() {
               </div>
             )}
             {/* Rounded cards like the Models grid (gap + rounded-2xl on the dark home). */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 px-3 pb-8">
+            {/* Always exactly 3 per row (user request) — the page is a mobile column anyway. */}
+            <div className="grid grid-cols-3 gap-1.5 px-3 pb-8">
               {pagedHistory.map((it, idx) => (
                 <div key={it.key} className="flex flex-col overflow-hidden rounded-2xl bg-white/[0.04]">
                   <button type="button"
-                    onClick={() => setFeedOpen({ tryOnId: it.kind === "tryon" ? it.id : undefined, lookId: it.lookId })}
+                    onClick={() => openFeedOverlay({ tryOnId: it.kind === "tryon" ? it.id : undefined, lookId: it.lookId })}
                     className="relative aspect-[3/4] overflow-hidden lb-media-bg transition-opacity active:opacity-80">
                     {it.videoUrl ? (
                       // Video tile — the grid is NOT a player (tapping opens the reel), so
@@ -3330,7 +3352,7 @@ function StoresPage() {
             looks={looksForFeed}
             initialTryOnId={feedOpen.tryOnId}
             initialLookId={feedOpen.lookId}
-            onClose={() => setFeedOpen(null)}
+            onClose={closeFeedOverlay}
           />
         </div>
       )}
