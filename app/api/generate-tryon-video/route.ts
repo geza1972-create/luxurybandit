@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readTryThisLookState, uploadTryThisLookBytes, getSignedUrl } from "@/lib/try-this-look-store";
+import { readTryThisLookState, uploadTryThisLookBytes, getSignedUrl, createSignedUploadUrl } from "@/lib/try-this-look-store";
 import { chargeCredits, refundCredits, VIDEO_CREDITS } from "@/lib/curator-budget";
 import { authorizeStudio } from "@/lib/studio-auth";
 import { isAdminRequest } from "@/lib/admin-auth";
@@ -215,6 +215,18 @@ export async function POST(request: Request) {
   //    our storage and return the URL; the client then replaces the feed video. ──
   if (body.importVideo) {
     if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    // Direct upload (large files, no Vercel 4.5MB limit): sign → client PUTs to Supabase → attach path.
+    if ((body as { sign?: boolean }).sign) {
+      try { const { path, uploadUrl } = await createSignedUploadUrl("videos", String((body as { ext?: string }).ext ?? "mp4")); return NextResponse.json({ path, uploadUrl }); }
+      catch (e) { return NextResponse.json({ error: e instanceof Error ? e.message : "Upload konnte nicht starten." }, { status: 500 }); }
+    }
+    const videoPath = String((body as { videoPath?: string }).videoPath ?? "").trim();
+    if (videoPath) {
+      if (!videoPath.startsWith("try-this-look/")) return NextResponse.json({ error: "Bad path." }, { status: 400 });
+      const signed = (await getSignedUrl(videoPath, 60 * 60 * 24 * 365 * 10)) || (await getSignedUrl(videoPath));
+      if (!signed) return NextResponse.json({ error: "Signieren fehlgeschlagen." }, { status: 500 });
+      return NextResponse.json({ ok: true, videoUrl: signed });
+    }
     const ref = String(body.ref ?? "").trim();
     if (!ref) return NextResponse.json({ error: "ref (Pixverse-ID oder URL) required." }, { status: 400 });
     // A direct video URL → persist it to our bucket (re-signed long-lived).

@@ -618,6 +618,27 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Ersetzen"); }
     finally { setUpscaling(false); }
   };
+  // Admin: upload a downloaded (HD) video FILE straight to Supabase → replace this try-on's video.
+  // Direct signed-upload PUT so big files don't hit the ~4.5MB API-body limit.
+  const videoFileRef = useRef<HTMLInputElement>(null);
+  const uploadReplace = async (file: File) => {
+    if (!activeTryOnId || upscaling) return;
+    if (!file.type.startsWith("video/")) { alert("Bitte eine Videodatei wählen."); return; }
+    setUpscaling(true);
+    try {
+      const ext = (file.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "") || "mp4";
+      const sig = await fetch("/api/generate-tryon-video", { method: "POST", headers: modHeaders(), body: JSON.stringify({ importVideo: true, sign: true, ext }) }).then(r => r.json());
+      if (!sig.uploadUrl || !sig.path) throw new Error(sig.error || "Upload konnte nicht starten (Rechte prüfen)");
+      const put = await fetch(sig.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type || "video/mp4", "x-upsert": "true" }, body: file });
+      if (!put.ok) throw new Error("Upload zu Supabase fehlgeschlagen");
+      const att = await fetch("/api/generate-tryon-video", { method: "POST", headers: modHeaders(), body: JSON.stringify({ importVideo: true, videoPath: sig.path }) }).then(r => r.json());
+      if (!att.videoUrl) throw new Error(att.error || "Signieren fehlgeschlagen");
+      await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "attach-generation-video", generationId: activeTryOnId, videoUrl: att.videoUrl }) });
+      setIdOpen(false);
+      alert("Video ersetzt ✓ — neu laden zum Ansehen.");
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Hochladen"); }
+    finally { setUpscaling(false); }
+  };
   const openAssign = async () => {
     setAssignOpen(true);
     if (!curatorList.length) {
@@ -1046,18 +1067,27 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         <div className="lb-phone-col fixed inset-0 z-[90] flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={() => !upscaling && setIdOpen(false)}>
           <div className="w-full rounded-t-3xl bg-white p-5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" }} onClick={e => e.stopPropagation()}>
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm font-black text-black">Hochskaliertes Video ersetzen</p>
-              <button type="button" onClick={() => setIdOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-black/5"><X className="h-4 w-4" /></button>
+              <p className="text-sm font-black text-black">Video ersetzen (HD)</p>
+              <button type="button" onClick={() => !upscaling && setIdOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-black/5"><X className="h-4 w-4" /></button>
             </div>
-            <p className="mb-3 text-[12px] font-bold text-black/45">Skaliere das Video in der Pixverse-App hoch und füge hier die <b>Video-ID</b> oder die <b>Video-URL</b> der HD-Version ein.</p>
-            <input value={idInput} onChange={e => setIdInput(e.target.value)} autoFocus
-              placeholder="Pixverse Video-ID oder https://…-URL"
-              className="h-11 w-full rounded-xl border border-black/12 bg-black/[0.02] px-3 text-sm font-bold text-black outline-none focus:border-black/40" />
-            <button type="button" onClick={() => void replaceFromPixverse(idInput)} disabled={upscaling || !idInput.trim()}
-              className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-black text-sm font-black text-white active:scale-95 transition disabled:opacity-40">
+            <p className="mb-3 text-[12px] font-bold text-black/45">Lade das in Pixverse heruntergeladene HD-Video hoch — es wird bei uns gespeichert und ersetzt das alte.</p>
+            {/* Primary: upload the downloaded file (works with ANY Pixverse account). */}
+            <button type="button" onClick={() => videoFileRef.current?.click()} disabled={upscaling}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-black text-sm font-black text-white active:scale-95 transition disabled:opacity-40">
               {upscaling ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              {upscaling ? "Wird ersetzt …" : "Ersetzen"}
+              {upscaling ? "Wird ersetzt …" : "Video-Datei hochladen"}
             </button>
+            <input ref={videoFileRef} type="file" accept="video/*" className="hidden"
+              onChange={e => { const f = e.target.files?.[0]; if (f) void uploadReplace(f); e.currentTarget.value = ""; }} />
+            {/* Secondary: paste a Pixverse video-ID/URL (only works if it's the API account). */}
+            <div className="my-3 flex items-center gap-2 text-[11px] font-black text-black/25"><span className="h-px flex-1 bg-black/10" />ODER PER ID/URL<span className="h-px flex-1 bg-black/10" /></div>
+            <div className="flex gap-2">
+              <input value={idInput} onChange={e => setIdInput(e.target.value)}
+                placeholder="Pixverse Video-ID oder https://…-URL"
+                className="h-11 min-w-0 flex-1 rounded-xl border border-black/12 bg-black/[0.02] px-3 text-sm font-bold text-black outline-none focus:border-black/40" />
+              <button type="button" onClick={() => void replaceFromPixverse(idInput)} disabled={upscaling || !idInput.trim()}
+                className="shrink-0 rounded-xl bg-black/[0.06] px-4 text-sm font-black text-black active:scale-95 transition disabled:opacity-40">Los</button>
+            </div>
           </div>
         </div>
       )}
