@@ -3394,10 +3394,10 @@ function StoresPage() {
 
       {/* Admin bulk-move bar — appears while selecting try-on tiles in the grid. */}
       {isAdmin && tierSelect && (
-        <div className="fixed inset-x-0 bottom-0 z-[85] flex items-center gap-2 border-t border-white/10 bg-[#0d0b0a]/95 px-4 py-3 backdrop-blur"
+        <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[85] flex flex-wrap items-center gap-2 border-t border-white/10 bg-[#0d0b0a]/95 px-4 py-3 backdrop-blur"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}>
           <span className="shrink-0 text-[12px] font-black text-white/70">{tierSelected.size} ausgewählt</span>
-          <div className="ml-auto flex items-center gap-1.5">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
             {tierFilter !== "public" && (
               <button type="button" disabled={tierBusy || !tierSelected.size} onClick={() => void moveSelectedTo("public")}
                 className="lb-gold flex items-center gap-1 rounded-full px-3.5 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-40">

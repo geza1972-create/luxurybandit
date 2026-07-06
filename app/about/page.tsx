@@ -16,7 +16,7 @@ async function exampleClips() {
     // Fashionshow/Community content (lingerie stays out of public surfaces).
     const clips = (state.generations ?? [])
       .filter(g => (g as { curatorId?: string }).curatorId === gina.id && (g as { videoUrl?: string }).videoUrl && (g as { public?: boolean }).public === true && !(g as { hidden?: boolean }).hidden)
-      .slice(0, 4)
+      .slice(0, 3) // exactly 3 — rendered side by side, ALL visible on mobile (no scroll)
       .map(g => ({ poster: ((g as { imageUrl?: string }).imageUrl ?? "") as string, video: (g as { videoUrl?: string }).videoUrl as string }));
     return { clips, curatorId: gina.id };
   } catch { return { clips: [] as { poster: string; video: string }[], curatorId: "" }; }
@@ -56,11 +56,12 @@ export default async function AboutPage() {
         {clips.length > 0 && (
           <div className="mt-8">
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">One model · any look</p>
-            <div className="mt-3 flex gap-2.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* 3-up grid, no horizontal scroll — every clip visible on a phone. */}
+            <div className="mt-3 grid grid-cols-3 gap-2">
               {clips.map((c, i) => (
                 /* eslint-disable-next-line jsx-a11y/media-has-caption */
                 <video key={i} src={c.video} poster={c.poster || undefined} muted loop playsInline autoPlay preload="metadata"
-                  className="aspect-[3/4] h-64 shrink-0 rounded-2xl lb-media-bg object-cover" />
+                  className="aspect-[3/4] w-full rounded-2xl lb-media-bg object-cover" />
               ))}
             </div>
             {curatorId && (

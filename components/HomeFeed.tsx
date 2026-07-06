@@ -974,7 +974,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           <button type="button"
             onClick={(e) => { e.stopPropagation(); goTryOn(); }}
             onPointerDown={(e) => e.stopPropagation()}
-            className={`absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-white px-8 py-3.5 text-sm font-black text-black shadow-xl transition-all duration-200 active:scale-95 ${(banditRevealed || (showBanditBtn && !banditCreating)) ? "scale-100 opacity-100" : "pointer-events-none scale-90 opacity-0"}`}>
+            className={`lb-gold absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full px-8 py-3.5 text-sm font-black shadow-xl transition-all duration-200 active:scale-95 ${(banditRevealed || (showBanditBtn && !banditCreating)) ? "scale-100 opacity-100" : "pointer-events-none scale-90 opacity-0"}`}>
             <Sparkles className="h-4 w-4" /> See her in other looks
           </button>
         )}
