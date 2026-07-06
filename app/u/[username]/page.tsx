@@ -405,7 +405,7 @@ export default function UserGalleryPage() {
               return (
                 <button key={item.id} type="button"
                   onClick={() => router.push(`/post/${item.id}`)}
-                  className="relative aspect-square overflow-hidden bg-black/5 active:opacity-80 transition-opacity">
+                  className="relative aspect-[3/4] overflow-hidden bg-black/5 active:opacity-80 transition-opacity">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={item.imageUrl} alt={item.lookName} className="h-full w-full object-cover object-top" />
                   {isLiked && (

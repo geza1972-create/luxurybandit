@@ -194,7 +194,7 @@ export default function StoreGalleryPage() {
                 <div key={look.id} className="flex flex-col">
                   {/* Image */}
                   <button type="button" onClick={() => router.push(lookPath(look.name, look.id))}
-                    className="relative aspect-square overflow-hidden bg-black/5 active:opacity-80 transition-opacity">
+                    className="relative aspect-[3/4] overflow-hidden bg-black/5 active:opacity-80 transition-opacity">
                     {thumb ? (
                       <Image src={thumb} alt={look.name} fill
                         sizes="(max-width: 768px) 33vw, 170px" className="object-cover object-top" />

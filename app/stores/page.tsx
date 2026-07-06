@@ -2796,7 +2796,7 @@ function StoresPage() {
                           // One feed everywhere → open the look's HomeFeed (not the old full-screen view).
                           router.push(lookPath(item.lookName, item.lookId || item.id));
                         }}
-                        className={`relative aspect-square w-full overflow-hidden bg-black/5 transition-opacity active:opacity-80 block ${
+                        className={`relative aspect-[3/4] w-full overflow-hidden bg-black/5 transition-opacity active:opacity-80 block ${
                           selectMode && isSelected ? "opacity-60 ring-2 ring-inset ring-cobalt" : ""
                         }`}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -2988,7 +2988,7 @@ function StoresPage() {
                           router.push(lookPath(look.name, look.id));
                         }
                       }}
-                      className="relative aspect-square overflow-hidden bg-black/5 transition-opacity active:opacity-80"
+                      className="relative aspect-[3/4] overflow-hidden bg-black/5 transition-opacity active:opacity-80"
                     >
                       {thumb ? (
                         <Image
@@ -3079,7 +3079,7 @@ function StoresPage() {
                       key={item.id}
                       type="button"
                       onClick={() => router.push(`/post/${item.id}`)}
-                      className="relative aspect-square overflow-hidden bg-black/5 transition-opacity active:opacity-80"
+                      className="relative aspect-[3/4] overflow-hidden bg-black/5 transition-opacity active:opacity-80"
                     >
                       <Image
                         src={item.imageUrl}
