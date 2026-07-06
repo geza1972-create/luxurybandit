@@ -31,6 +31,33 @@ function optImg(url: string | undefined, w = 1080, q = 70): string {
   return `/_next/image?url=${encodeURIComponent(url)}&w=${w}&q=${q}`;
 }
 
+// Fashionshow tile that PLAYS its clip (admin-picked "animated" posts). The <video>
+// mounts only while the tile is on screen — mobile caps hardware decoders (~16),
+// so off-screen tiles must not hold any.
+function GridClip({ videoUrl, poster, alt }: { videoUrl: string; poster: string; alt: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const io = new IntersectionObserver(es => es.forEach(e => setInView(e.isIntersecting)), { rootMargin: "80px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className="h-full w-full">
+      {inView ? (
+        <video src={videoUrl} poster={poster || undefined} muted loop playsInline autoPlay preload="metadata"
+          className="h-full w-full object-cover object-top" />
+      ) : (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={optImg(poster, 400)} alt={alt} loading="lazy" decoding="async"
+          onError={(e) => { const im = e.currentTarget; if (poster && im.src !== poster) im.src = poster; }}
+          className="h-full w-full object-cover object-top" />
+      )}
+    </div>
+  );
+}
+
 // Deterministic pseudo-random view count based on look ID
 function viewCount(id: string): string {
   let h = 0;
@@ -157,6 +184,7 @@ type CommunityItem = {
   public?: boolean; // admin "fully unlocked" → visible to everyone in "All"
   visibility?: "public" | "community" | "private"; // moderation tier (All | Community | Private chips)
   pinned?: boolean; // admin-pinned → first in grid + reel
+  animated?: boolean; // admin-picked → tile plays inline in the grid
   thumbUrl?: string;
   userPhotoUrl?: string;
   customerName: string;
@@ -1727,6 +1755,20 @@ function StoresPage() {
     } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Fixieren"); }
     finally { setTierBusy(false); }
   };
+  // Animate/stop the selected posts — chosen tiles PLAY inline in the grid.
+  const animateSelected = async (animated: boolean) => {
+    if (tierBusy || !tierSelected.size) return;
+    setTierBusy(true);
+    try {
+      const ids = [...tierSelected];
+      const res = await adminWrite({ action: "set-animated", ids, animated });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehler");
+      setCommunityItems(prev => prev.map(c => ids.includes(c.id) ? { ...c, animated } : c));
+      setTierSelected(new Set());
+      setTierSelect(false);
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehler"); }
+    finally { setTierBusy(false); }
+  };
   // Same for MODELS: select in the gallery → pin to the top.
   const [modelSelect, setModelSelect] = useState(false);
   const [modelSelected, setModelSelected] = useState<Set<string>>(new Set());
@@ -2120,7 +2162,7 @@ function StoresPage() {
   // videos the feed shows), PLUS a look-video tile for looks that have a video but no
   // try-on yet. Nothing else — no separately-filtered "curated" list.
   const historyItems = useMemo(() => {
-    type HItem = { key: string; kind: "look" | "tryon"; id: string; lookId: string; thumb: string; videoUrl?: string; videoPoster?: string; hasBefore?: boolean; aiCreated?: boolean; brand?: string; category?: LookCategory; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string; visibility: "public" | "community" | "private"; pinned?: boolean };
+    type HItem = { key: string; kind: "look" | "tryon"; id: string; lookId: string; thumb: string; videoUrl?: string; videoPoster?: string; hasBefore?: boolean; aiCreated?: boolean; brand?: string; category?: LookCategory; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string; visibility: "public" | "community" | "private"; pinned?: boolean; animated?: boolean };
     const lookById = new Map(looks.map(l => [l.id, l]));
     const items: HItem[] = [];
     const looksWithTryOn = new Set<string>();
@@ -2128,7 +2170,7 @@ function StoresPage() {
     for (const c of communityItems) {
       const srcLook = lookById.get(c.lookId);
       looksWithTryOn.add(c.lookId);
-      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, hasBefore: !!c.userPhotoUrl, brand: c.brand, category: c.category ?? srcLook?.category, createdAt: c.createdAt ?? "", name: c.customerName || (srcLook ? publicLookLabel(srcLook) : "Luxury look"), price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName, visibility: c.visibility ?? (c.public ? "public" : "community"), pinned: c.pinned });
+      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, hasBefore: !!c.userPhotoUrl, brand: c.brand, category: c.category ?? srcLook?.category, createdAt: c.createdAt ?? "", name: c.customerName || (srcLook ? publicLookLabel(srcLook) : "Luxury look"), price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName, visibility: c.visibility ?? (c.public ? "public" : "community"), pinned: c.pinned, animated: c.animated });
     }
     // A look-VIDEO tile for looks that have a video but no try-on (so those feed posts are
     // mirrored too). Looks without a video and without a try-on don't appear in the feed.
@@ -2788,7 +2830,10 @@ function StoresPage() {
                       // with a poster we render a plain lazy <img>: sized-down (400px) and
                       // loaded only near the viewport — 12+ full-res posters used to load
                       // all at once. Only posterless videos mount a <video> (first frame).
-                      (() => { const poster = it.videoPoster || it.thumb; return poster ? (
+                      (() => { const poster = it.videoPoster || it.thumb; return it.animated ? (
+                        // Admin-picked "animated" post — plays inline (muted loop, IO-gated).
+                        <GridClip videoUrl={it.videoUrl} poster={poster || ""} alt={it.name} />
+                      ) : poster ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={optImg(poster, 400)} alt={it.name} loading="lazy" decoding="async"
                           onError={(e) => { const im = e.currentTarget; if (poster && im.src !== poster) im.src = poster; }}
@@ -2807,7 +2852,7 @@ function StoresPage() {
                       // which makes the browser re-request the whole page).
                       <div className="h-full w-full bg-black/[0.06]" />
                     )}
-                    {it.videoUrl && (
+                    {it.videoUrl && !it.animated && (
                       <span className="pointer-events-none absolute inset-0 grid place-items-center"><Play className="h-11 w-11 fill-white text-white opacity-45 drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]" /></span>
                     )}
                     {/* Label at the BOTTOM — the face is usually at the top of the crop.
@@ -3492,6 +3537,10 @@ function StoresPage() {
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}>
           <span className="shrink-0 text-[12px] font-black text-white/70">{tierSelected.size} ausgewählt</span>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
+            <button type="button" disabled={tierBusy || !tierSelected.size} onClick={() => void animateSelected(true)}
+              className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white active:scale-95 transition disabled:opacity-40">▶ Animieren</button>
+            <button type="button" disabled={tierBusy || !tierSelected.size} onClick={() => void animateSelected(false)}
+              className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white/70 active:scale-95 transition disabled:opacity-40">⏸ Stopp</button>
             <button type="button" disabled={tierBusy || !tierSelected.size} onClick={() => void pinSelected(true)}
               className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white active:scale-95 transition disabled:opacity-40">📌 Oben</button>
             <button type="button" disabled={tierBusy || !tierSelected.size} onClick={() => void pinSelected(false)}

@@ -673,6 +673,7 @@ export async function GET(request: Request) {
             // Moderation tier — drives the All | Community | Private chips.
             visibility: (g as any).feed !== true ? "private" : ((g as any).public === true ? "public" : "community"),
             pinned: (g as any).pinned === true, // admin-pinned → first in grid + reel
+            animated: (g as any).animated === true, // admin-picked → tile PLAYS in the grid
             // Public, licensing-safe label (curator description) — shown instead of the
             // real brand product name. Empty when the look has no description.
             lookTitle: look ? (((look as any).curatorNote || (look as any).productNote || "").trim() || undefined) : undefined,
@@ -2418,6 +2419,19 @@ export async function POST(request: Request) {
       if (count === 0) return NextResponse.json({ error: "Nothing matched." }, { status: 404 });
       await saveTryThisLookState(state);
       return NextResponse.json({ ok: true, updated: count, pinned });
+    }
+
+    // ── Bulk animate (admin): chosen try-on tiles PLAY inline in the grid ────
+    if (payload.action === "set-animated") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const ids = Array.isArray(payload.ids) ? (payload.ids as unknown[]).map(x => String(x)) : [];
+      const animated = payload.animated === true;
+      if (!ids.length) return NextResponse.json({ error: "ids required." }, { status: 400 });
+      let count = 0;
+      for (const g of state.generations) if (ids.includes(g.id)) { (g as any).animated = animated || undefined; count++; }
+      if (count === 0) return NextResponse.json({ error: "Nothing matched." }, { status: 404 });
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, updated: count, animated });
     }
 
     // ── Bulk reassign generations from one customer name to another ──────────
