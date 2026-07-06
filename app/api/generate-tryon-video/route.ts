@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { readTryThisLookState, uploadTryThisLookBytes, getSignedUrl } from "@/lib/try-this-look-store";
 import { chargeCredits, refundCredits, VIDEO_CREDITS } from "@/lib/curator-budget";
 import { authorizeStudio } from "@/lib/studio-auth";
+import { isAdminRequest } from "@/lib/admin-auth";
 import { categorizeLook } from "@/lib/look-category";
 
 // Auto-match the video's SCENE to the look's category. NEUTRAL wording (works for lingerie
@@ -160,6 +161,28 @@ async function pixverseStart(key: string, image: string, turnaround = false): Pr
   if (gen?.ErrCode !== 0 || !gen?.Resp?.video_id) return { error: `Pixverse generate failed: ${gen?.ErrMsg ?? genRes.status}` };
   return { videoId: String(gen.Resp.video_id) };
 }
+// ── Upscale an existing (persisted) video to HD ──────────────────────────────
+// Upload the finished video to Pixverse (media/upload → media_id), then run upscale and poll
+// like any other generation — so admins can replace a good 360p test video with a 1080p one.
+async function pixverseUploadVideo(key: string, fileUrl: string): Promise<number | null> {
+  try {
+    const form = new FormData();
+    form.append("file_url", fileUrl);
+    const res = await fetch(`${PV_BASE}/media/upload`, { method: "POST", headers: pvHeaders(key), body: form });
+    const d = await res.json().catch(() => null);
+    return (d?.ErrCode === 0 && d?.Resp?.media_id) ? Number(d.Resp.media_id) : null;
+  } catch { return null; }
+}
+async function pixverseUpscale(key: string, mediaId: number): Promise<{ videoId?: string; error?: string }> {
+  const res = await fetch(`${PV_BASE}/video/upscale/generate`, {
+    method: "POST", headers: pvHeaders(key, true),
+    body: JSON.stringify({ video_media_id: mediaId, quality: "1080p", model: "v4.5" }),
+  });
+  const d = await res.json().catch(() => null);
+  if (d?.ErrCode !== 0 || !d?.Resp?.video_id) return { error: `Pixverse upscale failed: ${d?.ErrMsg ?? res.status}` };
+  return { videoId: String(d.Resp.video_id) };
+}
+
 async function pixversePoll(key: string, id: string): Promise<{ status: "done" | "failed" | "processing"; videoUrl?: string; error?: string }> {
   const res = await fetch(`${PV_BASE}/video/result/${id}`, { headers: pvHeaders(key) });
   const d = await res.json().catch(() => null);
@@ -176,7 +199,7 @@ async function pixversePoll(key: string, id: string): Promise<{ status: "done" |
 // POST { lookId, image } → charge owner, start the right provider, return
 // { videoId: "<provider>:<id>", curatorId } for polling.
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean; garment?: string; person?: string; prompt?: string; dryRun?: boolean };
+  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean; garment?: string; person?: string; prompt?: string; dryRun?: boolean; upscale?: boolean; videoUrl?: string };
   const lookId = String(body.lookId ?? "").trim();
   const image = String(body.image ?? "");
   const turnaround = body.turnaround === true; // 360° tier
@@ -186,6 +209,22 @@ export async function POST(request: Request) {
   const garment = String(body.garment ?? "");
   const person = String(body.person ?? "");
   const reference = !!garment && !!person;
+
+  // ── Upscale mode (admin): turn a good (360p) try-on video into HD, then replace it. ──
+  if (body.upscale) {
+    if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+    const key = process.env.PIXVERSE_API_KEY?.trim();
+    if (!key) return NextResponse.json({ error: "PIXVERSE_API_KEY missing." }, { status: 400 });
+    const videoUrl = String(body.videoUrl ?? "").trim();
+    if (!videoUrl) return NextResponse.json({ error: "videoUrl required." }, { status: 400 });
+    const mediaId = await pixverseUploadVideo(key, videoUrl);
+    if (!mediaId) return NextResponse.json({ error: "Pixverse video upload failed." }, { status: 502 });
+    if (body.dryRun) return NextResponse.json({ ok: true, mediaId }); // FREE test: upload only
+    const up = await pixverseUpscale(key, mediaId);
+    if (!up.videoId) return NextResponse.json({ error: up.error ?? "Upscale start failed." }, { status: 502 });
+    return NextResponse.json({ ok: true, videoId: `pv:${up.videoId}`, status: "processing" });
+  }
+
   if (!image && !reference) return NextResponse.json({ error: "image required." }, { status: 400 });
 
   const { curatorId, category } = await lookOf(lookId);

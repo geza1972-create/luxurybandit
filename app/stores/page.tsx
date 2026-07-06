@@ -523,6 +523,8 @@ function CommunityDetailView({
   onHideItem,
   onMakeVideo,
   makingVideoLookId,
+  onUpscale,
+  upscalingId,
   router,
 }: {
   allItems: CommunityItem[];
@@ -540,6 +542,8 @@ function CommunityDetailView({
   onHideItem?: (item: CommunityItem) => void;
   onMakeVideo?: (lookId: string) => void;
   makingVideoLookId?: string;
+  onUpscale?: (item: CommunityItem) => void;
+  upscalingId?: string;
   router: ReturnType<typeof import("next/navigation").useRouter>;
 }) {
   const [currentIdx, setCurrentIdx] = useState(initialIndex);
@@ -830,6 +834,14 @@ function CommunityDetailView({
             <button type="button" onClick={() => setAssignOpen(true)} title="Assign"
               className="grid h-10 w-10 place-items-center rounded-full bg-black/55 backdrop-blur text-white active:opacity-70">
               <UserPlus className="h-5 w-5" />
+            </button>
+          )}
+          {/* Upscale to HD (admin, videos only) — Pixverse re-renders this exact video in
+              1080p and replaces it. */}
+          {onUpscale && isAdmin && item.videoUrl && (
+            <button type="button" onClick={() => onUpscale(item)} title="Upscale to HD" disabled={upscalingId === item.id}
+              className="grid h-10 min-w-10 place-items-center rounded-full bg-black/55 px-3 backdrop-blur text-[12px] font-black text-white active:opacity-70 disabled:opacity-60">
+              {upscalingId === item.id ? <Loader2 className="h-5 w-5 animate-spin" /> : "HD"}
             </button>
           )}
         </div>

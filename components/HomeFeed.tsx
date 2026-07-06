@@ -562,6 +562,31 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     try { await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "delete-look", id: look.id }) }); setModRemoved(true); }
     catch { /**/ } finally { setModBusy(""); }
   };
+  // Admin: upscale the active try-on video to HD (1080p) via Pixverse, then replace it.
+  const [upscaling, setUpscaling] = useState(false);
+  const upscaleActive = async () => {
+    if (!activeTryOnId || upscaling) return;
+    const ct = community.find(c => c.id === activeTryOnId);
+    const vurl = ct?.videoUrl || look.videoUrl || "";
+    if (!vurl) return;
+    if (typeof window !== "undefined" && !window.confirm("Dieses Video in HD (1080p) hochskalieren und ersetzen? (kostet Pixverse-Credits)")) return;
+    setUpscaling(true);
+    try {
+      const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: modHeaders(), body: JSON.stringify({ upscale: true, videoUrl: vurl }) }).then(r => r.json());
+      if (!start.videoId) throw new Error(start.error || "Upscale-Start fehlgeschlagen");
+      let hdUrl = "";
+      for (let i = 0; i < 120; i++) {
+        await new Promise(r => setTimeout(r, 4000));
+        const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}`).then(r => r.json());
+        if (p.status === "done" && p.videoUrl) { hdUrl = p.videoUrl; break; }
+        if (p.status === "failed") throw new Error(p.error || "Upscale fehlgeschlagen");
+      }
+      if (!hdUrl) throw new Error("Zeitüberschreitung");
+      await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "attach-generation-video", generationId: activeTryOnId, videoUrl: hdUrl }) });
+      alert("HD-Video erstellt & ersetzt ✓ — neu laden zum Ansehen.");
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Hochskalieren"); }
+    finally { setUpscaling(false); }
+  };
   const openAssign = async () => {
     setAssignOpen(true);
     if (!curatorList.length) {
@@ -670,6 +695,13 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                     className="grid h-9 w-9 place-items-center rounded-full bg-black/70 text-white active:opacity-70 disabled:opacity-40">
                     <UserPlus className="h-4 w-4" />
                   </button>
+                  {/* Upscale the active try-on VIDEO to HD (1080p) and replace it. */}
+                  {activeTryOnId && (
+                    <button type="button" onClick={upscaleActive} disabled={!!modBusy || upscaling} title="In HD (1080p) hochskalieren & ersetzen"
+                      className="grid h-9 min-w-9 place-items-center rounded-full bg-black/70 px-2.5 text-[11px] font-black text-white active:opacity-70 disabled:opacity-40">
+                      {upscaling ? <Loader2 className="h-4 w-4 animate-spin" /> : "HD"}
+                    </button>
+                  )}
                   {/* What the buttons currently target — so hiding a try-on vs the look is never ambiguous. */}
                   <span className={`ml-0.5 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white ${showAsHidden ? "bg-red-600" : "bg-black/60"}`}>
                     {label}
