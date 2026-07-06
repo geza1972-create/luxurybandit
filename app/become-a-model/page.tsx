@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowLeft, Camera, Coins, Heart, Sparkles, BadgeCheck, Play, Eye, Building2 } from "lucide-react";
+import { ArrowLeft, Camera, ChevronDown, Coins, Heart, Sparkles, BadgeCheck, Play, Eye, Building2 } from "lucide-react";
+import { readTryThisLookState } from "@/lib/try-this-look-store";
 
 export const metadata = {
   title: "Become a LuxuryBandit Model — earn with every look",
@@ -11,10 +12,29 @@ export const metadata = {
   },
 };
 
+// Signed media URLs expire — render fresh per request (same as /about).
+export const dynamic = "force-dynamic";
+
+// Gina is the living example on this page: her real photo → her real generated
+// videos → fans trying looks on her. Public clips only (never members-only).
+async function ginaExample() {
+  try {
+    const state = await readTryThisLookState();
+    const gina = (state.curators ?? []).find(c => c.firstName === "Gina" && c.lastName === "Popescu");
+    if (!gina) return { photo: "", clips: [] as { poster: string; video: string }[] };
+    const clips = (state.generations ?? [])
+      .filter(g => (g as { curatorId?: string }).curatorId === gina.id && (g as { videoUrl?: string }).videoUrl && (g as { public?: boolean }).public === true && !(g as { hidden?: boolean }).hidden)
+      .slice(0, 3)
+      .map(g => ({ poster: ((g as { imageUrl?: string }).imageUrl ?? "") as string, video: (g as { videoUrl?: string }).videoUrl as string }));
+    return { photo: ((gina as { photoUrl?: string }).photoUrl ?? "") as string, clips };
+  } catch { return { photo: "", clips: [] as { poster: string; video: string }[] }; }
+}
+
 // Model recruiting landing page — the "Werde Model" ad traffic lands HERE.
 // Pitch: you post on Instagram/TikTok for free — here the portal generates your
 // videos from ONE photo, you collect likes, get discovered, and EARN.
-export default function BecomeAModelPage() {
+export default async function BecomeAModelPage() {
+  const { photo, clips } = await ginaExample();
   const card = "flex items-start gap-3.5 rounded-2xl border border-white/10 bg-white/[0.04] p-4";
   const icon = "grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-amber-400";
 
@@ -45,6 +65,69 @@ export default function BecomeAModelPage() {
             Here, fans put YOU in luxury looks, and you get paid every single time.
           </p>
         </div>
+
+        {/* The flow IN PICTURES — Gina as the living example: one photo in,
+            videos out, fans try looks, money lands. (Public clips only.) */}
+        {photo && clips.length >= 2 && (
+          <section className="mt-10">
+            <h2 className="flex items-center gap-2 text-lg font-black"><Play className="h-5 w-5 text-amber-400" fill="currentColor" /> Watch it happen</h2>
+            <p className="mt-1 text-[13px] font-semibold text-white/50">This is Gina — a real LuxuryBandit example, from one photo to money.</p>
+
+            {/* 1 · She uploads ONE photo */}
+            <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-sm font-black"><span className="mr-2 inline-grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[12px] text-black">1</span>She uploads one photo</p>
+              <div className="mt-3 flex items-center gap-4">
+                <div className="relative h-44 w-[132px] shrink-0 overflow-hidden rounded-xl border-2 border-dashed border-amber-400/50 lb-media-bg">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={photo} alt="Uploaded photo" className="h-full w-full object-cover object-top" />
+                  <span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur"><Camera className="h-3 w-3" /> Phone photo</span>
+                </div>
+                <p className="text-[13px] font-semibold leading-6 text-white/55">A simple phone picture is enough — <strong className="text-white">our AI polishes it</strong>. No shoot, no studio.</p>
+              </div>
+            </div>
+            <div className="my-1.5 grid place-items-center text-amber-400"><ChevronDown className="h-5 w-5" /></div>
+
+            {/* 2 · The portal animates her */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-sm font-black"><span className="mr-2 inline-grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[12px] text-black">2</span>We turn it into videos</p>
+              <div className="mt-3 flex items-center gap-4">
+                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                <video src={clips[0].video} poster={clips[0].poster || undefined} muted loop playsInline autoPlay preload="metadata"
+                  className="aspect-[3/4] h-44 shrink-0 rounded-xl lb-media-bg object-cover" />
+                <p className="text-[13px] font-semibold leading-6 text-white/55">Runway-quality videos, generated by the portal — <strong className="text-white">she does nothing</strong>. They appear on her own model page.</p>
+              </div>
+            </div>
+            <div className="my-1.5 grid place-items-center text-amber-400"><ChevronDown className="h-5 w-5" /></div>
+
+            {/* 3 · Fans try looks on her */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-sm font-black"><span className="mr-2 inline-grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[12px] text-black">3</span>Fans put her in new looks</p>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {clips.slice(1, 3).map((c, i) => (
+                  /* eslint-disable-next-line jsx-a11y/media-has-caption */
+                  <video key={i} src={c.video} poster={c.poster || undefined} muted loop playsInline autoPlay preload="metadata"
+                    className="aspect-[3/4] w-full rounded-xl lb-media-bg object-cover" />
+                ))}
+              </div>
+              <p className="mt-2.5 text-[13px] font-semibold leading-6 text-white/55">Fans pick outfits and <strong className="text-white">try them on her</strong> — same model, endless looks, new videos every day.</p>
+            </div>
+            <div className="my-1.5 grid place-items-center text-amber-400"><ChevronDown className="h-5 w-5" /></div>
+
+            {/* 4 · Money lands */}
+            <div className="rounded-2xl border border-amber-400/40 bg-amber-400/[0.08] p-4">
+              <p className="text-sm font-black text-amber-400"><span className="mr-2 inline-grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[12px] text-black">4</span>Every paid try-on pays her</p>
+              <div className="mt-3 grid gap-1.5">
+                {[["Fan try-on · Riviera look", "$2.90"], ["Video try-on · Evening look", "$4.90"], ["360° view · Premium", "$7.90"]].map(([label, amount]) => (
+                  <div key={label} className="flex items-center justify-between rounded-xl bg-black/30 px-3.5 py-2.5">
+                    <span className="flex items-center gap-2 text-[13px] font-bold text-white/70"><Coins className="h-4 w-4 text-amber-400" /> {label}</span>
+                    <span className="text-sm font-black text-amber-400">+{amount}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2.5 text-[12px] font-semibold leading-5 text-white/50">She earns a share of every paid try-on — automatically, day and night.</p>
+            </div>
+          </section>
+        )}
 
         {/* How it works for her */}
         <h2 className="mt-10 flex items-center gap-2 text-lg font-black"><Sparkles className="h-5 w-5 text-amber-400" /> How it works</h2>
