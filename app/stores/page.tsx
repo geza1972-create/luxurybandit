@@ -2423,8 +2423,9 @@ function StoresPage() {
           ) : (
           <>
             {/* Hero — explains in one glance what LuxuryBandit lets you do.
-                Hidden while filtering/searching to keep browsing clean. */}
-            {!categoryFilter && !searchOpen && (
+                Stays visible when a category chip is active too — hiding it made the
+                page JUMP on every All↔Community switch. Only search collapses it. */}
+            {!searchOpen && (
               <section className="px-4 pt-4 pb-3">
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">AI Fashion Models · Luxury Looks</p>
                 <h1 className="mt-1.5 text-[1.8rem] font-black leading-[1.08] tracking-tight text-white">
@@ -2609,7 +2610,7 @@ function StoresPage() {
             {categoryChips.length > 0 && (
               <div className="flex gap-1.5 overflow-x-auto px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <button type="button" onClick={() => setCategoryFilter(null)}
-                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${categoryFilter === null ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>
+                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${categoryFilter === null ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
                   All
                 </button>
                 {categoryChips.map(c => {
@@ -2621,7 +2622,7 @@ function StoresPage() {
                   return (
                   <button key={c.slug} type="button"
                     onClick={() => { if (locked) { setShowPaywall(true); return; } setCategoryFilter(c.slug); }}
-                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${categoryFilter === c.slug ? "bg-black text-white" : "bg-black/[0.06] text-black/55"}`}>
+                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${categoryFilter === c.slug ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
                     {isCommunity ? (isPaidMember ? "🔓 " : "🔒 ") : ""}{c.label}
                   </button>
                   );
