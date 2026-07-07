@@ -14,9 +14,7 @@ export const metadata = {
     url: "/become-a-model",
     type: "website",
   },
-  // fb:app_id (Debugger warning) — set NEXT_PUBLIC_FB_APP_ID on Vercel (the Meta
-  // app's ID, same app as the Facebook login). Omitted cleanly when unset.
-  ...(process.env.NEXT_PUBLIC_FB_APP_ID ? { facebook: { appId: process.env.NEXT_PUBLIC_FB_APP_ID } } : {}),
+  // fb:app_id comes from the ROOT layout (single source) — every page carries it.
 };
 
 // Signed media URLs expire — render fresh per request (same as /about).

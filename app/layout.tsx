@@ -15,7 +15,9 @@ export const metadata: Metadata = {
     title: "LuxuryBandit — Your Dream Model, In Any Look",
     description: "Pick a model, choose a designer outfit, and watch her wear it in a runway-quality AI video. Follow her, message her, shop her looks. New looks every day.",
     type: "website",
-  }
+  },
+  // fb:app_id on EVERY page — the "luxurybandit" Meta app (also powers FB login).
+  facebook: { appId: process.env.NEXT_PUBLIC_FB_APP_ID ?? "1385612150051040" },
 };
 
 export const viewport: Viewport = {
