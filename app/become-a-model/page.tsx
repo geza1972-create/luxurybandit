@@ -56,7 +56,7 @@ export default async function BecomeAModelPage() {
         {/* Straight into the show — visitors see what the fuss is about. */}
         <Link href="/stores?tab=community"
           className="lb-gold flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-black active:scale-95 transition-transform">
-          <Play className="h-3.5 w-3.5" fill="currentColor" /> Fashionshow
+          <Play className="h-3.5 w-3.5" fill="currentColor" /> Let&apos;s Play Big
         </Link>
       </header>
 
@@ -179,7 +179,7 @@ export default async function BecomeAModelPage() {
             <div>
               <p className="text-sm font-black">Collect likes &amp; followers</p>
               <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/55">
-                Your looks appear in the Fashionshow feed — fans follow you, like your videos and
+                Your looks appear in the Let&apos;s Play Big feed — fans follow you, like your videos and
                 message you, just like on social. But here it counts for something.
               </p>
             </div>

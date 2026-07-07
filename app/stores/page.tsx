@@ -2605,14 +2605,11 @@ function StoresPage() {
                   ))}
                 </div>
                 <div className="mt-3.5 flex items-center gap-2">
-                  {/* Primary CTA = the FEED (Fashionshow) — models are one tab below. */}
-                  <button type="button" onClick={() => router.push("/stores?tab=community")}
-                    className="lb-gold flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-black active:scale-95 transition-transform">
-                    <Play className="h-4 w-4" fill="currentColor" /> Fashionshow
-                  </button>
+                  {/* Home already IS the grid — no reel CTA needed here. "How it works"
+                      stays as the primary explainer. */}
                   <button type="button" onClick={() => router.push("/about")}
-                    className="flex h-10 items-center justify-center rounded-full border border-white/20 bg-white/[0.04] px-5 text-sm font-black text-white active:scale-95 transition-transform">
-                    How it works
+                    className="lb-gold flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-black active:scale-95 transition-transform">
+                    <Play className="h-4 w-4" fill="currentColor" /> How it works
                   </button>
                 </div>
                 {/* Model recruiting → its own landing page. A visible amber pill so
@@ -2632,7 +2629,7 @@ function StoresPage() {
               <button type="button" onClick={() => setHomeTab("garderobe")}
                 className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "garderobe" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>Wardrobe{garments.length ? ` · ${garments.length}` : ""}</button>
               <button type="button" onClick={() => setHomeTab("feeds")}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>Fashionshow</button>
+                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>Let&apos;s Play Big</button>
             </div>
 
             {homeTab === "models" ? (
