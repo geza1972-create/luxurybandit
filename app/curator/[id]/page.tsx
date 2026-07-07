@@ -53,6 +53,13 @@ function StripClip({ t, onOpen }: { t: TryOn; onOpen: () => void }) {
       <span className="absolute bottom-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur">
         <Play className="h-3 w-3 translate-x-[0.5px]" fill="currentColor" />
       </span>
+      {/* Admin-only in practice: non-admins never receive feed:false clips. Marks a clip
+          that is hidden from her public profile + the feed (kept for ads / the cache). */}
+      {t.feed === false && (
+        <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 text-[9px] font-black text-amber-300 backdrop-blur">
+          <EyeOff className="h-2.5 w-2.5" /> Versteckt
+        </span>
+      )}
     </button>
   );
 }
