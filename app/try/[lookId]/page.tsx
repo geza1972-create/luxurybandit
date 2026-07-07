@@ -600,16 +600,19 @@ export default function TryFunnelPage() {
                   loop playsInline muted={revealing} controls={!revealing} />
                 {revealing ? (
                   <>
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-4 pt-12">
+                    {/* Scanner beam: a bright horizontal line sweeps down then up. */}
+                    <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-amber-300 shadow-[0_0_18px_5px_rgba(252,211,77,0.75)]" />
+                    <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-14 -translate-y-1/2 bg-gradient-to-b from-transparent via-amber-300/15 to-transparent" />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/75 to-transparent p-4 pt-12">
                       <div className="flex items-center justify-center gap-2 text-white">
                         <Sparkles className="h-4 w-4 text-amber-400 animate-pulse" />
-                        <span className="text-sm font-black">Dein Look wird enthüllt…</span>
+                        <span className="text-sm font-black">Revealing your look…</span>
                       </div>
                       <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
                         <div className="h-full rounded-full bg-amber-400" style={{ width: revealSharp ? "100%" : "0%", transition: `width ${REVEAL_MS}ms linear` }} />
                       </div>
                     </div>
-                    <span className="pointer-events-none absolute right-3 top-3 flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-black text-white backdrop-blur"><Sparkles className="h-3 w-3 text-amber-400" /> Wird erstellt…</span>
+                    <span className="pointer-events-none absolute right-3 top-3 z-20 flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-black text-white backdrop-blur"><Sparkles className="h-3 w-3 text-amber-400" /> Scanning…</span>
                   </>
                 ) : (
                   <span className="pointer-events-none absolute right-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black"><Check className="h-3.5 w-3.5" /> Free</span>

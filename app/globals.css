@@ -101,6 +101,16 @@ svg {
   100% { background-position: -200% 0; }
 }
 
+/* Scanner beam for the try-on "reveal": a horizontal line sweeps down then up. */
+@keyframes lb-scan {
+  0%, 100% { top: 3%; }
+  50%      { top: 97%; }
+}
+.lb-scanline {
+  animation: lb-scan 2.6s ease-in-out infinite;
+  will-change: top;
+}
+
 .checkerboard {
   background-color: #fff;
   background-image:
