@@ -3,6 +3,7 @@ import { ArrowLeft, Sparkles, Heart, Coins, ShoppingBag, MessageCircle, Music } 
 import { readTryThisLookState } from "@/lib/try-this-look-store";
 import AboutGarmentPicker from "@/components/AboutGarmentPicker";
 import AboutVideoPicker from "@/components/AboutVideoPicker";
+import AboutStep3Videos from "@/components/AboutStep3Videos";
 
 export const metadata = { title: "How it works — LuxuryBandit" };
 // Signed video URLs expire — render fresh on each request.
@@ -146,15 +147,8 @@ export default async function AboutPage() {
                 <MessageCircle className="-mt-0.5 inline h-3.5 w-3.5 text-amber-400" /> message — and if the
                 look has a <ShoppingBag className="-mt-0.5 inline h-3.5 w-3.5 text-amber-400" /> shop link, buy the real thing in one tap.
               </p>
-              {videos.length > 0 && (
-                <div className="mt-2.5 grid grid-cols-3 gap-2">
-                  {videos.map((v, i) => (
-                    /* eslint-disable-next-line jsx-a11y/media-has-caption */
-                    <video key={i} src={v.video} poster={v.poster || undefined} muted loop playsInline autoPlay preload="metadata"
-                      className="aspect-[3/4] w-full rounded-xl lb-media-bg object-cover" />
-                  ))}
-                </div>
-              )}
+              {/* Tap a preview → opens the clip FULL (sound + controls). */}
+              <AboutStep3Videos videos={videos} />
               {/* Admin: pick which feed videos show here. */}
               <AboutVideoPicker />
             </div>
