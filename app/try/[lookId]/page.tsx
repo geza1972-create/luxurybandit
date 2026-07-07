@@ -92,6 +92,11 @@ export default function TryFunnelPage() {
   // "ready" step (step 3) instead of a blurred teaser + sign-in wall — free videos are watchable.
   const [previewVideoUrl, setPreviewVideoUrl] = useState("");
   const [previewGenId, setPreviewGenId] = useState("");
+  // Theatrical reveal for a free cache hit: the real video plays and slowly sharpens from
+  // blurry over ~30s (instead of a boring spinner). `revealSharp` drives the CSS deblur.
+  const [revealing, setRevealing] = useState(false);
+  const [revealSharp, setRevealSharp] = useState(false);
+  const REVEAL_MS = 30000;
   // "Motion" pick: what she DOES in the video. The user only sees the two chips —
   // the prompt swap happens server-side. Dance = Pixverse also generates music.
   const [motion, setMotion] = useState<"turn" | "dance">("turn");
@@ -172,22 +177,32 @@ export default function TryFunnelPage() {
 
   // Does this exact free combo (model × garment × motion) already exist? If so we can play
   // the REAL video on the ready step — no blur, no sign-in wall. Own-photo picks never cache.
-  const lookupCachedVideo = async () => {
+  const lookupCachedVideo = async (): Promise<string> => {
     setPreviewVideoUrl(""); setPreviewGenId("");
-    if (avatar || !chosenModelId) return;
+    if (avatar || !chosenModelId) return "";
     try {
       const combo = `${chosenModelId}|${lookId}|${motion}`;
       const cached = await fetch(`/api/try-this-look?combo=${encodeURIComponent(combo)}`).then(r => r.json());
-      if (cached?.hit && cached.videoUrl) { setPreviewVideoUrl(cached.videoUrl); setPreviewGenId(cached.generationId || ""); }
+      if (cached?.hit && cached.videoUrl) { setPreviewVideoUrl(cached.videoUrl); setPreviewGenId(cached.generationId || ""); return cached.videoUrl as string; }
     } catch { /**/ }
+    return "";
   };
 
-  const goStep3 = () => {
-    // Short spinner, then either the REAL cached video (free hit) or a blurred teaser.
-    setRendering(true);
+  const goStep3 = async () => {
     setStep(3);
-    void lookupCachedVideo();
-    window.setTimeout(() => setRendering(false), 2200);
+    setRendering(true); setRevealing(false); setRevealSharp(false);
+    const hit = await lookupCachedVideo();
+    if (hit) {
+      // Free video exists → theatrical ~30s "unsharp → sharp" reveal of the REAL clip.
+      setRendering(false);
+      setRevealing(true);
+      // next frame: flip to sharp so the CSS filter transition (REVEAL_MS) animates.
+      requestAnimationFrame(() => requestAnimationFrame(() => setRevealSharp(true)));
+      window.setTimeout(() => setRevealing(false), REVEAL_MS);
+    } else {
+      // No cached video → the old short spinner, then the blurred teaser + sign-in gate.
+      window.setTimeout(() => setRendering(false), 2200);
+    }
   };
   // Re-check the cache when the motion chip changes on the ready step (turn ↔ dance).
   useEffect(() => { if (step === 3) void lookupCachedVideo(); }, [motion]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -567,10 +582,28 @@ export default function TryFunnelPage() {
         <div className="px-4 pb-28 pt-2">
           <div className="relative mx-auto mt-2 overflow-hidden rounded-3xl border border-white/10">
             {previewVideoUrl && !rendering ? (
-              // Free video already exists → play it right here, full and watchable.
-              <div className="relative h-[52vh] w-full bg-black">
-                <video src={previewVideoUrl} className="h-full w-full object-contain" controls autoPlay loop playsInline />
-                <span className="pointer-events-none absolute right-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black"><Check className="h-3.5 w-3.5" /> Free</span>
+              // Free video already exists. Reveal it theatrically: it plays and slowly
+              // sharpens from blurry over ~30s, THEN becomes fully watchable (controls).
+              <div className="relative h-[52vh] w-full overflow-hidden bg-black">
+                <video src={previewVideoUrl} className="h-full w-full object-contain"
+                  style={revealing ? { filter: `blur(${revealSharp ? 0 : 26}px)`, transform: `scale(${revealSharp ? 1 : 1.08})`, transition: `filter ${REVEAL_MS}ms linear, transform ${REVEAL_MS}ms ease-out` } : undefined}
+                  autoPlay loop playsInline muted={revealing} controls={!revealing} />
+                {revealing ? (
+                  <>
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-4 pt-12">
+                      <div className="flex items-center justify-center gap-2 text-white">
+                        <Sparkles className="h-4 w-4 text-amber-400 animate-pulse" />
+                        <span className="text-sm font-black">Dein Look wird enthüllt…</span>
+                      </div>
+                      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+                        <div className="h-full rounded-full bg-amber-400" style={{ width: revealSharp ? "100%" : "0%", transition: `width ${REVEAL_MS}ms linear` }} />
+                      </div>
+                    </div>
+                    <span className="pointer-events-none absolute right-3 top-3 flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-black text-white backdrop-blur"><Sparkles className="h-3 w-3 text-amber-400" /> Wird erstellt…</span>
+                  </>
+                ) : (
+                  <span className="pointer-events-none absolute right-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black"><Check className="h-3.5 w-3.5" /> Free</span>
+                )}
               </div>
             ) : (
               <div className="relative h-[44vh] w-full">
@@ -593,7 +626,7 @@ export default function TryFunnelPage() {
               </div>
             )}
           </div>
-          {!rendering && (
+          {!rendering && !revealing && (
             <>
               <h1 className="mt-6 text-center text-[22px] font-black leading-tight">{previewVideoUrl ? "Enjoy your video 🎉" : "Your video is ready."}</h1>
               <p className="mt-2 text-center text-[13px] font-bold text-white/50">{previewVideoUrl ? "It's free — tap 🔊 for sound. Sign in to save & download it." : "Sign in to watch and download it in full quality."}</p>
@@ -791,7 +824,7 @@ export default function TryFunnelPage() {
               </>
             )
           )}
-          {step === 3 && !rendering && (
+          {step === 3 && !rendering && !revealing && (
             previewVideoUrl && previewGenId ? (
               // Free video is already playing above → open the full post (free), no wall.
               <button type="button" onClick={() => router.push(`/post/${previewGenId}`)}
