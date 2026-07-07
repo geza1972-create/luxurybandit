@@ -2795,8 +2795,8 @@ function StoresPage() {
               </button>
               {isAdmin && (
                 <button type="button" onClick={() => setTierFilter("private")}
-                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "private" ? "bg-amber-400 text-black" : "bg-amber-400/15 text-amber-400"}`}>
-                  Private
+                  className={`flex shrink-0 items-center gap-1 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "private" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>
+                  <EyeOff className="h-3.5 w-3.5" /> Private
                 </button>
               )}
               {isAdmin && (
