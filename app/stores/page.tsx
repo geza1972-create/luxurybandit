@@ -2565,25 +2565,7 @@ function StoresPage() {
         )}
 
         {/* Stats row */}
-        {!isLoading && (
-          <div className="flex gap-6 px-4 pb-1.5">
-            {curatorCount > 0 && (
-              <div className="text-center">
-                <div className="text-sm font-black text-white leading-none">{curatorCount}</div>
-                <div className="text-[10px] font-bold text-white/40 mt-0.5">Model{curatorCount !== 1 ? "s" : ""}</div>
-              </div>
-            )}
-            <div className="text-center">
-              <div className="text-sm font-black text-white leading-none">{looks.length}</div>
-              <div className="text-[10px] font-bold text-white/40 mt-0.5">Looks</div>
-            </div>
-            <div className="text-center">
-              <div className="text-sm font-black text-white leading-none">{communityItems.length}</div>
-              <div className="text-[10px] font-bold text-white/40 mt-0.5">Try-ons</div>
-            </div>
-          </div>
-        )}
-
+        {/* Stats bar (Models/Looks/Try-ons) removed — no need to expose our counts. */}
       </header>
 
       <main className="pb-24">

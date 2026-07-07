@@ -5,7 +5,8 @@ import { Loader2, Play, X } from "lucide-react";
 
 type Clip = { id: string; poster: string; video: string; name: string; showcase: boolean };
 
-const thumb = (url: string) => url.includes("/storage/v1/") ? `/_next/image?url=${encodeURIComponent(url)}&w=256&q=70` : url;
+// Direct signed URL + lazy (avoid /_next/image 429 when 100+ posters load at once).
+const thumb = (url: string) => url;
 
 // Admin-only picker for the About step-3 "Watch" videos: opens the feed clips,
 // admin taps to choose which play in step 3. Toggles set-featured (kind:generation).
@@ -69,11 +70,12 @@ export default function AboutVideoPicker() {
               <div className="grid grid-cols-4 gap-1.5 overflow-y-auto p-3">
                 {items.map(c => (
                   <button key={c.id} type="button" onClick={() => void toggle(c)}
-                    className={`relative aspect-[3/4] overflow-hidden rounded-lg border-2 lb-media-bg active:scale-95 transition ${c.showcase ? "border-amber-400 ring-2 ring-amber-400/40" : "border-white/10"}`}>
+                    style={{ aspectRatio: "3 / 4" }}
+                    className={`relative block w-full overflow-hidden rounded-lg border-2 lb-media-bg active:scale-95 transition ${c.showcase ? "border-amber-400 ring-2 ring-amber-400/40" : "border-white/10"}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={thumb(c.poster)} alt={c.name} loading="lazy" decoding="async"
                       onError={(e) => { const im = e.currentTarget; if (im.src !== c.poster) im.src = c.poster; }}
-                      className="h-full w-full object-cover object-top" />
+                      className="absolute inset-0 h-full w-full object-cover object-top" />
                     <span className="absolute inset-0 grid place-items-center"><Play className="h-5 w-5 text-white/80 drop-shadow" fill="currentColor" /></span>
                     {c.showcase && <span className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[13px] font-black text-black shadow">✓</span>}
                     {busy === c.id && <span className="absolute inset-0 grid place-items-center bg-black/50"><Loader2 className="h-4 w-4 animate-spin text-white" /></span>}

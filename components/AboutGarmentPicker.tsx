@@ -5,8 +5,9 @@ import { Loader2, X } from "lucide-react";
 
 type Garment = { id: string; name: string; img: string; featured: boolean };
 
-// Small optimized thumbnail (256px) so 60+ garments load fast, not full-res.
-const thumb = (url: string) => url.includes("/storage/v1/") ? `/_next/image?url=${encodeURIComponent(url)}&w=256&q=70` : url;
+// Load the signed Supabase URL directly + lazy — going through /_next/image for 60+
+// images at once rate-limits Supabase (429). Lazy loading only fetches visible tiles.
+const thumb = (url: string) => url;
 
 // Admin-only picker rendered ON the About "3 steps" page: opens a list of ALL
 // wardrobe garments and lets the admin choose which appear in step 2 (the
@@ -71,11 +72,12 @@ export default function AboutGarmentPicker() {
               <div className="grid grid-cols-4 gap-1.5 overflow-y-auto p-3">
                 {items.map(g => (
                   <button key={g.id} type="button" onClick={() => void toggle(g)}
-                    className={`relative aspect-[3/4] overflow-hidden rounded-lg border-2 bg-white active:scale-95 transition ${g.featured ? "border-amber-400 ring-2 ring-amber-400/40" : "border-black/10"}`}>
+                    style={{ aspectRatio: "3 / 4" }}
+                    className={`relative block w-full overflow-hidden rounded-lg border-2 bg-white active:scale-95 transition ${g.featured ? "border-amber-400 ring-2 ring-amber-400/40" : "border-black/10"}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={thumb(g.img)} alt={g.name} loading="lazy" decoding="async"
                       onError={(e) => { const im = e.currentTarget; if (im.src !== g.img) im.src = g.img; }}
-                      className="h-full w-full object-contain" />
+                      className="absolute inset-0 h-full w-full object-contain" />
                     {g.featured && <span className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[13px] font-black text-black shadow">★</span>}
                     {busy === g.id && <span className="absolute inset-0 grid place-items-center bg-black/40"><Loader2 className="h-4 w-4 animate-spin text-white" /></span>}
                   </button>

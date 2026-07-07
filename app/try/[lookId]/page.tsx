@@ -44,7 +44,9 @@ export default function TryFunnelPage() {
   // Garment-first (from the Garderobe tab): the garment is chosen but not the model yet →
   // step 2 shows a model picker.
   const pickModel = (searchParams?.get("pick") ?? "") === "1";
-  const [gModels, setGModels] = useState<{ id: string; name: string; photoUrl: string }[]>([]);
+  const [gModels, setGModels] = useState<{ id: string; name: string; photoUrl: string; featured?: boolean }[]>([]);
+  const [isPaid, setIsPaid] = useState(false);
+  useEffect(() => { try { setIsPaid(!!localStorage.getItem("luxurybandit-try-look-admin-pin") || localStorage.getItem("lb_paid") === "1"); } catch { /**/ } }, []);
   const [pickedModel, setPickedModel] = useState("");
   const [pickedModelId, setPickedModelId] = useState("");
   const [pickedModelName, setPickedModelName] = useState("");
@@ -392,16 +394,27 @@ export default function TryFunnelPage() {
             <>
               <p className="mt-2 text-[13px] font-bold text-white/50">Pick a model to wear this piece — or use your own photo.</p>
               <div className="mt-4 grid grid-cols-3 gap-2">
-                {gModels.map(m => (
-                  <button key={m.id} type="button" onClick={() => { setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); }}
+                {(() => { const anyFeatured = gModels.some(m => m.featured); return gModels.map(m => {
+                  // Only the featured models are free; the rest are Premium (locked) for
+                  // non-paying visitors — admin/paid can pick anyone.
+                  const locked = anyFeatured && !m.featured && !isPaid;
+                  return (
+                  <button key={m.id} type="button"
+                    onClick={() => { if (locked) { alert("Premium · nur für zahlende Mitglieder. Wähle eines der freien Models."); return; } setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); }}
                     className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-[0.98] transition-transform">
-                    <div className="aspect-[3/4] w-full">
+                    <div className="relative aspect-[3/4] w-full">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={m.photoUrl} alt={m.name} className="h-full w-full object-cover object-top" />
+                      <img src={m.photoUrl} alt={m.name} className={`h-full w-full object-cover object-top ${locked ? "blur-[6px] scale-105 opacity-70" : ""}`} />
+                      {locked && (
+                        <span className="absolute inset-0 z-10 grid place-items-center bg-black/25">
+                          <span className="grid h-9 w-9 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-4 w-4 text-white" /></span>
+                        </span>
+                      )}
                     </div>
-                    <div className="px-1.5 py-1"><span className="line-clamp-1 text-[11px] font-black">{m.name}</span></div>
+                    <div className="px-1.5 py-1"><span className={`line-clamp-1 text-[11px] font-black ${locked ? "text-amber-400" : ""}`}>{locked ? "Premium" : m.name}</span></div>
                   </button>
-                ))}
+                  );
+                }); })()}
               </div>
               <button type="button" onClick={() => fileRef.current?.click()}
                 className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-5 py-3 text-sm font-black active:scale-95">
