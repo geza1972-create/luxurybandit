@@ -2625,11 +2625,11 @@ function StoresPage() {
                 gallery of models (browse a model, then see her in looks). */}
             <div className="flex items-center gap-2 overflow-x-auto px-3 pt-1 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <button type="button" onClick={() => setHomeTab("models")}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "models" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>Models{models.length ? ` · ${models.length}` : ""}</button>
+                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "models" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>Models{models.length ? ` · ${models.length}` : ""}</button>
               <button type="button" onClick={() => setHomeTab("garderobe")}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "garderobe" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>Wardrobe{garments.length ? ` · ${garments.length}` : ""}</button>
+                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "garderobe" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>Wardrobe{garments.length ? ` · ${garments.length}` : ""}</button>
               <button type="button" onClick={() => setHomeTab("feeds")}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>Let&apos;s Play Big</button>
+                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>Let&apos;s Play Big</button>
             </div>
 
             {homeTab === "models" ? (
@@ -2785,7 +2785,7 @@ function StoresPage() {
                 bulk-moving posts between tiers. */}
             <div className="flex items-center gap-1.5 overflow-x-auto px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <button type="button" onClick={() => setTierFilter("public")}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "public" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "public" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>
                 All
               </button>
               <button type="button"
