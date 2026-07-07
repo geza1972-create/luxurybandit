@@ -83,6 +83,11 @@ export default function TryFunnelPage() {
   const [genStatus, setGenStatus] = useState<"idle" | "generating" | "done" | "error">("idle");
   const [genVideoUrl, setGenVideoUrl] = useState("");
   const [genPhotoUrl, setGenPhotoUrl] = useState(""); // model self-service result (photo-only)
+  // The generation id of the just-made video — lets the admin upscale THIS clip to HD
+  // right here on the result screen (no need to hunt for it in the feed).
+  const [genId, setGenId] = useState("");
+  const [hdBusyId, setHdBusyId] = useState(""); // which generation id is upscaling ("" = none)
+  const [hdMsg, setHdMsg] = useState("");
   // "Motion" pick: what she DOES in the video. The user only sees the two chips —
   // the prompt swap happens server-side. Dance = Pixverse also generates music.
   const [motion, setMotion] = useState<"turn" | "dance">("turn");
@@ -268,11 +273,40 @@ export default function TryFunnelPage() {
           // Save the model/before photo so the post gets a real Before/After slide.
           ...(person.startsWith("data:image/") ? { userPhotoImage: person } : person ? { userPhotoUrl: person } : {}),
         }) }).then(r => r.json());
-        if (gen.generationId) await fetch("/api/try-this-look", { method: "POST", headers: H, body: JSON.stringify({ action: "attach-generation-video", generationId: gen.generationId, videoUrl }) });
+        if (gen.generationId) {
+          setGenId(gen.generationId); // remember it so the admin can upscale this clip to HD here
+          await fetch("/api/try-this-look", { method: "POST", headers: H, body: JSON.stringify({ action: "attach-generation-video", generationId: gen.generationId, videoUrl }) });
+        }
       }
     } catch (e) {
       setGenStatus("error"); setGenError(e instanceof Error ? e.message : "Fehler");
     }
+  };
+
+  // Admin: upscale a 360p try-on clip to HD (1080p) via Pixverse and replace it in place.
+  // Same content, higher resolution — NO re-generation (the upscale endpoint takes no
+  // prompt). Works for the just-made video AND any of her clips in the gallery below.
+  const upscaleVideo = async (id: string, srcVideoUrl: string) => {
+    if (!id || !srcVideoUrl || hdBusyId) return;
+    setHdBusyId(id); setHdMsg("Rechne in HD um… (~1–2 Min)");
+    const H = { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}) };
+    try {
+      const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ upscale: true, videoUrl: srcVideoUrl }) }).then(r => r.json());
+      if (!start.videoId) throw new Error(start.error || "Upscale-Start fehlgeschlagen.");
+      let hdUrl = "";
+      for (let i = 0; i < 90; i++) {
+        await new Promise(r => setTimeout(r, 5000));
+        const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}`).then(r => r.json());
+        if (p.status === "done" && p.videoUrl) { hdUrl = p.videoUrl; break; }
+        if (p.status === "failed") throw new Error(p.error || "Umrechnen fehlgeschlagen.");
+      }
+      if (!hdUrl) throw new Error("Zeitüberschreitung beim Umrechnen.");
+      await fetch("/api/try-this-look", { method: "POST", headers: H, body: JSON.stringify({ action: "attach-generation-video", generationId: id, videoUrl: hdUrl }) });
+      if (id === genId) setGenVideoUrl(hdUrl); // refresh the top player if it's the main clip
+      setHdMsg("In HD umgerechnet ✓ — neu laden zum Ansehen.");
+    } catch (e) {
+      setHdMsg(e instanceof Error ? e.message : "Fehler beim Umrechnen");
+    } finally { setHdBusyId(""); }
   };
 
   // Real users generate automatically after paying. Admins do NOT auto-generate (that
@@ -627,6 +661,18 @@ export default function TryFunnelPage() {
               : "Dein Try-on wird in voller Qualität erstellt."}
           </p>
 
+          {/* Admin: HD the keeper right here. Upscales THIS 360p clip to 1080p (no re-gen). */}
+          {adminPin && genStatus === "done" && genVideoUrl && genId && (
+            <div className="mt-4 flex flex-col items-center gap-1.5">
+              <button type="button" onClick={() => upscaleVideo(genId, genVideoUrl)} disabled={!!hdBusyId}
+                className="flex items-center gap-2 rounded-full bg-amber-400 px-5 py-3 text-sm font-black text-black active:scale-95 transition disabled:opacity-50">
+                {hdBusyId === genId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {hdBusyId === genId ? "Rechne in HD um…" : "In HD umrechnen (1080p · Credits)"}
+              </button>
+              {hdMsg && <span className="text-[12px] font-bold text-white/50">{hdMsg}</span>}
+            </div>
+          )}
+
           {/* After generating: a gallery of the model's videos (incl. this one). Admins set
               each one's visibility right here — Fashionshow (feed + her profile "In motion"),
               Öffentlich (everyone vs members-only), or delete. */}
@@ -645,13 +691,22 @@ export default function TryFunnelPage() {
                         <span className={`absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[9px] font-black backdrop-blur ${v.public ? "bg-emerald-500 text-white" : v.feed ? "bg-amber-400 text-black" : "bg-black/70 text-white"}`}>{status}</span>
                       </a>
                       {adminPin && (
-                        <div className="flex items-center gap-1 p-1.5">
-                          <button type="button" onClick={() => setVideoFeed(v.id, !v.feed)}
-                            className={`flex-1 rounded-lg px-1.5 py-1.5 text-[10px] font-black transition ${v.feed ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>Fashionshow</button>
-                          <button type="button" onClick={() => setVideoPublic(v.id, !v.public)}
-                            className={`flex-1 rounded-lg px-1.5 py-1.5 text-[10px] font-black transition ${v.public ? "bg-emerald-500 text-white" : "bg-white/10 text-white/60"}`}>{v.public ? "Öffentlich" : "Mitglieder"}</button>
-                          <button type="button" onClick={() => deleteVideoGen(v.id)}
-                            className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-red-500/20 text-red-300 active:scale-90"><Trash2 className="h-3.5 w-3.5" /></button>
+                        <div className="p-1.5">
+                          <div className="flex items-center gap-1">
+                            <button type="button" onClick={() => setVideoFeed(v.id, !v.feed)}
+                              className={`flex-1 rounded-lg px-1.5 py-1.5 text-[10px] font-black transition ${v.feed ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>Fashionshow</button>
+                            <button type="button" onClick={() => setVideoPublic(v.id, !v.public)}
+                              className={`flex-1 rounded-lg px-1.5 py-1.5 text-[10px] font-black transition ${v.public ? "bg-emerald-500 text-white" : "bg-white/10 text-white/60"}`}>{v.public ? "Öffentlich" : "Mitglieder"}</button>
+                            <button type="button" onClick={() => deleteVideoGen(v.id)}
+                              className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-red-500/20 text-red-300 active:scale-90"><Trash2 className="h-3.5 w-3.5" /></button>
+                          </div>
+                          {/* Upscale THIS clip to HD (1080p) — no re-generation, same content. */}
+                          {v.videoUrl && (
+                            <button type="button" onClick={() => upscaleVideo(v.id, v.videoUrl!)} disabled={!!hdBusyId}
+                              className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-lg bg-amber-400/90 px-1.5 py-1.5 text-[10px] font-black text-black active:scale-95 transition disabled:opacity-50">
+                              {hdBusyId === v.id ? <><Loader2 className="h-3 w-3 animate-spin" /> HD…</> : <><Sparkles className="h-3 w-3" /> In HD umrechnen</>}
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
