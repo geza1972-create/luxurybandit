@@ -96,6 +96,8 @@ export default function TryFunnelPage() {
   // blurry over ~30s (instead of a boring spinner). `revealSharp` drives the CSS deblur.
   const [revealing, setRevealing] = useState(false);
   const [revealSharp, setRevealSharp] = useState(false);
+  const [previewPoster, setPreviewPoster] = useState("");
+  const revealVideoRef = useRef<HTMLVideoElement>(null);
   const REVEAL_MS = 30000;
   // "Motion" pick: what she DOES in the video. The user only sees the two chips —
   // the prompt swap happens server-side. Dance = Pixverse also generates music.
@@ -178,15 +180,23 @@ export default function TryFunnelPage() {
   // Does this exact free combo (model × garment × motion) already exist? If so we can play
   // the REAL video on the ready step — no blur, no sign-in wall. Own-photo picks never cache.
   const lookupCachedVideo = async (): Promise<string> => {
-    setPreviewVideoUrl(""); setPreviewGenId("");
+    setPreviewVideoUrl(""); setPreviewGenId(""); setPreviewPoster("");
     if (avatar || !chosenModelId) return "";
     try {
       const combo = `${chosenModelId}|${lookId}|${motion}`;
       const cached = await fetch(`/api/try-this-look?combo=${encodeURIComponent(combo)}`).then(r => r.json());
-      if (cached?.hit && cached.videoUrl) { setPreviewVideoUrl(cached.videoUrl); setPreviewGenId(cached.generationId || ""); return cached.videoUrl as string; }
+      if (cached?.hit && cached.videoUrl) { setPreviewVideoUrl(cached.videoUrl); setPreviewGenId(cached.generationId || ""); setPreviewPoster(cached.posterUrl || ""); return cached.videoUrl as string; }
     } catch { /**/ }
     return "";
   };
+  // During the reveal the clip stays PAUSED (just the still sharpens); it starts playing
+  // only once the reveal finishes.
+  useEffect(() => {
+    const v = revealVideoRef.current;
+    if (!v) return;
+    if (revealing) { try { v.pause(); v.currentTime = 0; } catch { /**/ } }
+    else { try { void v.play().catch(() => {}); } catch { /**/ } }
+  }, [revealing, previewVideoUrl]);
 
   const goStep3 = async () => {
     setStep(3);
@@ -585,9 +595,9 @@ export default function TryFunnelPage() {
               // Free video already exists. Reveal it theatrically: it plays and slowly
               // sharpens from blurry over ~30s, THEN becomes fully watchable (controls).
               <div className="relative h-[52vh] w-full overflow-hidden bg-black">
-                <video src={previewVideoUrl} className="h-full w-full object-contain"
+                <video ref={revealVideoRef} src={previewVideoUrl} poster={previewPoster || undefined} preload="auto" className="h-full w-full object-contain"
                   style={revealing ? { filter: `blur(${revealSharp ? 0 : 26}px)`, transform: `scale(${revealSharp ? 1 : 1.08})`, transition: `filter ${REVEAL_MS}ms linear, transform ${REVEAL_MS}ms ease-out` } : undefined}
-                  autoPlay loop playsInline muted={revealing} controls={!revealing} />
+                  loop playsInline muted={revealing} controls={!revealing} />
                 {revealing ? (
                   <>
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-4 pt-12">
