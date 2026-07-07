@@ -41,11 +41,16 @@ export default async function BecomeAModelPage() {
   return (
     <main className="min-h-[100dvh] bg-[#0d0b0a] pb-24 text-white">
       <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-white/10 bg-[#0d0b0a]/95 px-4 py-3 backdrop-blur">
-        <Link href="/stores" aria-label="Back"
+        <Link href="/stores?tab=community" aria-label="Back"
           className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 text-white active:scale-90 transition-transform">
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <p className="text-sm font-black text-white">Become a LuxuryBandit Model</p>
+        <p className="min-w-0 flex-1 truncate text-sm font-black text-white">Become a LuxuryBandit Model</p>
+        {/* Straight into the show — visitors see what the fuss is about. */}
+        <Link href="/stores?tab=community"
+          className="lb-gold flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-black active:scale-95 transition-transform">
+          <Play className="h-3.5 w-3.5" fill="currentColor" /> Fashionshow
+        </Link>
       </header>
 
       <article className="mx-auto max-w-2xl px-5 py-8">

@@ -2604,9 +2604,10 @@ function StoresPage() {
                   ))}
                 </div>
                 <div className="mt-3.5 flex items-center gap-2">
-                  <button type="button" onClick={() => setHomeTab("models")}
+                  {/* Primary CTA = the FEED (Fashionshow) — models are one tab below. */}
+                  <button type="button" onClick={() => router.push("/stores?tab=community")}
                     className="lb-gold flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-black active:scale-95 transition-transform">
-                    <Sparkles className="h-4 w-4" /> Pick your model
+                    <Play className="h-4 w-4" fill="currentColor" /> Fashionshow
                   </button>
                   <button type="button" onClick={() => router.push("/about")}
                     className="flex h-10 items-center justify-center rounded-full border border-white/20 bg-white/[0.04] px-5 text-sm font-black text-white active:scale-95 transition-transform">
