@@ -54,7 +54,12 @@ export default async function BecomeAModelPage() {
           {/* Campaign banner — also the OG/share image for the ads. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/become-a-model-banner.jpg" alt="Make money daily — become a LuxuryBandit model"
-            className="mb-5 w-full rounded-2xl border border-amber-400/30" />
+            className="mb-4 w-full rounded-2xl border border-amber-400/30" />
+          {/* CTA right under the banner — ad traffic converts above the fold. */}
+          <Link href="/curators/apply"
+            className="lb-gold mb-6 flex items-center justify-center gap-2 rounded-full px-6 py-4 text-base font-black active:scale-95 transition-transform">
+            <Coins className="h-5 w-5" /> Become a LuxuryBandit Model — it&apos;s free
+          </Link>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Become a LuxuryBandit Model</p>
           <h1 className="mt-2 text-[30px] font-black leading-tight">
             Stop posting for free.<br /><span className="text-amber-400">Start earning with every look.</span>
