@@ -2,7 +2,8 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, BadgeCheck, Instagram, Loader2, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play, Sparkles, SlidersHorizontal, Trash2, EyeOff, Eye, ImageUp, Video } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Instagram, Loader2, Lock, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play, Sparkles, SlidersHorizontal, Trash2, EyeOff, Eye, ImageUp, Video } from "lucide-react";
+import PremiumDialog from "@/components/PremiumDialog";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { LOOK_CATEGORIES, categorizeLook, isLookCategory, type LookCategory } from "@/lib/look-category";
 
@@ -19,7 +20,7 @@ function viewerHeaders(): Record<string, string> {
 }
 
 type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean };
-type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
+type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; featured?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
 type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string };
 
 const toSlug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -82,6 +83,9 @@ export default function CuratorPublicPage() {
   const [allLooks, setAllLooks] = useState<Look[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isPaid, setIsPaid] = useState(false);
+  const [showPremium, setShowPremium] = useState(false);
+  useEffect(() => { try { setIsPaid(!!localStorage.getItem("luxurybandit-try-look-admin-pin") || localStorage.getItem("lb_paid") === "1"); } catch { /**/ } }, []);
   const [genBusy, setGenBusy] = useState(false);
   const [genMsg, setGenMsg] = useState("");
   // Admin: describe the pieces to generate (else auto from her prefs) + reference images
@@ -112,8 +116,6 @@ export default function CuratorPublicPage() {
   }, [id]);
   // "See her in other looks" scrolls down to her wardrobe (her outfits).
   const wardrobeRef = useRef<HTMLDivElement>(null);
-  // "Load more looks" also pulls in garments from OTHER models so she can wear anything.
-  const [moreLooks, setMoreLooks] = useState(false);
   // Wardrobe category filter (mirrors the Garderobe tab).
   const [wardrobeCat, setWardrobeCat] = useState<"all" | LookCategory>("all");
   // Admin per-item management sheet (delete / hide / replace / move category / edit text).
@@ -669,10 +671,10 @@ export default function CuratorPublicPage() {
             if (key) seen.add(key);
             return true;
           };
-          const herWardrobe = looks.filter(l => isGarment(l) && dedupe(l));
-          // "Load more looks" appends garments from OTHER models (she can wear anything).
-          const moreWardrobe = moreLooks ? allLooks.filter(l => l.curatorId !== id && isGarment(l) && dedupe(l)) : [];
-          const wardrobeAll = [...herWardrobe, ...moreWardrobe];
+          // Show the WHOLE portal wardrobe on every model. Featured (free) pieces lead;
+          // everything else is Premium (locked) unless the visitor is paid/admin.
+          const wardrobeAll = allLooks.filter(l => isGarment(l) && dedupe(l))
+            .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
           const catOf = (l: Look): LookCategory => (isLookCategory(l.category) ? l.category : categorizeLook(l as never));
           const wardrobe = wardrobeCat === "all" ? wardrobeAll : wardrobeAll.filter(l => catOf(l) === wardrobeCat);
           return (
@@ -711,21 +713,26 @@ export default function CuratorPublicPage() {
                     const garment = (l.frontImageUrl ?? l.imageUrl) as string;
                     const hidden = l.published === false;
                     const notMine = l.curatorId !== id;
+                    // Only the featured (free) pieces are usable; the rest are Premium.
+                    const locked = !l.featured && !isPaid;
                     return (
                       <div key={l.id} className="relative flex flex-col overflow-hidden rounded-2xl bg-white">
                         <button type="button"
-                          onClick={() => profile.photoUrl && router.push(`/try/${l.id}?model=${encodeURIComponent(profile.photoUrl)}&garment=${encodeURIComponent(garment)}&modelId=${encodeURIComponent(id)}&modelName=${encodeURIComponent(name)}`)}
+                          onClick={() => { if (locked) { setShowPremium(true); return; } if (profile.photoUrl) router.push(`/try/${l.id}?model=${encodeURIComponent(profile.photoUrl)}&garment=${encodeURIComponent(garment)}&modelId=${encodeURIComponent(id)}&modelName=${encodeURIComponent(name)}`); }}
                           className="relative aspect-[3/4] w-full bg-neutral-50 active:opacity-80 transition-opacity">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={optImg(garment, 500)} alt={l.name} loading="lazy" decoding="async"
                             onError={(e) => { const im = e.currentTarget; if (garment && im.src !== garment) im.src = garment; }}
-                            className={`h-full w-full object-contain ${hidden ? "opacity-40" : ""}`} />
-                          {/* Make it obvious tapping generates a try-on VIDEO. */}
-                          {!hidden && <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur"><Play className="h-2.5 w-2.5" fill="currentColor" /> Video erstellen</span>}
+                            className={`h-full w-full object-contain ${hidden ? "opacity-40" : ""} ${locked ? "blur-[5px] scale-105 opacity-70" : ""}`} />
+                          {locked ? (
+                            <span className="absolute inset-0 z-10 grid place-items-center bg-black/20">
+                              <span className="grid h-10 w-10 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-5 w-5 text-white" /></span>
+                            </span>
+                          ) : (!hidden && <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur"><Play className="h-2.5 w-2.5" fill="currentColor" /> Create video</span>)}
                         </button>
                         <div className="flex items-center gap-1.5 px-2 py-1.5">
-                          <span className="block min-w-0 flex-1 truncate text-[11px] font-black text-black/70">{l.name}</span>
-                          {(l as any).buyUrl && (
+                          <span className={`block min-w-0 flex-1 truncate text-[11px] font-black ${locked ? "text-amber-500" : "text-black/70"}`}>{locked ? "Premium" : l.name}</span>
+                          {!locked && (l as any).buyUrl && (
                             <a href={(l as any).buyUrl} target="_blank" rel="noopener noreferrer sponsored" onClick={e => e.stopPropagation()}
                               className="flex shrink-0 items-center gap-1 rounded-full bg-black px-2 py-1 text-[10px] font-black text-white active:scale-95 transition">
                               <ShoppingBag className="h-3 w-3" /> Shop
@@ -745,18 +752,14 @@ export default function CuratorPublicPage() {
                   })}
                 </div>
               )}
-
-              {/* Load garments from OTHER models too — she can wear anything. */}
-              {!moreLooks && allLooks.some(l => l.curatorId !== id && l.aiCreated && (l.frontImageUrl || l.imageUrl)) && (
-                <button type="button" onClick={() => setMoreLooks(true)}
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-full border border-white/20 bg-white/[0.04] px-5 py-3 text-[13px] font-black text-white active:scale-95 transition">
-                  <Sparkles className="h-4 w-4 text-amber-400" /> Load more looks
-                </button>
-              )}
+              {/* Whole portal wardrobe is shown above (featured free, rest Premium) —
+                  the old "Load more looks" button is no longer needed. */}
             </>
           );
         })()}
       </div>
+
+      <PremiumDialog open={showPremium} onClose={() => setShowPremium(false)} />
 
       {/* Profile photo lightbox — tap anywhere (or X) to close. */}
       {photoOpen && profile.photoUrl && (
