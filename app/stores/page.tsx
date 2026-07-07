@@ -2743,7 +2743,7 @@ function StoresPage() {
                       </div>
                       <div className="px-2.5 py-2">
                         <p className="truncate text-[13px] font-black text-white">{m.name}</p>
-                        {locked ? <p className="truncate text-[11px] font-bold text-amber-400/80">Members only</p> : m.style && <p className="truncate text-[11px] font-bold text-white/40">{m.style}</p>}
+                        {locked ? <p className="truncate text-[11px] font-black text-amber-400">Premium · Members only</p> : m.style && <p className="truncate text-[11px] font-bold text-white/40">{m.style}</p>}
                       </div>
                     </a>
                     {m.hidden && <span className="absolute left-2 top-2 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-black text-white">Ausgeblendet</span>}
@@ -2777,6 +2777,7 @@ function StoresPage() {
                       className="flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-white/25 px-4 py-2.5 text-[13px] font-black text-white/70 active:scale-95 transition-transform">
                       <UserPlus className="h-4 w-4" /> Luxury-Bandi-Kleidungsstück hinzufügen
                     </button>
+                    <p className="mt-1.5 px-1 text-[11px] font-bold text-amber-400/70">Tipp: Tippe das <span className="font-black">★</span> auf einem Stück, um es im „How it works"-Showcase (Schritt 2) zu zeigen.</p>
                   </div>
                 )}
                 {(() => {

@@ -62,7 +62,7 @@ export default async function AboutPage() {
   return (
     <main className="min-h-[100dvh] bg-[#0d0b0a] pb-24 text-white">
       <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-white/10 bg-[#0d0b0a]/95 px-4 py-3 backdrop-blur">
-        <Link href="/stores" aria-label="Back"
+        <Link href="/stores?view=grid" aria-label="Back"
           className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 text-white active:scale-90 transition-transform">
           <ArrowLeft className="h-4 w-4" />
         </Link>
