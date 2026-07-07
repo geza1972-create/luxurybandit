@@ -1490,20 +1490,22 @@ export default function AdminPage() {
                   {resetting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />} Reset
                 </button>
               </div>
-              <p className="mt-1.5 text-[10px] font-bold text-ink/35">Your own admin session is excluded automatically. Geo (country/city) shows once live on the server.</p>
+              <p className="mt-1.5 text-[10px] font-bold text-ink/35">Likes, Try-on &amp; Bandit reflect the selected range. Views is an all-time total (no per-day data is kept). Your own admin session is excluded automatically.</p>
 
-              {/* Engagement tiles (event-based ones reflect the range) */}
+              {/* Engagement tiles. Views is a lifetime running total (per-look viewCount,
+                  no timestamps) → it CANNOT follow the range, so it's set apart with a
+                  tinted tile + "all-time" tag. The other three are event-based, in-range. */}
               <div className="mt-3 grid grid-cols-4 gap-2">
                 {([
-                  ["Views", totalViews, Eye, "lifetime"],
+                  ["Views", totalViews, Eye, "all-time"],
                   ["Likes", countOf("like_click"), Heart, ""],
                   ["Try-on", countOf("tryon_click"), Sparkles, ""],
                   ["Bandit", countOf("bandit_click"), MousePointerClick, ""],
                 ] as const).map(([label, n, Icon, sub]) => (
-                  <div key={label} className="rounded-xl border border-black/10 bg-white p-3 text-center">
+                  <div key={label} className={`rounded-xl border p-3 text-center ${sub ? "border-dashed border-black/15 bg-black/[0.02]" : "border-black/10 bg-white"}`}>
                     <Icon className="mx-auto mb-1 h-4 w-4 text-ink/40" />
                     <p className="text-lg font-black text-ink">{fmt(n)}</p>
-                    <p className="text-[10px] font-bold text-ink/40">{label}{sub ? <span className="ml-0.5 text-ink/25">·{sub}</span> : ""}</p>
+                    <p className="text-[10px] font-bold text-ink/40">{label}{sub ? <span className="ml-0.5 rounded bg-black/[0.06] px-1 text-[8px] uppercase tracking-wide text-ink/40">{sub}</span> : ""}</p>
                   </div>
                 ))}
               </div>
