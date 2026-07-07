@@ -133,6 +133,31 @@ export default function PostPage() {
     setModWorking(false); setAssignOpen(false);
     setPost(p => p ? { ...p, customerName } : p);
   };
+  // Admin: upscale THIS post's 360p video to HD (1080p) via Pixverse and replace it in
+  // place. No re-generation (the upscale endpoint takes no prompt) — same clip, sharper.
+  const [hdBusy, setHdBusy] = useState(false);
+  const [hdMsg, setHdMsg] = useState("");
+  const doUpscaleHd = async () => {
+    if (!post?.videoUrl || hdBusy) return;
+    if (!confirm("Dieses Video in HD (1080p) umrechnen? Kostet Pixverse-Credits, dauert ~1–2 Min.")) return;
+    setHdBusy(true); setHdMsg("Rechne in HD um… (~1–2 Min)");
+    try {
+      const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: modHeaders(), body: JSON.stringify({ upscale: true, videoUrl: post.videoUrl }) }).then(r => r.json());
+      if (!start.videoId) throw new Error(start.error || "Upscale-Start fehlgeschlagen.");
+      let hdUrl = "";
+      for (let i = 0; i < 90; i++) {
+        await new Promise(r => setTimeout(r, 5000));
+        const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}`).then(r => r.json());
+        if (p.status === "done" && p.videoUrl) { hdUrl = p.videoUrl; break; }
+        if (p.status === "failed") throw new Error(p.error || "Umrechnen fehlgeschlagen.");
+      }
+      if (!hdUrl) throw new Error("Zeitüberschreitung beim Umrechnen.");
+      await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "attach-generation-video", generationId: post.id, videoUrl: hdUrl }) });
+      setPost(p => p ? { ...p, videoUrl: hdUrl } : p);
+      setHdMsg("In HD umgerechnet ✓");
+    } catch (e) { setHdMsg(e instanceof Error ? e.message : "Fehler beim Umrechnen"); }
+    finally { setHdBusy(false); }
+  };
 
   useEffect(() => {
     if (!postId) return;
@@ -313,6 +338,12 @@ export default function PostPage() {
               className="grid h-9 w-9 place-items-center rounded-full bg-amber-400/90 text-white active:opacity-70"><EyeOff className="h-4 w-4" /></button>
             {isAdminUser && (
               <>
+                {post?.videoUrl && (
+                  <button type="button" onClick={() => void doUpscaleHd()} disabled={hdBusy} title="In HD umrechnen (1080p)"
+                    className="grid h-9 min-w-9 place-items-center rounded-full bg-amber-400 px-2.5 text-[11px] font-black text-black active:opacity-70 disabled:opacity-50">
+                    {hdBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "HD"}
+                  </button>
+                )}
                 <button type="button" onClick={() => void doDelete()} title="Delete"
                   className="grid h-9 w-9 place-items-center rounded-full bg-red-500/90 text-white active:opacity-70"><Trash2 className="h-4 w-4" /></button>
                 <button type="button" onClick={() => setAssignOpen(true)} title="Assign"
@@ -334,6 +365,14 @@ export default function PostPage() {
           </button>
         )}
       </header>
+      {/* HD upscale status toast (admin) */}
+      {hdMsg && (
+        <div className="fixed inset-x-0 bottom-4 z-[120] flex justify-center px-4">
+          <div className="flex items-center gap-2 rounded-full bg-black/85 px-4 py-2.5 text-[12px] font-black text-white shadow-2xl backdrop-blur">
+            {hdBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}{hdMsg}
+          </div>
+        </div>
+      )}
 
       {/* Assign-to-creator picker (admin) */}
       {assignOpen && (

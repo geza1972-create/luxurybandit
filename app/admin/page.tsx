@@ -651,6 +651,32 @@ export default function AdminPage() {
     }
     setVideoBusy("");
   };
+  // Admin: upscale a post's 360p video to HD (1080p) and replace it in place. No
+  // re-generation (the upscale endpoint takes no prompt) — same clip, sharper.
+  const [hdBusy, setHdBusy] = useState<string>("");
+  const upscalePost = async (p: AdminPost) => {
+    if (!p.videoUrl || hdBusy) return;
+    if (!confirm("Dieses Video in HD (1080p) umrechnen? Kostet Pixverse-Credits, ~1–2 Min.")) return;
+    setHdBusy(p.id);
+    try {
+      const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: headers(), body: JSON.stringify({ upscale: true, videoUrl: p.videoUrl }) }).then(r => r.json());
+      if (!start?.videoId) throw new Error(start?.error || "Upscale konnte nicht starten.");
+      let videoUrl = "";
+      for (let i = 0; i < 90; i++) {
+        await new Promise(r => setTimeout(r, 5000));
+        const poll = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}`).then(r => r.json());
+        if (poll.status === "done" && poll.videoUrl) { videoUrl = poll.videoUrl; break; }
+        if (poll.status === "failed") throw new Error("Umrechnen fehlgeschlagen.");
+      }
+      if (!videoUrl) throw new Error("Zeitüberschreitung.");
+      await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "attach-generation-video", generationId: p.id, videoUrl }) });
+      setPosts(ps => ps.map(x => x.id === p.id ? { ...x, videoUrl } : x));
+      alert("In HD umgerechnet ✓ — neu laden zum Ansehen.");
+    } catch (e) {
+      alert("HD fehlgeschlagen: " + (e instanceof Error ? e.message : "error"));
+    }
+    setHdBusy("");
+  };
   const shownPosts = useMemo(() => {
     return posts.filter(p => {
       if (q && !`${p.customerName} ${p.lookName}`.toLowerCase().includes(q)) return false;
@@ -942,6 +968,12 @@ export default function AdminPage() {
                             <button type="button" disabled={!!videoBusy} onClick={() => void makePostVideo(p)}
                               className="grid h-7 w-7 place-items-center rounded text-cobalt transition hover:bg-cobalt/10 disabled:opacity-40" title="Generate video">
                               {videoBusy === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
+                            </button>
+                          )}
+                          {p.videoUrl && (
+                            <button type="button" disabled={!!hdBusy} onClick={() => void upscalePost(p)}
+                              className="grid h-7 min-w-7 place-items-center rounded bg-amber-400 px-1.5 text-[10px] font-black text-black transition active:scale-95 disabled:opacity-40" title="In HD umrechnen (1080p)">
+                              {hdBusy === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "HD"}
                             </button>
                           )}
                           <button type="button" onClick={() => void deletePost(p)} className="grid h-7 w-7 place-items-center rounded text-coral transition hover:bg-coral/10" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
