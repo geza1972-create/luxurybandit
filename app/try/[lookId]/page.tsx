@@ -222,6 +222,24 @@ export default function TryFunnelPage() {
         }) });
         return;
       }
+      // ── Reuse cache ──────────────────────────────────────────────────────────
+      // Before spending a Pixverse credit, ask the server whether this exact try-on
+      // (model × garment × motion) already exists. A hit plays the stored video
+      // instantly — no generation, no cost. Own-photo try-ons (avatar) never cache:
+      // the person is different every time, so there is nothing to reuse. Admins bypass
+      // the lookup (except in "preview as user" mode) — they PRE-generate the library and
+      // may want to redo a bad clip; their output still becomes a cache entry for users.
+      if (!avatar && chosenModelId && (!adminPin || previewAsUser)) {
+        try {
+          const combo = `${chosenModelId}|${lookId}|${motion}`;
+          const cached = await fetch(`/api/try-this-look?combo=${encodeURIComponent(combo)}`).then(r => r.json());
+          if (cached?.hit && cached.videoUrl) {
+            setGenVideoUrl(cached.videoUrl);
+            setGenStatus("done");
+            return; // served from storage — nothing generated, nothing saved
+          }
+        } catch { /* cache miss or offline → fall through to real generation */ }
+      }
       // Send the admin prompt EXACTLY as written (tokens like @Bild1 / @Bild2 bind to the
       // reference images server-side) — no remapping, same as typing it into Pixverse.
       const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ lookId, garment, person, prompt: prompt || "", motion }) }).then(r => r.json());
@@ -243,7 +261,7 @@ export default function TryFunnelPage() {
       // NOT the garment owner. Own-photo try-ons (avatar) stay attributed to the user.
       if (poster) {
         const gen = await fetch("/api/try-this-look", { method: "POST", headers: H, body: JSON.stringify({
-          action: "generation", lookId, image: poster, genKind: "video", feed: false,
+          action: "generation", lookId, image: poster, genKind: "video", feed: false, motion,
           customerName: chosenModelName || (session?.user?.email?.split("@")[0]) || "You",
           ...(chosenModelId ? { curatorId: chosenModelId } : {}),
           ownerEmail: session?.user?.email || "", userId: session?.user?.id || "",

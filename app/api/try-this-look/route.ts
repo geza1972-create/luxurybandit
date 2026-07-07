@@ -326,6 +326,33 @@ export async function GET(request: Request) {
     if (wantsAdminData && !(await isAdmin(request))) {
       return NextResponse.json({ error: "Admin access required." }, { status: 401 });
     }
+    // ── Reuse cache lookup ────────────────────────────────────────────────────
+    // "Generate once, reuse forever": before the funnel spends a Pixverse credit it
+    // asks whether this exact try-on already exists. Key = model × garment × motion.
+    // A hit returns the stored (already re-signed) video so nobody regenerates it.
+    // Own-photo try-ons don't come here (no curatorId) — the person differs every time.
+    const comboParam = url.searchParams.get("combo") ?? "";
+    if (comboParam) {
+      const [cCurator, cLook, cMotionRaw] = comboParam.split("|");
+      const cMotion = cMotionRaw === "dance" ? "dance" : "turn"; // default/legacy = turn
+      const curatorId = (cCurator ?? "").trim();
+      const lookId = (cLook ?? "").trim();
+      if (!curatorId || !lookId) return NextResponse.json({ hit: false });
+      // state.generations is newest-first; the first match is the freshest reusable clip.
+      const hitGen = state.generations.find((g) => {
+        if ((g as any).hidden || !(g as any).videoUrl) return false;
+        if ((g as any).curatorId !== curatorId || g.lookId !== lookId) return false;
+        const m = (g as any).motion === "dance" ? "dance" : "turn"; // missing = legacy turn
+        return m === cMotion;
+      });
+      if (!hitGen) return NextResponse.json({ hit: false });
+      return NextResponse.json({
+        hit: true,
+        generationId: hitGen.id,
+        videoUrl: (hitGen as any).videoUrl ?? "",
+        posterUrl: (hitGen as any).imageUrl ?? "",
+      });
+    }
     // Partner stores — read by the studio (curators) and the admin manager.
     // Admin sees the affiliate templates; curators get only what discovery needs.
     if (url.searchParams.get("partnerStores") === "1") {
@@ -1292,6 +1319,10 @@ export async function POST(request: Request) {
         // pending REQUEST (feed stays false until an admin approves it).
         feed: creatorIsAdmin && wantsPublish,
         feedRequested: (!creatorIsAdmin && wantsPublish) || undefined,
+        // Reuse cache key: the motion this video was made with (turn | dance). Lets an
+        // identical (model × garment × motion) try-on be served from storage instead of
+        // regenerated. See the ?combo= lookup in GET.
+        ...(["turn", "dance"].includes(String(payload.motion)) ? { motion: String(payload.motion) as "turn" | "dance" } : {}),
         createdAt: now
       } as any);
       state.events.unshift({

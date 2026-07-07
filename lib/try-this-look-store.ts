@@ -131,6 +131,10 @@ export type TryThisLookGeneration = {
   customerName?: string;
   userId?: string;
   curatorId?: string;
+  // Which motion produced this video (turn | dance). Part of the reuse cache key
+  // (model × garment × motion) so an identical try-on is served from storage, not
+  // regenerated. Missing = legacy "turn".
+  motion?: "turn" | "dance";
   createdAt: string;
   // Set when the original creator/store was deleted but the user's try-on is kept.
   creatorDeleted?: boolean;
