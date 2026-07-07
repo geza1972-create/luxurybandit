@@ -34,11 +34,18 @@ async function stepMedia(): Promise<StepMedia> {
       .filter(l => ((l as { productType?: string }).productType === "ai" || (l as { wardrobe?: boolean }).wardrobe) && ((l as { frontImageUrl?: string }).frontImageUrl || (l as { imageUrl?: string }).imageUrl) && (l as { published?: boolean }).published !== false)
       .slice(0, 4)
       .map(l => ({ id: l.id, name: l.name, img: ((l as { frontImageUrl?: string }).frontImageUrl || (l as { imageUrl?: string }).imageUrl) as string }));
-    // Step 3 — a few clips shown BLURRED (the finished videos live behind the paywall).
-    const videos = (state.generations ?? [])
-      .filter(g => (g as { videoUrl?: string }).videoUrl && (g as { imageUrl?: string }).imageUrl && !(g as { hidden?: boolean }).hidden)
-      .slice(0, 3)
-      .map(g => ({ poster: (g as { imageUrl?: string }).imageUrl as string }));
+    // Step 3 — blurred teasers of the featured MODELS' clips (must clearly be a
+    // model), one per featured model where possible; fall back to any clip.
+    const featuredIds = new Set(models.map(m => m.id));
+    const withVid = (state.generations ?? []).filter(g => (g as { videoUrl?: string }).videoUrl && (g as { imageUrl?: string }).imageUrl && !(g as { hidden?: boolean }).hidden);
+    const perModel: string[] = [];
+    for (const m of models) {
+      const hit = withVid.find(g => (g as { curatorId?: string }).curatorId === m.id);
+      if (hit) perModel.push((hit as { imageUrl?: string }).imageUrl as string);
+    }
+    const fromFeatured = withVid.filter(g => featuredIds.has((g as { curatorId?: string }).curatorId ?? "")).map(g => (g as { imageUrl?: string }).imageUrl as string);
+    const posters = [...new Set([...perModel, ...fromFeatured, ...withVid.map(g => (g as { imageUrl?: string }).imageUrl as string)])].slice(0, 3);
+    const videos = posters.map(poster => ({ poster }));
     return { clips, curatorId: gina?.id ?? "", models, garments, videos };
   } catch { return empty; }
 }
