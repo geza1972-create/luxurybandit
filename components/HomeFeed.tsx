@@ -312,9 +312,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       if (!v) continue;
       const isActiveVideo = inView && Number(idxStr) === active;
       if (isActiveVideo) {
-        // Videos always play silent — the feed soundtrack is the only audio, so
-        // baked-in per-clip music (Pixverse) never clashes with it.
-        v.muted = true;
+        // Play THIS clip's own baked-in music (Pixverse generate_audio_switch), gated by
+        // the global sound toggle: the active clip follows `muted`, all others stay silent.
+        v.muted = muted;
         if (pausedRef.current) v.pause();
         else v.play().then(() => setVidFailed(false)).catch(() => setVidFailed(true));
       } else {
@@ -368,7 +368,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     scrubRef.current.isScrubbing = false;
     scrubRef.current.justScrubbed = true; // suppress the click that follows a drag
     if (v && !scrubRef.current.wasPaused) {
-      v.muted = true;
+      v.muted = muted;
       v.play().then(() => setVidFailed(false)).catch(() => {});
     }
   };
@@ -382,7 +382,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     if (v.paused) {
       // Resume from the exact position — don't let syncVideos reset it.
       const savedTime = v.currentTime;
-      v.muted = true;
+      v.muted = muted;
       pausedRef.current = false; // update immediately so syncVideos doesn't race
       setPaused(false);
       v.currentTime = savedTime;
@@ -817,7 +817,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                       poster. Mobile browsers cap concurrent video decoders (~16); mounting
                       every feed video at once made none play. */}
                   {inView && Math.abs(i - active) <= 1 ? (
-                  <video ref={el => { if (el) { el.muted = true; videoRefs.current[i] = el; } else delete videoRefs.current[i]; }}
+                  <video ref={el => { if (el) { videoRefs.current[i] = el; } else delete videoRefs.current[i]; }}
                     src={look.videoUrl} className="h-full w-full bg-black object-cover cursor-grab active:cursor-grabbing"
                     onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted autoPlay loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos}
                     onPlaying={() => { if (i === active) { setPlaying(true); setVidFailed(false); } }} onPause={() => { if (i === active) setPlaying(false); }} onStalled={() => { if (i === active) setPlaying(false); }} />
@@ -848,7 +848,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 <div className="relative h-full w-full">
                   {/* Mount the <video> only when on-screen & near the active slide (see note above). */}
                   {inView && Math.abs(i - active) <= 1 ? (
-                  <video ref={el => { if (el) { el.muted = true; videoRefs.current[i] = el; } else delete videoRefs.current[i]; }}
+                  <video ref={el => { if (el) { videoRefs.current[i] = el; } else delete videoRefs.current[i]; }}
                     src={m.url} poster={m.poster || videoStill} className="h-full w-full bg-black object-cover cursor-grab active:cursor-grabbing" onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted autoPlay loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos}
                     onPlaying={() => { if (i === active) { setPlaying(true); setVidFailed(false); } }} onPause={() => { if (i === active) setPlaying(false); }} onStalled={() => { if (i === active) setPlaying(false); }} />
                   ) : (m.poster || videoStill) ? (
@@ -976,7 +976,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             The whole overlay is tappable → plays. Hidden while scrubbing. */}
         {(media[active]?.type === "video" || media[active]?.type === "cvideo") && inView && !playing && (paused || vidFailed || playHint) && !scrubRef.current.isScrubbing && (
           <button type="button" aria-label={paused || vidFailed ? "Play" : "Loading"}
-            onClick={() => { const v = videoRefs.current[active]; if (v) { pausedRef.current = false; setPaused(false); v.muted = true; v.play().then(() => { setVidFailed(false); setPlaying(true); }).catch(() => setVidFailed(true)); } }}
+            onClick={() => { const v = videoRefs.current[active]; if (v) { pausedRef.current = false; setPaused(false); v.muted = muted; v.play().then(() => { setVidFailed(false); setPlaying(true); }).catch(() => setVidFailed(true)); } }}
             className="absolute inset-0 z-10 grid place-items-center">
             {/* On a user pause keep it VERY subtle (no dark scrim, faint small icon);
                 only the autoplay-blocked case gets a prominent prompt. */}
@@ -987,10 +987,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           </button>
         )}
 
-        {/* Sound toggle — always shown. The feed soundtrack is global (it plays on
-            every slide, image or video), so you can start/stop it on picture posts too. */}
+        {/* Sound toggle — gates the ACTIVE clip's own baked-in music. Unmuting plays the
+            video WITHIN this click gesture so the browser doesn't pause it for autoplay. */}
         <button type="button" aria-label={muted ? "Unmute" : "Mute"}
-          onClick={() => setMuted(m => !m)}
+          onClick={() => {
+            const next = !muted;
+            setMuted(next);
+            const v = videoRefs.current[active];
+            if (v) { v.muted = next; if (!next && !pausedRef.current) v.play().catch(() => {}); }
+          }}
           className="absolute bottom-3 left-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform">
           {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
         </button>
@@ -1352,21 +1357,18 @@ function CommentsSheet({ look, onClose }: { look: FeedLook; onClose: () => void 
 export default function HomeFeed({ looks, single = false, initialLookId, initialTryOnId, onClose }: { looks: FeedLook[]; single?: boolean; initialLookId?: string; initialTryOnId?: string; onClose?: () => void }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [commentsFor, setCommentsFor] = useState<FeedLook | null>(null);
-  // One global sound switch for the whole feed. The audio is a single looping
-  // soundtrack (drop your track at public/feed-music.mp3) — consistent across all
-  // clips, since Kling videos are silent and we keep every video muted.
+  // One global sound switch for the whole feed. It now gates each clip's OWN baked-in
+  // music (Pixverse generate_audio_switch) — the active <video> plays its audio when
+  // unmuted (see syncVideos). The old global /public mp3 soundtrack is DISABLED so it
+  // can't double up with the per-clip music; tracksRef stays empty → playTrack no-ops.
   const [muted, setMuted] = useState(true);
   const mutedRef = useRef(true); mutedRef.current = muted;
   const audioRef = useRef<HTMLAudioElement>(null);
   const tracksRef = useRef<string[]>([]);
   const curTrack = useRef(-1);
   const positions = useRef<Record<number, number>>({}); // per-track playback position
-  // Pull the mp3s from /public and shuffle them once.
-  useEffect(() => {
-    fetch("/api/feed-music").then(r => r.json())
-      .then(d => { tracksRef.current = [...(d.tracks ?? [])].sort(() => Math.random() - 0.5); })
-      .catch(() => {});
-  }, []);
+  // Global soundtrack disabled — the feed now uses each clip's baked-in music. (Re-enable
+  // by restoring the /api/feed-music fetch here if you ever want a global track again.)
 
   // Switch the soundtrack to a given track, RESUMING from where it last paused
   // (so each track continues its sequence instead of restarting).
