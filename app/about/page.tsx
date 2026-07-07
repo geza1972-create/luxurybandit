@@ -119,7 +119,7 @@ export default async function AboutPage() {
               {garments.length > 0 && (
                 <div className="mt-2.5 grid grid-cols-4 gap-2">
                   {garments.map(g => (
-                    <Link key={g.id} href={`/tryon/${g.id}`} className="block overflow-hidden rounded-xl lb-media-bg active:scale-95 transition-transform">
+                    <Link key={g.id} href={`/try/${g.id}?garment=${encodeURIComponent(g.img)}&pick=1`} className="block overflow-hidden rounded-xl lb-media-bg active:scale-95 transition-transform">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={g.img} alt={g.name} className="aspect-[3/4] w-full object-cover" />
                     </Link>
