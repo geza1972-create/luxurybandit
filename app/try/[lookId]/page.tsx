@@ -441,6 +441,11 @@ export default function TryFunnelPage() {
                         <div className="relative aspect-[3/4] w-full">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={m.photoUrl} alt={m.name} className={`h-full w-full object-cover object-top ${locked ? "blur-[6px] scale-105 opacity-70" : ""}`} />
+                          {/* Admin-only: ★ marks the FREE (featured) models, so you generate the
+                              right 12 combos. End-users don't see it. */}
+                          {adminPin && m.featured && (
+                            <span className="absolute left-1.5 top-1.5 z-20 grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[13px] font-black text-black shadow" title="Free model">★</span>
+                          )}
                           {locked && (
                             <span className="absolute inset-0 z-10 grid place-items-center bg-black/25">
                               <span className="grid h-9 w-9 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-4 w-4 text-white" /></span>

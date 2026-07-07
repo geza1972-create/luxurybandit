@@ -726,6 +726,11 @@ export default function CuratorPublicPage() {
                           <img src={optImg(garment, 500)} alt={l.name} loading="lazy" decoding="async"
                             onError={(e) => { const im = e.currentTarget; if (garment && im.src !== garment) im.src = garment; }}
                             className={`h-full w-full object-contain ${hidden ? "opacity-40" : ""} ${locked ? "blur-[5px] scale-105 opacity-70" : ""}`} />
+                          {/* Admin-only: ★ marks the FREE (featured) pieces, so you generate the
+                              right combos. End-users just see them unlocked (no badge). */}
+                          {isAdmin && l.featured && (
+                            <span className="absolute left-2 top-2 z-20 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-black text-black shadow" title="Free piece">★</span>
+                          )}
                           {locked ? (
                             <span className="absolute inset-0 z-10 grid place-items-center bg-black/20">
                               <span className="grid h-10 w-10 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-5 w-5 text-white" /></span>
