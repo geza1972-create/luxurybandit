@@ -405,7 +405,7 @@ export default function UserGalleryPage() {
               return (
                 <button key={item.id} type="button"
                   onClick={() => router.push(`/post/${item.id}`)}
-                  className="relative aspect-[3/4] overflow-hidden lb-media-bg active:opacity-80 transition-opacity">
+                  className="relative aspect-[9/16] overflow-hidden lb-media-bg active:opacity-80 transition-opacity">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={item.imageUrl} alt={item.lookName} className="h-full w-full object-cover object-top" />
                   {isLiked && (
@@ -456,7 +456,7 @@ export default function UserGalleryPage() {
             <div className="grid grid-cols-2 gap-3">
               {selected.userPhotoUrl && (
                 <div className="grid gap-1">
-                  <div className="aspect-[3/4] overflow-hidden rounded-xl border border-black/10 lb-media-bg">
+                  <div className="aspect-[9/16] overflow-hidden rounded-xl border border-black/10 lb-media-bg">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={selected.userPhotoUrl} alt="Before" className="h-full w-full object-cover object-top" />
                   </div>
@@ -464,7 +464,7 @@ export default function UserGalleryPage() {
                 </div>
               )}
               <div className={`grid gap-1 ${!selected.userPhotoUrl ? "col-span-2" : ""}`}>
-                <div className="aspect-[3/4] overflow-hidden rounded-xl border border-black/10 lb-media-bg">
+                <div className="aspect-[9/16] overflow-hidden rounded-xl border border-black/10 lb-media-bg">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={selected.imageUrl} alt="After" className="h-full w-full object-cover object-top" />
                 </div>

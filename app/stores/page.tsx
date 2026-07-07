@@ -2698,7 +2698,7 @@ function StoresPage() {
                         if (locked) { e.preventDefault(); setShowPaywall(true); }
                       }}
                       className={`flex flex-col overflow-hidden rounded-2xl bg-white/[0.04] active:opacity-80 transition-opacity ${modelSelect && isAdmin && modelSelected.has(m.id) ? "ring-2 ring-amber-400" : ""}`}>
-                      <div className="relative aspect-[3/4] overflow-hidden lb-media-bg">
+                      <div className="relative aspect-[9/16] overflow-hidden lb-media-bg">
                         {modelSelect && isAdmin && (
                           <span className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-full text-[13px] font-black ${modelSelected.has(m.id) ? "bg-amber-400 text-black" : "bg-black/60 text-white/60"}`}>✓</span>
                         )}
@@ -2862,7 +2862,7 @@ function StoresPage() {
                       }
                       openFeedOverlay({ tryOnId: it.kind === "tryon" ? it.id : undefined, lookId: it.lookId });
                     }}
-                    className={`relative aspect-[3/4] overflow-hidden lb-media-bg transition-opacity active:opacity-80 ${
+                    className={`relative aspect-[9/16] overflow-hidden lb-media-bg transition-opacity active:opacity-80 ${
                       tierSelect && isAdmin
                         ? (it.kind !== "tryon" ? "opacity-30" : tierSelected.has(it.id) ? "ring-2 ring-inset ring-amber-400" : "")
                         : ""
@@ -3071,7 +3071,7 @@ function StoresPage() {
                           // One feed everywhere → open the look's HomeFeed (not the old full-screen view).
                           router.push(lookPath(item.lookName, item.lookId || item.id));
                         }}
-                        className={`relative aspect-[3/4] w-full overflow-hidden lb-media-bg transition-opacity active:opacity-80 block ${
+                        className={`relative aspect-[9/16] w-full overflow-hidden lb-media-bg transition-opacity active:opacity-80 block ${
                           selectMode && isSelected ? "opacity-60 ring-2 ring-inset ring-cobalt" : ""
                         }`}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -3263,7 +3263,7 @@ function StoresPage() {
                           router.push(lookPath(look.name, look.id));
                         }
                       }}
-                      className="relative aspect-[3/4] overflow-hidden lb-media-bg transition-opacity active:opacity-80"
+                      className="relative aspect-[9/16] overflow-hidden lb-media-bg transition-opacity active:opacity-80"
                     >
                       {thumb ? (
                         <Image
@@ -3354,7 +3354,7 @@ function StoresPage() {
                       key={item.id}
                       type="button"
                       onClick={() => router.push(`/post/${item.id}`)}
-                      className="relative aspect-[3/4] overflow-hidden lb-media-bg transition-opacity active:opacity-80"
+                      className="relative aspect-[9/16] overflow-hidden lb-media-bg transition-opacity active:opacity-80"
                     >
                       <Image
                         src={item.imageUrl}

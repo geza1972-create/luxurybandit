@@ -40,7 +40,7 @@ function StripClip({ t, onOpen }: { t: TryOn; onOpen: () => void }) {
   }, []);
   return (
     <button ref={ref} type="button" onClick={onOpen}
-      className="relative aspect-[3/4] h-40 shrink-0 overflow-hidden rounded-xl lb-media-bg active:scale-95 transition">
+      className="relative aspect-[9/16] h-40 shrink-0 overflow-hidden rounded-xl lb-media-bg active:scale-95 transition">
       {inView ? (
         <video src={t.videoUrl} poster={t.imageUrl || undefined} muted loop playsInline autoPlay preload="metadata"
           className="h-full w-full object-cover object-top" />
@@ -597,7 +597,7 @@ export default function CuratorPublicPage() {
                 <StripClip key={t.id} t={t} onOpen={() => openMotionAt(i)} />
               ))}
               {photoDrafts.map(t => (
-                <div key={t.id} className="relative aspect-[3/4] h-40 shrink-0 overflow-hidden rounded-xl border border-dashed border-amber-400/40 lb-media-bg">
+                <div key={t.id} className="relative aspect-[9/16] h-40 shrink-0 overflow-hidden rounded-xl border border-dashed border-amber-400/40 lb-media-bg">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={optImg(t.imageUrl, 300)} alt="" loading="lazy" decoding="async"
                     onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
@@ -799,7 +799,7 @@ export default function CuratorPublicPage() {
             className="flex flex-1 snap-x snap-mandatory items-center gap-3 overflow-x-auto px-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {videos.map(t => (
               // 3:4 like the generated videos — width drives the height (no crop).
-              <div key={t.id} className="relative aspect-[3/4] w-[84vw] max-w-[400px] shrink-0 snap-center">
+              <div key={t.id} className="relative aspect-[9/16] w-[84vw] max-w-[400px] shrink-0 snap-center">
                 <button type="button" onClick={() => setPlayingId(p => (p === t.id ? "" : t.id))}
                   className="h-full w-full overflow-hidden rounded-2xl lb-media-bg">
                   {playingId === t.id ? (

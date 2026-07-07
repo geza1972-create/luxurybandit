@@ -35,7 +35,7 @@ export default function AboutStep1Models({ featured }: { featured: FeaturedModel
   const YourTile = ({ big }: { big?: boolean }) => (
     <button type="button" onClick={() => (yourLocked ? premiumAlert() : router.push("/stores?view=grid"))}
       className="relative block overflow-hidden rounded-xl border border-amber-400/30 bg-amber-400/[0.06] active:scale-95 transition-transform">
-      <div className="grid aspect-[3/4] w-full place-items-center px-1 pb-6 text-center">
+      <div className="grid aspect-[9/16] w-full place-items-center px-1 pb-6 text-center">
         <ImageUp className={`${big ? "h-9 w-9" : "h-7 w-7"} text-amber-400`} />
         {yourLocked && (
           <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-3.5 w-3.5 text-amber-400" /></span>
@@ -50,7 +50,7 @@ export default function AboutStep1Models({ featured }: { featured: FeaturedModel
   const step1Tiles: React.ReactNode[] = step1.map(m => (
     <button key={m.id} type="button" onClick={() => router.push(`/curator/${m.id}`)}
       className="relative block overflow-hidden rounded-xl lb-media-bg active:scale-95 transition-transform">
-      <div className="aspect-[3/4] w-full">
+      <div className="aspect-[9/16] w-full">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={m.photo} alt={m.name} className="h-full w-full object-cover object-top" />
       </div>
@@ -85,7 +85,7 @@ export default function AboutStep1Models({ featured }: { featured: FeaturedModel
                       <button key={m.id} type="button"
                         onClick={() => (locked ? premiumAlert() : router.push(`/curator/${m.id}`))}
                         className="relative block overflow-hidden rounded-xl border border-white/10 lb-media-bg active:scale-95 transition-transform">
-                        <div className="aspect-[3/4] w-full">
+                        <div className="aspect-[9/16] w-full">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={m.photoUrl} alt={m.name} loading="lazy" className={`h-full w-full object-cover object-top ${locked ? "blur-[6px] scale-105 opacity-70" : ""}`} />
                         </div>

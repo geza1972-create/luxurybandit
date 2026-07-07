@@ -161,7 +161,7 @@ export default function UserDashboardPage() {
       ) : (
         <div className="grid grid-cols-3 gap-px bg-black/8">
           {tryOns.map(t => (
-            <div key={t.id} className="relative aspect-[3/4] bg-black/5 overflow-hidden">
+            <div key={t.id} className="relative aspect-[9/16] bg-black/5 overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={t.imageUrl} alt={t.lookName} className={`h-full w-full object-cover object-top ${t.published === false ? "opacity-50" : ""}`} />
               <div className="absolute right-2 top-2 flex gap-1.5">

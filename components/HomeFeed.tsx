@@ -733,8 +733,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     <section ref={sectionRef} className="relative flex w-full flex-col bg-[#0d0b0a]">
       {/* ── Media area — vertical format (9:16). Curator name + description render
           BELOW the video (see headerBar block after the media). ── */}
-      {/* 3:4 — matches the generated try-on videos exactly (no crop, no bars). */}
-      <div ref={mediaRef} className="relative aspect-[3/4] w-full shrink-0 overflow-hidden lb-media-bg">
+      {/* 9:16 — matches the generated try-on videos exactly (full vertical, no crop, no bars). */}
+      <div ref={mediaRef} className="relative aspect-[9/16] w-full shrink-0 overflow-hidden lb-media-bg">
         {/* Blurred fill so the whole look stays visible without empty bars */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={videoStill} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-2xl" />

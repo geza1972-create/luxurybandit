@@ -177,7 +177,7 @@ export default function MyTryOnsPage() {
       ) : (
         <div className="grid grid-cols-3 gap-px bg-black/8">
           {tryOns.map(t => (
-            <div key={t.id} className="relative aspect-[3/4] bg-black/5 overflow-hidden">
+            <div key={t.id} className="relative aspect-[9/16] bg-black/5 overflow-hidden">
               {t.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={t.imageUrl} alt={t.lookName} className={`h-full w-full object-cover object-top ${t.published === false ? "opacity-50" : ""}`} />

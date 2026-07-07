@@ -83,7 +83,7 @@ export default function AboutVideoPicker() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={thumb(c.poster)} alt={c.name} loading="lazy" decoding="async"
                         onError={(e) => { const im = e.currentTarget; if (im.src !== c.poster) im.src = c.poster; }}
-                        className="aspect-[3/4] w-full object-cover object-top" />
+                        className="aspect-[9/16] w-full object-cover object-top" />
                       <span className="absolute inset-0 grid place-items-center"><Play className="h-5 w-5 text-white/80 drop-shadow" fill="currentColor" /></span>
                       {c.showcase && <span className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[13px] font-black text-black shadow">✓</span>}
                     </button>

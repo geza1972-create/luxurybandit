@@ -19,7 +19,7 @@ export default function AboutStep3Videos({ videos }: { videos: Clip[] }) {
             className="relative overflow-hidden rounded-xl lb-media-bg active:scale-95 transition-transform">
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <video src={v.video} poster={v.poster || undefined} muted loop playsInline autoPlay preload="metadata"
-              className="aspect-[3/4] w-full object-cover" />
+              className="aspect-[9/16] w-full object-cover" />
           </button>
         ))}
       </div>

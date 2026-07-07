@@ -457,7 +457,7 @@ export default function TryFunnelPage() {
                     <button key="__your" type="button"
                       onClick={() => { if (yourLocked) { setShowPremium(true); return; } fileRef.current?.click(); }}
                       className="overflow-hidden rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] active:scale-[0.98] transition-transform">
-                      <div className="relative grid aspect-[3/4] w-full place-items-center px-1 pb-6 text-center">
+                      <div className="relative grid aspect-[9/16] w-full place-items-center px-1 pb-6 text-center">
                         <ImageUp className="h-8 w-8 text-amber-400" />
                         {yourLocked && (
                           <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-3.5 w-3.5 text-amber-400" /></span>
@@ -472,7 +472,7 @@ export default function TryFunnelPage() {
                       <button key={m.id} type="button"
                         onClick={() => { if (locked) { setShowPremium(true); return; } setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); }}
                         className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-[0.98] transition-transform">
-                        <div className="relative aspect-[3/4] w-full">
+                        <div className="relative aspect-[9/16] w-full">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={m.photoUrl} alt={m.name} className={`h-full w-full object-cover object-top ${locked ? "blur-[6px] scale-105 opacity-70" : ""}`} />
                           {/* Admin-only: ★ marks the FREE (featured) models, so you generate the
@@ -499,7 +499,7 @@ export default function TryFunnelPage() {
             <>
               <p className="mt-2 text-[13px] font-bold text-white/50">{pickedModel ? "Great pick — or replace her with your own photo." : "The model from the video is ready. Keep her, or replace her with your own photo."}</p>
               <div className="mx-auto mt-4 max-w-[78vw] overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04]">
-                <div className="relative aspect-[3/4] w-full">
+                <div className="relative aspect-[9/16] w-full">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {modelImg ? <img src={modelImg} alt="" className="h-full w-full object-cover object-top" /> : <div className="h-full w-full bg-white/5" />}
                   <button type="button" onClick={() => (avatar ? fileRef.current?.click() : (setPickedModel(""), setChooseModel(true)))}
@@ -612,11 +612,12 @@ export default function TryFunnelPage() {
         <div className="px-4 pb-40 pt-2">
           {genStatus === "idle" && <div className="mb-3">{motionPicker}</div>}
           <div className="relative mx-auto mt-2 max-w-[78vw] overflow-hidden rounded-3xl border border-emerald-400/30 bg-black">
-            <div className="relative aspect-[3/4] w-full">
+            <div className="relative aspect-[9/16] w-full">
               {genStatus === "done" && genVideoUrl ? (
-                // Dance videos carry Pixverse's generated music — play the ORIGINAL sound
-                // (not muted). Turn videos stay muted as before.
-                <video src={genVideoUrl} className="h-full w-full object-cover" autoPlay loop muted={motion !== "dance"} playsInline controls />
+                // Both motions carry Pixverse's generated sound (the prompt asks for music),
+                // so play unmuted. Native controls include a mute button; autoplay may need a
+                // tap when unmuted, which is fine for the admin review screen.
+                <video src={genVideoUrl} className="h-full w-full object-cover" autoPlay loop playsInline controls />
               ) : genStatus === "done" && genPhotoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={genPhotoUrl} alt="" className="h-full w-full object-cover object-top" />
@@ -684,7 +685,7 @@ export default function TryFunnelPage() {
                   const status = v.public ? "Öffentlich" : v.feed ? "Fashionshow" : "Privat";
                   return (
                     <div key={v.id} className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.04]">
-                      <a href={chosenModelId ? `/curator/${chosenModelId}` : "#"} className="relative block aspect-[3/4] active:opacity-80">
+                      <a href={chosenModelId ? `/curator/${chosenModelId}` : "#"} className="relative block aspect-[9/16] active:opacity-80">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={v.imageUrl} alt={v.lookName ?? ""} loading="lazy" className="h-full w-full object-cover object-top" />
                         <span className="absolute inset-0 grid place-items-center text-white/90"><Play className="h-8 w-8 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" fill="currentColor" /></span>

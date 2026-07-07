@@ -153,7 +153,7 @@ export default function EntdeckenPage() {
                   <button
                     type="button"
                     onClick={() => router.push(lookPath(look.name, look.id))}
-                    className="relative aspect-[3/4] overflow-hidden lb-media-bg active:opacity-80 transition-opacity" style={{touchAction:"manipulation"}}
+                    className="relative aspect-[9/16] overflow-hidden lb-media-bg active:opacity-80 transition-opacity" style={{touchAction:"manipulation"}}
                   >
                     {thumb ? (
                       <Image
