@@ -1488,12 +1488,13 @@ function StoresPage() {
       ? (a: GalleryModel, b: GalleryModel) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
       : (a: GalleryModel, b: GalleryModel) => b.lookCount - a.lookCount || a.name.localeCompare(b.name);
     const byPin = (a: GalleryModel, b: GalleryModel) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || cmp(a, b);
-    // Featured = the FREE showcase → ALWAYS on top and unlocked; the hair/sort chips
-    // never remove them (search still applies). The chips filter/sort the REST (the
-    // locked pool) so the 3 featured stay visible no matter which chip is active.
-    const featured = models.filter(m => m.featured && matchQ(m)).sort(byPin);
-    let rest = models.filter(m => !m.featured && matchQ(m));
-    if (hairFilter) rest = rest.filter(m => (m.hairColor || "") === hairFilter);
+    // Featured = the FREE showcase → lead the list and stay unlocked. A HAIR filter
+    // applies to featured too (a blonde featured model must NOT show under Brunette),
+    // but the sort chips (All/Most looks) never drop them. The chips filter/sort the
+    // locked REST below.
+    const byHair = (m: GalleryModel) => !hairFilter || (m.hairColor || "") === hairFilter;
+    const featured = models.filter(m => m.featured && matchQ(m) && byHair(m)).sort(byPin);
+    const rest = models.filter(m => !m.featured && matchQ(m) && byHair(m));
     return [...featured, ...[...rest].sort(byPin)];
   }, [models, modelSort, hairFilter, query]);
   // Any model is featured → the Models gallery is a curated showcase: featured are

@@ -1374,16 +1374,16 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
   for (const lk of sorted) {
     const tryOns = (lk.communityTryOns ?? []).filter(c => !c.hidden && (c.videoUrl || c.imageUrl));
     if (tryOns.length === 0) {
-      // A look-only post needs something SAFE to show — a video or a license-clear still.
-      // Curated finds whose only image is the brand's original render black (safeLookImage
-      // withholds it), so skip them — UNLESS this exact look was deep-linked (so the admin
-      // can still open it and see it needs media).
-      const displayable = !!lk.videoUrl || !!safeLookImage(lk as unknown as Parameters<typeof safeLookImage>[0]);
-      // A generated wardrobe garment (productType "ai" / flat clothing) is a MODEL-PAGE
-      // selectable piece, NOT feed content — it only earns a feed post via its try-ons
-      // (a model actually wearing it), handled in the else branch. So skip its flat post.
+      // A look-only post must have a VIDEO to enter the feed — flat clothing/product
+      // stills have no place in the reel (user: "hier haben klamotten nichts zu suchen").
+      // This matches the grid (which also requires a video), so grid = feed. Garments
+      // stay in the catalogue/wardrobe; they only reach the feed via a try-on video.
+      // Deep-linked looks still open so an admin can see one that needs media.
+      const displayable = !!lk.videoUrl;
       const isWardrobe = (lk as { productType?: string }).productType === "ai" || (lk as { wardrobe?: boolean }).wardrobe === true;
-      if (((displayable && !isWardrobe) || lk.id === initialLookId)) expanded.push({ look: lk, key: lk.id });
+      // Wardrobe garments NEVER become a feed post — not even when deep-linked (a flat
+      // garment still opened via /look/[id] is exactly what the user wants gone).
+      if ((displayable || lk.id === initialLookId) && !isWardrobe) expanded.push({ look: lk, key: lk.id });
       continue;
     }
     tryOns.forEach((t, idx) => expanded.push({ look: { ...lk, communityTryOns: [t] }, key: `${lk.id}::${t.id ?? idx}` }));
