@@ -578,10 +578,14 @@ export default function PostPage() {
               className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full border border-black/15 bg-white text-sm font-black text-black active:scale-95 transition-transform">
               <Sparkles className="h-4 w-4" /> See her in other looks
             </a>
-            <a href={`${lookPath(post.lookName, post.lookId)}/details`}
-              className="flex h-11 shrink-0 items-center justify-center rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
-              Bandit the look!
-            </a>
+            {/* "Bandit the look" (leads to the dupes/product) is ADMIN-ONLY for now — end
+                users don't see it yet. */}
+            {isAdminUser && (
+              <a href={`${lookPath(post.lookName, post.lookId)}/details`}
+                className="flex h-11 shrink-0 items-center justify-center rounded-full bg-black px-5 text-sm font-black text-white active:scale-95 transition-transform">
+                Bandit the look!
+              </a>
+            )}
           </div>
         )}
 

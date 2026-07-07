@@ -240,6 +240,7 @@ export default function TryFunnelPage() {
           const cached = await fetch(`/api/try-this-look?combo=${encodeURIComponent(combo)}`).then(r => r.json());
           if (cached?.hit && cached.videoUrl) {
             setGenVideoUrl(cached.videoUrl);
+            if (cached.generationId) setGenId(cached.generationId); // so "View post" links to this clip
             setGenStatus("done");
             return; // served from storage — nothing generated, nothing saved
           }
@@ -661,6 +662,16 @@ export default function TryFunnelPage() {
               ? (genPhotoUrl ? "Gespeichert. Das Team macht aus deinen besten Fotos Videos für dein Profil." : "Gespeichert in deiner Galerie — ansehen & verwalten unter Account.")
               : "Dein Try-on wird in voller Qualität erstellt."}
           </p>
+
+          {/* View the finished video as a full post (before/after, like & share, other looks). */}
+          {genStatus === "done" && genVideoUrl && genId && (
+            <div className="mt-4 flex justify-center">
+              <button type="button" onClick={() => router.push(`/post/${genId}`)}
+                className="lb-gold flex items-center gap-2 rounded-full px-6 py-3 text-sm font-black active:scale-95 transition">
+                <Sparkles className="h-4 w-4" /> View your video
+              </button>
+            </div>
+          )}
 
           {/* Admin: HD the keeper right here. Upscales THIS 360p clip to 1080p (no re-gen). */}
           {adminPin && genStatus === "done" && genVideoUrl && genId && (
