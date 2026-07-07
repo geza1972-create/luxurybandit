@@ -31,7 +31,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // prefix: announces the OG vocabulary — Facebook's debugger otherwise
+    // sporadically claims og:url/og:type are "missing" despite valid tags.
+    <html lang="en" prefix="og: https://ogp.me/ns# fb: https://ogp.me/ns/fb#">
       <body>
         {/* Meta Pixel — loads fbevents.js + fires PageView on load and every SPA nav. */}
         <Suspense fallback={null}>
