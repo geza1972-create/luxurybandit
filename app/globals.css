@@ -129,6 +129,19 @@ svg {
 }
 .lb-gold:active { filter: brightness(0.95); }
 
+/* ── Black 3D pill — glossy dark button with a raised, tactile look. Pairs with
+   .lb-gold as the secondary CTA (e.g. "How it works"). ── */
+.lb-black3d {
+  background: linear-gradient(180deg, #3a3a3d 0%, #1c1c1e 55%, #0c0c0d 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.6),
+    0 4px 14px rgba(0, 0, 0, 0.45);
+}
+.lb-black3d:active { filter: brightness(0.9); }
+
 /* ── Media-frame backdrop: a warm, blurred-looking color wash behind every
    photo/video tile. While the image is still loading (or momentarily broken)
    the frame shows THIS instead of flashing white — reads as an intentional
