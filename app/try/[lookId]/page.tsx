@@ -600,19 +600,18 @@ export default function TryFunnelPage() {
                   loop playsInline muted={revealing} controls={!revealing} />
                 {revealing ? (
                   <>
-                    {/* Scanner beam: a bright horizontal line sweeps down then up. */}
-                    <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-amber-300 shadow-[0_0_18px_5px_rgba(252,211,77,0.75)]" />
-                    <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-14 -translate-y-1/2 bg-gradient-to-b from-transparent via-amber-300/15 to-transparent" />
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/75 to-transparent p-4 pt-12">
-                      <div className="flex items-center justify-center gap-2 text-white">
-                        <Sparkles className="h-4 w-4 text-amber-400 animate-pulse" />
-                        <span className="text-sm font-black">Revealing your look…</span>
-                      </div>
-                      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
-                        <div className="h-full rounded-full bg-amber-400" style={{ width: revealSharp ? "100%" : "0%", transition: `width ${REVEAL_MS}ms linear` }} />
-                      </div>
+                    {/* White scanner beam sweeping down then up. */}
+                    <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-white shadow-[0_0_18px_5px_rgba(255,255,255,0.7)]" />
+                    <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-14 -translate-y-1/2 bg-gradient-to-b from-transparent via-white/15 to-transparent" />
+                    {/* Camera viewfinder corners. */}
+                    <div className="pointer-events-none absolute left-3 top-3 z-20 h-6 w-6 rounded-tl-lg border-l-2 border-t-2 border-white/90" />
+                    <div className="pointer-events-none absolute right-3 top-3 z-20 h-6 w-6 rounded-tr-lg border-r-2 border-t-2 border-white/90" />
+                    <div className="pointer-events-none absolute bottom-3 left-3 z-20 h-6 w-6 rounded-bl-lg border-b-2 border-l-2 border-white/90" />
+                    <div className="pointer-events-none absolute bottom-3 right-3 z-20 h-6 w-6 rounded-br-lg border-b-2 border-r-2 border-white/90" />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-center justify-center gap-2 bg-gradient-to-t from-black/70 to-transparent p-4 pt-12 text-white">
+                      <Sparkles className="h-4 w-4 animate-pulse" />
+                      <span className="text-sm font-black">Revealing your look…</span>
                     </div>
-                    <span className="pointer-events-none absolute right-3 top-3 z-20 flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-black text-white backdrop-blur"><Sparkles className="h-3 w-3 text-amber-400" /> Scanning…</span>
                   </>
                 ) : (
                   <span className="pointer-events-none absolute right-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black"><Check className="h-3.5 w-3.5" /> Free</span>
