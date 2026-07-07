@@ -58,24 +58,23 @@ export default function AboutVideoPicker() {
 
       {open && (
         <div className="fixed inset-0 z-[95] flex flex-col bg-black/80 backdrop-blur-sm" onClick={() => setOpen(false)}>
-          <div className="lb-phone-col mt-auto flex max-h-[85dvh] flex-col rounded-t-3xl border-t border-white/10 bg-[#141210]" onClick={e => e.stopPropagation()}>
+          <div className="lb-phone-col mt-auto max-h-[85dvh] overflow-hidden rounded-t-3xl border-t border-white/10 bg-[#141210]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
               <p className="text-sm font-black text-white">Showcase-Videos {count > 0 && <span className="text-amber-400">· {count} gewählt</span>}</p>
               <button type="button" onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white"><X className="h-4 w-4" /></button>
             </div>
             <p className="px-4 pt-2 text-[11px] font-bold text-white/45">Tippe ein Video an, um es im „How it works"-Schritt 3 zu zeigen (die gewählten führen; sonst die Featured-Models).</p>
             {loading ? (
-              <div className="grid flex-1 place-items-center py-16"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>
+              <div className="grid place-items-center py-16"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>
             ) : (
-              <div className="grid grid-cols-4 gap-1.5 overflow-y-auto p-3">
+              <div className="grid max-h-[calc(85dvh-92px)] grid-cols-4 gap-1.5 overflow-y-auto overscroll-contain p-3">
                 {items.map(c => (
                   <button key={c.id} type="button" onClick={() => void toggle(c)}
-                    style={{ aspectRatio: "3 / 4" }}
-                    className={`relative block w-full overflow-hidden rounded-lg border-2 lb-media-bg active:scale-95 transition ${c.showcase ? "border-amber-400 ring-2 ring-amber-400/40" : "border-white/10"}`}>
+                    className={`relative block overflow-hidden rounded-lg border-2 lb-media-bg active:scale-95 transition ${c.showcase ? "border-amber-400 ring-2 ring-amber-400/40" : "border-white/10"}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={thumb(c.poster)} alt={c.name} loading="lazy" decoding="async"
                       onError={(e) => { const im = e.currentTarget; if (im.src !== c.poster) im.src = c.poster; }}
-                      className="absolute inset-0 h-full w-full object-cover object-top" />
+                      className="aspect-[3/4] w-full object-cover object-top" />
                     <span className="absolute inset-0 grid place-items-center"><Play className="h-5 w-5 text-white/80 drop-shadow" fill="currentColor" /></span>
                     {c.showcase && <span className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[13px] font-black text-black shadow">✓</span>}
                     {busy === c.id && <span className="absolute inset-0 grid place-items-center bg-black/50"><Loader2 className="h-4 w-4 animate-spin text-white" /></span>}
