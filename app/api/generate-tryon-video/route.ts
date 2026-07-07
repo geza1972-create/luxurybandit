@@ -138,12 +138,13 @@ async function pixverseStartReference(key: string, garment: string, person: stri
       { type: "subject", img_id: gId, ref_name: outfitRef },
     ],
     prompt: promptUsed,
-    // TEST settings (initial — we'll raise these once the prompt is right):
-    // 360p / 3:4 / 3s for the normal present video; 360° turnaround keeps V6/10s.
+    // CHEAP-PREVIEW settings: generate a low-cost 9:16 / 5s / 360p clip. When a combo
+    // looks good the admin upscales THAT clip to HD (1080p) via the upscale action — so
+    // we only pay HD on the keepers. (360p is Pixverse's floor; there is no 320p tier.)
     model: "v6",                     // V6 keeps the reference outfit/person (v4.5 ignored it)
     duration: turnaround ? 10 : 5,   // 5s; 360p keeps cost low
     quality: turnaround ? "720p" : "360p",
-    aspect_ratio: turnaround ? "9:16" : "3:4",
+    aspect_ratio: "9:16",            // full vertical (reels), same as the 360° turnaround
     // NO sound flags: V6 rejects sound_effect_switch (API error 400017 "not supported
     // in model v6", verified 2026-07-06). V6 decides sound ITSELF from the prompt —
     // "tanzen" → fitting music — which is exactly what the dance motion wants.

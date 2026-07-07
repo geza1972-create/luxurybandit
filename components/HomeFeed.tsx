@@ -592,6 +592,31 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Ersetzen"); }
     finally { setUpscaling(false); }
   };
+  // Admin: ONE-CLICK — take the current cheap 360p try-on video and let Pixverse upscale it
+  // to HD (1080p), then replace the stored clip. No manual Pixverse round-trip. Use this on
+  // the keepers once a combo looks good.
+  const runUpscale = async () => {
+    if (!activeTryOnId || upscaling) return;
+    const src = (activeSlide as { url?: string })?.url || "";
+    if (!src) { alert("Kein Video zum Umrechnen gefunden."); return; }
+    if (!window.confirm("Dieses Video in HD (1080p) umrechnen? Kostet Pixverse-Credits und dauert ~1–2 Min.")) return;
+    setUpscaling(true);
+    try {
+      const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: modHeaders(), body: JSON.stringify({ upscale: true, videoUrl: src }) }).then(r => r.json());
+      if (!start.videoId) throw new Error(start.error || "Upscale-Start fehlgeschlagen.");
+      let videoUrl = "";
+      for (let i = 0; i < 90; i++) {
+        await new Promise(res => setTimeout(res, 5000));
+        const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}`).then(r => r.json());
+        if (p.status === "done" && p.videoUrl) { videoUrl = p.videoUrl; break; }
+        if (p.status === "failed") throw new Error(p.error || "Umrechnen fehlgeschlagen.");
+      }
+      if (!videoUrl) throw new Error("Zeitüberschreitung beim Umrechnen.");
+      await fetch("/api/try-this-look", { method: "POST", headers: modHeaders(), body: JSON.stringify({ action: "attach-generation-video", generationId: activeTryOnId, videoUrl }) });
+      alert("In HD umgerechnet ✓ — neu laden zum Ansehen.");
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Umrechnen"); }
+    finally { setUpscaling(false); }
+  };
   // Admin: upload a downloaded (HD) video FILE straight to Supabase → replace this try-on's video.
   // Direct signed-upload PUT so big files don't hit the ~4.5MB API-body limit.
   const videoFileRef = useRef<HTMLInputElement>(null);
@@ -753,6 +778,13 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                     className="grid h-9 w-9 place-items-center rounded-full bg-black/70 text-white active:opacity-70 disabled:opacity-40">
                     <UserPlus className="h-4 w-4" />
                   </button>
+                  {/* One-click: upscale THIS 360p try-on video to HD (1080p) via Pixverse. */}
+                  {activeTryOnId && activeSlide?.type === "cvideo" && (
+                    <button type="button" onClick={runUpscale} disabled={!!modBusy || upscaling} title="In HD umrechnen (1080p)"
+                      className="grid h-9 min-w-9 place-items-center rounded-full bg-amber-400 px-2.5 text-[11px] font-black text-black active:opacity-70 disabled:opacity-40">
+                      {upscaling ? <Loader2 className="h-4 w-4 animate-spin" /> : "HD"}
+                    </button>
+                  )}
                   {/* Replace this try-on's video with a downloaded HD file (or a Pixverse ID/URL). */}
                   {activeTryOnId && (
                     <button type="button" onClick={() => { setIdInput(""); setIdOpen(true); }} disabled={!!modBusy || upscaling} title="Video ersetzen (HD hochladen)"
