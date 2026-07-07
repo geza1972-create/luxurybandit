@@ -585,7 +585,7 @@ export default function TryFunnelPage() {
             <>
               <h1 className="mt-6 text-center text-[22px] font-black leading-tight">{previewVideoUrl ? "Enjoy your video 🎉" : "Your video is ready."}</h1>
               <p className="mt-2 text-center text-[13px] font-bold text-white/50">{previewVideoUrl ? "It's free — tap 🔊 for sound. Sign in to save & download it." : "Sign in to watch and download it in full quality."}</p>
-              {motionPicker}
+              {/* Motion was chosen before generating — no picker on the ready step. */}
               {adminPromptPanel}
             </>
           )}
