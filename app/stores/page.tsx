@@ -2612,10 +2612,10 @@ function StoresPage() {
                     <Play className="h-4 w-4" fill="currentColor" /> How it works
                   </button>
                 </div>
-                {/* Model recruiting → its own landing page. A visible amber pill so
+                {/* Model recruiting → its own landing page. Solid gold pill so
                     would-be models can't miss it. */}
                 <button type="button" onClick={() => router.push("/become-a-model")}
-                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-amber-400/50 bg-amber-400/10 px-4 py-3 text-[13px] font-black text-amber-400 active:scale-95 transition-transform">
+                  className="lb-gold mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-[13px] font-black active:scale-95 transition-transform">
                   <Heart className="h-4 w-4" fill="currentColor" /> Become a LuxuryBandit Model — earn with every look →
                 </button>
               </section>
