@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Sparkles, Heart, Coins, ShoppingBag, MessageCircle, Music, Play } from "lucide-react";
+import { ArrowLeft, Sparkles, Heart, Coins, ShoppingBag, MessageCircle, Music } from "lucide-react";
 import { readTryThisLookState } from "@/lib/try-this-look-store";
 
 export const metadata = { title: "How it works — LuxuryBandit" };
@@ -34,18 +34,16 @@ async function stepMedia(): Promise<StepMedia> {
       .filter(l => ((l as { productType?: string }).productType === "ai" || (l as { wardrobe?: boolean }).wardrobe) && ((l as { frontImageUrl?: string }).frontImageUrl || (l as { imageUrl?: string }).imageUrl) && (l as { published?: boolean }).published !== false)
       .slice(0, 4)
       .map(l => ({ id: l.id, name: l.name, img: ((l as { frontImageUrl?: string }).frontImageUrl || (l as { imageUrl?: string }).imageUrl) as string }));
-    // Step 3 — blurred teasers of the featured MODELS' clips (must clearly be a
-    // model), one per featured model where possible; fall back to any clip.
+    // Step 3 — FULL playing clips of the featured MODELS (one per model where
+    // possible), shown at full quality in the "Watch" step.
     const featuredIds = new Set(models.map(m => m.id));
     const withVid = (state.generations ?? []).filter(g => (g as { videoUrl?: string }).videoUrl && (g as { imageUrl?: string }).imageUrl && !(g as { hidden?: boolean }).hidden);
-    const perModel: string[] = [];
-    for (const m of models) {
-      const hit = withVid.find(g => (g as { curatorId?: string }).curatorId === m.id);
-      if (hit) perModel.push((hit as { imageUrl?: string }).imageUrl as string);
-    }
-    const fromFeatured = withVid.filter(g => featuredIds.has((g as { curatorId?: string }).curatorId ?? "")).map(g => (g as { imageUrl?: string }).imageUrl as string);
-    const posters = [...new Set([...perModel, ...fromFeatured, ...withVid.map(g => (g as { imageUrl?: string }).imageUrl as string)])].slice(0, 3);
-    const videos = posters.map(poster => ({ poster }));
+    const pick = (g: unknown) => ({ poster: (g as { imageUrl?: string }).imageUrl as string, video: (g as { videoUrl?: string }).videoUrl as string });
+    const chosen: { poster: string; video: string }[] = [];
+    for (const m of models) { const hit = withVid.find(g => (g as { curatorId?: string }).curatorId === m.id); if (hit) chosen.push(pick(hit)); }
+    for (const g of withVid) { if (chosen.length >= 3) break; if (featuredIds.has((g as { curatorId?: string }).curatorId ?? "") && !chosen.some(c => c.video === (g as { videoUrl?: string }).videoUrl)) chosen.push(pick(g)); }
+    for (const g of withVid) { if (chosen.length >= 3) break; if (!chosen.some(c => c.video === (g as { videoUrl?: string }).videoUrl)) chosen.push(pick(g)); }
+    const videos = chosen.slice(0, 3);
     return { clips, curatorId: gina?.id ?? "", models, garments, videos };
   } catch { return empty; }
 }
@@ -54,7 +52,7 @@ async function stepMedia(): Promise<StepMedia> {
 // message her, shop the look. Model recruiting lives on its own landing page
 // (/become-a-model) and only gets a teaser here.
 export default async function AboutPage() {
-  const { clips, curatorId, models, garments, videos } = await stepMedia();
+  const { models, garments, videos } = await stepMedia();
   const step = "grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-400 text-sm font-black text-black";
   const card = "flex items-start gap-3.5 rounded-2xl border border-white/10 bg-white/[0.04] p-4";
 
@@ -79,26 +77,6 @@ export default async function AboutPage() {
           wears next. Pick any designer outfit, and the AI creates a runway-quality video of her
           wearing it. Follow her, message her, shop her looks.
         </p>
-
-        {/* Living proof: GINA — one model, completely different looks (her real feed clips). */}
-        {clips.length > 0 && (
-          <div className="mt-8">
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">One model · any look</p>
-            {/* 3-up grid, no horizontal scroll — every clip visible on a phone. */}
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {clips.map((c, i) => (
-                /* eslint-disable-next-line jsx-a11y/media-has-caption */
-                <video key={i} src={c.video} poster={c.poster || undefined} muted loop playsInline autoPlay preload="metadata"
-                  className="aspect-[3/4] w-full rounded-2xl lb-media-bg object-cover" />
-              ))}
-            </div>
-            {curatorId && (
-              <Link href={`/curator/${curatorId}`} className="mt-2.5 inline-flex items-center gap-1.5 text-[12px] font-black text-amber-400">
-                <Play className="h-3.5 w-3.5" fill="currentColor" /> This is Gina — same model, every look. See her page →
-              </Link>
-            )}
-          </div>
-        )}
 
         {/* 3 steps — now visual: tap a model OR an outfit, either way you land in the
             try-on funnel. Videos are the members-only payoff (shown blurred). */}
@@ -159,17 +137,12 @@ export default async function AboutPage() {
               {videos.length > 0 && (
                 <div className="mt-2.5 grid grid-cols-3 gap-2">
                   {videos.map((v, i) => (
-                    <div key={i} className="relative overflow-hidden rounded-xl lb-media-bg">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={v.poster} alt="" className="aspect-[3/4] w-full scale-105 object-cover blur-[5px] opacity-80" />
-                      <span className="absolute inset-0 grid place-items-center">
-                        <Play className="h-6 w-6 text-white/90 drop-shadow" fill="currentColor" />
-                      </span>
-                    </div>
+                    /* eslint-disable-next-line jsx-a11y/media-has-caption */
+                    <video key={i} src={v.video} poster={v.poster || undefined} muted loop playsInline autoPlay preload="metadata"
+                      className="aspect-[3/4] w-full rounded-xl lb-media-bg object-cover" />
                   ))}
                 </div>
               )}
-              <p className="mt-2 text-[11px] font-bold text-amber-400/80">Members-only videos · unlock the full show.</p>
             </div>
           </div>
         </div>
