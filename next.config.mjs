@@ -22,8 +22,10 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        // Home = the Fashionshow GRID overview (hero + tabs + 3-col grid), not the
+        // immersive reel. Tapping any tile still opens the full-screen reel.
         source: "/",
-        destination: "/stores?tab=community",
+        destination: "/stores?view=grid",
         permanent: false
       },
       {

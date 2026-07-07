@@ -1489,7 +1489,8 @@ function StoresPage() {
     return [...base].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || cmp(a, b));
   }, [models, modelSort, hairFilter, query]);
   const hairColorsPresent = useMemo(() => [...new Set(models.map(m => m.hairColor || "").filter(Boolean))], [models]);
-  const [homeTab, setHomeTab] = useState<"feeds" | "models" | "garderobe">("models");
+  // Fashionshow ("feeds") is the default grid tab — it's the app's home view.
+  const [homeTab, setHomeTab] = useState<"feeds" | "models" | "garderobe">("feeds");
   // Garderobe = every generated garment (all models' wardrobes), browsable by type.
   const [garmentType, setGarmentType] = useState<LookCategory | null>(null);
   // Admin: add a real Luxury Bandi garment (from a photo) into the Garderobe.
