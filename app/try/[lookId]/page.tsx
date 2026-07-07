@@ -88,6 +88,10 @@ export default function TryFunnelPage() {
   const [genId, setGenId] = useState("");
   const [hdBusyId, setHdBusyId] = useState(""); // which generation id is upscaling ("" = none)
   const [hdMsg, setHdMsg] = useState("");
+  // Free cache hit: if this exact combo already exists, we PLAY the real video right on the
+  // "ready" step (step 3) instead of a blurred teaser + sign-in wall — free videos are watchable.
+  const [previewVideoUrl, setPreviewVideoUrl] = useState("");
+  const [previewGenId, setPreviewGenId] = useState("");
   // "Motion" pick: what she DOES in the video. The user only sees the two chips —
   // the prompt swap happens server-side. Dance = Pixverse also generates music.
   const [motion, setMotion] = useState<"turn" | "dance">("turn");
@@ -163,12 +167,27 @@ export default function TryFunnelPage() {
   const chosenModelId = !avatar ? (pickedModelId || modelIdParam) : "";
   const chosenModelName = !avatar ? (pickedModelName || modelNameParam) : "";
 
+  // Does this exact free combo (model × garment × motion) already exist? If so we can play
+  // the REAL video on the ready step — no blur, no sign-in wall. Own-photo picks never cache.
+  const lookupCachedVideo = async () => {
+    setPreviewVideoUrl(""); setPreviewGenId("");
+    if (avatar || !chosenModelId) return;
+    try {
+      const combo = `${chosenModelId}|${lookId}|${motion}`;
+      const cached = await fetch(`/api/try-this-look?combo=${encodeURIComponent(combo)}`).then(r => r.json());
+      if (cached?.hit && cached.videoUrl) { setPreviewVideoUrl(cached.videoUrl); setPreviewGenId(cached.generationId || ""); }
+    } catch { /**/ }
+  };
+
   const goStep3 = () => {
-    // Fake render: a short spinner, then the blurred "ready" teaser. No real generation.
+    // Short spinner, then either the REAL cached video (free hit) or a blurred teaser.
     setRendering(true);
     setStep(3);
+    void lookupCachedVideo();
     window.setTimeout(() => setRendering(false), 2200);
   };
+  // Re-check the cache when the motion chip changes on the ready step (turn ↔ dance).
+  useEffect(() => { if (step === 3) void lookupCachedVideo(); }, [motion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onUnlock = () => {
     // Already signed in (guest session) OR admin previewing the flow → straight to plans.
@@ -530,33 +549,42 @@ export default function TryFunnelPage() {
         </div>
       )}
 
-      {/* ── Step 3: fake "video ready" blurred teaser ──────────────────────── */}
+      {/* ── Step 3: the "video ready" step. A FREE cache hit plays the real video here
+             (no blur, no wall); otherwise a blurred teaser + sign-in to unlock. ─────── */}
       {step === 3 && (
         <div className="px-4 pb-28 pt-2">
           <div className="relative mx-auto mt-2 overflow-hidden rounded-3xl border border-white/10">
-            <div className="relative h-[44vh] w-full">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              {teaserImg && <img src={teaserImg} alt="" className="h-full w-full scale-110 object-cover blur-2xl" aria-hidden />}
-              <div className="absolute inset-0 grid place-items-center">
-                {rendering ? (
-                  <div className="flex flex-col items-center gap-3 text-white/80">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    <span className="text-sm font-black">Generating your video…</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-2">
-                    <span className="grid h-16 w-16 place-items-center rounded-full bg-white/15 backdrop-blur"><Play className="h-7 w-7" /></span>
-                    <span className="mt-1 flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1 text-[12px] font-black"><Check className="h-3.5 w-3.5" /> Video ready</span>
-                  </div>
-                )}
+            {previewVideoUrl && !rendering ? (
+              // Free video already exists → play it right here, full and watchable.
+              <div className="relative h-[52vh] w-full bg-black">
+                <video src={previewVideoUrl} className="h-full w-full object-contain" controls autoPlay loop playsInline />
+                <span className="pointer-events-none absolute right-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black"><Check className="h-3.5 w-3.5" /> Free</span>
               </div>
-              <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-black backdrop-blur"><Lock className="h-3 w-3" /> Locked</span>
-            </div>
+            ) : (
+              <div className="relative h-[44vh] w-full">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {teaserImg && <img src={teaserImg} alt="" className="h-full w-full scale-110 object-cover blur-2xl" aria-hidden />}
+                <div className="absolute inset-0 grid place-items-center">
+                  {rendering ? (
+                    <div className="flex flex-col items-center gap-3 text-white/80">
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                      <span className="text-sm font-black">Generating your video…</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="grid h-16 w-16 place-items-center rounded-full bg-white/15 backdrop-blur"><Play className="h-7 w-7" /></span>
+                      <span className="mt-1 flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1 text-[12px] font-black"><Check className="h-3.5 w-3.5" /> Video ready</span>
+                    </div>
+                  )}
+                </div>
+                <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-black backdrop-blur"><Lock className="h-3 w-3" /> Locked</span>
+              </div>
+            )}
           </div>
           {!rendering && (
             <>
-              <h1 className="mt-6 text-center text-[22px] font-black leading-tight">Your video is ready.</h1>
-              <p className="mt-2 text-center text-[13px] font-bold text-white/50">Sign in to watch and download it in full quality.</p>
+              <h1 className="mt-6 text-center text-[22px] font-black leading-tight">{previewVideoUrl ? "Enjoy your video 🎉" : "Your video is ready."}</h1>
+              <p className="mt-2 text-center text-[13px] font-bold text-white/50">{previewVideoUrl ? "It's free — tap 🔊 for sound. Sign in to save & download it." : "Sign in to watch and download it in full quality."}</p>
               {motionPicker}
               {adminPromptPanel}
             </>
@@ -752,10 +780,18 @@ export default function TryFunnelPage() {
             )
           )}
           {step === 3 && !rendering && (
-            <button type="button" onClick={onUnlock}
-              className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-              {(isAuthed() || (adminPin && !previewAsUser)) ? "Continue" : "Sign in & watch"}
-            </button>
+            previewVideoUrl && previewGenId ? (
+              // Free video is already playing above → open the full post (free), no wall.
+              <button type="button" onClick={() => router.push(`/post/${previewGenId}`)}
+                className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
+                <Sparkles className="h-5 w-5" /> View your video →
+              </button>
+            ) : (
+              <button type="button" onClick={onUnlock}
+                className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
+                {(isAuthed() || (adminPin && !previewAsUser)) ? "Continue" : "Sign in & watch"}
+              </button>
+            )
           )}
           {step === 4 && (
             <button type="button" onClick={() => alert("Checkout — subscription billing wird als Nächstes verdrahtet.")}
