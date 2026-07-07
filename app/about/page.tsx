@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, Sparkles, Heart, Coins, ShoppingBag, MessageCircle, Music } from "lucide-react";
 import { readTryThisLookState } from "@/lib/try-this-look-store";
 import AboutGarmentPicker from "@/components/AboutGarmentPicker";
+import AboutVideoPicker from "@/components/AboutVideoPicker";
 
 export const metadata = { title: "How it works — LuxuryBandit" };
 // Signed video URLs expire — render fresh on each request.
@@ -38,15 +39,20 @@ async function stepMedia(): Promise<StepMedia> {
     const garments = (pickedGarments.length ? pickedGarments : wardrobe)
       .slice(0, 4)
       .map(l => ({ id: l.id, name: l.name, img: ((l as { frontImageUrl?: string }).frontImageUrl || (l as { imageUrl?: string }).imageUrl) as string }));
-    // Step 3 — FULL playing clips of the featured MODELS (one per model where
-    // possible), shown at full quality in the "Watch" step.
+    // Step 3 — admin-picked showcase clips lead (set via the picker); else fall back
+    // to the featured MODELS' clips so it's never empty. Full playing videos.
     const featuredIds = new Set(models.map(m => m.id));
     const withVid = (state.generations ?? []).filter(g => (g as { videoUrl?: string }).videoUrl && (g as { imageUrl?: string }).imageUrl && !(g as { hidden?: boolean }).hidden);
     const pick = (g: unknown) => ({ poster: (g as { imageUrl?: string }).imageUrl as string, video: (g as { videoUrl?: string }).videoUrl as string });
     const chosen: { poster: string; video: string }[] = [];
-    for (const m of models) { const hit = withVid.find(g => (g as { curatorId?: string }).curatorId === m.id); if (hit) chosen.push(pick(hit)); }
-    for (const g of withVid) { if (chosen.length >= 3) break; if (featuredIds.has((g as { curatorId?: string }).curatorId ?? "") && !chosen.some(c => c.video === (g as { videoUrl?: string }).videoUrl)) chosen.push(pick(g)); }
-    for (const g of withVid) { if (chosen.length >= 3) break; if (!chosen.some(c => c.video === (g as { videoUrl?: string }).videoUrl)) chosen.push(pick(g)); }
+    // 1) admin-picked showcase clips
+    for (const g of withVid) { if ((g as { showcase?: boolean }).showcase && !chosen.some(c => c.video === (g as { videoUrl?: string }).videoUrl)) chosen.push(pick(g)); }
+    // 2) fallback: one per featured model, then any featured-model clip, then any clip
+    if (chosen.length === 0) {
+      for (const m of models) { const hit = withVid.find(g => (g as { curatorId?: string }).curatorId === m.id); if (hit) chosen.push(pick(hit)); }
+      for (const g of withVid) { if (chosen.length >= 3) break; if (featuredIds.has((g as { curatorId?: string }).curatorId ?? "") && !chosen.some(c => c.video === (g as { videoUrl?: string }).videoUrl)) chosen.push(pick(g)); }
+      for (const g of withVid) { if (chosen.length >= 3) break; if (!chosen.some(c => c.video === (g as { videoUrl?: string }).videoUrl)) chosen.push(pick(g)); }
+    }
     const videos = chosen.slice(0, 3);
     return { clips, curatorId: gina?.id ?? "", models, garments, videos };
   } catch { return empty; }
@@ -149,6 +155,8 @@ export default async function AboutPage() {
                   ))}
                 </div>
               )}
+              {/* Admin: pick which feed videos show here. */}
+              <AboutVideoPicker />
             </div>
           </div>
         </div>

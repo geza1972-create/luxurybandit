@@ -68,14 +68,14 @@ export default function AboutGarmentPicker() {
             {loading ? (
               <div className="grid flex-1 place-items-center py-16"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>
             ) : (
-              <div className="grid grid-cols-3 gap-2 overflow-y-auto p-4">
+              <div className="grid grid-cols-4 gap-1.5 overflow-y-auto p-3">
                 {items.map(g => (
                   <button key={g.id} type="button" onClick={() => void toggle(g)}
-                    className={`relative aspect-[3/4] overflow-hidden rounded-xl border-2 bg-neutral-100 active:scale-95 transition ${g.featured ? "border-amber-400 ring-2 ring-amber-400/40" : "border-black/10"}`}>
+                    className={`relative aspect-[3/4] overflow-hidden rounded-lg border-2 bg-white active:scale-95 transition ${g.featured ? "border-amber-400 ring-2 ring-amber-400/40" : "border-black/10"}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={thumb(g.img)} alt={g.name} loading="lazy" decoding="async"
                       onError={(e) => { const im = e.currentTarget; if (im.src !== g.img) im.src = g.img; }}
-                      className="h-full w-full object-cover object-top" />
+                      className="h-full w-full object-contain" />
                     {g.featured && <span className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[13px] font-black text-black shadow">★</span>}
                     {busy === g.id && <span className="absolute inset-0 grid place-items-center bg-black/40"><Loader2 className="h-4 w-4 animate-spin text-white" /></span>}
                   </button>

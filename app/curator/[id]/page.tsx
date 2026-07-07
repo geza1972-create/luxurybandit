@@ -488,7 +488,7 @@ export default function CuratorPublicPage() {
   const photoDrafts = (isAdmin || isOwn) ? tryons.filter(t => !t.videoUrl && t.imageUrl) : [];
 
   return (
-    <main className="lb-phone-col min-h-[100dvh] bg-[#0d0b0a] text-white pb-16">
+    <main className="min-h-[100dvh] bg-[#0d0b0a] text-white pb-16">
       <div className="sticky top-0 z-20 bg-[#0d0b0a]/90 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 active:opacity-70"><ArrowLeft className="h-4 w-4" /></button>

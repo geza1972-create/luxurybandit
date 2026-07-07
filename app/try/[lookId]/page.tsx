@@ -338,7 +338,7 @@ export default function TryFunnelPage() {
   ) : null;
 
   return (
-    <div className="lb-phone-col relative min-h-[100dvh] bg-[#0d0b0a] text-white">
+    <div className="relative min-h-[100dvh] bg-[#0d0b0a] text-white">
       {/* Top bar */}
       <div className="sticky top-0 z-20 bg-[#0d0b0a]/90 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">

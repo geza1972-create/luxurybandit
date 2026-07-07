@@ -378,6 +378,16 @@ export async function GET(request: Request) {
     }
     // PUBLIC: the Models gallery. Only published models WITH a photo, PII stripped
     // (no email/address/credits). lookCount = how many SHARED (feed:true) try-ons the
+    // Admin: feed video clips (for the About step-3 showcase picker).
+    if (url.searchParams.get("feedclips") === "1") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 401 });
+      const clips = (state.generations ?? [])
+        .filter(g => (g as any).videoUrl && (g as any).imageUrl && !(g as any).hidden)
+        .map(g => ({ id: g.id, poster: (g as any).imageUrl as string, video: (g as any).videoUrl as string, name: (g as any).customerName || (g as any).lookName || "", showcase: (g as any).showcase === true }))
+        .sort((a, b) => (b.showcase ? 1 : 0) - (a.showcase ? 1 : 0));
+      return NextResponse.json({ clips });
+    }
+
     // Admin: lightweight list of all wardrobe garments (for the About showcase picker).
     if (url.searchParams.get("garments") === "1") {
       if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 401 });
@@ -2446,11 +2456,13 @@ export async function POST(request: Request) {
       if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
       const ids = Array.isArray(payload.ids) ? (payload.ids as unknown[]).map(x => String(x)) : [];
       const featured = payload.featured === true;
-      const kind = String(payload.kind ?? "model"); // "model" (curators) | "look" (garments)
+      const kind = String(payload.kind ?? "model"); // "model" (curators) | "look" (garments) | "generation" (feed clips)
       if (!ids.length) return NextResponse.json({ error: "ids required." }, { status: 400 });
       let count = 0;
       if (kind === "look") {
         for (const l of state.looks ?? []) if (ids.includes(l.id)) { (l as any).featured = featured || undefined; count++; }
+      } else if (kind === "generation") {
+        for (const g of state.generations ?? []) if (ids.includes(g.id)) { (g as any).showcase = featured || undefined; count++; }
       } else {
         for (const c of state.curators ?? []) if (ids.includes(c.id)) { (c as any).featured = featured || undefined; count++; }
       }
