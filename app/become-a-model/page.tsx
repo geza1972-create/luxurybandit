@@ -9,7 +9,13 @@ export const metadata = {
     title: "Make money daily — become a LuxuryBandit Model",
     description: "Upload one photo. We generate your videos. You earn with every look.",
     images: [{ url: "/become-a-model-banner.jpg", width: 1280, height: 720 }],
+    // og:url + og:type — the Facebook Sharing Debugger flags both when missing.
+    url: "/become-a-model",
+    type: "website",
   },
+  // fb:app_id (Debugger warning) — set NEXT_PUBLIC_FB_APP_ID on Vercel (the Meta
+  // app's ID, same app as the Facebook login). Omitted cleanly when unset.
+  ...(process.env.NEXT_PUBLIC_FB_APP_ID ? { facebook: { appId: process.env.NEXT_PUBLIC_FB_APP_ID } } : {}),
 };
 
 // Signed media URLs expire — render fresh per request (same as /about).
