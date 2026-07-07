@@ -418,7 +418,7 @@ export default function TryFunnelPage() {
               <span className={`h-4 w-4 rounded-full bg-white transition-transform ${slowmo ? "translate-x-4" : ""}`} />
             </span>
           </button>
-          <p className="mt-1.5 text-[11px] font-bold text-white/35">Erzeugt den Clip langsamer (Musik wird passend dazu generiert). Nur für dieses Video.</p>
+          <p className="mt-1.5 text-[11px] font-bold text-white/35">Werbemodus: langsamer 10s-Clip, direkt in HD (1080p), Musik passend. Kostet mehr — nur für dieses Video.</p>
         </div>
       )}
     </div>

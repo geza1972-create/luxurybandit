@@ -143,7 +143,9 @@ async function pixverseStartReference(key: string, garment: string, person: stri
     // we only pay HD on the keepers. (360p is Pixverse's floor; there is no 320p tier.)
     model: "v6",                     // V6 keeps the reference outfit/person (v4.5 ignored it)
     duration: turnaround ? 10 : (slowmo ? 10 : 5), // slow-mo = 10s (ad quality) → same motion, much slower
-    quality: turnaround ? "720p" : "360p",
+    // Slow-mo is "ad mode": render straight to 1080p HD (no 360p→upscale step). Normal
+    // clips stay 360p (cheap previews for the free reuse cache).
+    quality: turnaround ? "720p" : (slowmo ? "1080p" : "360p"),
     aspect_ratio: "9:16",            // full vertical (reels), same as the 360° turnaround
     // MUSIC: V6 generates native, prompt-matched audio when generate_audio_switch=true
     // (the V6 param — the OLD sound_effect_switch is v5-only and V6 rejects it with 400017,
