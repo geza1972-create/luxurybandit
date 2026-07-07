@@ -174,11 +174,11 @@ export default async function AboutPage() {
           </span>
         </Link>
 
-        {/* Contact */}
-        <h2 className="mt-9 text-lg font-black">Contact</h2>
+        {/* LuxuryBandit — no email exposed, just a link to the contact form. */}
+        <h2 className="mt-9 text-lg font-black">LuxuryBandit</h2>
         <p className="mt-2 text-[14px] font-semibold leading-7 text-white/60">
           LuxuryBandit · Timișoara, Romania<br />
-          <a href="mailto:support@luxurybandit.com" className="font-black text-amber-400">support@luxurybandit.com</a>
+          <Link href="/contact" className="font-black text-amber-400">Contact form →</Link>
         </p>
 
         {/* CTA */}
