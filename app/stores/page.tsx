@@ -2607,7 +2607,7 @@ function StoresPage() {
                 page JUMP on every All↔Community switch. Only search collapses it. */}
             {!searchOpen && (
               <section className="px-4 pt-4 pb-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">AI Fashion Models · Luxury Looks</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">AI and real Fashion Models · Luxury Looks</p>
                 <h1 className="mt-1.5 text-[1.8rem] font-black leading-[1.08] tracking-tight text-white">
                   Your dream model, <span className="text-amber-400">in any look.</span>
                 </h1>

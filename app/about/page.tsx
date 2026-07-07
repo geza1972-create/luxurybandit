@@ -68,7 +68,7 @@ export default async function AboutPage() {
 
       <article className="mx-auto max-w-2xl px-5 py-8">
         {/* Hero */}
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">AI Fashion Models · Luxury Looks</p>
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">AI and real Fashion Models · Luxury Looks</p>
         <h1 className="mt-2 text-[28px] font-black leading-tight">
           Your dream model, <span className="text-amber-400">in any look.</span>
         </h1>
