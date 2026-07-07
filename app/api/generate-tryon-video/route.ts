@@ -145,9 +145,11 @@ async function pixverseStartReference(key: string, garment: string, person: stri
     duration: turnaround ? 10 : 5,   // 5s; 360p keeps cost low
     quality: turnaround ? "720p" : "360p",
     aspect_ratio: "9:16",            // full vertical (reels), same as the 360° turnaround
-    // NO sound flags: V6 rejects sound_effect_switch (API error 400017 "not supported
-    // in model v6", verified 2026-07-06). V6 decides sound ITSELF from the prompt —
-    // "tanzen" → fitting music — which is exactly what the dance motion wants.
+    // MUSIC: V6 generates native, prompt-matched audio when generate_audio_switch=true
+    // (the V6 param — the OLD sound_effect_switch is v5-only and V6 rejects it with 400017,
+    // which is why our videos were silent). Confirmed in the platform docs: generate_audio_
+    // switch is supported on v5.5/v5.6/v6/c1. V6 picks fitting music from the prompt/scene.
+    generate_audio_switch: true,
   };
   const genRes = await fetch(`${PV_BASE}/video/fusion/generate`, {
     method: "POST", headers: pvHeaders(key, true),
