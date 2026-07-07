@@ -16,8 +16,9 @@ export default function AboutGarmentPicker() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Garment[]>([]);
+  const [initial, setInitial] = useState<Set<string>>(new Set()); // featured ids at load
   const [loading, setLoading] = useState(false);
-  const [busy, setBusy] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const pin = () => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } };
   useEffect(() => { setIsAdmin(!!pin()); }, []);
@@ -27,25 +28,33 @@ export default function AboutGarmentPicker() {
     try {
       const r = await fetch("/api/try-this-look?garments=1", { headers: { "x-try-look-admin-pin": pin() } });
       const d = await r.json();
-      setItems(Array.isArray(d.garments) ? d.garments : []);
+      const list: Garment[] = Array.isArray(d.garments) ? d.garments : [];
+      setItems(list);
+      setInitial(new Set(list.filter(g => g.featured).map(g => g.id)));
     } catch { /**/ }
     finally { setLoading(false); }
   };
   const openList = () => { setOpen(true); void load(); };
 
-  const toggle = async (g: Garment) => {
-    if (busy) return;
-    setBusy(g.id);
-    const next = !g.featured;
-    setItems(prev => prev.map(x => x.id === g.id ? { ...x, featured: next } : x));
+  // Toggle LOCALLY only — no per-tap API call (that blocked fast taps). Saved on "Apply".
+  const toggle = (g: Garment) => setItems(prev => prev.map(x => x.id === g.id ? { ...x, featured: !x.featured } : x));
+
+  // Save the whole selection at once, then close.
+  const apply = async () => {
+    if (saving) return;
+    setSaving(true);
     try {
-      await fetch("/api/try-this-look", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-try-look-admin-pin": pin() },
-        body: JSON.stringify({ action: "set-featured", kind: "look", ids: [g.id], featured: next }),
-      });
-    } catch { setItems(prev => prev.map(x => x.id === g.id ? { ...x, featured: !next } : x)); }
-    finally { setBusy(""); }
+      const nowFeatured = new Set(items.filter(g => g.featured).map(g => g.id));
+      const toAdd = [...nowFeatured].filter(id => !initial.has(id));
+      const toRemove = [...initial].filter(id => !nowFeatured.has(id));
+      const post = (ids: string[], featured: boolean) => ids.length ? fetch("/api/try-this-look", {
+        method: "POST", headers: { "Content-Type": "application/json", "x-try-look-admin-pin": pin() },
+        body: JSON.stringify({ action: "set-featured", kind: "look", ids, featured }),
+      }) : Promise.resolve();
+      await Promise.all([post(toAdd, true), post(toRemove, false)]);
+      setOpen(false);
+    } catch { alert("Speichern fehlgeschlagen."); }
+    finally { setSaving(false); }
   };
 
   if (!isAdmin) return null;
@@ -65,24 +74,30 @@ export default function AboutGarmentPicker() {
               <p className="text-sm font-black text-white">Showcase-Klamotten {count > 0 && <span className="text-amber-400">· {count} gewählt</span>}</p>
               <button type="button" onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white"><X className="h-4 w-4" /></button>
             </div>
-            <p className="px-4 pt-2 text-[11px] font-bold text-white/45">Tippe ein Stück an, um es im „How it works"-Schritt 2 zu zeigen (die gewählten führen; sonst die ersten paar).</p>
+            <p className="px-4 pt-2 text-[11px] font-bold text-white/45">Tippe die Stücke an (mehrere möglich) und dann „Auswahl übernehmen". Die gewählten führen Schritt 2; sonst die ersten paar.</p>
             {loading ? (
               <div className="grid place-items-center py-16"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>
             ) : (
-              <div className="grid max-h-[calc(85dvh-92px)] grid-cols-4 gap-1.5 overflow-y-auto overscroll-contain p-3">
+              <div className="grid max-h-[calc(85dvh-150px)] grid-cols-4 gap-1.5 overflow-y-auto overscroll-contain p-3">
                 {items.map(g => (
-                  <button key={g.id} type="button" onClick={() => void toggle(g)}
+                  <button key={g.id} type="button" onClick={() => toggle(g)}
                     className={`relative block overflow-hidden rounded-lg border-2 bg-white active:scale-95 transition ${g.featured ? "border-amber-400 ring-2 ring-amber-400/40" : "border-black/10"}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={thumb(g.img)} alt={g.name} loading="lazy" decoding="async"
                       onError={(e) => { const im = e.currentTarget; if (im.src !== g.img) im.src = g.img; }}
                       className="aspect-[3/4] w-full object-contain" />
                     {g.featured && <span className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[13px] font-black text-black shadow">★</span>}
-                    {busy === g.id && <span className="absolute inset-0 grid place-items-center bg-black/40"><Loader2 className="h-4 w-4 animate-spin text-white" /></span>}
                   </button>
                 ))}
               </div>
             )}
+            {/* Sticky footer — save the whole selection at once. */}
+            <div className="border-t border-white/10 p-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}>
+              <button type="button" onClick={() => void apply()} disabled={saving}
+                className="lb-gold flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-black active:scale-95 transition disabled:opacity-50">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Auswahl übernehmen{count > 0 ? ` · ${count}` : ""}
+              </button>
+            </div>
           </div>
         </div>
       )}
