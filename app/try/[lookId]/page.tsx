@@ -3,6 +3,7 @@
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, LayoutGrid, Trash2, ImageUp } from "lucide-react";
+import PremiumDialog from "@/components/PremiumDialog";
 import { FeedGate } from "@/components/FeedGate";
 import BottomNav from "@/components/BottomNav";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
@@ -46,6 +47,7 @@ export default function TryFunnelPage() {
   const pickModel = (searchParams?.get("pick") ?? "") === "1";
   const [gModels, setGModels] = useState<{ id: string; name: string; photoUrl: string; featured?: boolean }[]>([]);
   const [isPaid, setIsPaid] = useState(false);
+  const [showPremium, setShowPremium] = useState(false);
   useEffect(() => { try { setIsPaid(!!localStorage.getItem("luxurybandit-try-look-admin-pin") || localStorage.getItem("lb_paid") === "1"); } catch { /**/ } }, []);
   const [pickedModel, setPickedModel] = useState("");
   const [pickedModelId, setPickedModelId] = useState("");
@@ -402,11 +404,10 @@ export default function TryFunnelPage() {
                   const yourLocked = !isPaid;
                   const yourTile = (
                     <button key="__your" type="button"
-                      onClick={() => { if (yourLocked) { alert("Premium · upload your own model — paying members only."); return; } fileRef.current?.click(); }}
+                      onClick={() => { if (yourLocked) { setShowPremium(true); return; } fileRef.current?.click(); }}
                       className="overflow-hidden rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] active:scale-[0.98] transition-transform">
-                      <div className="relative grid aspect-[3/4] w-full place-items-center gap-1 px-1 text-center">
-                        <ImageUp className="h-7 w-7 text-amber-400" />
-                        <span className="text-[9px] font-black uppercase tracking-wide text-amber-400/80">Upload</span>
+                      <div className="relative grid aspect-[3/4] w-full place-items-center px-1 pb-6 text-center">
+                        <ImageUp className="h-8 w-8 text-amber-400" />
                         {yourLocked && (
                           <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-3.5 w-3.5 text-amber-400" /></span>
                         )}
@@ -418,7 +419,7 @@ export default function TryFunnelPage() {
                     const locked = anyFeatured && !m.featured && !isPaid;
                     return (
                       <button key={m.id} type="button"
-                        onClick={() => { if (locked) { alert("Premium · nur für zahlende Mitglieder. Wähle eines der freien Models."); return; } setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); }}
+                        onClick={() => { if (locked) { setShowPremium(true); return; } setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); }}
                         className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-[0.98] transition-transform">
                         <div className="relative aspect-[3/4] w-full">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -682,6 +683,8 @@ export default function TryFunnelPage() {
           advanceOnSignup
           onClose={() => setGateOpen(false)} onAuthed={() => { setGateOpen(false); setStep(4); }} />
       )}
+
+      <PremiumDialog open={showPremium} onClose={() => setShowPremium(false)} />
     </div>
   );
 }

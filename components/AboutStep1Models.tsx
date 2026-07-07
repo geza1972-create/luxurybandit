@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ImageUp, Lock, Loader2, X } from "lucide-react";
+import PremiumDialog from "@/components/PremiumDialog";
 
 type FeaturedModel = { id: string; name: string; photo: string };
 type Model = { id: string; name: string; photoUrl: string; featured?: boolean };
@@ -14,6 +15,7 @@ export default function AboutStep1Models({ featured }: { featured: FeaturedModel
   const router = useRouter();
   const [isPaid, setIsPaid] = useState(false);
   const [open, setOpen] = useState(false);
+  const [premium, setPremium] = useState(false);
   const [all, setAll] = useState<Model[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -26,16 +28,15 @@ export default function AboutStep1Models({ featured }: { featured: FeaturedModel
     catch { /**/ } finally { setLoading(false); }
   };
   const openGallery = () => { setOpen(true); void loadAll(); };
-  const premiumAlert = () => alert("Premium · upload your own model — paying members only.");
+  const premiumAlert = () => setPremium(true);
 
-  // The "Your photo" upload tile — clearly an upload button (icon + "Upload" + label).
-  // Locked = Premium (small lock badge); paid → opens the try-on to upload.
+  // The "Your photo" upload tile — icon on top, single "Your photo" label at the bottom
+  // (no overlap). Locked = Premium (small lock badge); paid → opens the try-on to upload.
   const YourTile = ({ big }: { big?: boolean }) => (
     <button type="button" onClick={() => (yourLocked ? premiumAlert() : router.push("/stores?view=grid"))}
       className="relative block overflow-hidden rounded-xl border border-amber-400/30 bg-amber-400/[0.06] active:scale-95 transition-transform">
-      <div className="grid aspect-[3/4] w-full place-items-center gap-1 px-1 text-center">
-        <ImageUp className={`${big ? "h-8 w-8" : "h-6 w-6"} text-amber-400`} />
-        <span className="text-[9px] font-black uppercase tracking-wide text-amber-400/80">Upload</span>
+      <div className="grid aspect-[3/4] w-full place-items-center px-1 pb-6 text-center">
+        <ImageUp className={`${big ? "h-9 w-9" : "h-7 w-7"} text-amber-400`} />
         {yourLocked && (
           <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-3.5 w-3.5 text-amber-400" /></span>
         )}
@@ -101,6 +102,8 @@ export default function AboutStep1Models({ featured }: { featured: FeaturedModel
           </div>
         </div>
       )}
+
+      <PremiumDialog open={premium} onClose={() => setPremium(false)} />
     </>
   );
 }
