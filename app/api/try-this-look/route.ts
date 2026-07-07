@@ -378,6 +378,16 @@ export async function GET(request: Request) {
     }
     // PUBLIC: the Models gallery. Only published models WITH a photo, PII stripped
     // (no email/address/credits). lookCount = how many SHARED (feed:true) try-ons the
+    // Admin: lightweight list of all wardrobe garments (for the About showcase picker).
+    if (url.searchParams.get("garments") === "1") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 401 });
+      const garments = (state.looks ?? [])
+        .filter(l => ((l as any).productType === "ai" || (l as any).wardrobe) && ((l as any).frontImageUrl || (l as any).imageUrl))
+        .map(l => ({ id: l.id, name: l.name, img: ((l as any).frontImageUrl || (l as any).imageUrl) as string, featured: (l as any).featured === true, category: (l as any).category }))
+        .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0) || a.name.localeCompare(b.name));
+      return NextResponse.json({ garments });
+    }
+
     // model appears in, matched by name.
     if (url.searchParams.get("models") === "1") {
       // Admins get hidden models too (to un-hide/manage) + editable fields (name parts, bio).

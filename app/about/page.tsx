@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Sparkles, Heart, Coins, ShoppingBag, MessageCircle, Music } from "lucide-react";
 import { readTryThisLookState } from "@/lib/try-this-look-store";
+import AboutGarmentPicker from "@/components/AboutGarmentPicker";
 
 export const metadata = { title: "How it works — LuxuryBandit" };
 // Signed video URLs expire — render fresh on each request.
@@ -125,6 +126,8 @@ export default async function AboutPage() {
                   ))}
                 </div>
               )}
+              {/* Admin: pick which garments show here (hidden for everyone else). */}
+              <AboutGarmentPicker />
             </div>
           </div>
           {/* 3 — watch (members-only payoff, blurred teaser) */}
