@@ -2616,8 +2616,8 @@ function StoresPage() {
                 </div>
                 {/* Model recruiting lives on its OWN landing page — one quiet line here. */}
                 <button type="button" onClick={() => router.push("/become-a-model")}
-                  className="mt-3 flex items-center gap-1.5 text-[12px] font-black text-white/45 active:opacity-70">
-                  <Heart className="h-3.5 w-3.5 text-amber-400" /> Become a LuxuryBandit Model — earn with every look →
+                  className="mt-3 flex items-center gap-1.5 text-[12px] font-black text-amber-400 active:opacity-70">
+                  <Heart className="h-3.5 w-3.5" /> Become a LuxuryBandit Model — earn with every look →
                 </button>
               </section>
             )}
