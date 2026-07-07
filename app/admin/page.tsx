@@ -1542,30 +1542,37 @@ export default function AdminPage() {
                 ))}
               </div>
 
-              {/* Carousel swipe depth — how far people swipe the product carousel */}
-              {swipeFunnel.length > 0 && (
-                <div className="mt-4 rounded-xl border border-black/10 bg-white p-4">
-                  <p className="flex items-center gap-1.5 text-sm font-black text-ink">↔️ Carousel — wie weit wischen sie?</p>
-                  <p className="mt-0.5 text-[11px] font-bold text-ink/45">
-                    Betrachter, die mindestens bis zur jeweiligen Folie gewischt haben{swipeBase > 0 ? ` (von ${fmt(swipeBase)} Aufrufen)` : ""}.
-                  </p>
-                  <div className="mt-3 space-y-1.5">
-                    {swipeFunnel.map(({ slide, count }) => {
-                      const pct = swipeBase > 0 ? Math.round((count / swipeBase) * 100) : 0;
-                      return (
-                        <div key={slide} className="flex items-center gap-2">
-                          <span className="w-10 shrink-0 text-[11px] font-black text-ink/60">{slide}/{totalMode || slide}</span>
-                          <div className="relative h-5 flex-1 overflow-hidden rounded-md bg-black/[0.06]">
-                            <div className="absolute inset-y-0 left-0 rounded-md bg-cobalt/80" style={{ width: `${Math.min(100, Math.max(2, pct))}%` }} />
+              {/* Recruiting funnel — do people OPEN the funnels and the apply form?
+                  (Replaced the carousel swipe-depth chart — user: "bringt mir nichts".) */}
+              {(() => {
+                const steps: [string, number][] = [
+                  ["Become-a-Model Seite", countOf("recruit_view")],
+                  ["Bewerbungsformular geöffnet", countOf("apply_view")],
+                  ["Bewerbung abgeschickt", countOf("apply_submit")],
+                ];
+                const base = steps[0][1];
+                return (
+                  <div className="mt-4 rounded-xl border border-black/10 bg-white p-4">
+                    <p className="flex items-center gap-1.5 text-sm font-black text-ink">💛 Model-Recruiting — klicken sie sich durch?</p>
+                    <p className="mt-0.5 text-[11px] font-bold text-ink/45">Landingpage → Formular → abgeschickte Bewerbung (im gewählten Zeitraum).</p>
+                    <div className="mt-3 space-y-1.5">
+                      {steps.map(([label, n]) => {
+                        const pct = base > 0 ? Math.round((n / base) * 100) : 0;
+                        return (
+                          <div key={label} className="flex items-center gap-2">
+                            <span className="w-44 shrink-0 truncate text-[11px] font-black text-ink/60">{label}</span>
+                            <div className="relative h-5 flex-1 overflow-hidden rounded-md bg-black/[0.06]">
+                              <div className="absolute inset-y-0 left-0 rounded-md bg-amber-400" style={{ width: `${Math.min(100, Math.max(n > 0 ? 2 : 0, pct))}%` }} />
+                            </div>
+                            <span className="w-20 shrink-0 text-right text-[11px] font-black text-ink">{fmt(n)}{base > 0 ? ` · ${pct}%` : ""}</span>
                           </div>
-                          <span className="w-20 shrink-0 text-right text-[11px] font-black text-ink">{fmt(count)}{swipeBase > 0 ? ` · ${pct}%` : ""}</span>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
+                    <p className="mt-2 text-[10px] font-bold text-ink/35">Try-on-Funnel-Klicks stehen oben in der Kachel „Try-on". Deine Admin-Besuche zählen nicht mit.</p>
                   </div>
-                  <p className="mt-2 text-[10px] font-bold text-ink/35">Höhere Folie = weiter gewischt. Folie 1 = nur das Video gesehen (nicht gewischt).</p>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Live activity stream — auto-polls every 4s */}
               <div className="mt-4 flex items-center justify-between">

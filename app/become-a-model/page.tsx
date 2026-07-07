@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Camera, ChevronDown, Coins, Heart, Sparkles, BadgeCheck, Play, Eye, Building2 } from "lucide-react";
 import { readTryThisLookState } from "@/lib/try-this-look-store";
+import TrackView from "@/components/TrackView";
 
 export const metadata = {
   title: "Become a LuxuryBandit Model — earn with every look",
@@ -46,6 +47,8 @@ export default async function BecomeAModelPage() {
 
   return (
     <main className="min-h-[100dvh] bg-[#0d0b0a] pb-24 text-white">
+      {/* Insights: recruiting funnel step 1 (landing view). */}
+      <TrackView event="recruit_view" />
       <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-white/10 bg-[#0d0b0a]/95 px-4 py-3 backdrop-blur">
         <Link href="/stores?tab=community" aria-label="Back"
           className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 text-white active:scale-90 transition-transform">

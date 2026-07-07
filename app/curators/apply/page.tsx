@@ -57,6 +57,26 @@ export default function CuratorApplyPage() {
   const [applied, setApplied] = useState(false);
   const [error, setError] = useState("");
 
+  // Insights: recruiting funnel steps 2+3 (form opened / application sent).
+  const trackRecruit = (event: string) => {
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const internal = !!localStorage.getItem("luxurybandit-try-look-admin-pin") && localStorage.getItem("lb_preview_model") !== "1";
+      fetch("/api/try-this-look", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "event", event, lookId: "recruiting", lookName: "Recruiting", utmSource: sp.get("utm_source") || sp.get("source") || "", referrer: document.referrer || "", internal }),
+      }).catch(() => {});
+    } catch { /**/ }
+  };
+  const viewTracked = useRef(false); // StrictMode guard
+  useEffect(() => {
+    if (viewTracked.current) return;
+    viewTracked.current = true;
+    // Edit mode is the ADMIN reusing this form — never a funnel step.
+    if (!new URLSearchParams(window.location.search).get("edit")) trackRecruit("apply_view");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── Edit mode: /admin/curators/apply?edit=<id> opens this SAME form prefilled
   // with an existing model and saves via the "update" action (admin only).
   const [editId, setEditId] = useState("");
@@ -176,6 +196,7 @@ export default function CuratorApplyPage() {
         try { localStorage.setItem("lb_curator", JSON.stringify(data.curator)); } catch { /**/ }
         try { window.dispatchEvent(new Event("luxurybandit-auth-updated")); } catch { /**/ }
       }
+      trackRecruit("apply_submit");
       setApplied(true);
     } catch {
       setError("Could not submit.");
