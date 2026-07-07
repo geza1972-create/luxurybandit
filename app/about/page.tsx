@@ -4,6 +4,7 @@ import { readTryThisLookState } from "@/lib/try-this-look-store";
 import AboutGarmentPicker from "@/components/AboutGarmentPicker";
 import AboutVideoPicker from "@/components/AboutVideoPicker";
 import AboutStep3Videos from "@/components/AboutStep3Videos";
+import AboutStep1Models from "@/components/AboutStep1Models";
 
 export const metadata = { title: "How it works — LuxuryBandit" };
 // Signed video URLs expire — render fresh on each request.
@@ -98,20 +99,8 @@ export default async function AboutPage() {
             <span className={step}>1</span>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-black">Pick your model</p>
-              <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/55">Choose one of our models — tap to open her looks.</p>
-              {models.length > 0 && (
-                <div className="mt-2.5 grid grid-cols-3 gap-2">
-                  {models.map(m => (
-                    <Link key={m.id} href={`/curator/${m.id}`} className="group block overflow-hidden rounded-xl lb-media-bg active:scale-95 transition-transform">
-                      <div className="relative aspect-[3/4]">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={m.photo} alt={m.name} className="h-full w-full object-cover object-top" />
-                        <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 to-transparent px-2 pb-1.5 pt-4 text-[10px] font-black text-white">{m.name}</span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
+              <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/55">Choose one of our models — or upload your own (Premium).</p>
+              {models.length > 0 && <AboutStep1Models featured={models} />}
             </div>
           </div>
           {/* 2 — or pick an outfit first (both directions work) */}
