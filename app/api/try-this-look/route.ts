@@ -491,7 +491,8 @@ export async function GET(request: Request) {
     if (url.searchParams.get("recentEvents")) {
       if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
       const n = Math.min(300, Math.max(1, Number(url.searchParams.get("recentEvents")) || 100));
-      return NextResponse.json({ events: (state.events ?? []).slice(0, n) });
+      // viewsByDay: per-date view tallies so Insights can show in-range Views.
+      return NextResponse.json({ events: (state.events ?? []).slice(0, n), viewsByDay: (state as any).viewsByDay ?? {} });
     }
 
     // Admin: ALL posts (generations) incl. hidden — for the admin posts grid.
@@ -1017,6 +1018,12 @@ export async function POST(request: Request) {
       const look = state.looks.find(l => l.id === lookId);
       if (look) {
         (look as any).viewCount = ((look as any).viewCount ?? 0) + 1;
+        // Per-DAY view tally (one key per date, not per view) → lets Insights show
+        // views for Today / 7d / 30d without flooding the event log. Lifetime total
+        // stays in the per-look viewCount above.
+        const dayKey = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+        const vbd = ((state as any).viewsByDay ??= {}) as Record<string, number>;
+        vbd[dayKey] = (vbd[dayKey] ?? 0) + 1;
         await saveTryThisLookState(state);
       }
       return NextResponse.json({ ok: true });

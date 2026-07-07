@@ -116,6 +116,7 @@ export default function AdminPage() {
   const [comments, setComments] = useState<Cmt[]>([]);
   type FeedEvent = { id: string; name: string; lookId: string; createdAt: string; lookName?: string; source?: string; country?: string; city?: string; productLabel?: string; productLink?: string; productThumb?: string; slide?: number; slides?: number; visitor?: string };
   const [feedEvents, setFeedEvents] = useState<FeedEvent[]>([]);
+  const [viewsByDay, setViewsByDay] = useState<Record<string, number>>({}); // per-date view tallies
   const [insightsRange, setInsightsRange] = useState<"today" | "7d" | "30d" | "all">("7d");
   const [insightsGroup, setInsightsGroup] = useState<"day" | "hour">("day");
   const [reply, setReply] = useState<Record<string, string>>({});
@@ -586,7 +587,7 @@ export default function AdminPage() {
     const poll = () => {
       fetch("/api/try-this-look?recentEvents=200", { headers: headers() })
         .then(r => r.ok ? r.json() : null)
-        .then(d => { if (alive && Array.isArray(d?.events)) setFeedEvents(d.events); })
+        .then(d => { if (alive && Array.isArray(d?.events)) { setFeedEvents(d.events); if (d.viewsByDay) setViewsByDay(d.viewsByDay); } })
         .catch(() => {});
     };
     poll();
@@ -1454,6 +1455,14 @@ export default function AdminPage() {
             affiliateClicks: l.clicks ? Object.values(l.clicks).reduce((s, n) => s + n, 0) : 0,
           })).sort((a, b) => (b.tryonClicks + b.likes + b.productClicks) - (a.tryonClicks + a.likes + a.productClicks) || b.views - a.views);
           const totalViews = rows.reduce((s, r) => s + r.views, 0);
+          // Views in the selected range, summed from the per-day tallies (viewsByDay).
+          // "All" uses the lifetime total so pre-tracking history counts too. Note: the
+          // per-day data only starts accumulating from when this was deployed, so Today/7d
+          // can read low right after launch while All shows the full lifetime number.
+          const rangeViews = insightsRange === "all"
+            ? totalViews
+            : Object.entries(viewsByDay).reduce((s, [day, n]) =>
+                new Date(day + "T00:00:00").getTime() >= cutoff ? s + (Number(n) || 0) : s, 0);
 
           const Bars = ({ data, accent = "bg-cobalt" }: { data: [string, number][]; accent?: string }) => {
             const rows2 = (data ?? []).filter(Array.isArray);
@@ -1490,22 +1499,21 @@ export default function AdminPage() {
                   {resetting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />} Reset
                 </button>
               </div>
-              <p className="mt-1.5 text-[10px] font-bold text-ink/35">Likes, Try-on &amp; Bandit reflect the selected range. Views is an all-time total (no per-day data is kept). Your own admin session is excluded automatically.</p>
+              <p className="mt-1.5 text-[10px] font-bold text-ink/35">All four tiles reflect the selected range. Your own admin session is excluded automatically. (Per-day Views started tracking from launch, so &quot;All&quot; may exceed Today+7d+30d.)</p>
 
-              {/* Engagement tiles. Views is a lifetime running total (per-look viewCount,
-                  no timestamps) → it CANNOT follow the range, so it's set apart with a
-                  tinted tile + "all-time" tag. The other three are event-based, in-range. */}
+              {/* Engagement tiles — all four now follow the range: Views sums the per-day
+                  view tallies; the other three count timestamped events. */}
               <div className="mt-3 grid grid-cols-4 gap-2">
                 {([
-                  ["Views", totalViews, Eye, "all-time"],
-                  ["Likes", countOf("like_click"), Heart, ""],
-                  ["Try-on", countOf("tryon_click"), Sparkles, ""],
-                  ["Bandit", countOf("bandit_click"), MousePointerClick, ""],
-                ] as const).map(([label, n, Icon, sub]) => (
-                  <div key={label} className={`rounded-xl border p-3 text-center ${sub ? "border-dashed border-black/15 bg-black/[0.02]" : "border-black/10 bg-white"}`}>
+                  ["Views", rangeViews, Eye],
+                  ["Likes", countOf("like_click"), Heart],
+                  ["Try-on", countOf("tryon_click"), Sparkles],
+                  ["Bandit", countOf("bandit_click"), MousePointerClick],
+                ] as const).map(([label, n, Icon]) => (
+                  <div key={label} className="rounded-xl border border-black/10 bg-white p-3 text-center">
                     <Icon className="mx-auto mb-1 h-4 w-4 text-ink/40" />
                     <p className="text-lg font-black text-ink">{fmt(n)}</p>
-                    <p className="text-[10px] font-bold text-ink/40">{label}{sub ? <span className="ml-0.5 rounded bg-black/[0.06] px-1 text-[8px] uppercase tracking-wide text-ink/40">{sub}</span> : ""}</p>
+                    <p className="text-[10px] font-bold text-ink/40">{label}</p>
                   </div>
                 ))}
               </div>

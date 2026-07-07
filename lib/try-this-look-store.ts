@@ -303,6 +303,9 @@ export type TryThisLookState = {
   // Admin-editable prompt template for the Try-On funnel video generation. Uses the
   // tokens @Bild1 (the model/avatar) and @Bild2 (the chosen outfit).
   funnelVideoPrompt?: string;
+  // Per-day feed-view tallies { "YYYY-MM-DD": count } so Insights can show Views for
+  // Today / 7d / 30d. Lifetime total still lives in each look's viewCount.
+  viewsByDay?: Record<string, number>;
 };
 
 export type TryThisLookOutfit = {
@@ -676,6 +679,7 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     tryonPaused: state.tryonPaused === true,
     outfits: state.outfits ?? [],
     funnelVideoPrompt: state.funnelVideoPrompt,
+    viewsByDay: state.viewsByDay ?? {},
   });
 }
 
@@ -749,6 +753,15 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
       // just-fired `tryon_click` (last-write-wins). Union keeps both; sort newest-first.
       events: unionById((state.events ?? []) as any, (latest.events ?? []) as any)
         .sort((a: any, b: any) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""))) as any,
+      // Per-day view tallies: take the MAX per date so a stale/concurrent save can't
+      // roll the count backwards (approximate, like viewCount — analytics, not billing).
+      viewsByDay: (() => {
+        const out: Record<string, number> = { ...(latest.viewsByDay ?? {}) };
+        for (const [day, n] of Object.entries(state.viewsByDay ?? {})) {
+          out[day] = Math.max(out[day] ?? 0, Number(n) || 0);
+        }
+        return out;
+      })(),
     };
   }
   const strippedState: TryThisLookState = {
@@ -765,6 +778,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     curators: (state.curators ?? []).map(({ photoUrl, photoFullUrl, photoBodyUrls, ...curator }) => curator).slice(0, 2000),
     outfits: (state.outfits ?? []).map(({ imageUrl, ...outfit }) => outfit).slice(0, 500),
     funnelVideoPrompt: state.funnelVideoPrompt,
+    viewsByDay: state.viewsByDay ?? {},
     partnerStores: (state.partnerStores ?? []).slice(0, 200),
     brands: (state.brands ?? []).slice(0, 5000),
     styles: (state.styles ?? []).slice(0, 5000),
