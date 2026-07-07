@@ -118,7 +118,6 @@ export default function AdminPage() {
   const [feedEvents, setFeedEvents] = useState<FeedEvent[]>([]);
   const [insightsRange, setInsightsRange] = useState<"today" | "7d" | "30d" | "all">("7d");
   const [insightsGroup, setInsightsGroup] = useState<"day" | "hour">("day");
-  const [liveOn, setLiveOn] = useState(true);
   const [reply, setReply] = useState<Record<string, string>>({});
   const [sendingId, setSendingId] = useState("");
   const [commentFilter, setCommentFilter] = useState<"new" | "all">("new");
@@ -580,9 +579,9 @@ export default function AdminPage() {
     if (u.authId) await fetch("/api/admin-users", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-auth-user", id: u.authId }) }).catch(() => {});
   };
 
-  // ── Insights "Live": poll recent events every 4s while watching, so clicks stream in ──
+  // ── Insights: poll recent events every 10s while watching, so the funnel/tiles stay fresh ──
   useEffect(() => {
-    if (tab !== "insights" || !liveOn) return;
+    if (tab !== "insights") return;
     let alive = true;
     const poll = () => {
       fetch("/api/try-this-look?recentEvents=200", { headers: headers() })
@@ -591,10 +590,10 @@ export default function AdminPage() {
         .catch(() => {});
     };
     poll();
-    const iv = setInterval(poll, 4000);
+    const iv = setInterval(poll, 10000);
     return () => { alive = false; clearInterval(iv); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, liveOn]);
+  }, [tab]);
   const togglePostFeed = async (p: AdminPost) => {
     const feed = !p.feed;
     setPosts(ps => ps.map(x => x.id === p.id ? { ...x, feed } : x));
@@ -1384,22 +1383,6 @@ export default function AdminPage() {
         {tab === "insights" && (() => {
           const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
           // Live-feed helpers: human label per event name + relative "12s ago" time.
-          const evMeta: Record<string, { label: string; emoji: string }> = {
-            tryon_click: { label: "tapped Try This Look", emoji: "✨" },
-            bandit_click: { label: "tapped Bandit the feeling", emoji: "🛍️" },
-            product_click: { label: "opened a product", emoji: "👗" },
-            like_click: { label: "liked a look", emoji: "❤️" },
-          };
-          const ago = (iso: string) => {
-            const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
-            if (s < 60) return `${s}s ago`;
-            if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-            if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-            return `${Math.floor(s / 86400)}d ago`;
-          };
-          const flag = (cc?: string) => (cc && cc.length === 2)
-            ? String.fromCodePoint(...[...cc.toUpperCase()].map(c => 0x1f1e6 + c.charCodeAt(0) - 65))
-            : "";
           // Time-range filter (applies to all event-based metrics below).
           const nowMs = Date.now();
           const cutoff = insightsRange === "today" ? new Date().setHours(0, 0, 0, 0)
@@ -1557,45 +1540,8 @@ export default function AdminPage() {
                 );
               })()}
 
-              {/* Live activity stream — auto-polls every 4s */}
-              <div className="mt-4 flex items-center justify-between">
-                <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-ink/40">
-                  {liveOn && <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" /></span>}
-                  Live activity
-                </p>
-                <button type="button" onClick={() => setLiveOn(v => !v)}
-                  className={`h-7 rounded-md border px-2.5 text-[10px] font-black transition ${liveOn ? "border-emerald-500 bg-emerald-500 text-white" : "border-black/10 text-ink/50"}`}>
-                  {liveOn ? "● Live" : "Paused"}
-                </button>
-              </div>
-              <div className="mt-2 flex max-h-80 flex-col gap-1 overflow-y-auto rounded-xl border border-black/10 bg-white p-2">
-                {feedEvents.filter(e => evMeta[e.name] && !e.internal).length === 0 && (
-                  <p className="py-6 text-center text-[11px] font-bold text-ink/35">Waiting for clicks… interactions appear here in real time.</p>
-                )}
-                {feedEvents.filter(e => evMeta[e.name] && !e.internal).slice(0, 40).map(e => {
-                  const m = evMeta[e.name];
-                  const who = (e.visitor || "").trim() || "Guest";
-                  return (
-                    <a key={e.id} href={`/look/${e.lookId}`} target="_blank" rel="noreferrer"
-                      className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-black/[0.03]">
-                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-black/[0.06] text-sm">{m.emoji}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[11px] font-bold text-ink/80">
-                          <span className="font-black text-ink">{who}</span> {m.label}
-                          {e.name === "product_click" && e.productLabel ? <span className="text-ink/50"> · {e.productLabel}</span> : null}
-                          {e.slide ? <span className="font-black text-cobalt"> · Slide {e.slide}/{e.slides || "?"}</span> : null}
-                        </p>
-                        <p className="truncate text-[9px] font-bold text-ink/40">
-                          {e.lookName || "Look"}
-                          {e.source ? ` · ${e.source}` : ""}
-                          {e.country ? ` · ${flag(e.country)} ${e.city ? e.city + ", " : ""}${e.country}` : ""}
-                        </p>
-                      </div>
-                      <span className="shrink-0 text-[9px] font-black text-ink/35">{ago(e.createdAt)}</span>
-                    </a>
-                  );
-                })}
-              </div>
+              {/* Live activity stream REMOVED (2026-07-07, user: "das brauche ich nicht") —
+                  the recruiting funnel card above is the signal that matters. */}
 
               {/* Timeline */}
               <div className="mt-4 flex items-center justify-between">
