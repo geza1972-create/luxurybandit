@@ -29,9 +29,12 @@ async function stepMedia(): Promise<StepMedia> {
       .filter(c => (c as { featured?: boolean }).featured && (c as { photoUrl?: string }).photoUrl)
       .slice(0, 3)
       .map(c => ({ id: c.id, name: [c.firstName, c.lastName].filter(Boolean).join(" ").trim(), photo: (c as { photoUrl?: string }).photoUrl as string }));
-    // Step 2 — a few outfits from the wardrobe.
-    const garments = (state.looks ?? [])
-      .filter(l => ((l as { productType?: string }).productType === "ai" || (l as { wardrobe?: boolean }).wardrobe) && ((l as { frontImageUrl?: string }).frontImageUrl || (l as { imageUrl?: string }).imageUrl) && (l as { published?: boolean }).published !== false)
+    // Step 2 — outfits. Admin-picked (featured) looks lead; if none are picked yet,
+    // fall back to the first few wardrobe pieces so the section is never empty.
+    const wardrobe = (state.looks ?? [])
+      .filter(l => ((l as { productType?: string }).productType === "ai" || (l as { wardrobe?: boolean }).wardrobe) && ((l as { frontImageUrl?: string }).frontImageUrl || (l as { imageUrl?: string }).imageUrl) && (l as { published?: boolean }).published !== false);
+    const pickedGarments = wardrobe.filter(l => (l as { featured?: boolean }).featured);
+    const garments = (pickedGarments.length ? pickedGarments : wardrobe)
       .slice(0, 4)
       .map(l => ({ id: l.id, name: l.name, img: ((l as { frontImageUrl?: string }).frontImageUrl || (l as { imageUrl?: string }).imageUrl) as string }));
     // Step 3 — FULL playing clips of the featured MODELS (one per model where
@@ -183,7 +186,7 @@ export default async function AboutPage() {
 
         {/* CTA */}
         <div className="mt-10 grid gap-2.5">
-          <Link href="/stores"
+          <Link href="/stores?view=grid"
             className="lb-gold flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-black active:scale-95 transition-transform">
             <Sparkles className="h-4 w-4" /> Pick your model
           </Link>

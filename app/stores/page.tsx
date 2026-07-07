@@ -1811,6 +1811,18 @@ function StoresPage() {
     } catch (e) { alert(e instanceof Error ? e.message : "Fehler"); }
     finally { setModelPinBusy(false); }
   };
+  // Admin: feature a LOOK (garment) → it shows in the About "3 steps" showcase.
+  const [lookFeatBusy, setLookFeatBusy] = useState("");
+  const toggleLookFeatured = async (id: string, featured: boolean) => {
+    if (lookFeatBusy) return;
+    setLookFeatBusy(id);
+    try {
+      const res = await adminWrite({ action: "set-featured", kind: "look", ids: [id], featured });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehler");
+      setLooks(prev => prev.map(l => (l as { id: string }).id === id ? ({ ...l, featured } as unknown as Look) : l));
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehler"); }
+    finally { setLookFeatBusy(""); }
+  };
   const [feedSelectMode, setFeedSelectMode] = useState(false);
   // Boudoir is gated: if the viewer is on it and signs out, drop them back to "All"
   // so lingerie never shows without a session. (Effect added after auth state below.)
@@ -2294,7 +2306,7 @@ function StoresPage() {
   }, [looksForFeed, communityItems]);
   // Garderobe = every generated garment (all wardrobes), newest first, optionally by type.
   const garments = useMemo(() => {
-    const g = (looks as unknown as { id: string; name: string; frontImageUrl?: string; imageUrl?: string; category?: LookCategory; curatorId?: string; productType?: string; wardrobe?: boolean; published?: boolean; productNote?: string; createdAt?: string; buyUrl?: string }[])
+    const g = (looks as unknown as { id: string; name: string; frontImageUrl?: string; imageUrl?: string; category?: LookCategory; curatorId?: string; productType?: string; wardrobe?: boolean; published?: boolean; productNote?: string; createdAt?: string; buyUrl?: string; featured?: boolean }[])
       // Admins also see hidden (published:false) garments so they can un-hide them.
       .filter(l => (l.productType === "ai" || l.wardrobe) && (l.frontImageUrl || l.imageUrl) && (l.published !== false || isAdmin));
     return g.sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
@@ -2804,6 +2816,14 @@ function StoresPage() {
                               )}
                             </div>
                             {hidden && <span className="absolute left-2 top-2 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-black text-white">Ausgeblendet</span>}
+                            {isAdmin && (
+                              <button type="button" disabled={lookFeatBusy === g.id}
+                                onClick={(e) => { e.stopPropagation(); void toggleLookFeatured(g.id, !g.featured); }}
+                                aria-label={g.featured ? "Aus Showcase entfernen" : "In Showcase (About) aufnehmen"}
+                                className={`absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full text-sm font-black backdrop-blur active:scale-90 transition disabled:opacity-40 ${g.featured ? "bg-amber-400 text-black" : "bg-black/70 text-white/70"}`}>
+                                {lookFeatBusy === g.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "★"}
+                              </button>
+                            )}
                             {isAdmin && (
                               <button type="button" onClick={() => openGManage(g)}
                                 className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/70 text-white backdrop-blur active:scale-90 transition"

@@ -170,6 +170,7 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     curatorPhotoUrl: curator?.photoUrl || undefined,
     curatorMotto: curator?.motto || undefined,
     productType: (look as any).productType ?? "real",
+    featured: (look as any).featured === true, // admin-picked → shown in the About "3 steps"
     brand: ((look as any).brand?.trim() || detectBrand(look.name, (look as any).productNote, (look as any).campaignName)) ?? undefined,
     // Lingerie/swim: explicit flag wins; otherwise detect from name + brand + notes.
     lingerie,
@@ -2435,9 +2436,14 @@ export async function POST(request: Request) {
       if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
       const ids = Array.isArray(payload.ids) ? (payload.ids as unknown[]).map(x => String(x)) : [];
       const featured = payload.featured === true;
+      const kind = String(payload.kind ?? "model"); // "model" (curators) | "look" (garments)
       if (!ids.length) return NextResponse.json({ error: "ids required." }, { status: 400 });
       let count = 0;
-      for (const c of state.curators ?? []) if (ids.includes(c.id)) { (c as any).featured = featured || undefined; count++; }
+      if (kind === "look") {
+        for (const l of state.looks ?? []) if (ids.includes(l.id)) { (l as any).featured = featured || undefined; count++; }
+      } else {
+        for (const c of state.curators ?? []) if (ids.includes(c.id)) { (c as any).featured = featured || undefined; count++; }
+      }
       if (count === 0) return NextResponse.json({ error: "Nothing matched." }, { status: 404 });
       await saveTryThisLookState(state);
       return NextResponse.json({ ok: true, updated: count, featured });
