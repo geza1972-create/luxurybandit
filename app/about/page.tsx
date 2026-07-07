@@ -66,7 +66,7 @@ async function stepMedia(): Promise<StepMedia> {
 export default async function AboutPage() {
   const { models, garments, videos } = await stepMedia();
   const step = "grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-400 text-sm font-black text-black";
-  const card = "flex items-start gap-3.5 rounded-2xl border border-white/10 bg-white/[0.04] p-4";
+  const card = "rounded-2xl border border-white/10 bg-white/[0.04] p-4";
 
   return (
     <main className="min-h-[100dvh] bg-[#0d0b0a] pb-24 text-white">
@@ -94,53 +94,60 @@ export default async function AboutPage() {
             try-on funnel. Videos are the members-only payoff (shown blurred). */}
         <h2 className="mt-9 flex items-center gap-2 text-lg font-black"><Sparkles className="h-5 w-5 text-amber-400" /> In 3 steps</h2>
         <div className="mt-3 grid gap-2.5">
+          {/* Each step: number + text on top, media FULL-WIDTH below (bigger images). */}
           {/* 1 — pick a model */}
           <div className={card}>
-            <span className={step}>1</span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-black">Pick your model</p>
-              <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/55">Choose one of our models — or upload your own (Premium).</p>
-              {models.length > 0 && <AboutStep1Models featured={models} />}
+            <div className="flex items-center gap-3.5">
+              <span className={step}>1</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-black">Pick your model</p>
+                <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/55">Choose one of our models — or upload your own (Premium).</p>
+              </div>
             </div>
+            {models.length > 0 && <AboutStep1Models featured={models} />}
           </div>
           {/* 2 — or pick an outfit first (both directions work) */}
           <div className={card}>
-            <span className={step}>2</span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-black">…or pick a look first</p>
-              <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/55">
-                Both ways work: tap a model then a look, or tap a look then a model. Then choose a
-                simple turn or <span className="text-white"><Music className="-mt-0.5 inline h-3.5 w-3.5 text-amber-400" /> dancing with music</span>.
-              </p>
-              {garments.length > 0 && (
-                <div className="mt-2.5 grid grid-cols-4 gap-2">
-                  {garments.map(g => (
-                    <Link key={g.id} href={`/try/${g.id}?garment=${encodeURIComponent(g.img)}&pick=1`} className="block overflow-hidden rounded-xl lb-media-bg active:scale-95 transition-transform">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={g.img} alt={g.name} className="aspect-[3/4] w-full object-cover" />
-                    </Link>
-                  ))}
-                </div>
-              )}
-              {/* Admin: pick which garments show here (hidden for everyone else). */}
-              <AboutGarmentPicker />
+            <div className="flex items-center gap-3.5">
+              <span className={step}>2</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-black">…or pick a look first</p>
+                <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/55">
+                  Both ways work: tap a model then a look, or tap a look then a model. Then choose a
+                  simple turn or <span className="text-white"><Music className="-mt-0.5 inline h-3.5 w-3.5 text-amber-400" /> dancing with music</span>.
+                </p>
+              </div>
             </div>
+            {garments.length > 0 && (
+              <div className="mt-3 grid grid-cols-4 gap-2">
+                {garments.map(g => (
+                  <Link key={g.id} href={`/try/${g.id}?garment=${encodeURIComponent(g.img)}&pick=1`} className="block overflow-hidden rounded-xl bg-white active:scale-95 transition-transform">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={g.img} alt={g.name} className="aspect-[3/4] w-full object-contain" />
+                  </Link>
+                ))}
+              </div>
+            )}
+            {/* Admin: pick which garments show here (hidden for everyone else). */}
+            <AboutGarmentPicker />
           </div>
           {/* 3 — watch (members-only payoff, blurred teaser) */}
           <div className={card}>
-            <span className={step}>3</span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-black">Watch, like, message, shop</p>
-              <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/55">
-                Her runway video is ready in seconds. Like it, send her a{" "}
-                <MessageCircle className="-mt-0.5 inline h-3.5 w-3.5 text-amber-400" /> message — and if the
-                look has a <ShoppingBag className="-mt-0.5 inline h-3.5 w-3.5 text-amber-400" /> shop link, buy the real thing in one tap.
-              </p>
-              {/* Tap a preview → opens the clip FULL (sound + controls). */}
-              <AboutStep3Videos videos={videos} />
-              {/* Admin: pick which feed videos show here. */}
-              <AboutVideoPicker />
+            <div className="flex items-center gap-3.5">
+              <span className={step}>3</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-black">Watch, like, message, shop</p>
+                <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/55">
+                  Her runway video is ready in seconds. Like it, send her a{" "}
+                  <MessageCircle className="-mt-0.5 inline h-3.5 w-3.5 text-amber-400" /> message — and if the
+                  look has a <ShoppingBag className="-mt-0.5 inline h-3.5 w-3.5 text-amber-400" /> shop link, buy the real thing in one tap.
+                </p>
+              </div>
             </div>
+            {/* Tap a preview → opens the clip FULL (sound + controls). */}
+            <AboutStep3Videos videos={videos} />
+            {/* Admin: pick which feed videos show here. */}
+            <AboutVideoPicker />
           </div>
         </div>
 

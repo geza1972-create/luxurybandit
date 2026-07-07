@@ -402,17 +402,16 @@ export default function TryFunnelPage() {
                   const yourLocked = !isPaid;
                   const yourTile = (
                     <button key="__your" type="button"
-                      onClick={() => { if (yourLocked) { alert("Premium · dein eigenes Foto ist nur für zahlende Mitglieder."); return; } fileRef.current?.click(); }}
-                      className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-[0.98] transition-transform">
-                      <div className="relative grid aspect-[3/4] w-full place-items-center lb-media-bg">
-                        <ImageUp className={`h-7 w-7 ${yourLocked ? "text-white/40" : "text-white"}`} />
+                      onClick={() => { if (yourLocked) { alert("Premium · upload your own model — paying members only."); return; } fileRef.current?.click(); }}
+                      className="overflow-hidden rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] active:scale-[0.98] transition-transform">
+                      <div className="relative grid aspect-[3/4] w-full place-items-center gap-1 px-1 text-center">
+                        <ImageUp className="h-7 w-7 text-amber-400" />
+                        <span className="text-[9px] font-black uppercase tracking-wide text-amber-400/80">Upload</span>
                         {yourLocked && (
-                          <span className="absolute inset-0 z-10 grid place-items-center bg-black/35">
-                            <span className="grid h-9 w-9 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-4 w-4 text-white" /></span>
-                          </span>
+                          <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-3.5 w-3.5 text-amber-400" /></span>
                         )}
                       </div>
-                      <div className="px-1.5 py-1"><span className={`line-clamp-1 text-[11px] font-black ${yourLocked ? "text-amber-400" : "text-white"}`}>{yourLocked ? "Premium" : "Dein Foto"}</span></div>
+                      <div className="px-1.5 py-1"><span className="line-clamp-1 text-[11px] font-black text-amber-400">Your photo</span></div>
                     </button>
                   );
                   const modelTiles = ordered.map(m => {

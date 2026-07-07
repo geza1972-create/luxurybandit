@@ -26,20 +26,21 @@ export default function AboutStep1Models({ featured }: { featured: FeaturedModel
     catch { /**/ } finally { setLoading(false); }
   };
   const openGallery = () => { setOpen(true); void loadAll(); };
-  const premiumAlert = () => alert("Premium · nur für zahlende Mitglieder.");
+  const premiumAlert = () => alert("Premium · upload your own model — paying members only.");
 
-  // The "Your Picture" tile — always shows the upload icon so it reads as YOUR photo;
-  // when locked a small lock badge marks it Premium (paid → start a try-on).
+  // The "Your photo" upload tile — clearly an upload button (icon + "Upload" + label).
+  // Locked = Premium (small lock badge); paid → opens the try-on to upload.
   const YourTile = ({ big }: { big?: boolean }) => (
     <button type="button" onClick={() => (yourLocked ? premiumAlert() : router.push("/stores?view=grid"))}
-      className={`relative block overflow-hidden rounded-xl border border-amber-400/25 lb-media-bg active:scale-95 transition-transform ${yourLocked ? "" : ""}`}>
-      <div className="grid aspect-[3/4] w-full place-items-center">
-        <ImageUp className={`${big ? "h-8 w-8" : "h-7 w-7"} text-amber-400/80`} />
+      className="relative block overflow-hidden rounded-xl border border-amber-400/30 bg-amber-400/[0.06] active:scale-95 transition-transform">
+      <div className="grid aspect-[3/4] w-full place-items-center gap-1 px-1 text-center">
+        <ImageUp className={`${big ? "h-8 w-8" : "h-6 w-6"} text-amber-400`} />
+        <span className="text-[9px] font-black uppercase tracking-wide text-amber-400/80">Upload</span>
         {yourLocked && (
           <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-3.5 w-3.5 text-amber-400" /></span>
         )}
       </div>
-      <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/85 to-transparent px-2 pb-1.5 pt-4 text-[10px] font-black text-amber-400">Your Picture</span>
+      <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/85 to-transparent px-2 pb-1.5 pt-4 text-[10px] font-black text-amber-400">Your photo</span>
     </button>
   );
 
@@ -69,7 +70,7 @@ export default function AboutStep1Models({ featured }: { featured: FeaturedModel
               <p className="text-sm font-black text-white">All models</p>
               <button type="button" onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white"><X className="h-4 w-4" /></button>
             </div>
-            <p className="px-4 pt-2 text-[11px] font-bold text-white/45">Nur die Featured-Models sind frei — alle anderen und dein eigenes Foto sind Premium (zahlende Mitglieder).</p>
+            <p className="px-4 pt-2 text-[11px] font-bold text-white/45">Only the featured models are free — everyone else and your own photo are Premium (paying members).</p>
             {loading ? (
               <div className="grid place-items-center py-16"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>
             ) : (
