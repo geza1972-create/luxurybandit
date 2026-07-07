@@ -289,7 +289,9 @@ export async function POST(request: Request) {
   // Slow motion (admin, per-video): add a slow-mo cue so Pixverse renders the movement
   // slower AND generates matching-tempo music (no playback-rate audio distortion).
   const slowmo = body.slowmo === true;
-  if (slowmo && promptWithScene) promptWithScene = `${promptWithScene} Alles in eleganter, sanfter Zeitlupe (cinematic slow motion), langsame ruhige Bewegungen.`;
+  // NB: avoid the word "cinematic" — Pixverse reads it as a camera move (zoom/dolly).
+  // Ask for slow MOVEMENT + a fixed camera so it never zooms.
+  if (slowmo && promptWithScene) promptWithScene = `${promptWithScene} Alles in sanfter Zeitlupe, langsame ruhige Bewegungen. Feststehende Kamera, kein Zoom, keine Kamerafahrt.`;
   const key = process.env.PIXVERSE_API_KEY?.trim();
   if (!key) return NextResponse.json({ error: "PIXVERSE_API_KEY missing." }, { status: 400 });
 
