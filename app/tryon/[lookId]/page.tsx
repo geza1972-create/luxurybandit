@@ -14,6 +14,7 @@ import {
   type SupabaseAuthSession,
 } from "@/lib/supabase-auth-client";
 import { trackMetaPixel } from "@/lib/meta-pixel";
+import { logFunnelEvent } from "@/lib/track-funnel";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import {
@@ -319,7 +320,7 @@ export default function TryonPage() {
     fetch(`/api/try-this-look?previewId=${encodeURIComponent(lookId)}`)
       .then(r => r.json())
       .then((p: { look?: Look; tryonPaused?: boolean }) => {
-        if (p.look) { setLook(p.look); if (p.look.videoPrompt) setVideoPrompt(p.look.videoPrompt); trackMetaPixel("ViewContent", { content_name: p.look.name, content_category: "tryon" }); }
+        if (p.look) { setLook(p.look); if (p.look.videoPrompt) setVideoPrompt(p.look.videoPrompt); trackMetaPixel("ViewContent", { content_name: p.look.name, content_category: "tryon" }); logFunnelEvent("tryon_open", { lookId: p.look.id, lookName: p.look.name }); }
         setTryonPaused(p.tryonPaused === true);
       })
       .catch(() => {})
@@ -700,6 +701,8 @@ export default function TryonPage() {
       if (!res.ok || !payload.image) throw new Error(payload.error ?? "Generation failed.");
       setResultImage(payload.image);
       setProgress(100);
+      // Funnel end (free-try-on goal): a try-on was successfully generated.
+      logFunnelEvent("tryon_generated", { lookId: look.id, lookName: look.name });
       // The email gate already happened BEFORE this generation, so just show the result.
       setStep("result");
       // Post the try-on FIRST (so its generation is persisted), THEN start the video.
@@ -751,6 +754,7 @@ export default function TryonPage() {
     // when the visitor came back from an OAuth sign-in they started at the try-on gate).
     trackMetaPixel("Lead", { content_name: look.name, content_category: "tryon" });
     trackMetaPixel("CompleteRegistration", { content_name: look.name, method: "social" });
+    logFunnelEvent("tryon_signin", { lookId: look.id, lookName: look.name });
     // Restore the consent the user gave at the gate BEFORE the OAuth redirect, so the
     // resumed generation logs it and respects the public/private choice.
     if (resume.visibility) {
@@ -994,6 +998,7 @@ export default function TryonPage() {
     }).catch(() => {});
     const reveal = (session: SupabaseAuthSession) => {
       trackMetaPixel("Lead", { content_name: look.name, content_category: "tryon" });
+      logFunnelEvent("tryon_signin", { lookId: look.id, lookName: look.name });
       setAuthSession(session); setGatePassed(true); setGateBusy(false);
       const a = pendingGenRef.current;
       void handleGenerate(a?.photoOverride, a?.tier ?? "photo", true);

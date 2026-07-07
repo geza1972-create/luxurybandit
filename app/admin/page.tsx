@@ -1518,6 +1518,41 @@ export default function AdminPage() {
                 ))}
               </div>
 
+              {/* USER funnel — the paid goal is deferred; here we optimize FREE reach:
+                  tap → open → sign in → generated. Base = "Try-on getippt". */}
+              {(() => {
+                const steps: [string, number][] = [
+                  ["Try-on getippt", countOf("tryon_click")],
+                  ["Funnel geöffnet", countOf("tryon_open")],
+                  ["Angemeldet", countOf("tryon_signin")],
+                  ["Try-on generiert ✓", countOf("tryon_generated")],
+                ];
+                const base = steps[0][1];
+                return (
+                  <div className="mt-4 rounded-xl border border-black/10 bg-white p-4">
+                    <p className="flex items-center gap-1.5 text-sm font-black text-ink">🎬 User-Funnel — vom Tap zum Try-on</p>
+                    <p className="mt-0.5 text-[11px] font-bold text-ink/45">„See her in other looks" → Funnel geöffnet → angemeldet → Try-on generiert (im gewählten Zeitraum).</p>
+                    <div className="mt-3 space-y-1.5">
+                      {steps.map(([label, n], i) => {
+                        const pct = base > 0 ? Math.round((n / base) * 100) : 0;
+                        const prev = i > 0 ? steps[i - 1][1] : n;
+                        const drop = i > 0 && prev > 0 ? Math.round((1 - n / prev) * 100) : 0;
+                        return (
+                          <div key={label} className="flex items-center gap-2">
+                            <span className="w-44 shrink-0 truncate text-[11px] font-black text-ink/60" title={i > 0 && drop > 0 ? `−${drop}% vs. Schritt davor` : undefined}>{label}</span>
+                            <div className="relative h-5 flex-1 overflow-hidden rounded-md bg-black/[0.06]">
+                              <div className="absolute inset-y-0 left-0 rounded-md bg-cobalt" style={{ width: `${Math.min(100, Math.max(n > 0 ? 2 : 0, pct))}%` }} />
+                            </div>
+                            <span className="w-20 shrink-0 text-right text-[11px] font-black text-ink">{fmt(n)}{base > 0 ? ` · ${pct}%` : ""}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-2 text-[10px] font-bold text-ink/35">Der größte Abbruch zeigt, wo du optimieren musst. Ziel (gratis): möglichst viele „Try-on generiert". Zahlung ist noch deaktiviert.</p>
+                  </div>
+                );
+              })()}
+
               {/* Recruiting funnel — do people OPEN the funnels and the apply form?
                   (Replaced the carousel swipe-depth chart — user: "bringt mir nichts".) */}
               {(() => {
