@@ -2620,7 +2620,7 @@ function StoresPage() {
                     would-be models can't miss it. */}
                 <button type="button" onClick={() => router.push("/become-a-model")}
                   className="lb-gold mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-[13px] font-black active:scale-95 transition-transform">
-                  <Heart className="h-4 w-4" fill="currentColor" /> Become a LuxuryBandit Model — earn with every look →
+                  <Heart className="h-4 w-4" fill="currentColor" /> Become a Model — earn with every look →
                 </button>
               </section>
             )}
