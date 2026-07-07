@@ -65,8 +65,8 @@ export default function AboutStep1Models({ featured }: { featured: FeaturedModel
       <button type="button" onClick={openGallery} className="mt-2 text-[12px] font-black text-amber-400 active:opacity-70">See all models →</button>
 
       {open && (
-        <div className="fixed inset-0 z-[95] flex flex-col bg-black/80 backdrop-blur-sm" onClick={() => setOpen(false)}>
-          <div className="lb-phone-col mt-auto max-h-[85dvh] overflow-hidden rounded-t-3xl border-t border-white/10 bg-[#141210]" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[95] flex flex-col items-center bg-black/80 backdrop-blur-sm" onClick={() => setOpen(false)}>
+          <div className="mx-auto mt-auto w-full max-w-[440px] max-h-[85dvh] overflow-hidden rounded-t-3xl border-t border-white/10 bg-[#141210]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
               <p className="text-sm font-black text-white">All models</p>
               <button type="button" onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white"><X className="h-4 w-4" /></button>
