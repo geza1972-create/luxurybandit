@@ -37,6 +37,7 @@ function optImg(url: string | undefined, w = 1080, q = 70): string {
 function GridClip({ videoUrl, poster, alt }: { videoUrl: string; poster: string; alt: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
+  const [playing, setPlaying] = useState(false); // video actually rendering frames
   useEffect(() => {
     const el = ref.current; if (!el) return;
     const io = new IntersectionObserver(es => es.forEach(e => setInView(e.isIntersecting)), { rootMargin: "80px" });
@@ -44,15 +45,18 @@ function GridClip({ videoUrl, poster, alt }: { videoUrl: string; poster: string;
     return () => io.disconnect();
   }, []);
   return (
-    <div ref={ref} className="h-full w-full">
-      {inView ? (
-        <video src={videoUrl} poster={poster || undefined} muted loop playsInline autoPlay preload="metadata"
-          className="h-full w-full object-cover object-top" />
-      ) : (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img src={optImg(poster, 400)} alt={alt} loading="lazy" decoding="async"
-          onError={(e) => { const im = e.currentTarget; if (poster && im.src !== poster) im.src = poster; }}
-          className="h-full w-full object-cover object-top" />
+    <div ref={ref} className="relative h-full w-full">
+      {/* Optimized still (400w) shows INSTANTLY and stays underneath as the fallback,
+          so a slow/buffering video never leaves the tile blank. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={optImg(poster, 400)} alt={alt} loading="lazy" decoding="async"
+        onError={(e) => { const im = e.currentTarget; if (poster && im.src !== poster) im.src = poster; }}
+        className="absolute inset-0 h-full w-full object-cover object-top" />
+      {inView && (
+        /* Video fades in only once it's playing; until then the still is visible. */
+        <video src={videoUrl} muted loop playsInline autoPlay preload="metadata"
+          onPlaying={() => setPlaying(true)}
+          className={`absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-300 ${playing ? "opacity-100" : "opacity-0"}`} />
       )}
     </div>
   );
