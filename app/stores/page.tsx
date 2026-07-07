@@ -1482,18 +1482,19 @@ function StoresPage() {
   const [hairFilter, setHairFilter] = useState("");
   const HAIR_LABELS: Record<string, string> = { blond: "Blonde", brunette: "Brunette", black: "Black", red: "Red", other: "Other" };
   const shownModels = useMemo(() => {
-    let base = hairFilter ? models.filter(m => (m.hairColor || "") === hairFilter) : models;
-    // The header search filters THIS grid too (name / style / hair color).
     const q = query.trim().toLowerCase();
-    if (q) base = base.filter(m => `${m.name} ${m.style || ""} ${m.hairColor || ""}`.toLowerCase().includes(q));
+    const matchQ = (m: GalleryModel) => !q || `${m.name} ${m.style || ""} ${m.hairColor || ""}`.toLowerCase().includes(q);
     const cmp = modelSort === "new"
       ? (a: GalleryModel, b: GalleryModel) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
       : (a: GalleryModel, b: GalleryModel) => b.lookCount - a.lookCount || a.name.localeCompare(b.name);
-    // Featured models lead (the free showcase), then admin-pinned, then the chosen sort.
-    return [...base].sort((a, b) =>
-      (b.featured ? 1 : 0) - (a.featured ? 1 : 0)
-      || (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)
-      || cmp(a, b));
+    const byPin = (a: GalleryModel, b: GalleryModel) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || cmp(a, b);
+    // Featured = the FREE showcase → ALWAYS on top and unlocked; the hair/sort chips
+    // never remove them (search still applies). The chips filter/sort the REST (the
+    // locked pool) so the 3 featured stay visible no matter which chip is active.
+    const featured = models.filter(m => m.featured && matchQ(m)).sort(byPin);
+    let rest = models.filter(m => !m.featured && matchQ(m));
+    if (hairFilter) rest = rest.filter(m => (m.hairColor || "") === hairFilter);
+    return [...featured, ...[...rest].sort(byPin)];
   }, [models, modelSort, hairFilter, query]);
   // Any model is featured → the Models gallery is a curated showcase: featured are
   // free, the rest are locked behind paid membership (admin/paid bypass).
@@ -2683,13 +2684,13 @@ function StoresPage() {
                 )}
                 {/* Sort (newest first = default) + hair-color filter */}
                 <div className="flex gap-2 overflow-x-auto px-3 pb-2 pt-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  <button type="button" onClick={() => setModelSort("new")}
-                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${modelSort === "new" && !hairFilter ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>New</button>
-                  <button type="button" onClick={() => setModelSort("looks")}
+                  <button type="button" onClick={() => { setModelSort("new"); setHairFilter(""); }}
+                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${modelSort === "new" && !hairFilter ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>All</button>
+                  <button type="button" onClick={() => { setModelSort("looks"); setHairFilter(""); }}
                     className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${modelSort === "looks" && !hairFilter ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>Most looks</button>
                   {hairColorsPresent.map(h => (
                     <button key={h} type="button" onClick={() => setHairFilter(f => f === h ? "" : h)}
-                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${hairFilter === h ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
+                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${hairFilter === h ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>
                       {HAIR_LABELS[h] ?? h}
                     </button>
                   ))}
