@@ -21,7 +21,7 @@ function viewerHeaders(): Record<string, string> {
 
 type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean };
 type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; featured?: boolean; productType?: string; wardrobe?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
-type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string };
+type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string; feed?: boolean };
 
 const toSlug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 function optImg(url?: string, w = 600) { if (!url) return ""; if (url.startsWith("data:") || url.startsWith("blob:")) return url; return `/_next/image?url=${encodeURIComponent(url)}&w=${w}&q=70`; }
@@ -243,6 +243,15 @@ export default function CuratorPublicPage() {
       await fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ action: "delete-generation", id: t.id }) });
       setTryons(prev => prev.filter(x => x.id !== t.id));
     } catch { /**/ }
+  };
+  // Admin: hide/show a video in HER public profile (and the feed) without deleting it —
+  // feed:false keeps the clip (for ads / the reuse cache) but drops it from public views.
+  const toggleVideoFeed = async (t: TryOn) => {
+    const next = !t.feed;
+    setTryons(prev => prev.map(x => x.id === t.id ? { ...x, feed: next } : x));
+    try {
+      await fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ action: "set-generation-feed", generationId: t.id, feed: next }) });
+    } catch { setTryons(prev => prev.map(x => x.id === t.id ? { ...x, feed: !next } : x)); }
   };
   // ── Admin: upload a self-made video (e.g. generated in the Pixverse UI) as a NEW
   // "In motion" video for this model. Direct-to-Supabase (signed URL, no 4.5MB limit),
@@ -815,10 +824,24 @@ export default function CuratorPublicPage() {
                   )}
                 </button>
                 {isAdmin && (
-                  <button type="button" onClick={() => deleteVideo(t)}
-                    className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-red-500/90 text-white backdrop-blur active:scale-90 transition" aria-label="Video löschen">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <>
+                    {/* Hidden = not in her public profile / feed. Kept for ads + the cache. */}
+                    {t.feed === false && (
+                      <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-white backdrop-blur"><EyeOff className="h-3 w-3" /> Im Profil versteckt</span>
+                    )}
+                    <div className="absolute right-3 top-3 flex flex-col gap-2">
+                      <button type="button" onClick={() => void toggleVideoFeed(t)}
+                        className={`grid h-9 w-9 place-items-center rounded-full text-white backdrop-blur active:scale-90 transition ${t.feed === false ? "bg-emerald-500/90" : "bg-amber-400/90"}`}
+                        aria-label={t.feed === false ? "Im Profil zeigen" : "Aus dem Profil ausblenden"}
+                        title={t.feed === false ? "Im Profil zeigen" : "Aus dem Profil ausblenden"}>
+                        {t.feed === false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                      </button>
+                      <button type="button" onClick={() => deleteVideo(t)}
+                        className="grid h-9 w-9 place-items-center rounded-full bg-red-500/90 text-white backdrop-blur active:scale-90 transition" aria-label="Video löschen">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             ))}
