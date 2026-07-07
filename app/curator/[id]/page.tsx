@@ -20,7 +20,7 @@ function viewerHeaders(): Record<string, string> {
 }
 
 type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean };
-type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; featured?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
+type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; featured?: boolean; productType?: string; wardrobe?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
 type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string };
 
 const toSlug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -664,7 +664,9 @@ export default function CuratorPublicPage() {
           // De-dupe: repeated "Generieren" runs can create identical garments (same
           // deterministic name) — show each unique piece once so nothing appears doubled.
           const seen = new Set<string>();
-          const isGarment = (l: Look) => l.aiCreated && (l.frontImageUrl || l.imageUrl);
+          // A garment is a FLAT wardrobe piece (productType "ai" / wardrobe) — NOT a
+          // model-worn look photo. Match the Garderobe tab's rule so no model photos slip in.
+          const isGarment = (l: Look) => (l.productType === "ai" || l.wardrobe === true) && (l.frontImageUrl || l.imageUrl);
           const dedupe = (l: Look) => {
             const key = (l.name ?? "").trim().toLowerCase();
             if (key && seen.has(key)) return false;

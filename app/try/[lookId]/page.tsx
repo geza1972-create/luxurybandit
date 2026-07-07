@@ -283,9 +283,8 @@ export default function TryFunnelPage() {
   // Hidden for model sessions (they generate photos, no motion).
   const motionPicker = !isModelSession ? (
     <div className="mt-5">
-      <p className="mb-2 text-center text-[11px] font-black uppercase tracking-wide text-white/40">Was soll sie machen?</p>
       <div className="flex justify-center gap-2">
-        {([["turn", "🔄 Sich einfach drehen"], ["dance", "💃 Tanzen · mit Musik"]] as const).map(([key, label]) => (
+        {([["turn", "🔄 Simple turn"], ["dance", "💃 Dance · with music"]] as const).map(([key, label]) => (
           <button key={key} type="button" onClick={() => setMotion(key)}
             className={`rounded-full px-4 py-2 text-[12px] font-black transition active:scale-95 ${motion === key ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>
             {label}
