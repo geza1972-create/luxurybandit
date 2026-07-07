@@ -18,7 +18,7 @@ import { LOOK_CATEGORIES, isHiddenFromAll, isLookCategory, type LookCategory } f
 import { publicLookLabel } from "@/lib/look-title";
 import { publicAuthorName } from "@/lib/display-name";
 import { safeLookImage } from "@/lib/look-image";
-import { Bookmark, Crop, Eye, EyeOff, Heart, Home, Image as ImageIcon, ImageUp, Info, Instagram, LayoutGrid, Loader2, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, SlidersHorizontal, Sparkles, Trash2, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
+import { Bookmark, Crop, Eye, EyeOff, Heart, Home, Image as ImageIcon, ImageUp, Info, Instagram, LayoutGrid, Loader2, Lock, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, SlidersHorizontal, Sparkles, Trash2, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -1474,7 +1474,7 @@ function StoresPage() {
   }, []);
   // Home has two views: the Feeds thumbnail grid, and the Models gallery (a grid of the
   // model profiles). Toggled at the top of the home.
-  type GalleryModel = { id: string; name: string; photoUrl: string; style: string; lookCount: number; bio?: string; motto?: string; hidden?: boolean; hairColor?: string; createdAt?: string; pinned?: boolean };
+  type GalleryModel = { id: string; name: string; photoUrl: string; style: string; lookCount: number; bio?: string; motto?: string; hidden?: boolean; hairColor?: string; createdAt?: string; pinned?: boolean; featured?: boolean };
   const [models, setModels] = useState<GalleryModel[]>([]);
   // Models tab: sort (newest first by default, so a freshly added model is on top)
   // + optional hair-color filter (models are AI-tagged blond/brunette/black/red).
@@ -1489,12 +1489,18 @@ function StoresPage() {
     const cmp = modelSort === "new"
       ? (a: GalleryModel, b: GalleryModel) => String(b.createdAt || "").localeCompare(String(a.createdAt || ""))
       : (a: GalleryModel, b: GalleryModel) => b.lookCount - a.lookCount || a.name.localeCompare(b.name);
-    // Admin-pinned models ALWAYS lead the gallery, then the chosen sort.
-    return [...base].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || cmp(a, b));
+    // Featured models lead (the free showcase), then admin-pinned, then the chosen sort.
+    return [...base].sort((a, b) =>
+      (b.featured ? 1 : 0) - (a.featured ? 1 : 0)
+      || (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)
+      || cmp(a, b));
   }, [models, modelSort, hairFilter, query]);
+  // Any model is featured → the Models gallery is a curated showcase: featured are
+  // free, the rest are locked behind paid membership (admin/paid bypass).
+  const hasFeatured = useMemo(() => models.some(m => m.featured), [models]);
   const hairColorsPresent = useMemo(() => [...new Set(models.map(m => m.hairColor || "").filter(Boolean))], [models]);
-  // Fashionshow ("feeds") is the default grid tab — it's the app's home view.
-  const [homeTab, setHomeTab] = useState<"feeds" | "models" | "garderobe">("feeds");
+  // Models is the default grid tab — home is the curated Featured-models showcase.
+  const [homeTab, setHomeTab] = useState<"feeds" | "models" | "garderobe">("models");
   // Garderobe = every generated garment (all models' wardrobes), browsable by type.
   const [garmentType, setGarmentType] = useState<LookCategory | null>(null);
   // Admin: add a real Luxury Bandi garment (from a photo) into the Garderobe.
@@ -1789,6 +1795,20 @@ function StoresPage() {
       setModelSelected(new Set());
       setModelSelect(false);
     } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Fixieren"); }
+    finally { setModelPinBusy(false); }
+  };
+  // Feature/unfeature the selected models — featured = free showcase, rest locked.
+  const featureSelectedModels = async (featured: boolean) => {
+    if (modelPinBusy || !modelSelected.size) return;
+    setModelPinBusy(true);
+    try {
+      const ids = [...modelSelected];
+      const res = await adminWrite({ action: "set-featured", ids, featured });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehler");
+      setModels(prev => prev.map(m => ids.includes(m.id) ? { ...m, featured } : m));
+      setModelSelected(new Set());
+      setModelSelect(false);
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehler"); }
     finally { setModelPinBusy(false); }
   };
   const [feedSelectMode, setFeedSelectMode] = useState(false);
@@ -2669,32 +2689,47 @@ function StoresPage() {
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-2 px-3 pb-8">
-                {shownModels.map(m => (
+                {shownModels.map(m => {
+                  // Non-featured models are LOCKED for free visitors once a featured
+                  // showcase exists. Paid members + admin see everything unlocked.
+                  const locked = hasFeatured && !m.featured && !isPaidMember && !isAdmin;
+                  return (
                   <div key={m.id} className="relative">
                     {/* No light border — bright photo edges made it flash white on dark. */}
                     <a href={`/curator/${m.id}`}
                       onClick={(e) => {
-                        if (!(modelSelect && isAdmin)) return;
-                        e.preventDefault();
-                        setModelSelected(prev => { const n = new Set(prev); if (n.has(m.id)) n.delete(m.id); else n.add(m.id); return n; });
+                        if (modelSelect && isAdmin) {
+                          e.preventDefault();
+                          setModelSelected(prev => { const n = new Set(prev); if (n.has(m.id)) n.delete(m.id); else n.add(m.id); return n; });
+                          return;
+                        }
+                        if (locked) { e.preventDefault(); setShowPaywall(true); }
                       }}
                       className={`flex flex-col overflow-hidden rounded-2xl bg-white/[0.04] active:opacity-80 transition-opacity ${modelSelect && isAdmin && modelSelected.has(m.id) ? "ring-2 ring-amber-400" : ""}`}>
                       <div className="relative aspect-[3/4] overflow-hidden lb-media-bg">
                         {modelSelect && isAdmin && (
                           <span className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-full text-[13px] font-black ${modelSelected.has(m.id) ? "bg-amber-400 text-black" : "bg-black/60 text-white/60"}`}>✓</span>
                         )}
+                        {isAdmin && m.featured && (
+                          <span className="absolute left-2 top-2 z-10 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-black text-black backdrop-blur">★</span>
+                        )}
                         {isAdmin && m.pinned && (
                           <span className="absolute right-2 bottom-2 z-10 rounded-full bg-black/70 px-1.5 py-0.5 text-[11px] backdrop-blur">📌</span>
                         )}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={m.photoUrl} alt={m.name} loading="lazy" decoding="async" className={`h-full w-full object-cover object-top ${m.hidden ? "opacity-40" : ""}`} />
-                        {m.lookCount > 0 && (
+                        <img src={m.photoUrl} alt={m.name} loading="lazy" decoding="async" className={`h-full w-full object-cover object-top ${m.hidden ? "opacity-40" : ""} ${locked ? "blur-[6px] scale-105 opacity-70" : ""}`} />
+                        {locked && (
+                          <span className="absolute inset-0 z-10 grid place-items-center bg-black/25">
+                            <span className="grid h-11 w-11 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-5 w-5 text-white" /></span>
+                          </span>
+                        )}
+                        {m.lookCount > 0 && !locked && (
                           <span className="absolute left-2 bottom-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black text-white backdrop-blur">{m.lookCount} look{m.lookCount !== 1 ? "s" : ""}</span>
                         )}
                       </div>
                       <div className="px-2.5 py-2">
                         <p className="truncate text-[13px] font-black text-white">{m.name}</p>
-                        {m.style && <p className="truncate text-[11px] font-bold text-white/40">{m.style}</p>}
+                        {locked ? <p className="truncate text-[11px] font-bold text-amber-400/80">Members only</p> : m.style && <p className="truncate text-[11px] font-bold text-white/40">{m.style}</p>}
                       </div>
                     </a>
                     {m.hidden && <span className="absolute left-2 top-2 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-black text-white">Ausgeblendet</span>}
@@ -2704,7 +2739,8 @@ function StoresPage() {
                         aria-label="Model verwalten"><SlidersHorizontal className="h-4 w-4" /></button>
                     )}
                   </div>
-                ))}
+                  );
+                })}
                 </div>
               </>
               )
@@ -3530,12 +3566,20 @@ function StoresPage() {
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}>
           <span className="shrink-0 text-[12px] font-black text-white/70">{modelSelected.size} ausgewählt</span>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
-            <button type="button" disabled={modelPinBusy || !modelSelected.size} onClick={() => void pinSelectedModels(true)}
+            <button type="button" disabled={modelPinBusy || !modelSelected.size} onClick={() => void featureSelectedModels(true)}
               className="lb-gold flex items-center gap-1 rounded-full px-3.5 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-40">
-              {modelPinBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} 📌 Oben fixieren
+              {modelPinBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} ★ Featured
+            </button>
+            <button type="button" disabled={modelPinBusy || !modelSelected.size} onClick={() => void featureSelectedModels(false)}
+              className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white/80 active:scale-95 transition disabled:opacity-40">
+              Sperren
+            </button>
+            <button type="button" disabled={modelPinBusy || !modelSelected.size} onClick={() => void pinSelectedModels(true)}
+              className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white active:scale-95 transition disabled:opacity-40">
+              📌 Oben
             </button>
             <button type="button" disabled={modelPinBusy || !modelSelected.size} onClick={() => void pinSelectedModels(false)}
-              className="flex items-center gap-1 rounded-full bg-white/10 px-3.5 py-2 text-[12px] font-black text-white active:scale-95 transition disabled:opacity-40">
+              className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white/70 active:scale-95 transition disabled:opacity-40">
               Lösen
             </button>
           </div>

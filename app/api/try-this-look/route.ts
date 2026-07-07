@@ -403,6 +403,7 @@ export async function GET(request: Request) {
             hairColor: typeof cc.hairColor === "string" ? cc.hairColor : "",
             createdAt: typeof cc.createdAt === "string" ? cc.createdAt : "",
             pinned: cc.pinned === true, // admin-pinned → shown first in the Models grid
+            featured: cc.featured === true, // featured → free showcase; others are locked (paid)
             lookCount: genCountByName.get(name.toLowerCase()) ?? 0,
             ...(modelsAdmin ? {
               firstName: cc.firstName ?? "",
@@ -2426,6 +2427,20 @@ export async function POST(request: Request) {
       if (count === 0) return NextResponse.json({ error: "Nothing matched." }, { status: 404 });
       await saveTryThisLookState(state);
       return NextResponse.json({ ok: true, updated: count, pinned });
+    }
+
+    // ── Bulk FEATURE models (admin): featured models are the free showcase on the
+    //    Models tab; all others are locked (padlock) behind paid membership. ──────
+    if (payload.action === "set-featured") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const ids = Array.isArray(payload.ids) ? (payload.ids as unknown[]).map(x => String(x)) : [];
+      const featured = payload.featured === true;
+      if (!ids.length) return NextResponse.json({ error: "ids required." }, { status: 400 });
+      let count = 0;
+      for (const c of state.curators ?? []) if (ids.includes(c.id)) { (c as any).featured = featured || undefined; count++; }
+      if (count === 0) return NextResponse.json({ error: "Nothing matched." }, { status: 404 });
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, updated: count, featured });
     }
 
     // ── Bulk animate (admin): chosen try-on tiles PLAY inline in the grid ────
