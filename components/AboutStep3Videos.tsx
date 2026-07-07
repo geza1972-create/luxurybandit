@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Play, X } from "lucide-react";
+import { X } from "lucide-react";
 
 type Clip = { poster: string; video: string };
 
@@ -20,9 +20,6 @@ export default function AboutStep3Videos({ videos }: { videos: Clip[] }) {
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <video src={v.video} poster={v.poster || undefined} muted loop playsInline autoPlay preload="metadata"
               className="aspect-[3/4] w-full object-cover" />
-            <span className="pointer-events-none absolute inset-0 grid place-items-center">
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-black/50 backdrop-blur"><Play className="h-4 w-4 text-white" fill="currentColor" /></span>
-            </span>
           </button>
         ))}
       </div>
