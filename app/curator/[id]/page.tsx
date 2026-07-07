@@ -604,12 +604,6 @@ export default function CuratorPublicPage() {
               {badgeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />}
             </button>
           )}
-          {isAdmin && (
-            <button type="button" onClick={() => void upscalePhoto()} disabled={hdBusy} title="Profilfoto in HD hochrechnen"
-              className="grid h-8 min-w-8 place-items-center rounded-full border border-amber-400/40 bg-amber-400/10 px-2 text-[11px] font-black text-amber-400 active:scale-90 transition disabled:opacity-50">
-              {hdBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "HD"}
-            </button>
-          )}
         </div>
 
         {/* Trust badge in gold (~every 2nd visit): the models are REAL people.
@@ -810,8 +804,17 @@ export default function CuratorPublicPage() {
         <div className="lb-phone-col fixed inset-0 z-[70] flex flex-col bg-black/95" onClick={() => setPhotoOpen(false)}>
           <div className="flex items-center justify-between px-4 py-3">
             <p className="text-sm font-black text-white">{name}</p>
-            <button type="button" onClick={() => setPhotoOpen(false)}
-              className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white active:scale-90 transition"><X className="h-5 w-5" /></button>
+            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              {isAdmin && (
+                <button type="button" onClick={() => void upscalePhoto()} disabled={hdBusy} title="Profilfoto in HD hochrechnen"
+                  className="flex h-9 items-center gap-1.5 rounded-full bg-amber-400 px-3.5 text-[12px] font-black text-black active:scale-95 transition disabled:opacity-50">
+                  {hdBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                  {hdBusy ? "HD…" : "In HD"}
+                </button>
+              )}
+              <button type="button" onClick={() => setPhotoOpen(false)}
+                className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white active:scale-90 transition"><X className="h-5 w-5" /></button>
+            </div>
           </div>
           <div className="flex flex-1 items-center justify-center px-3 pb-8">
             {/* Prefer the UNCROPPED original (portrait) — the avatar is a square crop. */}
