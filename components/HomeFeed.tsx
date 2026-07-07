@@ -266,14 +266,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     if (showable) setShowBanditBtn(true);
   }, [active, banditRevealed, showBanditBtn]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Track how far the user swipes the carousel. Fire once per NEW deepest slide
-  // (slide is 1-based) → count(slide==k) in Insights = viewers who reached ≥ slide k.
-  useEffect(() => {
-    if (media.length > 1 && active > maxSlideRef.current) {
-      maxSlideRef.current = active;
-      if (active >= 1) trackEvent("carousel_swipe", { slide: String(active + 1), slides: String(media.length) });
-    }
-  }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
+  // carousel_swipe tracking REMOVED (2026-07-07, user: "bringt mir nichts") —
+  // it flooded the live feed and the depth chart was never useful.
 
   // Detect whether the caption is actually truncated (only then show "more").
   useEffect(() => {

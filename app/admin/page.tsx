@@ -1389,7 +1389,6 @@ export default function AdminPage() {
             bandit_click: { label: "tapped Bandit the feeling", emoji: "🛍️" },
             product_click: { label: "opened a product", emoji: "👗" },
             like_click: { label: "liked a look", emoji: "❤️" },
-            carousel_swipe: { label: "swiped the carousel", emoji: "↔️" },
           };
           const ago = (iso: string) => {
             const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
@@ -1472,22 +1471,6 @@ export default function AdminPage() {
             affiliateClicks: l.clicks ? Object.values(l.clicks).reduce((s, n) => s + n, 0) : 0,
           })).sort((a, b) => (b.tryonClicks + b.likes + b.productClicks) - (a.tryonClicks + a.likes + a.productClicks) || b.views - a.views);
           const totalViews = rows.reduce((s, r) => s + r.views, 0);
-
-          // Carousel swipe depth — how far people swipe. Each carousel_swipe event marks a
-          // NEW deepest slide, so count(slide==k) = viewers who reached AT LEAST slide k.
-          const swipeEvents = evs.filter(e => e.name === "carousel_swipe" && (e.slide ?? 0) >= 2);
-          const swipeBySlide = new Map<number, number>();
-          for (const e of swipeEvents) swipeBySlide.set(e.slide!, (swipeBySlide.get(e.slide!) ?? 0) + 1);
-          const maxSwipeSlide = swipeBySlide.size ? Math.max(...swipeBySlide.keys()) : 0;
-          // Typical total slide count (mode) for the "k/N" label.
-          const totalMode = (() => {
-            const m = new Map<number, number>();
-            for (const e of swipeEvents) if (e.slides) m.set(e.slides, (m.get(e.slides) ?? 0) + 1);
-            return [...m.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? maxSwipeSlide;
-          })();
-          const swipeBase = countOf("view") || (swipeBySlide.get(2) ?? 0); // denominator for %
-          const swipeFunnel: { slide: number; count: number }[] = [];
-          for (let k = 2; k <= maxSwipeSlide; k++) swipeFunnel.push({ slide: k, count: swipeBySlide.get(k) ?? 0 });
 
           const Bars = ({ data, accent = "bg-cobalt" }: { data: [string, number][]; accent?: string }) => {
             const rows2 = (data ?? []).filter(Array.isArray);
