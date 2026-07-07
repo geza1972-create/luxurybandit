@@ -106,7 +106,7 @@ async function pixverseUpload(key: string, image: string): Promise<number | null
 
 // Reference mode: dress the person (@Bild2) in the garment (@Bild1) AND animate, in
 // one step — keeps the face (FASHN's photo doesn't). Used for lingerie video/360°.
-async function pixverseStartReference(key: string, garment: string, person: string, turnaround: boolean, customPrompt?: string): Promise<{ videoId?: string; error?: string; promptUsed?: string }> {
+async function pixverseStartReference(key: string, garment: string, person: string, turnaround: boolean, customPrompt?: string, slowmo = false): Promise<{ videoId?: string; error?: string; promptUsed?: string }> {
   const [gId, pId] = await Promise.all([pixverseUpload(key, garment), pixverseUpload(key, person)]);
   if (!gId || !pId) return { error: "Pixverse upload failed (reference images)." };
   // Send the caller's prompt EXACTLY as written (no remapping, no extra clauses) — same
@@ -142,7 +142,7 @@ async function pixverseStartReference(key: string, garment: string, person: stri
     // looks good the admin upscales THAT clip to HD (1080p) via the upscale action — so
     // we only pay HD on the keepers. (360p is Pixverse's floor; there is no 320p tier.)
     model: "v6",                     // V6 keeps the reference outfit/person (v4.5 ignored it)
-    duration: turnaround ? 10 : 5,   // 5s; 360p keeps cost low
+    duration: turnaround ? 10 : (slowmo ? 8 : 5), // slow-mo gets more seconds → same motion, slower
     quality: turnaround ? "720p" : "360p",
     aspect_ratio: "9:16",            // full vertical (reels), same as the 360° turnaround
     // MUSIC: V6 generates native, prompt-matched audio when generate_audio_switch=true
@@ -214,7 +214,7 @@ async function pixversePoll(key: string, id: string): Promise<{ status: "done" |
 // POST { lookId, image } → charge owner, start the right provider, return
 // { videoId: "<provider>:<id>", curatorId } for polling.
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean; garment?: string; person?: string; prompt?: string; motion?: string; dryRun?: boolean; upscale?: boolean; videoUrl?: string; importVideo?: boolean; ref?: string };
+  const body = (await request.json().catch(() => ({}))) as { lookId?: string; image?: string; turnaround?: boolean; garment?: string; person?: string; prompt?: string; motion?: string; slowmo?: boolean; dryRun?: boolean; upscale?: boolean; videoUrl?: string; importVideo?: boolean; ref?: string };
   const lookId = String(body.lookId ?? "").trim();
   const image = String(body.image ?? "");
   const turnaround = body.turnaround === true; // 360° tier
@@ -285,7 +285,11 @@ export async function POST(request: Request) {
   // category-appropriate setting. Pure TEXT substitution — the @Bild1/@Bild2 image bindings
   // are untouched, so it never swaps the model/outfit.
   const scene = sceneForCategory(category);
-  const promptWithScene = basePrompt ? basePrompt.replace(/\{ort\}|\{location\}|\{umgebung\}/gi, scene) : basePrompt;
+  let promptWithScene = basePrompt ? basePrompt.replace(/\{ort\}|\{location\}|\{umgebung\}/gi, scene) : basePrompt;
+  // Slow motion (admin, per-video): add a slow-mo cue so Pixverse renders the movement
+  // slower AND generates matching-tempo music (no playback-rate audio distortion).
+  const slowmo = body.slowmo === true;
+  if (slowmo && promptWithScene) promptWithScene = `${promptWithScene} Alles in eleganter, sanfter Zeitlupe (cinematic slow motion), langsame ruhige Bewegungen.`;
   const key = process.env.PIXVERSE_API_KEY?.trim();
   if (!key) return NextResponse.json({ error: "PIXVERSE_API_KEY missing." }, { status: 400 });
 
@@ -322,7 +326,7 @@ export async function POST(request: Request) {
 
   try {
     const r = reference
-      ? await pixverseStartReference(key, garment, person, turnaround, promptWithScene)
+      ? await pixverseStartReference(key, garment, person, turnaround, promptWithScene, slowmo)
       : await pixverseStart(key, image, turnaround);
     if (!r.videoId) { refund(); return NextResponse.json({ error: r.error ?? "Video start failed.", promptUsed: (r as any).promptUsed }, { status: 502 }); }
     return NextResponse.json({ ok: true, videoId: `pv:${r.videoId}`, curatorId, status: "processing", promptUsed: (r as any).promptUsed });

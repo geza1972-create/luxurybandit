@@ -95,6 +95,9 @@ export default function TryFunnelPage() {
   // "Motion" pick: what she DOES in the video. The user only sees the two chips —
   // the prompt swap happens server-side. Dance = Pixverse also generates music.
   const [motion, setMotion] = useState<"turn" | "dance">("turn");
+  // Admin per-video option: generate this clip in gentle slow motion (Pixverse makes the
+  // music match the slower pace — no audio distortion, unlike slowing playback).
+  const [slowmo, setSlowmo] = useState(false);
   // A signed-in MODEL (curator session): she generates PHOTOS of herself — the team
   // turns the best ones into videos. Admin keeps the full video flow.
   const [myModel, setMyModel] = useState<{ id: string; firstName?: string } | null>(null);
@@ -267,7 +270,7 @@ export default function TryFunnelPage() {
       }
       // Send the admin prompt EXACTLY as written (tokens like @Bild1 / @Bild2 bind to the
       // reference images server-side) — no remapping, same as typing it into Pixverse.
-      const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ lookId, garment, person, prompt: prompt || "", motion }) }).then(r => r.json());
+      const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ lookId, garment, person, prompt: prompt || "", motion, slowmo }) }).then(r => r.json());
       if (!start.videoId) throw new Error(start.error || "Start fehlgeschlagen.");
       let videoUrl = "";
       for (let i = 0; i < 45; i++) {
@@ -407,6 +410,15 @@ export default function TryFunnelPage() {
             <button type="button" onClick={() => { setPrompt(DEFAULT_HINT); setPromptSaved(false); }}
               className="text-[12px] font-bold text-white/40 active:opacity-70">Reset text</button>
           </div>
+          {/* Per-video slow motion — baked in at generation so the music stays in sync. */}
+          <button type="button" onClick={() => setSlowmo(s => !s)}
+            className={`mt-3 flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-[13px] font-black transition ${slowmo ? "border-amber-400 bg-amber-400/15 text-amber-300" : "border-white/15 bg-black/30 text-white/70"}`}>
+            <span>🐢 Slow motion {slowmo ? "· an" : "· aus"}</span>
+            <span className={`grid h-5 w-9 items-center rounded-full px-0.5 ${slowmo ? "bg-amber-400" : "bg-white/20"}`}>
+              <span className={`h-4 w-4 rounded-full bg-white transition-transform ${slowmo ? "translate-x-4" : ""}`} />
+            </span>
+          </button>
+          <p className="mt-1.5 text-[11px] font-bold text-white/35">Erzeugt den Clip langsamer (Musik wird passend dazu generiert). Nur für dieses Video.</p>
         </div>
       )}
     </div>
