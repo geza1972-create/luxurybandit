@@ -344,6 +344,21 @@ export default function CuratorPublicPage() {
   // ── Admin: toggle the gold "real LuxuryBandit Model" banner for THIS model.
   // Off by default (AI models must never claim to be real).
   const [badgeBusy, setBadgeBusy] = useState(false);
+  // Admin: upscale her (often low-res) profile photo to HD via fal clarity-upscaler.
+  const [hdBusy, setHdBusy] = useState(false);
+  const upscalePhoto = async () => {
+    if (hdBusy) return;
+    if (!window.confirm("Profilfoto in HD hochrechnen? (fal.ai — kostet ein paar Cent)")) return;
+    setHdBusy(true);
+    try {
+      const res = await fetch("/api/upscale-image", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ curatorId: id }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || !d.photoUrl) throw new Error(d?.error || "Upscale fehlgeschlagen");
+      setProfile(p => (p ? { ...p, photoUrl: d.photoUrl } : p));
+      alert("Profilfoto in HD ✓");
+    } catch (e) { alert(e instanceof Error ? e.message : "Upscale fehlgeschlagen"); }
+    finally { setHdBusy(false); }
+  };
   const toggleRealBadge = async () => {
     if (badgeBusy || !profile) return;
     setBadgeBusy(true);
@@ -587,6 +602,12 @@ export default function CuratorPublicPage() {
                 profile.realBadge ? "border-amber-400 bg-amber-400 text-black" : "border-white/20 bg-white/5 text-white/40"
               }`}>
               {badgeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />}
+            </button>
+          )}
+          {isAdmin && (
+            <button type="button" onClick={() => void upscalePhoto()} disabled={hdBusy} title="Profilfoto in HD hochrechnen"
+              className="grid h-8 min-w-8 place-items-center rounded-full border border-amber-400/40 bg-amber-400/10 px-2 text-[11px] font-black text-amber-400 active:scale-90 transition disabled:opacity-50">
+              {hdBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "HD"}
             </button>
           )}
         </div>
