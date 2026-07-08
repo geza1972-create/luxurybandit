@@ -5,7 +5,6 @@ import BottomNav from "@/components/BottomNav";
 import MetaPixel from "@/components/MetaPixel";
 import AdminUrlMirror from "@/components/AdminUrlMirror";
 import AgeGate from "@/components/AgeGate";
-import AppAssistant from "@/components/AppAssistant";
 
 export const metadata: Metadata = {
   metadataBase: new URL((process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "")),
@@ -60,10 +59,8 @@ export default function RootLayout({
           <Suspense fallback={null}>
             <BottomNav />
           </Suspense>
-          {/* App-wide help chat (floating). Hidden on admin/seller/auth screens. */}
-          <Suspense fallback={null}>
-            <AppAssistant />
-          </Suspense>
+          {/* Floating app-assistant removed per request — it cluttered the feed.
+              The component + /api/app-chat stay in the codebase for re-use elsewhere. */}
         </div>
       </body>
     </html>
