@@ -2797,7 +2797,7 @@ function StoresPage() {
                               {/* Make it obvious that tapping this piece generates a try-on VIDEO. */}
                               {!hidden && (
                                 <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur">
-                                  <Play className="h-2.5 w-2.5" fill="currentColor" /> Video erstellen
+                                  <Play className="h-2.5 w-2.5" fill="currentColor" /> Create video
                                 </span>
                               )}
                             </button>
