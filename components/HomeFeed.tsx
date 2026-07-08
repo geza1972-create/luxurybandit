@@ -1019,19 +1019,20 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         )}
 
         {/* Sound toggle — gates the ACTIVE clip's own baked-in music. Unmuting plays the
-            video WITHIN this click gesture so the browser doesn't pause it for autoplay. */}
-        {!immersive && (
-          <button type="button" aria-label={muted ? "Unmute" : "Mute"}
-            onClick={() => {
-              const next = !muted;
-              setMuted(() => next);
-              const v = videoRefs.current[active];
-              if (v) { v.muted = next; if (!next && !pausedRef.current) v.play().catch(() => {}); }
-            }}
-            className="absolute bottom-3 left-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform">
-            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-          </button>
-        )}
+            video WITHIN this click gesture so the browser doesn't pause it for autoplay.
+            Stays visible in fullscreen too (sound control is essential). */}
+        <button type="button" aria-label={muted ? "Unmute" : "Mute"}
+          onClick={(e) => {
+            e.stopPropagation();
+            const next = !muted;
+            setMuted(() => next);
+            const v = videoRefs.current[active];
+            if (v) { v.muted = next; if (!next && !pausedRef.current) v.play().catch(() => {}); }
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          className={`absolute grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform ${immersive ? "bottom-4 left-4 z-30 opacity-70" : "bottom-3 left-3 z-10"}`}>
+          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+        </button>
 
         {/* Fullscreen: hide ALL chrome to watch the video clean. Enter = button next to
             mute; exit = a subtle corner button (nothing else is on screen). */}
