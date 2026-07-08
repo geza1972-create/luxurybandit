@@ -275,6 +275,21 @@ export default function CuratorPublicPage() {
     } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Umrechnen"); }
     finally { setHdVidBusy(""); }
   };
+  // Admin: publish this video to the connected Instagram account as a Reel.
+  const [igBusy, setIgBusy] = useState("");
+  const postToInstagram = async (t: TryOn) => {
+    if (!t.videoUrl || igBusy) return;
+    if (!window.confirm("Dieses Video jetzt auf Instagram posten (als Reel)?")) return;
+    setIgBusy(t.id);
+    try {
+      const caption = `${name} · LuxuryBandit ✨\n\n#luxurybandit #fashion #reels #model #ootd`;
+      const res = await fetch("/api/instagram-publish", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ videoUrl: t.videoUrl, caption }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || !d.ok) throw new Error(d?.error || "IG-Post fehlgeschlagen");
+      alert("Auf Instagram gepostet ✓");
+    } catch (e) { alert(e instanceof Error ? e.message : "IG-Post fehlgeschlagen"); }
+    finally { setIgBusy(""); }
+  };
   // Admin: hide/show a video in HER public profile (and the feed) without deleting it —
   // feed:false keeps the clip (for ads / the reuse cache) but drops it from public views.
   const toggleVideoFeed = async (t: TryOn) => {
@@ -885,6 +900,11 @@ export default function CuratorPublicPage() {
                       <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-white backdrop-blur"><EyeOff className="h-3 w-3" /> Im Profil versteckt</span>
                     )}
                     <div className="absolute right-3 top-3 flex flex-col gap-2">
+                      <button type="button" onClick={() => void postToInstagram(t)} disabled={!!igBusy}
+                        className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-fuchsia-500 to-amber-500 text-white backdrop-blur active:scale-90 transition disabled:opacity-50"
+                        title="Auf Instagram posten (Reel)">
+                        {igBusy === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Instagram className="h-4 w-4" />}
+                      </button>
                       <button type="button" onClick={() => void upscaleVideo(t)} disabled={!!hdVidBusy}
                         className="grid h-9 min-w-9 place-items-center rounded-full bg-amber-400 px-2.5 text-[12px] font-black text-black backdrop-blur active:scale-90 transition disabled:opacity-50"
                         title="In HD umrechnen (1080p)">
