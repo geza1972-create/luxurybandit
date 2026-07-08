@@ -277,12 +277,6 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <X className="h-4 w-4" />
               </button>
             </div>
-            {curatorCredits !== null && (
-              <div className="mx-5 mb-3 flex items-center gap-2 rounded-lg bg-black/5 px-3 py-2">
-                <Sparkles className="h-4 w-4 text-black/50" />
-                <span className="text-xs font-black text-black">{curatorCredits} Credits</span>
-              </div>
-            )}
             {/* Menu items */}
             <div className="grid divide-y divide-black/5">
               {/* Models land on THEIR OWN page (wardrobe + photos) — the old Studio

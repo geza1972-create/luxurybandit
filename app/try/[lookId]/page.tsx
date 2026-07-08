@@ -130,7 +130,10 @@ export default function TryFunnelPage() {
   useEffect(() => {
     try { const c = JSON.parse(localStorage.getItem("lb_curator") ?? "null"); if (c?.id) setMyModel(c); } catch { /**/ }
   }, []);
-  const isModelSession = !!myModel && !adminPin;
+  // Models are treated exactly like normal users in the funnel now: they generate VIDEOS
+  // (not photo-only) and spend the same $8 video-pack credits. So the model-session branch
+  // is disabled here. (Their public model page / creator side is unaffected.)
+  const isModelSession = false;
   const [genError, setGenError] = useState("");
   const genStartedRef = useRef(false);
   // The chosen model's videos (incl. the one just made) — shown as a gallery on the done screen.
