@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, LayoutGrid, Trash2, ImageUp } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, LayoutGrid, Trash2, ImageUp, X } from "lucide-react";
 import PremiumDialog from "@/components/PremiumDialog";
 import { FeedGate } from "@/components/FeedGate";
 import BottomNav from "@/components/BottomNav";
@@ -48,6 +48,7 @@ export default function TryFunnelPage() {
   const [gModels, setGModels] = useState<{ id: string; name: string; photoUrl: string; featured?: boolean }[]>([]);
   const [isPaid, setIsPaid] = useState(false);
   const [showPremium, setShowPremium] = useState(false);
+  const [outfitZoom, setOutfitZoom] = useState(false); // fullscreen the selected garment
   useEffect(() => { try { setIsPaid(!!localStorage.getItem("luxurybandit-try-look-admin-pin") || localStorage.getItem("lb_paid") === "1"); } catch { /**/ } }, []);
   const [pickedModel, setPickedModel] = useState("");
   const [pickedModelId, setPickedModelId] = useState("");
@@ -578,10 +579,10 @@ export default function TryFunnelPage() {
 
           {outfit && (
             <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              <div className="h-14 w-11 shrink-0 overflow-hidden rounded-lg">
+              <button type="button" onClick={() => setOutfitZoom(true)} className="h-14 w-11 shrink-0 overflow-hidden rounded-lg active:scale-95 transition" title="Kleid groß ansehen">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={outfit.imageUrl} alt="" className="h-full w-full object-cover" />
-              </div>
+              </button>
               <div className="min-w-0">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-white/40">Selected outfit</p>
                 <p className="truncate text-sm font-black">{outfit.name}</p>
@@ -873,6 +874,21 @@ export default function TryFunnelPage() {
       )}
 
       <PremiumDialog open={showPremium} onClose={() => setShowPremium(false)} />
+
+      {/* Fullscreen garment view — tap the outfit thumbnail to open, tap/X to close. */}
+      {outfitZoom && (garmentParam || outfit?.imageUrl) && (
+        <div className="fixed inset-0 z-[95] flex flex-col bg-black/95" onClick={() => setOutfitZoom(false)}>
+          <div className="flex items-center justify-between px-4 py-3">
+            <p className="text-sm font-black text-white">{outfit?.name || "Selected outfit"}</p>
+            <button type="button" onClick={() => setOutfitZoom(false)}
+              className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white active:scale-90 transition"><X className="h-5 w-5" /></button>
+          </div>
+          <div className="flex flex-1 items-center justify-center px-4 pb-8" onClick={(e) => e.stopPropagation()}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={garmentParam || outfit?.imageUrl || ""} alt={outfit?.name || ""} className="max-h-full max-w-full rounded-2xl object-contain" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
