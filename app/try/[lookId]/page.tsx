@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, LayoutGrid, Trash2, ImageUp, X } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X } from "lucide-react";
 import PremiumDialog from "@/components/PremiumDialog";
 import { FeedGate } from "@/components/FeedGate";
 import BottomNav from "@/components/BottomNav";
@@ -486,23 +486,10 @@ export default function TryFunnelPage() {
             ))}
           </div>
         </div>
-        {/* Admin bar — available on EVERY step: jump back to this look's gallery, and
-            flip between admin view and the exact end-user view. */}
+        {/* Admin bar — available on EVERY step: flip between admin view and the
+            exact end-user view. */}
         {adminPin && (
           <div className="mt-2 flex items-center gap-2">
-            {/* Link to the MODEL's gallery (her wardrobe + videos) — opens in a new tab so
-                the funnel isn't lost. Falls back to the outfit admin when no model. */}
-            {chosenModelId ? (
-              <a href={`/curator/${chosenModelId}`} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-wide text-white active:opacity-70">
-                <LayoutGrid className="h-3.5 w-3.5" /> Zur Galerie
-              </a>
-            ) : (
-              <button type="button" onClick={() => router.push(`/admin/outfits?look=${encodeURIComponent(lookId)}`)}
-                className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-wide text-white active:opacity-70">
-                <LayoutGrid className="h-3.5 w-3.5" /> Zur Galerie
-              </button>
-            )}
             <button type="button" onClick={() => setPreviewAsUser(v => !v)}
               className={`ml-auto shrink-0 rounded-full px-3 py-1.5 text-[11px] font-black uppercase tracking-wide active:opacity-70 ${previewAsUser ? "bg-white text-black" : "bg-amber-400 text-black"}`}>
               {previewAsUser ? "User view" : "Admin view"}
