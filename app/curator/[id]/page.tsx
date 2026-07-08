@@ -629,10 +629,6 @@ export default function CuratorPublicPage() {
               className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-black transition active:scale-95 disabled:opacity-50 ${following ? "border border-white/20 text-white/70" : "lb-gold"}`}>
               {followLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : following ? <><UserCheck className="h-3.5 w-3.5" /> Following</> : <><UserPlus className="h-3.5 w-3.5" /> Follow</>}
             </button>
-            <button type="button" onClick={() => setShowChat(true)}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/20 text-white active:scale-95 transition">
-              <MessageCircle className="h-4 w-4" />
-            </button>
             <button type="button" onClick={() => { const url = window.location.href; if (navigator.share) navigator.share({ title: name, url }).catch(() => {}); else navigator.clipboard?.writeText(url); }}
               className="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full bg-white/10 px-4 text-xs font-black text-white active:scale-95 transition">
               <Send className="h-3.5 w-3.5" /> Share
@@ -665,6 +661,12 @@ export default function CuratorPublicPage() {
             </a>
           )}
         </div>
+
+        {/* Gold "chat with the model" CTA, right by her photo. */}
+        <button type="button" onClick={() => setShowChat(true)}
+          className="lb-gold mt-3 flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-black active:scale-95 transition">
+          <MessageCircle className="h-4 w-4" /> Chat with her!
+        </button>
 
         {/* Stats — likes/views = real sums + the admin-set vanity baselines. */}
         <div className="mt-3 flex items-center justify-center gap-6">

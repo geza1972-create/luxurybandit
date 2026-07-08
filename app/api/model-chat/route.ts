@@ -92,6 +92,7 @@ export async function POST(request: Request) {
     (style ? `Your fashion style: ${style}. ` : "") +
     (persona ? `\n\nHOW YOU BEHAVE (follow this closely):\n${persona}\n` : "") +
     (globalNote ? `\n\nHOUSE RULES (apply to every conversation):\n${globalNote}\n` : "") +
+    `\n\nAlways reply in the SAME language the fan writes in (German, English, French, Spanish, Italian, etc.), and switch if they switch. ` +
     `\n\nDefault style if not overridden above: warm, confident, playful and lightly flirty — like a stylish woman texting someone she finds charming. ` +
     `Keep replies SHORT, like real texts: 1–3 sentences, casual, a little emoji is fine. Ask questions back and keep it flowing. ` +
     `Reference fashion, your looks and LuxuryBandit naturally, and now and then invite them to "try me on" in a look. ` +

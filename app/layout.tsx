@@ -5,6 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import MetaPixel from "@/components/MetaPixel";
 import AdminUrlMirror from "@/components/AdminUrlMirror";
 import AgeGate from "@/components/AgeGate";
+import AppAssistant from "@/components/AppAssistant";
 
 export const metadata: Metadata = {
   metadataBase: new URL((process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "")),
@@ -58,6 +59,10 @@ export default function RootLayout({
               statically-prerendered pages (e.g. 404) — required for the prod build. */}
           <Suspense fallback={null}>
             <BottomNav />
+          </Suspense>
+          {/* App-wide help chat (floating). Hidden on admin/seller/auth screens. */}
+          <Suspense fallback={null}>
+            <AppAssistant />
           </Suspense>
         </div>
       </body>
