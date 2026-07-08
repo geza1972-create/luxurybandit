@@ -14,6 +14,7 @@ import { useScrollLock } from "@/lib/use-scroll-lock";
 import { lookPath } from "@/lib/look-slug";
 import HomeFeed, { type FeedLook } from "@/components/HomeFeed";
 import PremiumDialog from "@/components/PremiumDialog";
+import SubscribeDialog from "@/components/SubscribeDialog";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { LOOK_CATEGORIES, isHiddenFromAll, isLookCategory, type LookCategory } from "@/lib/look-category";
 import { publicLookLabel } from "@/lib/look-title";
@@ -1687,10 +1688,14 @@ function StoresPage() {
   const [showMerkliste, setShowMerkliste] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  // Paying member → the Community feed is unlocked (open padlock). Admin is always unlocked.
-  // No real subscription system yet: `lb_paid` is a placeholder the real checkout will set.
+  // Two separate paid tiers:
+  //  • isPaidMember  = has $8 video-pack credits (lb_paid) → unlocks locked MODELS/videos.
+  //  • isSubscriber  = active $49/mo subscription → unlocks the COMMUNITY feed.
+  // Admin is always both.
   const [isPaidMember, setIsPaidMember] = useState(false);
+  const [isSubscriber, setIsSubscriber] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showSubscribe, setShowSubscribe] = useState(false);
   const [paywallDone, setPaywallDone] = useState(false);
   const [adminPin, setAdminPin] = useState("");
   // Creators list (admin) for the in-feed "Assign to creator" picker (name + photo).
@@ -1846,6 +1851,12 @@ function StoresPage() {
         let paid = false;
         try { paid = localStorage.getItem("lb_paid") === "1"; } catch { /**/ }
         setIsPaidMember(admin || paid);
+        // Community access = admin OR an active $49/mo subscription (live Stripe check).
+        setIsSubscriber(admin);
+        if (!admin && email) {
+          fetch(`/api/premium?email=${encodeURIComponent(email)}`)
+            .then(r => r.json()).then(d => setIsSubscriber(!!d?.premium)).catch(() => {});
+        }
         if (admin) setAdminPin(pin);
         // Keep the curator identity in sync too — otherwise a stale id keeps "recognising"
         // a curator (Hide button etc.) after they signed out, while the nav shows signed-out.
@@ -1876,12 +1887,12 @@ function StoresPage() {
     };
   }, []);
 
-  // Community (Boudoir slug) gate: it's for PAYING members only. If the filter is on it
-  // and the viewer isn't a paying member (admin always counts), snap back to "All".
+  // Community (Boudoir slug) gate: it's for SUBSCRIBERS only ($49/mo; admin always counts).
+  // If the filter is on it and the viewer isn't a subscriber, snap back to "All".
   useEffect(() => {
-    if (categoryFilter === "boudoir" && !isPaidMember) setCategoryFilter(null);
-    if (tierFilter !== "public" && !isPaidMember) setTierFilter("public");
-  }, [categoryFilter, tierFilter, isPaidMember]);
+    if (categoryFilter === "boudoir" && !isSubscriber) setCategoryFilter(null);
+    if (tierFilter !== "public" && !isSubscriber) setTierFilter("public");
+  }, [categoryFilter, tierFilter, isSubscriber]);
 
   // React to bottom-nav deep links whenever search params change
   useEffect(() => {
@@ -2410,17 +2421,19 @@ function StoresPage() {
     setLiveLoading(false);
   };
 
-  // Community paywall — shown when a non-paying viewer taps the locked Community chip or a
-  // locked model. Uses the shared $8 video-pack dialog (buying the pack sets lb_paid, which
-  // unlocks the Community feed + locked models). Defined once so every render branch can drop
-  // it in. NO subscription / "coming soon" dead-end anymore.
+  // Two paywalls, dropped into every render branch:
+  //  • paywallModal   = locked MODELS → $8 video pack (sets lb_paid).
+  //  • subscribeModal = the COMMUNITY feed → $49/mo subscription (sets the Stripe sub).
   const paywallModal = (
     <PremiumDialog
       open={showPaywall}
       onClose={() => { setShowPaywall(false); setPaywallDone(false); }}
       title="Members only"
-      subtitle="Unlock the Community feed and every model — get the video pack."
+      subtitle="Unlock every model & full video — get the video pack."
     />
+  );
+  const subscribeModal = (
+    <SubscribeDialog open={showSubscribe} onClose={() => setShowSubscribe(false)} />
   );
 
   // ── DEFAULT HOME = the single feed style (HomeFeed: caption on top, Look/Escape
@@ -2458,6 +2471,7 @@ function StoresPage() {
         {showMerkliste && <MerklistePanel onClose={() => { setShowMerkliste(false); stripPanelParam(); }} />}
         {showUserPanel && <UserPanel onClose={() => { setShowUserPanel(false); setSavedAutoOpen(false); stripPanelParam(); }} openSaved={savedAutoOpen} />}
         {paywallModal}
+        {subscribeModal}
       </div>
     );
   }
@@ -2809,9 +2823,9 @@ function StoresPage() {
                 All
               </button>
               <button type="button"
-                onClick={() => { if (!isPaidMember) { setShowPaywall(true); return; } setTierFilter("community"); }}
+                onClick={() => { if (!isSubscriber) { setShowSubscribe(true); return; } setTierFilter("community"); }}
                 className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "community" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
-                {isPaidMember ? "🔓 " : "🔒 "}Community
+                {isSubscriber ? "🔓 " : "🔒 "}Community
               </button>
               {isAdmin && (
                 <button type="button" onClick={() => setTierFilter("private")}
@@ -3362,6 +3376,7 @@ function StoresPage() {
       {/* User panel */}
       {showUserPanel && <UserPanel onClose={() => { setShowUserPanel(false); setSavedAutoOpen(false); stripPanelParam(); }} openSaved={savedAutoOpen} />}
       {paywallModal}
+      {subscribeModal}
 
       {/* ── Admin: add a real Luxury Bandi garment from a photo ── */}
       {addOpen && (
