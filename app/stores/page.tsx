@@ -2628,7 +2628,7 @@ function StoresPage() {
                       stays as the primary explainer. */}
                   <button type="button" onClick={() => router.push("/about")}
                     className="lb-gold flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-black active:scale-95 transition-transform">
-                    <Play className="h-4 w-4" fill="currentColor" /> How it works
+                    <Sparkles className="h-4 w-4" /> Dress a model
                   </button>
                 </div>
                 {/* Model recruiting → its own landing page. Solid gold pill so
