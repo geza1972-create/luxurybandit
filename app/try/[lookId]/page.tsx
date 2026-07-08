@@ -912,7 +912,8 @@ export default function TryFunnelPage() {
 
       {/* Choose another look — free (featured) garments are selectable; the rest are Premium. */}
       {chooseLook && (
-        <div className="fixed inset-0 z-[95] flex flex-col bg-black/95" onClick={() => setChooseLook(false)}>
+        <div className="fixed inset-0 z-[95] bg-black/95" onClick={() => setChooseLook(false)}>
+         <div className="mx-auto flex h-full w-full max-w-[440px] flex-col border-x border-white/10">
           <div className="flex items-center justify-between px-4 py-3">
             <p className="text-sm font-black text-white">Choose a look</p>
             <button type="button" onClick={() => setChooseLook(false)}
@@ -952,6 +953,7 @@ export default function TryFunnelPage() {
             })()}
            </div>
           </div>
+         </div>
         </div>
       )}
     </div>

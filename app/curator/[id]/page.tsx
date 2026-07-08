@@ -830,7 +830,6 @@ export default function CuratorPublicPage() {
                   {wardrobe.map(l => {
                     const garment = (l.frontImageUrl ?? l.imageUrl) as string;
                     const hidden = l.published === false;
-                    const notMine = l.curatorId !== id;
                     // Only the featured (free) pieces are usable; the rest are Premium.
                     const locked = !l.featured && !isPaid;
                     return (
@@ -863,8 +862,8 @@ export default function CuratorPublicPage() {
                           )}
                         </div>
                         {hidden && <span className="absolute left-2 top-2 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-black text-white">Ausgeblendet</span>}
-                        {/* Only admins manage — and only HER own pieces (not the borrowed "more looks"). */}
-                        {isAdmin && !notMine && (
+                        {/* Admins manage EVERY piece shown here (own + borrowed portal looks). */}
+                        {isAdmin && (
                           <button type="button" onClick={() => openManage(l)}
                             className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-black/70 text-white backdrop-blur active:scale-90 transition">
                             <SlidersHorizontal className="h-4 w-4" />
