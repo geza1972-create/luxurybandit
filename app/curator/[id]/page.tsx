@@ -177,6 +177,8 @@ export default function CuratorPublicPage() {
   const [followLoading, setFollowLoading] = useState(false);
   const [showMsg, setShowMsg] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  // Deep link from the Messages list (/curator/<id>?chat=1) opens the chat straight away.
+  useEffect(() => { try { if (new URLSearchParams(window.location.search).get("chat") === "1") setShowChat(true); } catch { /**/ } }, []);
   const [msgText, setMsgText] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
