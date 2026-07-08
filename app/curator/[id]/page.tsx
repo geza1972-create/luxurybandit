@@ -251,6 +251,30 @@ export default function CuratorPublicPage() {
       setTryons(prev => prev.filter(x => x.id !== t.id));
     } catch { /**/ }
   };
+  // Admin: upscale an "in motion" video to HD (1080p) via Pixverse and replace it in place.
+  const [hdVidBusy, setHdVidBusy] = useState("");
+  const upscaleVideo = async (t: TryOn) => {
+    if (!t.videoUrl || hdVidBusy) return;
+    if (!window.confirm("Dieses Video in HD (1080p) umrechnen? Kostet Pixverse-Credits, ~1–2 Min.")) return;
+    setHdVidBusy(t.id);
+    const H = { "Content-Type": "application/json", ...adminHeaders() };
+    try {
+      const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ upscale: true, videoUrl: t.videoUrl }) }).then(r => r.json());
+      if (!start.videoId) throw new Error(start.error || "Upscale-Start fehlgeschlagen.");
+      let videoUrl = "";
+      for (let i = 0; i < 90; i++) {
+        await new Promise(r => setTimeout(r, 5000));
+        const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}`).then(r => r.json());
+        if (p.status === "done" && p.videoUrl) { videoUrl = p.videoUrl; break; }
+        if (p.status === "failed") throw new Error(p.error || "Umrechnen fehlgeschlagen.");
+      }
+      if (!videoUrl) throw new Error("Zeitüberschreitung.");
+      await fetch("/api/try-this-look", { method: "POST", headers: H, body: JSON.stringify({ action: "attach-generation-video", generationId: t.id, videoUrl }) });
+      setTryons(prev => prev.map(x => x.id === t.id ? { ...x, videoUrl } : x));
+      alert("In HD umgerechnet ✓ — neu laden zum Ansehen.");
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Umrechnen"); }
+    finally { setHdVidBusy(""); }
+  };
   // Admin: hide/show a video in HER public profile (and the feed) without deleting it —
   // feed:false keeps the clip (for ads / the reuse cache) but drops it from public views.
   const toggleVideoFeed = async (t: TryOn) => {
@@ -861,6 +885,11 @@ export default function CuratorPublicPage() {
                       <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-white backdrop-blur"><EyeOff className="h-3 w-3" /> Im Profil versteckt</span>
                     )}
                     <div className="absolute right-3 top-3 flex flex-col gap-2">
+                      <button type="button" onClick={() => void upscaleVideo(t)} disabled={!!hdVidBusy}
+                        className="grid h-9 min-w-9 place-items-center rounded-full bg-amber-400 px-2.5 text-[12px] font-black text-black backdrop-blur active:scale-90 transition disabled:opacity-50"
+                        title="In HD umrechnen (1080p)">
+                        {hdVidBusy === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "HD"}
+                      </button>
                       <button type="button" onClick={() => void toggleVideoFeed(t)}
                         className={`grid h-9 w-9 place-items-center rounded-full text-white backdrop-blur active:scale-90 transition ${t.feed === false ? "bg-emerald-500/90" : "bg-amber-400/90"}`}
                         aria-label={t.feed === false ? "Im Profil zeigen" : "Aus dem Profil ausblenden"}
