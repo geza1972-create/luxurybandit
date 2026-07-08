@@ -93,6 +93,11 @@ export default async function AboutPage() {
         {videos.length > 0 && (
           <div className="mb-7">
             <AboutStep3Videos videos={videos} />
+            {funnelStart && (
+              <Link href={funnelStart} className="lb-gold mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3.5 text-base font-black active:scale-95 transition-transform">
+                <Sparkles className="h-5 w-5" /> Dress a model
+              </Link>
+            )}
             <AboutVideoPicker />
           </div>
         )}
@@ -125,7 +130,7 @@ export default async function AboutPage() {
             {models.length > 0 && <AboutStep1Models featured={models} />}
             {funnelStart && (
               <Link href={funnelStart} className="lb-gold mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-black active:scale-95 transition-transform">
-                <Sparkles className="h-4 w-4" /> Start generating
+                <Sparkles className="h-4 w-4" /> Dress a model
               </Link>
             )}
           </div>
@@ -153,7 +158,7 @@ export default async function AboutPage() {
             )}
             {funnelStart && (
               <Link href={funnelStart} className="lb-gold mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-black active:scale-95 transition-transform">
-                <Sparkles className="h-4 w-4" /> Start generating
+                <Sparkles className="h-4 w-4" /> Dress a model
               </Link>
             )}
             {/* Admin: pick which garments show here (hidden for everyone else). */}

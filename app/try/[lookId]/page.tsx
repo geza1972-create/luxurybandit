@@ -560,13 +560,14 @@ export default function TryFunnelPage() {
           ) : (
             <>
               <p className="mt-2 text-[13px] font-bold text-white/50">{pickedModel ? "Great pick — or replace her with your own photo." : "The model from the video is ready. Keep her, or replace her with your own photo."}</p>
-              <div className="mx-auto mt-4 max-w-[78vw] overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04]">
-                <div className="relative aspect-[9/16] w-full">
+              <div className="mx-auto mt-3 w-fit overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04]">
+                {/* Height-constrained so 'Choose other model' + the outfit stay on screen. */}
+                <div className="relative aspect-[9/16] h-[38vh] max-w-[78vw]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {modelImg ? <img src={modelImg} alt="" className="h-full w-full object-cover object-top" /> : <div className="h-full w-full bg-white/5" />}
                   <button type="button" onClick={() => (avatar ? fileRef.current?.click() : (setPickedModel(""), setChooseModel(true)))}
-                    className="absolute inset-x-4 bottom-4 flex items-center justify-center gap-2 rounded-full bg-black/70 px-5 py-3 text-sm font-black backdrop-blur active:scale-95">
-                    <RefreshCw className="h-4 w-4" /> {avatar ? "Replace your photo" : "Choose other model"}
+                    className="absolute inset-x-3 bottom-3 flex items-center justify-center gap-2 rounded-full bg-black/70 px-4 py-2.5 text-[13px] font-black backdrop-blur active:scale-95">
+                    <RefreshCw className="h-3.5 w-3.5" /> {avatar ? "Replace your photo" : "Choose other model"}
                   </button>
                 </div>
               </div>
