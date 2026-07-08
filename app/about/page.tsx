@@ -67,6 +67,11 @@ export default async function AboutPage() {
   const { models, garments, videos } = await stepMedia();
   const step = "grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-400 text-sm font-black text-black";
   const card = "rounded-2xl border border-white/10 bg-white/[0.04] p-4";
+  // "Start generating" → the funnel, preloaded with the FIRST featured model + garment,
+  // ready to generate (both boxes use it: model-first and look-first land the same place).
+  const funnelStart = models.length > 0 && garments.length > 0
+    ? `/try/${garments[0].id}?modelId=${encodeURIComponent(models[0].id)}&model=${encodeURIComponent(models[0].photo)}&garment=${encodeURIComponent(garments[0].img)}&modelName=${encodeURIComponent(models[0].name)}`
+    : "";
 
   return (
     <main className="min-h-[100dvh] bg-[#0d0b0a] pb-24 text-white">
@@ -118,6 +123,11 @@ export default async function AboutPage() {
               </div>
             </div>
             {models.length > 0 && <AboutStep1Models featured={models} />}
+            {funnelStart && (
+              <Link href={funnelStart} className="lb-gold mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-black active:scale-95 transition-transform">
+                <Sparkles className="h-4 w-4" /> Start generating
+              </Link>
+            )}
           </div>
           {/* 2 — or pick an outfit first (both directions work) */}
           <div className={card}>
@@ -140,6 +150,11 @@ export default async function AboutPage() {
                   </Link>
                 ))}
               </div>
+            )}
+            {funnelStart && (
+              <Link href={funnelStart} className="lb-gold mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-black active:scale-95 transition-transform">
+                <Sparkles className="h-4 w-4" /> Start generating
+              </Link>
             )}
             {/* Admin: pick which garments show here (hidden for everyone else). */}
             <AboutGarmentPicker />
