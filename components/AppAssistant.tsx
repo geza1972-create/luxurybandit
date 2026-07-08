@@ -73,7 +73,7 @@ export default function AppAssistant() {
 
       {open && (
         <div className="fixed inset-0 z-[93] bg-black/60" onClick={() => setOpen(false)}>
-          <div className="lb-phone-col fixed inset-x-0 bottom-0 top-0 mx-auto flex max-w-[440px] flex-col bg-[#0d0b0a]" onClick={e => e.stopPropagation()}>
+          <div className="lb-phone-col fixed inset-x-0 top-0 mx-auto flex h-[100dvh] max-w-[440px] flex-col bg-[#0d0b0a]" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-400 text-black"><Sparkles className="h-5 w-5" /></span>
@@ -111,7 +111,7 @@ export default function AppAssistant() {
             </div>
 
             {/* Composer */}
-            <div className="border-t border-white/10 px-3 py-3" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+            <div className="shrink-0 border-t border-white/10 px-3 pt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.85rem)" }}>
               <div className="flex items-end gap-2">
                 <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={onKey} rows={1}
                   placeholder="Ask about LuxuryBandit…"

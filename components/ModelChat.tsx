@@ -1,12 +1,24 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, X, Send, Lock, Sparkles } from "lucide-react";
+import { Loader2, X, Send, Lock, Sparkles, Smile, Gift } from "lucide-react";
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
 // Free users get a few lines to try; after that the composer locks and we upsell.
 const FREE_USER_MESSAGES = 5;
+
+const EMOJIS = ["😍", "😘", "🥰", "😂", "😉", "😎", "🔥", "💋", "💕", "❤️", "🤩", "😳", "🙈", "👀", "✨", "💃", "👗", "👠", "💎", "🥂", "🌹", "🙏", "👋", "😅"];
+const GIFTS = [
+  { emoji: "🌹", name: "Rose" },
+  { emoji: "🍫", name: "Chocolate" },
+  { emoji: "🥂", name: "Champagne" },
+  { emoji: "🧸", name: "Teddy" },
+  { emoji: "💐", name: "Bouquet" },
+  { emoji: "💎", name: "Diamond" },
+  { emoji: "👑", name: "Crown" },
+  { emoji: "💍", name: "Ring" },
+];
 
 export default function ModelChat({
   open, onClose, curatorId, modelName, modelFirstName, bio, style, avatarUrl, isPaid, onNeedPremium,
@@ -34,6 +46,8 @@ export default function ModelChat({
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [showGifts, setShowGifts] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const first = modelFirstName || modelName || "She";
@@ -78,14 +92,15 @@ export default function ModelChat({
     setMessages([{ role: "assistant", content: `Love that name, ${n}! 😍 So tell me — what look are you in the mood for today?` }]);
   };
 
-  const sendMessage = async () => {
-    const text = input.trim();
+  const sendMessage = async (textArg?: string) => {
+    const text = (textArg ?? input).trim();
     if (!text || sending) return;
     if (locked) { onNeedPremium(); return; }
     setError("");
+    setShowEmoji(false); setShowGifts(false);
     const next = [...messages, { role: "user" as const, content: text }];
     setMessages(next);
-    setInput("");
+    if (textArg === undefined) setInput("");
     setSending(true);
     try {
       const res = await fetch("/api/model-chat", {
@@ -107,9 +122,16 @@ export default function ModelChat({
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); stage === "name" ? submitName() : void sendMessage(); }
   };
 
+  // Send a gift — appears as a playful action the model reacts to.
+  const sendGift = (g: { emoji: string; name: string }) => {
+    if (stage !== "chat") return;
+    if (locked) { onNeedPremium(); return; }
+    void sendMessage(`${g.emoji} *sends you a ${g.name}*`);
+  };
+
   return (
     <div className="fixed inset-0 z-[92] bg-black/60" onClick={onClose}>
-      <div className="lb-phone-col fixed inset-x-0 bottom-0 top-0 mx-auto flex max-w-[440px] flex-col bg-[#0d0b0a]"
+      <div className="lb-phone-col fixed inset-x-0 top-0 mx-auto flex h-[100dvh] max-w-[440px] flex-col bg-[#0d0b0a]"
         onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
@@ -177,18 +199,52 @@ export default function ModelChat({
         </div>
 
         {/* Composer */}
-        <div className="border-t border-white/10 px-3 py-3" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+        <div className="shrink-0 border-t border-white/10 px-3 pt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.85rem)" }}>
           {locked ? (
             <button type="button" onClick={onNeedPremium}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-white/10 text-sm font-black text-white/70 active:scale-95 transition">
               <Lock className="h-4 w-4" /> Go Premium to keep chatting
             </button>
           ) : (
-            <div className="flex items-end gap-2">
+            <>
+              {/* Emoji palette */}
+              {showEmoji && (
+                <div className="mb-2 grid grid-cols-8 gap-1 rounded-2xl border border-white/10 bg-white/[0.04] p-2">
+                  {EMOJIS.map(e => (
+                    <button key={e} type="button" onClick={() => { setInput(v => v + e); }}
+                      className="grid h-8 place-items-center rounded-lg text-xl active:scale-90 active:bg-white/10 transition">{e}</button>
+                  ))}
+                </div>
+              )}
+              {/* Gift tray */}
+              {showGifts && (
+                <div className="mb-2 rounded-2xl border border-amber-400/25 bg-amber-400/[0.06] p-2">
+                  <p className="px-1 pb-1.5 text-[11px] font-black text-amber-300/80">Send {first} a gift 🎁</p>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {GIFTS.map(g => (
+                      <button key={g.name} type="button" onClick={() => sendGift(g)}
+                        className="flex flex-col items-center gap-0.5 rounded-xl bg-white/5 py-2 active:scale-90 active:bg-white/10 transition">
+                        <span className="text-2xl">{g.emoji}</span>
+                        <span className="text-[10px] font-black text-white/60">{g.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="flex items-end gap-1.5">
+              {stage === "chat" && (
+                <>
+                  <button type="button" onClick={() => { setShowEmoji(v => !v); setShowGifts(false); }}
+                    className={`grid h-11 w-9 shrink-0 place-items-center rounded-full transition active:scale-90 ${showEmoji ? "text-amber-400" : "text-white/45"}`}><Smile className="h-6 w-6" /></button>
+                  <button type="button" onClick={() => { setShowGifts(v => !v); setShowEmoji(false); }}
+                    className={`grid h-11 w-9 shrink-0 place-items-center rounded-full transition active:scale-90 ${showGifts ? "text-amber-400" : "text-white/45"}`}><Gift className="h-6 w-6" /></button>
+                </>
+              )}
               <textarea
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={onKey}
+                onFocus={() => { setShowEmoji(false); setShowGifts(false); }}
                 rows={1}
                 placeholder={stage === "name" ? "Type your name…" : `Message ${first}…`}
                 className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium text-white outline-none focus:border-amber-400 placeholder:text-white/30" />
@@ -198,7 +254,8 @@ export default function ModelChat({
                 className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-amber-400 text-black disabled:opacity-40 active:scale-90 transition">
                 {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
               </button>
-            </div>
+              </div>
+            </>
           )}
           {!isPaid && stage === "chat" && !locked && (
             <p className="mt-2 text-center text-[11px] font-bold text-white/30">{Math.max(0, FREE_USER_MESSAGES - userTurns)} free messages left</p>

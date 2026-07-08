@@ -626,7 +626,7 @@ export default function CuratorPublicPage() {
         {!isOwn && (
           <div className="mt-2 flex items-center gap-2">
             <button type="button" onClick={() => void handleFollow()} disabled={followLoading}
-              className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-black transition active:scale-95 disabled:opacity-50 ${following ? "border border-white/20 text-white/70" : "lb-gold"}`}>
+              className={`flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full px-6 text-xs font-black transition active:scale-95 disabled:opacity-50 ${following ? "border border-white/20 text-white/70" : "lb-black3d"}`}>
               {followLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : following ? <><UserCheck className="h-3.5 w-3.5" /> Following</> : <><UserPlus className="h-3.5 w-3.5" /> Follow</>}
             </button>
             <button type="button" onClick={() => { const url = window.location.href; if (navigator.share) navigator.share({ title: name, url }).catch(() => {}); else navigator.clipboard?.writeText(url); }}
