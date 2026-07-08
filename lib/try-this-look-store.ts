@@ -322,7 +322,8 @@ export type TryThisLookState = {
   // Video-generation credits. balances = email → credits left (1 video = 1 credit;
   // $8 pack = +4). redeemed = Stripe session ids already granted (idempotency).
   // welcomed = emails that already got their free welcome credits (granted once).
-  videoCredits?: { balances: Record<string, number>; redeemed: string[]; welcomed?: string[] };
+  // subMonths = "email|YYYY-MM" keys already granted the monthly subscriber allowance (idempotency).
+  videoCredits?: { balances: Record<string, number>; redeemed: string[]; welcomed?: string[]; subMonths?: string[] };
 };
 
 export type ModelChatLog = {
@@ -789,6 +790,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
         balances: { ...(latest.videoCredits?.balances ?? {}), ...(state.videoCredits?.balances ?? {}) },
         redeemed: Array.from(new Set([...(latest.videoCredits?.redeemed ?? []), ...(state.videoCredits?.redeemed ?? [])])).slice(-5000),
         welcomed: Array.from(new Set([...(latest.videoCredits?.welcomed ?? []), ...(state.videoCredits?.welcomed ?? [])])).slice(-20000),
+        subMonths: Array.from(new Set([...(latest.videoCredits?.subMonths ?? []), ...(state.videoCredits?.subMonths ?? [])])).slice(-20000),
       },
       // Events are an append-only analytics log fired constantly (views, tryon/bandit/
       // product clicks). Without a union-merge a concurrent `view` save clobbers a
@@ -1027,6 +1029,27 @@ export async function grantVideoCredits(email: string, sessionId: string, n: num
   state.videoCredits = vc;
   await saveTryThisLookState(state);
   return { credits: vc.balances[e], granted: true };
+}
+
+// How many video credits an active $49/mo subscriber gets each calendar month.
+export const SUBSCRIPTION_MONTHLY_CREDITS = Number(process.env.SUBSCRIPTION_MONTHLY_CREDITS ?? 50);
+
+// Grant the monthly subscriber allowance ONCE per calendar month (idempotent via subMonths,
+// keyed "email|YYYY-MM"). Call it whenever we confirm an active subscription. Returns balance.
+export async function grantMonthlySubscriptionCredits(email: string, n = SUBSCRIPTION_MONTHLY_CREDITS): Promise<number> {
+  const e = email.trim().toLowerCase();
+  if (!e) return 0;
+  const month = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const key = `${e}|${month}`;
+  const state = await readTryThisLookState();
+  const vc = state.videoCredits ?? { balances: {}, redeemed: [] };
+  vc.balances = vc.balances ?? {}; vc.subMonths = vc.subMonths ?? [];
+  if (vc.subMonths.includes(key)) return Math.max(0, Number(vc.balances[e] ?? 0)); // already granted this month
+  vc.balances[e] = Math.max(0, Number(vc.balances[e] ?? 0)) + n;
+  vc.subMonths.push(key);
+  state.videoCredits = vc;
+  await saveTryThisLookState(state);
+  return vc.balances[e];
 }
 
 // Spend one credit for a generation. Returns the new balance, or null if none left.

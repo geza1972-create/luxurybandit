@@ -21,27 +21,39 @@ export default function PremiumSync() {
         return (d?.credits ?? 0) > 0;
       } catch { return false; }
     };
+    // Active $49/mo subscription? This ALSO tops up the monthly video-credit allowance
+    // server-side, so we run it BEFORE the credit check below.
+    const isSubscribed = async (email: string): Promise<boolean> => {
+      try {
+        const d = await fetch(`/api/premium?email=${encodeURIComponent(email)}`).then(r => r.json());
+        return !!d?.premium;
+      } catch { return false; }
+    };
 
     const sync = async () => {
       const email = emailNow();
       const flagEmail = (() => { try { return localStorage.getItem("lb_paid_email") || ""; } catch { return ""; } })();
-      const clearPaid = () => { try { localStorage.removeItem("lb_paid"); localStorage.removeItem("lb_paid_email"); } catch { /**/ } };
-      if (!email) { if (flagEmail) clearPaid(); return; }        // signed out → drop a stale flag
-      if (flagEmail && flagEmail !== email) clearPaid();          // different user on this device
+      const clearAll = () => { try { localStorage.removeItem("lb_paid"); localStorage.removeItem("lb_paid_email"); localStorage.removeItem("lb_subscribed"); } catch { /**/ } };
+      if (!email) { if (flagEmail) clearAll(); return; }          // signed out → drop stale flags
+      if (flagEmail && flagEmail !== email) clearAll();            // different user on this device
 
+      let changed = false;
+
+      // 1) Subscription (unlocks Community + unlimited chat; grants the monthly credits).
+      const sub = await isSubscribed(email);
+      const wasSub = localStorage.getItem("lb_subscribed");
+      if (sub) { localStorage.setItem("lb_subscribed", "1"); if (wasSub !== "1") changed = true; }
+      else if (wasSub === "1") { localStorage.removeItem("lb_subscribed"); changed = true; }
+
+      // 2) Video credits → lb_paid (includes any monthly allowance just granted in step 1).
       const paid = await hasCredits(email);
       const was = localStorage.getItem("lb_paid");
-      if (paid) {
-        localStorage.setItem("lb_paid", "1");
-        try { localStorage.setItem("lb_paid_email", email); } catch { /**/ }
-        window.dispatchEvent(new Event("lb-paid-updated"));
-        if (was !== "1") window.location.reload(); // first detection → re-read gates
-      } else if (was === "1") {
-        // Out of credits (or never bought) → re-lock the paid content.
-        clearPaid();
-        window.dispatchEvent(new Event("lb-paid-updated"));
-        window.location.reload();
-      }
+      if (paid) { localStorage.setItem("lb_paid", "1"); if (was !== "1") changed = true; }
+      else if (was === "1") { localStorage.removeItem("lb_paid"); changed = true; }
+
+      try { localStorage.setItem("lb_paid_email", email); } catch { /**/ }
+      window.dispatchEvent(new Event("lb-paid-updated"));
+      if (changed) window.location.reload(); // first detection / re-lock → re-read gates
     };
 
     void sync();

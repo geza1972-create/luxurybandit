@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, BadgeCheck, Instagram, Loader2, Lock, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play, Sparkles, SlidersHorizontal, Trash2, EyeOff, Eye, ImageUp, Video, Download } from "lucide-react";
 import PremiumDialog from "@/components/PremiumDialog";
+import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { LOOK_CATEGORIES, categorizeLook, isLookCategory, type LookCategory } from "@/lib/look-category";
@@ -92,8 +93,16 @@ export default function CuratorPublicPage() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false); // $49/mo subscriber → unlimited chat
   const [showPremium, setShowPremium] = useState(false);
-  useEffect(() => { try { setIsPaid(!!localStorage.getItem("luxurybandit-try-look-admin-pin") || localStorage.getItem("lb_paid") === "1"); } catch { /**/ } }, []);
+  const [showSubscribe, setShowSubscribe] = useState(false);
+  useEffect(() => {
+    try {
+      const admin = !!localStorage.getItem("luxurybandit-try-look-admin-pin");
+      setIsPaid(admin || localStorage.getItem("lb_paid") === "1");
+      setIsSubscribed(admin || localStorage.getItem("lb_subscribed") === "1");
+    } catch { /**/ }
+  }, []);
   const [genBusy, setGenBusy] = useState(false);
   const [genMsg, setGenMsg] = useState("");
   // Admin: describe the pieces to generate (else auto from her prefs) + reference images
@@ -895,9 +904,10 @@ export default function CuratorPublicPage() {
         bio={profile.bio ?? ""}
         style={profile.style ?? ""}
         avatarUrl={profile.photoUrl ?? ""}
-        isPaid={isPaid}
-        onNeedPremium={() => { setShowChat(false); setShowPremium(true); }}
+        isPaid={isSubscribed}
+        onNeedPremium={() => { setShowChat(false); setShowSubscribe(true); }}
       />
+      <SubscribeDialog open={showSubscribe} onClose={() => setShowSubscribe(false)} />
 
       {/* Profile photo lightbox — tap anywhere (or X) to close. */}
       {photoOpen && profile.photoUrl && (

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSubscriptionCheckout, hasActiveSubscription, stripeConfigured } from "@/lib/stripe";
+import { grantMonthlySubscriptionCredits } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,12 +9,18 @@ export const dynamic = "force-dynamic";
 // swap the plan/price without a code change.
 const PRICE_ID = process.env.STRIPE_PREMIUM_PRICE_ID?.trim() || "price_1TqvRE1jPNCWoiztVkIaOg7x";
 
-// GET /api/premium?email=…  → { premium: boolean }  (queries Stripe live)
+// GET /api/premium?email=…  → { premium, credits? }  (queries Stripe live)
+// Subscribers also get their monthly video-credit allowance topped up here (idempotent per
+// month), since the client calls this to learn subscription status.
 export async function GET(request: Request) {
   const email = (new URL(request.url).searchParams.get("email") ?? "").trim().toLowerCase();
   if (!email || !stripeConfigured()) return NextResponse.json({ premium: false });
   try {
-    return NextResponse.json({ premium: await hasActiveSubscription(email) });
+    const premium = await hasActiveSubscription(email);
+    if (!premium) return NextResponse.json({ premium: false });
+    let credits: number | undefined;
+    try { credits = await grantMonthlySubscriptionCredits(email); } catch { /* grant is best-effort */ }
+    return NextResponse.json({ premium: true, ...(credits !== undefined ? { credits } : {}) });
   } catch {
     return NextResponse.json({ premium: false });
   }

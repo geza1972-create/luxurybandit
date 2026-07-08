@@ -13,6 +13,7 @@ import { trackMetaPixel } from "@/lib/meta-pixel";
 import { FeedGate } from "@/components/FeedGate";
 import ModelChat from "@/components/ModelChat";
 import PremiumDialog from "@/components/PremiumDialog";
+import SubscribeDialog from "@/components/SubscribeDialog";
 
 export type FeedLook = {
   id: string;
@@ -121,9 +122,17 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [gate, setGate] = useState<null | { mode: "auth" | "feedback"; reason?: string }>(null);
   const [showChat, setShowChat] = useState(false);
   const [showPremium, setShowPremium] = useState(false);
+  const [showSubscribe, setShowSubscribe] = useState(false); // $49/mo subscribe dialog (chat)
   const [immersive, setImmersive] = useState(false); // fullscreen video, all chrome hidden
   const [isPaid, setIsPaid] = useState(false);
-  useEffect(() => { try { setIsPaid(!!localStorage.getItem("luxurybandit-try-look-admin-pin") || localStorage.getItem("lb_paid") === "1"); } catch { /**/ } }, []);
+  const [isSubscribed, setIsSubscribed] = useState(false); // $49/mo subscriber → unlimited chat
+  useEffect(() => {
+    try {
+      const admin = !!localStorage.getItem("luxurybandit-try-look-admin-pin");
+      setIsPaid(admin || localStorage.getItem("lb_paid") === "1");
+      setIsSubscribed(admin || localStorage.getItem("lb_subscribed") === "1");
+    } catch { /**/ }
+  }, []);
   const pausedRef = useRef(true); pausedRef.current = paused;
   const [infoOpen, setInfoOpen] = useState(false);
   // Who-tried-this-on is a business secret → only the admin sees the named list.
@@ -1175,11 +1184,12 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           modelName={publicAuthorName(authorName)}
           modelFirstName={publicAuthorName(authorName).split(/\s+/)[0] || ""}
           avatarUrl={authorPhotoUrl || ""}
-          isPaid={isPaid}
-          onNeedPremium={() => { setShowChat(false); setShowPremium(true); }}
+          isPaid={isSubscribed}
+          onNeedPremium={() => { setShowChat(false); setShowSubscribe(true); }}
         />
       )}
       <PremiumDialog open={showPremium} onClose={() => setShowPremium(false)} />
+      <SubscribeDialog open={showSubscribe} onClose={() => setShowSubscribe(false)} />
 
       {/* Admin: assign this curated look to a curator */}
       {/* Paste the Pixverse video-ID/URL you upscaled yourself → replace this try-on's video. */}
