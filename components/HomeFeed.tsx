@@ -106,8 +106,12 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [approvedRequestIds, setApprovedRequestIds] = useState<Set<string>>(new Set());
   const [inView, setInView] = useState(false);
   const [vidFailed, setVidFailed] = useState(false); // autoplay blocked → show a Play button
-  const [paused, setPaused] = useState(false); // user tapped the video to pause
+  // Feed videos are HD and heavy on mobile data, so they DON'T autoplay: each slide shows
+  // its poster with a Play button, and the video bytes load only when the user taps (see
+  // preload="none"). `paused` therefore starts TRUE — a slide plays only after an explicit tap.
+  const [paused, setPaused] = useState(true); // not playing until the user taps
   const [playing, setPlaying] = useState(false); // active video is ACTUALLY playing (onPlaying)
+  const [buffering, setBuffering] = useState(false); // tapped, waiting for enough data → scanner
   // "Bandit the feeling" reveal: on the video, a button fades in after 2s; tapping it
   // shows a "Slides werden erstellt…" hint, then reveals the shop product carousel.
   const [showBanditBtn, setShowBanditBtn] = useState(false);
@@ -120,7 +124,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [immersive, setImmersive] = useState(false); // fullscreen video, all chrome hidden
   const [isPaid, setIsPaid] = useState(false);
   useEffect(() => { try { setIsPaid(!!localStorage.getItem("luxurybandit-try-look-admin-pin") || localStorage.getItem("lb_paid") === "1"); } catch { /**/ } }, []);
-  const pausedRef = useRef(false); pausedRef.current = paused;
+  const pausedRef = useRef(true); pausedRef.current = paused;
   const [infoOpen, setInfoOpen] = useState(false);
   // Who-tried-this-on is a business secret → only the admin sees the named list.
   // Also used to flag the admin's OWN feed interactions as internal so they don't
@@ -333,20 +337,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   useEffect(() => {
     syncVideos();
   }, [inView, active, muted, paused]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Switching carousel item clears a manual pause so it autoplays again.
-  // NOT on inView change — a browser micro-scroll on tap would fire IntersectionObserver,
-  // reset paused=false, and immediately un-pause a video the user just stopped.
-  useEffect(() => { setPaused(false); pausedRef.current = false; setPlaying(false); }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Grace period: don't flash the Play button while autoplay is still spinning up on a
-  // fresh slide — only surface it if the active video is STILL not playing after ~700ms
-  // (i.e. autoplay genuinely failed, the iOS "frozen still" case). A user pause shows
-  // the button immediately (handled separately via `paused`).
-  const [playHint, setPlayHint] = useState(false);
-  useEffect(() => {
-    if (playing || paused) { setPlayHint(false); return; }
-    const t = setTimeout(() => setPlayHint(true), 700);
-    return () => clearTimeout(t);
-  }, [playing, paused, active, inView]);
+  // Switching carousel item resets to the paused/poster state — the new slide waits for a
+  // tap before it loads & plays (no autoplay = no HD download on scroll).
+  useEffect(() => { setPaused(true); pausedRef.current = true; setPlaying(false); setBuffering(false); }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
   // Scrubbing: drag on video to seek (like YouTube). DESKTOP-ONLY — mouse events
   // never fire on a touch device, so on phones a tap goes through handleVideoClick
   // (which fires on iOS) to toggle play/pause instead.
@@ -392,6 +385,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       v.muted = muted;
       pausedRef.current = false; // update immediately so syncVideos doesn't race
       setPaused(false);
+      // preload="none" → the first tap has to fetch the clip; show the scanner until it plays.
+      if (v.readyState < 3) setBuffering(true);
       v.currentTime = savedTime;
       v.play().then(() => setVidFailed(false)).catch(() => setVidFailed(true));
     } else {
@@ -849,9 +844,10 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                       every feed video at once made none play. */}
                   {inView && Math.abs(i - active) <= 1 ? (
                   <video ref={el => { if (el) { videoRefs.current[i] = el; } else delete videoRefs.current[i]; }}
-                    src={look.videoUrl} className="h-full w-full bg-black object-cover cursor-grab active:cursor-grabbing"
-                    onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted autoPlay loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos}
-                    onPlaying={() => { if (i === active) { setPlaying(true); setVidFailed(false); } }} onPause={() => { if (i === active) setPlaying(false); }} onStalled={() => { if (i === active) setPlaying(false); }} />
+                    src={look.videoUrl} poster={videoStill || undefined} className="h-full w-full bg-black object-cover cursor-grab active:cursor-grabbing"
+                    onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted loop playsInline preload="none" onCanPlay={syncVideos} onLoadedData={syncVideos}
+                    onWaiting={() => { if (i === active) setBuffering(true); }}
+                    onPlaying={() => { if (i === active) { setPlaying(true); setVidFailed(false); setBuffering(false); } }} onPause={() => { if (i === active) setPlaying(false); }} onStalled={() => { if (i === active) setPlaying(false); }} />
                   ) : videoStill ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={videoStill} alt="" loading="lazy" decoding="async" className="h-full w-full bg-black object-cover" />
@@ -880,8 +876,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   {/* Mount the <video> only when on-screen & near the active slide (see note above). */}
                   {inView && Math.abs(i - active) <= 1 ? (
                   <video ref={el => { if (el) { videoRefs.current[i] = el; } else delete videoRefs.current[i]; }}
-                    src={m.url} poster={m.poster || videoStill} className="h-full w-full bg-black object-cover cursor-grab active:cursor-grabbing" onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted autoPlay loop playsInline preload="metadata" onCanPlay={syncVideos} onLoadedData={syncVideos}
-                    onPlaying={() => { if (i === active) { setPlaying(true); setVidFailed(false); } }} onPause={() => { if (i === active) setPlaying(false); }} onStalled={() => { if (i === active) setPlaying(false); }} />
+                    src={m.url} poster={m.poster || videoStill} className="h-full w-full bg-black object-cover cursor-grab active:cursor-grabbing" onClick={(e) => { e.stopPropagation(); handleVideoClick(); }} onMouseDown={handleVideoMouseDown} onMouseMove={handleVideoMouseMove} onMouseUp={handleVideoMouseUp} onMouseLeave={handleVideoMouseUp} muted loop playsInline preload="none" onCanPlay={syncVideos} onLoadedData={syncVideos}
+                    onWaiting={() => { if (i === active) setBuffering(true); }}
+                    onPlaying={() => { if (i === active) { setPlaying(true); setVidFailed(false); setBuffering(false); } }} onPause={() => { if (i === active) setPlaying(false); }} onStalled={() => { if (i === active) setPlaying(false); }} />
                   ) : (m.poster || videoStill) ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={m.poster || videoStill} alt="" loading="lazy" decoding="async" className="h-full w-full bg-black object-cover" />
@@ -997,24 +994,34 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           ))}
         </div>
 
-        {/* Overlay — shown whenever the ACTIVE video isn't actually playing. Two modes:
-            • LOADING (autoplay spinning up / buffering): just a spinner on a dark scrim —
-              NO preview image at all. The curator video carries no poster (bg-black), so a
-              still-loading clip shows black + spinner, never a stale look photo; once it
-              renders it shows the video's OWN frame.
-            • PAUSED (user tapped) / BLOCKED (autoplay denied): a tappable Play button. On a
-              user pause the browser's current frame stays visible under the light scrim.
+        {/* Overlay — shown whenever the ACTIVE video isn't playing. Videos don't autoplay
+            (data-saving), so the poster stays visible with a Play button. Two modes:
+            • BUFFERING (tapped, still fetching the HD clip): the scanner reveal — a beam
+              sweeps over the poster with viewfinder corners, so the wait feels intentional.
+            • IDLE/PAUSED: a tappable Play button over the poster.
             The whole overlay is tappable → plays. Hidden while scrubbing. */}
-        {(media[active]?.type === "video" || media[active]?.type === "cvideo") && inView && !playing && (paused || vidFailed || playHint) && !scrubRef.current.isScrubbing && (
-          <button type="button" aria-label={paused || vidFailed ? "Play" : "Loading"}
-            onClick={() => { const v = videoRefs.current[active]; if (v) { pausedRef.current = false; setPaused(false); v.muted = muted; v.play().then(() => { setVidFailed(false); setPlaying(true); }).catch(() => setVidFailed(true)); } }}
-            className="absolute inset-0 z-10 grid place-items-center">
-            {/* On a user pause keep it VERY subtle (no dark scrim, faint small icon);
-                only the autoplay-blocked case gets a prominent prompt. */}
-            <span className={`absolute inset-0 ${paused ? "" : vidFailed ? "bg-black/40" : "bg-black/45"}`} />
-            {paused || vidFailed
-              ? <Play className={`relative z-10 ${paused ? "h-12 w-12 fill-white/25 text-white/25" : "h-16 w-16 fill-white/70 text-white/70"}`} />
-              : <Loader2 className="relative z-10 h-12 w-12 animate-spin text-white/85" />}
+        {(media[active]?.type === "video" || media[active]?.type === "cvideo") && inView && !playing && !scrubRef.current.isScrubbing && (
+          <button type="button" aria-label={buffering ? "Loading" : "Play"}
+            onClick={() => { const v = videoRefs.current[active]; if (v) { pausedRef.current = false; setPaused(false); v.muted = muted; if (v.readyState < 3) setBuffering(true); v.play().then(() => { setVidFailed(false); setPlaying(true); }).catch(() => setVidFailed(true)); } }}
+            className="absolute inset-0 z-10 grid place-items-center overflow-hidden">
+            {buffering ? (
+              <>
+                {/* Scanner reveal over the poster while the clip loads. */}
+                <span className="absolute inset-0 bg-black/30" />
+                <span className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-white shadow-[0_0_18px_5px_rgba(255,255,255,0.7)]" />
+                <span className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-14 -translate-y-1/2 bg-gradient-to-b from-transparent via-white/15 to-transparent" />
+                <span className="pointer-events-none absolute left-3 top-3 z-20 h-6 w-6 rounded-tl-lg border-l-2 border-t-2 border-white/90" />
+                <span className="pointer-events-none absolute right-3 top-3 z-20 h-6 w-6 rounded-tr-lg border-r-2 border-t-2 border-white/90" />
+                <span className="pointer-events-none absolute bottom-3 left-3 z-20 h-6 w-6 rounded-bl-lg border-b-2 border-l-2 border-white/90" />
+                <span className="pointer-events-none absolute bottom-3 right-3 z-20 h-6 w-6 rounded-br-lg border-b-2 border-r-2 border-white/90" />
+                <span className="relative z-20 flex items-center gap-2 text-white"><Sparkles className="h-4 w-4 animate-pulse" /><span className="text-sm font-black">Loading…</span></span>
+              </>
+            ) : (
+              <>
+                <span className="absolute inset-0 bg-black/25" />
+                <Play className="relative z-10 h-16 w-16 fill-white/85 text-white/85" />
+              </>
+            )}
           </button>
         )}
 
