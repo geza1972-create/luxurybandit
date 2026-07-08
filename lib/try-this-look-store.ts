@@ -319,6 +319,9 @@ export type TryThisLookState = {
   chatConfig?: { globalNote?: string };
   // Logged AI-chat conversations, newest first, so the admin can read what users ask.
   modelChats?: ModelChatLog[];
+  // Paid video-generation credits. balances = email → credits left ($8 pack = +4);
+  // redeemed = Stripe checkout-session ids already granted (idempotency, capped).
+  videoCredits?: { balances: Record<string, number>; redeemed: string[] };
 };
 
 export type ModelChatLog = {
@@ -706,6 +709,7 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     viewsByDay: state.viewsByDay ?? {},
     chatConfig: state.chatConfig ?? {},
     modelChats: state.modelChats ?? [],
+    videoCredits: state.videoCredits ?? { balances: {}, redeemed: [] },
   });
 }
 
@@ -778,6 +782,12 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
       // AI-chat logs: our version wins per conversation (the route read→appended→saved),
       // and concurrent NEW conversations from other visitors are re-added by createdAt.
       modelChats: mergeNewerById((state.modelChats ?? []) as any, (latest.modelChats ?? []) as any, delChat) as any,
+      // Video credits: our version wins per email (we just read→modified→saved), plus
+      // any emails only latest knows about; redeemed session-ids are unioned (idempotency).
+      videoCredits: {
+        balances: { ...(latest.videoCredits?.balances ?? {}), ...(state.videoCredits?.balances ?? {}) },
+        redeemed: Array.from(new Set([...(latest.videoCredits?.redeemed ?? []), ...(state.videoCredits?.redeemed ?? [])])).slice(-5000),
+      },
       // Events are an append-only analytics log fired constantly (views, tryon/bandit/
       // product clicks). Without a union-merge a concurrent `view` save clobbers a
       // just-fired `tryon_click` (last-write-wins). Union keeps both; sort newest-first.
@@ -814,6 +824,10 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     modelChats: [...(state.modelChats ?? [])]
       .sort((a, b) => String(b.updatedAt ?? "").localeCompare(String(a.updatedAt ?? "")))
       .slice(0, 800),
+    videoCredits: {
+      balances: state.videoCredits?.balances ?? {},
+      redeemed: (state.videoCredits?.redeemed ?? []).slice(-5000),
+    },
     partnerStores: (state.partnerStores ?? []).slice(0, 200),
     brands: (state.brands ?? []).slice(0, 5000),
     styles: (state.styles ?? []).slice(0, 5000),
@@ -963,4 +977,48 @@ export function getActiveTryThisLooks(state: TryThisLookState) {
   const activeIds = new Set(activeLookIds);
   const activeLooks = state.looks.filter((look) => activeIds.has(look.id));
   return activeLooks.length ? activeLooks : [getActiveTryThisLook(state)];
+}
+
+// ── Paid video-generation credits (the $8 → 4-videos pack) ────────────────────
+// Keyed by the buyer's email; stored in the Supabase state blob (reliable on Vercel,
+// unlike the local credits-store.json).
+
+export async function getVideoCredits(email: string): Promise<number> {
+  const e = email.trim().toLowerCase();
+  if (!e) return 0;
+  const state = await readTryThisLookState();
+  return Math.max(0, Number(state.videoCredits?.balances?.[e] ?? 0));
+}
+
+// Idempotent grant: adds `n` credits for a paid Stripe session, once per sessionId.
+export async function grantVideoCredits(email: string, sessionId: string, n: number): Promise<{ credits: number; granted: boolean }> {
+  const e = email.trim().toLowerCase();
+  const state = await readTryThisLookState();
+  const vc = state.videoCredits ?? { balances: {}, redeemed: [] };
+  vc.balances = vc.balances ?? {};
+  vc.redeemed = vc.redeemed ?? [];
+  if (sessionId && vc.redeemed.includes(sessionId)) {
+    return { credits: Math.max(0, Number(vc.balances[e] ?? 0)), granted: false };
+  }
+  vc.balances[e] = Math.max(0, Number(vc.balances[e] ?? 0)) + n;
+  if (sessionId) vc.redeemed.push(sessionId);
+  state.videoCredits = vc;
+  await saveTryThisLookState(state);
+  return { credits: vc.balances[e], granted: true };
+}
+
+// Spend one credit for a generation. Returns the new balance, or null if none left.
+export async function spendVideoCredit(email: string): Promise<number | null> {
+  const e = email.trim().toLowerCase();
+  if (!e) return null;
+  const state = await readTryThisLookState();
+  const vc = state.videoCredits ?? { balances: {}, redeemed: [] };
+  const cur = Math.max(0, Number(vc.balances?.[e] ?? 0));
+  if (cur <= 0) return null;
+  vc.balances = vc.balances ?? {};
+  vc.redeemed = vc.redeemed ?? [];
+  vc.balances[e] = cur - 1;
+  state.videoCredits = vc;
+  await saveTryThisLookState(state);
+  return vc.balances[e];
 }

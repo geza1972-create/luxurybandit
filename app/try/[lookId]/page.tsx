@@ -83,8 +83,10 @@ export default function TryFunnelPage() {
   const [avatar, setAvatar] = useState<string>("");       // user's own photo (data URL)
   const [gateOpen, setGateOpen] = useState(false);
   const [rendering, setRendering] = useState(false);       // fake "generating" spinner before the teaser
-  const [plan, setPlan] = useState<"pro" | "creator">("pro");
-  const [billing, setBilling] = useState<"month" | "year">("month");
+  // Paid video pack ($8 → 4 videos). packCredits = how many the signed-in user has left.
+  const [packCredits, setPackCredits] = useState<number | null>(null);
+  const [payBusy, setPayBusy] = useState(false);
+  const [payError, setPayError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Admin-only prompt preview/editor (@Bild1 = model, @Bild2 = outfit).
@@ -345,6 +347,12 @@ export default function TryFunnelPage() {
       }
     } catch (e) {
       setGenStatus("error"); setGenError(e instanceof Error ? e.message : "Fehler");
+      // Generation failed → give the paid credit back so nobody pays for nothing.
+      if (!adminPin) {
+        const email = payEmail();
+        if (email) fetch("/api/video-pack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, action: "refund" }) })
+          .then(r => r.json()).then(d => { if (typeof d.credits === "number") setPackCredits(d.credits); }).catch(() => {});
+      }
     }
   };
 
@@ -393,7 +401,61 @@ export default function TryFunnelPage() {
     return () => clearTimeout(t);
   }, [genStatus, chosenModelId, adminPin]);
 
-  const price = plan === "pro" ? (billing === "month" ? "$58.99" : "$29.49") : (billing === "month" ? "$128.99" : "$64.49");
+  // ── Paid video pack ($8 → 4 videos) ────────────────────────────────────────
+  const payEmail = () => getStoredAuthSession()?.user?.email?.trim().toLowerCase() || "";
+  // Load the signed-in user's remaining video credits when they hit the paywall.
+  useEffect(() => {
+    if (step !== 4 || adminPin) return;
+    const email = payEmail();
+    if (!email) { setPackCredits(0); return; }
+    fetch(`/api/video-pack?email=${encodeURIComponent(email)}`).then(r => r.json())
+      .then(d => setPackCredits(Number(d.credits ?? 0))).catch(() => setPackCredits(0));
+  }, [step, adminPin]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Buy the $8 pack in a popup, wait for payment, then return the granted balance.
+  const buyPack = async (): Promise<boolean> => {
+    const email = payEmail();
+    if (!email) { window.location.href = `/login?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`; return false; }
+    const res = await fetch("/api/video-pack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok || !d.url) throw new Error(d.error ?? "Could not start checkout.");
+    const popup = window.open(d.url, "lb_pay", "width=480,height=800");
+    // Poll until Stripe reports the session paid (credits granted) or the user gives up.
+    for (let i = 0; i < 150; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      try {
+        const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(d.sessionId)}`).then(r => r.json());
+        if (st?.paid) { try { popup?.close(); } catch { /**/ } if (typeof st.credits === "number") setPackCredits(st.credits); return true; }
+      } catch { /**/ }
+      if (popup && popup.closed) break;
+    }
+    return false;
+  };
+
+  // The paywall's main action: spend a credit and generate — buying a pack first if empty.
+  const startPaidGenerate = async () => {
+    if (adminPin) { setStep(5); return; }
+    setPayError(""); setPayBusy(true);
+    try {
+      const email = payEmail();
+      if (!email) { window.location.href = `/login?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`; return; }
+      // Try to spend a credit; if none, buy a pack then spend.
+      let spend = await fetch("/api/video-pack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, action: "spend" }) });
+      if (spend.status === 402) {
+        const bought = await buyPack();
+        if (!bought) { setPayBusy(false); return; }
+        spend = await fetch("/api/video-pack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, action: "spend" }) });
+      }
+      const sd = await spend.json().catch(() => ({}));
+      if (!spend.ok) throw new Error(sd.error ?? "Could not start your video.");
+      setPackCredits(typeof sd.credits === "number" ? sd.credits : (c => (c ?? 1) - 1)(packCredits));
+      setStep(5);
+    } catch (e) {
+      setPayError(e instanceof Error ? e.message : "Something went wrong.");
+    } finally {
+      setPayBusy(false);
+    }
+  };
 
   // "Motion" picker — what she does in the video. Users see ONLY these two chips;
   // the actual prompt swap (walk/turn vs dance + music) happens server-side.
@@ -666,41 +728,35 @@ export default function TryFunnelPage() {
       {/* ── Step 4: plans ──────────────────────────────────────────────────── */}
       {step === 4 && (
         <div className="px-4 pb-28 pt-2">
-          <h1 className="text-center text-[26px] font-black">Select your plan</h1>
-          <p className="mt-1 text-center text-[13px] font-bold text-white/50">Unlock your video and unlimited try-ons.</p>
+          <h1 className="text-center text-[26px] font-black">Create your video</h1>
+          <p className="mt-1 text-center text-[13px] font-bold text-white/50">{(packCredits ?? 0) > 0 ? "Ready to go — this uses 1 video credit." : "Get 4 try-on videos — pay once, no subscription."}</p>
 
-          <div className="mx-auto mt-5 flex w-fit items-center gap-1 rounded-full bg-white/10 p-1 text-sm font-black">
-            <button type="button" onClick={() => setBilling("month")} className={`rounded-full px-4 py-1.5 ${billing === "month" ? "bg-white text-black" : "text-white/60"}`}>Monthly</button>
-            <button type="button" onClick={() => setBilling("year")} className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 ${billing === "year" ? "bg-white text-black" : "text-white/60"}`}>Yearly <span className="rounded-full bg-amber-400 px-1.5 text-[10px] text-black">-50%</span></button>
-          </div>
-
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            {(["pro", "creator"] as const).map(p => (
-              <button key={p} type="button" onClick={() => setPlan(p)}
-                className={`rounded-2xl border p-4 text-left transition ${plan === p ? "border-amber-400 bg-amber-400/10" : "border-white/12 bg-white/[0.03]"}`}>
-                <div className="flex items-center justify-between">
-                  <span className={`text-[13px] font-black uppercase tracking-wide ${p === "pro" ? "text-amber-400" : "text-white"}`}>{p}</span>
-                  {plan === p && <span className="grid h-5 w-5 place-items-center rounded-full bg-amber-400 text-black"><Check className="h-3.5 w-3.5" /></span>}
-                </div>
-                <p className="mt-3 text-[12px] font-bold text-white/50">{p === "pro" ? "Best start" : "Full access"}</p>
-                <p className="mt-1 text-2xl font-black">{p === "pro" ? (billing === "month" ? "$58.99" : "$29.49") : (billing === "month" ? "$128.99" : "$64.49")}</p>
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            {[["Video", "Your try-on video in full quality"], ["Unlimited", "Unlimited try-ons on any look"], ["Avatar", "Use your own photo as the model"]].map(([t, d]) => (
-              <div key={t} className="flex items-center gap-3 py-2">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-amber-400/20 text-amber-400"><Check className="h-4 w-4" /></span>
-                <div><p className="text-sm font-black">{t}</p><p className="text-[12px] font-bold text-white/45">{d}</p></div>
+          {(packCredits ?? 0) > 0 ? (
+            /* Has credits → just generate. */
+            <div className="mx-auto mt-6 max-w-sm rounded-2xl border border-emerald-400/30 bg-emerald-400/[0.06] p-5 text-center">
+              <p className="text-3xl font-black text-white">{packCredits} <span className="text-base font-bold text-white/50">videos left</span></p>
+              <p className="mt-1 text-[12px] font-bold text-white/45">Generating this video uses 1 credit.</p>
+            </div>
+          ) : (
+            /* No credits → the $8 pack. */
+            <div className="mx-auto mt-6 max-w-sm rounded-3xl border border-amber-400/30 bg-amber-400/[0.06] p-6 text-center">
+              <p className="text-4xl font-black text-white">$8</p>
+              <p className="mt-1 text-sm font-black text-amber-400">4 try-on videos</p>
+              <p className="mt-0.5 text-[12px] font-bold text-white/45">$2 per video · pay once · no subscription</p>
+              <div className="mt-4 grid gap-2 text-left">
+                {["Your try-on in full quality", "Use it 4 times, any look", "Yours to keep, share & download"].map(perk => (
+                  <div key={perk} className="flex items-center gap-2.5"><Check className="h-4 w-4 shrink-0 text-amber-400" /><span className="text-[13px] font-bold text-white/80">{perk}</span></div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {payError && <p className="mx-auto mt-3 max-w-sm text-center text-[12px] font-bold text-red-400">{payError}</p>}
 
           {/* Admin: skip the paywall and jump to the unlocked result (test the paid flow). */}
           {adminPin && !previewAsUser && (
             <button type="button" onClick={() => setStep(5)}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-400/10 py-3 text-[13px] font-black text-emerald-300 active:scale-95 transition-transform">
+              className="mx-auto mt-4 flex w-full max-w-sm items-center justify-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-400/10 py-3 text-[13px] font-black text-emerald-300 active:scale-95 transition-transform">
               <Check className="h-4 w-4" /> Admin: continue as paid →
             </button>
           )}
@@ -877,10 +933,10 @@ export default function TryFunnelPage() {
               </button>
             )
           )}
-          {step === 4 && (
-            <button type="button" onClick={() => alert("Checkout — subscription billing is wired up next.")}
-              className="lb-gold flex h-14 w-full items-center justify-center rounded-full text-base font-black active:scale-95 transition-transform">
-              Continue — {price}/{billing === "month" ? "mo" : "mo, billed yearly"}
+          {step === 4 && !(adminPin && !previewAsUser) && (
+            <button type="button" onClick={() => void startPaidGenerate()} disabled={payBusy || packCredits === null}
+              className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform disabled:opacity-60">
+              {payBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : ((packCredits ?? 0) > 0 ? "Generate my video →" : "Get 4 videos — $8")}
             </button>
           )}
         </div>

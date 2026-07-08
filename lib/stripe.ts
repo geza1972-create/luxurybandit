@@ -88,6 +88,30 @@ export async function createTryonCheckout(opts: {
   return { id: String(session.id), url: String(session.url) };
 }
 
+// One-time credit-pack checkout (the $8 → 4 videos pack). Ties the buyer's email so
+// checkout-status can grant the credits on return.
+export async function createPackCheckout(opts: {
+  amount: number;          // minor units (cents)
+  currency: string;
+  productName: string;
+  email?: string;
+  successUrl: string;
+  cancelUrl: string;
+  metadata: Record<string, string>;
+}): Promise<{ id: string; url: string }> {
+  const session = await stripeRequest("POST", "/checkout/sessions", {
+    mode: "payment",
+    success_url: opts.successUrl,
+    cancel_url: opts.cancelUrl,
+    ...(opts.email ? { customer_email: opts.email, client_reference_id: opts.email } : {}),
+    line_items: [{ quantity: 1, price_data: { currency: opts.currency, unit_amount: opts.amount, product_data: { name: opts.productName } } }],
+    allow_promotion_codes: true,
+    metadata: opts.metadata,
+    payment_intent_data: { metadata: opts.metadata },
+  });
+  return { id: String(session.id), url: String(session.url) };
+}
+
 // Create a recurring-subscription Checkout Session (Premium membership). Ties the
 // subscription to the customer's email so we can look it up later.
 export async function createSubscriptionCheckout(opts: {
@@ -132,6 +156,8 @@ export async function getCheckoutSession(id: string): Promise<{
   status: string;          // "open" | "complete" | "expired"
   metadata: Record<string, string>;
   amountTotal: number | null;
+  clientReferenceId: string;
+  customerEmail: string;
 }> {
   const s = await stripeRequest("GET", `/checkout/sessions/${encodeURIComponent(id)}`);
   return {
@@ -139,5 +165,7 @@ export async function getCheckoutSession(id: string): Promise<{
     status: String(s.status ?? ""),
     metadata: (s.metadata ?? {}) as Record<string, string>,
     amountTotal: typeof s.amount_total === "number" ? s.amount_total : null,
+    clientReferenceId: String(s.client_reference_id ?? ""),
+    customerEmail: String(s.customer_details?.email ?? s.customer_email ?? ""),
   };
 }

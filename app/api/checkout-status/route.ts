@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCheckoutSession, stripeConfigured } from "@/lib/stripe";
+import { grantVideoCredits } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,11 +17,25 @@ export async function GET(request: Request) {
   try {
     const s = await getCheckoutSession(sessionId);
     const paid = s.paymentStatus === "paid" || s.paymentStatus === "no_payment_required";
+
+    // $8 video pack → grant the credits (idempotent per session id) to the buyer email.
+    let credits: number | undefined;
+    if (paid && s.metadata.kind === "pack4") {
+      const email = (s.clientReferenceId || s.customerEmail || "").trim().toLowerCase();
+      if (email) {
+        const n = Number(s.metadata.credits ?? 4) || 4;
+        const res = await grantVideoCredits(email, sessionId, n);
+        credits = res.credits;
+      }
+    }
+
     return NextResponse.json({
       paid,
       status: s.status,
       tier: s.metadata.tier ?? "",
       lookId: s.metadata.lookId ?? "",
+      kind: s.metadata.kind ?? "",
+      ...(credits !== undefined ? { credits } : {}),
     });
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Could not verify payment." }, { status: 502 });
