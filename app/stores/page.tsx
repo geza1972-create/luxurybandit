@@ -1211,7 +1211,16 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
         window.location.href = "/user/dashboard"; // land on the dashboard, not the feed
         return;
       } else if (action === "register") {
-        await signUpWithPassword(email.trim(), password);
+        // Supabase auto-confirms emails (mailer_autoconfirm), so sign-up returns a
+        // session right away — log the user straight in instead of telling them to
+        // check a (never-sent) confirmation email. The check-email copy only shows
+        // if the project is ever switched back to requiring confirmation.
+        const { session: s, confirmationRequired } = await signUpWithPassword(email.trim(), password);
+        if (s && !confirmationRequired) {
+          setSession(s);
+          window.location.href = "/user/dashboard";
+          return;
+        }
         setMessage("Account created! Check your email to confirm, then sign in.");
         setTab("signin");
       } else {
