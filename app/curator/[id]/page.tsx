@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, BadgeCheck, Instagram, Loader2, Lock, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play, Sparkles, SlidersHorizontal, Trash2, EyeOff, Eye, ImageUp, Video } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Instagram, Loader2, Lock, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play, Sparkles, SlidersHorizontal, Trash2, EyeOff, Eye, ImageUp, Video, Download } from "lucide-react";
 import PremiumDialog from "@/components/PremiumDialog";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { LOOK_CATEGORIES, categorizeLook, isLookCategory, type LookCategory } from "@/lib/look-category";
@@ -274,6 +274,22 @@ export default function CuratorPublicPage() {
       alert("In HD umgerechnet ✓ — neu laden zum Ansehen.");
     } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Umrechnen"); }
     finally { setHdVidBusy(""); }
+  };
+  // Download the clip as an .mp4 so you can post it to Instagram (Reel) from your phone.
+  const [dlBusy, setDlBusy] = useState("");
+  const downloadVideo = async (t: TryOn) => {
+    if (!t.videoUrl || dlBusy) return;
+    setDlBusy(t.id);
+    try {
+      const blob = await fetch(t.videoUrl).then(r => r.blob());
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${(name || "luxurybandit").replace(/\s+/g, "-")}-${t.id}.mp4`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 8000);
+    } catch { try { window.open(t.videoUrl, "_blank"); } catch { /**/ } }
+    finally { setDlBusy(""); }
   };
   // Admin: publish this video to the connected Instagram account as a Reel.
   const [igBusy, setIgBusy] = useState("");
@@ -900,6 +916,11 @@ export default function CuratorPublicPage() {
                       <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-white backdrop-blur"><EyeOff className="h-3 w-3" /> Im Profil versteckt</span>
                     )}
                     <div className="absolute right-3 top-3 flex flex-col gap-2">
+                      <button type="button" onClick={() => void downloadVideo(t)} disabled={!!dlBusy}
+                        className="grid h-9 w-9 place-items-center rounded-full bg-white text-black backdrop-blur active:scale-90 transition disabled:opacity-50"
+                        title="Video herunterladen (für Instagram-Reel vom Handy)">
+                        {dlBusy === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                      </button>
                       <button type="button" onClick={() => void postToInstagram(t)} disabled={!!igBusy}
                         className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-fuchsia-500 to-amber-500 text-white backdrop-blur active:scale-90 transition disabled:opacity-50"
                         title="Auf Instagram posten (Reel)">
