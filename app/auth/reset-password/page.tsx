@@ -29,15 +29,15 @@ export default function ResetPasswordPage() {
   const handleSubmit = async () => {
     setError("");
     if (!password || password.length < 6) {
-      setError("Passwort muss mindestens 6 Zeichen lang sein.");
+      setError("Password must be at least 6 characters.");
       return;
     }
     if (password !== confirm) {
-      setError("Passwörter stimmen nicht überein.");
+      setError("Passwords don't match.");
       return;
     }
     if (!accessToken) {
-      setError("Ungültiger oder abgelaufener Link. Bitte erneut anfordern.");
+      setError("Invalid or expired link. Please request a new one.");
       return;
     }
     setLoading(true);
@@ -47,7 +47,7 @@ export default function ResetPasswordPage() {
       // Redirect to home after 3 seconds
       setTimeout(() => router.push("/stores?panel=account"), 3000);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Fehler beim Ändern des Passworts.");
+      setError(e instanceof Error ? e.message : "Could not change your password.");
     } finally {
       setLoading(false);
     }
@@ -62,7 +62,7 @@ export default function ResetPasswordPage() {
         {/* Logo */}
         <div className="mb-8 text-center">
           <p className="text-2xl font-black tracking-tight text-black">LuxuryBandit</p>
-          <p className="mt-1 text-sm font-bold text-black/40">Neues Passwort festlegen</p>
+          <p className="mt-1 text-sm font-bold text-black/40">Set a new password</p>
         </div>
 
         {done ? (
@@ -71,47 +71,47 @@ export default function ResetPasswordPage() {
             <div className="grid h-16 w-16 place-items-center rounded-2xl bg-emerald-50">
               <CheckCircle className="h-8 w-8 text-emerald-500" />
             </div>
-            <p className="text-base font-black text-black">Passwort geändert!</p>
+            <p className="text-base font-black text-black">Password changed!</p>
             <p className="text-sm font-bold text-black/50">
-              Du wirst jetzt automatisch weitergeleitet…
+              Redirecting you now…
             </p>
           </div>
         ) : isInvalid ? (
           /* Wrong token type */
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="grid h-16 w-16 place-items-center rounded-2xl bg-red-50 text-3xl">⚠️</div>
-            <p className="text-base font-black text-black">Ungültiger Link</p>
+            <p className="text-base font-black text-black">Invalid link</p>
             <p className="text-sm font-bold text-black/50">
-              Dieser Link ist nicht für das Zurücksetzen des Passworts.
+              This link isn't for resetting your password.
             </p>
             <button
               type="button"
               onClick={() => router.push("/stores?panel=account")}
               className="flex h-12 w-full items-center justify-center rounded-2xl bg-black text-sm font-black text-white active:scale-95 transition-transform"
             >
-              Zurück zur App
+              Back to the app
             </button>
           </div>
         ) : !accessToken && tokenType === null ? (
           /* Still reading hash (or no token at all) */
           <div className="flex flex-col items-center gap-4 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-black/30" />
-            <p className="text-sm font-bold text-black/40">Wird geladen…</p>
+            <p className="text-sm font-bold text-black/40">Loading…</p>
           </div>
         ) : !accessToken ? (
           /* No token found */
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="grid h-16 w-16 place-items-center rounded-2xl bg-amber-50 text-3xl">🔗</div>
-            <p className="text-base font-black text-black">Kein gültiger Link</p>
+            <p className="text-base font-black text-black">No valid link</p>
             <p className="text-sm font-bold text-black/50 max-w-xs leading-relaxed">
-              Öffne diesen Link direkt aus der E-Mail von LuxuryBandit. Der Link ist nur einmal gültig.
+              Open this link directly from the LuxuryBandit email. It's valid only once.
             </p>
             <button
               type="button"
               onClick={() => router.push("/stores?panel=account")}
               className="flex h-12 w-full items-center justify-center rounded-2xl border border-black/10 text-sm font-black text-black active:bg-black/5 transition"
             >
-              Zurück zur App
+              Back to the app
             </button>
           </div>
         ) : (
@@ -121,19 +121,19 @@ export default function ResetPasswordPage() {
               <div className="grid h-12 w-12 place-items-center rounded-2xl bg-black text-white">
                 <KeyRound className="h-5 w-5" />
               </div>
-              <p className="text-sm font-bold text-black/50">Gib dein neues Passwort ein.</p>
+              <p className="text-sm font-bold text-black/50">Enter your new password.</p>
             </div>
 
             <input
               type="password"
-              placeholder="Neues Passwort"
+              placeholder="New password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-12 rounded-2xl border border-black/10 bg-black/[0.02] px-4 text-sm font-bold text-black placeholder:text-black/30 outline-none focus:border-black"
             />
             <input
               type="password"
-              placeholder="Passwort bestätigen"
+              placeholder="Confirm password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") void handleSubmit(); }}
@@ -150,7 +150,7 @@ export default function ResetPasswordPage() {
               disabled={loading || !password || !confirm}
               className="flex h-13 items-center justify-center rounded-2xl bg-black py-3.5 text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Passwort speichern"}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save password"}
             </button>
 
             <button
@@ -158,7 +158,7 @@ export default function ResetPasswordPage() {
               onClick={() => router.push("/stores?panel=account")}
               className="text-center text-xs font-bold text-black/35 underline underline-offset-2"
             >
-              Abbrechen
+              Cancel
             </button>
           </div>
         )}

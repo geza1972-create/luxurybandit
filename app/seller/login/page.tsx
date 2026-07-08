@@ -28,6 +28,8 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [agree, setAgree] = useState(false); // Terms & Privacy — required to create an account
   const [news, setNews] = useState(true);     // Product news & updates — opt-in, on by default
+  const [message, setMessage] = useState(""); // success notice (e.g. password-reset email sent)
+  const [resetLoading, setResetLoading] = useState(false);
 
   // Where to land after sign-in (e.g. back to the studio). Only internal paths.
   const rawReturn = params.get("returnTo") ?? "";
@@ -60,6 +62,32 @@ function LoginForm() {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Forgot password → mint a recovery link (Admin API) and email it via our mailer.
+  // Supabase's native /recover is broken on this project, so we don't use it.
+  const handleForgot = async () => {
+    setError(""); setMessage("");
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) { setError("Enter your email above first, then tap reset."); return; }
+    const resetRedirect = typeof window !== "undefined" ? `${window.location.origin}/auth/reset-password` : "";
+    setResetLoading(true);
+    try {
+      const res = await fetch("/api/send-reset-link", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), redirectTo: resetRedirect }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error ?? "Could not send reset email.");
+      if (d.sent) setMessage("Password reset link sent — check your email.");
+      // Don't reveal whether an account exists; show the same copy even if skipped
+      // because the account was unknown. Only a real mailer/config failure differs.
+      else if (d.skipped === "no-mailer" || d.skipped === "no-supabase-admin") setError("Email isn't set up yet — please contact support to reset your password.");
+      else setMessage("If that email has an account, a reset link is on its way.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send reset email.");
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -126,6 +154,7 @@ function LoginForm() {
               )}
 
               {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-bold text-red-600">{error}</p>}
+              {message && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">{message}</p>}
 
               <button type="submit" disabled={loading || (mode === "signup" && !agree)}
                 className="flex h-12 items-center justify-center gap-2 rounded-xl bg-black text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
@@ -135,10 +164,16 @@ function LoginForm() {
             </form>
 
         <div className="mt-4 flex flex-col items-center gap-2">
-          <button type="button" onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(""); }}
+          <button type="button" onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(""); setMessage(""); }}
             className="text-sm font-bold text-black/45">
             {mode === "signin" ? <>New here? <span className="font-black text-black underline underline-offset-2">Create an account</span></> : <>Already have an account? <span className="font-black text-black underline underline-offset-2">Sign in</span></>}
           </button>
+          {mode === "signin" && (
+            <button type="button" onClick={() => void handleForgot()} disabled={resetLoading}
+              className="flex items-center gap-1.5 text-xs font-bold text-black/40 disabled:opacity-50">
+              {resetLoading && <Loader2 className="h-3 w-3 animate-spin" />} Forgot your password?
+            </button>
+          )}
         </div>
       </div>
     </div>

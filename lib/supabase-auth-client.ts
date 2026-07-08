@@ -283,6 +283,6 @@ export async function updatePasswordWithToken(accessToken: string, newPassword: 
   });
   if (!res.ok) {
     const p = await res.json().catch(() => ({})) as { message?: string; error_description?: string };
-    throw new Error(p.error_description ?? p.message ?? "Passwort konnte nicht geändert werden.");
+    throw new Error(p.error_description ?? p.message ?? "Could not change your password.");
   }
 }
