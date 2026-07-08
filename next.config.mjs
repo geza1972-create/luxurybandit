@@ -42,6 +42,12 @@ const nextConfig = {
         source: "/seller/dashboard",
         destination: "/user/myaccount",
         permanent: true
+      },
+      {
+        // "seller" reads wrong for a general sign-in — the canonical login is /login.
+        source: "/seller/login",
+        destination: "/login",
+        permanent: true
       }
     ];
   },

@@ -105,7 +105,7 @@ export default function CuratorProfilePage() {
     let hasSession = false;
     try { hasSession = !!getStoredAuthSession(); } catch { /**/ }
     try { hasSession = hasSession || !!JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id; } catch { /**/ }
-    if (!hasSession) router.replace("/seller/login?returnTo=/curators/profile");
+    if (!hasSession) router.replace("/login?returnTo=/curators/profile");
   }, [loading, curatorId, router]);
 
   const onPickPhoto = async (file?: File) => {

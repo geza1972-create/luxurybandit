@@ -92,11 +92,11 @@ export default function MyTryOnsPage() {
     const s = getStoredAuthSession();
 
     // No Supabase login? A curator session or the studio admin PIN still counts as
-    // signed in — don't bounce them to /seller/login just to view this page.
+    // signed in — don't bounce them to /login just to view this page.
     if (!s?.access_token) {
       const curator = (() => { try { return JSON.parse(localStorage.getItem("lb_curator") ?? "{}"); } catch { return {} as any; } })();
       const adminPin = (() => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } })();
-      if (!curator?.id && !adminPin) { router.replace("/seller/login?returnTo=/user/tryons"); return; }
+      if (!curator?.id && !adminPin) { router.replace("/login?returnTo=/user/tryons"); return; }
 
       const tasks: Promise<void>[] = [];
 

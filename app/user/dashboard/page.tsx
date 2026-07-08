@@ -30,7 +30,7 @@ export default function UserDashboardPage() {
 
   useEffect(() => {
     const s = getStoredAuthSession();
-    if (!s?.access_token) { router.replace("/seller/login?returnTo=/user/dashboard"); return; }
+    if (!s?.access_token) { router.replace("/login?returnTo=/user/dashboard"); return; }
     setAccessToken(s.access_token);
     setEmail(s.user?.email ?? "");
 

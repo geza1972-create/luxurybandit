@@ -99,7 +99,7 @@ export default function ResetPasswordPage() {
             </p>
             <button
               type="button"
-              onClick={() => router.push("/seller/login")}
+              onClick={() => router.push("/login")}
               className="flex h-12 w-full items-center justify-center rounded-2xl bg-black text-sm font-black text-white active:scale-95 transition-transform"
             >
               Back to sign in
@@ -115,7 +115,7 @@ export default function ResetPasswordPage() {
             </p>
             <button
               type="button"
-              onClick={() => router.push("/seller/login")}
+              onClick={() => router.push("/login")}
               className="flex h-12 w-full items-center justify-center rounded-2xl bg-black text-sm font-black text-white active:scale-95 transition-transform"
             >
               Request a new link

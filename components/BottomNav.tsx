@@ -122,7 +122,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
   const hideChrome = !forceShow && (
     pathname.startsWith("/admin") ||
     pathname.startsWith("/auth/") ||
-    pathname.startsWith("/seller/login") ||
+    pathname.startsWith("/login") ||
     pathname.startsWith("/seller/register") ||
     pathname.startsWith("/curators/apply") ||
     pathname.startsWith("/tryon") || // focused try-on funnel — no bottom nav (it cut off content)

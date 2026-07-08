@@ -32,7 +32,7 @@ export default function SellerRegisterPage() {
       if (data.requiresEmailConfirm) {
         setError("");
         // Redirect to login with a success message
-        router.push("/seller/login?confirmed=1");
+        router.push("/login?confirmed=1");
         return;
       }
       if (data.session?.access_token) {
@@ -110,7 +110,7 @@ export default function SellerRegisterPage() {
 
         <p className="mt-6 text-center text-sm font-bold text-black/40">
           Already have an account?{" "}
-          <Link href="/seller/login" className="font-black text-black underline underline-offset-2">
+          <Link href="/login" className="font-black text-black underline underline-offset-2">
             Log in
           </Link>
         </p>

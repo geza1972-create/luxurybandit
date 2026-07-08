@@ -715,7 +715,7 @@ export default function SellerDashboardPage() {
       try { curatorId = (JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id as string) ?? ""; } catch { /**/ }
       if (pin) router.replace("/admin");
       else if (curatorId) router.replace("/studio");
-      else router.replace("/seller/login");
+      else router.replace("/login");
       return;
     }
     setSession(s);
@@ -729,7 +729,7 @@ export default function SellerDashboardPage() {
     setLoading(true);
     try {
       const res = await fetch("/api/seller/me", { headers: authHeader(token) });
-      if (res.status === 401) { router.push("/seller/login"); return; }
+      if (res.status === 401) { router.push("/login"); return; }
       const payload = await res.json();
       if (!res.ok) { setError(payload.error ?? "Could not load data."); return; }
       setData(payload);
@@ -802,7 +802,7 @@ export default function SellerDashboardPage() {
     } finally { setRequestingAi(false); }
   };
 
-  const handleLogout = () => { signOut(); router.push("/seller/login"); };
+  const handleLogout = () => { signOut(); router.push("/login"); };
 
   const openEditProfile = () => {
     const s = data?.store;
@@ -837,7 +837,7 @@ export default function SellerDashboardPage() {
     );
   }
 
-  // No session → we've already kicked off a redirect to /seller/login; render
+  // No session → we've already kicked off a redirect to /login; render
   // nothing (don't fall through to the data-dependent UI with null data).
   if (!session) return null;
 
