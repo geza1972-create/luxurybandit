@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, BadgeCheck, Instagram, Loader2, Lock, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play, Sparkles, SlidersHorizontal, Trash2, EyeOff, Eye, ImageUp, Video, Download } from "lucide-react";
 import PremiumDialog from "@/components/PremiumDialog";
+import ModelChat from "@/components/ModelChat";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { LOOK_CATEGORIES, categorizeLook, isLookCategory, type LookCategory } from "@/lib/look-category";
 
@@ -166,6 +167,7 @@ export default function CuratorPublicPage() {
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [showMsg, setShowMsg] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const [msgText, setMsgText] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -627,7 +629,7 @@ export default function CuratorPublicPage() {
               className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-black transition active:scale-95 disabled:opacity-50 ${following ? "border border-white/20 text-white/70" : "lb-gold"}`}>
               {followLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : following ? <><UserCheck className="h-3.5 w-3.5" /> Following</> : <><UserPlus className="h-3.5 w-3.5" /> Follow</>}
             </button>
-            <button type="button" onClick={() => { setShowMsg(true); setSent(false); }}
+            <button type="button" onClick={() => setShowChat(true)}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/20 text-white active:scale-95 transition">
               <MessageCircle className="h-4 w-4" />
             </button>
@@ -882,6 +884,20 @@ export default function CuratorPublicPage() {
       </div>
 
       <PremiumDialog open={showPremium} onClose={() => setShowPremium(false)} />
+
+      {/* AI "chat with the model" — free trial, then Premium. */}
+      <ModelChat
+        open={showChat}
+        onClose={() => setShowChat(false)}
+        curatorId={id}
+        modelName={name}
+        modelFirstName={profile.firstName ?? ""}
+        bio={profile.bio ?? ""}
+        style={profile.style ?? ""}
+        avatarUrl={profile.photoUrl ?? ""}
+        isPaid={isPaid}
+        onNeedPremium={() => { setShowChat(false); setShowPremium(true); }}
+      />
 
       {/* Profile photo lightbox — tap anywhere (or X) to close. */}
       {photoOpen && profile.photoUrl && (
