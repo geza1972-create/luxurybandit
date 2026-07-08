@@ -2634,8 +2634,8 @@ function StoresPage() {
                 {/* Model recruiting → its own landing page. Solid gold pill so
                     would-be models can't miss it. */}
                 <button type="button" onClick={() => router.push("/become-a-model")}
-                  className="lb-black3d mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-[13px] font-black active:scale-95 transition-transform">
-                  <Heart className="h-4 w-4" fill="currentColor" /> Become a Model — earn with every look →
+                  className="mt-3 flex w-full items-center justify-center gap-1.5 text-[13px] font-black text-white/55 underline decoration-white/25 underline-offset-4 active:opacity-70 transition">
+                  <Heart className="h-3.5 w-3.5" fill="currentColor" /> Become a Model — earn with every look →
                 </button>
               </section>
             )}
