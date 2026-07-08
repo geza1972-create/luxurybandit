@@ -8,7 +8,8 @@ export type SupabaseAuthUser = {
 export type SupabaseAuthSession = {
   access_token: string;
   refresh_token?: string;
-  expires_at?: number;
+  expires_at?: number;  // unix seconds when the access token expires
+  expires_in?: number;  // seconds until expiry (GoTrue returns this; we derive expires_at)
   user: SupabaseAuthUser;
 };
 
@@ -85,6 +86,10 @@ export function saveAuthSession(session: SupabaseAuthSession | null) {
     }
   } catch { /* ignore */ }
 
+  // Stamp an absolute expiry so we know WHEN to refresh (GoTrue returns expires_in seconds).
+  if (!session.expires_at && typeof session.expires_in === "number") {
+    session.expires_at = Math.floor(Date.now() / 1000) + session.expires_in;
+  }
   window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
   // Bridge the two identity systems: if this email belongs to a curator, mirror it
   // into lb_curator so the studio & curator UI recognise them — ONE login, role
@@ -184,6 +189,46 @@ export function signInWithOAuth(provider: "google" | "facebook", redirectTo: str
 
 export function signOut() {
   saveAuthSession(null);
+}
+
+// Exchange the refresh_token for a fresh access_token so the user stays logged in past
+// the ~1h access-token expiry (without this they got silently 401'd → "flew out").
+// Single-flight: GoTrue rotates the refresh_token on each use, so two concurrent refreshes
+// would make the 2nd fail — everyone shares the one in-flight promise. On a network error
+// we KEEP the current session (transient); only a real "invalid token" clears it.
+let refreshInFlight: Promise<SupabaseAuthSession | null> | null = null;
+export async function refreshSession(): Promise<SupabaseAuthSession | null> {
+  if (refreshInFlight) return refreshInFlight;
+  const cur = getStoredAuthSession();
+  if (!cur?.refresh_token) return cur;
+  refreshInFlight = (async () => {
+    try {
+      const payload = await authFetch<SupabaseAuthSession>("/token?grant_type=refresh_token", {
+        method: "POST",
+        body: JSON.stringify({ refresh_token: cur.refresh_token }),
+      });
+      const session = normalizeSession(payload);
+      if (session) return saveAuthSession(session);
+      return cur;
+    } catch (e) {
+      // "Invalid Refresh Token" / "refresh_token_not_found" → the token is truly dead, sign out.
+      const msg = e instanceof Error ? e.message.toLowerCase() : "";
+      if (msg.includes("refresh") || msg.includes("invalid") || msg.includes("token")) {
+        return saveAuthSession(null);
+      }
+      return cur; // network/transient → keep the session, try again later
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+  return refreshInFlight;
+}
+
+// Is the stored access token expired (or within `skewSec` of expiry)?
+export function isSessionExpiring(skewSec = 60): boolean {
+  const s = getStoredAuthSession();
+  if (!s?.expires_at) return false;
+  return s.expires_at * 1000 - Date.now() <= skewSec * 1000;
 }
 
 export type AuthUserFull = {

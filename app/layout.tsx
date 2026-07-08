@@ -6,6 +6,7 @@ import MetaPixel from "@/components/MetaPixel";
 import AdminUrlMirror from "@/components/AdminUrlMirror";
 import AgeGate from "@/components/AgeGate";
 import PremiumSync from "@/components/PremiumSync";
+import AuthRefresh from "@/components/AuthRefresh";
 
 export const metadata: Metadata = {
   metadataBase: new URL((process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "")),
@@ -50,7 +51,9 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <AdminUrlMirror />
         </Suspense>
-        {/* Syncs the premium flag with the user's real Stripe subscription. */}
+        {/* Keeps the login alive by refreshing the access token before it expires. */}
+        <AuthRefresh />
+        {/* Syncs the premium flag with the user's video-pack credits. */}
         <PremiumSync />
         <div className="lb-frame">
           {children}
