@@ -600,12 +600,20 @@ export default function TryFunnelPage() {
                   // Every generation costs 1 credit (new users get free welcome credits;
                   // then $8 = 4 more), so models aren't marked free/paid individually.
                   const ordered = [...gModels].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+                  // Your-own-photo is the PAID custom feature (never free, always 1 credit),
+                  // so for non-paying users it wears a padlock — otherwise it looked free.
+                  const yourLocked = !isPaid;
                   const yourTile = (
                     <button key="__your" type="button"
                       onClick={() => fileRef.current?.click()}
                       className="overflow-hidden rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] active:scale-[0.98] transition-transform">
                       <div className="relative grid aspect-[9/16] w-full place-items-center px-1 pb-6 text-center">
-                        <ImageUp className="h-8 w-8 text-amber-400" />
+                        {yourLocked
+                          ? <Lock className="h-7 w-7 text-amber-400" />
+                          : <ImageUp className="h-8 w-8 text-amber-400" />}
+                        {yourLocked && (
+                          <span className="absolute right-1.5 top-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-black text-amber-300 backdrop-blur">Premium</span>
+                        )}
                       </div>
                       <div className="px-1.5 py-1"><span className="line-clamp-1 text-[11px] font-black text-amber-400">Your photo</span></div>
                     </button>
@@ -770,6 +778,12 @@ export default function TryFunnelPage() {
           )}
 
           {payError && <p className="mx-auto mt-3 max-w-sm text-center text-[12px] font-bold text-red-400">{payError}</p>}
+
+          {/* Escape hatch — not ready to pay? Browse the free models gallery instead. */}
+          <button type="button" onClick={() => router.push("/home")}
+            className="mx-auto mt-6 block text-center text-[13px] font-black text-white/45 underline underline-offset-4 active:scale-95 transition">
+            Visit the models gallery →
+          </button>
 
           {/* Admin: skip the paywall and jump to the unlocked result (test the paid flow). */}
           {adminPin && !previewAsUser && (
