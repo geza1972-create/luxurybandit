@@ -41,7 +41,9 @@ export async function POST(request: Request) {
       upscale_factor: 2,
       creativity: 0.25, // low → keep her face, don't hallucinate new detail
       resemblance: 0.85, // high → stay faithful to the source
-      prompt: "high quality portrait photo of a woman, sharp focus, natural skin texture, professional photography",
+      // Neutral/faithful — no "cinematic" or stylized push; keep it a natural photo.
+      prompt: "sharp high-resolution photo, natural realistic skin texture, true to the original person",
+      negative_prompt: "cinematic, film look, stylized, glossy, over-processed, painting, illustration, blurry, low quality, distorted face",
       num_inference_steps: 18,
     }),
   });
