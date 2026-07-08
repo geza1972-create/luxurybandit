@@ -520,12 +520,6 @@ export default function PostPage() {
           <Heart className={`h-5 w-5 ${liked ? "fill-red-500 stroke-red-500" : ""}`} />
           <span>{likeCount}</span>
         </button>
-        {!isOwn && (
-          <button type="button" onClick={() => setShowMsg(true)}
-            className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-black text-black/50 active:scale-95 transition">
-            <MessageCircle className="h-5 w-5" />
-          </button>
-        )}
         <button type="button" onClick={() => void sharePost()}
           className="ml-auto flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-black text-black/50 active:scale-95 transition">
           <Send className="h-4 w-4" />

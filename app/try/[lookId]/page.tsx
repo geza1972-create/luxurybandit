@@ -585,48 +585,35 @@ export default function TryFunnelPage() {
               <p className="mt-2 text-[13px] font-bold text-white/50">Pick a model to wear this piece.</p>
               <div className="mt-4 grid grid-cols-3 gap-2">
                 {(() => {
-                  const anyFeatured = gModels.some(m => m.featured);
-                  // Featured (free) models lead; then the rest (Premium).
+                  // STATIC free/paid marking (independent of credits, so it never flip-flops):
+                  // featured models = FREE, everyone else = paid ($8 pack, charged at generation).
                   const ordered = [...gModels].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
-                  // Uploading YOUR OWN photo is Premium too (paying customers only).
-                  const yourLocked = !isPaid;
+                  // Uploading YOUR OWN photo is a paid generation.
                   const yourTile = (
                     <button key="__your" type="button"
-                      onClick={() => { if (yourLocked) { setShowPremium(true); return; } fileRef.current?.click(); }}
+                      onClick={() => fileRef.current?.click()}
                       className="overflow-hidden rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] active:scale-[0.98] transition-transform">
                       <div className="relative grid aspect-[9/16] w-full place-items-center px-1 pb-6 text-center">
                         <ImageUp className="h-8 w-8 text-amber-400" />
-                        {yourLocked && (
-                          <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-3.5 w-3.5 text-amber-400" /></span>
-                        )}
+                        <span className="absolute right-1.5 top-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-black text-black shadow">$8</span>
                       </div>
                       <div className="px-1.5 py-1"><span className="line-clamp-1 text-[11px] font-black text-amber-400">Your photo</span></div>
                     </button>
                   );
                   const modelTiles = ordered.map(m => {
-                    const locked = anyFeatured && !m.featured && !isPaid;
+                    const free = !!m.featured;
                     return (
                       <button key={m.id} type="button"
-                        onClick={() => { if (locked) { setShowPremium(true); return; } setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); }}
+                        onClick={() => { setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); }}
                         className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-[0.98] transition-transform">
                         <div className="relative aspect-[9/16] w-full">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={m.photoUrl} alt={m.name} className={`h-full w-full object-cover object-top ${locked ? "blur-[6px] scale-105 opacity-70" : ""}`} />
-                          {/* FREE badge on the free (featured) models — the customer needs to
-                              see what's free. The rest show a padlock (paid, needs the $8 pack). */}
-                          {m.featured && !locked && (
-                            <span className="absolute left-1.5 top-1.5 z-20 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow">Free</span>
-                          )}
-                          {locked && (
-                            <span className="absolute inset-0 z-10 grid place-items-center bg-black/25">
-                              <span className="flex flex-col items-center gap-1">
-                                <span className="grid h-9 w-9 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-4 w-4 text-white" /></span>
-                                <span className="rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black text-amber-400 backdrop-blur">$8 pack</span>
-                              </span>
-                            </span>
-                          )}
+                          <img src={m.photoUrl} alt={m.name} className="h-full w-full object-cover object-top" />
+                          {free
+                            ? <span className="absolute left-1.5 top-1.5 z-20 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow">Free</span>
+                            : <span className="absolute right-1.5 top-1.5 z-20 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-black text-black shadow">$8</span>}
                         </div>
-                        <div className="px-1.5 py-1"><span className={`line-clamp-1 text-[11px] font-black ${locked ? "text-amber-400" : ""}`}>{m.name}</span></div>
+                        <div className="px-1.5 py-1"><span className="line-clamp-1 text-[11px] font-black">{m.name}</span></div>
                       </button>
                     );
                   });
