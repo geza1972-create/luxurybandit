@@ -341,7 +341,7 @@ export async function GET(request: Request) {
       if (!curatorId || !lookId) return NextResponse.json({ hit: false });
       // state.generations is newest-first; the first match is the freshest reusable clip.
       const hitGen = state.generations.find((g) => {
-        if ((g as any).hidden || !(g as any).videoUrl) return false;
+        if ((g as any).hidden || (g as any).reuseCopy || !(g as any).videoUrl) return false;
         if ((g as any).curatorId !== curatorId || g.lookId !== lookId) return false;
         const m = (g as any).motion === "dance" ? "dance" : "turn"; // missing = legacy turn
         return m === cMotion;
@@ -1404,6 +1404,43 @@ export async function POST(request: Request) {
       }
       await saveTryThisLookState(state);
       return NextResponse.json({ ok: true });
+    }
+
+    // Claim a FREE (cached/pre-produced) try-on for the signed-in user: copies the shared
+    // clip into a user-owned generation so it shows in their "My try-ons" gallery and gets
+    // its own post. Idempotent per (user, source). Copies storage paths — not signed URLs —
+    // so hydration re-signs correctly. Marked reuseCopy so it never becomes a cache source.
+    if (payload.action === "save-cached-tryon") {
+      const srcId = String(payload.generationId ?? "").trim();
+      const email = String(payload.ownerEmail ?? "").trim().toLowerCase();
+      if (!email) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
+      const src = state.generations.find(g => g.id === srcId) as any;
+      if (!src) return NextResponse.json({ error: "Source try-on not found." }, { status: 404 });
+      const existing = state.generations.find(g => (g as any).ownerEmail === email && (g as any).reuseOf === srcId);
+      if (existing) return NextResponse.json({ ok: true, generationId: existing.id });
+      const now = new Date().toISOString();
+      const generationId = `${Date.now()}-${crypto.randomUUID()}`;
+      state.generations.unshift({
+        id: generationId,
+        lookId: src.lookId,
+        lookName: src.lookName,
+        storeName: src.storeName,
+        customerName: String(payload.customerName ?? "").trim() || src.customerName || undefined,
+        ownerEmail: email,
+        userId: String(payload.userId ?? "").trim() || undefined,
+        curatorId: src.curatorId,
+        imagePath: src.imagePath,
+        ...(src.videoUrl ? { videoUrl: src.videoUrl } : {}),
+        ...(src.videoPosterUrl ? { videoPosterUrl: src.videoPosterUrl } : {}),
+        genKind: src.genKind ?? "video",
+        ...(src.motion ? { motion: src.motion } : {}),
+        feed: false,
+        reuseOf: srcId,     // user's copy of a shared cache clip (for dedup)
+        reuseCopy: true,    // excluded from the ?combo= cache lookup so it isn't reused
+        createdAt: now,
+      } as any);
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, generationId });
     }
 
     // Update the display name shown on a try-on post (entered after posting).

@@ -247,6 +247,35 @@ export default function TryFunnelPage() {
   // Re-check the cache when the motion chip changes on the ready step (turn ↔ dance).
   useEffect(() => { if (step === 3) void lookupCachedVideo(); }, [motion]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // A FREE (cached) try-on is served from the shared library, so nothing is saved for the
+  // user by default → their "My try-ons" stays empty. Claim it: copy the shared clip into a
+  // generation owned by the signed-in user (idempotent) so it shows in their gallery and gets
+  // its own post. Returns the user's own generation id (falls back to the shared one).
+  const claimedRef = useRef("");
+  const claimCachedTryOn = async (sourceId?: string): Promise<string> => {
+    const src = sourceId || previewGenId;
+    if (!src) return "";
+    if (claimedRef.current) return claimedRef.current;
+    const session = getStoredAuthSession();
+    const email = session?.user?.email;
+    if (!email) return src;
+    try {
+      const r = await fetch("/api/try-this-look", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}) },
+        body: JSON.stringify({
+          action: "save-cached-tryon", generationId: src,
+          ownerEmail: email, userId: session?.user?.id || "",
+          customerName: email.split("@")[0] || "You",
+        }),
+      }).then(res => res.json());
+      if (r?.generationId) { claimedRef.current = r.generationId; return r.generationId; }
+    } catch { /**/ }
+    return src;
+  };
+  // Once a signed-in visitor is shown a free cached clip, save it to their gallery.
+  useEffect(() => { if (step === 3 && previewGenId && isAuthed()) void claimCachedTryOn(); }, [step, previewGenId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const onUnlock = () => {
     // Already signed in (guest session) OR admin previewing the flow → straight to plans.
     // In the admin's "User view", still show the gate so they can test the guest experience.
@@ -318,9 +347,12 @@ export default function TryFunnelPage() {
           const cached = await fetch(`/api/try-this-look?combo=${encodeURIComponent(combo)}`).then(r => r.json());
           if (cached?.hit && cached.videoUrl) {
             setGenVideoUrl(cached.videoUrl);
-            if (cached.generationId) setGenId(cached.generationId); // so "View post" links to this clip
+            // Claim it for the signed-in user (copy → their gallery + own post); fall back
+            // to the shared clip id if not signed in.
+            const mineId = cached.generationId ? await claimCachedTryOn(cached.generationId) : "";
+            if (mineId) setGenId(mineId); else if (cached.generationId) setGenId(cached.generationId);
             setGenStatus("done");
-            return; // served from storage — nothing generated, nothing saved
+            return; // served from storage — nothing re-generated
           }
         } catch { /* cache miss or offline → fall through to real generation */ }
       }
@@ -960,8 +992,8 @@ export default function TryFunnelPage() {
                   <Lock className="h-5 w-5" /> Register or sign in to watch
                 </button>
               ) : (
-                // Signed in → open the full post to watch it.
-                <button type="button" onClick={() => router.push(`/post/${previewGenId}`)}
+                // Signed in → save it to their gallery, then open their own post.
+                <button type="button" onClick={async () => router.push(`/post/${await claimCachedTryOn()}`)}
                   className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
                   <Sparkles className="h-5 w-5" /> View your video →
                 </button>
@@ -988,9 +1020,9 @@ export default function TryFunnelPage() {
           advanceOnSignup
           onClose={() => setGateOpen(false)} onAuthed={() => {
             setGateOpen(false);
-            // If the video is already generated & cached, they signed in to WATCH it → open
-            // the post. Otherwise continue the flow (free look → generate; paid → pack step).
-            if (previewVideoUrl && previewGenId) router.push(`/post/${previewGenId}`);
+            // If the video is already generated & cached, they signed in to WATCH it → save it
+            // to their gallery, then open their own post. Otherwise continue the flow.
+            if (previewVideoUrl && previewGenId) claimCachedTryOn().then(id => router.push(`/post/${id || previewGenId}`));
             else setStep(lookIsFree ? 5 : 4);
           }} />
       )}
