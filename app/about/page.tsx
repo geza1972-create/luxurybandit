@@ -79,6 +79,15 @@ export default async function AboutPage() {
       </header>
 
       <article className="mx-auto max-w-2xl px-5 py-8">
+        {/* Hero video showcase — the wow factor at the very top so the landing page
+            looks great immediately, BEFORE the heading. (Admin picks which clips.) */}
+        {videos.length > 0 && (
+          <div className="mb-7">
+            <AboutStep3Videos videos={videos} />
+            <AboutVideoPicker />
+          </div>
+        )}
+
         {/* Hero */}
         <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">AI and real Fashion Models · Luxury Looks</p>
         <h1 className="mt-2 text-[28px] font-black leading-tight">
@@ -144,10 +153,7 @@ export default async function AboutPage() {
                 </p>
               </div>
             </div>
-            {/* Tap a preview → opens the clip FULL (sound + controls). */}
-            <AboutStep3Videos videos={videos} />
-            {/* Admin: pick which feed videos show here. */}
-            <AboutVideoPicker />
+            {/* Videos moved to the hero at the top of the page. */}
           </div>
         </div>
 
