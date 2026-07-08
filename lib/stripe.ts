@@ -88,6 +88,44 @@ export async function createTryonCheckout(opts: {
   return { id: String(session.id), url: String(session.url) };
 }
 
+// Create a recurring-subscription Checkout Session (Premium membership). Ties the
+// subscription to the customer's email so we can look it up later.
+export async function createSubscriptionCheckout(opts: {
+  priceId: string;
+  email?: string;
+  successUrl: string;
+  cancelUrl: string;
+  metadata?: Record<string, string>;
+}): Promise<{ id: string; url: string }> {
+  const session = await stripeRequest("POST", "/checkout/sessions", {
+    mode: "subscription",
+    success_url: opts.successUrl,
+    cancel_url: opts.cancelUrl,
+    ...(opts.email ? { customer_email: opts.email } : {}),
+    client_reference_id: opts.email,
+    line_items: [{ price: opts.priceId, quantity: 1 }],
+    allow_promotion_codes: true,
+    metadata: { kind: "premium", ...(opts.metadata ?? {}) },
+    subscription_data: { metadata: { kind: "premium", ...(opts.metadata ?? {}) } },
+  });
+  return { id: String(session.id), url: String(session.url) };
+}
+
+// Is this email a paying member? Source of truth = Stripe: find the customer(s) by
+// email, then check for any active/trialing/past_due subscription.
+export async function hasActiveSubscription(email: string): Promise<boolean> {
+  const e = email.trim().toLowerCase();
+  if (!e) return false;
+  const custs = await stripeRequest("GET", `/customers?email=${encodeURIComponent(e)}&limit=100`);
+  const customers: any[] = Array.isArray(custs?.data) ? custs.data : [];
+  for (const c of customers) {
+    const subs = await stripeRequest("GET", `/subscriptions?customer=${encodeURIComponent(String(c.id))}&status=all&limit=100`);
+    const list: any[] = Array.isArray(subs?.data) ? subs.data : [];
+    if (list.some((s) => ["active", "trialing", "past_due"].includes(String(s.status)))) return true;
+  }
+  return false;
+}
+
 // Read a Checkout Session to confirm payment on return from Stripe.
 export async function getCheckoutSession(id: string): Promise<{
   paymentStatus: string;   // "paid" | "unpaid" | "no_payment_required"

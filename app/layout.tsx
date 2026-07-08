@@ -5,6 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import MetaPixel from "@/components/MetaPixel";
 import AdminUrlMirror from "@/components/AdminUrlMirror";
 import AgeGate from "@/components/AgeGate";
+import PremiumSync from "@/components/PremiumSync";
 
 export const metadata: Metadata = {
   metadataBase: new URL((process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "")),
@@ -49,6 +50,8 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <AdminUrlMirror />
         </Suspense>
+        {/* Syncs the premium flag with the user's real Stripe subscription. */}
+        <PremiumSync />
         <div className="lb-frame">
           {children}
           {/* The whole portal is 18+ — blocks every page until the visitor confirms a

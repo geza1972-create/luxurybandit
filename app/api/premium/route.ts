@@ -1,0 +1,47 @@
+import { NextResponse } from "next/server";
+import { createSubscriptionCheckout, hasActiveSubscription, stripeConfigured } from "@/lib/stripe";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+// The Premium monthly price. Override with STRIPE_PREMIUM_PRICE_ID on Vercel to
+// swap the plan/price without a code change.
+const PRICE_ID = process.env.STRIPE_PREMIUM_PRICE_ID?.trim() || "price_1TqvRE1jPNCWoiztVkIaOg7x";
+
+// GET /api/premium?email=…  → { premium: boolean }  (queries Stripe live)
+export async function GET(request: Request) {
+  const email = (new URL(request.url).searchParams.get("email") ?? "").trim().toLowerCase();
+  if (!email || !stripeConfigured()) return NextResponse.json({ premium: false });
+  try {
+    return NextResponse.json({ premium: await hasActiveSubscription(email) });
+  } catch {
+    return NextResponse.json({ premium: false });
+  }
+}
+
+// POST /api/premium { email, returnPath } → { url }  (hosted subscription checkout)
+export async function POST(request: Request) {
+  if (!stripeConfigured()) {
+    return NextResponse.json({ error: "Payments aren't set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
+  }
+  const body = (await request.json().catch(() => ({}))) as { email?: string; returnPath?: string };
+  const email = String(body.email ?? "").trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return NextResponse.json({ error: "Sign in first so we can link your subscription." }, { status: 401 });
+  }
+  const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
+  const rp = String(body.returnPath ?? "/stores");
+  const safeRp = rp.startsWith("/") && !rp.startsWith("//") ? rp : "/stores";
+  const sep = safeRp.includes("?") ? "&" : "?";
+  try {
+    const { url } = await createSubscriptionCheckout({
+      priceId: PRICE_ID,
+      email,
+      successUrl: `${origin}${safeRp}${sep}premium=success`,
+      cancelUrl: `${origin}${safeRp}${sep}premium=cancelled`,
+    });
+    return NextResponse.json({ url });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Could not start checkout." }, { status: 502 });
+  }
+}
