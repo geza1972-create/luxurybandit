@@ -585,38 +585,30 @@ export default function TryFunnelPage() {
               <p className="mt-2 text-[13px] font-bold text-white/50">Pick a model to wear this piece.</p>
               <div className="mt-4 grid grid-cols-3 gap-2">
                 {(() => {
-                  // STATIC free/paid marking (independent of credits, so it never flip-flops):
-                  // featured models = FREE, everyone else = paid ($8 pack, charged at generation).
+                  // Every generation costs 1 credit (new users get free welcome credits;
+                  // then $8 = 4 more), so models aren't marked free/paid individually.
                   const ordered = [...gModels].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
-                  // Uploading YOUR OWN photo is a paid generation.
                   const yourTile = (
                     <button key="__your" type="button"
                       onClick={() => fileRef.current?.click()}
                       className="overflow-hidden rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] active:scale-[0.98] transition-transform">
                       <div className="relative grid aspect-[9/16] w-full place-items-center px-1 pb-6 text-center">
                         <ImageUp className="h-8 w-8 text-amber-400" />
-                        <span className="absolute right-1.5 top-1.5 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-black text-black shadow">$8</span>
                       </div>
                       <div className="px-1.5 py-1"><span className="line-clamp-1 text-[11px] font-black text-amber-400">Your photo</span></div>
                     </button>
                   );
-                  const modelTiles = ordered.map(m => {
-                    const free = !!m.featured;
-                    return (
-                      <button key={m.id} type="button"
-                        onClick={() => { setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); }}
-                        className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-[0.98] transition-transform">
-                        <div className="relative aspect-[9/16] w-full">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={m.photoUrl} alt={m.name} className="h-full w-full object-cover object-top" />
-                          {free
-                            ? <span className="absolute left-1.5 top-1.5 z-20 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow">Free</span>
-                            : <span className="absolute right-1.5 top-1.5 z-20 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-black text-black shadow">$8</span>}
-                        </div>
-                        <div className="px-1.5 py-1"><span className="line-clamp-1 text-[11px] font-black">{m.name}</span></div>
-                      </button>
-                    );
-                  });
+                  const modelTiles = ordered.map(m => (
+                    <button key={m.id} type="button"
+                      onClick={() => { setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); }}
+                      className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-[0.98] transition-transform">
+                      <div className="relative aspect-[9/16] w-full">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={m.photoUrl} alt={m.name} className="h-full w-full object-cover object-top" />
+                      </div>
+                      <div className="px-1.5 py-1"><span className="line-clamp-1 text-[11px] font-black">{m.name}</span></div>
+                    </button>
+                  ));
                   // Insert the "Your photo" tile at the 3rd position of the gallery.
                   return [...modelTiles.slice(0, 2), yourTile, ...modelTiles.slice(2)];
                 })()}

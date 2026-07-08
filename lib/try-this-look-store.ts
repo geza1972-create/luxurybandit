@@ -319,9 +319,10 @@ export type TryThisLookState = {
   chatConfig?: { globalNote?: string };
   // Logged AI-chat conversations, newest first, so the admin can read what users ask.
   modelChats?: ModelChatLog[];
-  // Paid video-generation credits. balances = email → credits left ($8 pack = +4);
-  // redeemed = Stripe checkout-session ids already granted (idempotency, capped).
-  videoCredits?: { balances: Record<string, number>; redeemed: string[] };
+  // Video-generation credits. balances = email → credits left (1 video = 1 credit;
+  // $8 pack = +4). redeemed = Stripe session ids already granted (idempotency).
+  // welcomed = emails that already got their free welcome credits (granted once).
+  videoCredits?: { balances: Record<string, number>; redeemed: string[]; welcomed?: string[] };
 };
 
 export type ModelChatLog = {
@@ -787,6 +788,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
       videoCredits: {
         balances: { ...(latest.videoCredits?.balances ?? {}), ...(state.videoCredits?.balances ?? {}) },
         redeemed: Array.from(new Set([...(latest.videoCredits?.redeemed ?? []), ...(state.videoCredits?.redeemed ?? [])])).slice(-5000),
+        welcomed: Array.from(new Set([...(latest.videoCredits?.welcomed ?? []), ...(state.videoCredits?.welcomed ?? [])])).slice(-20000),
       },
       // Events are an append-only analytics log fired constantly (views, tryon/bandit/
       // product clicks). Without a union-merge a concurrent `view` save clobbers a
@@ -827,6 +829,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     videoCredits: {
       balances: state.videoCredits?.balances ?? {},
       redeemed: (state.videoCredits?.redeemed ?? []).slice(-5000),
+      welcomed: (state.videoCredits?.welcomed ?? []).slice(-20000),
     },
     partnerStores: (state.partnerStores ?? []).slice(0, 200),
     brands: (state.brands ?? []).slice(0, 5000),
@@ -988,6 +991,25 @@ export async function getVideoCredits(email: string): Promise<number> {
   if (!e) return 0;
   const state = await readTryThisLookState();
   return Math.max(0, Number(state.videoCredits?.balances?.[e] ?? 0));
+}
+
+// How many free video credits a brand-new user gets. Override via env.
+export const WELCOME_VIDEO_CREDITS = Number(process.env.WELCOME_VIDEO_CREDITS ?? 4);
+
+// Grant the free welcome credits the FIRST time we see an email; returns the balance.
+// Idempotent via the `welcomed` list so it's given exactly once per user.
+export async function ensureWelcomeCredits(email: string): Promise<number> {
+  const e = email.trim().toLowerCase();
+  if (!e) return 0;
+  const state = await readTryThisLookState();
+  const vc = state.videoCredits ?? { balances: {}, redeemed: [], welcomed: [] };
+  vc.balances = vc.balances ?? {}; vc.redeemed = vc.redeemed ?? []; vc.welcomed = vc.welcomed ?? [];
+  if (vc.welcomed.includes(e)) return Math.max(0, Number(vc.balances[e] ?? 0));
+  vc.balances[e] = Math.max(0, Number(vc.balances[e] ?? 0)) + WELCOME_VIDEO_CREDITS;
+  vc.welcomed.push(e);
+  state.videoCredits = vc;
+  await saveTryThisLookState(state);
+  return vc.balances[e];
 }
 
 // Idempotent grant: adds `n` credits for a paid Stripe session, once per sessionId.
