@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, Home, ShoppingBag, EyeOff, Eye, Trash2, UserPlus, Check, ImageOff, RefreshCw, BadgeCheck, Download } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, Home, ShoppingBag, EyeOff, Eye, Trash2, UserPlus, Check, ImageOff, RefreshCw, BadgeCheck, Download, Maximize2, Minimize2 } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -117,6 +117,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [gate, setGate] = useState<null | { mode: "auth" | "feedback"; reason?: string }>(null);
   const [showChat, setShowChat] = useState(false);
   const [showPremium, setShowPremium] = useState(false);
+  const [immersive, setImmersive] = useState(false); // fullscreen video, all chrome hidden
   const [isPaid, setIsPaid] = useState(false);
   useEffect(() => { try { setIsPaid(!!localStorage.getItem("luxurybandit-try-look-admin-pin") || localStorage.getItem("lb_paid") === "1"); } catch { /**/ } }, []);
   const pausedRef = useRef(false); pausedRef.current = paused;
@@ -757,14 +758,14 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       {/* ── Media area — vertical format (9:16). Curator name + description render
           BELOW the video (see headerBar block after the media). ── */}
       {/* 9:16 — matches the generated try-on videos exactly (full vertical, no crop, no bars). */}
-      <div ref={mediaRef} className="relative aspect-[9/16] w-full shrink-0 overflow-hidden lb-media-bg">
+      <div ref={mediaRef} className={`relative w-full shrink-0 overflow-hidden lb-media-bg ${immersive ? "h-[100dvh]" : "aspect-[9/16]"}`}>
         {/* Blurred fill so the whole look stays visible without empty bars */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={videoStill} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-2xl" />
 
         {/* Admin moderation — hide / delete / re-assign curator — top-centre over the video.
             Only the admin sees this; hidden looks stay visible here (with a HIDDEN badge). */}
-        {isAdmin && (
+        {isAdmin && !immersive && (
           <div className="absolute left-1/2 top-3 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/45 px-2 py-1.5 backdrop-blur-sm">
             {activeTryOnPending ? (
               // Pending publish request → the admin approves or rejects it.
@@ -858,7 +859,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                     <div className="h-full w-full bg-black" />
                   )}
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
-                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{look.aiCreated ? "✦ AI video" : "Video"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
+                    className={`${immersive ? "hidden " : ""}absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{look.aiCreated ? "✦ AI video" : "Video"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
                 </div>
               ) : m.type === "compare" ? (
                 <div className="relative flex h-full w-full">
@@ -888,7 +889,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                     <div className="h-full w-full bg-black" />
                   )}
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
-                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>Try-on video<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
+                    className={`${immersive ? "hidden " : ""}absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>Try-on video<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
                 </div>
               ) : m.type === "cphoto" ? (
                 // Community try-on photo (no before photo available, just the after result)
@@ -896,7 +897,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={m.url} alt={`${publicAuthorName(m.name)} try-on`} className="h-full w-full object-cover" />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
-                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{m.name ? `${publicAuthorName(m.name)}'s try-on` : "Try-on photo"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
+                    className={`${immersive ? "hidden " : ""}absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{m.name ? `${publicAuthorName(m.name)}'s try-on` : "Try-on photo"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
                 </div>
               ) : m.type === "refimage" ? (
                 // Curator-uploaded garment reference — the actual piece, shown whole
@@ -906,7 +907,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   <img src={m.url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-2xl" />
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={m.url} alt={m.label} className="absolute inset-0 h-full w-full object-contain" />
-                  <span className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 rounded-full bg-white/85 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-black/70 backdrop-blur`}>{m.label}</span>
+                  <span className={`${immersive ? "hidden " : ""}absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 rounded-full bg-white/85 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-black/70 backdrop-blur`}>{m.label}</span>
                 </div>
               ) : m.type === "image" ? (
                 <div className="relative h-full w-full">
@@ -923,7 +924,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                     </div>
                   )}
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
-                    className={`absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide backdrop-blur transition active:opacity-70 ${look.aiCreated ? "bg-black/70 text-white hover:bg-black/85" : "bg-white/85 text-black/70 hover:bg-white"}`}>
+                    className={`${immersive ? "hidden " : ""}absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide backdrop-blur transition active:opacity-70 ${look.aiCreated ? "bg-black/70 text-white hover:bg-black/85" : "bg-white/85 text-black/70 hover:bg-white"}`}>
                     {look.aiCreated ? "✦ Original" : "Model"}<Info className="ml-1 h-3 w-3 opacity-80" />
                   </button>
                 </div>
@@ -1019,20 +1020,36 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
 
         {/* Sound toggle — gates the ACTIVE clip's own baked-in music. Unmuting plays the
             video WITHIN this click gesture so the browser doesn't pause it for autoplay. */}
-        <button type="button" aria-label={muted ? "Unmute" : "Mute"}
-          onClick={() => {
-            const next = !muted;
-            setMuted(() => next);
-            const v = videoRefs.current[active];
-            if (v) { v.muted = next; if (!next && !pausedRef.current) v.play().catch(() => {}); }
-          }}
-          className="absolute bottom-3 left-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform">
-          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-        </button>
+        {!immersive && (
+          <button type="button" aria-label={muted ? "Unmute" : "Mute"}
+            onClick={() => {
+              const next = !muted;
+              setMuted(() => next);
+              const v = videoRefs.current[active];
+              if (v) { v.muted = next; if (!next && !pausedRef.current) v.play().catch(() => {}); }
+            }}
+            className="absolute bottom-3 left-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform">
+            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </button>
+        )}
+
+        {/* Fullscreen: hide ALL chrome to watch the video clean. Enter = button next to
+            mute; exit = a subtle corner button (nothing else is on screen). */}
+        {!immersive ? (
+          <button type="button" aria-label="Fullscreen" onClick={(e) => { e.stopPropagation(); setImmersive(true); }} onPointerDown={(e) => e.stopPropagation()}
+            className="absolute bottom-3 left-14 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform">
+            <Maximize2 className="h-4 w-4" />
+          </button>
+        ) : (
+          <button type="button" aria-label="Exit fullscreen" onClick={(e) => { e.stopPropagation(); setImmersive(false); }} onPointerDown={(e) => e.stopPropagation()}
+            className="absolute bottom-4 right-4 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white/70 opacity-70 backdrop-blur active:scale-90 transition">
+            <Minimize2 className="h-5 w-5" />
+          </button>
+        )}
 
         {/* ON the video: the try-on CTA — "See her in other looks". ("Bandit the feeling"
             lives BELOW the video now, in the white caption bar.) */}
-        {["video", "cvideo", "compare", "cphoto", "image"].includes(media[active]?.type as string) && (
+        {!immersive && ["video", "cvideo", "compare", "cphoto", "image"].includes(media[active]?.type as string) && (
           <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
             {authorCuratorId && (
               <button type="button"
@@ -1065,16 +1082,18 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
 
         {/* Right rail (on the image) — anchored to the TOP edge of the video so it
             clears the model's body and the bottom action buttons. */}
-        <div className="absolute right-2.5 top-3 z-10 flex flex-col items-center gap-4">
-          <RailButton icon={<Heart className="h-8 w-8" fill={liked ? "currentColor" : "none"} strokeWidth={2} />} label={likeCount > 0 ? fmtCount(likeCount) : "Like"} active={liked} onClick={toggleLike} />
-          <RailButton icon={<Bookmark className="h-8 w-8" fill={saved ? "currentColor" : "none"} strokeWidth={2} />} label={saved ? "Saved" : "Save"} active={saved} onClick={toggleSave} />
-          <RailButton icon={<Send className="h-7 w-7" strokeWidth={2} />} label="Share" onClick={share} />
-          <RailButton icon={<Home className="h-7 w-7" strokeWidth={2} />} label="Home" onClick={onClose ?? (() => router.push("/stores?view=grid"))} />
-        </div>
+        {!immersive && (
+          <div className="absolute right-2.5 top-3 z-10 flex flex-col items-center gap-4">
+            <RailButton icon={<Heart className="h-8 w-8" fill={liked ? "currentColor" : "none"} strokeWidth={2} />} label={likeCount > 0 ? fmtCount(likeCount) : "Like"} active={liked} onClick={toggleLike} />
+            <RailButton icon={<Bookmark className="h-8 w-8" fill={saved ? "currentColor" : "none"} strokeWidth={2} />} label={saved ? "Saved" : "Save"} active={saved} onClick={toggleSave} />
+            <RailButton icon={<Send className="h-7 w-7" strokeWidth={2} />} label="Share" onClick={share} />
+            <RailButton icon={<Home className="h-7 w-7" strokeWidth={2} />} label="Home" onClick={onClose ?? (() => router.push("/stores?view=grid"))} />
+          </div>
+        )}
       </div>
 
       {/* Carousel dots — directly under the video (Instagram-style) */}
-      {media.length > 1 && (
+      {media.length > 1 && !immersive && (
         <div className="shrink-0 flex justify-center gap-1.5 bg-[#0d0b0a] pt-2 pb-1">
           {media.map((_, i) => (
             <span key={i} className={`h-1.5 w-1.5 rounded-full transition-colors ${active === i ? "bg-white" : "bg-white/30"}`} />
@@ -1083,10 +1102,10 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       )}
 
       {/* Curator + badge — always below the video (name + description under the post). */}
-      <div className="shrink-0">{headerBar}</div>
+      <div className={`shrink-0 ${immersive ? "hidden" : ""}`}>{headerBar}</div>
 
       {/* ── Dark caption + actions (Instagram-style, below the image) ── */}
-      <div className="shrink-0 bg-[#0d0b0a] px-4 pt-2.5" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4rem)" }}>
+      <div className={`shrink-0 bg-[#0d0b0a] px-4 pt-2.5 ${immersive ? "hidden" : ""}`} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4rem)" }}>
         {/* Who recreated this look — ADMIN ONLY (business secret). Sits under the
             caption. Replaces the old "Shop now" card; shopping is via "Bandit the look!". */}
         {single && isAdmin && (
