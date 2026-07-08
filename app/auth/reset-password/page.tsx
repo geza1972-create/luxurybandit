@@ -15,17 +15,22 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+  const [parsed, setParsed] = useState(false);   // hash has been read (else we'd spin forever)
+  const [linkError, setLinkError] = useState(""); // Supabase error in the hash (e.g. expired)
 
   // Supabase puts the session in the URL hash on redirect, e.g.:
   // /auth/reset-password#access_token=xxx&token_type=bearer&type=recovery&...
   // NOTE: token_type is always "bearer"; the FLOW is in the separate `type` param
   // (type=recovery). Checking token_type for "recovery" was the "Invalid link" bug.
+  // An expired/used link redirects with #error=...&error_description=... and NO token.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const hash = window.location.hash.slice(1); // strip leading #
-    const params = new URLSearchParams(hash);
+    const params = new URLSearchParams(window.location.hash.slice(1));
     setAccessToken(params.get("access_token"));
     setTokenType(params.get("type"));
+    const desc = params.get("error_description") || params.get("error");
+    if (desc) setLinkError(decodeURIComponent(desc.replace(/\+/g, " ")));
+    setParsed(true);
   }, []);
 
   const handleSubmit = async () => {
@@ -67,7 +72,13 @@ export default function ResetPasswordPage() {
           <p className="mt-1 text-sm font-bold text-black/40">Set a new password</p>
         </div>
 
-        {done ? (
+        {!parsed ? (
+          /* Still reading the hash — brief. */
+          <div className="flex flex-col items-center gap-4 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-black/30" />
+            <p className="text-sm font-bold text-black/40">Loading…</p>
+          </div>
+        ) : done ? (
           /* Success */
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="grid h-16 w-16 place-items-center rounded-2xl bg-emerald-50">
@@ -88,32 +99,26 @@ export default function ResetPasswordPage() {
             </p>
             <button
               type="button"
-              onClick={() => router.push("/stores?panel=account")}
+              onClick={() => router.push("/seller/login")}
               className="flex h-12 w-full items-center justify-center rounded-2xl bg-black text-sm font-black text-white active:scale-95 transition-transform"
             >
-              Back to the app
+              Back to sign in
             </button>
           </div>
-        ) : !accessToken && tokenType === null ? (
-          /* Still reading hash (or no token at all) */
-          <div className="flex flex-col items-center gap-4 text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-black/30" />
-            <p className="text-sm font-bold text-black/40">Loading…</p>
-          </div>
         ) : !accessToken ? (
-          /* No token found */
+          /* No/expired token — reset links are single-use and expire quickly. */
           <div className="flex flex-col items-center gap-4 text-center">
-            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-amber-50 text-3xl">🔗</div>
-            <p className="text-base font-black text-black">No valid link</p>
+            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-amber-50 text-3xl">⌛</div>
+            <p className="text-base font-black text-black">Link expired</p>
             <p className="text-sm font-bold text-black/50 max-w-xs leading-relaxed">
-              Open this link directly from the LuxuryBandit email. It's valid only once.
+              {linkError || "This reset link is invalid or has already been used — they work only once and expire quickly. Request a fresh one."}
             </p>
             <button
               type="button"
-              onClick={() => router.push("/stores?panel=account")}
-              className="flex h-12 w-full items-center justify-center rounded-2xl border border-black/10 text-sm font-black text-black active:bg-black/5 transition"
+              onClick={() => router.push("/seller/login")}
+              className="flex h-12 w-full items-center justify-center rounded-2xl bg-black text-sm font-black text-white active:scale-95 transition-transform"
             >
-              Back to the app
+              Request a new link
             </button>
           </div>
         ) : (
