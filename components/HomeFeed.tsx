@@ -1037,7 +1037,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             mute; exit = a subtle corner button (nothing else is on screen). */}
         {!immersive ? (
           <button type="button" aria-label="Fullscreen" onClick={(e) => { e.stopPropagation(); setImmersive(true); }} onPointerDown={(e) => e.stopPropagation()}
-            className="absolute bottom-3 left-14 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform">
+            className="absolute bottom-3 right-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform">
             <Maximize2 className="h-4 w-4" />
           </button>
         ) : (
