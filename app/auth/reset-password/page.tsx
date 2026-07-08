@@ -16,14 +16,16 @@ export default function ResetPasswordPage() {
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
 
-  // Supabase puts the recovery token in the URL hash on redirect:
-  // /auth/reset-password#access_token=xxx&token_type=recovery&...
+  // Supabase puts the session in the URL hash on redirect, e.g.:
+  // /auth/reset-password#access_token=xxx&token_type=bearer&type=recovery&...
+  // NOTE: token_type is always "bearer"; the FLOW is in the separate `type` param
+  // (type=recovery). Checking token_type for "recovery" was the "Invalid link" bug.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const hash = window.location.hash.slice(1); // strip leading #
     const params = new URLSearchParams(hash);
     setAccessToken(params.get("access_token"));
-    setTokenType(params.get("token_type"));
+    setTokenType(params.get("type"));
   }, []);
 
   const handleSubmit = async () => {
