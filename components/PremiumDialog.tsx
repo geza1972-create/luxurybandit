@@ -20,12 +20,15 @@ export default function PremiumDialog({ open, onClose, title = "Premium — memb
     setError(""); setBusy(true);
     try {
       const email = getStoredAuthSession()?.user?.email?.trim();
-      const returnPath = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/stores";
+      const here = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/stores";
       if (!email) {
-        // Not signed in → send them to login, come back here to subscribe.
-        window.location.href = `/login?returnTo=${encodeURIComponent(returnPath)}`;
+        // Not signed in → go to login, then come back HERE with ?premium=checkout so
+        // PremiumSync auto-resumes the purchase (no lost path, no second tap).
+        const back = `${here}${here.includes("?") ? "&" : "?"}premium=checkout`;
+        window.location.href = `/login?returnTo=${encodeURIComponent(back)}`;
         return;
       }
+      const returnPath = here;
       const res = await fetch("/api/premium", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -22,12 +22,26 @@ export default function PremiumSync() {
     };
 
     const params = new URLSearchParams(window.location.search);
-    const justPaid = params.get("premium") === "success";
+    const premiumFlag = params.get("premium");
+    const justPaid = premiumFlag === "success";
+    const wantsCheckout = premiumFlag === "checkout"; // resumed after login
     // Strip the ?premium=… marker so it doesn't linger / re-trigger.
     if (params.has("premium")) {
       params.delete("premium");
       const q = params.toString();
       window.history.replaceState(null, "", window.location.pathname + (q ? `?${q}` : "") + window.location.hash);
+    }
+
+    // Resume the purchase after a login round-trip (came back with ?premium=checkout).
+    if (wantsCheckout) {
+      const email = emailNow();
+      if (email) {
+        const returnPath = window.location.pathname + window.location.search;
+        fetch("/api/premium", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, returnPath }),
+        }).then(r => r.json()).then(d => { if (d?.url) window.location.href = d.url; }).catch(() => {});
+      }
     }
 
     const sync = async () => {
