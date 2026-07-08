@@ -18,7 +18,7 @@ import { LOOK_CATEGORIES, isHiddenFromAll, isLookCategory, type LookCategory } f
 import { publicLookLabel } from "@/lib/look-title";
 import { publicAuthorName } from "@/lib/display-name";
 import { safeLookImage } from "@/lib/look-image";
-import { Bookmark, Crop, Eye, EyeOff, Heart, Home, Image as ImageIcon, ImageUp, Info, Instagram, LayoutGrid, Loader2, Lock, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, SlidersHorizontal, Sparkles, Trash2, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
+import { Bookmark, Crop, Download, Eye, EyeOff, Heart, Home, Image as ImageIcon, ImageUp, Info, Instagram, LayoutGrid, Loader2, Lock, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, SlidersHorizontal, Sparkles, Trash2, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -3515,9 +3515,24 @@ function StoresPage() {
                 <button type="button" onClick={closeGManage} className="grid h-8 w-8 place-items-center rounded-full bg-black/5"><X className="h-4 w-4" /></button>
               </div>
               <div className="flex gap-3">
-                <div className="h-24 w-20 shrink-0 overflow-hidden rounded-xl border border-black/8 bg-neutral-50">
+                <div className="relative h-24 w-20 shrink-0 overflow-hidden rounded-xl border border-black/8 bg-neutral-50">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={optImg(img, 300)} alt="" onError={(e) => { const im = e.currentTarget; if (img && im.src !== img) im.src = img; }} className="h-full w-full object-contain" />
+                  {/* Admin: download the full-res garment image. */}
+                  <button type="button" title="Bild herunterladen"
+                    onClick={async () => {
+                      try {
+                        const blob = await fetch(img).then(r => r.blob());
+                        const objUrl = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = objUrl; a.download = `${(gm.name || "garment").replace(/\s+/g, "-")}.jpg`;
+                        document.body.appendChild(a); a.click(); a.remove();
+                        setTimeout(() => URL.revokeObjectURL(objUrl), 8000);
+                      } catch { try { window.open(img, "_blank"); } catch { /**/ } }
+                    }}
+                    className="absolute bottom-1 right-1 grid h-7 w-7 place-items-center rounded-full bg-black/70 text-white backdrop-blur active:scale-90 transition">
+                    <Download className="h-3.5 w-3.5" />
+                  </button>
                 </div>
                 <div className="grid min-w-0 flex-1 gap-2">
                   <input value={gmName} onChange={e => setGmName(e.target.value)} placeholder="Name (leer = KI schreibt ihn)"
