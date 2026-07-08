@@ -13,6 +13,7 @@ import {
 import { useScrollLock } from "@/lib/use-scroll-lock";
 import { lookPath } from "@/lib/look-slug";
 import HomeFeed, { type FeedLook } from "@/components/HomeFeed";
+import PremiumDialog from "@/components/PremiumDialog";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { LOOK_CATEGORIES, isHiddenFromAll, isLookCategory, type LookCategory } from "@/lib/look-category";
 import { publicLookLabel } from "@/lib/look-title";
@@ -2409,33 +2410,18 @@ function StoresPage() {
     setLiveLoading(false);
   };
 
-  // Community paywall — shown when a non-paying viewer taps the locked Community chip.
-  // Defined once here so every render branch (reels / A-List / grid) can drop it in.
-  const paywallModal = showPaywall ? (
-    <div className="fixed inset-0 z-[95] flex items-end justify-center bg-black/50 backdrop-blur-sm px-4 pb-6"
-      onClick={() => { setShowPaywall(false); setPaywallDone(false); }}>
-      <div className="w-full max-w-sm rounded-2xl bg-white p-5 text-center shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-black text-xl">{paywallDone ? "✨" : "🔒"}</div>
-        {!paywallDone ? (
-          <>
-            <p className="mt-3 text-lg font-black text-black">Members only</p>
-            <p className="mt-1.5 text-sm font-medium leading-6 text-black/55">The Community feed is only visible to paying members.</p>
-            <button type="button" onClick={() => setPaywallDone(true)}
-              className="mt-4 h-11 w-full rounded-full bg-black text-sm font-black text-white active:scale-95 transition-transform">Subscribe now</button>
-            <button type="button" onClick={() => setShowPaywall(false)}
-              className="mt-1 h-10 w-full text-sm font-black text-black/40 active:scale-95 transition-transform">Maybe later</button>
-          </>
-        ) : (
-          <>
-            <p className="mt-3 text-lg font-black text-black">Coming soon</p>
-            <p className="mt-1.5 text-sm font-medium leading-6 text-black/55">Memberships are launching soon — you&apos;ll be able to subscribe right here.</p>
-            <button type="button" onClick={() => { setShowPaywall(false); setPaywallDone(false); }}
-              className="mt-4 h-11 w-full rounded-full bg-black text-sm font-black text-white active:scale-95 transition-transform">Got it</button>
-          </>
-        )}
-      </div>
-    </div>
-  ) : null;
+  // Community paywall — shown when a non-paying viewer taps the locked Community chip or a
+  // locked model. Uses the shared $8 video-pack dialog (buying the pack sets lb_paid, which
+  // unlocks the Community feed + locked models). Defined once so every render branch can drop
+  // it in. NO subscription / "coming soon" dead-end anymore.
+  const paywallModal = (
+    <PremiumDialog
+      open={showPaywall}
+      onClose={() => { setShowPaywall(false); setPaywallDone(false); }}
+      title="Members only"
+      subtitle="Unlock the Community feed and every model — get the video pack."
+    />
+  );
 
   // ── DEFAULT HOME = the single feed style (HomeFeed: caption on top, Look/Escape
   //    thumbnails, Bandit the feeling!). The old full-screen "Vollansicht" is gone. ──
