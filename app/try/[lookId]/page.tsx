@@ -146,7 +146,7 @@ export default function TryFunnelPage() {
     await vidAction({ action: "set-generation-public", generationId: id, public: pub });
   };
   const deleteVideoGen = async (id: string) => {
-    if (!window.confirm("Dieses Video endgültig löschen?")) return;
+    if (!window.confirm("Delete this video permanently?")) return;
     setMadeVideos(m => m.filter(x => x.id !== id));
     await vidAction({ action: "delete-generation", id });
   };
@@ -319,9 +319,9 @@ export default function TryFunnelPage() {
         await new Promise(r => setTimeout(r, 5000));
         const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || "")}`).then(r => r.json());
         if (p.status === "done" && p.videoUrl) { videoUrl = p.videoUrl; break; }
-        if (p.status === "failed") throw new Error(p.error || "Generierung fehlgeschlagen.");
+        if (p.status === "failed") throw new Error(p.error || "Generation failed.");
       }
-      if (!videoUrl) throw new Error("Zeitüberschreitung.");
+      if (!videoUrl) throw new Error("Timed out.");
       setGenVideoUrl(videoUrl); setGenStatus("done");
       // Save it as the signed-in user's own generation (poster + attach video).
       const session = getStoredAuthSession();
@@ -363,12 +363,12 @@ export default function TryFunnelPage() {
         await new Promise(r => setTimeout(r, 5000));
         const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}`).then(r => r.json());
         if (p.status === "done" && p.videoUrl) { hdUrl = p.videoUrl; break; }
-        if (p.status === "failed") throw new Error(p.error || "Umrechnen fehlgeschlagen.");
+        if (p.status === "failed") throw new Error(p.error || "Upscale failed.");
       }
-      if (!hdUrl) throw new Error("Zeitüberschreitung beim Umrechnen.");
+      if (!hdUrl) throw new Error("Timed out while upscaling.");
       await fetch("/api/try-this-look", { method: "POST", headers: H, body: JSON.stringify({ action: "attach-generation-video", generationId: id, videoUrl: hdUrl }) });
       if (id === genId) setGenVideoUrl(hdUrl); // refresh the top player if it's the main clip
-      setHdMsg("In HD umgerechnet ✓ — neu laden zum Ansehen.");
+      setHdMsg("Upscaled to HD ✓ — reload to watch.");
     } catch (e) {
       setHdMsg(e instanceof Error ? e.message : "Fehler beim Umrechnen");
     } finally { setHdBusyId(""); }
@@ -445,7 +445,7 @@ export default function TryFunnelPage() {
               <span className="text-[12px] font-black">@Bild2</span>
             </div>
           </div>
-          <p className="mt-2 text-[11px] font-bold text-white/35">@Bild1 = Model / Avatar · @Bild2 = gewähltes Outfit</p>
+          <p className="mt-2 text-[11px] font-bold text-white/35">@Bild1 = model / avatar · @Bild2 = chosen outfit</p>
           <textarea value={prompt} onChange={e => { setPrompt(e.target.value); setPromptSaved(false); }} rows={4}
             className="mt-2 w-full resize-none rounded-xl border border-white/15 bg-black/40 p-3 text-[13px] font-semibold leading-snug text-white outline-none focus:border-amber-400" />
           <div className="mt-2 flex items-center gap-2">
@@ -460,12 +460,12 @@ export default function TryFunnelPage() {
           {/* Per-video slow motion — baked in at generation so the music stays in sync. */}
           <button type="button" onClick={() => setSlowmo(s => !s)}
             className={`mt-3 flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-[13px] font-black transition ${slowmo ? "border-amber-400 bg-amber-400/15 text-amber-300" : "border-white/15 bg-black/30 text-white/70"}`}>
-            <span>🐢 Slow motion {slowmo ? "· an" : "· aus"}</span>
+            <span>🐢 Slow motion {slowmo ? "· on" : "· off"}</span>
             <span className={`grid h-5 w-9 items-center rounded-full px-0.5 ${slowmo ? "bg-amber-400" : "bg-white/20"}`}>
               <span className={`h-4 w-4 rounded-full bg-white transition-transform ${slowmo ? "translate-x-4" : ""}`} />
             </span>
           </button>
-          <p className="mt-1.5 text-[11px] font-bold text-white/35">Werbemodus: langsamer 10s-Clip, direkt in HD (1080p), Musik passend. Kostet mehr — nur für dieses Video.</p>
+          <p className="mt-1.5 text-[11px] font-bold text-white/35">Ad mode: slower 10s clip, straight to HD (1080p), matching music. Costs more — for this video only.</p>
         </div>
       )}
     </div>
@@ -582,7 +582,7 @@ export default function TryFunnelPage() {
 
           {outfit && (
             <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              <button type="button" onClick={() => setOutfitZoom(true)} className="h-14 w-11 shrink-0 overflow-hidden rounded-lg active:scale-95 transition" title="Kleid groß ansehen">
+              <button type="button" onClick={() => setOutfitZoom(true)} className="h-14 w-11 shrink-0 overflow-hidden rounded-lg active:scale-95 transition" title="View outfit large">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={outfit.imageUrl} alt="" className="h-full w-full object-cover" />
               </button>
@@ -701,7 +701,7 @@ export default function TryFunnelPage() {
           {adminPin && !previewAsUser && (
             <button type="button" onClick={() => setStep(5)}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-400/10 py-3 text-[13px] font-black text-emerald-300 active:scale-95 transition-transform">
-              <Check className="h-4 w-4" /> Admin: als bezahlt fortfahren →
+              <Check className="h-4 w-4" /> Admin: continue as paid →
             </button>
           )}
         </div>
@@ -725,24 +725,37 @@ export default function TryFunnelPage() {
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {modelImg && <img src={modelImg} alt="" className={`h-full w-full object-cover object-top ${genStatus === "generating" ? "scale-110 blur-2xl opacity-60" : ""}`} />}
+                  {/* Scanner overlay while the real generation runs (same look as the free reveal). */}
+                  {genStatus === "generating" && (
+                    <>
+                      {/* White scanner beam sweeping down then up. */}
+                      <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-white shadow-[0_0_18px_5px_rgba(255,255,255,0.7)]" />
+                      <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-14 -translate-y-1/2 bg-gradient-to-b from-transparent via-white/15 to-transparent" />
+                      {/* Camera viewfinder corners. */}
+                      <div className="pointer-events-none absolute left-3 top-3 z-20 h-6 w-6 rounded-tl-lg border-l-2 border-t-2 border-white/90" />
+                      <div className="pointer-events-none absolute right-3 top-3 z-20 h-6 w-6 rounded-tr-lg border-r-2 border-t-2 border-white/90" />
+                      <div className="pointer-events-none absolute bottom-3 left-3 z-20 h-6 w-6 rounded-bl-lg border-b-2 border-l-2 border-white/90" />
+                      <div className="pointer-events-none absolute bottom-3 right-3 z-20 h-6 w-6 rounded-br-lg border-b-2 border-r-2 border-white/90" />
+                    </>
+                  )}
                   <div className="absolute inset-0 grid place-items-center">
                     {genStatus === "generating" ? (
                       <div className="flex flex-col items-center gap-3 px-6 text-center text-white/90">
-                        <Loader2 className="h-9 w-9 animate-spin" />
-                        <span className="text-sm font-black">{isModelSession ? "Dein Foto wird generiert…" : "Dein Video wird generiert…"}</span>
-                        <span className="text-[12px] font-bold text-white/50">{isModelSession ? "Dauert ~30 Sekunden." : "Das dauert ~1–2 Minuten. Bleib dran."}</span>
+                        <Sparkles className="h-8 w-8 animate-pulse" />
+                        <span className="text-sm font-black">{isModelSession ? "Generating your photo…" : "Generating your video…"}</span>
+                        <span className="text-[12px] font-bold text-white/60">{isModelSession ? "Takes ~30 seconds." : "This takes ~1–2 minutes. Hang tight."}</span>
                       </div>
                     ) : genStatus === "error" ? (
                       <div className="flex flex-col items-center gap-2 px-6 text-center">
-                        <span className="text-sm font-black text-red-300">Generierung fehlgeschlagen</span>
+                        <span className="text-sm font-black text-red-300">Generation failed</span>
                         <span className="text-[12px] font-bold text-white/50">{genError}</span>
                         <button type="button" onClick={() => { genStartedRef.current = false; void generateReal(); }}
-                          className="mt-1 rounded-full bg-white/15 px-4 py-1.5 text-[12px] font-black text-white active:opacity-70">Erneut versuchen</button>
+                          className="mt-1 rounded-full bg-white/15 px-4 py-1.5 text-[12px] font-black text-white active:opacity-70">Try again</button>
                       </div>
                     ) : adminPin ? (
                       <button type="button" onClick={() => void generateReal()}
                         className="flex items-center gap-2 rounded-full bg-amber-400 px-5 py-3 text-sm font-black text-black active:scale-95">
-                        <Sparkles className="h-4 w-4" /> Video generieren (echt · Credits)
+                        <Sparkles className="h-4 w-4" /> Generate video (real · credits)
                       </button>
                     ) : (
                       <Loader2 className="h-8 w-8 animate-spin text-white/70" />
@@ -754,12 +767,12 @@ export default function TryFunnelPage() {
             </div>
           </div>
           <h1 className="mt-6 text-center text-[22px] font-black leading-tight">
-            {genStatus === "done" ? (genPhotoUrl ? "Dein Foto ist fertig 🎉" : "Enjoy your video 🎉") : isModelSession ? "Wir zaubern dein Foto…" : "Wir zaubern dein Video…"}
+            {genStatus === "done" ? (genPhotoUrl ? "Your photo is ready 🎉" : "Enjoy your video 🎉") : isModelSession ? "Conjuring your photo…" : "Conjuring your video…"}
           </h1>
           <p className="mt-2 text-center text-[13px] font-bold text-white/50">
             {genStatus === "done"
-              ? (genPhotoUrl ? "Gespeichert. Das Team macht aus deinen besten Fotos Videos für dein Profil." : "Gespeichert in deiner Galerie — ansehen & verwalten unter Account.")
-              : "Dein Try-on wird in voller Qualität erstellt."}
+              ? (genPhotoUrl ? "Saved. The team turns your best photos into videos for your profile." : "Saved to your gallery — view & manage under Account.")
+              : "Your try-on is being created in full quality."}
           </p>
 
           {/* View the finished video as a full post (before/after, like & share, other looks). */}
@@ -786,13 +799,13 @@ export default function TryFunnelPage() {
 
           {/* After generating: a gallery of the model's videos (incl. this one). Admins set
               each one's visibility right here — Fashionshow (feed + her profile "In motion"),
-              Öffentlich (everyone vs members-only), or delete. */}
+              Public (everyone vs members-only), or delete. */}
           {genStatus === "done" && madeVideos.length > 0 && (
             <div className="mt-7">
-              <p className="mb-2 text-[13px] font-black">{chosenModelName ? `${chosenModelName}'s Videos` : "Deine Videos"}</p>
+              <p className="mb-2 text-[13px] font-black">{chosenModelName ? `${chosenModelName}'s Videos` : "Your videos"}</p>
               <div className={`grid gap-3 ${adminPin ? "grid-cols-2" : "grid-cols-3"}`}>
                 {madeVideos.map(v => {
-                  const status = v.public ? "Öffentlich" : v.feed ? "Fashionshow" : "Privat";
+                  const status = v.public ? "Public" : v.feed ? "Fashionshow" : "Private";
                   return (
                     <div key={v.id} className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.04]">
                       <a href={chosenModelId ? `/curator/${chosenModelId}` : "#"} className="relative block aspect-[9/16] active:opacity-80">
@@ -807,7 +820,7 @@ export default function TryFunnelPage() {
                             <button type="button" onClick={() => setVideoFeed(v.id, !v.feed)}
                               className={`flex-1 rounded-lg px-1.5 py-1.5 text-[10px] font-black transition ${v.feed ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>Fashionshow</button>
                             <button type="button" onClick={() => setVideoPublic(v.id, !v.public)}
-                              className={`flex-1 rounded-lg px-1.5 py-1.5 text-[10px] font-black transition ${v.public ? "bg-emerald-500 text-white" : "bg-white/10 text-white/60"}`}>{v.public ? "Öffentlich" : "Mitglieder"}</button>
+                              className={`flex-1 rounded-lg px-1.5 py-1.5 text-[10px] font-black transition ${v.public ? "bg-emerald-500 text-white" : "bg-white/10 text-white/60"}`}>{v.public ? "Public" : "Members"}</button>
                             <button type="button" onClick={() => deleteVideoGen(v.id)}
                               className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-red-500/20 text-red-300 active:scale-90"><Trash2 className="h-3.5 w-3.5" /></button>
                           </div>
@@ -815,7 +828,7 @@ export default function TryFunnelPage() {
                           {v.videoUrl && (
                             <button type="button" onClick={() => upscaleVideo(v.id, v.videoUrl!)} disabled={!!hdBusyId}
                               className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-lg bg-amber-400/90 px-1.5 py-1.5 text-[10px] font-black text-black active:scale-95 transition disabled:opacity-50">
-                              {hdBusyId === v.id ? <><Loader2 className="h-3 w-3 animate-spin" /> HD…</> : <><Sparkles className="h-3 w-3" /> In HD umrechnen</>}
+                              {hdBusyId === v.id ? <><Loader2 className="h-3 w-3 animate-spin" /> HD…</> : <><Sparkles className="h-3 w-3" /> Upscale to HD</>}
                             </button>
                           )}
                         </div>
@@ -865,7 +878,7 @@ export default function TryFunnelPage() {
             )
           )}
           {step === 4 && (
-            <button type="button" onClick={() => alert("Checkout — subscription billing wird als Nächstes verdrahtet.")}
+            <button type="button" onClick={() => alert("Checkout — subscription billing is wired up next.")}
               className="lb-gold flex h-14 w-full items-center justify-center rounded-full text-base font-black active:scale-95 transition-transform">
               Continue — {price}/{billing === "month" ? "mo" : "mo, billed yearly"}
             </button>
