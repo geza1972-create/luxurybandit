@@ -35,8 +35,49 @@ export async function POST(request: Request) {
     messages?: ChatMsg[];
     globalNote?: string;
     chatId?: string;
+    texts?: string[];   // for "translate"
+    rule?: string;      // for "add-rule"
   };
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Bad request." }, { status: 400 }); }
+
+  // ── Admin: translate a batch of messages to German (so the owner can read every
+  //    conversation regardless of the language the user wrote in) ────────────────
+  if (body.action === "translate") {
+    if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+    const key = process.env.ANTHROPIC_API_KEY;
+    if (!key) return NextResponse.json({ error: "Not configured." }, { status: 400 });
+    const texts = (Array.isArray(body.texts) ? body.texts : []).map(t => String(t).slice(0, 800)).slice(0, 80);
+    if (!texts.length) return NextResponse.json({ translations: [] });
+    try {
+      const client = new Anthropic({ apiKey: key });
+      const r = await client.messages.create({
+        model: MODEL, max_tokens: 2000,
+        system: "You are a translator. Translate each string in the given JSON array into natural German. If a string is already German, keep it. Return ONLY a JSON array of the German strings, in the same order, nothing else.",
+        messages: [{ role: "user", content: JSON.stringify(texts) }],
+      });
+      const raw = r.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map(b => b.text).join("").trim();
+      let translations: string[] = [];
+      try { const m = raw.match(/\[[\s\S]*\]/); translations = JSON.parse(m ? m[0] : raw); } catch { translations = texts; }
+      if (!Array.isArray(translations) || translations.length !== texts.length) translations = texts;
+      return NextResponse.json({ translations });
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : "Translate failed." }, { status: 502 });
+    }
+  }
+
+  // ── Admin: append a correction/rule to a model's chat persona (steer future replies) ──
+  if (body.action === "add-rule") {
+    if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+    const cid = String(body.curatorId ?? "").trim();
+    const rule = String(body.rule ?? "").trim().slice(0, 500);
+    if (!cid || !rule) return NextResponse.json({ error: "curatorId and rule required." }, { status: 400 });
+    const state = await readTryThisLookState();
+    const c = (state.curators ?? []).find(x => x.id === cid) as any;
+    if (!c) return NextResponse.json({ error: "Model not found." }, { status: 404 });
+    c.chatPersona = [String(c.chatPersona ?? "").trim(), rule].filter(Boolean).join("\n");
+    await saveTryThisLookState(state);
+    return NextResponse.json({ ok: true, chatPersona: c.chatPersona });
+  }
 
   // ── Admin: save the global chat note, or delete a conversation ──────────────
   if (body.action === "set-global-note" || body.action === "delete-chat") {

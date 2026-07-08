@@ -141,6 +141,31 @@ export default function AdminPage() {
     setModelChats(cs => cs.filter(c => c.id !== chatId));
     try { await fetch("/api/model-chat", { method: "POST", headers: { ...headers(), "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete-chat", chatId }) }); } catch { /**/ }
   };
+  // "Auf Deutsch" — translate a whole conversation so the owner can read every language.
+  const [germanChats, setGermanChats] = useState<Record<string, string[]>>({}); // chatId → German messages
+  const [translatingId, setTranslatingId] = useState("");
+  const translateChat = async (chat: ModelChatLog) => {
+    if (germanChats[chat.id]) { setGermanChats(g => { const n = { ...g }; delete n[chat.id]; return n; }); return; } // toggle off
+    setTranslatingId(chat.id);
+    try {
+      const res = await fetch("/api/model-chat", { method: "POST", headers: { ...headers(), "Content-Type": "application/json" }, body: JSON.stringify({ action: "translate", texts: chat.messages.map(m => m.content) }) });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(d.translations)) setGermanChats(g => ({ ...g, [chat.id]: d.translations }));
+    } catch { /**/ } finally { setTranslatingId(""); }
+  };
+  // Correction → appended to that model's chat persona so future replies follow it.
+  const [ruleDraft, setRuleDraft] = useState<Record<string, string>>({}); // curatorId → draft
+  const [ruleBusyId, setRuleBusyId] = useState("");
+  const [ruleDoneId, setRuleDoneId] = useState("");
+  const addRule = async (curatorId: string) => {
+    const rule = (ruleDraft[curatorId] ?? "").trim();
+    if (!rule) return;
+    setRuleBusyId(curatorId);
+    try {
+      const res = await fetch("/api/model-chat", { method: "POST", headers: { ...headers(), "Content-Type": "application/json" }, body: JSON.stringify({ action: "add-rule", curatorId, rule }) });
+      if (res.ok) { setRuleDraft(d => ({ ...d, [curatorId]: "" })); setRuleDoneId(curatorId); setTimeout(() => setRuleDoneId(""), 2500); }
+    } catch { /**/ } finally { setRuleBusyId(""); }
+  };
   // Wait for credentials (pin from localStorage or Supabase token) before fetching —
   // otherwise the first fire on tab-mount sends no auth and 401s without retrying.
   useEffect(() => { if (tab === "chats" && (pin || token) && !chatsLoaded) void loadChats(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [tab, pin, token]);
@@ -1939,19 +1964,43 @@ export default function AdminPage() {
                         <p className="text-[10px] font-bold text-ink/35">{c.messages.length} msgs</p>
                       </div>
                     </button>
-                    {openC && (
+                    {openC && (() => {
+                      const de = germanChats[c.id];
+                      return (
                       <div className="border-t border-black/10 bg-black/[0.015] px-3 py-3">
+                        {/* Translate the whole conversation to German so you always understand it. */}
+                        <button type="button" onClick={() => void translateChat(c)} disabled={translatingId === c.id}
+                          className={`mb-2 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-black transition disabled:opacity-50 ${de ? "bg-black text-white" : "bg-black/[0.06] text-ink/70"}`}>
+                          {translatingId === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <span>🌐</span>} {de ? "Original anzeigen" : "Auf Deutsch übersetzen"}
+                        </button>
                         <div className="space-y-2">
                           {c.messages.map((m, i) => (
                             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                              <div className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-[13px] font-medium ${m.role === "user" ? "rounded-tr-sm bg-black text-white" : "rounded-tl-sm bg-black/[0.06] text-ink"}`}>{m.content}</div>
+                              <div className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-[13px] font-medium ${m.role === "user" ? "rounded-tr-sm bg-black text-white" : "rounded-tl-sm bg-black/[0.06] text-ink"}`}>{de?.[i] ?? m.content}</div>
                             </div>
                           ))}
                         </div>
+
+                        {/* Correction → appended to this model's chat persona (steers future replies). */}
+                        <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.05] p-2.5">
+                          <p className="mb-1.5 text-[11px] font-black text-ink/55">Korrektur / neue Regel für {c.curatorName || "sie"} (gilt für künftige Antworten):</p>
+                          <textarea value={ruleDraft[c.curatorId] ?? ""} onChange={e => setRuleDraft(d => ({ ...d, [c.curatorId]: e.target.value }))} rows={2}
+                            placeholder={"z.B. Erwähne nie andere Apps. Sei kürzer. Immer auf Try-on lenken."}
+                            className="w-full resize-none rounded-lg border border-black/12 bg-white px-2.5 py-2 text-[12px] leading-snug text-ink outline-none focus:border-black/40" />
+                          <div className="mt-1.5 flex items-center gap-2">
+                            <button type="button" onClick={() => void addRule(c.curatorId)} disabled={ruleBusyId === c.curatorId || !(ruleDraft[c.curatorId] ?? "").trim()}
+                              className="flex h-8 items-center justify-center gap-1 rounded-full bg-black px-3 text-[12px] font-black text-white disabled:opacity-40 active:scale-95 transition">
+                              {ruleBusyId === c.curatorId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Regel hinzufügen"}
+                            </button>
+                            {ruleDoneId === c.curatorId && <span className="text-[12px] font-black text-emerald-600">Gespeichert ✓</span>}
+                          </div>
+                        </div>
+
                         <button type="button" onClick={() => void deleteChat(c.id)}
                           className="mt-3 flex items-center gap-1.5 text-[12px] font-black text-red-500 active:opacity-70"><Trash2 className="h-3.5 w-3.5" /> Delete conversation</button>
                       </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 );
               })}
