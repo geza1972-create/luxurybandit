@@ -4,11 +4,12 @@ import { useState } from "react";
 import { Crown, Check, X, Loader2 } from "lucide-react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
-// Shared "Premium — members only" dialog. "Choose your membership" starts a real
-// Stripe subscription checkout for the signed-in user (redirects to Stripe's hosted
-// page). If the visitor isn't signed in, we bounce them to /login first so we can
-// tie the subscription to their email.
-export default function PremiumDialog({ open, onClose, title = "Premium — members only", subtitle = "Unlock every model, unlimited chats, and watch the full videos." }: {
+// Unlock dialog for locked models / looks / full videos / chats. One model only now:
+// the $8 video pack (4 try-on videos, no subscription). Buying it marks the visitor as
+// a paying customer (localStorage.lb_paid), which unlocks the locked content for as long
+// as they have credits left — see PremiumSync. Uses a Stripe popup opened synchronously
+// in the click gesture (so it isn't blocked) + poll, same as the try-on funnel.
+export default function PremiumDialog({ open, onClose, title = "Unlock the full experience", subtitle = "Get 4 try-on videos — and unlock every model, look and full video." }: {
   open: boolean; onClose: () => void; title?: string; subtitle?: string;
 }) {
   const [busy, setBusy] = useState(false);
@@ -16,28 +17,46 @@ export default function PremiumDialog({ open, onClose, title = "Premium — memb
   if (!open) return null;
   const close = () => { setError(""); onClose(); };
 
-  const subscribe = async () => {
-    setError(""); setBusy(true);
+  const buy = async () => {
+    setError("");
+    const email = getStoredAuthSession()?.user?.email?.trim().toLowerCase();
+    const here = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/stores";
+    if (!email) {
+      // Not signed in → sign in first so the purchase ties to their email, then come back.
+      window.location.href = `/login?returnTo=${encodeURIComponent(here)}`;
+      return;
+    }
+    // Open the popup NOW (synchronously in the click) — a popup opened after the await is blocked.
+    const payWin = window.open("about:blank", "lb_pay", "width=480,height=800");
+    setBusy(true);
     try {
-      const email = getStoredAuthSession()?.user?.email?.trim();
-      const here = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/stores";
-      if (!email) {
-        // Not signed in → go to login, then come back HERE with ?premium=checkout so
-        // PremiumSync auto-resumes the purchase (no lost path, no second tap).
-        const back = `${here}${here.includes("?") ? "&" : "?"}premium=checkout`;
-        window.location.href = `/login?returnTo=${encodeURIComponent(back)}`;
-        return;
-      }
-      const returnPath = here;
-      const res = await fetch("/api/premium", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, returnPath }),
+      const res = await fetch("/api/video-pack", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
       });
       const d = await res.json().catch(() => ({}));
-      if (!res.ok || !d.url) throw new Error(d.error ?? "Could not start checkout.");
-      window.location.href = d.url; // Stripe hosted checkout
+      if (!res.ok || !d.url) { try { payWin?.close(); } catch { /**/ } throw new Error(d.error ?? "Could not start checkout."); }
+      if (payWin && !payWin.closed) payWin.location.href = d.url;
+      else { window.location.href = d.url; return; } // popup blocked → full-page fallback
+      // Poll until Stripe reports the session paid (credits granted), then unlock + reload.
+      for (let i = 0; i < 150; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+        try {
+          const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(d.sessionId)}`).then(r => r.json());
+          if (st?.paid) {
+            try { payWin?.close(); } catch { /**/ }
+            try { localStorage.setItem("lb_paid", "1"); localStorage.setItem("lb_paid_email", email); } catch { /**/ }
+            window.dispatchEvent(new Event("lb-paid-updated"));
+            window.location.reload();
+            return;
+          }
+        } catch { /**/ }
+        if (payWin && payWin.closed) break;
+      }
+      setError("Payment wasn't completed.");
+      setBusy(false);
     } catch (e) {
+      try { payWin?.close(); } catch { /**/ }
       setError(e instanceof Error ? e.message : "Could not start checkout.");
       setBusy(false);
     }
@@ -53,7 +72,7 @@ export default function PremiumDialog({ open, onClose, title = "Premium — memb
 
         {/* Perks */}
         <div className="mt-5 grid gap-2 text-left">
-          {["Unlimited chats with every model", "All models & full videos unlocked", "Cancel anytime"].map(perk => (
+          {["4 try-on videos included", "Unlocks every model & full video", "Yours to keep — no subscription"].map(perk => (
             <div key={perk} className="flex items-center gap-2.5 rounded-xl bg-white/[0.04] px-3 py-2.5">
               <Check className="h-4 w-4 shrink-0 text-amber-400" />
               <span className="text-[13px] font-bold text-white/80">{perk}</span>
@@ -61,9 +80,9 @@ export default function PremiumDialog({ open, onClose, title = "Premium — memb
           ))}
         </div>
 
-        <button type="button" onClick={() => void subscribe()} disabled={busy}
+        <button type="button" onClick={() => void buy()} disabled={busy}
           className="lb-gold mt-5 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-black active:scale-95 transition-transform disabled:opacity-60">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Go Premium — $49/mo</>}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Get 4 videos — $8</>}
         </button>
         {error && <p className="mt-2 text-[12px] font-bold text-red-400">{error}</p>}
         <button type="button" onClick={close} className="mt-2 w-full py-2 text-[13px] font-black text-white/45">Maybe later</button>
