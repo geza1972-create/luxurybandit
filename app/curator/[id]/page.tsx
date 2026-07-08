@@ -431,6 +431,19 @@ export default function CuratorPublicPage() {
     } catch { try { window.open(url, "_blank"); } catch { /**/ } }
     finally { setDlPhotoBusy(false); }
   };
+  // Admin: download a garment image (from the Manage-garment sheet).
+  const downloadGarmentImg = async (imgUrl?: string, fname?: string) => {
+    if (!imgUrl) return;
+    try {
+      const blob = await fetch(imgUrl).then(r => r.blob());
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objUrl;
+      a.download = `${(fname || "garment").replace(/\s+/g, "-")}.jpg`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(objUrl), 8000);
+    } catch { try { window.open(imgUrl, "_blank"); } catch { /**/ } }
+  };
   const toggleRealBadge = async () => {
     if (badgeBusy || !profile) return;
     setBadgeBusy(true);
@@ -1067,26 +1080,32 @@ export default function CuratorPublicPage() {
           <div className="fixed inset-0 z-50 bg-black/60" onClick={closeManage} />
           <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[51] max-h-[88dvh] overflow-y-auto rounded-t-2xl border-t border-white/10 bg-[#161311] px-5 pt-4 text-white" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-base font-black">Kleidungsstück verwalten</p>
+              <p className="text-base font-black">Manage garment</p>
               <button type="button" onClick={closeManage} className="grid h-8 w-8 place-items-center rounded-full bg-white/10"><X className="h-4 w-4" /></button>
             </div>
             <div className="flex gap-3">
-              <div className="h-24 w-20 shrink-0 overflow-hidden rounded-xl bg-white">
+              <div className="relative h-24 w-20 shrink-0 overflow-hidden rounded-xl bg-white">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={optImg(manageItem.frontImageUrl ?? manageItem.imageUrl, 300)} alt=""
                   onError={(e) => { const raw = manageItem.frontImageUrl ?? manageItem.imageUrl; const im = e.currentTarget; if (raw && im.src !== raw) im.src = raw; }}
                   className="h-full w-full object-contain" />
+                {/* Admin: download this garment image. */}
+                <button type="button" onClick={() => void downloadGarmentImg(manageItem.frontImageUrl ?? manageItem.imageUrl, manageItem.name)}
+                  title="Download image"
+                  className="absolute bottom-1 right-1 grid h-7 w-7 place-items-center rounded-full bg-black/70 text-white backdrop-blur active:scale-90 transition">
+                  <Download className="h-3.5 w-3.5" />
+                </button>
               </div>
               <div className="grid min-w-0 flex-1 gap-2">
-                <input value={mName} onChange={e => setMName(e.target.value)} placeholder="Name (leer = KI schreibt ihn)"
+                <input value={mName} onChange={e => setMName(e.target.value)} placeholder="Name (blank = AI writes it)"
                   className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-sm font-bold text-white outline-none focus:border-white/40" />
-                <textarea value={mDesc} onChange={e => setMDesc(e.target.value)} rows={3} placeholder="Beschreibung (leer = KI schreibt sie)"
+                <textarea value={mDesc} onChange={e => setMDesc(e.target.value)} rows={3} placeholder="Description (blank = AI writes it)"
                   className="w-full resize-none rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[13px] text-white outline-none focus:border-white/40" />
               </div>
             </div>
 
             {/* Move to another category */}
-            <p className="mb-2 mt-4 text-[11px] font-black uppercase tracking-wide text-white/40">Kategorie</p>
+            <p className="mb-2 mt-4 text-[11px] font-black uppercase tracking-wide text-white/40">Category</p>
             <div className="flex flex-wrap gap-2">
               {LOOK_CATEGORIES.map(c => (
                 <button key={c.slug} type="button" onClick={() => setMCat(c.slug)}
@@ -1097,23 +1116,23 @@ export default function CuratorPublicPage() {
             </div>
 
             {/* Shop link — powers the "Shop now" button on the tile */}
-            <p className="mb-2 mt-4 text-[11px] font-black uppercase tracking-wide text-white/40">Shop-Link</p>
-            <input value={mBuy} onChange={e => setMBuy(e.target.value)} type="url" inputMode="url" placeholder="https://shop.example.com/produkt…"
+            <p className="mb-2 mt-4 text-[11px] font-black uppercase tracking-wide text-white/40">Shop link</p>
+            <input value={mBuy} onChange={e => setMBuy(e.target.value)} type="url" inputMode="url" placeholder="https://shop.example.com/product…"
               className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[13px] font-bold text-white outline-none focus:border-white/40 placeholder:text-white/25" />
 
             {/* Replace / hide / delete */}
             <div className="mt-4 grid grid-cols-3 gap-2">
               <button type="button" onClick={() => replaceRef.current?.click()} disabled={mBusy}
                 className="flex flex-col items-center gap-1 rounded-xl border border-white/15 bg-white/[0.04] py-2.5 text-[11px] font-black text-white active:scale-95 transition disabled:opacity-50">
-                <ImageUp className="h-4 w-4" /> Ersetzen
+                <ImageUp className="h-4 w-4" /> Replace
               </button>
               <button type="button" onClick={toggleHide} disabled={mBusy}
                 className="flex flex-col items-center gap-1 rounded-xl border border-white/15 bg-white/[0.04] py-2.5 text-[11px] font-black text-white active:scale-95 transition disabled:opacity-50">
-                {manageItem.published === false ? <><Eye className="h-4 w-4" /> Einblenden</> : <><EyeOff className="h-4 w-4" /> Ausblenden</>}
+                {manageItem.published === false ? <><Eye className="h-4 w-4" /> Show</> : <><EyeOff className="h-4 w-4" /> Hide</>}
               </button>
               <button type="button" onClick={deleteManage} disabled={mBusy}
                 className="flex flex-col items-center gap-1 rounded-xl border border-red-500/30 bg-red-500/10 py-2.5 text-[11px] font-black text-red-300 active:scale-95 transition disabled:opacity-50">
-                <Trash2 className="h-4 w-4" /> Löschen
+                <Trash2 className="h-4 w-4" /> Delete
               </button>
             </div>
             <input ref={replaceRef} type="file" accept="image/*" className="hidden"
@@ -1121,7 +1140,7 @@ export default function CuratorPublicPage() {
 
             <button type="button" onClick={saveManage} disabled={mBusy}
               className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 text-sm font-black text-black active:scale-95 transition disabled:opacity-50">
-              {mBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Speichern"}
+              {mBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
             </button>
             {mMsg && <p className="mt-2 text-center text-[12px] font-bold text-white/60">{mMsg}</p>}
           </div>
