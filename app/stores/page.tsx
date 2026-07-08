@@ -1498,7 +1498,8 @@ function StoresPage() {
   const hasFeatured = useMemo(() => models.some(m => m.featured), [models]);
   const hairColorsPresent = useMemo(() => [...new Set(models.map(m => m.hairColor || "").filter(Boolean))], [models]);
   // Models is the default grid tab — home is the curated Featured-models showcase.
-  const [homeTab, setHomeTab] = useState<"feeds" | "models" | "garderobe">("models");
+  // Home/start page (/stores?view=grid) opens on the "Let's Play Big" feeds grid — NOT Models.
+  const [homeTab, setHomeTab] = useState<"feeds" | "models" | "garderobe">("feeds");
   // Garderobe = every generated garment (all models' wardrobes), browsable by type.
   const [garmentType, setGarmentType] = useState<LookCategory | null>(null);
   // Admin: add a real Luxury Bandi garment (from a photo) into the Garderobe.
