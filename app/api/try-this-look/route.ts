@@ -16,6 +16,7 @@ import { isIntimateName } from "@/lib/lingerie";
 import { categorizeLook, isLookCategory } from "@/lib/look-category";
 import { notifyAdminWhatsApp, ADMIN_URL } from "@/lib/notify-admin";
 import { isAdminRequest } from "@/lib/admin-auth";
+import { deleteAuthUser } from "@/lib/supabase-admin-users";
 import { sendCuratorInviteEmail } from "@/lib/curator-invite-email";
 import { FASHION_BRANDS } from "@/lib/fashion-brands";
 import { NextResponse } from "next/server";
@@ -2588,14 +2589,10 @@ export async function POST(request: Request) {
       if (!supabaseUrl || !serviceKey) return NextResponse.json({ error: "Supabase not configured." }, { status: 500 });
 
       if (payload.action === "delete-auth-user") {
-        const res = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
-          method: "DELETE",
-          headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` }
-        });
-        if (!res.ok) {
-          const e = await res.json().catch(() => null);
-          return NextResponse.json({ error: e?.message ?? "Could not delete user." }, { status: res.status });
-        }
+        // deleteAuthUser also removes any model/curator profile bound to the same email,
+        // so a re-registration with that email doesn't resurrect the model.
+        const ok = await deleteAuthUser(userId);
+        if (!ok) return NextResponse.json({ error: "Could not delete user." }, { status: 502 });
         return NextResponse.json({ ok: true });
       }
 

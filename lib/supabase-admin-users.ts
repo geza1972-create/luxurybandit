@@ -1,6 +1,8 @@
 // Server-only helper to list/edit Supabase Auth users (Google / Facebook / password
 // sign-ins) via the Admin API, using the service-role key. Never import client-side.
 
+import { readTryThisLookState, saveTryThisLookState } from "./try-this-look-store";
+
 function cfg() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/^["']|["']$/g, "");
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
@@ -68,12 +70,34 @@ export async function updateAuthUserName(id: string, name: string): Promise<bool
   return res.ok;
 }
 
-// Delete an auth user entirely.
+// Delete an auth user entirely — AND remove any model/curator profile bound to the same
+// email. Otherwise the login is gone but the model record survives, and re-registering
+// with that email resurrects the model via the sign-in identity bridge (the "I deleted
+// the user but they came back as Lorena" bug).
 export async function deleteAuthUser(id: string): Promise<boolean> {
   const { url, key } = cfg();
+
+  // Read the email BEFORE deleting (afterwards the user is gone and can't be looked up).
+  let email = "";
+  try {
+    const uRes = await fetch(`${url}/auth/v1/admin/users/${encodeURIComponent(id)}`, { headers: adminHeaders(key) });
+    if (uRes.ok) { const u = await uRes.json().catch(() => null); email = String(u?.email ?? "").trim().toLowerCase(); }
+  } catch { /* ignore — still proceed with the delete */ }
+
   const res = await fetch(`${url}/auth/v1/admin/users/${encodeURIComponent(id)}`, {
     method: "DELETE",
     headers: adminHeaders(key),
   });
-  return res.ok;
+  if (!res.ok) return false;
+
+  if (email) {
+    try {
+      const state = await readTryThisLookState();
+      const curators = (state.curators ?? []).filter(c => (c.email ?? "").trim().toLowerCase() !== email);
+      if (curators.length !== (state.curators ?? []).length) {
+        await saveTryThisLookState({ ...state, curators });
+      }
+    } catch { /* ignore — the auth user is already deleted, which is the main effect */ }
+  }
+  return true;
 }

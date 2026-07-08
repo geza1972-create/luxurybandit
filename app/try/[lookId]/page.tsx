@@ -117,7 +117,7 @@ export default function TryFunnelPage() {
   const [revealSharp, setRevealSharp] = useState(false);
   const [previewPoster, setPreviewPoster] = useState("");
   const revealVideoRef = useRef<HTMLVideoElement>(null);
-  const REVEAL_MS = 30000;
+  const REVEAL_MS = 10000;
   // "Motion" pick: what she DOES in the video. The user only sees the two chips —
   // the prompt swap happens server-side. Dance = Pixverse also generates music.
   const [motion, setMotion] = useState<"turn" | "dance">("turn");
