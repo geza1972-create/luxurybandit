@@ -412,22 +412,24 @@ export default function TryFunnelPage() {
       .then(d => setPackCredits(Number(d.credits ?? 0))).catch(() => setPackCredits(0));
   }, [step, adminPin]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Buy the $8 pack in a popup, wait for payment, then return the granted balance.
-  const buyPack = async (): Promise<boolean> => {
+  // Buy the $8 pack: navigate the ALREADY-OPEN popup (opened synchronously in the click,
+  // so the popup blocker doesn't kill it), then poll until Stripe reports it paid.
+  const buyPack = async (payWin: Window | null): Promise<boolean> => {
     const email = payEmail();
-    if (!email) { window.location.href = `/login?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`; return false; }
+    if (!email) return false;
     const res = await fetch("/api/video-pack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
     const d = await res.json().catch(() => ({}));
-    if (!res.ok || !d.url) throw new Error(d.error ?? "Could not start checkout.");
-    const popup = window.open(d.url, "lb_pay", "width=480,height=800");
+    if (!res.ok || !d.url) { try { payWin?.close(); } catch { /**/ } throw new Error(d.error ?? "Could not start checkout."); }
+    if (payWin && !payWin.closed) payWin.location.href = d.url;
+    else { window.location.href = d.url; return false; } // popup blocked → full-page fallback
     // Poll until Stripe reports the session paid (credits granted) or the user gives up.
     for (let i = 0; i < 150; i++) {
       await new Promise(r => setTimeout(r, 2000));
       try {
         const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(d.sessionId)}`).then(r => r.json());
-        if (st?.paid) { try { popup?.close(); } catch { /**/ } if (typeof st.credits === "number") setPackCredits(st.credits); return true; }
+        if (st?.paid) { try { payWin?.close(); } catch { /**/ } if (typeof st.credits === "number") setPackCredits(st.credits); return true; }
       } catch { /**/ }
-      if (popup && popup.closed) break;
+      if (payWin && payWin.closed) break;
     }
     return false;
   };
@@ -435,22 +437,29 @@ export default function TryFunnelPage() {
   // The paywall's main action: spend a credit and generate — buying a pack first if empty.
   const startPaidGenerate = async () => {
     if (adminPin) { setStep(5); return; }
+    const email = payEmail();
+    if (!email) { window.location.href = `/login?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`; return; }
+    // If we'll need to buy, open the popup SYNCHRONOUSLY here in the click gesture — else
+    // the browser blocks a popup opened later (after the await), and "nothing happens".
+    const needBuy = (packCredits ?? 0) <= 0;
+    const payWin = needBuy ? window.open("about:blank", "lb_pay", "width=480,height=800") : null;
     setPayError(""); setPayBusy(true);
     try {
-      const email = payEmail();
-      if (!email) { window.location.href = `/login?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`; return; }
-      // Try to spend a credit; if none, buy a pack then spend.
+      // Try to spend a credit; if none, buy a pack (in the pre-opened popup) then spend.
       let spend = await fetch("/api/video-pack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, action: "spend" }) });
       if (spend.status === 402) {
-        const bought = await buyPack();
+        const bought = await buyPack(payWin);
         if (!bought) { setPayBusy(false); return; }
         spend = await fetch("/api/video-pack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, action: "spend" }) });
+      } else {
+        try { payWin?.close(); } catch { /**/ }
       }
       const sd = await spend.json().catch(() => ({}));
       if (!spend.ok) throw new Error(sd.error ?? "Could not start your video.");
       setPackCredits(typeof sd.credits === "number" ? sd.credits : (c => (c ?? 1) - 1)(packCredits));
       setStep(5);
     } catch (e) {
+      try { payWin?.close(); } catch { /**/ }
       setPayError(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
       setPayBusy(false);
