@@ -125,13 +125,19 @@ export async function signInWithPassword(email: string, password: string) {
 export async function signUpWithPassword(
   email: string,
   password: string,
-  displayName?: string
+  displayName?: string,
+  opts?: { marketingOptIn?: boolean }
 ): Promise<{ session: SupabaseAuthSession | null; confirmationRequired: boolean }> {
   const data: Record<string, string> = { app: "luxurybandit" };
   if (displayName?.trim()) {
     data.username = displayName.trim();
     data.full_name = displayName.trim();
   }
+  // Record terms acceptance (sign-up gates on it) + newsletter consent + timestamp,
+  // so we have a durable record of what the user agreed to at registration.
+  data.terms_accepted = "true";
+  data.terms_accepted_at = new Date().toISOString();
+  data.marketing_opt_in = opts?.marketingOptIn ? "true" : "false";
   const emailRedirectTo =
     typeof window !== "undefined"
       ? `${window.location.origin}/auth/confirm`

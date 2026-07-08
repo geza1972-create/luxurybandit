@@ -31,6 +31,8 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
   const [linkLoading, setLinkLoading] = useState(false);
+  const [agree, setAgree] = useState(false); // Terms & Privacy — required to create an account
+  const [news, setNews] = useState(true);     // Product news & updates — opt-in, on by default
 
   // Where to land after sign-in (e.g. back to the studio). Only internal paths.
   const rawReturn = params.get("returnTo") ?? "";
@@ -48,10 +50,11 @@ function LoginForm() {
     setError("");
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) { setError("Please enter a valid email."); return; }
     if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
+    if (mode === "signup" && !agree) { setError("Please accept the Terms & Privacy Policy to continue."); return; }
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { session, confirmationRequired } = await signUpWithPassword(email.trim(), password, name.trim() || undefined);
+        const { session, confirmationRequired } = await signUpWithPassword(email.trim(), password, name.trim() || undefined, { marketingOptIn: news });
         if (session) { window.location.href = returnPath; return; }
         if (confirmationRequired) { setError("Account created — check your email to confirm, then sign in."); setMode("signin"); return; }
       } else {
@@ -115,6 +118,12 @@ function LoginForm() {
               </button>
             </div>
 
+            <p className="mt-3 text-center text-[11px] font-bold leading-relaxed text-black/40">
+              By continuing you agree to our{" "}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-black/60 underline underline-offset-2">Terms</a> &amp;{" "}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-black/60 underline underline-offset-2">Privacy Policy</a>, and to receive news &amp; updates from us.
+            </p>
+
             <div className="my-5 flex items-center gap-3">
               <div className="h-px flex-1 bg-black/10" />
               <span className="text-xs font-black uppercase tracking-wider text-black/30">or</span>
@@ -131,10 +140,30 @@ function LoginForm() {
               <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" required
                 className="h-12 rounded-xl border border-black/12 bg-white px-4 text-sm font-bold text-black outline-none focus:border-black" />
 
+              {mode === "signup" && (
+                <div className="mt-0.5 grid gap-2.5">
+                  <label className="flex cursor-pointer items-start gap-2.5">
+                    <input type="checkbox" checked={agree} onChange={e => setAgree(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-black" />
+                    <span className="text-[12px] font-bold leading-snug text-black/55">
+                      I accept the{" "}
+                      <a href="/terms" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-black underline underline-offset-2">Terms &amp; Conditions</a>{" "}
+                      and{" "}
+                      <a href="/privacy" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-black underline underline-offset-2">Privacy Policy</a>.
+                    </span>
+                  </label>
+                  <label className="flex cursor-pointer items-start gap-2.5">
+                    <input type="checkbox" checked={news} onChange={e => setNews(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-black" />
+                    <span className="text-[12px] font-bold leading-snug text-black/55">Email me news, offers and product updates.</span>
+                  </label>
+                </div>
+              )}
+
               {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-bold text-red-600">{error}</p>}
 
-              <button type="submit" disabled={loading}
-                className="flex h-12 items-center justify-center gap-2 rounded-xl bg-black text-sm font-black text-white disabled:opacity-60 active:scale-95 transition-transform">
+              <button type="submit" disabled={loading || (mode === "signup" && !agree)}
+                className="flex h-12 items-center justify-center gap-2 rounded-xl bg-black text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {loading ? "Please wait…" : mode === "signup" ? "Create account" : "Sign in"}
               </button>
