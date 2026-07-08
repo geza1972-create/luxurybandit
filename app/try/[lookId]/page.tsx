@@ -384,12 +384,17 @@ export default function TryFunnelPage() {
   const motionPicker = !isModelSession ? (
     <div className="mt-5">
       <div className="flex justify-center gap-2">
-        {([["turn", "🔄 Simple turn"], ["dance", "💃 Dance · with music"]] as const).map(([key, label]) => (
-          <button key={key} type="button" onClick={() => setMotion(key)}
-            className={`rounded-full px-4 py-2 text-[12px] font-black transition active:scale-95 ${motion === key ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>
-            {label}
-          </button>
-        ))}
+        {([["turn", "🔄 Simple turn"], ["dance", "💃 Dance · with music"]] as const).map(([key, label]) => {
+          // Dance is Premium — free users get the paywall instead of selecting it.
+          const danceLocked = key === "dance" && !isPaid;
+          return (
+            <button key={key} type="button"
+              onClick={() => { if (danceLocked) { setShowPremium(true); return; } setMotion(key); }}
+              className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-black transition active:scale-95 ${motion === key ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>
+              {label}{danceLocked && <Lock className="h-3 w-3" />}
+            </button>
+          );
+        })}
       </div>
     </div>
   ) : null;
