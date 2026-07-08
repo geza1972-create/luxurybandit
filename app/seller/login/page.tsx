@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { Loader2, MailCheck } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { signInWithPassword, signUpWithPassword, signInWithOAuth } from "@/lib/supabase-auth-client";
@@ -16,9 +16,6 @@ const GoogleIcon = () => (
     <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
   </svg>
 );
-const FacebookIcon = () => (
-  <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true"><path fill="#1877F2" d="M24 12c0-6.63-5.37-12-12-12S0 5.37 0 12c0 5.99 4.39 10.95 10.13 11.85v-8.38H7.08V12h3.05V9.36c0-3.01 1.79-4.67 4.53-4.67 1.31 0 2.69.23 2.69.23v2.95h-1.51c-1.49 0-1.96.93-1.96 1.88V12h3.33l-.53 3.47h-2.8v8.38C19.61 22.95 24 17.99 24 12z" /></svg>
-);
 
 function LoginForm() {
   const params = useSearchParams();
@@ -29,8 +26,6 @@ function LoginForm() {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [linkSent, setLinkSent] = useState(false);
-  const [linkLoading, setLinkLoading] = useState(false);
   const [agree, setAgree] = useState(false); // Terms & Privacy — required to create an account
   const [news, setNews] = useState(true);     // Product news & updates — opt-in, on by default
 
@@ -40,7 +35,7 @@ function LoginForm() {
   // Clean redirect URL (always allowlisted); the post-login destination is stashed in
   // sessionStorage so Supabase's allowlist can't drop it.
   const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth/confirm` : "";
-  const oauth = (provider: "google" | "facebook") => {
+  const oauth = (provider: "google") => {
     try { if (rawReturn) sessionStorage.setItem("lb_oauth_return", returnPath); } catch { /**/ }
     signInWithOAuth(provider, redirectTo);
   };
@@ -68,25 +63,7 @@ function LoginForm() {
     }
   };
 
-  const handleMagicLink = async () => {
-    setError("");
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) { setError("Enter your email above first."); return; }
-    setLinkLoading(true);
-    try {
-      const res = await fetch("/api/send-look-link", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), redirectTo }),
-      });
-      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error ?? "Could not send link."); }
-      setLinkSent(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send link.");
-    } finally {
-      setLinkLoading(false);
-    }
-  };
-
-  const oauthBtn = "flex h-12 items-center justify-center gap-2.5 rounded-xl border border-black/12 bg-white text-sm font-black text-black active:scale-95 transition-transform";
+  const oauthBtn ="flex h-12 items-center justify-center gap-2.5 rounded-xl border border-black/12 bg-white text-sm font-black text-black active:scale-95 transition-transform";
 
   return (
     <div className="flex min-h-screen items-start justify-center bg-[#fafaf8] px-4 py-16">
@@ -99,38 +76,26 @@ function LoginForm() {
 
         {confirmed && <div className="mb-4 rounded-lg bg-green-50 px-3 py-2 text-sm font-bold text-green-700">Email confirmed! Sign in below.</div>}
 
-        {linkSent ? (
-          <div className="rounded-2xl border border-black/10 bg-white p-6 text-center">
-            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-black text-white"><MailCheck className="h-6 w-6" /></div>
-            <p className="mt-3 text-lg font-black text-black">Check your email ✨</p>
-            <p className="mt-1.5 text-sm font-bold text-black/55">We sent a one-tap sign-in link to <span className="text-black">{email.trim()}</span>.</p>
-            <button type="button" onClick={() => setLinkSent(false)} className="mt-5 text-sm font-black text-black/50 underline underline-offset-2">Back</button>
-          </div>
-        ) : (
-          <>
-            {/* Social — fastest */}
-            <div className="grid gap-2.5">
-              <button type="button" onClick={() => oauth("google")} className={oauthBtn}>
-                <GoogleIcon /> Continue with Google
-              </button>
-              <button type="button" onClick={() => oauth("facebook")} className={oauthBtn}>
-                <FacebookIcon /> Continue with Facebook
-              </button>
-            </div>
+        {/* Social — fastest */}
+        <div className="grid gap-2.5">
+          <button type="button" onClick={() => oauth("google")} className={oauthBtn}>
+            <GoogleIcon /> Continue with Google
+          </button>
+        </div>
 
-            <p className="mt-3 text-center text-[11px] font-bold leading-relaxed text-black/40">
-              By continuing you agree to our{" "}
-              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-black/60 underline underline-offset-2">Terms</a> &amp;{" "}
-              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-black/60 underline underline-offset-2">Privacy Policy</a>, and to receive news &amp; updates from us.
-            </p>
+        <p className="mt-3 text-center text-[11px] font-bold leading-relaxed text-black/40">
+          By continuing you agree to our{" "}
+          <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-black/60 underline underline-offset-2">Terms</a> &amp;{" "}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-black/60 underline underline-offset-2">Privacy Policy</a>, and to receive news &amp; updates from us.
+        </p>
 
-            <div className="my-5 flex items-center gap-3">
-              <div className="h-px flex-1 bg-black/10" />
-              <span className="text-xs font-black uppercase tracking-wider text-black/30">or</span>
-              <div className="h-px flex-1 bg-black/10" />
-            </div>
+        <div className="my-5 flex items-center gap-3">
+          <div className="h-px flex-1 bg-black/10" />
+          <span className="text-xs font-black uppercase tracking-wider text-black/30">or</span>
+          <div className="h-px flex-1 bg-black/10" />
+        </div>
 
-            <form onSubmit={handlePassword} className="grid gap-3">
+        <form onSubmit={handlePassword} className="grid gap-3">
               {mode === "signup" && (
                 <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your name"
                   className="h-12 rounded-xl border border-black/12 bg-white px-4 text-sm font-bold text-black outline-none focus:border-black" />
@@ -169,18 +134,12 @@ function LoginForm() {
               </button>
             </form>
 
-            <div className="mt-4 flex flex-col items-center gap-2">
-              <button type="button" onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(""); }}
-                className="text-sm font-bold text-black/45">
-                {mode === "signin" ? <>New here? <span className="font-black text-black underline underline-offset-2">Create an account</span></> : <>Already have an account? <span className="font-black text-black underline underline-offset-2">Sign in</span></>}
-              </button>
-              <button type="button" onClick={() => void handleMagicLink()} disabled={linkLoading}
-                className="flex items-center gap-1.5 text-xs font-bold text-black/40 disabled:opacity-50">
-                {linkLoading && <Loader2 className="h-3 w-3 animate-spin" />} Or email me a sign-in link instead
-              </button>
-            </div>
-          </>
-        )}
+        <div className="mt-4 flex flex-col items-center gap-2">
+          <button type="button" onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setError(""); }}
+            className="text-sm font-bold text-black/45">
+            {mode === "signin" ? <>New here? <span className="font-black text-black underline underline-offset-2">Create an account</span></> : <>Already have an account? <span className="font-black text-black underline underline-offset-2">Sign in</span></>}
+          </button>
+        </div>
       </div>
     </div>
   );
