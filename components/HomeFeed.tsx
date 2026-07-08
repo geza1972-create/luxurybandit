@@ -11,6 +11,8 @@ import { publicAuthorName } from "@/lib/display-name";
 import { cleanEscapes } from "@/lib/reel-audit";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 import { FeedGate } from "@/components/FeedGate";
+import ModelChat from "@/components/ModelChat";
+import PremiumDialog from "@/components/PremiumDialog";
 
 export type FeedLook = {
   id: string;
@@ -113,6 +115,10 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [banditRevealed, setBanditRevealed] = useState(false);
   // Join/feedback sheet (register/sign-in gate for Follow, or "write us" feedback).
   const [gate, setGate] = useState<null | { mode: "auth" | "feedback"; reason?: string }>(null);
+  const [showChat, setShowChat] = useState(false);
+  const [showPremium, setShowPremium] = useState(false);
+  const [isPaid, setIsPaid] = useState(false);
+  useEffect(() => { try { setIsPaid(!!localStorage.getItem("luxurybandit-try-look-admin-pin") || localStorage.getItem("lb_paid") === "1"); } catch { /**/ } }, []);
   const pausedRef = useRef(false); pausedRef.current = paused;
   const [infoOpen, setInfoOpen] = useState(false);
   // Who-tried-this-on is a business secret → only the admin sees the named list.
@@ -1027,12 +1033,22 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         {/* ON the video: the try-on CTA — "See her in other looks". ("Bandit the feeling"
             lives BELOW the video now, in the white caption bar.) */}
         {["video", "cvideo", "compare", "cphoto", "image"].includes(media[active]?.type as string) && (
-          <button type="button"
-            onClick={(e) => { e.stopPropagation(); goTryOn(); }}
-            onPointerDown={(e) => e.stopPropagation()}
-            className={`lb-gold absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full px-8 py-3.5 text-sm font-black shadow-xl transition-all duration-200 active:scale-95 ${(banditRevealed || (showBanditBtn && !banditCreating)) ? "scale-100 opacity-100" : "pointer-events-none scale-90 opacity-0"}`}>
-            <Sparkles className="h-4 w-4" /> See her in other looks
-          </button>
+          <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
+            {authorCuratorId && (
+              <button type="button"
+                onClick={(e) => { e.stopPropagation(); setShowChat(true); }}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="flex items-center gap-2 whitespace-nowrap rounded-full border border-white/25 bg-black/45 px-6 py-2.5 text-sm font-black text-white backdrop-blur active:scale-95 transition">
+                <MessageCircle className="h-4 w-4" /> Chat with her
+              </button>
+            )}
+            <button type="button"
+              onClick={(e) => { e.stopPropagation(); goTryOn(); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className={`lb-gold flex items-center gap-2 whitespace-nowrap rounded-full px-8 py-3.5 text-sm font-black shadow-xl transition-all duration-200 active:scale-95 ${(banditRevealed || (showBanditBtn && !banditCreating)) ? "scale-100 opacity-100" : "pointer-events-none scale-90 opacity-0"}`}>
+              <Sparkles className="h-4 w-4" /> See her in other looks
+            </button>
+          </div>
         )}
 
         {/* "Creating slides" hint while the carousel is being built. */}
@@ -1051,9 +1067,6 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             clears the model's body and the bottom action buttons. */}
         <div className="absolute right-2.5 top-3 z-10 flex flex-col items-center gap-4">
           <RailButton icon={<Heart className="h-8 w-8" fill={liked ? "currentColor" : "none"} strokeWidth={2} />} label={likeCount > 0 ? fmtCount(likeCount) : "Like"} active={liked} onClick={toggleLike} />
-          {!look.commentsOff && (
-            <RailButton icon={<MessageCircle className="h-8 w-8" strokeWidth={2} />} label={(look.commentCount ?? 0) > 0 ? fmtCount(look.commentCount as number) : "Comment"} onClick={() => onComment(look)} />
-          )}
           <RailButton icon={<Bookmark className="h-8 w-8" fill={saved ? "currentColor" : "none"} strokeWidth={2} />} label={saved ? "Saved" : "Save"} active={saved} onClick={toggleSave} />
           <RailButton icon={<Send className="h-7 w-7" strokeWidth={2} />} label="Share" onClick={share} />
           <RailButton icon={<Home className="h-7 w-7" strokeWidth={2} />} label="Home" onClick={onClose ?? (() => router.push("/stores?view=grid"))} />
@@ -1109,9 +1122,6 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           )
         )}
         <div className="mt-1 flex items-center gap-3">
-          {!look.commentsOff && (
-            <button type="button" onClick={() => onComment(look)} className="text-[12px] font-bold text-white/45">View comments</button>
-          )}
           <button type="button" onClick={() => setGate({ mode: "feedback" })} className="text-[12px] font-bold text-white/45">💬 Feedback / Contact</button>
         </div>
         {/* Slim recruiting ad — a GOLD BUTTON on every ~4th post (parent decides),
@@ -1128,6 +1138,21 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       {gate && (
         <FeedGate mode={gate.mode} reason={gate.reason} lookId={look.id} lookName={look.name} onClose={() => setGate(null)} onAuthed={gate.mode === "auth" ? doFollow : undefined} />
       )}
+
+      {/* Chat with the model — opens from the "Chat with her" CTA on the video. */}
+      {authorCuratorId && (
+        <ModelChat
+          open={showChat}
+          onClose={() => setShowChat(false)}
+          curatorId={authorCuratorId}
+          modelName={publicAuthorName(authorName)}
+          modelFirstName={publicAuthorName(authorName).split(/\s+/)[0] || ""}
+          avatarUrl={authorPhotoUrl || ""}
+          isPaid={isPaid}
+          onNeedPremium={() => { setShowChat(false); setShowPremium(true); }}
+        />
+      )}
+      <PremiumDialog open={showPremium} onClose={() => setShowPremium(false)} />
 
       {/* Admin: assign this curated look to a curator */}
       {/* Paste the Pixverse video-ID/URL you upscaled yourself → replace this try-on's video. */}
