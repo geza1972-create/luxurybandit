@@ -639,6 +639,31 @@ export default function CuratorPublicPage() {
 
       {/* Profile header */}
       <div className="flex flex-col items-center gap-2 px-6 pt-6 text-center">
+        {/* Stats ABOVE the photo — likes/views = real sums + the admin vanity baselines. */}
+        <div className="mb-1 flex w-full items-center justify-center gap-4">
+          {[["Looks", looks.length], ["Followers", fmtN(followerCount)], ["Likes", fmtN((profile.likeBoost ?? 0) + looks.reduce((s, l) => s + ((l as any).likeCount ?? 0), 0))], ["Views", fmtN((profile.viewBoost ?? 0) + looks.reduce((s, l) => s + ((l as any).viewCount ?? 0), 0))]].map(([label, val]) => (
+            <div key={label as string} className="flex flex-col items-center">
+              <span className="text-base font-black text-white">{val}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wide text-white/40">{label}</span>
+            </div>
+          ))}
+          {/* Admin: one tap gives her healthy vanity numbers; tap again to re-roll. */}
+          {isAdmin && (
+            <button type="button" onClick={() => void boostStats()} disabled={boostBusy} title="Followers/Likes/Views boosten"
+              className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-amber-400/40 bg-amber-400/10 text-amber-400 active:scale-90 transition disabled:opacity-50">
+              {boostBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            </button>
+          )}
+          {isAdmin && (
+            <button type="button" onClick={() => void toggleRealBadge()} disabled={badgeBusy}
+              title={profile.realBadge ? "Real-Banner ausschalten" : "Real-Banner einschalten"}
+              className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border active:scale-90 transition disabled:opacity-50 ${
+                profile.realBadge ? "border-amber-400 bg-amber-400 text-black" : "border-white/20 bg-white/5 text-white/40"
+              }`}>
+              {badgeBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BadgeCheck className="h-3.5 w-3.5" />}
+            </button>
+          )}
+        </div>
         {/* Profile photo — tap opens it LARGE (lightbox). Her videos live in the
             gallery strip below, so no play badge here anymore. */}
         <button type="button" disabled={!profile.photoUrl} onClick={() => setPhotoOpen(true)}
@@ -662,37 +687,16 @@ export default function CuratorPublicPage() {
           )}
         </div>
 
-        {/* Gold "chat with the model" CTA, right by her photo. */}
-        <button type="button" onClick={() => setShowChat(true)}
-          className="lb-gold mt-3 flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-black active:scale-95 transition">
-          <MessageCircle className="h-4 w-4" /> Chat with her!
-        </button>
-
-        {/* Stats — likes/views = real sums + the admin-set vanity baselines. */}
-        <div className="mt-3 flex items-center justify-center gap-6">
-          {[["Looks", looks.length], ["Followers", fmtN(followerCount)], ["Likes", fmtN((profile.likeBoost ?? 0) + looks.reduce((s, l) => s + ((l as any).likeCount ?? 0), 0))], ["Views", fmtN((profile.viewBoost ?? 0) + looks.reduce((s, l) => s + ((l as any).viewCount ?? 0), 0))]].map(([label, val]) => (
-            <div key={label as string} className="flex flex-col items-center">
-              <span className="text-base font-black text-white">{val}</span>
-              <span className="text-[10px] font-bold uppercase tracking-wide text-white/40">{label}</span>
-            </div>
-          ))}
-          {/* Admin: one tap gives her healthy vanity numbers (always >100k/200k/300k);
-              tap again to re-roll. Stored as boosts, real engagement adds on top. */}
-          {isAdmin && (
-            <button type="button" onClick={() => void boostStats()} disabled={boostBusy} title="Followers/Likes/Views boosten"
-              className="grid h-8 w-8 place-items-center rounded-full border border-amber-400/40 bg-amber-400/10 text-amber-400 active:scale-90 transition disabled:opacity-50">
-              {boostBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            </button>
-          )}
-          {isAdmin && (
-            <button type="button" onClick={() => void toggleRealBadge()} disabled={badgeBusy}
-              title={profile.realBadge ? "Real-Banner ausschalten" : "Real-Banner einschalten"}
-              className={`grid h-8 w-8 place-items-center rounded-full border active:scale-90 transition disabled:opacity-50 ${
-                profile.realBadge ? "border-amber-400 bg-amber-400 text-black" : "border-white/20 bg-white/5 text-white/40"
-              }`}>
-              {badgeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />}
-            </button>
-          )}
+        {/* Two gold CTAs side by side — chat with her + jump to her other looks. */}
+        <div className="mt-3 flex w-full max-w-sm items-stretch gap-2">
+          <button type="button" onClick={() => setShowChat(true)}
+            className="lb-gold flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-black leading-tight active:scale-95 transition">
+            <MessageCircle className="h-4 w-4 shrink-0" /> Chat with her!
+          </button>
+          <button type="button" onClick={() => wardrobeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className="lb-gold flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-black leading-tight active:scale-95 transition">
+            See {profile.firstName || "her"} in other looks
+          </button>
         </div>
 
         {/* Trust badge in gold (~every 2nd visit): the models are REAL people.
@@ -738,12 +742,6 @@ export default function CuratorPublicPage() {
           </div>
         )}
 
-        {/* Primary CTA — jumps down to her wardrobe (her outfits). Her videos stay
-            behind the profile photo's play button. */}
-        <button type="button" onClick={() => wardrobeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-          className="lb-gold mt-4 flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-black active:scale-95 transition">
-          See {profile.firstName || "her"} in other looks
-        </button>
 
         {/* Admin: import a self-made video (e.g. from the Pixverse UI) into her reel,
             and "view as her" — a true preview of what SHE sees after signing in. */}

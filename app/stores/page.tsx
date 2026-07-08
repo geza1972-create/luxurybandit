@@ -2624,7 +2624,7 @@ function StoresPage() {
                 <div className="mt-3 grid gap-1.5">
                   {[
                     [<Sparkles key="i" className="h-4 w-4 text-amber-400" />, "See her in any look", "Put your favorite model in the outfit YOU choose — like it, share it, shop it."],
-                    [<MessageCircle key="i" className="h-4 w-4 text-amber-400" />, "Get in touch", "Follow her and send her a message right from her profile."],
+                    [<MessageCircle key="i" className="h-4 w-4 text-amber-400" />, "Chat with her", "Talk to your favorite model in a live chat, follow her and get to know her — right from her profile."],
                   ].map(([icon, title, text], i) => (
                     <div key={i} className="flex items-start gap-2.5">
                       <span className="mt-0.5 shrink-0">{icon as React.ReactNode}</span>
