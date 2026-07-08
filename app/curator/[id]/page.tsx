@@ -414,6 +414,23 @@ export default function CuratorPublicPage() {
     } catch (e) { alert(e instanceof Error ? e.message : "Upscale fehlgeschlagen"); }
     finally { setHdBusy(false); }
   };
+  // Admin: download her profile photo (prefers the uncropped original).
+  const [dlPhotoBusy, setDlPhotoBusy] = useState(false);
+  const downloadPhoto = async () => {
+    const url = profile?.photoFullUrl || profile?.photoUrl;
+    if (!url || dlPhotoBusy) return;
+    setDlPhotoBusy(true);
+    try {
+      const blob = await fetch(url).then(r => r.blob());
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objUrl;
+      a.download = `${(name || "luxurybandit").replace(/\s+/g, "-")}.jpg`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(objUrl), 8000);
+    } catch { try { window.open(url, "_blank"); } catch { /**/ } }
+    finally { setDlPhotoBusy(false); }
+  };
   const toggleRealBadge = async () => {
     if (badgeBusy || !profile) return;
     setBadgeBusy(true);
@@ -860,6 +877,12 @@ export default function CuratorPublicPage() {
           <div className="flex items-center justify-between px-4 py-3">
             <p className="text-sm font-black text-white">{name}</p>
             <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              {isAdmin && (
+                <button type="button" onClick={() => void downloadPhoto()} disabled={dlPhotoBusy} title="Profilfoto herunterladen"
+                  className="grid h-9 w-9 place-items-center rounded-full bg-white text-black active:scale-90 transition disabled:opacity-50">
+                  {dlPhotoBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                </button>
+              )}
               {isAdmin && (
                 <button type="button" onClick={() => void upscalePhoto()} disabled={hdBusy} title="Profilfoto in HD hochrechnen"
                   className="flex h-9 items-center gap-1.5 rounded-full bg-amber-400 px-3.5 text-[12px] font-black text-black active:scale-95 transition disabled:opacity-50">

@@ -567,7 +567,7 @@ export default function TryFunnelPage() {
                   {modelImg ? <img src={modelImg} alt="" className="h-full w-full object-cover object-top" /> : <div className="h-full w-full bg-white/5" />}
                   <button type="button" onClick={() => (avatar ? fileRef.current?.click() : (setPickedModel(""), setChooseModel(true)))}
                     className="absolute inset-x-3 bottom-3 flex items-center justify-center gap-2 rounded-full bg-black/70 px-4 py-2.5 text-[13px] font-black backdrop-blur active:scale-95">
-                    <RefreshCw className="h-3.5 w-3.5" /> {avatar ? "Replace your photo" : "Choose other model"}
+                    <RefreshCw className="h-3.5 w-3.5" /> {avatar ? "Change photo" : "Change model"}
                   </button>
                 </div>
               </div>
