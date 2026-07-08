@@ -71,11 +71,15 @@ export default async function AboutPage() {
   return (
     <main className="min-h-[100dvh] bg-[#0d0b0a] pb-24 text-white">
       <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-white/10 bg-[#0d0b0a]/95 px-4 py-3 backdrop-blur">
-        <Link href="/stores?view=grid" aria-label="Back"
+        <Link href="/home" aria-label="Back"
           className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 text-white active:scale-90 transition-transform">
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <p className="text-sm font-black text-white">How it works</p>
+        {/* Logo → start page (like the home header). */}
+        <Link href="/home" aria-label="LuxuryBandit — home" className="flex items-center gap-2 active:opacity-70">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-[11px] font-black text-black">LB</span>
+          <span className="text-[15px] font-black tracking-tight text-white">LUXURYBANDIT</span>
+        </Link>
       </header>
 
       <article className="mx-auto max-w-2xl px-5 py-8">

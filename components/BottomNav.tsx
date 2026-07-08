@@ -141,7 +141,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
 
   // The feed (HomeFeed on /stores + /look/*) carries its own chrome (Home icon in
   // the right rail, Follow by the name) — hide the global bottom nav there.
-  const hideBar = pathname === "/stores" || pathname.startsWith("/look/");
+  const hideBar = pathname === "/stores" || pathname.endsWith("/home") || pathname.startsWith("/look/");
 
   return (
     <>
@@ -167,9 +167,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
 
         {/* Home — the single feed (The A List was removed; one feed now) */}
         {(() => {
-          const homeActive = pathname === "/stores";
+          const homeActive = pathname === "/stores" || pathname.endsWith("/home");
           return (
-            <button type="button" onClick={() => { setActive("home"); router.push("/stores?view=grid"); }}
+            <button type="button" onClick={() => { setActive("home"); router.push("/home"); }}
               className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${homeActive ? "text-black" : "text-black/35"}`}>
               <Home className="h-5 w-5" />
               <span className="text-[10px] font-bold">Home</span>

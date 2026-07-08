@@ -25,7 +25,7 @@ const nextConfig = {
         // Home = the Fashionshow GRID overview (hero + tabs + 3-col grid), not the
         // immersive reel. Tapping any tile still opens the full-screen reel.
         source: "/",
-        destination: "/stores?view=grid",
+        destination: "/home",
         permanent: false
       },
       {

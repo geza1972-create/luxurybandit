@@ -1723,7 +1723,9 @@ function StoresPage() {
   // the 3-col grid overview. ?view=alist = The A List (HomeFeed of look posts).
   const view = searchParams.get("view");
   const showAList = false; // The A List was removed — one feed now (legacy ?view=alist → grid)
-  const showGrid = view === "grid" || view === "alist";
+  // /home (the start page, its own clean URL) always shows the grid — same as ?view=grid.
+  const onHome = pathname.endsWith("/home");
+  const showGrid = view === "grid" || view === "alist" || onHome;
   // Account/Saved deep links open over the grid, not the immersive reels.
   const showReels = !showAList && !showGrid && !searchParams.get("panel"); // default
   const [brandFilter, setBrandFilter] = useState<string | null>(null);
@@ -2625,14 +2627,14 @@ function StoresPage() {
                   {/* Home already IS the grid — no reel CTA needed here. "How it works"
                       stays as the primary explainer. */}
                   <button type="button" onClick={() => router.push("/about")}
-                    className="lb-black3d flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-black active:scale-95 transition-transform">
+                    className="lb-gold flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-black active:scale-95 transition-transform">
                     <Play className="h-4 w-4" fill="currentColor" /> How it works
                   </button>
                 </div>
                 {/* Model recruiting → its own landing page. Solid gold pill so
                     would-be models can't miss it. */}
                 <button type="button" onClick={() => router.push("/become-a-model")}
-                  className="lb-gold mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-[13px] font-black active:scale-95 transition-transform">
+                  className="lb-black3d mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-[13px] font-black active:scale-95 transition-transform">
                   <Heart className="h-4 w-4" fill="currentColor" /> Become a Model — earn with every look →
                 </button>
               </section>
