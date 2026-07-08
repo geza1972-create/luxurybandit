@@ -192,6 +192,7 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [lookCatFilter, setLookCatFilter] = useState<LookCategory | null>(null); // A-List category filter
+  const [postTierFilter, setPostTierFilter] = useState<"private" | "community" | null>(null); // Try-ons visibility tier
   const [busy, setBusy] = useState("");
   const [confirmId, setConfirmId] = useState("");
   const [edit, setEdit] = useState<Curator | null>(null); // curator being edited
@@ -736,10 +737,13 @@ export default function AdminPage() {
     return posts.filter(p => {
       if (q && !`${p.customerName} ${p.lookName}`.toLowerCase().includes(q)) return false;
       if (postDateFrom && String(p.createdAt).slice(0, 10) < postDateFrom) return false;
-      if (lookCatFilter && lookCatById.get(p.lookId) !== lookCatFilter) return false;
+      if (postTierFilter) {
+        const t = p.public ? "public" : p.feed ? "community" : "private";
+        if (t !== postTierFilter) return false;
+      }
       return true;
     });
-  }, [posts, q, postDateFrom, lookCatFilter, lookCatById]);
+  }, [posts, q, postDateFrom, postTierFilter]);
 
   // ── Bulk selection + actions (visibility tier / delete) ──
   const postTierOf = (p: AdminPost): "private" | "community" | "public" => (p.public ? "public" : p.feed ? "community" : "private");
@@ -924,28 +928,28 @@ export default function AdminPage() {
         {/* ── Posts (all generations, incl. hidden) ── */}
         {tab === "posts" && (
           <div className="mt-3 pb-16">
-            {/* Category filter chips — by the category of the look each post was made on. */}
+            {/* Visibility-tier filter chips — All / Private / Community (the moderation tiers). */}
             {(() => {
-              const counts = new Map<LookCategory, number>();
-              for (const p of posts) { const c = lookCatById.get(p.lookId); if (c) counts.set(c, (counts.get(c) ?? 0) + 1); }
+              const tierOf = (p: AdminPost) => (p.public ? "public" : p.feed ? "community" : "private");
+              const privateCount = posts.filter(p => tierOf(p) === "private").length;
+              const communityCount = posts.filter(p => tierOf(p) === "community").length;
+              const chip = (label: string, value: "private" | "community" | null, count: number) => (
+                <button type="button" onClick={() => setPostTierFilter(value)}
+                  className={`rounded-full px-3 py-1 text-[11px] font-black transition ${postTierFilter === value ? "bg-ink text-white" : "bg-black/5 text-ink/55 hover:bg-black/10"}`}>
+                  {label} <span className="opacity-60">{count}</span>
+                </button>
+              );
               return (
                 <div className="mb-3 flex flex-wrap items-center gap-1.5">
                   <span className="mr-0.5 text-[10px] font-black uppercase tracking-wide text-ink/35">Try-ons</span>
-                  <button type="button" onClick={() => setLookCatFilter(null)}
-                    className={`rounded-full px-3 py-1 text-[11px] font-black transition ${lookCatFilter === null ? "bg-ink text-white" : "bg-black/5 text-ink/55 hover:bg-black/10"}`}>
-                    Alle <span className="opacity-60">{posts.length}</span>
-                  </button>
-                  {LOOK_CATEGORIES.map(c => (
-                    <button key={c.slug} type="button" onClick={() => setLookCatFilter(c.slug)}
-                      className={`rounded-full px-3 py-1 text-[11px] font-black transition ${lookCatFilter === c.slug ? "bg-ink text-white" : "bg-black/5 text-ink/55 hover:bg-black/10"}`}>
-                      {c.slug === "boudoir" ? "🔒 " : ""}{c.label} <span className="opacity-60">{counts.get(c.slug) ?? 0}</span>
-                    </button>
-                  ))}
+                  {chip("Alle", null, posts.length)}
+                  {chip("Private", "private", privateCount)}
+                  {chip("Community", "community", communityCount)}
                 </div>
               );
             })()}
             <div className="mb-3 flex items-center justify-between gap-2">
-              <p className="text-[11px] font-bold text-ink/40">{shownPosts.length} posts{(query || postDateFrom || lookCatFilter) ? " (filtered)" : ""}.</p>
+              <p className="text-[11px] font-bold text-ink/40">{shownPosts.length} posts{(query || postDateFrom || postTierFilter) ? " (filtered)" : ""}.</p>
               <button type="button" onClick={() => { if (selectMode) clearSelection(); else setSelectMode(true); }}
                 className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-black transition ${selectMode ? "bg-ink text-white" : "bg-black/5 text-ink/60 hover:bg-black/10"}`}>
                 {selectMode ? "Cancel" : "Select"}
