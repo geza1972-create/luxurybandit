@@ -1397,11 +1397,11 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
             {message && <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-xs font-black text-green-700">{message}</p>}
 
             <input type="email" placeholder="you@email.com" value={email} onChange={e => setEmail(e.target.value)}
-              className="h-12 rounded-xl border border-black/10 bg-black/[0.02] px-4 text-sm font-bold outline-none focus:border-cobalt" />
+              className="h-12 rounded-xl border border-black/10 bg-black/[0.02] px-4 text-sm font-bold text-black placeholder:text-black/40 outline-none focus:border-cobalt" />
             {tab !== "forgot" && (
               <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") void handle(tab); }}
-                className="h-12 rounded-xl border border-black/10 bg-black/[0.02] px-4 text-sm font-bold outline-none focus:border-cobalt" />
+                className="h-12 rounded-xl border border-black/10 bg-black/[0.02] px-4 text-sm font-bold text-black placeholder:text-black/40 outline-none focus:border-cobalt" />
             )}
 
             <button type="button" disabled={loading || !email.trim()} onClick={() => void handle(tab)}
