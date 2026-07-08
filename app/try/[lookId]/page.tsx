@@ -199,6 +199,10 @@ export default function TryFunnelPage() {
   // look" picker leaves selectable) → generating them costs nothing, no credit, no $8.
   // Own-photo (avatar) try-ons are the paid custom feature, so they never count as free.
   const lookIsFree = !avatar && look?.featured === true;
+  // A guest = not signed in and not the admin previewing as admin. Guests may WATCH the
+  // teaser reveal, but must register / sign in before they can actually watch the finished
+  // video (lead-capture gate at the "video ready" moment).
+  const guest = !isAuthed() && !(adminPin && !previewAsUser);
 
   // Does this exact free combo (model × garment × motion) already exist? If so we can play
   // the REAL video on the ready step — no blur, no sign-in wall. Own-photo picks never cache.
@@ -668,8 +672,14 @@ export default function TryFunnelPage() {
               // sharpens from blurry over ~30s, THEN becomes fully watchable (controls).
               <div className="relative h-[52vh] w-full overflow-hidden bg-black">
                 <video ref={revealVideoRef} src={previewVideoUrl} poster={previewPoster || undefined} preload="auto" className="h-full w-full object-contain"
-                  style={revealing ? { filter: `blur(${revealSharp ? 0 : 26}px)`, transform: `scale(${revealSharp ? 1 : 1.08})`, transition: `filter ${REVEAL_MS}ms linear, transform ${REVEAL_MS}ms ease-out` } : undefined}
-                  loop playsInline muted={revealing} controls={!revealing} />
+                  style={
+                    revealing
+                      ? { filter: `blur(${revealSharp ? 0 : 26}px)`, transform: `scale(${revealSharp ? 1 : 1.08})`, transition: `filter ${REVEAL_MS}ms linear, transform ${REVEAL_MS}ms ease-out` }
+                      : guest
+                      ? { filter: "blur(22px)", transform: "scale(1.08)" } // finished but LOCKED until sign-in
+                      : undefined
+                  }
+                  loop playsInline muted={revealing || guest} controls={!revealing && !guest} />
                 {revealing ? (
                   <>
                     {/* White scanner beam sweeping down then up. */}
@@ -685,6 +695,15 @@ export default function TryFunnelPage() {
                       <span className="text-sm font-black">Revealing your look…</span>
                     </div>
                   </>
+                ) : guest ? (
+                  // Reveal finished but the visitor isn't signed in → keep it locked behind
+                  // the register/sign-in wall (the CTA sits in the button below).
+                  <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-black/35">
+                    <div className="flex flex-col items-center gap-2 text-center">
+                      <span className="grid h-16 w-16 place-items-center rounded-full bg-white/15 backdrop-blur"><Lock className="h-7 w-7 text-white" /></span>
+                      <span className="mt-1 flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1 text-[12px] font-black"><Check className="h-3.5 w-3.5" /> Video ready</span>
+                    </div>
+                  </div>
                 ) : (
                   <span className="pointer-events-none absolute right-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black"><Check className="h-3.5 w-3.5" /> Free</span>
                 )}
@@ -712,8 +731,8 @@ export default function TryFunnelPage() {
           </div>
           {!rendering && !revealing && (
             <>
-              <h1 className="mt-6 text-center text-[22px] font-black leading-tight">{previewVideoUrl ? "Enjoy your video 🎉" : "Your video is ready."}</h1>
-              <p className="mt-2 text-center text-[13px] font-bold text-white/50">{previewVideoUrl ? "It's free — tap 🔊 for sound. Sign in to save & download it." : "Sign in to watch and download it in full quality."}</p>
+              <h1 className="mt-6 text-center text-[22px] font-black leading-tight">Your video is ready 🎉</h1>
+              <p className="mt-2 text-center text-[13px] font-bold text-white/50">{guest ? "Register or sign in to watch your video." : previewVideoUrl ? "It's free — tap 🔊 for sound. Saved to your account." : "Watch and download it in full quality."}</p>
               {/* Motion was chosen before generating — no picker on the ready step. */}
               {adminPromptPanel}
             </>
@@ -917,15 +936,23 @@ export default function TryFunnelPage() {
           )}
           {step === 3 && !rendering && !revealing && (
             previewVideoUrl && previewGenId ? (
-              // Free video is already playing above → open the full post (free), no wall.
-              <button type="button" onClick={() => router.push(`/post/${previewGenId}`)}
-                className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                <Sparkles className="h-5 w-5" /> View your video →
-              </button>
+              guest ? (
+                // Video is ready but LOCKED → register / sign in to watch it (lead gate).
+                <button type="button" onClick={onUnlock}
+                  className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
+                  <Lock className="h-5 w-5" /> Register or sign in to watch
+                </button>
+              ) : (
+                // Signed in → open the full post to watch it.
+                <button type="button" onClick={() => router.push(`/post/${previewGenId}`)}
+                  className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
+                  <Sparkles className="h-5 w-5" /> View your video →
+                </button>
+              )
             ) : (
               <button type="button" onClick={onUnlock}
                 className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                {(isAuthed() || (adminPin && !previewAsUser)) ? "Continue" : "Sign in & watch"}
+                {(isAuthed() || (adminPin && !previewAsUser)) ? "Continue" : "Register or sign in to watch"}
               </button>
             )
           )}
@@ -940,9 +967,15 @@ export default function TryFunnelPage() {
       {step === 5 && <BottomNav forceShow />}
 
       {gateOpen && (
-        <FeedGate mode="auth" reason="Sign in to watch your video" lookId={lookId} lookName={look?.name}
+        <FeedGate mode="auth" reason="Register or sign in to watch your video" lookId={lookId} lookName={look?.name}
           advanceOnSignup
-          onClose={() => setGateOpen(false)} onAuthed={() => { setGateOpen(false); setStep(lookIsFree ? 5 : 4); }} />
+          onClose={() => setGateOpen(false)} onAuthed={() => {
+            setGateOpen(false);
+            // If the video is already generated & cached, they signed in to WATCH it → open
+            // the post. Otherwise continue the flow (free look → generate; paid → pack step).
+            if (previewVideoUrl && previewGenId) router.push(`/post/${previewGenId}`);
+            else setStep(lookIsFree ? 5 : 4);
+          }} />
       )}
 
       <PremiumDialog open={showPremium} onClose={() => setShowPremium(false)} />
