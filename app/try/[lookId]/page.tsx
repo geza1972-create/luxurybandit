@@ -61,6 +61,22 @@ export default function TryFunnelPage() {
     fetch("/api/try-this-look?models=1").then(r => r.json()).then(d => setGModels(Array.isArray(d.models) ? d.models : [])).catch(() => {});
   }, [pickModel, chooseModel]);
 
+  // "Choose other look" — a gallery of ALL portal garments; only the free (featured) ones
+  // are selectable, the rest are Premium (padlock). Picking one reloads the funnel on that look.
+  const [chooseLook, setChooseLook] = useState(false);
+  const [gGarments, setGGarments] = useState<{ id: string; name: string; img: string; featured?: boolean }[]>([]);
+  useEffect(() => {
+    if (!chooseLook || gGarments.length) return;
+    fetch("/api/try-this-look").then(r => r.json()).then(d => {
+      const looks: any[] = Array.isArray(d.looks) ? d.looks : []; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const g = looks
+        .filter(l => (l.productType === "ai" || l.wardrobe) && (l.frontImageUrl || l.imageUrl) && l.published !== false)
+        .map(l => ({ id: l.id, name: l.name, img: (l.frontImageUrl || l.imageUrl) as string, featured: l.featured === true }))
+        .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+      setGGarments(g);
+    }).catch(() => {});
+  }, [chooseLook]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [look, setLook] = useState<Look | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [outfit, setOutfit] = useState<Outfit | null>(null);
@@ -583,10 +599,14 @@ export default function TryFunnelPage() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={outfit.imageUrl} alt="" className="h-full w-full object-cover" />
               </button>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-white/40">Selected outfit</p>
                 <p className="truncate text-sm font-black">{outfit.name}</p>
               </div>
+              <button type="button" onClick={() => setChooseLook(true)}
+                className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white active:scale-95 transition">
+                <RefreshCw className="h-3.5 w-3.5" /> Change look
+              </button>
             </div>
           )}
           {adminPromptPanel}
@@ -886,6 +906,51 @@ export default function TryFunnelPage() {
           <div className="flex flex-1 items-center justify-center px-4 pb-8" onClick={(e) => e.stopPropagation()}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={garmentParam || outfit?.imageUrl || ""} alt={outfit?.name || ""} className="max-h-full max-w-full rounded-2xl object-contain" />
+          </div>
+        </div>
+      )}
+
+      {/* Choose another look — free (featured) garments are selectable; the rest are Premium. */}
+      {chooseLook && (
+        <div className="fixed inset-0 z-[95] flex flex-col bg-black/95" onClick={() => setChooseLook(false)}>
+          <div className="flex items-center justify-between px-4 py-3">
+            <p className="text-sm font-black text-white">Choose a look</p>
+            <button type="button" onClick={() => setChooseLook(false)}
+              className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white active:scale-90 transition"><X className="h-5 w-5" /></button>
+          </div>
+          <p className="px-4 pb-2 text-[12px] font-bold text-white/45">Only the free looks are selectable — the rest are Premium.</p>
+          <div className="flex-1 overflow-y-auto overscroll-contain px-3 pb-8" onClick={(e) => e.stopPropagation()}>
+           <div className="grid grid-cols-3 gap-2">
+            {gGarments.length === 0 ? (
+              <div className="col-span-3 grid place-items-center py-16"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>
+            ) : (() => {
+              const anyFeatured = gGarments.some(g => g.featured);
+              return gGarments.map(g => {
+                const locked = anyFeatured && !g.featured && !isPaid;
+                return (
+                  <button key={g.id} type="button"
+                    onClick={() => {
+                      if (locked) { setShowPremium(true); return; }
+                      const curModelPhoto = pickedModel || modelParam || "";
+                      router.push(`/try/${g.id}?modelId=${encodeURIComponent(chosenModelId)}&model=${encodeURIComponent(curModelPhoto)}&garment=${encodeURIComponent(g.img)}&modelName=${encodeURIComponent(chosenModelName)}`);
+                    }}
+                    className="overflow-hidden rounded-xl border border-white/10 bg-white active:scale-95 transition">
+                    <div className="relative aspect-[3/4] w-full bg-white">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={g.img} alt={g.name} loading="lazy" className={`h-full w-full object-contain ${locked ? "blur-[5px] opacity-70" : ""}`} />
+                      {adminPin && g.featured && (
+                        <span className="absolute left-1 top-1 z-10 rounded-full bg-amber-400 px-1.5 text-[11px] font-black text-black shadow" title="Free look">★</span>
+                      )}
+                      {locked && (
+                        <span className="absolute inset-0 grid place-items-center bg-black/20"><span className="grid h-8 w-8 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-4 w-4 text-white" /></span></span>
+                      )}
+                    </div>
+                    <div className="px-1 py-1"><span className={`line-clamp-1 text-[10px] font-black ${locked ? "text-amber-500" : "text-black/70"}`}>{locked ? "Premium" : g.name}</span></div>
+                  </button>
+                );
+              });
+            })()}
+           </div>
           </div>
         </div>
       )}
