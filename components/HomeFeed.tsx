@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, Home, ShoppingBag, EyeOff, Eye, Trash2, UserPlus, Check, ImageOff, RefreshCw, BadgeCheck } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, Home, ShoppingBag, EyeOff, Eye, Trash2, UserPlus, Check, ImageOff, RefreshCw, BadgeCheck, Download } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -592,6 +592,23 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
     } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Ersetzen"); }
     finally { setUpscaling(false); }
   };
+  // Admin: download the active clip as an .mp4 (e.g. to post it to Instagram from the phone).
+  const [dlBusy, setDlBusy] = useState(false);
+  const downloadVideo = async () => {
+    const src = (activeSlide as { url?: string })?.url || "";
+    if (!src || dlBusy) return;
+    setDlBusy(true);
+    try {
+      const blob = await fetch(src).then(r => r.blob());
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `luxurybandit-${activeTryOnId || Date.now()}.mp4`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 8000);
+    } catch { try { window.open(src, "_blank"); } catch { /**/ } }
+    finally { setDlBusy(false); }
+  };
   // Admin: ONE-CLICK — take the current cheap 360p try-on video and let Pixverse upscale it
   // to HD (1080p), then replace the stored clip. No manual Pixverse round-trip. Use this on
   // the keepers once a combo looks good.
@@ -778,6 +795,13 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                     className="grid h-9 w-9 place-items-center rounded-full bg-black/70 text-white active:opacity-70 disabled:opacity-40">
                     <UserPlus className="h-4 w-4" />
                   </button>
+                  {/* Download the clip as .mp4 (post to Instagram from the phone). */}
+                  {activeSlide?.type === "cvideo" && (
+                    <button type="button" onClick={downloadVideo} disabled={dlBusy} title="Video herunterladen"
+                      className="grid h-9 w-9 place-items-center rounded-full bg-white text-black active:opacity-70 disabled:opacity-40">
+                      {dlBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    </button>
+                  )}
                   {/* One-click: upscale THIS 360p try-on video to HD (1080p) via Pixverse. */}
                   {activeTryOnId && activeSlide?.type === "cvideo" && (
                     <button type="button" onClick={runUpscale} disabled={!!modBusy || upscaling} title="In HD umrechnen (1080p)"
@@ -992,7 +1016,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         <button type="button" aria-label={muted ? "Unmute" : "Mute"}
           onClick={() => {
             const next = !muted;
-            setMuted(next);
+            setMuted(() => next);
             const v = videoRefs.current[active];
             if (v) { v.muted = next; if (!next && !pausedRef.current) v.play().catch(() => {}); }
           }}
