@@ -9,7 +9,7 @@ import BottomNav from "@/components/BottomNav";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 type Outfit = { id: string; name: string; imageUrl: string; lookId?: string };
-type Look = { id: string; name: string; imageUrl?: string; frontImageUrl?: string; videoPosterUrl?: string; modelPhotoUrl?: string; curatorName?: string };
+type Look = { id: string; name: string; imageUrl?: string; frontImageUrl?: string; videoPosterUrl?: string; modelPhotoUrl?: string; curatorName?: string; featured?: boolean };
 
 // Downscale a picked avatar so it stays small (never uploaded before payment anyway).
 async function fileToDataUrl(file: File, max = 1000, quality = 0.85): Promise<string> {
@@ -195,6 +195,10 @@ export default function TryFunnelPage() {
   // The model the try-on is attributed to (final pick wins; empty for own-photo try-ons).
   const chosenModelId = !avatar ? (pickedModelId || modelIdParam) : "";
   const chosenModelName = !avatar ? (pickedModelName || modelNameParam) : "";
+  // Is this a FREE look? Featured looks are the free showcase (same ones the "Choose a
+  // look" picker leaves selectable) → generating them costs nothing, no credit, no $8.
+  // Own-photo (avatar) try-ons are the paid custom feature, so they never count as free.
+  const lookIsFree = !avatar && look?.featured === true;
 
   // Does this exact free combo (model × garment × motion) already exist? If so we can play
   // the REAL video on the ready step — no blur, no sign-in wall. Own-photo picks never cache.
@@ -239,7 +243,8 @@ export default function TryFunnelPage() {
   const onUnlock = () => {
     // Already signed in (guest session) OR admin previewing the flow → straight to plans.
     // In the admin's "User view", still show the gate so they can test the guest experience.
-    if (isAuthed() || (adminPin && !previewAsUser)) setStep(4);
+    // Free look → straight to generation (no paywall). Paid look → plans/pack step.
+    if (isAuthed() || (adminPin && !previewAsUser)) setStep(lookIsFree ? 5 : 4);
     else setGateOpen(true);
   };
 
@@ -937,7 +942,7 @@ export default function TryFunnelPage() {
       {gateOpen && (
         <FeedGate mode="auth" reason="Sign in to watch your video" lookId={lookId} lookName={look?.name}
           advanceOnSignup
-          onClose={() => setGateOpen(false)} onAuthed={() => { setGateOpen(false); setStep(4); }} />
+          onClose={() => setGateOpen(false)} onAuthed={() => { setGateOpen(false); setStep(lookIsFree ? 5 : 4); }} />
       )}
 
       <PremiumDialog open={showPremium} onClose={() => setShowPremium(false)} />
