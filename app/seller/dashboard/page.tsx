@@ -529,15 +529,6 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
           )}
         </section>
 
-        {/* Buy credits */}
-        {!isAdmin && (
-          <a href={`https://buy.stripe.com/test_6oUcMX9ktesv3SE4xZ8Vi00?prefilled_email=${encodeURIComponent(userEmail)}`}
-            target="_blank" rel="noopener noreferrer"
-            className="flex h-11 items-center justify-center gap-2 rounded-2xl bg-black text-sm font-black text-white active:scale-95 transition-transform">
-            <Sparkles className="h-4 w-4" /> Buy 10 try-on credits
-          </a>
-        )}
-
         {/* Admin links */}
         {isAdmin && (
           <section className="rounded-2xl border border-black/8 bg-white overflow-hidden">

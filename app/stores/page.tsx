@@ -1308,27 +1308,6 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
               </div>
             </div>
 
-            {/* Credits + buy */}
-            <div className="grid gap-2 rounded-xl border border-black/8 bg-black/[0.02] px-4 py-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-cobalt" />
-                  <span className="text-sm font-black text-ink">Try-on credits</span>
-                </div>
-                <span className="text-sm font-black text-ink">
-                  {credits === null ? "—" : credits}
-                </span>
-              </div>
-              <a
-                href={`https://buy.stripe.com/test_6oUcMX9ktesv3SE4xZ8Vi00?client_reference_id=${encodeURIComponent(`user-${session.user.id}`)}&prefilled_email=${encodeURIComponent(session.user.email ?? "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-10 items-center justify-center gap-2 rounded-lg bg-cobalt text-xs font-black text-white"
-              >
-                <Sparkles className="h-3.5 w-3.5" /> Buy 10 credits
-              </a>
-            </div>
-
             {/* Saved looks */}
             <SavedLooksList defaultOpen={openSaved} />
 

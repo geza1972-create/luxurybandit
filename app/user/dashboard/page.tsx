@@ -125,13 +125,6 @@ export default function UserDashboardPage() {
           ))}
         </div>
 
-        {/* Buy credits */}
-        <a href={`https://buy.stripe.com/test_6oUcMX9ktesv3SE4xZ8Vi00?prefilled_email=${encodeURIComponent(email)}`}
-          target="_blank" rel="noopener noreferrer"
-          className="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-black text-base font-black text-white active:scale-[0.99] transition-transform">
-          <Sparkles className="h-5 w-5" /> Buy 10 try-on credits
-        </a>
-
         {/* Quick links */}
         <div className="mt-3 grid grid-cols-2 gap-2">
           <button type="button" onClick={() => router.push("/stores")}
