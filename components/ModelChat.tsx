@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, X, Send, Lock, Sparkles, Smile, Gift } from "lucide-react";
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
 // Free users get a few lines to try; after that the composer locks and we upsell.
 const FREE_USER_MESSAGES = 5;
+// When the model offers to show herself in hot outfits (e.g. after a nudes request), the
+// AI ends its reply with this tag; the client hides the tag and renders tappable lingerie
+// looks she can be tried on in — turning the request into a paid try-on.
+const LINGERIE_TAG = "[[SHOW_LINGERIE]]";
 
 const EMOJIS = ["😍", "😘", "🥰", "😂", "😉", "😎", "🔥", "💋", "💕", "❤️", "🤩", "😳", "🙈", "👀", "✨", "💃", "👗", "👠", "💎", "🥂", "🌹", "🙏", "👋", "😅"];
 const GIFTS = [
@@ -34,6 +39,7 @@ export default function ModelChat({
   isPaid: boolean;
   onNeedPremium: () => void;
 }) {
+  const router = useRouter();
   const storeKey = `lb_modelchat_${curatorId}`;
   // Stable per-device id so the admin can follow one visitor's conversation over time.
   const visitorId = (() => {
@@ -48,9 +54,31 @@ export default function ModelChat({
   const [error, setError] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const [showGifts, setShowGifts] = useState(false);
+  const [lingerieLooks, setLingerieLooks] = useState<{ id: string; img: string }[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const first = modelFirstName || modelName || "She";
+
+  // Lazy-load a few lingerie looks the model can be tried on in — shown when she offers
+  // to show herself "in something hot" (LINGERIE_TAG). No names/brands (licensing).
+  useEffect(() => {
+    if (!open || lingerieLooks.length) return;
+    fetch("/api/try-this-look").then(r => r.json()).then(d => {
+      const looks: Array<Record<string, unknown>> = Array.isArray(d.looks) ? d.looks : [];
+      const ling = looks
+        .filter(l => ((l.category === "boudoir") || l.lingerie === true) && (l.frontImageUrl || l.imageUrl) && l.published !== false)
+        .slice(0, 8)
+        .map(l => ({ id: String(l.id), img: String(l.frontImageUrl || l.imageUrl) }));
+      setLingerieLooks(ling);
+    }).catch(() => {});
+  }, [open, lingerieLooks.length]);
+
+  // Tap a lingerie look → open the try-on funnel for THIS model in that look.
+  const openTryOn = (lookId: string, garment: string) => {
+    const qs = new URLSearchParams({ modelId: curatorId, model: avatarUrl || "", garment, modelName });
+    onClose();
+    router.push(`/try/${lookId}?${qs.toString()}`);
+  };
 
   // Restore any previous conversation for this model.
   useEffect(() => {
@@ -160,15 +188,34 @@ export default function ModelChat({
             </div>
           )}
 
-          {messages.map((m, i) => (
-            <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[80%] whitespace-pre-wrap px-3.5 py-2.5 text-sm font-medium ${m.role === "user"
-                ? "rounded-2xl rounded-tr-sm bg-amber-400 text-black"
-                : "rounded-2xl rounded-tl-sm bg-white/10 text-white/90"}`}>
-                {m.content}
+          {messages.map((m, i) => {
+            const offersLingerie = m.role === "assistant" && m.content.includes(LINGERIE_TAG);
+            const text = offersLingerie ? m.content.replace(LINGERIE_TAG, "").trim() : m.content;
+            return (
+              <div key={i} className="space-y-2">
+                <div className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[80%] whitespace-pre-wrap px-3.5 py-2.5 text-sm font-medium ${m.role === "user"
+                    ? "rounded-2xl rounded-tr-sm bg-amber-400 text-black"
+                    : "rounded-2xl rounded-tl-sm bg-white/10 text-white/90"}`}>
+                    {text}
+                  </div>
+                </div>
+                {/* Her "want to see me in these?" lingerie looks → tap to try her on. */}
+                {offersLingerie && lingerieLooks.length > 0 && (
+                  <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+                    {lingerieLooks.slice(0, 6).map(l => (
+                      <button key={l.id} type="button" onClick={() => openTryOn(l.id, l.img)}
+                        className="group relative w-24 shrink-0 overflow-hidden rounded-xl border border-amber-400/30 bg-white/5 active:scale-95 transition">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={l.img} alt="" className="aspect-[3/4] w-full object-cover" />
+                        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-1.5 pb-1.5 pt-4 text-[10px] font-black leading-tight text-white">See me in this 🔥</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {sending && (
             <div className="flex justify-start">
