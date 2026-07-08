@@ -46,16 +46,26 @@ export default function PremiumSync() {
 
     const sync = async () => {
       const email = emailNow();
-      if (!email) return;
+      // The premium flag is tied to the email that earned it. If the current user is
+      // different (e.g. a subscriber logged out and a free user logged in on the same
+      // device), the leftover flag must NOT leak → clear it.
+      const flagEmail = (() => { try { return localStorage.getItem("lb_paid_email") || ""; } catch { return ""; } })();
+      const clearPaid = () => { try { localStorage.removeItem("lb_paid"); localStorage.removeItem("lb_paid_email"); } catch { /**/ } };
+      if (!email) { if (flagEmail) clearPaid(); return; } // signed out → drop a stale flag
+      if (flagEmail && flagEmail !== email) clearPaid();
+
       let premium = await checkStripe(email);
       // Right after checkout Stripe may take a moment to register the subscription.
       if (!premium && justPaid) { await new Promise(r => setTimeout(r, 1800)); premium = await checkStripe(email); }
+      const was = localStorage.getItem("lb_paid");
       if (premium) {
-        const was = localStorage.getItem("lb_paid");
         localStorage.setItem("lb_paid", "1");
+        try { localStorage.setItem("lb_paid_email", email); } catch { /**/ }
         window.dispatchEvent(new Event("lb-paid-updated"));
-        // First time we detect it → reload once so every "isPaid" gate re-reads the flag.
-        if (was !== "1") window.location.reload();
+        if (was !== "1") window.location.reload(); // first detection → re-read gates
+      } else {
+        // Definitively not a subscriber → make sure no stale flag unlocks the app.
+        if (was === "1") { clearPaid(); window.dispatchEvent(new Event("lb-paid-updated")); window.location.reload(); }
       }
     };
 

@@ -612,18 +612,21 @@ export default function TryFunnelPage() {
                         <div className="relative aspect-[9/16] w-full">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={m.photoUrl} alt={m.name} className={`h-full w-full object-cover object-top ${locked ? "blur-[6px] scale-105 opacity-70" : ""}`} />
-                          {/* Admin-only: ★ marks the FREE (featured) models, so you generate the
-                              right 12 combos. End-users don't see it. */}
-                          {adminPin && m.featured && (
-                            <span className="absolute left-1.5 top-1.5 z-20 grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[13px] font-black text-black shadow" title="Free model">★</span>
+                          {/* FREE badge on the free (featured) models — the customer needs to
+                              see what's free. The rest show a padlock (paid, needs the $8 pack). */}
+                          {m.featured && !locked && (
+                            <span className="absolute left-1.5 top-1.5 z-20 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow">Free</span>
                           )}
                           {locked && (
                             <span className="absolute inset-0 z-10 grid place-items-center bg-black/25">
-                              <span className="grid h-9 w-9 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-4 w-4 text-white" /></span>
+                              <span className="flex flex-col items-center gap-1">
+                                <span className="grid h-9 w-9 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-4 w-4 text-white" /></span>
+                                <span className="rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black text-amber-400 backdrop-blur">$8 pack</span>
+                              </span>
                             </span>
                           )}
                         </div>
-                        <div className="px-1.5 py-1"><span className={`line-clamp-1 text-[11px] font-black ${locked ? "text-amber-400" : ""}`}>{locked ? "Premium" : m.name}</span></div>
+                        <div className="px-1.5 py-1"><span className={`line-clamp-1 text-[11px] font-black ${locked ? "text-amber-400" : ""}`}>{m.name}</span></div>
                       </button>
                     );
                   });
