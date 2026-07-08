@@ -2,7 +2,8 @@
 
 export const dynamic = "force-dynamic";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { signInWithPassword, signUpWithPassword, signInWithOAuth } from "@/lib/supabase-auth-client";
@@ -26,6 +27,7 @@ function LoginForm() {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false); // reveal the password field
   const [agree, setAgree] = useState(false); // Terms & Privacy — required to create an account
   const [news, setNews] = useState(true);     // Product news & updates — opt-in, on by default
   const [message, setMessage] = useState(""); // success notice (e.g. password-reset email sent)
@@ -97,8 +99,11 @@ function LoginForm() {
     <div className="flex min-h-screen items-start justify-center bg-[#fafaf8] px-4 py-16">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-black text-white text-sm font-black tracking-tight">LB</div>
-          <h1 className="mt-3 text-2xl font-black tracking-tight text-black">LuxuryBandit</h1>
+          {/* Logo → homepage */}
+          <Link href="/home" aria-label="Go to LuxuryBandit home" className="inline-flex flex-col items-center active:scale-95 transition">
+            <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-black text-white text-sm font-black tracking-tight">LB</span>
+            <span className="mt-3 text-2xl font-black tracking-tight text-black">LuxuryBandit</span>
+          </Link>
           <p className="mt-1 text-sm font-bold text-black/40">{mode === "signup" ? "Create your account" : "Sign in"}</p>
         </div>
 
@@ -130,8 +135,14 @@ function LoginForm() {
               )}
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" required
                 className="h-12 rounded-xl border border-black/12 bg-white px-4 text-sm font-bold text-black outline-none focus:border-black" />
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" required
-                className="h-12 rounded-xl border border-black/12 bg-white px-4 text-sm font-bold text-black outline-none focus:border-black" />
+              <div className="relative">
+                <input type={showPw ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" required
+                  className="h-12 w-full rounded-xl border border-black/12 bg-white pl-4 pr-12 text-sm font-bold text-black outline-none focus:border-black" />
+                <button type="button" onClick={() => setShowPw(v => !v)} aria-label={showPw ? "Hide password" : "Show password"}
+                  className="absolute inset-y-0 right-0 grid w-12 place-items-center text-black/40 active:scale-90 transition">
+                  {showPw ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
 
               {mode === "signup" && (
                 <div className="mt-0.5 grid gap-2.5">
