@@ -200,6 +200,8 @@ export type CuratorProfile = {
   likeBoost?: number;         // vanity likes baseline on her profile stats (admin-set)
   viewBoost?: number;         // vanity views baseline on her profile stats (admin-set)
   realBadge?: boolean;        // gold "is a real LuxuryBandit Model" banner — admin-set per model, off by default
+  chatPersona?: string;       // admin-written AI-chat instructions/personality for THIS model
+  chatEnabled?: boolean;      // admin toggle: is "chat with the model" on? (undefined = on)
   pinned?: boolean;           // admin-pinned → shown first in the Models gallery
   featured?: boolean;         // featured → free showcase on the Models tab; non-featured are locked (paid)
   status: "active" | "pending" | "deactivated";
@@ -312,6 +314,22 @@ export type TryThisLookState = {
   // Per-day feed-view tallies { "YYYY-MM-DD": count } so Insights can show Views for
   // Today / 7d / 30d. Lifetime total still lives in each look's viewCount.
   viewsByDay?: Record<string, number>;
+  // "Chat with the model" AI config + logs. globalNote = admin rules applied to EVERY
+  // model's chat persona (per-model instructions live on the curator as chatPersona).
+  chatConfig?: { globalNote?: string };
+  // Logged AI-chat conversations, newest first, so the admin can read what users ask.
+  modelChats?: ModelChatLog[];
+};
+
+export type ModelChatLog = {
+  id: string;            // `${curatorId}:${visitorId}`
+  curatorId: string;
+  curatorName?: string;
+  visitorId: string;
+  userName?: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: { role: "user" | "assistant"; content: string; at: string }[];
 };
 
 export type TryThisLookOutfit = {
@@ -686,6 +704,8 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     outfits: state.outfits ?? [],
     funnelVideoPrompt: state.funnelVideoPrompt,
     viewsByDay: state.viewsByDay ?? {},
+    chatConfig: state.chatConfig ?? {},
+    modelChats: state.modelChats ?? [],
   });
 }
 
@@ -732,7 +752,7 @@ function mergeNewerById<T extends { id: string; createdAt?: string }>(ours: T[] 
   return [...missedNewer, ...ours];
 }
 
-type SaveOptions = { deletedGenerationIds?: string[]; deletedLeadIds?: string[]; deletedOutfitIds?: string[] };
+type SaveOptions = { deletedGenerationIds?: string[]; deletedLeadIds?: string[]; deletedOutfitIds?: string[]; deletedChatIds?: string[] };
 
 async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions = {}) {
   await ensureBucket();
@@ -743,6 +763,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     const delGen = opts.deletedGenerationIds?.length ? new Set(opts.deletedGenerationIds) : undefined;
     const delLead = opts.deletedLeadIds?.length ? new Set(opts.deletedLeadIds) : undefined;
     const delOutfit = opts.deletedOutfitIds?.length ? new Set(opts.deletedOutfitIds) : undefined;
+    const delChat = opts.deletedChatIds?.length ? new Set(opts.deletedChatIds) : undefined;
     state = {
       ...state,
       generations: mergeNewerById(state.generations as any, latest.generations as any, delGen) as any,
@@ -754,6 +775,9 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
       // deletion isn't resurrected by the read-merge, while concurrent new leads survive.
       leads: mergeNewerById((state.leads ?? []) as any, (latest.leads ?? []) as any, delLead) as any,
       messages: unionById((state.messages ?? []) as any, (latest.messages ?? []) as any) as any,
+      // AI-chat logs: our version wins per conversation (the route read→appended→saved),
+      // and concurrent NEW conversations from other visitors are re-added by createdAt.
+      modelChats: mergeNewerById((state.modelChats ?? []) as any, (latest.modelChats ?? []) as any, delChat) as any,
       // Events are an append-only analytics log fired constantly (views, tryon/bandit/
       // product clicks). Without a union-merge a concurrent `view` save clobbers a
       // just-fired `tryon_click` (last-write-wins). Union keeps both; sort newest-first.
@@ -785,6 +809,11 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     outfits: (state.outfits ?? []).map(({ imageUrl, ...outfit }) => outfit).slice(0, 500),
     funnelVideoPrompt: state.funnelVideoPrompt,
     viewsByDay: state.viewsByDay ?? {},
+    chatConfig: state.chatConfig ?? {},
+    // Newest conversations first, capped so the state blob can't grow unbounded.
+    modelChats: [...(state.modelChats ?? [])]
+      .sort((a, b) => String(b.updatedAt ?? "").localeCompare(String(a.updatedAt ?? "")))
+      .slice(0, 800),
     partnerStores: (state.partnerStores ?? []).slice(0, 200),
     brands: (state.brands ?? []).slice(0, 5000),
     styles: (state.styles ?? []).slice(0, 5000),

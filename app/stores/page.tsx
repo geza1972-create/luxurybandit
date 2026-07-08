@@ -1479,7 +1479,7 @@ function StoresPage() {
   }, []);
   // Home has two views: the Feeds thumbnail grid, and the Models gallery (a grid of the
   // model profiles). Toggled at the top of the home.
-  type GalleryModel = { id: string; name: string; photoUrl: string; style: string; lookCount: number; bio?: string; motto?: string; hidden?: boolean; hairColor?: string; createdAt?: string; pinned?: boolean; featured?: boolean };
+  type GalleryModel = { id: string; name: string; photoUrl: string; style: string; lookCount: number; bio?: string; motto?: string; hidden?: boolean; hairColor?: string; createdAt?: string; pinned?: boolean; featured?: boolean; chatPersona?: string; chatEnabled?: boolean };
   const [models, setModels] = useState<GalleryModel[]>([]);
   // Models tab: sort (newest first by default, so a freshly added model is on top)
   // + optional hair-color filter (models are AI-tagged blond/brunette/black/red).
@@ -1629,12 +1629,14 @@ function StoresPage() {
   const [mmName, setMmName] = useState("");
   const [mmStyle, setMmStyle] = useState("");
   const [mmBio, setMmBio] = useState("");
+  const [mmChatPersona, setMmChatPersona] = useState("");
+  const [mmChatEnabled, setMmChatEnabled] = useState(true);
   const [mmPhoto, setMmPhoto] = useState("");      // new data URL (add / replace)
   const [mmBusy, setMmBusy] = useState(false);
   const [mmMsg, setMmMsg] = useState("");
   const mmPhotoRef = useRef<HTMLInputElement>(null);
-  const openModelManage = (m: GalleryModel) => { setMModelId(m.id); setMmName(m.name ?? ""); setMmStyle(m.style ?? ""); setMmBio(m.bio ?? ""); setMmPhoto(""); setMmMsg(""); setMmBusy(false); };
-  const openModelAdd = () => { setMModelId("new"); setMmName(""); setMmStyle(""); setMmBio(""); setMmPhoto(""); setMmMsg(""); setMmBusy(false); };
+  const openModelManage = (m: GalleryModel) => { setMModelId(m.id); setMmName(m.name ?? ""); setMmStyle(m.style ?? ""); setMmBio(m.bio ?? ""); setMmChatPersona(m.chatPersona ?? ""); setMmChatEnabled(m.chatEnabled !== false); setMmPhoto(""); setMmMsg(""); setMmBusy(false); };
+  const openModelAdd = () => { setMModelId("new"); setMmName(""); setMmStyle(""); setMmBio(""); setMmChatPersona(""); setMmChatEnabled(true); setMmPhoto(""); setMmMsg(""); setMmBusy(false); };
   const closeModelManage = () => { setMModelId(""); setMmBusy(false); setMmMsg(""); };
   const onModelPhoto = async (f: File) => { try { setMmPhoto(await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f); })); } catch { /**/ } };
   // Crop the CURRENT photo (baked-in white edges from AI shots) — loads it as a
@@ -1673,7 +1675,7 @@ function StoresPage() {
     try {
       const body: Record<string, unknown> = isNew
         ? { action: "add-curator", name: mmName.trim(), style: mmStyle.trim(), bio: mmBio.trim(), photoImage: mmPhoto }
-        : { action: "update-curator", id: mModelId, name: mmName.trim(), style: mmStyle.trim(), bio: mmBio.trim(), ...(mmPhoto ? { photoImage: mmPhoto } : {}) };
+        : { action: "update-curator", id: mModelId, name: mmName.trim(), style: mmStyle.trim(), bio: mmBio.trim(), chatPersona: mmChatPersona.trim(), chatEnabled: mmChatEnabled, ...(mmPhoto ? { photoImage: mmPhoto } : {}) };
       const res = await adminWrite(body);
       if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehler");
       await reloadModels();
@@ -3472,6 +3474,22 @@ function StoresPage() {
               </div>
               <textarea value={mmBio} onChange={e => setMmBio(e.target.value)} rows={3} placeholder="Beschreibung / Bio"
                 className="mt-2 w-full resize-none rounded-lg border border-black/12 bg-black/[0.02] px-3 py-2 text-[13px] text-black outline-none focus:border-black/40" />
+
+              {/* ── AI chat control: how THIS model behaves + on/off ── */}
+              <div className="mt-4 rounded-xl border border-black/10 bg-black/[0.02] p-3">
+                <div className="flex items-center justify-between">
+                  <p className="flex items-center gap-1.5 text-[12px] font-black text-black"><MessageCircle className="h-3.5 w-3.5" /> Chat with the model (AI)</p>
+                  <button type="button" onClick={() => setMmChatEnabled(v => !v)}
+                    className={`grid h-5 w-9 items-center rounded-full px-0.5 transition ${mmChatEnabled ? "bg-emerald-500" : "bg-black/20"}`}>
+                    <span className={`h-4 w-4 rounded-full bg-white transition-transform ${mmChatEnabled ? "translate-x-4" : ""}`} />
+                  </button>
+                </div>
+                <textarea value={mmChatPersona} onChange={e => setMmChatPersona(e.target.value)} rows={4} disabled={!mmChatEnabled}
+                  placeholder={"How she chats & her rules — e.g.:\nYou're playful and confident. Always steer toward trying you on in a look. Never discuss politics. If someone gets explicit, deflect charmingly."}
+                  className="mt-2 w-full resize-none rounded-lg border border-black/12 bg-white px-3 py-2 text-[13px] leading-snug text-black outline-none focus:border-black/40 disabled:opacity-40" />
+                <p className="mt-1.5 text-[11px] font-bold text-black/40">Leave empty for the default flirty-but-tasteful persona. Global rules for every model live in the admin Chats tab.</p>
+              </div>
+
               <input ref={mmPhotoRef} type="file" accept="image/*" className="hidden"
                 onChange={e => { const f = e.target.files?.[0]; if (f) void onModelPhoto(f); e.currentTarget.value = ""; }} />
               {!isNew && m && (

@@ -23,6 +23,11 @@ export default function ModelChat({
   onNeedPremium: () => void;
 }) {
   const storeKey = `lb_modelchat_${curatorId}`;
+  // Stable per-device id so the admin can follow one visitor's conversation over time.
+  const visitorId = (() => {
+    if (typeof window === "undefined") return "anon";
+    try { let v = localStorage.getItem("lb_visitor"); if (!v) { v = (crypto.randomUUID?.() ?? String(Date.now())); localStorage.setItem("lb_visitor", v); } return v; } catch { return "anon"; }
+  })();
   const [stage, setStage] = useState<"name" | "chat">("name");
   const [userName, setUserName] = useState("");
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -86,7 +91,7 @@ export default function ModelChat({
       const res = await fetch("/api/model-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modelName, bio, style, userName, messages: next }),
+        body: JSON.stringify({ curatorId, visitorId, userName, messages: next }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok || !d.reply) throw new Error(d.error ?? "Message failed.");

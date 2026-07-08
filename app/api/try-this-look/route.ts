@@ -459,6 +459,8 @@ export async function GET(request: Request) {
               bio: cc.bio ?? "",
               motto: cc.motto ?? "",
               hidden: cc.hidden === true,
+              chatPersona: cc.chatPersona ?? "",
+              chatEnabled: cc.chatEnabled !== false,
             } : {}),
           };
         })
@@ -1695,6 +1697,8 @@ export async function POST(request: Request) {
       if (has("motto")) c.motto = String((payload as any).motto ?? "").trim() || undefined;
       if (has("style")) c.style = String((payload as any).style ?? "").trim() || undefined;
       if (has("hairColor")) c.hairColor = String((payload as any).hairColor ?? "").trim() || undefined;
+      if (has("chatPersona")) c.chatPersona = String((payload as any).chatPersona ?? "").trim() || undefined;
+      if (has("chatEnabled")) c.chatEnabled = (payload as any).chatEnabled !== false;
       if (has("hidden")) c.hidden = (payload as any).hidden === true || undefined;
       const photo = (payload as any).photoImage;
       if (typeof photo === "string" && photo.startsWith("data:image/")) {

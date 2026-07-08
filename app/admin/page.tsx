@@ -77,17 +77,17 @@ export default function AdminPage() {
   const [note, setNote] = useState("");
   const [authed, setAuthed] = useState(false);
   // Deep-linkable tab: /admin?tab=curators opens the Models list directly.
-  const [tab, setTab] = useState<"looks" | "curators" | "users" | "inbox" | "posts" | "insights">(() => {
+  const [tab, setTab] = useState<"looks" | "curators" | "users" | "inbox" | "posts" | "insights" | "chats">(() => {
     if (typeof window !== "undefined") {
       const t = new URLSearchParams(window.location.search).get("tab");
-      if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights") return t;
+      if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats") return t;
     }
     return "looks";
   });
   // Client-side navigations can mount before the state initializer sees the new URL — re-sync.
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights") setTab(t);
+    if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats") setTab(t);
   }, []);
   // "Users" tab: everyone who signed up — email-gate leads + Google/FB/password (Supabase auth).
   type AdminUser = { email: string; name: string; provider: string; status?: string; createdAt?: string; lookName?: string; leadId?: string; authId?: string };
@@ -114,6 +114,36 @@ export default function AdminPage() {
   const [followerDir, setFollowerDir] = useState<"desc" | "asc">("desc");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [comments, setComments] = useState<Cmt[]>([]);
+  // AI "chat with the model" logs + global steering note.
+  type ModelChatLog = { id: string; curatorId: string; curatorName?: string; visitorId: string; userName?: string; createdAt: string; updatedAt: string; messages: { role: "user" | "assistant"; content: string; at: string }[] };
+  const [modelChats, setModelChats] = useState<ModelChatLog[]>([]);
+  const [chatsLoaded, setChatsLoaded] = useState(false);
+  const [chatGlobalNote, setChatGlobalNote] = useState("");
+  const [chatNoteDraft, setChatNoteDraft] = useState("");
+  const [chatNoteBusy, setChatNoteBusy] = useState(false);
+  const [openChatId, setOpenChatId] = useState("");
+  const loadChats = async () => {
+    try {
+      const res = await fetch("/api/model-chat?all=1", { headers: headers() });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) { setModelChats(Array.isArray(d.chats) ? d.chats : []); setChatGlobalNote(d.globalNote ?? ""); setChatNoteDraft(d.globalNote ?? ""); setChatsLoaded(true); }
+    } catch { /**/ }
+  };
+  const saveChatNote = async () => {
+    setChatNoteBusy(true);
+    try {
+      await fetch("/api/model-chat", { method: "POST", headers: { ...headers(), "Content-Type": "application/json" }, body: JSON.stringify({ action: "set-global-note", globalNote: chatNoteDraft }) });
+      setChatGlobalNote(chatNoteDraft);
+    } catch { /**/ } finally { setChatNoteBusy(false); }
+  };
+  const deleteChat = async (chatId: string) => {
+    if (!window.confirm("Delete this conversation?")) return;
+    setModelChats(cs => cs.filter(c => c.id !== chatId));
+    try { await fetch("/api/model-chat", { method: "POST", headers: { ...headers(), "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete-chat", chatId }) }); } catch { /**/ }
+  };
+  // Wait for credentials (pin from localStorage or Supabase token) before fetching —
+  // otherwise the first fire on tab-mount sends no auth and 401s without retrying.
+  useEffect(() => { if (tab === "chats" && (pin || token) && !chatsLoaded) void loadChats(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [tab, pin, token]);
   type FeedEvent = { id: string; name: string; lookId: string; createdAt: string; lookName?: string; source?: string; country?: string; city?: string; productLabel?: string; productLink?: string; productThumb?: string; slide?: number; slides?: number; visitor?: string };
   const [feedEvents, setFeedEvents] = useState<FeedEvent[]>([]);
   const [viewsByDay, setViewsByDay] = useState<Record<string, number>>({}); // per-date view tallies
@@ -824,6 +854,10 @@ export default function AdminPage() {
           <button type="button" onClick={() => setTab("insights")}
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "insights" ? "bg-black text-white" : "text-ink/50"}`}>
             <BarChart3 className="h-4 w-4" /> Insights
+          </button>
+          <button type="button" onClick={() => setTab("chats")}
+            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "chats" ? "bg-black text-white" : "text-ink/50"}`}>
+            <MessageCircle className="h-4 w-4" /> Chats {chatsLoaded && <span className="opacity-60">{modelChats.length}</span>}
           </button>
         </div>
 
@@ -1860,6 +1894,71 @@ export default function AdminPage() {
           </div>
         );
       })()}
+
+      {tab === "chats" && (
+        <div className="mt-4 space-y-4">
+          {/* Global steering note — applied to EVERY model's chat persona. */}
+          <section className="rounded-xl border border-black/10 bg-white p-4">
+            <p className="flex items-center gap-1.5 text-sm font-black text-ink"><MessageCircle className="h-4 w-4" /> Global chat rules</p>
+            <p className="mt-1 text-[12px] font-bold text-ink/45">Applied to every model on top of her own persona — e.g. safety, tone, always steer to trying a look. Hard safety limits are always enforced in code.</p>
+            <textarea value={chatNoteDraft} onChange={e => setChatNoteDraft(e.target.value)} rows={4}
+              placeholder={"e.g. Always be warm and encouraging. Gently suggest trying a look on LuxuryBandit. Never discuss other apps. Keep it classy."}
+              className="mt-2 w-full resize-none rounded-lg border border-black/12 bg-black/[0.02] px-3 py-2 text-[13px] leading-snug text-ink outline-none focus:border-black/40" />
+            <div className="mt-2 flex items-center gap-2">
+              <button type="button" onClick={() => void saveChatNote()} disabled={chatNoteBusy || chatNoteDraft === chatGlobalNote}
+                className="flex h-9 items-center justify-center gap-1.5 rounded-full bg-black px-4 text-[13px] font-black text-white disabled:opacity-40 active:scale-95 transition">
+                {chatNoteBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save rules"}
+              </button>
+              {chatNoteDraft !== chatGlobalNote && <span className="text-[12px] font-bold text-amber-600">Unsaved</span>}
+            </div>
+          </section>
+
+          <div className="flex items-center justify-between px-1">
+            <p className="text-sm font-black text-ink">Conversations <span className="text-ink/40">{modelChats.length}</span></p>
+            <button type="button" onClick={() => void loadChats()} className="flex items-center gap-1 text-[12px] font-black text-ink/50"><RefreshCw className="h-3.5 w-3.5" /> Refresh</button>
+          </div>
+
+          {!chatsLoaded ? (
+            <div className="grid place-items-center py-16"><Loader2 className="h-6 w-6 animate-spin text-ink/30" /></div>
+          ) : modelChats.length === 0 ? (
+            <p className="rounded-xl border border-black/10 bg-white py-16 text-center text-sm font-bold text-ink/40">No conversations yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {modelChats.map(c => {
+                const openC = openChatId === c.id;
+                const last = c.messages[c.messages.length - 1];
+                return (
+                  <div key={c.id} className="overflow-hidden rounded-xl border border-black/10 bg-white">
+                    <button type="button" onClick={() => setOpenChatId(openC ? "" : c.id)} className="flex w-full items-center gap-3 px-3 py-2.5 text-left active:bg-black/[0.02]">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-black text-ink">{c.userName || "Guest"} <span className="font-bold text-ink/40">→ {c.curatorName || c.curatorId}</span></p>
+                        <p className="truncate text-[12px] font-medium text-ink/50">{last ? `${last.role === "user" ? "" : "↩ "}${last.content}` : ""}</p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="text-[10px] font-bold text-ink/35">{new Date(c.updatedAt).toLocaleDateString()}</p>
+                        <p className="text-[10px] font-bold text-ink/35">{c.messages.length} msgs</p>
+                      </div>
+                    </button>
+                    {openC && (
+                      <div className="border-t border-black/10 bg-black/[0.015] px-3 py-3">
+                        <div className="space-y-2">
+                          {c.messages.map((m, i) => (
+                            <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                              <div className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-[13px] font-medium ${m.role === "user" ? "rounded-tr-sm bg-black text-white" : "rounded-tl-sm bg-black/[0.06] text-ink"}`}>{m.content}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <button type="button" onClick={() => void deleteChat(c.id)}
+                          className="mt-3 flex items-center gap-1.5 text-[12px] font-black text-red-500 active:opacity-70"><Trash2 className="h-3.5 w-3.5" /> Delete conversation</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </main>
   );
 }
