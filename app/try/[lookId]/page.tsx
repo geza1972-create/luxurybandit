@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2 } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2, ChevronLeft, ChevronRight } from "lucide-react";
 import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
@@ -768,7 +768,7 @@ export default function TryFunnelPage() {
                 })()}
               </div>
             </>
-          ) : (
+          ) : (adminProduce || avatar) ? (
             <>
               <p className="mt-2 text-[13px] font-bold text-white/50">{!avatar && chosenModelName ? `Tap “Generate” to see ${chosenModelName.split(/\s+/)[0]} wear it — or switch the look / use your own photo.` : (pickedModel ? "Great pick — or replace her with your own photo." : "The model from the video is ready. Keep her, or replace her with your own photo.")}</p>
               <div className="mx-auto mt-3 w-fit overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04]">
@@ -790,39 +790,76 @@ export default function TryFunnelPage() {
                 </div>
               </div>
             </>
+          ) : (
+            // Customer model picker: a 3D coverflow. The chosen model sits large in front;
+            // her neighbours angle back on both sides. Tap a side card (or an arrow) to bring
+            // her forward — that selects her. Locked models (not Gina) show a padlock.
+            <>
+              <p className="mt-2 text-[13px] font-bold text-white/50">Swipe the models — your pick stands up front. Tap “Generate” to see her wear it.</p>
+              {(() => {
+                const om = [...gModels].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+                if (om.length === 0) return <div className="grid h-[46vh] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/30" /></div>;
+                const active = Math.max(0, om.findIndex(m => m.id === chosenModelId));
+                const pick = (m: { id: string; name: string; photoUrl: string; featured?: boolean }) => {
+                  if (!isPaid && !m.featured) { setShowPremium(true); return; }
+                  setAvatar(""); setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name);
+                };
+                const step = (dir: number) => { const ni = Math.min(om.length - 1, Math.max(0, active + dir)); if (ni !== active) pick(om[ni]); };
+                return (
+                  <div className="relative mx-auto mt-3 h-[46vh] max-h-[400px] select-none" style={{ perspective: "1100px" }}>
+                    {om.map((m, i) => {
+                      const off = i - active;
+                      if (Math.abs(off) > 2) return null;
+                      const mLocked = !isPaid && !m.featured;
+                      const isActive = off === 0;
+                      return (
+                        <div key={m.id} onClick={() => (isActive ? undefined : pick(m))}
+                          className="absolute left-1/2 top-1/2 w-[54%] max-w-[220px] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-2xl transition-all duration-300 ease-out"
+                          style={{ transform: `translate(-50%,-50%) translateX(${off * 56}%) rotateY(${-off * 38}deg) scale(${isActive ? 1 : 0.82})`, zIndex: 20 - Math.abs(off), opacity: Math.abs(off) === 2 ? 0.45 : 1, cursor: isActive ? "default" : "pointer" }}>
+                          <div className="relative aspect-[3/4] w-full">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={m.photoUrl} alt={m.name} draggable={false} className={`h-full w-full object-cover object-top ${mLocked ? "blur-[3px] opacity-70" : ""}`} />
+                            {mLocked
+                              ? <span className="absolute inset-0 grid place-items-center bg-black/30"><span className="grid h-11 w-11 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-5 w-5 text-white" /></span></span>
+                              : m.featured && <span className="absolute left-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-black text-white">Free</span>}
+                            {isActive && !mLocked && chosenModelName && (
+                              <button type="button" onClick={(e) => { e.stopPropagation(); setShowChat(true); }} title={`Chat with ${chosenModelName.split(/\s+/)[0]}`}
+                                className="lb-gold absolute right-2 top-2 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-black shadow-lg active:scale-95 transition">
+                                <MessageCircle className="h-4 w-4" /> Chat
+                              </button>
+                            )}
+                            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pb-2 pt-6">
+                              <span className={`text-[14px] font-black ${mLocked ? "text-amber-300" : "text-white"}`}>{mLocked ? "Premium" : m.name}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <button type="button" onClick={() => step(-1)} disabled={active === 0} aria-label="Previous model"
+                      className="absolute left-0 top-1/2 z-30 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition active:scale-90 disabled:opacity-25">
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <button type="button" onClick={() => step(1)} disabled={active === om.length - 1} aria-label="Next model"
+                      className="absolute right-0 top-1/2 z-30 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition active:scale-90 disabled:opacity-25">
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  </div>
+                );
+              })()}
+              {/* Use your own photo — the paid custom feature (padlock for non-payers). */}
+              <button type="button" onClick={() => (isPaid ? fileRef.current?.click() : setShowPremium(true))}
+                className="mx-auto mt-2 flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[12px] font-black text-white/70 active:scale-95 transition">
+                {isPaid ? <ImageUp className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5 text-amber-400" />} Use your own photo
+              </button>
+            </>
           )}
           <input ref={fileRef} type="file" accept="image/*" className="hidden"
             onChange={async e => { const f = e.target.files?.[0]; if (f) try { setAvatar(await fileToDataUrl(f)); } catch { /**/ } }} />
 
-          {/* Customers: swipe through ALL models (Gina free, the rest unlock with credits/
-              Premium) and ALL outfits — right on this screen. Admin: the production strip. */}
+          {/* Customers: swipe through ALL outfits right on this screen (models live in the
+              coverflow above). Admin: the production strip. */}
           {!adminProduce && (
             <>
-              <div className="mt-5">
-                <p className="mb-2 flex items-center text-[11px] font-black uppercase tracking-wide text-white/40">Models<span className="ml-auto text-[10px] font-bold normal-case text-white/35">swipe →</span></p>
-                <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {gModels.length === 0 ? (
-                    <div className="grid h-24 w-full place-items-center"><Loader2 className="h-5 w-5 animate-spin text-white/40" /></div>
-                  ) : [...gModels].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0)).map(m => {
-                    const mLocked = !isPaid && !m.featured;
-                    const active = !avatar && m.id === chosenModelId;
-                    return (
-                      <button key={m.id} type="button"
-                        onClick={() => { if (mLocked) { setShowPremium(true); return; } setAvatar(""); setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); }}
-                        className={`relative w-[72px] shrink-0 overflow-hidden rounded-xl border active:scale-95 transition ${active ? "border-amber-400 ring-1 ring-amber-400" : "border-white/10"}`}>
-                        <div className="relative aspect-[3/4] w-full bg-white/5">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={m.photoUrl} alt={m.name} loading="lazy" className={`h-full w-full object-cover object-top ${mLocked ? "blur-[4px] opacity-70" : ""}`} />
-                          {mLocked
-                            ? <span className="absolute inset-0 grid place-items-center bg-black/20"><span className="grid h-7 w-7 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-3.5 w-3.5 text-white" /></span></span>
-                            : m.featured && <span className="absolute left-1 top-1 rounded-full bg-emerald-500 px-1.5 text-[9px] font-black text-white">Free</span>}
-                        </div>
-                        <span className={`block truncate px-1 py-0.5 text-[9px] font-black ${mLocked ? "text-amber-400" : "text-white/70"}`}>{mLocked ? "Premium" : m.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
               <div className="mt-4">
                 <p className="mb-2 flex items-center text-[11px] font-black uppercase tracking-wide text-white/40">Outfits<span className="ml-auto text-[10px] font-bold normal-case text-white/35">swipe →</span></p>
                 <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
