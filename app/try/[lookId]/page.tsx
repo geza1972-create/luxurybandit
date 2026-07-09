@@ -543,7 +543,9 @@ export default function TryFunnelPage() {
   // "Motion" picker — what she does in the video. Users see ONLY these two chips;
   // the actual prompt swap (walk/turn vs dance + music) happens server-side.
   // Hidden for model sessions (they generate photos, no motion).
-  const motionPicker = !isModelSession ? (
+  // Motion choice (turn / dance) is ADMIN-only now — customers just get "Generate my video"
+  // (defaults to Simple turn), so the page isn't cluttered. Admin keeps it for production.
+  const motionPicker = (adminPin && !previewAsUser && !isModelSession) ? (
     <div className="mt-5">
       <div className="flex justify-center gap-2">
         {([["turn", "🔄 Simple turn"], ["dance", "💃 Dance · with music"]] as const).map(([key, label]) => {
@@ -900,7 +902,7 @@ export default function TryFunnelPage() {
       {/* ── Step 5: unlocked / paid result ─────────────────────────────────── */}
       {step === 5 && (
         <div className="px-4 pb-40 pt-2">
-          {genStatus === "idle" && <div className="mb-3">{motionPicker}</div>}
+          {genStatus === "idle" && motionPicker && <div className="mb-3">{motionPicker}</div>}
           <div className="relative mx-auto mt-2 max-w-[78vw] overflow-hidden rounded-3xl border border-emerald-400/30 bg-black">
             <div className="relative aspect-[9/16] w-full">
               {genStatus === "done" && genVideoUrl ? (
