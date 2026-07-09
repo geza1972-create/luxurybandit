@@ -346,13 +346,27 @@ export async function GET(request: Request) {
         const m = (g as any).motion === "dance" ? "dance" : "turn"; // missing = legacy turn
         return m === cMotion;
       });
-      if (!hitGen) return NextResponse.json({ hit: false });
-      return NextResponse.json({
-        hit: true,
-        generationId: hitGen.id,
-        videoUrl: (hitGen as any).videoUrl ?? "",
-        posterUrl: (hitGen as any).imageUrl ?? "",
-      });
+      if (hitGen) {
+        return NextResponse.json({
+          hit: true,
+          generationId: hitGen.id,
+          videoUrl: (hitGen as any).videoUrl ?? "",
+          posterUrl: (hitGen as any).imageUrl ?? "",
+        });
+      }
+      // Fallback: no per-model try-on exists, but the LOOK itself has a video the admin
+      // uploaded directly → serve THAT as the free try-on so directly-uploaded videos work
+      // without building a model×look×motion generation for each.
+      const look = state.looks.find(l => l.id === lookId) as any;
+      if (look?.videoUrl) {
+        return NextResponse.json({
+          hit: true,
+          generationId: `look:${lookId}`,
+          videoUrl: look.videoUrl,
+          posterUrl: look.videoPosterUrl || look.frontImageUrl || look.imageUrl || "",
+        });
+      }
+      return NextResponse.json({ hit: false });
     }
     // Partner stores — read by the studio (curators) and the admin manager.
     // Admin sees the affiliate templates; curators get only what discovery needs.

@@ -252,9 +252,12 @@ export default function TryFunnelPage() {
   // generation owned by the signed-in user (idempotent) so it shows in their gallery and gets
   // its own post. Returns the user's own generation id (falls back to the shared one).
   const claimedRef = useRef("");
+  // Where "View your video" goes: a real generation → its post; a look-video fallback
+  // (no per-user generation) → the look's own page.
+  const goToResult = (genId: string) => router.push(genId && !genId.startsWith("look:") ? `/post/${genId}` : `/look/${lookId}`);
   const claimCachedTryOn = async (sourceId?: string): Promise<string> => {
     const src = sourceId || previewGenId;
-    if (!src) return "";
+    if (!src || src.startsWith("look:")) return ""; // look-video fallback isn't a saveable generation
     if (claimedRef.current) return claimedRef.current;
     const session = getStoredAuthSession();
     const email = session?.user?.email;
@@ -898,7 +901,7 @@ export default function TryFunnelPage() {
           {/* View the finished video as a full post (before/after, like & share, other looks). */}
           {genStatus === "done" && genVideoUrl && genId && (
             <div className="mt-4 flex justify-center">
-              <button type="button" onClick={() => router.push(`/post/${genId}`)}
+              <button type="button" onClick={() => goToResult(genId)}
                 className="lb-gold flex items-center gap-2 rounded-full px-6 py-3 text-sm font-black active:scale-95 transition">
                 <Sparkles className="h-4 w-4" /> View your video
               </button>
@@ -993,7 +996,7 @@ export default function TryFunnelPage() {
                 </button>
               ) : (
                 // Signed in → save it to their gallery, then open their own post.
-                <button type="button" onClick={async () => router.push(`/post/${await claimCachedTryOn()}`)}
+                <button type="button" onClick={async () => goToResult(await claimCachedTryOn())}
                   className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
                   <Sparkles className="h-5 w-5" /> View your video →
                 </button>
@@ -1022,7 +1025,7 @@ export default function TryFunnelPage() {
             setGateOpen(false);
             // If the video is already generated & cached, they signed in to WATCH it → save it
             // to their gallery, then open their own post. Otherwise continue the flow.
-            if (previewVideoUrl && previewGenId) claimCachedTryOn().then(id => router.push(`/post/${id || previewGenId}`));
+            if (previewVideoUrl && previewGenId) claimCachedTryOn().then(id => goToResult(id || previewGenId));
             else setStep(lookIsFree ? 5 : 4);
           }} />
       )}
