@@ -56,6 +56,16 @@ export default function TryFunnelPage() {
   const [outfitZoom, setOutfitZoom] = useState(false); // fullscreen the selected garment
   useEffect(() => { try { const admin = !!localStorage.getItem("luxurybandit-try-look-admin-pin"); setIsPaid(admin || localStorage.getItem("lb_paid") === "1"); setIsSubscribed(admin || localStorage.getItem("lb_subscribed") === "1"); } catch { /**/ } }, []);
   const [pickedModel, setPickedModel] = useState("");
+  // Resolve the model's photo from ?modelId= when no ?model= photo is passed — so a shareable
+  // link (e.g. an ad) only needs /try/<look>?modelId=<id> and never a photo token that expires.
+  const [modelPhotoResolved, setModelPhotoResolved] = useState("");
+  useEffect(() => {
+    if (!modelIdParam || modelParam || avatar) return;
+    fetch("/api/try-this-look?models=1").then(r => r.json())
+      .then(d => { const m = (Array.isArray(d.models) ? d.models : []).find((x: { id: string }) => x.id === modelIdParam); if (m?.photoUrl) setModelPhotoResolved(m.photoUrl as string); })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modelIdParam]);
   const [pickedModelId, setPickedModelId] = useState("");
   const [pickedModelName, setPickedModelName] = useState("");
   // "Choose other model" opens the model picker even when a model was preset (came from
@@ -198,7 +208,7 @@ export default function TryFunnelPage() {
 
   // The "woman from the video" reference — the look's own poster/front image, unless the
   // user replaced it with their own avatar.
-  const modelImg = avatar || pickedModel || modelParam || look?.modelPhotoUrl || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
+  const modelImg = avatar || pickedModel || modelParam || modelPhotoResolved || look?.modelPhotoUrl || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
   const teaserImg = garmentParam || outfit?.imageUrl || modelImg;
   // The model the try-on is attributed to (final pick wins; empty for own-photo try-ons).
   const chosenModelId = !avatar ? (pickedModelId || modelIdParam) : "";
@@ -314,7 +324,7 @@ export default function TryFunnelPage() {
     setGenStatus("generating"); setGenError("");
     const H = { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}) };
     try {
-      const person = avatar || pickedModel || modelParam || look?.modelPhotoUrl || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
+      const person = avatar || pickedModel || modelParam || modelPhotoResolved || look?.modelPhotoUrl || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
       const garment = garmentParam || (outfitOverride ?? outfit)?.imageUrl || "";
       if (!person || !garment) throw new Error("Referenzbilder fehlen.");
 
