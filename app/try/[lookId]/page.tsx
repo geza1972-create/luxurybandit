@@ -781,7 +781,7 @@ export default function TryFunnelPage() {
             // Outfit chosen → confirm view: the OUTFIT (left) + the chosen MODEL (right),
             // with Cancel to reopen the picker.
             <>
-              <p className="mt-2 text-[13px] font-bold text-white/50">Your look is set — tap “Generate” to see it, or cancel to choose again.</p>
+              <p className="mt-2 text-[13px] font-bold text-white/50">{chosenModelLocked ? "This model is Premium — unlock her to generate, or cancel and pick a free model." : "Your look is set — tap “Generate” to see it, or cancel to choose again."}</p>
               <div className="mx-auto mt-3 flex items-stretch justify-center gap-3">
                 <div className="w-[42%] max-w-[160px]">
                   <button type="button" onClick={() => { setZoomSrc(garmentParam || outfit?.imageUrl || ""); setZoomName(outfit?.name || ""); setOutfitZoom(true); }} className="block w-full overflow-hidden rounded-2xl border border-white/10 bg-white active:scale-95 transition">
@@ -796,12 +796,18 @@ export default function TryFunnelPage() {
                 <div className="w-[42%] max-w-[160px]">
                   <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {modelImg ? <img src={modelImg} alt="" className="h-full w-full object-cover object-top" /> : <div className="h-full w-full bg-white/5" />}
-                    {chosenModelId && chosenModelName && (
+                    {modelImg ? <img src={modelImg} alt="" className={`h-full w-full object-cover object-top ${chosenModelLocked ? "blur-[3px] opacity-70" : ""}`} /> : <div className="h-full w-full bg-white/5" />}
+                    {chosenModelLocked ? (
+                      // Premium (non-free) model → show the same crown/PREMIUM lock as the carousel.
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/45 px-2 text-center">
+                        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-black shadow-lg"><Crown className="h-5 w-5" /></span>
+                        <span className="text-[11px] font-black uppercase tracking-wide text-amber-300">Premium</span>
+                      </div>
+                    ) : chosenModelId && chosenModelName && (
                       <button type="button" onClick={() => setShowChat(true)} className="lb-gold absolute right-1.5 top-1.5 flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black shadow"><MessageCircle className="h-3.5 w-3.5" /> Chat</button>
                     )}
                   </div>
-                  <p className="mt-1 text-center text-[11px] font-black uppercase tracking-wide text-white/45">{chosenModelName?.split(/\s+/)[0] || "Model"}</p>
+                  <p className={`mt-1 text-center text-[11px] font-black uppercase tracking-wide ${chosenModelLocked ? "text-amber-400" : "text-white/45"}`}>{chosenModelLocked ? "Premium" : (chosenModelName?.split(/\s+/)[0] || "Model")}</p>
                 </div>
               </div>
               <button type="button" onClick={() => setComboCancelled(true)}
@@ -1223,7 +1229,7 @@ export default function TryFunnelPage() {
                 {motionPicker && <div className="mb-3 -mt-2">{motionPicker}</div>}
                 {/* Free-credit meter: 3 free videos, 1 credit each. Not signed in → show the
                     offer, not a wrong "0 left" (anonymous has no balance yet). */}
-                {!adminProduce && (
+                {!adminProduce && !chosenModelLocked && (
                   <p className="mb-2 text-center text-[12px] font-black text-white/50">
                     {!isAuthed()
                       ? "🎟️ 3 free videos · 1 credit each"
@@ -1231,6 +1237,9 @@ export default function TryFunnelPage() {
                       ? ""
                       : `🎟️ ${Math.min(3, Math.max(0, 3 - packCredits))}/3 free videos used${packCredits > 3 ? ` · ${packCredits} credits` : ` · ${packCredits} left`}`}
                   </p>
+                )}
+                {!adminProduce && chosenModelLocked && (
+                  <p className="mb-2 text-center text-[12px] font-black text-amber-400/90">👑 Premium model · first month $8</p>
                 )}
                 {lockedNudge && chosenModelLocked && (
                   <div className="mb-2 flex items-center gap-2 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-3 py-2.5 text-[12px] font-black text-amber-200">
@@ -1240,8 +1249,10 @@ export default function TryFunnelPage() {
                 )}
                 <button type="button" onClick={() => { if (chosenModelLocked) { setLockedNudge(true); setShowPremium(true); return; } (adminProduce ? generateNow() : goStep3()); }}
                   className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                  <Sparkles className="h-5 w-5" /> {adminProduce ? "Generate video now" : (isModelSession ? "Generate my photo" : "Generate my video")}
-                  {!adminProduce && !isModelSession && <span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">1 credit</span>}
+                  {chosenModelLocked
+                    ? <><Crown className="h-5 w-5" /> Unlock with Premium</>
+                    : <><Sparkles className="h-5 w-5" /> {adminProduce ? "Generate video now" : (isModelSession ? "Generate my photo" : "Generate my video")}
+                        {!adminProduce && !isModelSession && <span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">1 credit</span>}</>}
                 </button>
               </>
             )
