@@ -2889,7 +2889,7 @@ function StoresPage() {
                       <div className="h-full w-full bg-black/[0.06]" />
                     )}
                     {it.videoUrl && !it.animated && (
-                      <span className="pointer-events-none absolute inset-0 grid place-items-center"><Play className="h-11 w-11 fill-white text-white opacity-45 drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]" /></span>
+                      <span className="pointer-events-none absolute inset-0 grid place-items-center"><Play className="h-7 w-7 fill-white text-white opacity-25 drop-shadow-[0_1px_3px_rgba(0,0,0,0.25)]" /></span>
                     )}
                     {/* Label at the BOTTOM — the face is usually at the top of the crop.
                         Try-on tiles carry NO badge (user request) — only look posts do. */}
