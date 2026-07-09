@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSubscriptionCheckout, hasActiveSubscription, stripeConfigured } from "@/lib/stripe";
+import { createSubscriptionCheckout, createBillingPortalSession, hasActiveSubscription, stripeConfigured } from "@/lib/stripe";
 import { grantMonthlySubscriptionCredits } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   if (!stripeConfigured()) {
     return NextResponse.json({ error: "Payments aren't set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { email?: string; returnPath?: string; allowPromo?: boolean };
+  const body = (await request.json().catch(() => ({}))) as { email?: string; returnPath?: string; allowPromo?: boolean; action?: string };
   const email = String(body.email ?? "").trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return NextResponse.json({ error: "Sign in first so we can link your subscription." }, { status: 401 });
@@ -43,6 +43,17 @@ export async function POST(request: Request) {
   const rp = String(body.returnPath ?? "/stores");
   const safeRp = rp.startsWith("/") && !rp.startsWith("//") ? rp : "/stores";
   const sep = safeRp.includes("?") ? "&" : "?";
+
+  // Customer Portal — manage/cancel the subscription + payment method.
+  if (body.action === "portal") {
+    try {
+      const res = await createBillingPortalSession(email, `${origin}${safeRp}`);
+      if (!res) return NextResponse.json({ error: "No subscription found for this account." }, { status: 404 });
+      return NextResponse.json({ url: res.url });
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : "Could not open the billing portal." }, { status: 502 });
+    }
+  }
   // allowPromo → skip the auto first-month coupon so Stripe shows a promo-code field instead
   // (Stripe forbids a coupon + a promo box together). Used to redeem a 100%-off test code.
   const coupon = body.allowPromo ? undefined : (FIRST_MONTH_COUPON || undefined);

@@ -260,6 +260,10 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [credits, setCredits] = useState<number | null>(null);
+  const [videoCredits, setVideoCredits] = useState<number | null>(null); // subscription/video credits
+  const [isPremium, setIsPremium] = useState(false);
+  const [portalBusy, setPortalBusy] = useState(false);
+  const [subMsg, setSubMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
   const [saveErr, setSaveErr] = useState("");
@@ -288,6 +292,14 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
       .then(r => r.json())
       .then((p: any) => { if (typeof p.credits === "number") setCredits(p.credits); })
       .catch(() => {});
+    // Real video-credit balance + subscription status (Premium).
+    const em = s.user?.email?.trim().toLowerCase();
+    if (em) {
+      fetch(`/api/video-pack?email=${encodeURIComponent(em)}`).then(r => r.json())
+        .then((d: any) => { if (typeof d.credits === "number") setVideoCredits(d.credits); }).catch(() => {});
+      fetch(`/api/premium?email=${encodeURIComponent(em)}`).then(r => r.json())
+        .then((d: any) => { setIsPremium(!!d.premium); if (typeof d.credits === "number") setVideoCredits(d.credits); }).catch(() => {});
+    }
     // My try-ons bound to this account by EMAIL (the Instagram-funnel ones that never
     // got an alias, incl. unpublished). Merged with the alias-based gallery below.
     setTryOnsLoading(true);
@@ -521,13 +533,50 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
               {isAdmin ? "Admin" : "Community"}
             </span>
           </div>
-          {credits !== null && (
+          {(videoCredits ?? credits) !== null && (
             <div className="shrink-0 text-right">
-              <div className="text-lg font-black text-black">{credits}</div>
-              <div className="text-[10px] font-bold text-black/40">credits</div>
+              <div className="text-lg font-black text-black">{videoCredits ?? credits}</div>
+              <div className="text-[10px] font-bold text-black/40">{videoCredits !== null ? "videos" : "credits"}</div>
             </div>
           )}
         </section>
+
+        {/* Subscription — Premium members can manage/cancel via the Stripe Customer Portal. */}
+        {isPremium && (
+          <section className="rounded-2xl border border-amber-300/60 bg-amber-50 overflow-hidden">
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-black text-black">Premium membership</p>
+                  <p className="mt-0.5 text-[12px] font-bold text-black/50">
+                    Active · {videoCredits ?? 0} videos left this month · $49/mo
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-amber-400 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-black">Active</span>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  setSubMsg(""); setPortalBusy(true);
+                  try {
+                    const res = await fetch("/api/premium", {
+                      method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "portal", email: userEmail, returnPath: "/seller/dashboard" }),
+                    });
+                    const d = await res.json().catch(() => ({}));
+                    if (d.url) { window.location.href = d.url; return; }
+                    setSubMsg(d.error || "Could not open the billing portal."); setPortalBusy(false);
+                  } catch { setSubMsg("Could not open the billing portal."); setPortalBusy(false); }
+                }}
+                disabled={portalBusy}
+                className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-black text-sm font-black text-white active:scale-95 transition disabled:opacity-60"
+              >
+                {portalBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Manage / cancel subscription"}
+              </button>
+              {subMsg && <p className="mt-2 text-center text-[12px] font-bold text-red-600">{subMsg}</p>}
+            </div>
+          </section>
+        )}
 
         {/* Admin links */}
         {isAdmin && (

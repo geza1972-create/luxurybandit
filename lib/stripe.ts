@@ -141,6 +141,22 @@ export async function createSubscriptionCheckout(opts: {
   return { id: String(session.id), url: String(session.url) };
 }
 
+// Create a Stripe Customer Portal session so the customer can manage/cancel their
+// subscription + payment method themselves. Returns null if no Stripe customer exists.
+export async function createBillingPortalSession(email: string, returnUrl: string): Promise<{ url: string } | null> {
+  const e = email.trim().toLowerCase();
+  if (!e) return null;
+  const custs = await stripeRequest("GET", `/customers?email=${encodeURIComponent(e)}&limit=1`);
+  const customer = Array.isArray(custs?.data) ? custs.data[0] : null;
+  if (!customer?.id) return null;
+  const session = await stripeRequest("POST", "/billing_portal/sessions", {
+    customer: String(customer.id),
+    return_url: returnUrl,
+  });
+  const url = session?.url ? String(session.url) : "";
+  return url ? { url } : null;
+}
+
 // Is this email a paying member? Source of truth = Stripe: find the customer(s) by
 // email, then check for any active/trialing/past_due subscription.
 export async function hasActiveSubscription(email: string): Promise<boolean> {
