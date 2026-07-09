@@ -9,31 +9,34 @@ import { getStoredAuthSession, refreshSession, isSessionExpiring, saveAuthSessio
 //  • refreshes on tab focus / regained connectivity if the token is near/after expiry,
 // so a returning user is never kicked out mid-session.
 export default function AuthRefresh() {
-  // Catch a magic-link / OAuth token that landed on ANY page (not just /auth/confirm).
-  // Supabase redirects sometimes drop the tokens (#access_token=… or ?token=…) on the
-  // homepage, where nothing consumed them → the user stayed "Not signed in". Parse & save
-  // the session here so the login sticks no matter where the link lands.
+  // Catch a magic-link / OAuth token that landed on a page other than /auth/confirm and
+  // establish the session — but ONLY from the implicit-flow hash of a FRESH redirect. This
+  // is deliberately strict: a leftover/stale token sitting in a URL must never silently
+  // hijack the session (that once auto-signed the admin in as a test model).
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (window.location.pathname.startsWith("/auth/")) return; // dedicated pages handle their own flow
     try {
       if (getStoredAuthSession()?.access_token) return; // already signed in
+      // ONLY the hash (#access_token=…&token_type=bearer) — the real Supabase implicit-flow
+      // landing. We ignore ?token= query params: those collide with storage signed-URL tokens
+      // and with stale/bookmarked URLs, which is exactly what caused the wrong auto-login.
       const hashP = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-      const qP = new URLSearchParams(window.location.search);
-      const looksJwt = (t: string | null) => (t && t.split(".").length === 3 ? t : null);
-      const at = hashP.get("access_token") || qP.get("access_token") || looksJwt(qP.get("token")) || looksJwt(hashP.get("token"));
-      if (!at) return;
-      const rt = hashP.get("refresh_token") || qP.get("refresh_token") || undefined;
-      const expiresAt = Number(hashP.get("expires_at") || qP.get("expires_at") || 0) || undefined;
-      const claims = JSON.parse(atob(at.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))) as { sub?: string; email?: string; exp?: number; role?: string };
-      // Only a real AUTH token has a `sub` (user id). Storage signed-URL tokens are JWTs too
-      // (?token=… on image URLs) but carry no sub — never treat those as a login.
-      if (!claims.sub || typeof claims.sub !== "string") return;
+      const at = hashP.get("access_token");
+      const tokenType = hashP.get("token_type");
+      if (!at || !(tokenType === "bearer" || tokenType === "signup")) return;
+      const claims = JSON.parse(atob(at.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))) as { sub?: string; email?: string; exp?: number; iat?: number };
+      if (!claims.sub || typeof claims.sub !== "string") return; // must be a real auth token
+      // FRESHNESS: only accept a token issued in the last ~2 minutes (a login that just
+      // happened). Anything older is a leftover and must be ignored.
+      const nowSec = Math.floor(Date.now() / 1000);
+      if (typeof claims.iat !== "number" || nowSec - claims.iat > 120) return;
+      const rt = hashP.get("refresh_token") || undefined;
+      const expiresAt = Number(hashP.get("expires_at") || 0) || undefined;
       const session: SupabaseAuthSession = { access_token: at, refresh_token: rt, expires_at: expiresAt ?? claims.exp, user: { id: claims.sub, email: claims.email } };
       saveAuthSession(session);
       // Strip the token from the URL so it isn't left in history or re-processed.
       const url = new URL(window.location.href);
-      ["access_token", "refresh_token", "token", "token_type", "expires_at", "expires_in", "type", "provider_token", "provider_refresh_token"].forEach(k => url.searchParams.delete(k));
       url.hash = "";
       window.history.replaceState(null, "", url.pathname + (url.search || ""));
       window.dispatchEvent(new Event("luxurybandit-auth-updated"));
