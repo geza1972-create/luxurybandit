@@ -14,6 +14,7 @@ export function logFunnelEvent(event: string, extra: Record<string, string> = {}
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "event", event, utmSource, referrer: document.referrer || "", internal, ...extra }),
+      keepalive: true, // events fired right before navigating away (to Stripe / login) still send
     }).catch(() => {});
   } catch {
     /* never let analytics break the funnel */

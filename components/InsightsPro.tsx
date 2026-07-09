@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Eye, MousePointerClick, Sparkles, Heart, Users, Trash2, Loader2, TrendingDown, Globe, Flame } from "lucide-react";
+import { Eye, MousePointerClick, Sparkles, Heart, Users, Trash2, Loader2, TrendingDown, Globe, Flame, Crown } from "lucide-react";
 
 export type InsightsEvent = {
   id: string; name: string; createdAt: string; internal?: boolean;
@@ -92,8 +92,17 @@ export default function InsightsPro({
       { label: "Applied", n: countOf("apply_submit") },
     ];
 
-    return { visits, views, funnel, sources, countries, topLooks, trend, recruit,
-      tryons: countOf("tryon_click"), generated: countOf("tryon_generated"), likes: countOf("like_click") };
+    // Payment (Premium subscription) funnel — paywall → click → checkout → subscribed.
+    const payment = [
+      { label: "Saw the paywall", n: countOf("paywall_view") },
+      { label: "Tapped “Start Premium”", n: countOf("premium_click") },
+      { label: "Reached checkout", n: countOf("checkout_start") },
+      { label: "Subscribed", n: countOf("subscribe_success") },
+    ];
+
+    return { visits, views, funnel, sources, countries, topLooks, trend, recruit, payment,
+      tryons: countOf("tryon_click"), generated: countOf("tryon_generated"), likes: countOf("like_click"),
+      subscribed: countOf("subscribe_success") };
   }, [feedEvents, viewsByDay, visitsByDay, looks, range]);
 
   const trendMax = Math.max(1, ...data.trend.map(t => Math.max(t.visits, t.views)));
@@ -247,6 +256,24 @@ export default function InsightsPro({
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Payment (Premium subscription) funnel */}
+      <div className={card}>
+        <p className="flex items-center gap-1.5 text-sm font-black text-ink"><Crown className="h-4 w-4 text-amber-500" /> Premium payments</p>
+        <p className="mt-0.5 text-[11px] font-bold text-ink/40">From seeing the paywall to an active $49/mo subscription (first month $8).</p>
+        <div className="mt-3 space-y-2">
+          {data.payment.map((s) => (
+            <div key={s.label}>
+              <div className="flex items-baseline justify-between text-[12px]">
+                <span className="font-black text-ink">{s.label}</span>
+                <span className="font-black text-ink">{fmt(s.n)} <span className="text-ink/40">· {pct(s.n, data.payment[0].n)}%</span></span>
+              </div>
+              <div className="mt-1 h-3 overflow-hidden rounded-full bg-black/[0.06]"><div className="h-full rounded-full bg-amber-500" style={{ width: `${Math.max(pct(s.n, data.payment[0].n), s.n > 0 ? 3 : 0)}%` }} /></div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-[11px] font-bold text-ink/45">Paywall → checkout: <span className="text-ink">{pct(data.payment[2].n, data.payment[0].n)}%</span> · checkout → subscribed: <span className="text-ink">{pct(data.payment[3].n, data.payment[2].n)}%</span></p>
       </div>
 
       <p className="px-1 text-[10px] font-bold leading-relaxed text-ink/35">

@@ -43,7 +43,14 @@ export default function PremiumSync() {
       // 1) Subscription (unlocks Community + unlimited chat; grants the monthly credits).
       const sub = await isSubscribed(email);
       const wasSub = localStorage.getItem("lb_subscribed");
-      if (sub) { localStorage.setItem("lb_subscribed", "1"); if (wasSub !== "1") changed = true; }
+      if (sub) {
+        localStorage.setItem("lb_subscribed", "1");
+        if (wasSub !== "1") {
+          changed = true;
+          // Funnel: a subscription just went active on this device → the completed conversion.
+          try { const { logFunnelEvent } = await import("@/lib/track-funnel"); logFunnelEvent("subscribe_success", { lookName: "Premium" }); } catch { /**/ }
+        }
+      }
       else if (wasSub === "1") { localStorage.removeItem("lb_subscribed"); changed = true; }
 
       // 2) Video credits → lb_paid (includes any monthly allowance just granted in step 1).

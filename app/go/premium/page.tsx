@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { premiumCheckoutUrl } from "@/lib/premium-link";
+import { logFunnelEvent } from "@/lib/track-funnel";
 
 // Payment resume route. A guest who taps "Start Premium" is sent to /login?returnTo=/go/premium;
 // after signing in (password OR Google OAuth via /auth/confirm) they land HERE — and we forward
@@ -23,6 +24,7 @@ export default function GoPremiumPage() {
       const email = getStoredAuthSession()?.user?.email?.trim().toLowerCase();
       if (email) {
         // Signed in → go straight to Stripe. No dead-ends, no lost intent.
+        logFunnelEvent("checkout_start", { paywall: "resume", lookName: "Premium" });
         window.location.replace(premiumCheckoutUrl(email));
         return;
       }

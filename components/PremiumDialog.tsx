@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Crown, Check, X, Loader2 } from "lucide-react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { premiumCheckoutUrl } from "@/lib/premium-link";
+import { logFunnelEvent } from "@/lib/track-funnel";
 
 // Unlock dialog for locked models / looks / full videos / chats. Premium is now a single
 // $49/mo subscription — first month $8 (coupon built into the Stripe Payment Link) — which
@@ -15,21 +16,26 @@ export default function PremiumDialog({ open, onClose, title = "Unlock the full 
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Funnel: paywall seen (fires once when the dialog opens).
+  useEffect(() => { if (open) logFunnelEvent("paywall_view", { paywall: "premium", lookName: "Premium" }); }, [open]);
   if (!open) return null;
   const close = () => { setError(""); onClose(); };
 
   const buy = () => {
     setError("");
+    logFunnelEvent("premium_click", { paywall: "premium", lookName: "Premium" });
     const email = getStoredAuthSession()?.user?.email?.trim().toLowerCase();
     if (!email) {
       // Not signed in → sign in first, then RESUME checkout via /go/premium (which forwards
       // straight to Stripe once the email is known). Returning to the page would lose the
       // payment intent — this is what kept the customer "falling out" before paying.
+      // (checkout_start fires from /go/premium once the email is known.)
       window.location.href = `/login?returnTo=${encodeURIComponent("/go/premium")}`;
       return;
     }
     setBusy(true);
-    // Redirect to the Stripe Payment Link (first month $8 via its built-in coupon).
+    // Signed in → straight to the Stripe Payment Link (first month $8 via its built-in coupon).
+    logFunnelEvent("checkout_start", { paywall: "premium", lookName: "Premium" });
     window.location.href = premiumCheckoutUrl(email);
   };
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Crown, Check, X, Loader2 } from "lucide-react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { premiumCheckoutUrl } from "@/lib/premium-link";
+import { logFunnelEvent } from "@/lib/track-funnel";
 
 // Community membership dialog — a $49/mo Stripe subscription (separate from the $8 video
 // pack, which is pay-per-use for generating videos). Seeing the Community feed requires an
@@ -12,17 +13,21 @@ import { premiumCheckoutUrl } from "@/lib/premium-link";
 export default function SubscribeDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Funnel: paywall seen (fires once when the dialog opens).
+  useEffect(() => { if (open) logFunnelEvent("paywall_view", { paywall: "community", lookName: "Premium" }); }, [open]);
   if (!open) return null;
   const close = () => { setError(""); onClose(); };
 
   const subscribe = () => {
     setError("");
+    logFunnelEvent("premium_click", { paywall: "community", lookName: "Premium" });
     const email = getStoredAuthSession()?.user?.email?.trim().toLowerCase();
     // Not signed in → sign in, then RESUME checkout via /go/premium (forwards straight to
     // Stripe once we know the email). Returning to the page would drop the payment intent.
     if (!email) { window.location.href = `/login?returnTo=${encodeURIComponent("/go/premium")}`; return; }
     setBusy(true);
     // Same Premium subscription as everywhere else — the Stripe Payment Link (first month $8).
+    logFunnelEvent("checkout_start", { paywall: "community", lookName: "Premium" });
     window.location.href = premiumCheckoutUrl(email);
   };
 
