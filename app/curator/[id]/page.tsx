@@ -751,6 +751,17 @@ export default function CuratorPublicPage() {
           </div>
         )}
 
+        {/* New model, no videos yet → a clear placeholder (instead of an empty page). */}
+        {videos.length === 0 && photoDrafts.length === 0 && (
+          <div className="mt-4 w-full">
+            <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-white/12 bg-white/[0.02] px-6 py-10 text-center">
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-white/[0.06]"><Play className="h-5 w-5 text-white/30" fill="currentColor" /></span>
+              <p className="text-sm font-black text-white/50">{name.split(" ")[0]} has no videos yet</p>
+              <p className="text-[12px] font-bold text-white/30">{isAdmin ? "Upload her photos, then generate her first try-on videos here." : "Her try-on videos are coming soon."}</p>
+            </div>
+          </div>
+        )}
+
 
         {/* Admin: import a self-made video (e.g. from the Pixverse UI) into her reel,
             and "view as her" — a true preview of what SHE sees after signing in. */}
