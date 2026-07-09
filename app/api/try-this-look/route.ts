@@ -577,6 +577,7 @@ export async function GET(request: Request) {
             imageUrl: (g as any).imageUrl ?? "",
             videoUrl: (g as any).videoUrl ?? undefined,
             customerName: (g as any).customerName ?? "",
+            ownerEmail: (g as any).ownerEmail ?? "", // who actually generated it (blank = admin pre-gen)
             curatorId: (g as any).curatorId ?? "",
             lookName: g.lookName ?? look?.name ?? "",
             feed: (g as any).feed !== false,
