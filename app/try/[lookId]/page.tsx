@@ -111,6 +111,8 @@ export default function TryFunnelPage() {
   const [payBusy, setPayBusy] = useState(false);
   const [payError, setPayError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const swipeRef = useRef(0); // carousel drag: pointer-down X, to detect left/right swipes
+  const [lockedNudge, setLockedNudge] = useState(false); // tried to generate on a Premium model
 
   // Admin-only prompt preview/editor (@Bild1 = model, @Bild2 = outfit).
   const [adminPin, setAdminPin] = useState("");
@@ -674,6 +676,10 @@ export default function TryFunnelPage() {
   // Admin production strip: a horizontal, scrollable row of garments; tap one → generate a
   // video for the CURRENT model on that garment (same window). 🎬 = already has a video.
   const adminProduce = !!adminPin && !previewAsUser;
+  // The currently-chosen model, and whether it's a Premium (non-free) one the visitor can't
+  // generate on. Only lock if the model is in the list AND not featured (unknown → allow).
+  const chosenModelObj = gModels.find(m => m.id === chosenModelId);
+  const chosenModelLocked = !isPaid && !adminProduce && !avatar && !!chosenModelObj && !chosenModelObj.featured;
   const adminProduceStrip = adminProduce ? (
     <div className="mt-4">
       <div className="mb-2 flex items-center gap-1.5">
@@ -805,12 +811,24 @@ export default function TryFunnelPage() {
                 const unlockAll = isPaid || adminProduce;
                 const active = Math.max(0, om.findIndex(m => m.id === chosenModelId));
                 const pick = (m: { id: string; name: string; photoUrl: string; featured?: boolean }) => {
+                  setLockedNudge(false);
                   if (!unlockAll && !m.featured) { setShowPremium(true); return; }
                   setAvatar(""); setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name);
                 };
-                const step = (dir: number) => { const ni = Math.min(om.length - 1, Math.max(0, active + dir)); if (ni !== active) pick(om[ni]); };
+                // Slide the carousel by one, even onto a locked model (so its padlock shows up
+                // front). Locked ones aren't "selected" — pick() still gates them.
+                const slide = (dir: number) => {
+                  const ni = Math.min(om.length - 1, Math.max(0, active + dir));
+                  if (ni === active) return;
+                  const m = om[ni];
+                  setLockedNudge(false);
+                  if (unlockAll || m.featured) { setAvatar(""); setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); }
+                  else { setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); } // show locked model up front
+                };
                 return (
-                  <div className="relative mx-auto mt-3 h-[46vh] max-h-[400px] select-none" style={{ perspective: "1100px" }}>
+                  <div className="relative mx-auto mt-3 h-[46vh] max-h-[400px] select-none touch-pan-y" style={{ perspective: "1100px" }}
+                    onPointerDown={(e) => { swipeRef.current = e.clientX; }}
+                    onPointerUp={(e) => { const dx = e.clientX - swipeRef.current; if (Math.abs(dx) > 40) slide(dx < 0 ? 1 : -1); }}>
                     {om.map((m, i) => {
                       const off = i - active;
                       if (Math.abs(off) > 2) return null;
@@ -839,11 +857,11 @@ export default function TryFunnelPage() {
                         </div>
                       );
                     })}
-                    <button type="button" onClick={() => step(-1)} disabled={active === 0} aria-label="Previous model"
+                    <button type="button" onClick={() => slide(-1)} disabled={active === 0} aria-label="Previous model"
                       className="absolute left-0 top-1/2 z-30 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition active:scale-90 disabled:opacity-25">
                       <ChevronLeft className="h-5 w-5" />
                     </button>
-                    <button type="button" onClick={() => step(1)} disabled={active === om.length - 1} aria-label="Next model"
+                    <button type="button" onClick={() => slide(1)} disabled={active === om.length - 1} aria-label="Next model"
                       className="absolute right-0 top-1/2 z-30 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition active:scale-90 disabled:opacity-25">
                       <ChevronRight className="h-5 w-5" />
                     </button>
@@ -1205,7 +1223,13 @@ export default function TryFunnelPage() {
                       : `🎟️ ${Math.min(3, Math.max(0, 3 - packCredits))}/3 free videos used${packCredits > 3 ? ` · ${packCredits} credits` : ` · ${packCredits} left`}`}
                   </p>
                 )}
-                <button type="button" onClick={() => (adminProduce ? generateNow() : goStep3())}
+                {lockedNudge && chosenModelLocked && (
+                  <div className="mb-2 flex items-center gap-2 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-3 py-2.5 text-[12px] font-black text-amber-200">
+                    <Lock className="h-4 w-4 shrink-0 text-amber-400" />
+                    <span>This model is Premium. Pick a free model (Gina) to generate now — or go Premium to unlock everyone.</span>
+                  </div>
+                )}
+                <button type="button" onClick={() => { if (chosenModelLocked) { setLockedNudge(true); setShowPremium(true); return; } (adminProduce ? generateNow() : goStep3()); }}
                   className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
                   <Sparkles className="h-5 w-5" /> {adminProduce ? "Generate video now" : (isModelSession ? "Generate my photo" : "Generate my video")}
                   {!adminProduce && !isModelSession && <span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">1 credit</span>}
