@@ -2,45 +2,79 @@ import InfoPage from "@/components/InfoPage";
 
 export const metadata = { title: "Privacy Policy — LuxuryBandit" };
 
+// Plain-language privacy policy matching the actual product (AI try-on, AI-persona chat,
+// Premium subscription). Not a lawyer's review, but accurate. Update the processor list if the
+// stack changes.
 export default function PrivacyPage() {
   return (
     <InfoPage title="Privacy Policy">
-      <p className="rounded-lg border border-amber-300/50 bg-amber-50 px-3 py-2 text-[13px] font-bold text-amber-800">
-        ⚠️ Placeholder — replace with your reviewed privacy policy before launch.
+      <p>
+        This policy explains what data LuxuryBandit collects and how we use it. LuxuryBandit is for
+        adults (18+). If you have any question, reach us via our{" "}
+        <a href="/contact">contact form</a>.
       </p>
 
       <h2>What we collect</h2>
       <p>
-        Account details you provide (email, name, taste preferences), photos you upload for
-        AI try-ons, and usage data. [List all data categories here.]
+        <strong>Account:</strong> your email and display name.<br />
+        <strong>Photos:</strong> images you upload for an AI try-on, and (for models) profile photos.<br />
+        <strong>Chat:</strong> messages you send in the AI chat.<br />
+        <strong>Payments:</strong> if you subscribe, our payment provider (Stripe) processes your card —
+        we never see or store your full card details.<br />
+        <strong>Usage:</strong> basic, mostly aggregate data about how the app is used, plus cookies
+        (see below).
       </p>
 
-      <h2>How we use it</h2>
+      <h2>How we use it (and why)</h2>
       <p>
-        To run the service: sign-in, AI try-ons, curation, messaging, and relevant
-        recommendations. [Describe each purpose and legal basis (e.g. GDPR Art. 6).]
+        To <strong>provide the service</strong> — sign-in, generating your try-on videos, chat, and
+        model profiles (to perform our agreement with you); to <strong>process payments</strong> for
+        Premium (contract); to <strong>keep the service secure and improve it</strong> (our legitimate
+        interest); and, <strong>only with your consent</strong>, for marketing measurement (the Meta
+        Pixel). Where the law requires it (e.g. GDPR Art. 6), consent can be withdrawn at any time.
       </p>
 
       <h2>Photos &amp; AI</h2>
       <p>
-        Your uploaded and profile photos are used for AI try-ons only with your consent and
-        are not used to train third-party models without permission. [Confirm retention and
-        deletion.]
+        Photos you upload are used to generate your try-on and are <strong>not</strong> used to train
+        third-party AI models for their own purposes. You can delete your content and account at any
+        time (see <a href="/data-deletion">Data deletion</a>).
       </p>
 
-      <h2>Third parties</h2>
+      <h2>Cookies &amp; the Meta Pixel</h2>
       <p>
-        We use service providers for image generation, search, hosting, and affiliate links.
-        [List processors and any data transfers.]
+        We use <strong>essential</strong> cookies to run the app (e.g. to keep you signed in) — these
+        are always needed. We use the <strong>Meta (Facebook) Pixel</strong> for marketing
+        measurement <strong>only after you accept it</strong> in the cookie banner; if you reject, the
+        pixel does not load. You can change your choice by clearing the site data in your browser.
+      </p>
+
+      <h2>Who we share it with</h2>
+      <p>
+        We do <strong>not sell your personal data</strong>. We use trusted service providers only to
+        run LuxuryBandit, for example: <strong>Supabase</strong> (hosting, database, image storage),
+        <strong> Stripe</strong> (payments), and AI providers for the chat and the try-on videos
+        (<strong>Anthropic</strong>, <strong>OpenAI</strong>, <strong>fal.ai</strong>,{" "}
+        <strong>Pixverse</strong>). With your consent, <strong>Meta</strong> receives pixel data for ad
+        measurement. Some of these providers operate outside the EU; where that happens, appropriate
+        safeguards apply.
+      </p>
+
+      <h2>How long we keep it</h2>
+      <p>
+        We keep your data only as long as it is needed to run your account and the service, and delete
+        it when it is no longer needed or when you ask us to.
       </p>
 
       <h2>Your rights</h2>
       <p>
-        Access, correction, deletion, and objection. [Add how users exercise these rights and
-        your contact for data requests.]
+        You have the right to access, correct, delete, restrict, object to, and export your data, and to
+        withdraw consent at any time. To exercise any of these, use our{" "}
+        <a href="/contact">contact form</a>. You also have the right to complain to your local data
+        protection authority.
       </p>
 
-      <p className="mt-6 text-xs text-black/40">Last updated: [date]</p>
+      <p className="mt-6 text-xs text-black/40">Last updated: 10 July 2026</p>
     </InfoPage>
   );
 }
