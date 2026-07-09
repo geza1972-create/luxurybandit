@@ -170,9 +170,17 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
       active === tab ? "text-black" : "text-black/35"
     }`;
 
-  // The feed (HomeFeed on /stores + /look/*) carries its own chrome (Home icon in
-  // the right rail, Follow by the name) — hide the global bottom nav there.
-  const hideBar = pathname === "/stores" || pathname.endsWith("/home") || pathname.startsWith("/look/");
+  // The immersive reels feed carries its own chrome (Home icon in the right rail,
+  // Follow by the name) — hide the global bottom nav THERE only. The grid/home
+  // gallery (/home, or /stores?view=grid) DOES keep the nav. Mirrors the view
+  // logic in app/stores/page.tsx: reel = /stores with no view/panel param.
+  const spView = searchParams.get("view");
+  const gridShowing = spView === "grid" || spView === "alist" || pathname.endsWith("/home");
+  const reelShowing =
+    (pathname === "/stores" || pathname.endsWith("/stores")) &&
+    !gridShowing &&
+    !searchParams.get("panel");
+  const hideBar = reelShowing || pathname.startsWith("/look/");
 
   return (
     <>
