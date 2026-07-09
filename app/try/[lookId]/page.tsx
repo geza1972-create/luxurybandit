@@ -107,6 +107,7 @@ export default function TryFunnelPage() {
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [outfit, setOutfit] = useState<Outfit | null>(null);
   const [comboCancelled, setComboCancelled] = useState(false); // "Cancel" on the outfit+model confirm view
+  const [yourPhotoFront, setYourPhotoFront] = useState(false); // the "Your photo" card is centered in the coverflow
   const [avatar, setAvatar] = useState<string>("");       // user's own photo (data URL)
   const [gateOpen, setGateOpen] = useState(false);
   const [rendering, setRendering] = useState(false);       // fake "generating" spinner before the teaser
@@ -811,7 +812,7 @@ export default function TryFunnelPage() {
                 </div>
               </div>
               <button type="button" onClick={() => {
-                  setComboCancelled(true);
+                  setComboCancelled(true); setYourPhotoFront(false);
                   // Reopen the carousel on the FIRST model (Gina / featured), not the last pick.
                   const first = [...gModels].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0))[0];
                   if (first) { setAvatar(""); setPickedModel(first.photoUrl); setPickedModelId(first.id); setPickedModelName(first.name); }
@@ -833,23 +834,23 @@ export default function TryFunnelPage() {
                 // separate button. It uploads (paid/admin) or opens the paywall.
                 const YOURPHOTO = { id: "__yourphoto", name: "Your photo", photoUrl: "", featured: false } as typeof om[number];
                 const cards = [...om];
-                cards.splice(Math.min(2, cards.length), 0, YOURPHOTO);
+                const uploadIdx = Math.min(2, cards.length);
+                cards.splice(uploadIdx, 0, YOURPHOTO);
                 // Admin (production) and paying users can pick ANY model; everyone else only Gina.
                 const unlockAll = isPaid || adminProduce;
-                const active = Math.max(0, cards.findIndex(m => m.id === chosenModelId));
-                // Bring a model to the front — by tap OR swipe. Locked (Premium) models still
-                // come forward with their padlock; the paywall only fires on "Generate".
+                const active = yourPhotoFront ? uploadIdx : Math.max(0, cards.findIndex(m => m.id === chosenModelId));
+                // Bring a card to the front — by tap OR swipe. The "Your photo" tile can be
+                // centered too (yourPhotoFront); it doesn't select a model. Locked (Premium)
+                // models come forward with their padlock; the paywall only fires on "Generate".
                 const setFront = (m: { id: string; name: string; photoUrl: string; featured?: boolean }) => {
-                  if (m.id === "__yourphoto") return; // the upload tile isn't a "front" model
-                  setLockedNudge(false); setAvatar("");
+                  setLockedNudge(false);
+                  if (m.id === "__yourphoto") { setYourPhotoFront(true); return; }
+                  setYourPhotoFront(false); setAvatar("");
                   setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name);
                 };
                 const slide = (dir: number) => {
-                  let ni = active + dir;
-                  if (cards[ni]?.id === "__yourphoto") ni += dir; // hop over the upload tile
-                  ni = Math.min(cards.length - 1, Math.max(0, ni));
-                  if (cards[ni]?.id === "__yourphoto") ni -= dir; // never land on it
-                  if (ni !== active && cards[ni] && cards[ni].id !== "__yourphoto") setFront(cards[ni]);
+                  const ni = Math.min(cards.length - 1, Math.max(0, active + dir));
+                  if (ni !== active) setFront(cards[ni]);
                 };
                 return (
                   <div className="relative mx-auto mt-2 h-[72vw] max-h-[300px] select-none overflow-hidden touch-pan-y" style={{ perspective: "1100px" }}
@@ -862,7 +863,7 @@ export default function TryFunnelPage() {
                       const mLocked = !isUpload && !unlockAll && !m.featured;
                       const isActive = off === 0;
                       return (
-                        <div key={m.id} onClick={() => { if (swipedRef.current) { swipedRef.current = false; return; } if (isUpload) { (isPaid || adminProduce) ? fileRef.current?.click() : setShowPremium(true); return; } if (!isActive) setFront(m); }}
+                        <div key={m.id} onClick={() => { if (swipedRef.current) { swipedRef.current = false; return; } if (isUpload) { if (!isActive) { setFront(m); return; } (isPaid || adminProduce) ? fileRef.current?.click() : setShowPremium(true); return; } if (!isActive) setFront(m); }}
                           className="absolute left-1/2 top-1/2 w-[54%] max-w-[220px] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-2xl transition-all duration-300 ease-out"
                           style={{ transform: `translate(-50%,-50%) translateX(${off * 56}%) rotateY(${-off * 38}deg) scale(${isActive ? 1 : 0.82})`, zIndex: 20 - Math.abs(off), opacity: Math.abs(off) === 2 ? 0.45 : 1, cursor: "pointer" }}>
                           <div className="relative aspect-[3/4] w-full">
@@ -912,8 +913,8 @@ export default function TryFunnelPage() {
             onChange={async e => { const f = e.target.files?.[0]; if (f) try { setAvatar(await fileToDataUrl(f)); } catch { /**/ } }} />
 
           {/* Everyone (admin included) swipes ALL outfits right here; models live in the
-              coverflow above. Same layout for admin and end-user. */}
-          {(
+              coverflow above. Hidden in the outfit+model confirm view (it distracts there). */}
+          {!(pickedParam && !comboCancelled) && (
             <>
               <div className="mt-4">
                 <p className="mb-2 flex items-center text-[11px] font-black uppercase tracking-wide text-white/40">Outfits<span className="ml-auto text-[10px] font-bold normal-case text-white/35">swipe →</span></p>
@@ -946,7 +947,7 @@ export default function TryFunnelPage() {
             </>
           )}
           {/* Admin: the videos already generated for this model — right under the outfits. */}
-          {adminProduce && galleryVideos.length > 0 && (
+          {!(pickedParam && !comboCancelled) && adminProduce && galleryVideos.length > 0 && (
             <div className="mt-5">
               <p className="mb-2 text-[13px] font-black">My Gallery <span className="text-white/40">{galleryVideos.length}</span></p>
               <div className="grid grid-cols-3 gap-2">
