@@ -96,6 +96,8 @@ export default function AdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [usersLoaded, setUsersLoaded] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
+  type Subscriber = { email: string; status: string; created: number; currentPeriodEnd: number; amount: number; currency: string };
+  const [subscribers, setSubscribers] = useState<Subscriber[] | null>(null);
   const [usersAuthError, setUsersAuthError] = useState("");
   const [userEditId, setUserEditId] = useState("");
   const [userNameDraft, setUserNameDraft] = useState("");
@@ -653,6 +655,15 @@ export default function AdminPage() {
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (tab === "users" && !usersLoaded) loadUsers(); }, [tab, usersLoaded]);
+  // Premium subscribers (from Stripe) — who is actually paying.
+  useEffect(() => {
+    if (tab !== "users" || subscribers !== null) return;
+    fetch("/api/premium?subscribers=1", { headers: headers() })
+      .then(r => r.ok ? r.json() : { subscribers: [] })
+      .then((d: { subscribers?: Subscriber[] }) => setSubscribers(d.subscribers ?? []))
+      .catch(() => setSubscribers([]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, subscribers]);
 
   const patchUser = (email: string, patch: Partial<AdminUser>) => setUsers(us => us.map(x => x.email === email ? { ...x, ...patch } : x));
   // Edit name → update BOTH underlying records (lead + auth account) so they stay in sync.
@@ -1303,6 +1314,28 @@ export default function AdminPage() {
         {/* ── Users: everyone who signed up (email-gate leads + Google/FB/password) ── */}
         {tab === "users" && (
           <div className="mt-3 pb-16">
+            {/* Premium subscribers (Stripe) — who is paying. */}
+            <div className="mb-3 rounded-2xl border border-amber-300/60 bg-amber-50 p-3">
+              <p className="flex items-center gap-1.5 text-sm font-black text-ink">👑 Premium subscribers <span className="text-ink/40">{subscribers === null ? "" : subscribers.length}</span></p>
+              {subscribers === null ? (
+                <div className="flex items-center gap-2 py-3 text-[12px] font-bold text-ink/40"><Loader2 className="h-4 w-4 animate-spin" /> Loading from Stripe…</div>
+              ) : subscribers.length === 0 ? (
+                <p className="py-2 text-[12px] font-bold text-ink/45">No active subscribers yet.</p>
+              ) : (
+                <div className="mt-2 flex flex-col gap-1.5">
+                  {subscribers.map(s => (
+                    <div key={s.email + s.created} className="flex items-center justify-between gap-2 rounded-xl bg-white px-3 py-2">
+                      <span className="min-w-0 truncate text-[13px] font-black text-ink">{s.email}</span>
+                      <span className="flex shrink-0 items-center gap-2 text-[11px] font-bold text-ink/50">
+                        <span className={`rounded-full px-1.5 py-px font-black uppercase ${s.status === "active" ? "bg-emerald-100 text-emerald-700" : s.status === "trialing" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"}`}>{s.status}</span>
+                        <span>{new Date(s.created * 1000).toLocaleDateString()}</span>
+                        <span>${(s.amount / 100).toFixed(0)}/mo</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             {usersAuthError && (
               <p className="mb-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-bold text-amber-700">
                 Google/Facebook/Passwort-User konnten nicht geladen werden ({usersAuthError}). E-Mail-Leads werden trotzdem angezeigt.

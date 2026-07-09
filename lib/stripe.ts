@@ -157,6 +157,29 @@ export async function createBillingPortalSession(email: string, returnUrl: strin
   return url ? { url } : null;
 }
 
+// List current subscribers (active/trialing/past_due) with their email + status + amount,
+// for the admin "who's subscribed" view. One Stripe call (customer expanded).
+export async function listSubscribers(): Promise<Array<{ email: string; status: string; created: number; currentPeriodEnd: number; amount: number; currency: string }>> {
+  const res = await stripeRequest("GET", `/subscriptions?status=all&limit=100&expand[]=data.customer`);
+  const data: any[] = Array.isArray(res?.data) ? res.data : [];
+  return data
+    .filter((s) => ["active", "trialing", "past_due"].includes(String(s.status)))
+    .map((s) => {
+      const cust = s.customer && typeof s.customer === "object" ? s.customer : null;
+      const item = Array.isArray(s.items?.data) ? s.items.data[0] : null;
+      return {
+        email: String(cust?.email ?? "").trim().toLowerCase(),
+        status: String(s.status),
+        created: Number(s.created ?? 0),
+        currentPeriodEnd: Number(s.current_period_end ?? 0),
+        amount: Number(item?.price?.unit_amount ?? 0),
+        currency: String(item?.price?.currency ?? "usd"),
+      };
+    })
+    .filter((x) => x.email)
+    .sort((a, b) => b.created - a.created);
+}
+
 // Is this email a paying member? Source of truth = Stripe: find the customer(s) by
 // email, then check for any active/trialing/past_due subscription.
 export async function hasActiveSubscription(email: string): Promise<boolean> {

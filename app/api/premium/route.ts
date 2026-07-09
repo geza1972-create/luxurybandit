@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { createSubscriptionCheckout, createBillingPortalSession, hasActiveSubscription, stripeConfigured } from "@/lib/stripe";
+import { createSubscriptionCheckout, createBillingPortalSession, hasActiveSubscription, listSubscribers, stripeConfigured } from "@/lib/stripe";
 import { grantMonthlySubscriptionCredits } from "@/lib/try-this-look-store";
+import { isAdminRequest } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +17,15 @@ const FIRST_MONTH_COUPON = process.env.STRIPE_PREMIUM_FIRST_MONTH_COUPON?.trim()
 // Subscribers also get their monthly video-credit allowance topped up here (idempotent per
 // month), since the client calls this to learn subscription status.
 export async function GET(request: Request) {
-  const email = (new URL(request.url).searchParams.get("email") ?? "").trim().toLowerCase();
+  const url = new URL(request.url);
+  // Admin: list all current subscribers (who's paying).
+  if (url.searchParams.get("subscribers") === "1") {
+    if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+    if (!stripeConfigured()) return NextResponse.json({ subscribers: [] });
+    try { return NextResponse.json({ subscribers: await listSubscribers() }); }
+    catch (e) { return NextResponse.json({ error: e instanceof Error ? e.message : "Could not list subscribers.", subscribers: [] }, { status: 502 }); }
+  }
+  const email = (url.searchParams.get("email") ?? "").trim().toLowerCase();
   if (!email || !stripeConfigured()) return NextResponse.json({ premium: false });
   try {
     const premium = await hasActiveSubscription(email);
