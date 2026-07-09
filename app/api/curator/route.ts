@@ -332,6 +332,11 @@ export async function POST(request: Request) {
       // "Werde Model" ad traffic — no self-service accounts go live unchecked.
       status: "pending",
       createdAt: new Date().toISOString(),
+      // Audit trail: record that (and when) she accepted the model rules & terms.
+      ...(payload.consent === true ? {
+        consentAt: new Date().toISOString(),
+        consentText: String((payload as any).consentText ?? "").trim() || "Accepted the model rules & terms (18+, real photos).",
+      } : {}),
       credits: STARTER_CREDITS, // starter grant to prove themselves
       creditLog: [{ at: new Date().toISOString(), credits: STARTER_CREDITS, label: "Starter credits" }],
     };

@@ -197,6 +197,8 @@ export type CuratorProfile = {
   photoBodyUrls?: string[];   // hydrated signed URLs (read side only)
   verificationSelfiePath?: string; // liveness selfie (holding the code) — admin reviews to verify
   verificationSelfieUrl?: string;  // hydrated signed URL (read side only)
+  consentAt?: string;          // ISO time the applicant accepted the model rules & terms (audit trail)
+  consentText?: string;        // exactly what they agreed to (18+, real photos, rules & terms)
   instagram?: string;         // handle for promotion
   followerBoost?: number;     // baseline followers added to the real follow count (admin-set)
   likeBoost?: number;         // vanity likes baseline on her profile stats (admin-set)
