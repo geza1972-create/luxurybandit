@@ -62,6 +62,9 @@ export default function TryFunnelPage() {
   // Garment-first (from the Garderobe tab): the garment is chosen but not the model yet →
   // step 2 shows a model picker.
   const pickModel = (searchParams?.get("pick") ?? "") === "1";
+  // Set when the user taps an outfit → the top shows the chosen outfit + model (a confirm view)
+  // instead of the model coverflow. "Cancel" reveals the picker again.
+  const pickedParam = (searchParams?.get("picked") ?? "") === "1";
   const [gModels, setGModels] = useState<{ id: string; name: string; photoUrl: string; featured?: boolean; realModel?: boolean }[]>([]);
   const [isPaid, setIsPaid] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false); // $49/mo subscriber → unlimited chat
@@ -103,6 +106,7 @@ export default function TryFunnelPage() {
   const [look, setLook] = useState<Look | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [outfit, setOutfit] = useState<Outfit | null>(null);
+  const [comboCancelled, setComboCancelled] = useState(false); // "Cancel" on the outfit+model confirm view
   const [avatar, setAvatar] = useState<string>("");       // user's own photo (data URL)
   const [gateOpen, setGateOpen] = useState(false);
   const [rendering, setRendering] = useState(false);       // fake "generating" spinner before the teaser
@@ -773,6 +777,37 @@ export default function TryFunnelPage() {
                 </div>
               </div>
             </>
+          ) : (pickedParam && !comboCancelled) ? (
+            // Outfit chosen → confirm view: the OUTFIT (left) + the chosen MODEL (right),
+            // with Cancel to reopen the picker.
+            <>
+              <p className="mt-2 text-[13px] font-bold text-white/50">Your look is set — tap “Generate” to see it, or cancel to choose again.</p>
+              <div className="mx-auto mt-3 flex items-stretch justify-center gap-3">
+                <div className="w-[42%] max-w-[160px]">
+                  <button type="button" onClick={() => { setZoomSrc(garmentParam || outfit?.imageUrl || ""); setZoomName(outfit?.name || ""); setOutfitZoom(true); }} className="block w-full overflow-hidden rounded-2xl border border-white/10 bg-white active:scale-95 transition">
+                    <div className="relative aspect-[3/4] w-full bg-white">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={garmentParam || outfit?.imageUrl || ""} alt="" className="h-full w-full object-contain" />
+                    </div>
+                  </button>
+                  <p className="mt-1 text-center text-[11px] font-black uppercase tracking-wide text-white/45">Outfit</p>
+                </div>
+                <div className="w-[42%] max-w-[160px]">
+                  <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {modelImg ? <img src={modelImg} alt="" className="h-full w-full object-cover object-top" /> : <div className="h-full w-full bg-white/5" />}
+                    {chosenModelId && chosenModelName && (
+                      <button type="button" onClick={() => setShowChat(true)} className="lb-gold absolute right-1.5 top-1.5 flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black shadow"><MessageCircle className="h-3.5 w-3.5" /> Chat</button>
+                    )}
+                  </div>
+                  <p className="mt-1 text-center text-[11px] font-black uppercase tracking-wide text-white/45">{chosenModelName?.split(/\s+/)[0] || "Model"}</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => setComboCancelled(true)}
+                className="mx-auto mt-3 flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[12px] font-black text-white/70 active:scale-95 transition">
+                <X className="h-3.5 w-3.5" /> Cancel — choose again
+              </button>
+            </>
           ) : (
             // Customer model picker: a 3D coverflow. The chosen model sits large in front;
             // her neighbours angle back on both sides. Tap a side card (or an arrow) to bring
@@ -865,7 +900,7 @@ export default function TryFunnelPage() {
                       onClick={() => {
                         if (g.id === lookId) { setOutfitZoom(true); return; }
                         const curModelPhoto = pickedModel || modelParam || "";
-                        router.push(`/try/${g.id}?modelId=${encodeURIComponent(chosenModelId)}&model=${encodeURIComponent(curModelPhoto)}&garment=${encodeURIComponent(g.img)}&modelName=${encodeURIComponent(chosenModelName)}`);
+                        router.push(`/try/${g.id}?modelId=${encodeURIComponent(chosenModelId)}&model=${encodeURIComponent(curModelPhoto)}&garment=${encodeURIComponent(g.img)}&modelName=${encodeURIComponent(chosenModelName)}&picked=1`);
                       }}
                       className={`relative w-[72px] shrink-0 overflow-hidden rounded-xl border bg-white active:scale-95 transition ${g.id === lookId ? "border-amber-400 ring-1 ring-amber-400" : "border-white/10"}`}>
                       <div className="relative aspect-[3/4] w-full bg-white">
