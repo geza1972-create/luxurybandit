@@ -18,8 +18,9 @@ export default function SubscribeDialog({ open, onClose }: { open: boolean; onCl
   const subscribe = () => {
     setError("");
     const email = getStoredAuthSession()?.user?.email?.trim().toLowerCase();
-    const here = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/stores";
-    if (!email) { window.location.href = `/login?returnTo=${encodeURIComponent(here)}`; return; }
+    // Not signed in → sign in, then RESUME checkout via /go/premium (forwards straight to
+    // Stripe once we know the email). Returning to the page would drop the payment intent.
+    if (!email) { window.location.href = `/login?returnTo=${encodeURIComponent("/go/premium")}`; return; }
     setBusy(true);
     // Same Premium subscription as everywhere else — the Stripe Payment Link (first month $8).
     window.location.href = premiumCheckoutUrl(email);

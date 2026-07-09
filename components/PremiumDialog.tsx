@@ -21,10 +21,11 @@ export default function PremiumDialog({ open, onClose, title = "Unlock the full 
   const buy = () => {
     setError("");
     const email = getStoredAuthSession()?.user?.email?.trim().toLowerCase();
-    const here = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/stores";
     if (!email) {
-      // Not signed in → sign in first so the subscription ties to their email, then come back.
-      window.location.href = `/login?returnTo=${encodeURIComponent(here)}`;
+      // Not signed in → sign in first, then RESUME checkout via /go/premium (which forwards
+      // straight to Stripe once the email is known). Returning to the page would lose the
+      // payment intent — this is what kept the customer "falling out" before paying.
+      window.location.href = `/login?returnTo=${encodeURIComponent("/go/premium")}`;
       return;
     }
     setBusy(true);
