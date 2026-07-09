@@ -827,7 +827,7 @@ export default function TryFunnelPage() {
                   else { setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); } // show locked model up front
                 };
                 return (
-                  <div className="relative mx-auto mt-3 h-[46vh] max-h-[400px] select-none overflow-hidden touch-pan-y" style={{ perspective: "1100px" }}
+                  <div className="relative mx-auto mt-2 h-[72vw] max-h-[300px] select-none overflow-hidden touch-pan-y" style={{ perspective: "1100px" }}
                     onPointerDown={(e) => { swipeRef.current = e.clientX; swipedRef.current = false; (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); }}
                     onPointerUp={(e) => { const dx = e.clientX - swipeRef.current; if (Math.abs(dx) > 30) { swipedRef.current = true; slide(dx < 0 ? 1 : -1); } }}>
                     {om.map((m, i) => {
