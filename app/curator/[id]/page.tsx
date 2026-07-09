@@ -768,6 +768,8 @@ export default function CuratorPublicPage() {
                   className="rounded-full border border-red-400/40 px-3 py-2.5 text-[12px] font-black text-red-400 active:scale-95 transition disabled:opacity-50">Reject</button>
               </div>
             )}
+            <a href="/model-rules" target="_blank" rel="noopener noreferrer"
+              className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-white/40 underline underline-offset-2 hover:text-white/70">See the model rules ↗</a>
           </div>
         )}
 

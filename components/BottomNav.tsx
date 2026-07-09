@@ -35,8 +35,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
   const [previewModel, setPreviewModel] = useState(false); // admin "view as her" mode
   // Admin "view as model" picker — choose any model (search + photos) and impersonate her.
   const [showModelPicker, setShowModelPicker] = useState(false);
-  const [pickerModels, setPickerModels] = useState<{ id: string; name: string; photoUrl: string }[]>([]);
+  const [pickerModels, setPickerModels] = useState<{ id: string; name: string; photoUrl?: string; status?: string; createdAt?: string }[]>([]);
   const [pickerQuery, setPickerQuery] = useState("");
+  const [pickerNewOnly, setPickerNewOnly] = useState(false);
   const [previewName, setPreviewName] = useState("");
   const [curatorCredits, setCuratorCredits] = useState<number | null>(null);
   const [signedIn, setSignedIn] = useState(false);
@@ -89,7 +90,14 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
     let pin = ""; try { pin = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { /**/ }
     fetch("/api/try-this-look?models=1", { headers: pin ? { "x-try-look-admin-pin": pin } : {} })
       .then(r => r.json())
-      .then(d => setPickerModels((Array.isArray(d.models) ? d.models : []).filter((m: { photoUrl?: string }) => m.photoUrl)))
+      .then(d => {
+        // Show ALL models — incl. ones with no photo yet (placeholder). New (pending)
+        // applicants first, then newest-created first.
+        const list = (Array.isArray(d.models) ? d.models : []) as { id: string; name: string; photoUrl?: string; status?: string; createdAt?: string }[];
+        const isNew = (m: { status?: string }) => m.status === "pending";
+        list.sort((a, b) => (isNew(b) ? 1 : 0) - (isNew(a) ? 1 : 0) || String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
+        setPickerModels(list);
+      })
       .catch(() => {});
   }, [showModelPicker, pickerModels.length]);
 
@@ -395,18 +403,35 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               <input value={pickerQuery} onChange={e => setPickerQuery(e.target.value)} placeholder="Search models…"
                 className="h-11 w-full bg-transparent text-sm font-bold text-black outline-none placeholder:text-black/30" />
             </div>
+            {/* All / New (pending applicants) filter. */}
+            <div className="mt-2 flex gap-1.5">
+              {([["all", "All"], ["new", "🆕 New"]] as const).map(([k, label]) => (
+                <button key={k} type="button" onClick={() => setPickerNewOnly(k === "new")}
+                  className={`rounded-full px-3 py-1 text-[12px] font-black transition ${(pickerNewOnly ? "new" : "all") === k ? "bg-black text-white" : "bg-black/[0.06] text-black/50"}`}>{label}</button>
+              ))}
+            </div>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
             {pickerModels.length === 0 ? (
               <p className="py-10 text-center text-sm font-bold text-black/30">Loading…</p>
             ) : (
               <div className="grid grid-cols-3 gap-2">
-                {pickerModels.filter(m => m.name.toLowerCase().includes(pickerQuery.trim().toLowerCase())).map(m => (
+                {pickerModels
+                  .filter(m => m.name.toLowerCase().includes(pickerQuery.trim().toLowerCase()))
+                  .filter(m => !pickerNewOnly || m.status === "pending")
+                  .map(m => (
                   <button key={m.id} type="button" onClick={() => viewAsModel(m)}
-                    className="overflow-hidden rounded-xl border border-black/10 bg-black/[0.02] active:scale-95 transition">
+                    className="relative overflow-hidden rounded-xl border border-black/10 bg-black/[0.02] active:scale-95 transition">
                     <div className="relative aspect-[3/4] w-full bg-black/5">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={m.photoUrl} alt={m.name} loading="lazy" className="h-full w-full object-cover object-top" />
+                      {m.photoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={m.photoUrl} alt={m.name} loading="lazy" className="h-full w-full object-cover object-top" />
+                      ) : (
+                        <span className="grid h-full w-full place-items-center text-2xl font-black text-black/20">{(m.name || "?").slice(0, 1).toUpperCase()}</span>
+                      )}
+                      {m.status === "pending" && (
+                        <span className="absolute left-1 top-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-[9px] font-black text-black shadow">NEW</span>
+                      )}
                     </div>
                     <span className="block truncate px-1.5 py-1 text-[11px] font-black text-black">{m.name}</span>
                   </button>

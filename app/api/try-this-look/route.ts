@@ -477,6 +477,7 @@ export async function GET(request: Request) {
               hidden: cc.hidden === true,
               chatPersona: cc.chatPersona ?? "",
               chatEnabled: cc.chatEnabled !== false,
+              status: cc.status ?? "active", // pending applicants = "new" to review
             } : {}),
           };
         })

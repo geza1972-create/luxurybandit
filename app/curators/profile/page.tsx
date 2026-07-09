@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Camera, Loader2, Check, Sparkles, LogOut } from "lucide-react";
+import { ArrowLeft, Camera, Loader2, Check, Sparkles, LogOut, X } from "lucide-react";
 import { getStoredAuthSession, sendMagicLink, signOut } from "@/lib/supabase-auth-client";
 import { TagField, PillRow, PhotoCropper, readPhotoFile } from "../taste-form";
 
@@ -29,6 +29,7 @@ export default function CuratorProfilePage() {
   const [bodyExisting, setBodyExisting] = useState<string[]>([]); // already stored
   const [bodyCropSrc, setBodyCropSrc] = useState("");
   const bodyFileRef = useRef<HTMLInputElement>(null);
+  const [zoomImg, setZoomImg] = useState(""); // tap a photo → view it large
   // Verification selfie (holding a code) — for the admin to confirm she's a real person.
   const [verificationSelfie, setVerificationSelfie] = useState(""); // new upload (data URL)
   const [verificationSelfieUrl, setVerificationSelfieUrl] = useState(""); // already stored
@@ -288,7 +289,7 @@ export default function CuratorProfilePage() {
       <div className="px-5 pt-5">
         {/* Photo */}
         <div className="flex flex-col items-center gap-2">
-          <button type="button" onClick={() => fileRef.current?.click()}
+          <button type="button" onClick={() => (photo ? setZoomImg(photo) : fileRef.current?.click())}
             className="relative grid h-24 w-24 place-items-center overflow-hidden rounded-full border-2 border-dashed border-black/15 bg-black/[0.03] active:scale-95 transition-transform">
             {photo ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -303,7 +304,7 @@ export default function CuratorProfilePage() {
           {/* Full-body dressed photo — SAME as the application form. Powers her try-ons. */}
           <p className="mt-4 text-[11px] font-black uppercase tracking-wide text-black/45">Full-body photo · dressed</p>
           <div className="relative">
-            <button type="button" onClick={() => bodyFileRef.current?.click()}
+            <button type="button" onClick={() => { const src = bodyPhotos[0] ?? bodyExisting[0]; if (src) setZoomImg(src); else bodyFileRef.current?.click(); }}
               className="relative grid h-44 w-[132px] place-items-center overflow-hidden rounded-2xl border-2 border-dashed border-amber-400/60 bg-black/[0.03] active:scale-95 transition-transform">
               {(bodyPhotos[0] ?? bodyExisting[0]) ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -312,12 +313,11 @@ export default function CuratorProfilePage() {
                 <Camera className="h-6 w-6 text-black/30" />
               )}
             </button>
-            {!!bodyPhotos[0] && (
-              <button type="button" onClick={() => setBodyPhotos([])}
-                className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black text-white ring-1 ring-white/25">×</button>
-            )}
           </div>
-          <p className="max-w-xs text-center text-[11px] font-bold text-black/40">Head to toe, dressed — this is what the AI styles. One good photo is enough.</p>
+          {(bodyPhotos[0] ?? bodyExisting[0]) && (
+            <button type="button" onClick={() => bodyFileRef.current?.click()} className="text-xs font-black text-cobalt">Change photo</button>
+          )}
+          <p className="max-w-xs text-center text-[11px] font-bold text-black/40">Head to toe, dressed — this is what the AI styles. One good photo is enough. Tap to enlarge.</p>
           <input ref={bodyFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
             onChange={e => { void onPickBody(e.target.files?.[0]); e.target.value = ""; }} />
 
@@ -452,6 +452,17 @@ export default function CuratorProfilePage() {
         </div>
       )}
 
+      {zoomImg && (
+        <div className="fixed inset-0 z-[95] flex flex-col bg-black/95" onClick={() => setZoomImg("")}>
+          <div className="flex items-center justify-end px-4 py-3">
+            <button type="button" onClick={() => setZoomImg("")} className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white active:scale-90 transition"><X className="h-5 w-5" /></button>
+          </div>
+          <div className="flex flex-1 items-center justify-center px-4 pb-8" onClick={e => e.stopPropagation()}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={zoomImg} alt="" className="max-h-full max-w-full rounded-2xl object-contain" />
+          </div>
+        </div>
+      )}
       {cropSrc && (
         <PhotoCropper src={cropSrc} onCancel={() => setCropSrc("")}
           onDone={(dataUrl) => { setPhoto(dataUrl); setPhotoData(dataUrl); setCropSrc(""); }} />
