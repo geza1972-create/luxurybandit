@@ -233,8 +233,8 @@ export default async function BecomeAModelPage() {
         <div className="mt-3 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
           <Building2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
           <p className="text-[13px] font-semibold leading-6 text-white/55">
-            <strong className="text-white">You&apos;re a brand or agency?</strong> Reach us at{" "}
-            <a href="mailto:support@luxurybandit.com" className="font-black text-amber-400">support@luxurybandit.com</a> to
+            <strong className="text-white">You&apos;re a brand or agency?</strong>{" "}
+            <Link href="/contact" className="font-black text-amber-400 underline underline-offset-2">Contact us here</Link> to
             work with our models.
           </p>
         </div>

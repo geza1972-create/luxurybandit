@@ -14,10 +14,9 @@ export default function DataDeletionPage() {
 
       <h2>How to delete your data</h2>
       <p>
-        Send an email to{" "}
-        <a href="mailto:support@luxurybandit.com?subject=Delete%20my%20data">support@luxurybandit.com</a>{" "}
-        with the subject <strong>&ldquo;Delete my data&rdquo;</strong> from the email address you
-        signed up with (or include the email/Facebook account you used to sign in).
+        Send us a request through our <a href="/contact">contact form</a> with the subject{" "}
+        <strong>&ldquo;Delete my data&rdquo;</strong>, using the email address you signed up with
+        (or include the email/Facebook account you used to sign in).
       </p>
       <p>
         We will delete your account and all associated personal data within <strong>30 days</strong>{" "}
