@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Crown, Check, X, Loader2 } from "lucide-react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
+import { premiumCheckoutUrl } from "@/lib/premium-link";
 
 // Community membership dialog — a $49/mo Stripe subscription (separate from the $8 video
 // pack, which is pay-per-use for generating videos). Seeing the Community feed requires an
@@ -14,24 +15,14 @@ export default function SubscribeDialog({ open, onClose }: { open: boolean; onCl
   if (!open) return null;
   const close = () => { setError(""); onClose(); };
 
-  const subscribe = async () => {
+  const subscribe = () => {
     setError("");
     const email = getStoredAuthSession()?.user?.email?.trim().toLowerCase();
     const here = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/stores";
     if (!email) { window.location.href = `/login?returnTo=${encodeURIComponent(here)}`; return; }
     setBusy(true);
-    try {
-      const res = await fetch("/api/premium", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, returnPath: here }),
-      });
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok || !d.url) throw new Error(d.error ?? "Could not start checkout.");
-      window.location.href = d.url; // Stripe hosted subscription checkout
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not start checkout.");
-      setBusy(false);
-    }
+    // Same Premium subscription as everywhere else — the Stripe Payment Link (first month $8).
+    window.location.href = premiumCheckoutUrl(email);
   };
 
   return (
@@ -53,7 +44,7 @@ export default function SubscribeDialog({ open, onClose }: { open: boolean; onCl
 
         <button type="button" onClick={() => void subscribe()} disabled={busy}
           className="lb-gold mt-5 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-black active:scale-95 transition-transform disabled:opacity-60">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Subscribe — $49/mo</>}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Start Premium — $8 first month</>}
         </button>
         {error && <p className="mt-2 text-[12px] font-bold text-red-400">{error}</p>}
         <button type="button" onClick={close} className="mt-2 w-full py-2 text-[13px] font-black text-white/45">Maybe later</button>
