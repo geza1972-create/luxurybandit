@@ -1070,9 +1070,23 @@ export async function setVideoCreditsBalance(email: string, n: number): Promise<
 // How many video credits an active $49/mo subscriber gets each calendar month.
 export const SUBSCRIPTION_MONTHLY_CREDITS = Number(process.env.SUBSCRIPTION_MONTHLY_CREDITS ?? 40);
 
+// Serialize monthly-credit grants within this process. The subMonths key makes the grant
+// idempotent, but the read-modify-write on the shared JSON blob is NOT atomic — a return to
+// the app fires several /api/premium calls at once (PremiumSync + feed), which raced past the
+// idempotency check and granted +40 twice (e.g. balance 83 instead of 43). Chaining the grants
+// makes the second call see the just-saved subMonths key and skip. (Cross-instance races are
+// still possible but rare; this covers the common same-instance burst.)
+let creditGrantChain: Promise<unknown> = Promise.resolve();
+
 // Grant the monthly subscriber allowance ONCE per calendar month (idempotent via subMonths,
 // keyed "email|YYYY-MM"). Call it whenever we confirm an active subscription. Returns balance.
 export async function grantMonthlySubscriptionCredits(email: string, n = SUBSCRIPTION_MONTHLY_CREDITS): Promise<number> {
+  const run = creditGrantChain.then(() => grantMonthlySubscriptionCreditsInner(email, n));
+  creditGrantChain = run.catch(() => {}); // keep the chain alive even if one grant throws
+  return run;
+}
+
+async function grantMonthlySubscriptionCreditsInner(email: string, n: number): Promise<number> {
   const e = email.trim().toLowerCase();
   if (!e) return 0;
   const month = new Date().toISOString().slice(0, 7); // YYYY-MM
