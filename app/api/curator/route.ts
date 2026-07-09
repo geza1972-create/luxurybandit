@@ -442,8 +442,32 @@ export async function POST(request: Request) {
     const state = await readTryThisLookState();
     const idx = (state.curators ?? []).findIndex(c => c.id === id);
     if (idx < 0) return jsonError("Profile not found.", 404);
-    state.curators![idx] = { ...state.curators![idx], status: next };
+    const prev = (state.curators![idx] as any).status ?? "active";
+    const model = state.curators![idx];
+    state.curators![idx] = { ...model, status: next };
     await saveTryThisLookState(state);
+
+    // Approval → tell her (once, on the transition TO active). Non-blocking.
+    if (next === "active" && prev !== "active" && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(model.email ?? ""))) {
+      try {
+        const { sendEmail } = await import("@/lib/email-send");
+        const hi = model.firstName ? ` ${model.firstName}` : "";
+        const site = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://luxurybandit.com";
+        await sendEmail({
+          to: String(model.email),
+          subject: "You're approved on LuxuryBandit 🎉",
+          html: `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;color:#111">
+  <p style="font-size:16px">Hi${hi},</p>
+  <p>Great news — <b>your LuxuryBandit Model profile has been approved!</b> 🎉</p>
+  <p>You can now sign in with this email (<b>${String(model.email)}</b>) to your own model page — check your looks, keep your profile up to date, and start earning from chats &amp; try-ons.</p>
+  <p style="text-align:center;margin:24px 0">
+    <a href="${site}/login" style="display:inline-block;background:#111;color:#fff;text-decoration:none;font-weight:800;padding:14px 28px;border-radius:999px">Sign in to my page →</a>
+  </p>
+  <p>Welcome aboard,<br/>The LuxuryBandit Team</p>
+</div>`,
+        });
+      } catch { /* email is best-effort */ }
+    }
     return NextResponse.json({ ok: true, status: next });
   }
 
