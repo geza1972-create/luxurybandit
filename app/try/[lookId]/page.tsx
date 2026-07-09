@@ -2,8 +2,10 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle } from "lucide-react";
 import PremiumDialog from "@/components/PremiumDialog";
+import SubscribeDialog from "@/components/SubscribeDialog";
+import ModelChat from "@/components/ModelChat";
 import { FeedGate } from "@/components/FeedGate";
 import BottomNav from "@/components/BottomNav";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
@@ -47,9 +49,12 @@ export default function TryFunnelPage() {
   const pickModel = (searchParams?.get("pick") ?? "") === "1";
   const [gModels, setGModels] = useState<{ id: string; name: string; photoUrl: string; featured?: boolean }[]>([]);
   const [isPaid, setIsPaid] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false); // $49/mo subscriber → unlimited chat
   const [showPremium, setShowPremium] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [showSubscribe, setShowSubscribe] = useState(false);
   const [outfitZoom, setOutfitZoom] = useState(false); // fullscreen the selected garment
-  useEffect(() => { try { setIsPaid(!!localStorage.getItem("luxurybandit-try-look-admin-pin") || localStorage.getItem("lb_paid") === "1"); } catch { /**/ } }, []);
+  useEffect(() => { try { const admin = !!localStorage.getItem("luxurybandit-try-look-admin-pin"); setIsPaid(admin || localStorage.getItem("lb_paid") === "1"); setIsSubscribed(admin || localStorage.getItem("lb_subscribed") === "1"); } catch { /**/ } }, []);
   const [pickedModel, setPickedModel] = useState("");
   const [pickedModelId, setPickedModelId] = useState("");
   const [pickedModelName, setPickedModelName] = useState("");
@@ -683,6 +688,13 @@ export default function TryFunnelPage() {
                   </button>
                 </div>
               </div>
+              {/* Chat with her — right in the try-on, so it feels like a real person. */}
+              {chosenModelId && chosenModelName && !avatar && (
+                <button type="button" onClick={() => setShowChat(true)}
+                  className="mx-auto mt-3 flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/10 px-5 py-2.5 text-[13px] font-black text-amber-300 active:scale-95 transition">
+                  <MessageCircle className="h-4 w-4" /> Chat with {chosenModelName.split(" ")[0]}
+                </button>
+              )}
             </>
           )}
           <input ref={fileRef} type="file" accept="image/*" className="hidden"
@@ -1031,6 +1043,19 @@ export default function TryFunnelPage() {
       )}
 
       <PremiumDialog open={showPremium} onClose={() => setShowPremium(false)} />
+      <SubscribeDialog open={showSubscribe} onClose={() => setShowSubscribe(false)} />
+      {chosenModelId && (
+        <ModelChat
+          open={showChat}
+          onClose={() => setShowChat(false)}
+          curatorId={chosenModelId}
+          modelName={chosenModelName || "Model"}
+          modelFirstName={(chosenModelName || "").split(/\s+/)[0] || ""}
+          avatarUrl={modelImg}
+          isPaid={isSubscribed}
+          onNeedPremium={() => { setShowChat(false); setShowSubscribe(true); }}
+        />
+      )}
 
       {/* Fullscreen garment view — tap the outfit thumbnail to open, tap/X to close. */}
       {outfitZoom && (garmentParam || outfit?.imageUrl) && (
