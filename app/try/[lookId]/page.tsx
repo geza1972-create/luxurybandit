@@ -792,22 +792,58 @@ export default function TryFunnelPage() {
           <input ref={fileRef} type="file" accept="image/*" className="hidden"
             onChange={async e => { const f = e.target.files?.[0]; if (f) try { setAvatar(await fileToDataUrl(f)); } catch { /**/ } }} />
 
-          {/* Customers: the selected-outfit bar with 'Change look'. Admin: the production strip. */}
-          {outfit && !adminProduce && (
-            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-              <button type="button" onClick={() => setOutfitZoom(true)} className="h-14 w-11 shrink-0 overflow-hidden rounded-lg active:scale-95 transition" title="View outfit large">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={outfit.imageUrl} alt="" className="h-full w-full object-cover" />
-              </button>
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-white/40">Selected outfit</p>
-                <p className="truncate text-sm font-black">{outfit.name}</p>
+          {/* Customers: swipe through ALL models (Gina free, the rest unlock with credits/
+              Premium) and ALL outfits — right on this screen. Admin: the production strip. */}
+          {!adminProduce && (
+            <>
+              <div className="mt-5">
+                <p className="mb-2 flex items-center text-[11px] font-black uppercase tracking-wide text-white/40">Models<span className="ml-auto text-[10px] font-bold normal-case text-white/35">swipe →</span></p>
+                <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {gModels.length === 0 ? (
+                    <div className="grid h-24 w-full place-items-center"><Loader2 className="h-5 w-5 animate-spin text-white/40" /></div>
+                  ) : [...gModels].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0)).map(m => {
+                    const mLocked = !isPaid && !m.featured;
+                    const active = !avatar && m.id === chosenModelId;
+                    return (
+                      <button key={m.id} type="button"
+                        onClick={() => { if (mLocked) { setShowPremium(true); return; } setAvatar(""); setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); }}
+                        className={`relative w-[72px] shrink-0 overflow-hidden rounded-xl border active:scale-95 transition ${active ? "border-amber-400 ring-1 ring-amber-400" : "border-white/10"}`}>
+                        <div className="relative aspect-[3/4] w-full bg-white/5">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={m.photoUrl} alt={m.name} loading="lazy" className={`h-full w-full object-cover object-top ${mLocked ? "blur-[4px] opacity-70" : ""}`} />
+                          {mLocked
+                            ? <span className="absolute inset-0 grid place-items-center bg-black/20"><span className="grid h-7 w-7 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-3.5 w-3.5 text-white" /></span></span>
+                            : m.featured && <span className="absolute left-1 top-1 rounded-full bg-emerald-500 px-1.5 text-[9px] font-black text-white">Free</span>}
+                        </div>
+                        <span className={`block truncate px-1 py-0.5 text-[9px] font-black ${mLocked ? "text-amber-400" : "text-white/70"}`}>{mLocked ? "Premium" : m.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <button type="button" onClick={() => setChooseLook(true)}
-                className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white active:scale-95 transition">
-                <RefreshCw className="h-3.5 w-3.5" /> Change look
-              </button>
-            </div>
+              <div className="mt-4">
+                <p className="mb-2 flex items-center text-[11px] font-black uppercase tracking-wide text-white/40">Outfits<span className="ml-auto text-[10px] font-bold normal-case text-white/35">swipe →</span></p>
+                <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {gGarments.length === 0 ? (
+                    <div className="grid h-24 w-full place-items-center"><Loader2 className="h-5 w-5 animate-spin text-white/40" /></div>
+                  ) : gGarments.map(g => (
+                    <button key={g.id} type="button"
+                      onClick={() => {
+                        if (g.id === lookId) { setOutfitZoom(true); return; }
+                        const curModelPhoto = pickedModel || modelParam || "";
+                        router.push(`/try/${g.id}?modelId=${encodeURIComponent(chosenModelId)}&model=${encodeURIComponent(curModelPhoto)}&garment=${encodeURIComponent(g.img)}&modelName=${encodeURIComponent(chosenModelName)}`);
+                      }}
+                      className={`relative w-[72px] shrink-0 overflow-hidden rounded-xl border bg-white active:scale-95 transition ${g.id === lookId ? "border-amber-400 ring-1 ring-amber-400" : "border-white/10"}`}>
+                      <div className="relative aspect-[3/4] w-full bg-white">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={g.img} alt={g.name} loading="lazy" className="h-full w-full object-contain" />
+                      </div>
+                      <span className="block truncate px-1 py-0.5 text-[8px] font-black text-black/60">{g.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
           )}
           {adminProduceStrip}
           {/* Admin: the videos already generated for this model — right under the strip. */}
