@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye } from "lucide-react";
+import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession, signOut } from "@/lib/supabase-auth-client";
@@ -33,6 +33,10 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
   const [isCurator, setIsCurator] = useState(false);
   const [curatorId, setCuratorId] = useState("");
   const [previewModel, setPreviewModel] = useState(false); // admin "view as her" mode
+  // Admin "view as model" picker — choose any model (search + photos) and impersonate her.
+  const [showModelPicker, setShowModelPicker] = useState(false);
+  const [pickerModels, setPickerModels] = useState<{ id: string; name: string; photoUrl: string }[]>([]);
+  const [pickerQuery, setPickerQuery] = useState("");
   const [previewName, setPreviewName] = useState("");
   const [curatorCredits, setCuratorCredits] = useState<number | null>(null);
   const [signedIn, setSignedIn] = useState(false);
@@ -78,6 +82,25 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
       }
     } catch { setIsCurator(false); setCuratorCredits(null); }
   }, [pathname, showProfileMenu]);
+
+  // Load the model list when the admin opens the "view as model" picker.
+  useEffect(() => {
+    if (!showModelPicker || pickerModels.length) return;
+    let pin = ""; try { pin = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { /**/ }
+    fetch("/api/try-this-look?models=1", { headers: pin ? { "x-try-look-admin-pin": pin } : {} })
+      .then(r => r.json())
+      .then(d => setPickerModels((Array.isArray(d.models) ? d.models : []).filter((m: { photoUrl?: string }) => m.photoUrl)))
+      .catch(() => {});
+  }, [showModelPicker, pickerModels.length]);
+
+  // Impersonate the chosen model (keeps the admin PIN so "Beenden" restores admin).
+  const viewAsModel = (m: { id: string; name: string }) => {
+    try {
+      localStorage.setItem("lb_curator", JSON.stringify({ id: m.id, firstName: (m.name || "").split(" ")[0], email: "" }));
+      localStorage.setItem("lb_preview_model", "1");
+    } catch { /**/ }
+    window.location.href = `/curator/${m.id}`;
+  };
 
   // Poll unread message count for logged-in users
   useEffect(() => {
@@ -279,6 +302,14 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
             </div>
             {/* Menu items */}
             <div className="grid divide-y divide-black/5">
+              {/* Admin: view/act AS any model (impersonate) — picker with search + photos. */}
+              {!!adminPin && (
+                <button type="button" onClick={() => { setShowProfileMenu(false); setPickerQuery(""); setShowModelPicker(true); }}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                  <Eye className="h-5 w-5 shrink-0 text-black/50" />
+                  <span className="text-sm font-black text-black">View as model…</span>
+                </button>
+              )}
               {/* Models land on THEIR OWN page (wardrobe + photos) — the old Studio
                   tool is retired for models; the team handles videos & publishing. */}
               {isCurator && (
@@ -347,6 +378,45 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
         </>
       );
     })()}
+
+    {/* Admin "view as model" picker — search + photos, tap to impersonate. */}
+    {showModelPicker && (
+      <>
+        <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm" onClick={() => setShowModelPicker(false)} />
+        <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[71] flex max-h-[80vh] flex-col rounded-t-2xl bg-white shadow-2xl" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
+          <div className="flex justify-center pt-3 pb-1"><div className="h-1 w-10 rounded-full bg-black/15" /></div>
+          <div className="flex items-center justify-between px-5 pb-2">
+            <p className="text-base font-black text-black">View as model</p>
+            <button type="button" onClick={() => setShowModelPicker(false)} className="grid h-8 w-8 place-items-center rounded-full bg-black/5 text-black/50"><X className="h-4 w-4" /></button>
+          </div>
+          <div className="px-5 pb-2">
+            <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-black/[0.02] px-3">
+              <Search className="h-4 w-4 shrink-0 text-black/30" />
+              <input value={pickerQuery} onChange={e => setPickerQuery(e.target.value)} placeholder="Search models…"
+                className="h-11 w-full bg-transparent text-sm font-bold text-black outline-none placeholder:text-black/30" />
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
+            {pickerModels.length === 0 ? (
+              <p className="py-10 text-center text-sm font-bold text-black/30">Loading…</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {pickerModels.filter(m => m.name.toLowerCase().includes(pickerQuery.trim().toLowerCase())).map(m => (
+                  <button key={m.id} type="button" onClick={() => viewAsModel(m)}
+                    className="overflow-hidden rounded-xl border border-black/10 bg-black/[0.02] active:scale-95 transition">
+                    <div className="relative aspect-[3/4] w-full bg-black/5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={m.photoUrl} alt={m.name} loading="lazy" className="h-full w-full object-cover object-top" />
+                    </div>
+                    <span className="block truncate px-1.5 py-1 text-[11px] font-black text-black">{m.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </>
+    )}
   </>
   );
 }
