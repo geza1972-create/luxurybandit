@@ -38,39 +38,37 @@ export default function AgeGate() {
         <div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-black px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-white">18+</div>
         {denied ? (
           <>
-            <p className="mt-2 text-xl font-black leading-tight text-black">Tut uns leid</p>
+            <p className="mt-2 text-xl font-black leading-tight text-black">Sorry</p>
             <p className="mt-1.5 text-[13px] font-bold leading-relaxed text-black/55">
-              LuxuryBandit ist ausschließlich für Erwachsene (18+). Du kannst diese Seite
-              leider nicht nutzen.
+              LuxuryBandit is for adults only (18+). You can&apos;t use this site.
             </p>
             <button
               type="button"
               onClick={() => setDenied(false)}
               className="mt-4 flex h-12 w-full items-center justify-center rounded-full border border-black/15 text-sm font-black text-black/60 transition-transform active:scale-95"
             >
-              Zurück
+              Back
             </button>
           </>
         ) : (
           <>
-            <p className="mt-2 text-xl font-black leading-tight text-black">Bist du 18 oder älter?</p>
+            <p className="mt-2 text-xl font-black leading-tight text-black">Are you 18 or older?</p>
             <p className="mt-1.5 text-[13px] font-bold leading-relaxed text-black/55">
-              LuxuryBandit ist ausschließlich für Erwachsene (18+). Bitte bestätige dein Alter,
-              um fortzufahren.
+              LuxuryBandit is for adults only (18+). Please confirm your age to continue.
             </p>
             <button
               type="button"
               onClick={confirm}
               className="mt-4 flex h-12 w-full items-center justify-center rounded-full bg-black text-sm font-black text-white transition-transform active:scale-95"
             >
-              Ja, ich bin 18 oder älter
+              Yes, I&apos;m 18 or older
             </button>
             <button
               type="button"
               onClick={() => setDenied(true)}
               className="mt-2 flex h-12 w-full items-center justify-center rounded-full text-sm font-black text-black/45 transition-transform active:scale-95"
             >
-              Nein
+              No
             </button>
           </>
         )}
