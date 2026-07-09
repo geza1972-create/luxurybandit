@@ -79,18 +79,8 @@ export default function TryFunnelPage() {
   // "Choose other look" — a gallery of ALL portal garments; only the free (featured) ones
   // are selectable, the rest are Premium (padlock). Picking one reloads the funnel on that look.
   const [chooseLook, setChooseLook] = useState(false);
-  const [gGarments, setGGarments] = useState<{ id: string; name: string; img: string; featured?: boolean }[]>([]);
-  useEffect(() => {
-    if (!chooseLook || gGarments.length) return;
-    fetch("/api/try-this-look").then(r => r.json()).then(d => {
-      const looks: any[] = Array.isArray(d.looks) ? d.looks : []; // eslint-disable-line @typescript-eslint/no-explicit-any
-      const g = looks
-        .filter(l => (l.productType === "ai" || l.wardrobe) && (l.frontImageUrl || l.imageUrl) && l.published !== false)
-        .map(l => ({ id: l.id, name: l.name, img: (l.frontImageUrl || l.imageUrl) as string, featured: l.featured === true }))
-        .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
-      setGGarments(g);
-    }).catch(() => {});
-  }, [chooseLook]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [gGarments, setGGarments] = useState<{ id: string; name: string; img: string; featured?: boolean; hasVideo?: boolean }[]>([]);
+  const [lookVideoFilter, setLookVideoFilter] = useState<"all" | "video" | "novideo">("all"); // admin production filter
 
   const [look, setLook] = useState<Look | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
@@ -112,6 +102,18 @@ export default function TryFunnelPage() {
   const [promptSaved, setPromptSaved] = useState(false);
   // Admin can flip to the pure end-user view to test exactly what a user sees.
   const [previewAsUser, setPreviewAsUser] = useState(false);
+  // Load garments for the "Change look" modal AND the admin production strip (always, for admin).
+  useEffect(() => {
+    if ((!chooseLook && !(adminPin && !previewAsUser)) || gGarments.length) return;
+    fetch("/api/try-this-look").then(r => r.json()).then(d => {
+      const looks: any[] = Array.isArray(d.looks) ? d.looks : []; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const g = looks
+        .filter(l => (l.productType === "ai" || l.wardrobe) && (l.frontImageUrl || l.imageUrl) && l.published !== false)
+        .map(l => ({ id: l.id, name: l.name, img: (l.frontImageUrl || l.imageUrl) as string, featured: l.featured === true, hasVideo: !!l.videoUrl }))
+        .sort((a, b) => (b.hasVideo ? 1 : 0) - (a.hasVideo ? 1 : 0) || (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+      setGGarments(g);
+    }).catch(() => {});
+  }, [chooseLook, adminPin, previewAsUser]); // eslint-disable-line react-hooks/exhaustive-deps
   // Real video generation (step 5, after "paid"): generate → save as the user's own
   // generation → play here. Appears in /user/tryons + admin Posts.
   const [genStatus, setGenStatus] = useState<"idle" | "generating" | "done" | "error">("idle");
@@ -448,6 +450,16 @@ export default function TryFunnelPage() {
   // would burn Pixverse credits on every test) — they trigger it with an explicit button.
   useEffect(() => { if (step === 5 && !adminPin) void generateReal(); }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Admin production: tap a garment in the strip → reload the funnel on it for the SAME
+  // model and auto-generate, so the admin just switches outfits and gets a video each time.
+  const autogenParam = searchParams?.get("autogen") === "1";
+  const produceForGarment = (g: { id: string; img: string }) => {
+    const qs = new URLSearchParams({ modelId: chosenModelId, model: modelImg, garment: g.img, modelName: chosenModelName, autogen: "1" });
+    router.push(`/try/${g.id}?${qs.toString()}`);
+  };
+  useEffect(() => { if (autogenParam && look && adminPin && !previewAsUser && step === 2) setStep(5); }, [autogenParam, look, adminPin, previewAsUser, step]);
+  useEffect(() => { if (autogenParam && step === 5) void generateReal(); }, [autogenParam, step]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Once done: load the chosen model's videos (incl. the one just made) → shown as a gallery
   // on the result screen so the admin sees it landed in her "In motion".
   useEffect(() => {
@@ -604,6 +616,37 @@ export default function TryFunnelPage() {
     </div>
   ) : null;
 
+  // Admin production strip: a horizontal, scrollable row of garments; tap one → generate a
+  // video for the CURRENT model on that garment (same window). 🎬 = already has a video.
+  const adminProduce = !!adminPin && !previewAsUser;
+  const adminProduceStrip = adminProduce ? (
+    <div className="mt-4">
+      <div className="mb-2 flex items-center gap-1.5">
+        <span className="mr-1 text-[11px] font-black uppercase tracking-wide text-white/40">Produce</span>
+        {([["all", "All"], ["novideo", "To do"], ["video", "🎬"]] as const).map(([k, label]) => (
+          <button key={k} type="button" onClick={() => setLookVideoFilter(k)}
+            className={`rounded-full px-3 py-1 text-[11px] font-black transition ${lookVideoFilter === k ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>{label}</button>
+        ))}
+        <span className="ml-auto text-[10px] font-bold text-white/35">tap = generate</span>
+      </div>
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {gGarments.length === 0 ? (
+          <div className="grid h-24 w-full place-items-center"><Loader2 className="h-5 w-5 animate-spin text-white/40" /></div>
+        ) : gGarments.filter(g => lookVideoFilter === "all" || (lookVideoFilter === "video" ? g.hasVideo : !g.hasVideo)).map(g => (
+          <button key={g.id} type="button" onClick={() => produceForGarment(g)}
+            className={`relative w-[72px] shrink-0 overflow-hidden rounded-xl border bg-white active:scale-95 transition ${g.id === lookId ? "border-amber-400 ring-1 ring-amber-400" : "border-white/10"}`}>
+            <div className="relative aspect-[3/4] w-full bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={g.img} alt={g.name} loading="lazy" className="h-full w-full object-contain" />
+              {g.hasVideo && <span className="absolute right-0.5 top-0.5 rounded-full bg-emerald-500 px-1 text-[10px] font-black text-white">🎬</span>}
+            </div>
+            <span className="block truncate px-1 py-0.5 text-[8px] font-black text-black/60">{g.name}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div className="relative min-h-[100dvh] bg-[#0d0b0a] text-white">
       {/* Top bar */}
@@ -710,7 +753,8 @@ export default function TryFunnelPage() {
           <input ref={fileRef} type="file" accept="image/*" className="hidden"
             onChange={async e => { const f = e.target.files?.[0]; if (f) try { setAvatar(await fileToDataUrl(f)); } catch { /**/ } }} />
 
-          {outfit && (
+          {/* Customers: the selected-outfit bar with 'Change look'. Admin: the production strip. */}
+          {outfit && !adminProduce && (
             <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
               <button type="button" onClick={() => setOutfitZoom(true)} className="h-14 w-11 shrink-0 overflow-hidden rounded-lg active:scale-95 transition" title="View outfit large">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -726,6 +770,7 @@ export default function TryFunnelPage() {
               </button>
             </div>
           )}
+          {adminProduceStrip}
           {adminPromptPanel}
         </div>
       )}
@@ -942,6 +987,9 @@ export default function TryFunnelPage() {
             </div>
           )}
 
+          {/* Admin: keep producing — tap the next outfit and it generates for the same model. */}
+          {genStatus === "done" && <div className="px-1">{adminProduceStrip}</div>}
+
           {/* After generating: a gallery of the model's videos (incl. this one). Admins set
               each one's visibility right here — Fashionshow (feed + her profile "In motion"),
               Public (everyone vs members-only), or delete. */}
@@ -1091,14 +1139,28 @@ export default function TryFunnelPage() {
             <button type="button" onClick={() => setChooseLook(false)}
               className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white active:scale-90 transition"><X className="h-5 w-5" /></button>
           </div>
-          <p className="px-4 pb-2 text-[12px] font-bold text-white/45">Only the free looks are selectable — the rest are Premium.</p>
+          {adminPin ? (
+            <div className="px-4 pb-2">
+              <p className="text-[12px] font-bold text-white/45">Production: pick a look for {chosenModelName?.split(" ")[0] || "the model"}, then Generate. <span className="text-emerald-400">🎬 = already has a video.</span></p>
+              <div className="mt-2 flex gap-1.5">
+                {([["all", "All"], ["novideo", "To do"], ["video", "🎬 With video"]] as const).map(([k, label]) => (
+                  <button key={k} type="button" onClick={() => setLookVideoFilter(k)}
+                    className={`rounded-full px-3 py-1 text-[11px] font-black transition ${lookVideoFilter === k ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>{label}</button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="px-4 pb-2 text-[12px] font-bold text-white/45">Only the free looks are selectable — the rest are Premium.</p>
+          )}
           <div className="flex-1 overflow-y-auto overscroll-contain px-3 pb-8" onClick={(e) => e.stopPropagation()}>
            <div className="grid grid-cols-3 gap-2">
             {gGarments.length === 0 ? (
               <div className="col-span-3 grid place-items-center py-16"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>
             ) : (() => {
               const anyFeatured = gGarments.some(g => g.featured);
-              return gGarments.map(g => {
+              return gGarments
+                .filter(g => lookVideoFilter === "all" || (lookVideoFilter === "video" ? g.hasVideo : !g.hasVideo))
+                .map(g => {
                 const locked = anyFeatured && !g.featured && !isPaid;
                 return (
                   <button key={g.id} type="button"
