@@ -168,6 +168,7 @@ export default function TryFunnelPage() {
   const isModelSession = false;
   const [genError, setGenError] = useState("");
   const genStartedRef = useRef(false);
+  const forceFreshRef = useRef(false); // "Generate a fresh one" → skip cache, make a NEW unique clip
   // The chosen model's videos (incl. the one just made) — shown as a gallery on the done screen.
   const [madeVideos, setMadeVideos] = useState<{ id: string; imageUrl: string; videoUrl?: string; lookName?: string; feed?: boolean; public?: boolean }[]>([]);
   // Admin: per-video visibility controls on the result gallery.
@@ -379,7 +380,7 @@ export default function TryFunnelPage() {
       // the person is different every time, so there is nothing to reuse. Admins bypass
       // the lookup (except in "preview as user" mode) — they PRE-generate the library and
       // may want to redo a bad clip; their output still becomes a cache entry for users.
-      if (!avatar && chosenModelId && (!adminPin || previewAsUser)) {
+      if (!avatar && chosenModelId && (!adminPin || previewAsUser) && !forceFreshRef.current) {
         try {
           const combo = `${chosenModelId}|${lookId}|${motion}`;
           const cached = await fetch(`/api/try-this-look?combo=${encodeURIComponent(combo)}`).then(r => r.json());
@@ -394,6 +395,7 @@ export default function TryFunnelPage() {
           }
         } catch { /* cache miss or offline → fall through to real generation */ }
       }
+      forceFreshRef.current = false; // consumed → next generation caches normally again
       // Send the admin prompt EXACTLY as written (tokens like @Bild1 / @Bild2 bind to the
       // reference images server-side) — no remapping, same as typing it into Pixverse.
       // Rotate the prompt each generation (turn motion) so every clip differs; dance keeps
@@ -565,7 +567,8 @@ export default function TryFunnelPage() {
   // Hidden for model sessions (they generate photos, no motion).
   // Motion choice (turn / dance) is ADMIN-only now — customers just get "Generate my video"
   // (defaults to Simple turn), so the page isn't cluttered. Admin keeps it for production.
-  const motionPicker = (adminPin && !previewAsUser && !isModelSession) ? (
+  // Motion picker removed entirely (turn is the default; prompt rotates automatically).
+  const motionPicker = false ? (
     <div className="mt-5">
       <div className="flex justify-center gap-2">
         {([["turn", "🔄 Simple turn"], ["dance", "💃 Dance · with music"]] as const).map(([key, label]) => {
@@ -585,7 +588,8 @@ export default function TryFunnelPage() {
 
   // Admin-only: preview + edit the video-generation prompt with the two live references
   // (@Bild1 = model/avatar, @Bild2 = chosen outfit). Global template, saved on the state.
-  const adminPromptPanel = (adminPin && !previewAsUser) ? (
+  // Admin prompt panel removed — the prompt now rotates automatically per generation.
+  const adminPromptPanel = false ? (
     <div className="mt-5 rounded-2xl border border-amber-400/40 bg-amber-400/[0.06] p-3">
       <button type="button" onClick={() => setPromptOpen(o => !o)} className="flex w-full items-center justify-between">
         <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wide text-amber-400">
@@ -607,7 +611,7 @@ export default function TryFunnelPage() {
             <div className="flex items-center gap-1.5 rounded-lg bg-white/10 p-1 pr-2">
               <span className="h-9 w-9 overflow-hidden rounded-md bg-white/10">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                {outfit?.imageUrl && <img src={outfit.imageUrl} alt="" className="h-full w-full object-cover" />}
+                {outfit?.imageUrl && <img src={outfit?.imageUrl} alt="" className="h-full w-full object-cover" />}
               </span>
               <span className="text-[12px] font-black">@Bild2</span>
             </div>
@@ -674,7 +678,13 @@ export default function TryFunnelPage() {
       {/* Top bar */}
       <div className="sticky top-0 z-20 bg-[#0d0b0a]/90 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
-          <button type="button" onClick={() => (step > 2 ? setStep((s) => (s - 1) as 1 | 2 | 3 | 4 | 5) : router.back())}
+          <button type="button" onClick={() => {
+              if (step > 2) { setStep((s) => (s - 1) as 1 | 2 | 3 | 4 | 5); return; }
+              // On step 2 (or opened straight from an ad link, no history) → go home instead
+              // of a dead router.back().
+              if (typeof window !== "undefined" && window.history.length > 1) router.back();
+              else router.push("/home");
+            }}
             className="grid h-9 w-9 place-items-center rounded-full bg-white/10 active:opacity-70">
             <ArrowLeft className="h-4 w-4" />
           </button>
@@ -1094,11 +1104,17 @@ export default function TryFunnelPage() {
                   <Lock className="h-5 w-5" /> Register or sign in to watch
                 </button>
               ) : (
-                // Signed in → save it to their gallery, then open their own post.
-                <button type="button" onClick={async () => goToResult(await claimCachedTryOn())}
-                  className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                  <Sparkles className="h-5 w-5" /> View your video →
-                </button>
+                // Signed in → view the ready one, OR generate a fresh, unique one (new scene).
+                <div className="grid gap-2">
+                  <button type="button" onClick={async () => goToResult(await claimCachedTryOn())}
+                    className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
+                    <Sparkles className="h-5 w-5" /> View your video →
+                  </button>
+                  <button type="button" onClick={() => { forceFreshRef.current = true; genStartedRef.current = false; setGenStatus("idle"); void startPaidGenerate(); }}
+                    className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-white/20 bg-white/[0.06] text-[13px] font-black text-white active:scale-95 transition">
+                    <RefreshCw className="h-4 w-4" /> Generate a fresh one — see her differently
+                  </button>
+                </div>
               )
             ) : (
               <button type="button" onClick={onUnlock}
