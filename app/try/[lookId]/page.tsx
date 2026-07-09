@@ -171,6 +171,9 @@ export default function TryFunnelPage() {
   const forceFreshRef = useRef(false); // "Generate a fresh one" → skip cache, make a NEW unique clip
   // The chosen model's videos (incl. the one just made) — shown as a gallery on the done screen.
   const [madeVideos, setMadeVideos] = useState<{ id: string; imageUrl: string; videoUrl?: string; lookName?: string; feed?: boolean; public?: boolean }[]>([]);
+  // Admin "My Gallery" on the model step: ALL generated videos across models (not just this
+  // model). Model-by-model separation comes later.
+  const [galleryVideos, setGalleryVideos] = useState<{ id: string; imageUrl: string; videoUrl?: string; lookName?: string; curatorId?: string; feed?: boolean; public?: boolean }[]>([]);
   // Admin: per-video visibility controls on the result gallery.
   const vidAction = async (body: Record<string, unknown>) => {
     await fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}) }, body: JSON.stringify(body) }).catch(() => {});
@@ -485,20 +488,24 @@ export default function TryFunnelPage() {
   // Once done: load the chosen model's videos (incl. the one just made) → shown as a gallery
   // on the result screen so the admin sees it landed in her "In motion".
   useEffect(() => {
-    // Load her generated videos after a generation (result screen) AND on the model step for
-    // admin (so the production gallery shows under the Generate button).
-    const wantLoad = (genStatus === "done" || (adminPin && step === 2)) && chosenModelId;
-    if (!wantLoad) return;
+    // After a generation (result screen): load HER videos for the "her videos" strip.
+    if (genStatus !== "done" || !chosenModelId) return;
     const t = setTimeout(() => {
-      // Admins see all of her videos (incl. the just-made, still-unpublished one via manage=1);
-      // end-users only her published ones.
       fetch(`/api/try-this-look?curatorTryons=${encodeURIComponent(chosenModelId)}${adminPin ? "&manage=1" : ""}`, adminPin ? { headers: { "x-try-look-admin-pin": adminPin } } : undefined)
         .then(r => r.json())
         .then(d => setMadeVideos((d.userGallery ?? []).filter((v: { videoUrl?: string }) => v.videoUrl)))
         .catch(() => {});
     }, 1200);
     return () => clearTimeout(t);
-  }, [genStatus, chosenModelId, adminPin, step]);
+  }, [genStatus, chosenModelId, adminPin]);
+  // Admin "My Gallery" on the model step: ALL generated videos across every model.
+  useEffect(() => {
+    if (!(adminPin && !previewAsUser) || step !== 2 || galleryVideos.length) return;
+    fetch(`/api/try-this-look?adminPosts=1`, { headers: { "x-try-look-admin-pin": adminPin } })
+      .then(r => r.json())
+      .then(d => setGalleryVideos((Array.isArray(d.posts) ? d.posts : []).filter((v: { videoUrl?: string }) => v.videoUrl)))
+      .catch(() => {});
+  }, [adminPin, previewAsUser, step, galleryVideos.length]);
 
   // ── Paid video pack ($8 → 4 videos) ────────────────────────────────────────
   const payEmail = () => getStoredAuthSession()?.user?.email?.trim().toLowerCase() || "";
@@ -793,12 +800,12 @@ export default function TryFunnelPage() {
           )}
           {adminProduceStrip}
           {/* Admin: the videos already generated for this model — right under the strip. */}
-          {adminProduce && madeVideos.length > 0 && (
+          {adminProduce && galleryVideos.length > 0 && (
             <div className="mt-5">
-              <p className="mb-2 text-[13px] font-black">{chosenModelName ? `${chosenModelName.split(/\s+/)[0]}'s videos` : "Generated videos"} <span className="text-white/40">{madeVideos.length}</span></p>
+              <p className="mb-2 text-[13px] font-black">My Gallery <span className="text-white/40">{galleryVideos.length}</span></p>
               <div className="grid grid-cols-3 gap-2">
-                {madeVideos.map(v => (
-                  <a key={v.id} href={chosenModelId ? `/curator/${chosenModelId}` : "#"} className="relative block aspect-[9/16] overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] active:opacity-80">
+                {galleryVideos.map(v => (
+                  <a key={v.id} href={v.curatorId ? `/curator/${v.curatorId}` : "#"} className="relative block aspect-[9/16] overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] active:opacity-80">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={v.imageUrl} alt={v.lookName ?? ""} loading="lazy" className="h-full w-full object-cover object-top" />
                     <span className="absolute inset-0 grid place-items-center text-white/90"><Play className="h-7 w-7 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" fill="currentColor" /></span>
