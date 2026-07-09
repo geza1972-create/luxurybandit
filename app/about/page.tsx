@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 type StepMedia = {
   clips: { poster: string; video: string }[]; // Gina hero clips
   curatorId: string;
-  models: { id: string; name: string; photo: string }[];   // step 1 — the featured models
+  models: { id: string; name: string; photo: string; featured?: boolean }[];   // step 1 — free (featured) first, rest locked
   garments: { id: string; name: string; img: string }[];   // step 2 — some outfits
   videos: { poster: string }[];                            // step 3 — blurred (members-only)
 };
@@ -29,10 +29,12 @@ async function stepMedia(): Promise<StepMedia> {
       .slice(0, 3)
       .map(g => ({ poster: ((g as { imageUrl?: string }).imageUrl ?? "") as string, video: (g as { videoUrl?: string }).videoUrl as string })) : [];
     // Step 1 — the featured models (Gina / Amara / Felicia).
-    const models = (state.curators ?? [])
-      .filter(c => (c as { featured?: boolean }).featured && (c as { photoUrl?: string }).photoUrl)
+    // Show 3 models with the FREE (featured) ones first; the rest render locked in step 1.
+    const models = [...(state.curators ?? [])]
+      .filter(c => (c as { photoUrl?: string }).photoUrl && ((c as { status?: string }).status ?? "active") === "active")
+      .sort((a, b) => ((b as { featured?: boolean }).featured ? 1 : 0) - ((a as { featured?: boolean }).featured ? 1 : 0))
       .slice(0, 3)
-      .map(c => ({ id: c.id, name: [c.firstName, c.lastName].filter(Boolean).join(" ").trim(), photo: (c as { photoUrl?: string }).photoUrl as string }));
+      .map(c => ({ id: c.id, name: [c.firstName, c.lastName].filter(Boolean).join(" ").trim(), photo: (c as { photoUrl?: string }).photoUrl as string, featured: !!(c as { featured?: boolean }).featured }));
     // Step 2 — outfits. Admin-picked (featured) looks lead; if none are picked yet,
     // fall back to the first few wardrobe pieces so the section is never empty.
     const wardrobe = (state.looks ?? [])
@@ -127,7 +129,7 @@ export default async function AboutPage() {
                 <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/55">Choose one of our models — or upload your own (Premium).</p>
               </div>
             </div>
-            {models.length > 0 && <AboutStep1Models featured={models} />}
+            {models.length > 0 && <AboutStep1Models featured={models} garment={garments[0]} />}
             {funnelStart && (
               <Link href={funnelStart} className="lb-gold mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-black active:scale-95 transition-transform">
                 <Sparkles className="h-4 w-4" /> Dress a model

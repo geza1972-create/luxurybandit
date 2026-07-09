@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { ImageUp, Lock, Loader2, X } from "lucide-react";
 import PremiumDialog from "@/components/PremiumDialog";
 
-type FeaturedModel = { id: string; name: string; photo: string };
+type FeaturedModel = { id: string; name: string; photo: string; featured?: boolean };
 type Model = { id: string; name: string; photoUrl: string; featured?: boolean };
 
-// Step-1 "Pick your model": 4 tiles = the 3 featured models + a locked "Your Picture"
-// (Premium) at the 3rd spot. A "See all models" link opens the full gallery where
-// everyone is locked except the featured three, with "Your Picture" again at 3rd.
-export default function AboutStep1Models({ featured }: { featured: FeaturedModel[] }) {
+// Step-1 "Pick your model": tiles for the models + a locked "Your Picture" (Premium).
+// Only FREE (featured) models are unlocked; the rest wear a padlock. Tapping a free model
+// starts the try-on (dress her), NOT her profile.
+export default function AboutStep1Models({ featured, garment }: { featured: FeaturedModel[]; garment?: { id: string; img: string } }) {
   const router = useRouter();
   const [isPaid, setIsPaid] = useState(false);
   const [open, setOpen] = useState(false);
@@ -21,6 +21,16 @@ export default function AboutStep1Models({ featured }: { featured: FeaturedModel
 
   useEffect(() => { try { setIsPaid(!!localStorage.getItem("luxurybandit-try-look-admin-pin") || localStorage.getItem("lb_paid") === "1"); } catch { /**/ } }, []);
   const yourLocked = !isPaid;
+
+  // Tap a free model → straight into the try-on funnel (dress her with the starter garment).
+  const dress = (id: string, name: string, photo: string) => {
+    if (garment?.id) {
+      const qs = new URLSearchParams({ modelId: id, model: photo, garment: garment.img, modelName: name });
+      router.push(`/try/${garment.id}?${qs.toString()}`);
+    } else {
+      router.push("/stores?view=grid");
+    }
+  };
 
   const loadAll = async () => {
     setLoading(true);
@@ -47,16 +57,20 @@ export default function AboutStep1Models({ featured }: { featured: FeaturedModel
 
   // Step-1 tiles: featured[0], featured[1], YOUR PICTURE (3rd), featured[2]…
   const step1 = [...featured];
-  const step1Tiles: React.ReactNode[] = step1.map(m => (
-    <button key={m.id} type="button" onClick={() => router.push(`/curator/${m.id}`)}
-      className="relative block overflow-hidden rounded-xl lb-media-bg active:scale-95 transition-transform">
-      <div className="aspect-[9/16] w-full">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={m.photo} alt={m.name} className="h-full w-full object-cover object-top" />
-      </div>
-      <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 to-transparent px-2 pb-1.5 pt-4 text-[10px] font-black text-white">{m.name}</span>
-    </button>
-  ));
+  const step1Tiles: React.ReactNode[] = step1.map(m => {
+    const locked = !m.featured && !isPaid; // only the free (featured) model is unlocked
+    return (
+      <button key={m.id} type="button" onClick={() => (locked ? premiumAlert() : dress(m.id, m.name, m.photo))}
+        className="relative block overflow-hidden rounded-xl lb-media-bg active:scale-95 transition-transform">
+        <div className="aspect-[9/16] w-full">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={m.photo} alt={m.name} className={`h-full w-full object-cover object-top ${locked ? "blur-[6px] scale-105 opacity-70" : ""}`} />
+        </div>
+        {locked && <span className="absolute inset-0 grid place-items-center bg-black/25"><span className="grid h-9 w-9 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-4 w-4 text-white" /></span></span>}
+        <span className={`absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/80 to-transparent px-2 pb-1.5 pt-4 text-[10px] font-black ${locked ? "text-amber-400" : "text-white"}`}>{locked ? "Premium" : m.name}</span>
+      </button>
+    );
+  });
   step1Tiles.splice(2, 0, <YourTile key="__your" big />);
 
   return (
@@ -83,7 +97,7 @@ export default function AboutStep1Models({ featured }: { featured: FeaturedModel
                     const locked = anyFeatured && !m.featured && !isPaid;
                     return (
                       <button key={m.id} type="button"
-                        onClick={() => (locked ? premiumAlert() : router.push(`/curator/${m.id}`))}
+                        onClick={() => (locked ? premiumAlert() : dress(m.id, m.name, m.photoUrl))}
                         className="relative block overflow-hidden rounded-xl border border-white/10 lb-media-bg active:scale-95 transition-transform">
                         <div className="aspect-[9/16] w-full">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
