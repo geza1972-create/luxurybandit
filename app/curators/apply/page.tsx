@@ -281,38 +281,44 @@ export default function CuratorApplyPage() {
           </p>
         </div>}
 
-        {/* Profile photos — up to 4 candidates; the team picks your best one. */}
+        {/* Profile photos — one main + up to 3 more; the team picks the best one. */}
         <div className="mt-6 flex flex-col items-center gap-2">
-          <span className={`${label} text-center`}>Profile photos · add up to 4</span>
+          <span className={`${label} text-center`}>Profile photo{` `}· main</span>
           {(() => {
             const combined = [...profilePhotos.map(src => ({ src, isNew: true })), ...profileExisting.map(src => ({ src, isNew: false }))].slice(0, 4);
-            const canAdd = combined.length < 4;
-            return (
-              <div className="flex flex-wrap justify-center gap-2">
-                {combined.map((p, i) => (
-                  <div key={i} className="relative">
+            const remove = (p: { src: string; isNew: boolean }) => { if (p.isNew) setProfilePhotos(prev => prev.filter(s => s !== p.src)); else setProfileExisting(prev => prev.filter(s => s !== p.src)); };
+            const slot = (item: { src: string; isNew: boolean } | undefined, sizeCls: string, isMain: boolean) => item ? (
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={item.src} alt="" className={`${sizeCls} rounded-2xl object-cover object-top`} />
+                <button type="button" onClick={() => remove(item)}
+                  className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black text-white ring-1 ring-white/25">×</button>
+                {isMain && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-amber-400 px-2 py-px text-[8px] font-black uppercase tracking-wide text-black">Main</span>}
+              </div>
+            ) : (
+              <button type="button" onClick={() => profileFileRef.current?.click()}
+                className={`${sizeCls} relative grid place-items-center overflow-hidden rounded-2xl border-2 border-dashed border-amber-400/40 bg-white/[0.04] active:scale-95 transition-transform`}>
+                {isMain && combined.length === 0 ? (
+                  <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.src} alt="" className="h-24 w-24 rounded-2xl object-cover object-top" />
-                    <button type="button"
-                      onClick={() => { if (p.isNew) setProfilePhotos(prev => prev.filter(s => s !== p.src)); else setProfileExisting(prev => prev.filter(s => s !== p.src)); }}
-                      className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black text-white ring-1 ring-white/25">×</button>
-                  </div>
-                ))}
-                {canAdd && (
-                  <button type="button" onClick={() => profileFileRef.current?.click()}
-                    className="relative grid h-24 w-24 place-items-center overflow-hidden rounded-2xl border-2 border-dashed border-amber-400/40 bg-white/[0.04] active:scale-95 transition-transform">
-                    {combined.length === 0 ? (
-                      <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/apply-example-face.jpg" alt="" className="h-full w-full object-cover object-top opacity-40" />
-                        <span className="absolute inset-0 grid place-items-center"><Camera className="h-6 w-6 text-white drop-shadow" /></span>
-                        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-white">Example</span>
-                      </>
-                    ) : (
-                      <span className="grid place-items-center gap-0.5 text-amber-400"><Camera className="h-6 w-6" /><span className="text-[9px] font-black">Add</span></span>
-                    )}
-                  </button>
+                    <img src="/apply-example-face.jpg" alt="" className="h-full w-full object-cover object-top opacity-40" />
+                    <span className="absolute inset-0 grid place-items-center"><Camera className="h-6 w-6 text-white drop-shadow" /></span>
+                    <span className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-white">Example</span>
+                  </>
+                ) : (
+                  <span className="grid place-items-center gap-0.5 text-amber-400"><Camera className={isMain ? "h-7 w-7" : "h-5 w-5"} /><span className="text-[8px] font-black">Add</span></span>
                 )}
+              </button>
+            );
+            return (
+              <div className="flex flex-col items-center gap-2.5">
+                {slot(combined[0], "h-28 w-28", true)}
+                <span className="text-[10px] font-black uppercase tracking-wider text-white/35">+ up to 3 more</span>
+                <div className="flex gap-2">
+                  {slot(combined[1], "h-[70px] w-[70px]", false)}
+                  {slot(combined[2], "h-[70px] w-[70px]", false)}
+                  {slot(combined[3], "h-[70px] w-[70px]", false)}
+                </div>
               </div>
             );
           })()}

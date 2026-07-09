@@ -24,6 +24,10 @@ export default function CuratorProfilePage() {
   const [photoData, setPhotoData] = useState(""); // new upload only
   const [photoError, setPhotoError] = useState("");
   const [cropSrc, setCropSrc] = useState("");
+  // Profile photos — one main + up to 3 more; admin picks the best.
+  const [profilePhotos, setProfilePhotos] = useState<string[]>([]); // new picks (data URLs)
+  const [profileExisting, setProfileExisting] = useState<string[]>([]); // already stored
+  const profileFileRef = useRef<HTMLInputElement>(null);
   // Full-body dressed photo (3:4) — SAME as the application form. Powers her try-ons.
   const [bodyPhotos, setBodyPhotos] = useState<string[]>([]); // new pick (data URL)
   const [bodyExisting, setBodyExisting] = useState<string[]>([]); // already stored
@@ -99,6 +103,8 @@ export default function CuratorProfilePage() {
           setCuratorId(c.id); setEmail(c.email ?? "");
           setPhoto(c.photoUrl ?? "");
           setBodyExisting(Array.isArray(c.photoBodyUrls) ? c.photoBodyUrls : []);
+          setProfileExisting(Array.isArray(c.profilePhotoUrls) && c.profilePhotoUrls.length
+            ? c.profilePhotoUrls : (c.photoUrl ? [c.photoUrl] : []));
           setVerificationSelfieUrl(c.verificationSelfieUrl ?? "");
           setIsRealModel(c.realModel === true);
           setEarningsCents(Number(c.earningsCents ?? 0));
@@ -148,6 +154,13 @@ export default function CuratorProfilePage() {
     if (err) { setPhotoError(err); return; }
     if (src) setBodyCropSrc(src);
   };
+  const onPickProfile = async (file?: File) => {
+    if (!file) return;
+    setPhotoError("");
+    const { src, error: err } = await readPhotoFile(file);
+    if (err) { setPhotoError(err); return; }
+    if (src) setProfilePhotos(prev => [...prev, src].slice(0, Math.max(0, 4 - profileExisting.length)));
+  };
   const onPickVerification = async (file?: File) => {
     if (!file) return;
     setPhotoError("");
@@ -191,7 +204,7 @@ export default function CuratorProfilePage() {
           brands: brandChips.join(", "), style: styleChips.join(", "),
           colors: colorChips.join(", "), fabrics: fabricChips.join(", "), occasions: occasionChips.join(", "),
           genderFocus, priceTiers: priceTiers.join(", "), fitFocus: fitFocus.join(", "), ageFocus,
-          motto, bio, payoutMethod, ...(photoData ? { photo: photoData } : {}), ...(bodyPhotos.length ? { bodyPhotos } : {}), ...(verificationSelfie ? { verificationSelfie } : {}),
+          motto, bio, payoutMethod, ...(profilePhotos.length ? { profilePhotos } : {}), ...(photoData ? { photo: photoData } : {}), ...(bodyPhotos.length ? { bodyPhotos } : {}), ...(verificationSelfie ? { verificationSelfie } : {}),
         }),
       });
       const data = await res.json();
@@ -199,6 +212,7 @@ export default function CuratorProfilePage() {
       setSaved(true);
       setPhotoData("");
       if (bodyPhotos.length) { setBodyExisting(bodyPhotos); setBodyPhotos([]); }
+      if (profilePhotos.length) { setProfileExisting([...profilePhotos]); setProfilePhotos([]); }
       if (verificationSelfie) { setVerificationSelfieUrl(verificationSelfie); setVerificationSelfie(""); }
       setBaseline(JSON.stringify({
         firstName, lastName, phone, address, instagram,
@@ -287,17 +301,41 @@ export default function CuratorProfilePage() {
       </div>
 
       <div className="px-5 pt-5">
-        {/* Photo */}
+        {/* Profile photos — one main + up to 3 more (the team picks the best). */}
         <div className="flex flex-col items-center gap-2">
-          <button type="button" onClick={() => (photo ? setZoomImg(photo) : fileRef.current?.click())}
-            className="relative grid h-24 w-24 place-items-center overflow-hidden rounded-full border-2 border-dashed border-black/15 bg-black/[0.03] active:scale-95 transition-transform">
-            {photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={photo} alt="" className="h-full w-full object-cover" />
-            ) : <Camera className="h-6 w-6 text-black/30" />}
-          </button>
-          <button type="button" onClick={() => fileRef.current?.click()} className="text-xs font-black text-cobalt">Change photo</button>
+          <p className="text-[11px] font-black uppercase tracking-wide text-black/45">Profile photo · main</p>
+          {(() => {
+            const combined = [...profilePhotos.map(src => ({ src, isNew: true })), ...profileExisting.map(src => ({ src, isNew: false }))].slice(0, 4);
+            const remove = (p: { src: string; isNew: boolean }) => { if (p.isNew) setProfilePhotos(prev => prev.filter(s => s !== p.src)); else setProfileExisting(prev => prev.filter(s => s !== p.src)); };
+            const slot = (item: { src: string; isNew: boolean } | undefined, sizeCls: string, isMain: boolean) => item ? (
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={item.src} alt="" onClick={() => setZoomImg(item.src)} className={`${sizeCls} rounded-2xl object-cover object-top`} />
+                <button type="button" onClick={() => remove(item)}
+                  className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black text-white ring-1 ring-white/25">×</button>
+                {isMain && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-cobalt px-2 py-px text-[8px] font-black uppercase tracking-wide text-white">Main</span>}
+              </div>
+            ) : (
+              <button type="button" onClick={() => profileFileRef.current?.click()}
+                className={`${sizeCls} grid place-items-center rounded-2xl border-2 border-dashed border-black/15 bg-black/[0.03] active:scale-95 transition-transform`}>
+                <span className="grid place-items-center gap-0.5 text-cobalt"><Camera className={isMain ? "h-7 w-7" : "h-5 w-5"} /><span className="text-[8px] font-black">Add</span></span>
+              </button>
+            );
+            return (
+              <div className="flex flex-col items-center gap-2.5">
+                {slot(combined[0], "h-28 w-28", true)}
+                <span className="text-[10px] font-black uppercase tracking-wider text-black/35">+ up to 3 more</span>
+                <div className="flex gap-2">
+                  {slot(combined[1], "h-[70px] w-[70px]", false)}
+                  {slot(combined[2], "h-[70px] w-[70px]", false)}
+                  {slot(combined[3], "h-[70px] w-[70px]", false)}
+                </div>
+              </div>
+            );
+          })()}
           {photoError && <p className="max-w-xs text-center text-xs font-bold text-red-500">{photoError}</p>}
+          <input ref={profileFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
+            onChange={e => { void onPickProfile(e.target.files?.[0]); e.target.value = ""; }} />
           <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
             onChange={e => { void onPickPhoto(e.target.files?.[0]); e.target.value = ""; }} />
 
