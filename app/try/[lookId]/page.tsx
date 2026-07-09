@@ -691,22 +691,8 @@ export default function TryFunnelPage() {
             className="grid h-9 w-9 place-items-center rounded-full bg-white/10 active:opacity-70">
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <div className="flex flex-1 items-center gap-1.5">
-            {[1, 2, 3, 4].map(n => (
-              <span key={n} className={`h-1 flex-1 rounded-full ${n <= step ? "bg-amber-400" : "bg-white/15"}`} />
-            ))}
-          </div>
+          {/* Progress bar + admin-view toggle removed — it's all one window now. */}
         </div>
-        {/* Admin bar — available on EVERY step: flip between admin view and the
-            exact end-user view. */}
-        {adminPin && (
-          <div className="mt-2 flex items-center gap-2">
-            <button type="button" onClick={() => setPreviewAsUser(v => !v)}
-              className={`ml-auto shrink-0 rounded-full px-3 py-1.5 text-[11px] font-black uppercase tracking-wide active:opacity-70 ${previewAsUser ? "bg-white text-black" : "bg-amber-400 text-black"}`}>
-              {previewAsUser ? "User view" : "Admin view"}
-            </button>
-          </div>
-        )}
       </div>
 
       {/* ── Step 1 is skipped (the garment is already chosen) — brief loader ── */}
