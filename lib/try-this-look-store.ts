@@ -1053,6 +1053,20 @@ export async function grantVideoCredits(email: string, sessionId: string, n: num
   return { credits: vc.balances[e], granted: true };
 }
 
+// Admin: set a user's video-credit balance to an absolute value (0 = reset). Unlike
+// grantVideoCredits (which only adds), this overwrites — used for admin cleanup.
+export async function setVideoCreditsBalance(email: string, n: number): Promise<number> {
+  const e = email.trim().toLowerCase();
+  if (!e) return 0;
+  const state = await readTryThisLookState();
+  const vc = state.videoCredits ?? { balances: {}, redeemed: [] };
+  vc.balances = vc.balances ?? {};
+  vc.balances[e] = Math.max(0, Math.floor(n));
+  state.videoCredits = vc;
+  await saveTryThisLookState(state);
+  return vc.balances[e];
+}
+
 // How many video credits an active $49/mo subscriber gets each calendar month.
 export const SUBSCRIPTION_MONTHLY_CREDITS = Number(process.env.SUBSCRIPTION_MONTHLY_CREDITS ?? 40);
 

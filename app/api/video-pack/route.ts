@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createPackCheckout, stripeConfigured } from "@/lib/stripe";
-import { getVideoCredits, spendVideoCredit, grantVideoCredits, ensureWelcomeCredits } from "@/lib/try-this-look-store";
+import { getVideoCredits, spendVideoCredit, grantVideoCredits, ensureWelcomeCredits, setVideoCreditsBalance } from "@/lib/try-this-look-store";
+import { isAdminRequest } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +41,20 @@ export async function POST(request: Request) {
   if (body.action === "refund") {
     const res = await grantVideoCredits(email, "", 1);
     return NextResponse.json({ ok: true, credits: res.credits });
+  }
+
+  // Admin: set a user's video-credit balance to an absolute value (e.g. 0 = reset).
+  // Requires the admin PIN header — the only way to overwrite (not just add) a balance.
+  if (body.action === "admin-set") {
+    if (!(await isAdminRequest(request))) {
+      return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+    }
+    const n = Number((body as { credits?: unknown }).credits);
+    if (!Number.isFinite(n) || n < 0) {
+      return NextResponse.json({ error: "credits must be a number >= 0." }, { status: 400 });
+    }
+    const credits = await setVideoCreditsBalance(email, n);
+    return NextResponse.json({ ok: true, credits });
   }
 
   if (!stripeConfigured()) {
