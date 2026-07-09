@@ -2,36 +2,27 @@ import InfoPage from "@/components/InfoPage";
 
 export const metadata = { title: "Imprint — LuxuryBandit" };
 
+// Interim imprint. LuxuryBandit is privately operated and in a pre-launch/testing phase, so no
+// company details are published yet. ⚠️ Before taking real payments / running public ads in
+// DE/EU, this MUST be replaced with a full § 5 DDG imprint (name + a reachable postal address).
+// To keep the operator's home address private, use a business / c/o (Impressum-service) address.
 export default function ImprintPage() {
   return (
     <InfoPage title="Imprint">
-      <p className="rounded-lg border border-amber-300/50 bg-amber-50 px-3 py-2 text-[13px] font-bold text-amber-800">
-        ⚠️ Placeholder — required by law in DE/EU. Fill in your real company details.
-      </p>
-
-      <h2>Provider</h2>
       <p>
-        [Company / sole proprietor name]<br />
-        [Street and number]<br />
-        [Postal code, City, Country]
+        LuxuryBandit is currently operated <strong>privately</strong> and is in a
+        <strong> pre-launch / testing phase</strong>. No commercial company details are published yet.
       </p>
 
       <h2>Contact</h2>
       <p>
-        Email: [email]
+        For any request — including legal or data matters — please use our{" "}
+        <a href="/contact">contact form</a>. We respond to every message.
       </p>
 
-      <h2>Represented by</h2>
-      <p>[Managing director / responsible person]</p>
-
-      <h2>Register &amp; VAT</h2>
       <p>
-        [Commercial register & number, if applicable]<br />
-        [VAT ID, if applicable]
+        Full provider details will be published here before the public launch.
       </p>
-
-      <h2>Responsible for content</h2>
-      <p>[Name and address per § 18 Abs. 2 MStV]</p>
     </InfoPage>
   );
 }
