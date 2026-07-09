@@ -509,6 +509,23 @@ export default function AdminPage() {
     } catch { setError("Network error."); }
     setBusy("");
   };
+  // Connect a generated video to a look (→ free try-on) / disconnect it. Used by AdminConnections.
+  const attachLookVideo = async (lookId: string, generationId: string): Promise<boolean> => {
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "attach-look-video-from-generation", lookId, generationId }) });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.ok) { setLooks(ls => ls.map(l => l.id === lookId ? { ...l, videoUrl: d.videoUrl } : l)); return true; }
+    } catch { /**/ }
+    return false;
+  };
+  const detachLookVideo = async (lookId: string): Promise<boolean> => {
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "detach-look-video", lookId }) });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.ok) { setLooks(ls => ls.map(l => l.id === lookId ? { ...l, videoUrl: undefined } : l)); return true; }
+    } catch { /**/ }
+    return false;
+  };
   const saveLook = async () => {
     if (!editLook) return;
     setSaving(true); setError("");
@@ -1192,7 +1209,7 @@ export default function AdminPage() {
 
         {/* ── Curators ── */}
         {tab === "curators" && (
-          <div className="mt-3"><AdminConnections posts={posts} looks={looks} models={curators} /></div>
+          <div className="mt-3"><AdminConnections posts={posts} looks={looks} models={curators} onAttach={attachLookVideo} onDetach={detachLookVideo} /></div>
         )}
         {tab === "curators" && (
           <div className="mt-3 flex items-center gap-1.5">

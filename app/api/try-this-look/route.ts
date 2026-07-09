@@ -1431,6 +1431,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    // Admin: CONNECT a generated video to a look — sets the look's own videoUrl (+ poster)
+    // from an existing generation, so the look becomes a free try-on (look-video fallback).
+    if (payload.action === "attach-look-video-from-generation") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const lookId = String(payload.lookId ?? "").trim();
+      const genId = String(payload.generationId ?? "").trim();
+      const look = state.looks.find(l => l.id === lookId) as any;
+      const gen = state.generations.find(g => g.id === genId) as any;
+      if (!look || !gen) return NextResponse.json({ error: "Look or generation not found." }, { status: 404 });
+      if (!gen.videoUrl) return NextResponse.json({ error: "That generation has no video." }, { status: 400 });
+      look.videoUrl = gen.videoUrl;                 // stored URL; hydration re-signs on read
+      if (gen.imageUrl) look.videoPosterUrl = gen.imageUrl;
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, videoUrl: look.videoUrl });
+    }
+
+    // Admin: DISCONNECT — remove a look's own video (revert to no free look-video).
+    if (payload.action === "detach-look-video") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const look = state.looks.find(l => l.id === String(payload.lookId ?? "").trim()) as any;
+      if (!look) return NextResponse.json({ error: "Look not found." }, { status: 404 });
+      look.videoUrl = undefined; look.videoPosterUrl = undefined;
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true });
+    }
+
     // Claim a FREE (cached/pre-produced) try-on for the signed-in user: copies the shared
     // clip into a user-owned generation so it shows in their "My try-ons" gallery and gets
     // its own post. Idempotent per (user, source). Copies storage paths — not signed URLs —
