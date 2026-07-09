@@ -218,7 +218,10 @@ export default function TryFunnelPage() {
   // Is this a FREE look? Featured looks are the free showcase (same ones the "Choose a
   // look" picker leaves selectable) → generating them costs nothing, no credit, no $8.
   // Own-photo (avatar) try-ons are the paid custom feature, so they never count as free.
-  const lookIsFree = !avatar && look?.featured === true;
+  // Every fresh generation now costs a credit (new users get 3 FREE, then $8 = 4). Looks
+  // that already have a video still play instantly & free (cached reveal) — only a NEW,
+  // real generation spends a credit. So no look generates unlimited-free anymore.
+  const lookIsFree = false;
   // A guest = not signed in and not the admin previewing as admin. Guests may WATCH the
   // teaser reveal, but must register / sign in before they can actually watch the finished
   // video (lead-capture gate at the "video ready" moment).
@@ -977,16 +980,23 @@ export default function TryFunnelPage() {
             </div>
           )}
 
-          {/* Admin: HD the keeper right here. Upscales THIS 360p clip to 1080p (no re-gen). */}
-          {adminPin && genStatus === "done" && genVideoUrl && genId && (
+          {/* HD (1080p) is a PREMIUM subscription perk. Admin + subscribers upscale here. */}
+          {genStatus === "done" && genVideoUrl && genId && (adminPin || isSubscribed) && (
             <div className="mt-4 flex flex-col items-center gap-1.5">
               <button type="button" onClick={() => upscaleVideo(genId, genVideoUrl)} disabled={!!hdBusyId}
                 className="flex items-center gap-2 rounded-full bg-amber-400 px-5 py-3 text-sm font-black text-black active:scale-95 transition disabled:opacity-50">
                 {hdBusyId === genId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {hdBusyId === genId ? "Rechne in HD um…" : "In HD umrechnen (1080p · Credits)"}
+                {hdBusyId === genId ? "Making it HD…" : "Get it in HD (1080p)"}
               </button>
               {hdMsg && <span className="text-[12px] font-bold text-white/50">{hdMsg}</span>}
             </div>
+          )}
+          {/* Non-subscriber → HD is a Premium upsell. */}
+          {genStatus === "done" && genVideoUrl && genId && !adminPin && !isSubscribed && (
+            <button type="button" onClick={() => setShowSubscribe(true)}
+              className="mx-auto mt-4 flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/10 px-5 py-2.5 text-[13px] font-black text-amber-300 active:scale-95 transition">
+              <Sparkles className="h-4 w-4" /> Want it in HD? Go Premium
+            </button>
           )}
 
           {/* Admin: keep producing — tap the next outfit and it generates for the same model. */}

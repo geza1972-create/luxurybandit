@@ -1014,7 +1014,7 @@ export async function getVideoCredits(email: string): Promise<number> {
 }
 
 // How many free video credits a brand-new user gets. Override via env.
-export const WELCOME_VIDEO_CREDITS = Number(process.env.WELCOME_VIDEO_CREDITS ?? 4);
+export const WELCOME_VIDEO_CREDITS = Number(process.env.WELCOME_VIDEO_CREDITS ?? 3);
 
 // Grant the free welcome credits the FIRST time we see an email; returns the balance.
 // Idempotent via the `welcomed` list so it's given exactly once per user.
