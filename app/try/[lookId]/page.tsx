@@ -811,20 +811,15 @@ export default function TryFunnelPage() {
                 // Admin (production) and paying users can pick ANY model; everyone else only Gina.
                 const unlockAll = isPaid || adminProduce;
                 const active = Math.max(0, om.findIndex(m => m.id === chosenModelId));
-                const pick = (m: { id: string; name: string; photoUrl: string; featured?: boolean }) => {
-                  setLockedNudge(false);
-                  if (!unlockAll && !m.featured) { setShowPremium(true); return; }
-                  setAvatar(""); setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name);
+                // Bring a model to the front — by tap OR swipe. Locked (Premium) models still
+                // come forward with their padlock; the paywall only fires on "Generate".
+                const setFront = (m: { id: string; name: string; photoUrl: string; featured?: boolean }) => {
+                  setLockedNudge(false); setAvatar("");
+                  setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name);
                 };
-                // Slide the carousel by one, even onto a locked model (so its padlock shows up
-                // front). Locked ones aren't "selected" — pick() still gates them.
                 const slide = (dir: number) => {
                   const ni = Math.min(om.length - 1, Math.max(0, active + dir));
-                  if (ni === active) return;
-                  const m = om[ni];
-                  setLockedNudge(false);
-                  if (unlockAll || m.featured) { setAvatar(""); setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); }
-                  else { setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); } // show locked model up front
+                  if (ni !== active) setFront(om[ni]);
                 };
                 return (
                   <div className="relative mx-auto mt-2 h-[72vw] max-h-[300px] select-none overflow-hidden touch-pan-y" style={{ perspective: "1100px" }}
@@ -836,7 +831,7 @@ export default function TryFunnelPage() {
                       const mLocked = !unlockAll && !m.featured;
                       const isActive = off === 0;
                       return (
-                        <div key={m.id} onClick={() => { if (swipedRef.current) { swipedRef.current = false; return; } if (!isActive) pick(m); }}
+                        <div key={m.id} onClick={() => { if (swipedRef.current) { swipedRef.current = false; return; } if (!isActive) setFront(m); }}
                           className="absolute left-1/2 top-1/2 w-[54%] max-w-[220px] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-2xl transition-all duration-300 ease-out"
                           style={{ transform: `translate(-50%,-50%) translateX(${off * 56}%) rotateY(${-off * 38}deg) scale(${isActive ? 1 : 0.82})`, zIndex: 20 - Math.abs(off), opacity: Math.abs(off) === 2 ? 0.45 : 1, cursor: isActive ? "default" : "pointer" }}>
                           <div className="relative aspect-[3/4] w-full">
