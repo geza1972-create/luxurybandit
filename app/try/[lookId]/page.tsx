@@ -62,7 +62,7 @@ export default function TryFunnelPage() {
   // Garment-first (from the Garderobe tab): the garment is chosen but not the model yet →
   // step 2 shows a model picker.
   const pickModel = (searchParams?.get("pick") ?? "") === "1";
-  const [gModels, setGModels] = useState<{ id: string; name: string; photoUrl: string; featured?: boolean }[]>([]);
+  const [gModels, setGModels] = useState<{ id: string; name: string; photoUrl: string; featured?: boolean; realModel?: boolean }[]>([]);
   const [isPaid, setIsPaid] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false); // $49/mo subscriber → unlimited chat
   const [showPremium, setShowPremium] = useState(false);
@@ -838,6 +838,9 @@ export default function TryFunnelPage() {
                           <div className="relative aspect-[3/4] w-full">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={m.photoUrl} alt={m.name} draggable={false} className={`h-full w-full object-cover object-top ${mLocked ? "blur-[3px] opacity-70" : ""}`} />
+                            {m.realModel && (
+                              <span className="absolute left-2 top-2 z-10 flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-black text-black shadow"><Check className="h-3 w-3" /> Real model</span>
+                            )}
                             {mLocked
                               ? (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/45 px-4 text-center">

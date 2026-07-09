@@ -467,6 +467,7 @@ export async function GET(request: Request) {
             createdAt: typeof cc.createdAt === "string" ? cc.createdAt : "",
             pinned: cc.pinned === true, // admin-pinned → shown first in the Models grid
             featured: cc.featured === true, // featured → free showcase; others are locked (paid)
+            realModel: cc.realModel === true, // a real person (not an AI persona) → "Real model" badge
             lookCount: genCountByName.get(name.toLowerCase()) ?? 0,
             ...(modelsAdmin ? {
               firstName: cc.firstName ?? "",
@@ -1789,6 +1790,7 @@ export async function POST(request: Request) {
       if (has("chatPersona")) c.chatPersona = String((payload as any).chatPersona ?? "").trim() || undefined;
       if (has("chatEnabled")) c.chatEnabled = (payload as any).chatEnabled !== false;
       if (has("hidden")) c.hidden = (payload as any).hidden === true || undefined;
+      if (has("realModel")) c.realModel = (payload as any).realModel === true || undefined;
       const photo = (payload as any).photoImage;
       if (typeof photo === "string" && photo.startsWith("data:image/")) {
         c.photoPath = await uploadTryThisLookImage("uploads", photo);
