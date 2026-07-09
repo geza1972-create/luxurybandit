@@ -10,6 +10,7 @@ import { LOOK_CATEGORIES, categorizeLook, type LookCategory } from "@/lib/look-c
 import { publicLookLabel } from "@/lib/look-title";
 import { safeLookImage } from "@/lib/look-image";
 import InsightsPro from "@/components/InsightsPro";
+import AdminConnections from "@/components/AdminConnections";
 
 const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
 
@@ -1190,6 +1191,9 @@ export default function AdminPage() {
         )}
 
         {/* ── Curators ── */}
+        {tab === "curators" && (
+          <div className="mt-3"><AdminConnections posts={posts} looks={looks} models={curators} /></div>
+        )}
         {tab === "curators" && (
           <div className="mt-3 flex items-center gap-1.5">
             <span className="text-[11px] font-black uppercase tracking-wider text-ink/35">Sort</span>
