@@ -51,6 +51,8 @@ export async function GET(request: Request) {
   if (profileId) {
     const c = (state.curators ?? []).find(x => x.id === profileId);
     if (!c) return NextResponse.json({ profile: null });
+    // The verification selfie is PRIVATE — only the admin (reviewing her) may see it.
+    const adminView = await isAdminRequest(request);
     return NextResponse.json({ profile: {
       id: c.id, firstName: c.firstName, lastName: c.lastName, motto: c.motto, bio: c.bio,
       photoUrl: c.photoUrl, photoFullUrl: (c as any).photoFullUrl, photoBodyUrls: (c as any).photoBodyUrls ?? [], instagram: c.instagram, style: c.style, brands: c.brands, genderFocus: c.genderFocus,
@@ -58,6 +60,7 @@ export async function GET(request: Request) {
       likeBoost: (c as any).likeBoost ?? 0, viewBoost: (c as any).viewBoost ?? 0,
       realBadge: (c as any).realBadge === true,
       realModel: (c as any).realModel === true,
+      ...(adminView ? { verificationSelfieUrl: (c as any).verificationSelfieUrl ?? "", phone: c.phone ?? "" } : {}),
     } });
   }
 
@@ -611,6 +614,11 @@ export async function POST(request: Request) {
       }
       if (bodyPhotos2.length) {
         updated.photoBodyPaths = await Promise.all(bodyPhotos2.map(b => uploadTryThisLookImage("uploads", b)));
+      }
+      // Verification selfie (holding the code) — she uploads it, the admin reviews it.
+      const vsel = String((payload as any).verificationSelfie ?? "");
+      if (vsel.startsWith("data:image/")) {
+        (updated as any).verificationSelfiePath = await uploadTryThisLookImage("uploads", vsel);
       }
     }
     catch (e) {

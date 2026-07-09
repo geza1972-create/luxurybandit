@@ -21,7 +21,7 @@ function viewerHeaders(): Record<string, string> {
   return h;
 }
 
-type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean };
+type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string };
 type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; featured?: boolean; productType?: string; wardrobe?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
 type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string; feed?: boolean };
 
@@ -701,6 +701,28 @@ export default function CuratorPublicPage() {
             </a>
           )}
         </div>
+
+        {/* Admin verification review — the selfie (holding the code) + her WhatsApp. Review,
+            then tap the ✓ in the stats row to verify + approve her as a Real model. */}
+        {isAdmin && (
+          <div className="mt-3 w-full max-w-sm rounded-2xl border border-white/12 bg-white/[0.03] p-3 text-left">
+            <p className="text-[11px] font-black uppercase tracking-wide text-white/45">Verification (admin)</p>
+            <div className="mt-2 flex items-center gap-3">
+              {profile.verificationSelfieUrl ? (
+                <a href={profile.verificationSelfieUrl} target="_blank" rel="noopener noreferrer" className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-white/10">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={profile.verificationSelfieUrl} alt="verification selfie" className="h-full w-full object-cover" />
+                </a>
+              ) : (
+                <div className="grid h-20 w-20 shrink-0 place-items-center rounded-lg border border-dashed border-white/15 text-[10px] font-bold text-white/30">no selfie</div>
+              )}
+              <div className="min-w-0 flex-1 text-[12px] font-bold text-white/60">
+                <p>WhatsApp: <span className="text-white">{profile.phone || "—"}</span></p>
+                <p className="mt-1 text-[11px] text-white/35">{profile.realModel ? "✓ Verified — she's a Real model." : "Send her the code on WhatsApp, check the selfie, then tap the ✓ above to verify."}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Two gold CTAs side by side — chat with her + jump to her other looks. */}
         <div className="mt-3 flex w-full max-w-sm items-stretch gap-2">

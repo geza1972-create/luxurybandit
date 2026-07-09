@@ -29,6 +29,10 @@ export default function CuratorProfilePage() {
   const [bodyExisting, setBodyExisting] = useState<string[]>([]); // already stored
   const [bodyCropSrc, setBodyCropSrc] = useState("");
   const bodyFileRef = useRef<HTMLInputElement>(null);
+  // Verification selfie (holding a code) — for the admin to confirm she's a real person.
+  const [verificationSelfie, setVerificationSelfie] = useState(""); // new upload (data URL)
+  const [verificationSelfieUrl, setVerificationSelfieUrl] = useState(""); // already stored
+  const verifFileRef = useRef<HTMLInputElement>(null);
   // Earnings (real models only): try-on earnings + payout details + payout requests.
   const [isRealModel, setIsRealModel] = useState(false);
   const [earningsCents, setEarningsCents] = useState(0);
@@ -65,7 +69,7 @@ export default function CuratorProfilePage() {
   const snapshot = () => JSON.stringify({
     firstName, lastName, phone, address, instagram,
     brands: brandChips, style: styleChips, colors: colorChips, fabrics: fabricChips, occasions: occasionChips,
-    genderFocus, priceTiers, fitFocus, ageFocus, motto, bio, payoutMethod, newPhoto: !!photoData, newBody: !!bodyPhotos.length,
+    genderFocus, priceTiers, fitFocus, ageFocus, motto, bio, payoutMethod, newPhoto: !!photoData, newBody: !!bodyPhotos.length, newVerif: !!verificationSelfie,
   });
   const dirty = baseline !== null && snapshot() !== baseline;
 
@@ -94,6 +98,7 @@ export default function CuratorProfilePage() {
           setCuratorId(c.id); setEmail(c.email ?? "");
           setPhoto(c.photoUrl ?? "");
           setBodyExisting(Array.isArray(c.photoBodyUrls) ? c.photoBodyUrls : []);
+          setVerificationSelfieUrl(c.verificationSelfieUrl ?? "");
           setIsRealModel(c.realModel === true);
           setEarningsCents(Number(c.earningsCents ?? 0));
           setPayoutMethod(c.payoutMethod ?? "");
@@ -107,7 +112,7 @@ export default function CuratorProfilePage() {
           setBaseline(JSON.stringify({
             firstName: c.firstName ?? "", lastName: c.lastName ?? "", phone: c.phone ?? "", address: c.address ?? "", instagram: c.instagram ?? "",
             brands: splitTags(c.brands), style: splitTags(c.style), colors: splitTags(c.colors), fabrics: splitTags(c.fabrics), occasions: splitTags(c.occasions),
-            genderFocus: c.genderFocus ?? "", priceTiers: splitTags(c.priceTiers), fitFocus: splitTags(c.fitFocus), ageFocus: c.ageFocus ?? "", motto: c.motto ?? "", bio: c.bio ?? "", payoutMethod: c.payoutMethod ?? "", newPhoto: false, newBody: false,
+            genderFocus: c.genderFocus ?? "", priceTiers: splitTags(c.priceTiers), fitFocus: splitTags(c.fitFocus), ageFocus: c.ageFocus ?? "", motto: c.motto ?? "", bio: c.bio ?? "", payoutMethod: c.payoutMethod ?? "", newPhoto: false, newBody: false, newVerif: false,
           }));
           // keep lb_curator in sync (so studio works after a fresh login)
           try { localStorage.setItem("lb_curator", JSON.stringify({ id: c.id, firstName: c.firstName, email: c.email, style: c.style })); } catch { /**/ }
@@ -141,6 +146,13 @@ export default function CuratorProfilePage() {
     const { src, error: err } = await readPhotoFile(file);
     if (err) { setPhotoError(err); return; }
     if (src) setBodyCropSrc(src);
+  };
+  const onPickVerification = async (file?: File) => {
+    if (!file) return;
+    setPhotoError("");
+    const { src, error: err } = await readPhotoFile(file);
+    if (err) { setPhotoError(err); return; }
+    if (src) setVerificationSelfie(src); // no crop — the admin just needs to read the code
   };
 
   const sendLink = async () => {
@@ -178,7 +190,7 @@ export default function CuratorProfilePage() {
           brands: brandChips.join(", "), style: styleChips.join(", "),
           colors: colorChips.join(", "), fabrics: fabricChips.join(", "), occasions: occasionChips.join(", "),
           genderFocus, priceTiers: priceTiers.join(", "), fitFocus: fitFocus.join(", "), ageFocus,
-          motto, bio, payoutMethod, ...(photoData ? { photo: photoData } : {}), ...(bodyPhotos.length ? { bodyPhotos } : {}),
+          motto, bio, payoutMethod, ...(photoData ? { photo: photoData } : {}), ...(bodyPhotos.length ? { bodyPhotos } : {}), ...(verificationSelfie ? { verificationSelfie } : {}),
         }),
       });
       const data = await res.json();
@@ -186,10 +198,11 @@ export default function CuratorProfilePage() {
       setSaved(true);
       setPhotoData("");
       if (bodyPhotos.length) { setBodyExisting(bodyPhotos); setBodyPhotos([]); }
+      if (verificationSelfie) { setVerificationSelfieUrl(verificationSelfie); setVerificationSelfie(""); }
       setBaseline(JSON.stringify({
         firstName, lastName, phone, address, instagram,
         brands: brandChips, style: styleChips, colors: colorChips, fabrics: fabricChips, occasions: occasionChips,
-        genderFocus, priceTiers, fitFocus, ageFocus, motto, bio, payoutMethod, newPhoto: false, newBody: false,
+        genderFocus, priceTiers, fitFocus, ageFocus, motto, bio, payoutMethod, newPhoto: false, newBody: false, newVerif: false,
       }));
       try { localStorage.setItem("lb_curator", JSON.stringify({ id: curatorId, firstName, email, style: styleChips.join(", ") })); } catch { /**/ }
       setTimeout(() => setSaved(false), 2500);
@@ -307,6 +320,32 @@ export default function CuratorProfilePage() {
           <p className="max-w-xs text-center text-[11px] font-bold text-black/40">Head to toe, dressed — this is what the AI styles. One good photo is enough.</p>
           <input ref={bodyFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
             onChange={e => { void onPickBody(e.target.files?.[0]); e.target.value = ""; }} />
+
+          {/* Verification selfie — proves it's really her. Admin reviews it before approving. */}
+          <div className="mt-5 w-full rounded-2xl border border-black/10 bg-black/[0.02] p-4">
+            <p className="text-[11px] font-black uppercase tracking-wider text-black/45">Verify yourself</p>
+            <p className="mt-1 text-[12px] font-bold text-black/50">Upload a <b>selfie of yourself holding a paper</b> with <b>“LuxuryBandit”</b> + <b>today’s date</b> written on it. This proves you’re a real person — then we approve you. 💛</p>
+            <div className="mt-3 flex items-center gap-3">
+              <button type="button" onClick={() => verifFileRef.current?.click()}
+                className="relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-xl border-2 border-dashed border-emerald-500/50 bg-black/[0.03] active:scale-95 transition">
+                {(verificationSelfie || verificationSelfieUrl) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={verificationSelfie || verificationSelfieUrl} alt="" className="h-full w-full object-cover" />
+                ) : <Camera className="h-6 w-6 text-black/30" />}
+              </button>
+              <div className="min-w-0 flex-1">
+                {isRealModel ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black text-white"><Check className="h-3.5 w-3.5" /> Verified</span>
+                ) : (verificationSelfie || verificationSelfieUrl) ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-400 px-2.5 py-1 text-[11px] font-black text-black">Pending review</span>
+                ) : (
+                  <span className="text-[12px] font-bold text-black/40">Not uploaded yet</span>
+                )}
+              </div>
+            </div>
+            <input ref={verifFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
+              onChange={e => { void onPickVerification(e.target.files?.[0]); e.target.value = ""; }} />
+          </div>
         </div>
 
         <div className="mt-3 text-center">
@@ -353,7 +392,7 @@ export default function CuratorProfilePage() {
             <div><span className={label}>Last name</span><input className={field} value={lastName} onChange={e => setLastName(e.target.value)} /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><span className={label}>Phone <span className="ml-1 rounded bg-black/5 px-1.5 py-0.5 text-[9px] font-bold normal-case tracking-normal text-black/45">🔒 internal</span></span><input type="tel" className={field} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+40 7xx…" /></div>
+            <div><span className={label}>WhatsApp <span className="ml-1 rounded bg-black/5 px-1.5 py-0.5 text-[9px] font-bold normal-case tracking-normal text-black/45">🔒 for chat notifications</span></span><input type="tel" className={field} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+40 7xx… (WhatsApp)" /></div>
             <div><span className={label}>Instagram</span><input className={field} value={instagram} onChange={e => setInstagram(e.target.value)} placeholder="@handle" /></div>
           </div>
           <div><span className={label}>Address</span><input className={field} value={address} onChange={e => setAddress(e.target.value)} placeholder="City, country" /></div>
