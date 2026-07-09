@@ -88,10 +88,11 @@ export default function TryFunnelPage() {
   // "Choose other model" opens the model picker even when a model was preset (came from
   // a model page with ?model=). Load the models list for both entry points.
   const [chooseModel, setChooseModel] = useState(false);
+  // Load the models list once on mount — the customer coverflow carousel and the
+  // "Who should wear it?" grid both need it right away (not only when a modal opens).
   useEffect(() => {
-    if (!pickModel && !chooseModel) return;
     fetch("/api/try-this-look?models=1").then(r => r.json()).then(d => setGModels(Array.isArray(d.models) ? d.models : [])).catch(() => {});
-  }, [pickModel, chooseModel]);
+  }, []);
 
   // "Choose other look" — a gallery of ALL portal garments; only the free (featured) ones
   // are selectable, the rest are Premium (padlock). Picking one reloads the funnel on that look.
@@ -119,9 +120,10 @@ export default function TryFunnelPage() {
   const [promptSaved, setPromptSaved] = useState(false);
   // Admin can flip to the pure end-user view to test exactly what a user sees.
   const [previewAsUser, setPreviewAsUser] = useState(false);
-  // Load garments for the "Change look" modal AND the admin production strip (always, for admin).
+  // Load garments once on mount — the customer's inline Outfits scroll, the "Change look"
+  // modal, and the admin production strip all read this list.
   useEffect(() => {
-    if ((!chooseLook && !(adminPin && !previewAsUser)) || gGarments.length) return;
+    if (gGarments.length) return;
     fetch("/api/try-this-look").then(r => r.json()).then(d => {
       const looks: any[] = Array.isArray(d.looks) ? d.looks : []; // eslint-disable-line @typescript-eslint/no-explicit-any
       const g = looks
@@ -130,7 +132,7 @@ export default function TryFunnelPage() {
         .sort((a, b) => (b.hasVideo ? 1 : 0) - (a.hasVideo ? 1 : 0) || (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
       setGGarments(g);
     }).catch(() => {});
-  }, [chooseLook, adminPin, previewAsUser]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Real video generation (step 5, after "paid"): generate → save as the user's own
   // generation → play here. Appears in /user/tryons + admin Posts.
   const [genStatus, setGenStatus] = useState<"idle" | "generating" | "done" | "error">("idle");
