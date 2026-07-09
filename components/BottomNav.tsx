@@ -120,7 +120,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
   // the feed's top header) must stay mounted, otherwise admins on the /admin-mirrored
   // feed (/admin/stores) can't open their account menu at all.
   const hideChrome = !forceShow && (
-    pathname.startsWith("/admin") ||
+    // Hide on the admin panel — BUT keep the nav on the admin-mirrored MODEL page
+    // (/admin/curator/*), which is a consumer page the admin also wants the nav on.
+    (pathname.startsWith("/admin") && !pathname.startsWith("/admin/curator/")) ||
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/seller/register") ||
