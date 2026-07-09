@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { getStoredAuthSession, refreshSession, isSessionExpiring } from "@/lib/supabase-auth-client";
+import { getStoredAuthSession, refreshSession, isSessionExpiring, saveAuthSession, type SupabaseAuthSession } from "@/lib/supabase-auth-client";
 
 // Keeps the login alive. Supabase access tokens expire after ~1h; without a refresh the
 // user got silently 401'd and "flew out". This mounts app-wide (root layout) and:
@@ -9,6 +9,34 @@ import { getStoredAuthSession, refreshSession, isSessionExpiring } from "@/lib/s
 //  • refreshes on tab focus / regained connectivity if the token is near/after expiry,
 // so a returning user is never kicked out mid-session.
 export default function AuthRefresh() {
+  // Catch a magic-link / OAuth token that landed on ANY page (not just /auth/confirm).
+  // Supabase redirects sometimes drop the tokens (#access_token=… or ?token=…) on the
+  // homepage, where nothing consumed them → the user stayed "Not signed in". Parse & save
+  // the session here so the login sticks no matter where the link lands.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.pathname.startsWith("/auth/")) return; // dedicated pages handle their own flow
+    try {
+      if (getStoredAuthSession()?.access_token) return; // already signed in
+      const hashP = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const qP = new URLSearchParams(window.location.search);
+      const looksJwt = (t: string | null) => (t && t.split(".").length === 3 ? t : null);
+      const at = hashP.get("access_token") || qP.get("access_token") || looksJwt(qP.get("token")) || looksJwt(hashP.get("token"));
+      if (!at) return;
+      const rt = hashP.get("refresh_token") || qP.get("refresh_token") || undefined;
+      const expiresAt = Number(hashP.get("expires_at") || qP.get("expires_at") || 0) || undefined;
+      const claims = JSON.parse(atob(at.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))) as { sub: string; email?: string; exp?: number };
+      const session: SupabaseAuthSession = { access_token: at, refresh_token: rt, expires_at: expiresAt ?? claims.exp, user: { id: claims.sub, email: claims.email } };
+      saveAuthSession(session);
+      // Strip the token from the URL so it isn't left in history or re-processed.
+      const url = new URL(window.location.href);
+      ["access_token", "refresh_token", "token", "token_type", "expires_at", "expires_in", "type", "provider_token", "provider_refresh_token"].forEach(k => url.searchParams.delete(k));
+      url.hash = "";
+      window.history.replaceState(null, "", url.pathname + (url.search || ""));
+      window.dispatchEvent(new Event("luxurybandit-auth-updated"));
+    } catch { /* not a valid token → ignore */ }
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     let timer: ReturnType<typeof setTimeout> | undefined;
