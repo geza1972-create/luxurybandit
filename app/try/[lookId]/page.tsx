@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2 } from "lucide-react";
 import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
@@ -69,6 +69,8 @@ export default function TryFunnelPage() {
   const [showChat, setShowChat] = useState(false);
   const [showSubscribe, setShowSubscribe] = useState(false);
   const [outfitZoom, setOutfitZoom] = useState(false); // fullscreen the selected garment
+  const [zoomSrc, setZoomSrc] = useState(""); // fullscreen ANY outfit tapped from the strip
+  const [zoomName, setZoomName] = useState("");
   useEffect(() => { try { const admin = !!localStorage.getItem("luxurybandit-try-look-admin-pin"); setIsPaid(admin || localStorage.getItem("lb_paid") === "1"); setIsSubscribed(admin || localStorage.getItem("lb_subscribed") === "1"); } catch { /**/ } }, []);
   const [pickedModel, setPickedModel] = useState("");
   // Resolve the model's photo from ?modelId= when no ?model= photo is passed — so a shareable
@@ -837,6 +839,12 @@ export default function TryFunnelPage() {
                       <div className="relative aspect-[3/4] w-full bg-white">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={g.img} alt={g.name} loading="lazy" className="h-full w-full object-contain" />
+                        {/* Enlarge this outfit full-screen (doesn't switch the look). */}
+                        <span role="button" tabIndex={0} title="View full screen"
+                          onClick={(e) => { e.stopPropagation(); setZoomSrc(g.img); setZoomName(g.name); setOutfitZoom(true); }}
+                          className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur active:scale-90 transition">
+                          <Maximize2 className="h-3 w-3" />
+                        </span>
                       </div>
                       <span className="block truncate px-1 py-0.5 text-[8px] font-black text-black/60">{g.name}</span>
                     </button>
@@ -1232,16 +1240,16 @@ export default function TryFunnelPage() {
       )}
 
       {/* Fullscreen garment view — tap the outfit thumbnail to open, tap/X to close. */}
-      {outfitZoom && (garmentParam || outfit?.imageUrl) && (
-        <div className="fixed inset-0 z-[95] flex flex-col bg-black/95" onClick={() => setOutfitZoom(false)}>
+      {outfitZoom && (zoomSrc || garmentParam || outfit?.imageUrl) && (
+        <div className="fixed inset-0 z-[95] flex flex-col bg-black/95" onClick={() => { setOutfitZoom(false); setZoomSrc(""); setZoomName(""); }}>
           <div className="flex items-center justify-between px-4 py-3">
-            <p className="text-sm font-black text-white">{outfit?.name || "Selected outfit"}</p>
-            <button type="button" onClick={() => setOutfitZoom(false)}
+            <p className="text-sm font-black text-white">{zoomName || outfit?.name || "Selected outfit"}</p>
+            <button type="button" onClick={() => { setOutfitZoom(false); setZoomSrc(""); setZoomName(""); }}
               className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white active:scale-90 transition"><X className="h-5 w-5" /></button>
           </div>
           <div className="flex flex-1 items-center justify-center px-4 pb-8" onClick={(e) => e.stopPropagation()}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={garmentParam || outfit?.imageUrl || ""} alt={outfit?.name || ""} className="max-h-full max-w-full rounded-2xl object-contain" />
+            <img src={zoomSrc || garmentParam || outfit?.imageUrl || ""} alt={zoomName || outfit?.name || ""} className="max-h-full max-w-full rounded-2xl object-contain" />
           </div>
         </div>
       )}
