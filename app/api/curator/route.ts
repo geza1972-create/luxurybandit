@@ -60,7 +60,7 @@ export async function GET(request: Request) {
       likeBoost: (c as any).likeBoost ?? 0, viewBoost: (c as any).viewBoost ?? 0,
       realBadge: (c as any).realBadge === true,
       realModel: (c as any).realModel === true,
-      ...(adminView ? { verificationSelfieUrl: (c as any).verificationSelfieUrl ?? "", phone: c.phone ?? "" } : {}),
+      ...(adminView ? { verificationSelfieUrl: (c as any).verificationSelfieUrl ?? "", phone: c.phone ?? "", status: (c as any).status ?? "active" } : {}),
     } });
   }
 

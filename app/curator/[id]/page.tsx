@@ -21,7 +21,7 @@ function viewerHeaders(): Record<string, string> {
   return h;
 }
 
-type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string };
+type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string; status?: string };
 type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; featured?: boolean; productType?: string; wardrobe?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
 type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string; feed?: boolean };
 
@@ -473,6 +473,36 @@ export default function CuratorPublicPage() {
     finally { setBadgeBusy(false); }
   };
 
+  // Admin: APPROVE (pending → active) AND VERIFY (realModel+realBadge) in one tap.
+  const verifyAndApprove = async () => {
+    if (badgeBusy || !profile) return;
+    setBadgeBusy(true);
+    try {
+      const H = { "Content-Type": "application/json", ...adminHeaders() };
+      // 1) Approve the application (status → active) so she can sign in.
+      await fetch("/api/curator", { method: "POST", headers: H, body: JSON.stringify({ action: "set-curator-status", id, status: "active" }) });
+      // 2) Verify (Real model + banner + earnings).
+      const res = await fetch("/api/curator", { method: "POST", headers: H, body: JSON.stringify({ action: "update", id, realBadge: true, realModel: true }) });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehlgeschlagen");
+      setProfile(p => (p ? { ...p, realBadge: true, realModel: true, status: "active" } : p));
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehlgeschlagen"); }
+    finally { setBadgeBusy(false); }
+  };
+
+  // Admin: REJECT (deactivate + remove the real flags).
+  const rejectModel = async () => {
+    if (badgeBusy || !profile) return;
+    if (!confirm("Reject this model? She won't be able to sign in.")) return;
+    setBadgeBusy(true);
+    try {
+      const H = { "Content-Type": "application/json", ...adminHeaders() };
+      await fetch("/api/curator", { method: "POST", headers: H, body: JSON.stringify({ action: "set-curator-status", id, status: "deactivated" }) });
+      await fetch("/api/curator", { method: "POST", headers: H, body: JSON.stringify({ action: "update", id, realBadge: false, realModel: false }) });
+      setProfile(p => (p ? { ...p, realBadge: false, realModel: false, status: "deactivated" } : p));
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehlgeschlagen"); }
+    finally { setBadgeBusy(false); }
+  };
+
   // ── Admin one-click: turn a model's PHOTO try-on into a VIDEO (Pixverse animates the
   // dressed photo; single-image mode — no reference binding needed). The video attaches
   // to the SAME generation, so the photo becomes its poster.
@@ -718,9 +748,26 @@ export default function CuratorPublicPage() {
               )}
               <div className="min-w-0 flex-1 text-[12px] font-bold text-white/60">
                 <p>WhatsApp: <span className="text-white">{profile.phone || "—"}</span></p>
-                <p className="mt-1 text-[11px] text-white/35">{profile.realModel ? "✓ Verified — she's a Real model." : "Send her the code on WhatsApp, check the selfie, then tap the ✓ above to verify."}</p>
+                <p className="mt-1 text-[11px] text-white/40">Status: <span className={profile.status === "deactivated" ? "text-red-400" : profile.status === "pending" ? "text-amber-400" : "text-emerald-400"}>{profile.status === "deactivated" ? "Rejected" : profile.status === "pending" ? "Pending review" : "Active"}</span></p>
               </div>
             </div>
+            {/* One tap: APPROVE (pending→active) + VERIFY (Real model). */}
+            {profile.realModel ? (
+              <div className="mt-3 flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-3 py-1.5 text-[12px] font-black text-white"><BadgeCheck className="h-4 w-4" /> Verified &amp; approved</span>
+                <button type="button" onClick={() => void rejectModel()} disabled={badgeBusy}
+                  className="ml-auto rounded-full border border-red-400/40 px-3 py-1.5 text-[12px] font-black text-red-400 active:scale-95 transition disabled:opacity-50">Reject</button>
+              </div>
+            ) : (
+              <div className="mt-3 flex items-center gap-2">
+                <button type="button" onClick={() => void verifyAndApprove()} disabled={badgeBusy}
+                  className="lb-gold flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-black active:scale-95 transition disabled:opacity-50">
+                  {badgeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />} Verify &amp; approve
+                </button>
+                <button type="button" onClick={() => void rejectModel()} disabled={badgeBusy}
+                  className="rounded-full border border-red-400/40 px-3 py-2.5 text-[12px] font-black text-red-400 active:scale-95 transition disabled:opacity-50">Reject</button>
+              </div>
+            )}
           </div>
         )}
 
