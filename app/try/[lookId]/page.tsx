@@ -770,7 +770,7 @@ export default function TryFunnelPage() {
                 })()}
               </div>
             </>
-          ) : (adminProduce || avatar) ? (
+          ) : avatar ? (
             <>
               <p className="mt-2 text-[13px] font-bold text-white/50">{!avatar && chosenModelName ? `Tap “Generate” to see ${chosenModelName.split(/\s+/)[0]} wear it — or switch the look / use your own photo.` : (pickedModel ? "Great pick — or replace her with your own photo." : "The model from the video is ready. Keep her, or replace her with your own photo.")}</p>
               <div className="mx-auto mt-3 w-fit overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04]">
@@ -801,9 +801,11 @@ export default function TryFunnelPage() {
               {(() => {
                 const om = [...gModels].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
                 if (om.length === 0) return <div className="grid h-[46vh] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/30" /></div>;
+                // Admin (production) and paying users can pick ANY model; everyone else only Gina.
+                const unlockAll = isPaid || adminProduce;
                 const active = Math.max(0, om.findIndex(m => m.id === chosenModelId));
                 const pick = (m: { id: string; name: string; photoUrl: string; featured?: boolean }) => {
-                  if (!isPaid && !m.featured) { setShowPremium(true); return; }
+                  if (!unlockAll && !m.featured) { setShowPremium(true); return; }
                   setAvatar(""); setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name);
                 };
                 const step = (dir: number) => { const ni = Math.min(om.length - 1, Math.max(0, active + dir)); if (ni !== active) pick(om[ni]); };
@@ -812,7 +814,7 @@ export default function TryFunnelPage() {
                     {om.map((m, i) => {
                       const off = i - active;
                       if (Math.abs(off) > 2) return null;
-                      const mLocked = !isPaid && !m.featured;
+                      const mLocked = !unlockAll && !m.featured;
                       const isActive = off === 0;
                       return (
                         <div key={m.id} onClick={() => (isActive ? undefined : pick(m))}
@@ -849,18 +851,18 @@ export default function TryFunnelPage() {
                 );
               })()}
               {/* Use your own photo — the paid custom feature (padlock for non-payers). */}
-              <button type="button" onClick={() => (isPaid ? fileRef.current?.click() : setShowPremium(true))}
+              <button type="button" onClick={() => ((isPaid || adminProduce) ? fileRef.current?.click() : setShowPremium(true))}
                 className="mx-auto mt-2 flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[12px] font-black text-white/70 active:scale-95 transition">
-                {isPaid ? <ImageUp className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5 text-amber-400" />} Use your own photo
+                {(isPaid || adminProduce) ? <ImageUp className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5 text-amber-400" />} Use your own photo
               </button>
             </>
           )}
           <input ref={fileRef} type="file" accept="image/*" className="hidden"
             onChange={async e => { const f = e.target.files?.[0]; if (f) try { setAvatar(await fileToDataUrl(f)); } catch { /**/ } }} />
 
-          {/* Customers: swipe through ALL outfits right on this screen (models live in the
-              coverflow above). Admin: the production strip. */}
-          {!adminProduce && (
+          {/* Everyone (admin included) swipes ALL outfits right here; models live in the
+              coverflow above. Same layout for admin and end-user. */}
+          {(
             <>
               <div className="mt-4">
                 <p className="mb-2 flex items-center text-[11px] font-black uppercase tracking-wide text-white/40">Outfits<span className="ml-auto text-[10px] font-bold normal-case text-white/35">swipe →</span></p>
@@ -892,8 +894,7 @@ export default function TryFunnelPage() {
               </div>
             </>
           )}
-          {adminProduceStrip}
-          {/* Admin: the videos already generated for this model — right under the strip. */}
+          {/* Admin: the videos already generated for this model — right under the outfits. */}
           {adminProduce && galleryVideos.length > 0 && (
             <div className="mt-5">
               <p className="mb-2 text-[13px] font-black">My Gallery <span className="text-white/40">{galleryVideos.length}</span></p>
