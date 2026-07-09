@@ -684,7 +684,7 @@ export default function TryFunnelPage() {
       {/* ── Step 2: model / replace avatar ─────────────────────────────────── */}
       {step === 2 && (
         <div className="px-4 pb-48 pt-2">
-          <h1 className="text-[22px] font-black leading-tight">Who should wear it?</h1>
+          <h1 className="text-[22px] font-black leading-tight">{!avatar && chosenModelName && !((pickModel || chooseModel) && !pickedModel) ? `Watch ${chosenModelName.split(/\s+/)[0]} in her hottest looks 🔥` : "Who should wear it?"}</h1>
           {(pickModel || chooseModel) && !pickedModel && !avatar ? (
             <>
               <p className="mt-2 text-[13px] font-bold text-white/50">Pick a model to wear this piece.</p>
@@ -729,7 +729,7 @@ export default function TryFunnelPage() {
             </>
           ) : (
             <>
-              <p className="mt-2 text-[13px] font-bold text-white/50">{pickedModel ? "Great pick — or replace her with your own photo." : "The model from the video is ready. Keep her, or replace her with your own photo."}</p>
+              <p className="mt-2 text-[13px] font-bold text-white/50">{!avatar && chosenModelName ? `Tap “Generate” to see ${chosenModelName.split(/\s+/)[0]} wear it — or switch the look / use your own photo.` : (pickedModel ? "Great pick — or replace her with your own photo." : "The model from the video is ready. Keep her, or replace her with your own photo.")}</p>
               <div className="mx-auto mt-3 w-fit overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04]">
                 {/* Height-constrained so 'Choose other model' + the outfit stay on screen. */}
                 <div className="relative aspect-[9/16] h-[38vh] max-w-[78vw]">
