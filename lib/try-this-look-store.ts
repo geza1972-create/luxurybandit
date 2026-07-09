@@ -314,6 +314,9 @@ export type TryThisLookState = {
   // Per-day feed-view tallies { "YYYY-MM-DD": count } so Insights can show Views for
   // Today / 7d / 30d. Lifetime total still lives in each look's viewCount.
   viewsByDay?: Record<string, number>;
+  // Per-day SITE visits (a landing on the home/feed, once per session) — reconciles with
+  // ad traffic (a visitor who lands but never opens a reel isn't a "view").
+  visitsByDay?: Record<string, number>;
   // "Chat with the model" AI config + logs. globalNote = admin rules applied to EVERY
   // model's chat persona (per-model instructions live on the curator as chatPersona).
   chatConfig?: { globalNote?: string };
@@ -712,6 +715,7 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     outfits: state.outfits ?? [],
     funnelVideoPrompt: state.funnelVideoPrompt,
     viewsByDay: state.viewsByDay ?? {},
+    visitsByDay: state.visitsByDay ?? {},
     chatConfig: state.chatConfig ?? {},
     modelChats: state.modelChats ?? [],
     directMessages: state.directMessages ?? [],
@@ -811,6 +815,13 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
         }
         return out;
       })(),
+      visitsByDay: (() => {
+        const out: Record<string, number> = { ...(latest.visitsByDay ?? {}) };
+        for (const [day, n] of Object.entries(state.visitsByDay ?? {})) {
+          out[day] = Math.max(out[day] ?? 0, Number(n) || 0);
+        }
+        return out;
+      })(),
     };
   }
   const strippedState: TryThisLookState = {
@@ -828,6 +839,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     outfits: (state.outfits ?? []).map(({ imageUrl, ...outfit }) => outfit).slice(0, 500),
     funnelVideoPrompt: state.funnelVideoPrompt,
     viewsByDay: state.viewsByDay ?? {},
+    visitsByDay: state.visitsByDay ?? {},
     chatConfig: state.chatConfig ?? {},
     // Newest conversations first, capped so the state blob can't grow unbounded.
     modelChats: [...(state.modelChats ?? [])]

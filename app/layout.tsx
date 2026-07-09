@@ -7,6 +7,7 @@ import AdminUrlMirror from "@/components/AdminUrlMirror";
 import AgeGate from "@/components/AgeGate";
 import PremiumSync from "@/components/PremiumSync";
 import AuthRefresh from "@/components/AuthRefresh";
+import VisitTracker from "@/components/VisitTracker";
 
 export const metadata: Metadata = {
   metadataBase: new URL((process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "")),
@@ -53,6 +54,8 @@ export default function RootLayout({
         </Suspense>
         {/* Keeps the login alive by refreshing the access token before it expires. */}
         <AuthRefresh />
+        {/* Counts one site visit per session (ad-traffic reconciliation). */}
+        <VisitTracker />
         {/* Syncs the premium flag with the user's video-pack credits. */}
         <PremiumSync />
         <div className="lb-frame">

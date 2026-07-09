@@ -189,6 +189,7 @@ export default function AdminPage() {
   type FeedEvent = { id: string; name: string; lookId: string; createdAt: string; lookName?: string; source?: string; country?: string; city?: string; productLabel?: string; productLink?: string; productThumb?: string; slide?: number; slides?: number; visitor?: string };
   const [feedEvents, setFeedEvents] = useState<FeedEvent[]>([]);
   const [viewsByDay, setViewsByDay] = useState<Record<string, number>>({}); // per-date view tallies
+  const [visitsByDay, setVisitsByDay] = useState<Record<string, number>>({}); // per-date SITE visits
   const [insightsRange, setInsightsRange] = useState<"today" | "7d" | "30d" | "all">("7d");
   const [insightsGroup, setInsightsGroup] = useState<"day" | "hour">("day");
   const [reply, setReply] = useState<Record<string, string>>({});
@@ -660,7 +661,7 @@ export default function AdminPage() {
     const poll = () => {
       fetch("/api/try-this-look?recentEvents=200", { headers: headers() })
         .then(r => r.ok ? r.json() : null)
-        .then(d => { if (alive && Array.isArray(d?.events)) { setFeedEvents(d.events); if (d.viewsByDay) setViewsByDay(d.viewsByDay); } })
+        .then(d => { if (alive && Array.isArray(d?.events)) { setFeedEvents(d.events); if (d.viewsByDay) setViewsByDay(d.viewsByDay); if (d.visitsByDay) setVisitsByDay(d.visitsByDay); } })
         .catch(() => {});
     };
     poll();
@@ -1575,6 +1576,9 @@ export default function AdminPage() {
             ? totalViews
             : Object.entries(viewsByDay).reduce((s, [day, n]) =>
                 new Date(day + "T00:00:00").getTime() >= cutoff ? s + (Number(n) || 0) : s, 0);
+          // Site visits (landings, incl. ad traffic that never opens a reel).
+          const rangeVisits = Object.entries(visitsByDay).reduce((s, [day, n]) =>
+            insightsRange === "all" || new Date(day + "T00:00:00").getTime() >= cutoff ? s + (Number(n) || 0) : s, 0);
 
           const Bars = ({ data, accent = "bg-cobalt" }: { data: [string, number][]; accent?: string }) => {
             const rows2 = (data ?? []).filter(Array.isArray);
@@ -1612,6 +1616,17 @@ export default function AdminPage() {
                 </button>
               </div>
               <p className="mt-1.5 text-[10px] font-bold text-ink/35">All four tiles reflect the selected range. Your own admin session is excluded automatically. (Per-day Views started tracking from launch, so &quot;All&quot; may exceed Today+7d+30d.)</p>
+
+              {/* Site visits — the TOP of the funnel (ad traffic incl. people who land but
+                  never open a reel). Compare this to your ad's "Landingpage-Aufrufe". */}
+              <div className="mt-3 flex items-center gap-3 rounded-xl border border-cobalt/20 bg-cobalt/[0.05] p-3">
+                <MousePointerClick className="h-5 w-5 shrink-0 text-cobalt" />
+                <div className="flex-1">
+                  <p className="text-[10px] font-black uppercase tracking-wide text-ink/45">Website visits</p>
+                  <p className="text-[11px] font-bold text-ink/40">Everyone who landed on the app (ads + organic).</p>
+                </div>
+                <p className="text-2xl font-black text-ink">{fmt(rangeVisits)}</p>
+              </div>
 
               {/* Engagement tiles — all four now follow the range: Views sums the per-day
                   view tallies; the other three count timestamped events. */}

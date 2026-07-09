@@ -544,7 +544,7 @@ export async function GET(request: Request) {
       if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
       const n = Math.min(300, Math.max(1, Number(url.searchParams.get("recentEvents")) || 100));
       // viewsByDay: per-date view tallies so Insights can show in-range Views.
-      return NextResponse.json({ events: (state.events ?? []).slice(0, n), viewsByDay: (state as any).viewsByDay ?? {} });
+      return NextResponse.json({ events: (state.events ?? []).slice(0, n), viewsByDay: (state as any).viewsByDay ?? {}, visitsByDay: (state as any).visitsByDay ?? {} });
     }
 
     // Admin: ALL posts (generations) incl. hidden — for the admin posts grid.
@@ -1078,6 +1078,17 @@ export async function POST(request: Request) {
         vbd[dayKey] = (vbd[dayKey] ?? 0) + 1;
         await saveTryThisLookState(state);
       }
+      return NextResponse.json({ ok: true });
+    }
+
+    // Site VISIT: a landing on the home/feed (once per session, client-guarded). Counts the
+    // ad traffic that never opens a reel — reconciles Insights with the ad's page-views.
+    if (payload.action === "visit") {
+      if ((payload as any).internal === true) return NextResponse.json({ ok: true, skipped: "internal" });
+      const dayKey = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+      const vbd = ((state as any).visitsByDay ??= {}) as Record<string, number>;
+      vbd[dayKey] = (vbd[dayKey] ?? 0) + 1;
+      await saveTryThisLookState(state);
       return NextResponse.json({ ok: true });
     }
 
