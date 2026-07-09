@@ -812,7 +812,7 @@ export default function CuratorPublicPage() {
             <>
               {/* Section header + admin "generate wardrobe" (moved out of the profile). */}
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-[15px] font-black text-white">Wardrobe</h2>
+                <h2 className="text-[15px] font-black text-white">Try {profile.firstName || "her"} in any look</h2>
                 {isAdmin && (
                   <button type="button" onClick={() => { setGenBrief(""); setGenOpen(true); }} disabled={genBusy}
                     className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3.5 py-1.5 text-[11px] font-black text-white active:scale-95 transition disabled:opacity-50">
@@ -836,7 +836,7 @@ export default function CuratorPublicPage() {
               {wardrobe.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-16 text-center">
                   <ShoppingBag className="h-8 w-8 text-white/15" />
-                  <p className="text-sm font-black text-white/40">{wardrobeAll.length === 0 ? (isAdmin ? "No wardrobe yet — tap “Generieren”." : "Wardrobe coming soon.") : "Nichts in dieser Kategorie."}</p>
+                  <p className="text-sm font-black text-white/40">{wardrobeAll.length === 0 ? (isAdmin ? "No looks yet — tap “Generieren”." : "Looks coming soon.") : "Nichts in dieser Kategorie."}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3">

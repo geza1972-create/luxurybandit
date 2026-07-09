@@ -52,6 +52,9 @@ export default function CuratorProfilePage() {
   const [ageFocus, setAgeFocus] = useState("");
   const [motto, setMotto] = useState("");
   const [bio, setBio] = useState("");
+  const [aiHint, setAiHint] = useState("");        // rough free-text for the AI (optional)
+  const [mottoIdeas, setMottoIdeas] = useState<string[]>([]);
+  const [suggesting, setSuggesting] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -192,6 +195,23 @@ export default function CuratorProfilePage() {
       setTimeout(() => setSaved(false), 2500);
     } catch { setError("Could not save."); }
     finally { setSaving(false); }
+  };
+
+  const suggest = async () => {
+    setError(""); setSuggesting(true);
+    try {
+      const res = await fetch("/api/curator", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        // Pass the EXISTING motto+bio → the AI polishes it instead of inventing a new one.
+        body: JSON.stringify({ action: "suggest", brands: brandChips.join(", "), style: styleChips.join(", "), hint: aiHint, current: [motto, bio].filter(Boolean).join(" — ") }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) { setError(data.error || "Could not get suggestions."); return; }
+      setMottoIdeas(Array.isArray(data.mottos) ? data.mottos : []);
+      if (data.bio) setBio(data.bio);
+      if (data.mottos?.[0]) setMotto(data.mottos[0]);
+    } catch { setError("Could not get suggestions."); }
+    finally { setSuggesting(false); }
   };
 
   const requestPayout = async () => {
@@ -353,9 +373,34 @@ export default function CuratorProfilePage() {
           <PillRow label="Audience age" options={["18–25", "25–35", "35–45", "45+"]} value={ageFocus} onChange={(v) => setAgeFocus(v as string)} />
         </div>
 
+        {/* AI motto & bio — same as the application form. Improves existing text if present. */}
+        <div className="mt-5">
+          <span className={label}>Tell the AI roughly what you&apos;re about (optional)</span>
+          <textarea className={`${field} h-auto py-3 leading-5`} rows={2} value={aiHint} onChange={e => setAiHint(e.target.value)}
+            placeholder="e.g. beach girl, loves gold & silk, dreams of Dubai…" />
+          <button type="button" onClick={() => void suggest()} disabled={suggesting}
+            className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-amber-400/40 bg-amber-400/[0.1] text-sm font-black text-amber-600 disabled:opacity-50 active:scale-95 transition-transform">
+            {suggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {suggesting ? "Thinking…" : (motto || bio) ? "Improve my motto & bio with AI" : "Write my motto & bio with AI"}
+          </button>
+        </div>
+
         {/* Motto + bio */}
-        <div className="mt-5 grid gap-3">
-          <div><span className={label}>Motto</span><input className={field} value={motto} onChange={e => setMotto(e.target.value)} placeholder="Bandit the look!" /></div>
+        <div className="mt-4 grid gap-3">
+          <div>
+            <span className={label}>Motto</span>
+            <input className={field} value={motto} onChange={e => setMotto(e.target.value)} placeholder="Bandit the look!" />
+            {mottoIdeas.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {mottoIdeas.map((m, i) => (
+                  <button key={i} type="button" onClick={() => setMotto(m)}
+                    className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-black transition ${motto === m ? "border-amber-400 bg-amber-400 text-black" : "border-black/15 bg-black/[0.03] text-black/60"}`}>
+                    {motto === m && <Check className="h-3 w-3" />}{m}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div><span className={label}>Short bio</span><textarea className={`${field} h-auto py-3 leading-5`} rows={3} value={bio} onChange={e => setBio(e.target.value)} /></div>
         </div>
 

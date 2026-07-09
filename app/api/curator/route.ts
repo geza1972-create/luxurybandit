@@ -161,12 +161,17 @@ export async function POST(request: Request) {
     // Optional rough free-text from the model ("what I'm about / what I want") — enough
     // on its own; with nothing at all the AI writes a generic luxury-fashion persona.
     const hint = String(payload.hint ?? "").trim().slice(0, 500);
+    // Existing motto/bio to POLISH (edit mode) rather than invent from scratch.
+    const current = String((payload as any).current ?? "").trim().slice(0, 400);
 
     const client = new Anthropic({ apiKey });
     const prompt =
-      `A new fashion model is joining LuxuryBandit (AI virtual try-on for luxury fashion). ` +
+      `A fashion model on LuxuryBandit (AI virtual try-on for luxury fashion). ` +
       `Brands they love: ${brands || "(not given)"}. Their style: ${style || "(not given)"}. ` +
-      `In their own rough words: ${hint || "(nothing — invent a tasteful luxury-fashion persona)"}.\n\n` +
+      `In their own rough words: ${hint || "(nothing given)"}.\n` +
+      (current
+        ? `They ALREADY wrote this — POLISH & improve it (fix grammar, make it punchier, keep their voice; don't invent a totally new persona): "${current}".\n\n`
+        : `Invent a tasteful luxury-fashion persona for them.\n\n`) +
       `Return STRICT JSON only, no prose, shape:\n` +
       `{"mottos":["...","...","..."],"bio":"..."}\n` +
       `- "mottos": 3 short, punchy English taglines (max 6 words each) that fit this model's taste. Aspirational, on-brand with "Bandit the look!". No hashtags, no quotes inside.\n` +
