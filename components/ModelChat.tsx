@@ -51,6 +51,7 @@ export default function ModelChat({
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [streaming, setStreaming] = useState(false); // true once the reply starts arriving
   const [error, setError] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const [showGifts, setShowGifts] = useState(false);
@@ -141,13 +142,34 @@ export default function ModelChat({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ curatorId, visitorId, userName, messages: next }),
       });
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok || !d.reply) throw new Error(d.error ?? "Message failed.");
-      setMessages(m => [...m, { role: "assistant", content: String(d.reply) }]);
+      const ct = res.headers.get("content-type") || "";
+      // JSON = an error or the "chat disabled" case; otherwise it's the streamed reply.
+      if (ct.includes("application/json") || !res.body) {
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok || !d.reply) throw new Error(d.error ?? "Message failed.");
+        setMessages(m => [...m, { role: "assistant", content: String(d.reply) }]);
+      } else {
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        let acc = "", started = false;
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          acc += dec.decode(value, { stream: true });
+          if (!started) {
+            // First token → hide the typing dots and drop in her (growing) bubble.
+            started = true; setStreaming(true);
+            setMessages(m => [...m, { role: "assistant", content: acc }]);
+          } else {
+            setMessages(m => { const c = m.slice(); c[c.length - 1] = { role: "assistant", content: acc }; return c; });
+          }
+        }
+        if (!acc.trim()) throw new Error("Message failed.");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Message failed.");
     } finally {
-      setSending(false);
+      setSending(false); setStreaming(false);
     }
   };
 
@@ -222,7 +244,7 @@ export default function ModelChat({
             );
           })}
 
-          {sending && (
+          {sending && !streaming && (
             <div className="flex justify-start">
               <div className="rounded-2xl rounded-tl-sm bg-white/10 px-4 py-3">
                 <span className="flex gap-1">
