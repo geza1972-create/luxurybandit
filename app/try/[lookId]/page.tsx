@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2 } from "lucide-react";
 import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
@@ -827,8 +827,8 @@ export default function TryFunnelPage() {
                 };
                 return (
                   <div className="relative mx-auto mt-3 h-[46vh] max-h-[400px] select-none touch-pan-y" style={{ perspective: "1100px" }}
-                    onPointerDown={(e) => { swipeRef.current = e.clientX; }}
-                    onPointerUp={(e) => { const dx = e.clientX - swipeRef.current; if (Math.abs(dx) > 40) slide(dx < 0 ? 1 : -1); }}>
+                    onPointerDown={(e) => { swipeRef.current = e.clientX; (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); }}
+                    onPointerUp={(e) => { const dx = e.clientX - swipeRef.current; if (Math.abs(dx) > 30) slide(dx < 0 ? 1 : -1); }}>
                     {om.map((m, i) => {
                       const off = i - active;
                       if (Math.abs(off) > 2) return null;
@@ -857,17 +857,10 @@ export default function TryFunnelPage() {
                         </div>
                       );
                     })}
-                    <button type="button" onClick={() => slide(-1)} disabled={active === 0} aria-label="Previous model"
-                      className="absolute left-0 top-1/2 z-30 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition active:scale-90 disabled:opacity-25">
-                      <ChevronLeft className="h-5 w-5" />
-                    </button>
-                    <button type="button" onClick={() => slide(1)} disabled={active === om.length - 1} aria-label="Next model"
-                      className="absolute right-0 top-1/2 z-30 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition active:scale-90 disabled:opacity-25">
-                      <ChevronRight className="h-5 w-5" />
-                    </button>
                   </div>
                 );
               })()}
+              <p className="mt-1 text-center text-[11px] font-bold text-white/30">← swipe to change model →</p>
               {/* Use your own photo — the paid custom feature (padlock for non-payers). */}
               <button type="button" onClick={() => ((isPaid || adminProduce) ? fileRef.current?.click() : setShowPremium(true))}
                 className="mx-auto mt-2 flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[12px] font-black text-white/70 active:scale-95 transition">
