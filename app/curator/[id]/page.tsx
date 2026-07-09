@@ -21,7 +21,7 @@ function viewerHeaders(): Record<string, string> {
   return h;
 }
 
-type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean };
+type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean };
 type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; featured?: boolean; productType?: string; wardrobe?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
 type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string; feed?: boolean };
 
@@ -459,14 +459,16 @@ export default function CuratorPublicPage() {
     if (badgeBusy || !profile) return;
     setBadgeBusy(true);
     try {
-      const next = !(profile.realBadge === true);
+      // ONE verify action: turns on BOTH the page banner (realBadge) and the "✓ Real model"
+      // carousel badge + earnings eligibility (realModel).
+      const next = !(profile.realModel === true || profile.realBadge === true);
       const res = await fetch("/api/curator", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...adminHeaders() },
-        body: JSON.stringify({ action: "update", id, realBadge: next }),
+        body: JSON.stringify({ action: "update", id, realBadge: next, realModel: next }),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Speichern fehlgeschlagen");
-      setProfile(p => (p ? { ...p, realBadge: next } : p));
+      setProfile(p => (p ? { ...p, realBadge: next, realModel: next } : p));
     } catch (e) { alert(e instanceof Error ? e.message : "Speichern fehlgeschlagen"); }
     finally { setBadgeBusy(false); }
   };
@@ -665,9 +667,9 @@ export default function CuratorPublicPage() {
           )}
           {isAdmin && (
             <button type="button" onClick={() => void toggleRealBadge()} disabled={badgeBusy}
-              title={profile.realBadge ? "Real-Banner ausschalten" : "Real-Banner einschalten"}
+              title={(profile.realModel || profile.realBadge) ? "Real-Model-Verifizierung entfernen" : "Als Real Model verifizieren & freigeben"}
               className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border active:scale-90 transition disabled:opacity-50 ${
-                profile.realBadge ? "border-amber-400 bg-amber-400 text-black" : "border-white/20 bg-white/5 text-white/40"
+                (profile.realModel || profile.realBadge) ? "border-amber-400 bg-amber-400 text-black" : "border-white/20 bg-white/5 text-white/40"
               }`}>
               {badgeBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BadgeCheck className="h-3.5 w-3.5" />}
             </button>
@@ -685,6 +687,10 @@ export default function CuratorPublicPage() {
           </span>
         </button>
         <h1 className="mt-2 text-2xl font-black leading-tight text-white">{name}</h1>
+        {/* Persistent "Real model" chip — shows once the admin has verified + approved her. */}
+        {(profile.realModel === true || profile.realBadge === true) && (
+          <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-0.5 text-[11px] font-black text-black shadow"><BadgeCheck className="h-3.5 w-3.5 text-emerald-600" /> Real model</span>
+        )}
         {profile.motto && <p className="text-sm font-black text-amber-400">{profile.motto}</p>}
         {profile.bio && <p className="max-w-sm text-sm font-medium leading-relaxed text-white/55">{profile.bio}</p>}
         <div className="mt-1 flex items-center gap-3 text-[11px] font-bold text-white/40">
@@ -712,10 +718,10 @@ export default function CuratorPublicPage() {
             PURE trust signal for VISITORS — the model herself never sees it
             (also hidden in the admin "view as her" preview). Shows ONLY for models
             the admin explicitly marked as real (realBadge) — never on AI models. */}
-        {showRealBanner && !isOwn && profile.realBadge === true && (
+        {showRealBanner && !isOwn && (profile.realModel === true || profile.realBadge === true) && (
           <div className="lb-gold mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[12px] font-black">
             <BadgeCheck className="h-4 w-4 shrink-0" />
-            <span className="min-w-0 truncate">{profile.firstName || "She"} is a real LuxuryBandit Model</span>
+            <span className="min-w-0 truncate">Real model · verified by LuxuryBandit</span>
           </div>
         )}
 

@@ -57,6 +57,7 @@ export async function GET(request: Request) {
       // Vanity baselines (admin-set) — added to the real sums on her stats row.
       likeBoost: (c as any).likeBoost ?? 0, viewBoost: (c as any).viewBoost ?? 0,
       realBadge: (c as any).realBadge === true,
+      realModel: (c as any).realModel === true,
     } });
   }
 
@@ -587,7 +588,12 @@ export async function POST(request: Request) {
       realBadge: isAdmin && (payload as any).realBadge !== undefined
         ? (payload as any).realBadge === true
         : (cur as any).realBadge,
-    };
+      // Verified REAL model — one flag drives the page banner, the "✓ Real model" carousel
+      // badge AND earnings eligibility. Admin only (set when verifying + approving her).
+      realModel: isAdmin && (payload as any).realModel !== undefined
+        ? (payload as any).realModel === true
+        : (cur as any).realModel,
+    } as any;
     // Optional new photo
     const photo = String(payload.photo ?? "");
     const photoFull2 = String((payload as any).photoFull ?? "");
