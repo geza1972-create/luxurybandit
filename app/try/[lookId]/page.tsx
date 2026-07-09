@@ -181,6 +181,12 @@ export default function TryFunnelPage() {
   const [genError, setGenError] = useState("");
   const genStartedRef = useRef(false);
   const forceFreshRef = useRef(false); // "Generate a fresh one" → skip cache, make a NEW unique clip
+  // Pre-generation countdown: a ~4s window with a Cancel button BEFORE any credit is spent,
+  // so a mistaken tap doesn't cost a credit.
+  const [arming, setArming] = useState(false);
+  const [armSecs, setArmSecs] = useState(0);
+  const armTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [videoZoom, setVideoZoom] = useState(false); // fullscreen the finished try-on video
   // The chosen model's videos (incl. the one just made) — shown as a gallery on the done screen.
   const [madeVideos, setMadeVideos] = useState<{ id: string; imageUrl: string; videoUrl?: string; lookName?: string; feed?: boolean; public?: boolean }[]>([]);
   // Admin "My Gallery" on the model step: ALL generated videos across models (not just this
@@ -499,18 +505,17 @@ export default function TryFunnelPage() {
     } finally { setHdBusyId(""); }
   };
 
-  // Real users generate automatically after paying. Admins do NOT auto-generate (that
-  // would burn Pixverse credits on every test) — they trigger it with an explicit button.
-  useEffect(() => { if (step === 5 && !adminPin) void generateReal(); }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Entering the generation step arms a ~4s countdown (Cancel available) BEFORE anything is
+  // spent or generated — a mis-tap costs nothing. When the step is left, cancel the timer.
+  useEffect(() => {
+    if (step !== 5) { if (armTimerRef.current) { clearTimeout(armTimerRef.current); armTimerRef.current = null; setArming(false); } return; }
+    if (genStartedRef.current || arming || genStatus !== "idle") return;
+    beginGeneration();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
-  // ── Admin production: tap a garment in the strip → just SELECT it (reload the funnel on it
-  // for the SAME model). It does NOT auto-generate — the admin then taps "Generate video now".
-  const produceForGarment = (g: { id: string; img: string }) => {
-    const qs = new URLSearchParams({ modelId: chosenModelId, model: modelImg, garment: g.img, modelName: chosenModelName });
-    router.push(`/try/${g.id}?${qs.toString()}`);
-  };
-  // Admin: generate the current model×garment now (real, fresh) — the manual trigger.
-  const generateNow = () => { setStep(5); void generateReal(); };
+  // Admin: generate now — goes through the same 4s arm/cancel window (via the step-5 effect).
+  const generateNow = () => { genStartedRef.current = false; setGenStatus("idle"); setStep(5); };
 
   // Once done: load the chosen model's videos (incl. the one just made) → shown as a gallery
   // on the result screen so the admin sees it landed in her "In motion".
@@ -545,31 +550,54 @@ export default function TryFunnelPage() {
       .then(d => setPackCredits(Number(d.credits ?? 0))).catch(() => setPackCredits(0));
   }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The paywall's main action: spend a credit and generate. When the 3 free credits (and any
-  // monthly subscriber allowance) are used up, open the Premium subscription paywall instead
-  // (first month $8, then $49/mo → 40 videos/month). Premium is the only paid tier now.
+  // Start the ~4s pre-generation countdown (Cancel available). Nothing is spent yet.
+  const beginGeneration = () => {
+    if (armTimerRef.current) clearTimeout(armTimerRef.current);
+    genStartedRef.current = false;
+    setGenStatus("idle");
+    setArming(true);
+    let n = 4;
+    setArmSecs(n);
+    const tick = () => {
+      n -= 1;
+      if (n <= 0) { setArmSecs(0); setArming(false); armTimerRef.current = null; void runGeneration(); return; }
+      setArmSecs(n);
+      armTimerRef.current = setTimeout(tick, 1000);
+    };
+    armTimerRef.current = setTimeout(tick, 1000);
+  };
+  // Cancel during the countdown → back to the picker, no credit spent.
+  const cancelGeneration = () => {
+    if (armTimerRef.current) { clearTimeout(armTimerRef.current); armTimerRef.current = null; }
+    setArming(false); setArmSecs(0);
+    setStep(2);
+  };
+  // Countdown finished (not cancelled) → NOW spend a credit (customers) and generate.
+  const runGeneration = async () => {
+    if (!adminPin) {
+      const email = payEmail();
+      if (email) {
+        try {
+          const spend = await fetch("/api/video-pack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, action: "spend" }) });
+          if (spend.status === 402) { setShowPremium(true); setStep(2); return; } // out of credits → paywall
+          const sd = await spend.json().catch(() => ({}));
+          if (spend.ok && typeof sd.credits === "number") setPackCredits(sd.credits);
+        } catch { /* network hiccup → generateReal still runs; it refunds on failure */ }
+      }
+    }
+    void generateReal();
+  };
+
+  // The paywall's main action: check credits, then arm the countdown (the spend happens after
+  // the 4s window). Out of credits → Premium subscription (first month $8, then $49/mo → 40).
   const startPaidGenerate = async () => {
-    if (adminPin) { setStep(5); return; }
+    if (adminPin) { generateNow(); return; }
     const email = payEmail();
     if (!email) { window.location.href = `/login?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`; return; }
-    setPayError(""); setPayBusy(true);
-    try {
-      const spend = await fetch("/api/video-pack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, action: "spend" }) });
-      if (spend.status === 402) {
-        // Out of credits → Premium subscription (the only way to get more videos now).
-        setPayBusy(false);
-        setShowPremium(true);
-        return;
-      }
-      const sd = await spend.json().catch(() => ({}));
-      if (!spend.ok) throw new Error(sd.error ?? "Could not start your video.");
-      setPackCredits(typeof sd.credits === "number" ? sd.credits : (c => (c ?? 1) - 1)(packCredits));
-      setStep(5);
-    } catch (e) {
-      setPayError(e instanceof Error ? e.message : "Something went wrong.");
-    } finally {
-      setPayBusy(false);
-    }
+    if ((packCredits ?? 0) <= 0) { setShowPremium(true); return; } // no credits → paywall, don't arm
+    setPayError("");
+    genStartedRef.current = false; setGenStatus("idle");
+    setStep(5); // → step-5 effect arms the 4s countdown → runGeneration spends & generates
   };
 
   // "Motion" picker — what she does in the video. Users see ONLY these two chips;
@@ -659,29 +687,6 @@ export default function TryFunnelPage() {
   // generate on. Only lock if the model is in the list AND not featured (unknown → allow).
   const chosenModelObj = gModels.find(m => m.id === chosenModelId);
   const chosenModelLocked = !isPaid && !adminProduce && !avatar && !!chosenModelObj && !chosenModelObj.featured;
-  const adminProduceStrip = adminProduce ? (
-    <div className="mt-4">
-      <div className="mb-2 flex items-center gap-1.5">
-        <span className="mr-1 text-[11px] font-black uppercase tracking-wide text-white/40">Outfits</span>
-        <span className="ml-auto text-[10px] font-bold text-white/35">tap to pick</span>
-      </div>
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {gGarments.length === 0 ? (
-          <div className="grid h-24 w-full place-items-center"><Loader2 className="h-5 w-5 animate-spin text-white/40" /></div>
-        ) : gGarments.filter(g => lookVideoFilter === "all" || (lookVideoFilter === "video" ? g.hasVideo : !g.hasVideo)).map(g => (
-          <button key={g.id} type="button" onClick={() => produceForGarment(g)}
-            className={`relative w-[72px] shrink-0 overflow-hidden rounded-xl border bg-white active:scale-95 transition ${g.id === lookId ? "border-amber-400 ring-1 ring-amber-400" : "border-white/10"}`}>
-            <div className="relative aspect-[3/4] w-full bg-white">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={g.img} alt={g.name} loading="lazy" className="h-full w-full object-contain" />
-              {g.hasVideo && <span className="absolute right-0.5 top-0.5 rounded-full bg-emerald-500 px-1 text-[10px] font-black text-white">🎬</span>}
-            </div>
-            <span className="block truncate px-1 py-0.5 text-[8px] font-black text-black/60">{g.name}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  ) : null;
 
   return (
     <div className="relative mx-auto min-h-[100dvh] w-full max-w-[440px] bg-[#0d0b0a] text-white shadow-[0_0_60px_rgba(0,0,0,0.45)]">
@@ -689,7 +694,14 @@ export default function TryFunnelPage() {
       <div className="sticky top-0 z-20 bg-[#0d0b0a]/90 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => {
-              if (step > 2) { setStep((s) => (s - 1) as 1 | 2 | 3 | 4 | 5); return; }
+              // From any later step (generating / result / plans) → back to the FUNNEL START
+              // (the model + outfit picker), not the previous step / the tariff.
+              if (step > 2) {
+                if (armTimerRef.current) { clearTimeout(armTimerRef.current); setArming(false); }
+                genStartedRef.current = false; setGenStatus("idle"); setComboCancelled(true);
+                setStep(2);
+                return;
+              }
               // On step 2 (or opened straight from an ad link, no history) → go home instead
               // of a dead router.back().
               if (typeof window !== "undefined" && window.history.length > 1) router.back();
@@ -1109,9 +1121,9 @@ export default function TryFunnelPage() {
               ) : (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {modelImg && <img src={modelImg} alt="" className={`h-full w-full object-cover object-top ${genStatus === "generating" ? "scale-110 blur-2xl opacity-60" : ""}`} />}
-                  {/* Scanner overlay while the real generation runs (same look as the free reveal). */}
-                  {genStatus === "generating" && (
+                  {modelImg && <img src={modelImg} alt="" className={`h-full w-full object-cover object-top ${(genStatus === "generating" || arming) ? "scale-110 blur-2xl opacity-60" : ""}`} />}
+                  {/* Scanner overlay while arming and while the real generation runs. */}
+                  {(genStatus === "generating" || arming) && (
                     <>
                       {/* White scanner beam sweeping down then up. */}
                       <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-white shadow-[0_0_18px_5px_rgba(255,255,255,0.7)]" />
@@ -1124,7 +1136,17 @@ export default function TryFunnelPage() {
                     </>
                   )}
                   <div className="absolute inset-0 grid place-items-center">
-                    {genStatus === "generating" ? (
+                    {arming ? (
+                      <div className="flex flex-col items-center gap-3 px-6 text-center text-white/90">
+                        <Sparkles className="h-8 w-8 animate-pulse" />
+                        <span className="text-sm font-black">Starting your video…</span>
+                        <span className="text-[12px] font-bold text-white/60">Begins in {armSecs}s{adminPin ? "" : " — cancel now and you keep your credit"}.</span>
+                        <button type="button" onClick={cancelGeneration}
+                          className="mt-1 flex items-center gap-1.5 rounded-full bg-white/20 px-5 py-2.5 text-[13px] font-black text-white backdrop-blur active:scale-95 transition">
+                          <X className="h-4 w-4" /> Cancel
+                        </button>
+                      </div>
+                    ) : genStatus === "generating" ? (
                       <div className="flex flex-col items-center gap-3 px-6 text-center text-white/90">
                         <Sparkles className="h-8 w-8 animate-pulse" />
                         <span className="text-sm font-black">{isModelSession ? "Generating your photo…" : "Generating your video…"}</span>
@@ -1160,42 +1182,39 @@ export default function TryFunnelPage() {
               : "Your try-on is being created in full quality."}
           </p>
 
-          {/* View the finished video as a full post (before/after, like & share, other looks). */}
-          {genStatus === "done" && genVideoUrl && genId && (
-            <div className="mt-4 flex justify-center">
-              <button type="button" onClick={() => goToResult(genId)}
-                className="lb-gold flex items-center gap-2 rounded-full px-6 py-3 text-sm font-black active:scale-95 transition">
-                <Sparkles className="h-4 w-4" /> View your video
+          {/* Full-screen the finished video + start over with a new look. */}
+          {genStatus === "done" && (genVideoUrl || genPhotoUrl) && (
+            <div className="mt-4 flex items-center justify-center gap-3">
+              {genVideoUrl && (
+                <button type="button" onClick={() => setVideoZoom(true)} title="View full screen"
+                  className="lb-gold flex items-center gap-2 rounded-full px-6 py-3 text-sm font-black active:scale-95 transition">
+                  <Maximize2 className="h-4 w-4" /> Full screen
+                </button>
+              )}
+              <button type="button" onClick={() => { setGenStatus("idle"); genStartedRef.current = false; setComboCancelled(true); setStep(2); }}
+                className="flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-black text-white active:scale-95 transition">
+                <RefreshCw className="h-4 w-4" /> Try a new look
               </button>
             </div>
           )}
 
-          {/* HD (1080p) is a PREMIUM subscription perk. Admin + subscribers upscale here. */}
-          {genStatus === "done" && genVideoUrl && genId && (adminPin || isSubscribed) && (
+          {/* "Get it in HD" is shown to EVERYONE. Premium subscribers (+ admin) upscale right
+              here; non-subscribers get the Premium paywall (HD is a paid perk). */}
+          {genStatus === "done" && genVideoUrl && genId && (
             <div className="mt-4 flex flex-col items-center gap-1.5">
-              <button type="button" onClick={() => upscaleVideo(genId, genVideoUrl)} disabled={!!hdBusyId}
+              <button type="button" onClick={() => ((adminPin || isSubscribed) ? upscaleVideo(genId, genVideoUrl) : setShowPremium(true))} disabled={!!hdBusyId}
                 className="flex items-center gap-2 rounded-full bg-amber-400 px-5 py-3 text-sm font-black text-black active:scale-95 transition disabled:opacity-50">
                 {hdBusyId === genId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {hdBusyId === genId ? "Making it HD…" : "Get it in HD (1080p)"}
+                {hdBusyId === genId ? "Making it HD…" : (adminPin || isSubscribed) ? "Get it in HD (1080p)" : "Get it in HD (1080p) · Premium"}
               </button>
               {hdMsg && <span className="text-[12px] font-bold text-white/50">{hdMsg}</span>}
             </div>
           )}
-          {/* Non-subscriber → HD is a Premium upsell. */}
-          {genStatus === "done" && genVideoUrl && genId && !adminPin && !isSubscribed && (
-            <button type="button" onClick={() => setShowSubscribe(true)}
-              className="mx-auto mt-4 flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/10 px-5 py-2.5 text-[13px] font-black text-amber-300 active:scale-95 transition">
-              <Sparkles className="h-4 w-4" /> Want it in HD? Go Premium
-            </button>
-          )}
 
-          {/* Admin: keep producing — tap the next outfit and it generates for the same model. */}
-          {genStatus === "done" && <div className="px-1">{adminProduceStrip}</div>}
-
-          {/* After generating: a gallery of the model's videos (incl. this one). Admins set
-              each one's visibility right here — Fashionshow (feed + her profile "In motion"),
-              Public (everyone vs members-only), or delete. */}
-          {genStatus === "done" && madeVideos.length > 0 && (
+          {/* Admin-only: manage the model's videos here (Fashionshow / Public / delete). The
+              outfits strip is intentionally NOT shown on the result — customers use the
+              "Try a new look" button above to start over (an outfit strip there confuses). */}
+          {genStatus === "done" && adminPin && madeVideos.length > 0 && (
             <div className="mt-7">
               <p className="mb-2 text-[13px] font-black">{chosenModelName ? `${chosenModelName}'s Videos` : "Your videos"}</p>
               <div className={`grid gap-3 ${adminPin ? "grid-cols-2" : "grid-cols-3"}`}>
@@ -1358,6 +1377,19 @@ export default function TryFunnelPage() {
           <div className="flex flex-1 items-center justify-center px-4 pb-8" onClick={(e) => e.stopPropagation()}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={zoomSrc || garmentParam || outfit?.imageUrl || ""} alt={zoomName || outfit?.name || ""} className="max-h-full max-w-full rounded-2xl object-contain" />
+          </div>
+        </div>
+      )}
+
+      {/* Finished try-on video, full screen. */}
+      {videoZoom && genVideoUrl && (
+        <div className="fixed inset-0 z-[96] flex flex-col bg-black" onClick={() => setVideoZoom(false)}>
+          <div className="flex items-center justify-end px-4 py-3">
+            <button type="button" onClick={() => setVideoZoom(false)}
+              className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white active:scale-90 transition"><X className="h-5 w-5" /></button>
+          </div>
+          <div className="flex flex-1 items-center justify-center px-2 pb-6" onClick={(e) => e.stopPropagation()}>
+            <video src={genVideoUrl} className="max-h-full max-w-full rounded-2xl object-contain" autoPlay loop playsInline controls />
           </div>
         </div>
       )}

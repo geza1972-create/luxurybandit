@@ -25,7 +25,10 @@ export default function AuthRefresh() {
       if (!at) return;
       const rt = hashP.get("refresh_token") || qP.get("refresh_token") || undefined;
       const expiresAt = Number(hashP.get("expires_at") || qP.get("expires_at") || 0) || undefined;
-      const claims = JSON.parse(atob(at.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))) as { sub: string; email?: string; exp?: number };
+      const claims = JSON.parse(atob(at.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))) as { sub?: string; email?: string; exp?: number; role?: string };
+      // Only a real AUTH token has a `sub` (user id). Storage signed-URL tokens are JWTs too
+      // (?token=… on image URLs) but carry no sub — never treat those as a login.
+      if (!claims.sub || typeof claims.sub !== "string") return;
       const session: SupabaseAuthSession = { access_token: at, refresh_token: rt, expires_at: expiresAt ?? claims.exp, user: { id: claims.sub, email: claims.email } };
       saveAuthSession(session);
       // Strip the token from the URL so it isn't left in history or re-processed.
