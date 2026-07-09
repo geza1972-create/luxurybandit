@@ -841,7 +841,6 @@ export default function TryFunnelPage() {
                   </div>
                 );
               })()}
-              <p className="mt-1 text-center text-[11px] font-bold text-white/30">← swipe to change model →</p>
               {/* Use your own photo — the paid custom feature (padlock for non-payers). */}
               <button type="button" onClick={() => ((isPaid || adminProduce) ? fileRef.current?.click() : setShowPremium(true))}
                 className="mx-auto mt-2 flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[12px] font-black text-white/70 active:scale-95 transition">
