@@ -319,6 +319,9 @@ export type TryThisLookState = {
   chatConfig?: { globalNote?: string };
   // Logged AI-chat conversations, newest first, so the admin can read what users ask.
   modelChats?: ModelChatLog[];
+  // Admin-sent "from a model" messages to a user's email (check-ins). Shown in the user's
+  // Messages tab + emailed. Newest first.
+  directMessages?: { id: string; curatorId: string; curatorName?: string; toEmail: string; text: string; createdAt: string; readAt?: string }[];
   // Video-generation credits. balances = email → credits left (1 video = 1 credit;
   // $8 pack = +4). redeemed = Stripe session ids already granted (idempotency).
   // welcomed = emails that already got their free welcome credits (granted once).
@@ -711,6 +714,7 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     viewsByDay: state.viewsByDay ?? {},
     chatConfig: state.chatConfig ?? {},
     modelChats: state.modelChats ?? [],
+    directMessages: state.directMessages ?? [],
     videoCredits: state.videoCredits ?? { balances: {}, redeemed: [] },
   });
 }
@@ -784,6 +788,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
       // AI-chat logs: our version wins per conversation (the route read→appended→saved),
       // and concurrent NEW conversations from other visitors are re-added by createdAt.
       modelChats: mergeNewerById((state.modelChats ?? []) as any, (latest.modelChats ?? []) as any, delChat) as any,
+      directMessages: unionById((state.directMessages ?? []) as any, (latest.directMessages ?? []) as any) as any,
       // Video credits: our version wins per email (we just read→modified→saved), plus
       // any emails only latest knows about; redeemed session-ids are unioned (idempotency).
       videoCredits: {
@@ -828,6 +833,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     modelChats: [...(state.modelChats ?? [])]
       .sort((a, b) => String(b.updatedAt ?? "").localeCompare(String(a.updatedAt ?? "")))
       .slice(0, 800),
+    directMessages: [...(state.directMessages ?? [])].slice(0, 3000),
     videoCredits: {
       balances: state.videoCredits?.balances ?? {},
       redeemed: (state.videoCredits?.redeemed ?? []).slice(-5000),

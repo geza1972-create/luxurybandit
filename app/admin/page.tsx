@@ -122,6 +122,23 @@ export default function AdminPage() {
   const [chatNoteDraft, setChatNoteDraft] = useState("");
   const [chatNoteBusy, setChatNoteBusy] = useState(false);
   const [openChatId, setOpenChatId] = useState("");
+  // Compose a "from a model" check-in message to a user (→ their Messages + email).
+  const [dmCurator, setDmCurator] = useState("");
+  const [dmEmail, setDmEmail] = useState("");
+  const [dmText, setDmText] = useState("");
+  const [dmBusy, setDmBusy] = useState(false);
+  const [dmMsg, setDmMsg] = useState("");
+  const sendModelMessage = async () => {
+    if (!dmCurator || !dmEmail.trim() || !dmText.trim()) return;
+    setDmBusy(true); setDmMsg("");
+    try {
+      const r = await fetch("/api/model-chat", { method: "POST", headers: { ...headers(), "Content-Type": "application/json" }, body: JSON.stringify({ action: "send-model-message", curatorId: dmCurator, toEmail: dmEmail.trim(), text: dmText.trim() }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.ok) throw new Error(d.error ?? "Failed to send.");
+      setDmMsg("Sent ✓"); setDmText("");
+    } catch (e) { setDmMsg(e instanceof Error ? e.message : "Failed to send."); }
+    finally { setDmBusy(false); }
+  };
   const loadChats = async () => {
     try {
       const res = await fetch("/api/model-chat?all=1", { headers: headers() });
@@ -1940,6 +1957,36 @@ export default function AdminPage() {
               </button>
               {chatNoteDraft !== chatGlobalNote && <span className="text-[12px] font-bold text-amber-600">Unsaved</span>}
             </div>
+          </section>
+
+          {/* Send a "from a model" check-in → lands in the user's Messages + emails them. */}
+          <section className="rounded-xl border border-black/10 bg-white p-4">
+            <p className="flex items-center gap-1.5 text-sm font-black text-ink"><Send className="h-4 w-4" /> Message a user (as a model)</p>
+            <p className="mt-1 text-[12px] font-bold text-ink/45">Sends a check-in from the model to a user — shows in their Messages and emails them.</p>
+            {(() => {
+              const opts = Array.from(new Map(modelChats.map(c => [c.curatorId, c.curatorName || "Model"])).entries());
+              return (
+                <div className="mt-3 grid gap-2">
+                  <select value={dmCurator} onChange={e => setDmCurator(e.target.value)}
+                    className="h-10 rounded-lg border border-black/12 bg-black/[0.02] px-3 text-[13px] font-bold text-ink outline-none focus:border-black/40">
+                    <option value="">Choose a model…</option>
+                    {opts.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+                  </select>
+                  <input value={dmEmail} onChange={e => setDmEmail(e.target.value)} placeholder="Recipient email (their login email)"
+                    className="h-10 rounded-lg border border-black/12 bg-black/[0.02] px-3 text-[13px] font-bold text-ink outline-none focus:border-black/40" />
+                  <textarea value={dmText} onChange={e => setDmText(e.target.value)} rows={2}
+                    placeholder="Hey! How are you doing today? 💕"
+                    className="w-full resize-none rounded-lg border border-black/12 bg-black/[0.02] px-3 py-2 text-[13px] leading-snug text-ink outline-none focus:border-black/40" />
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => void sendModelMessage()} disabled={dmBusy || !dmCurator || !dmEmail.trim() || !dmText.trim()}
+                      className="flex h-9 items-center justify-center gap-1.5 rounded-full bg-black px-4 text-[13px] font-black text-white disabled:opacity-40 active:scale-95 transition">
+                      {dmBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send message"}
+                    </button>
+                    {dmMsg && <span className={`text-[12px] font-bold ${dmMsg.startsWith("Sent") ? "text-emerald-600" : "text-red-500"}`}>{dmMsg}</span>}
+                  </div>
+                </div>
+              );
+            })()}
           </section>
 
           <div className="flex items-center justify-between px-1">

@@ -23,6 +23,13 @@ export async function GET(request: Request) {
     const chats = [...(state.modelChats ?? [])].sort((a, b) => String(b.updatedAt ?? "").localeCompare(String(a.updatedAt ?? "")));
     return NextResponse.json({ chats, globalNote: state.chatConfig?.globalNote ?? "" });
   }
+  // ── User: their inbox of admin-sent "from a model" messages (by email) ──────────
+  const inboxEmail = new URL(request.url).searchParams.get("inbox")?.trim().toLowerCase();
+  if (inboxEmail) {
+    const state = await readTryThisLookState();
+    const messages = (state.directMessages ?? []).filter(m => m.toEmail === inboxEmail);
+    return NextResponse.json({ messages });
+  }
   return NextResponse.json({ error: "Not found." }, { status: 404 });
 }
 
@@ -37,6 +44,8 @@ export async function POST(request: Request) {
     chatId?: string;
     texts?: string[];   // for "translate"
     rule?: string;      // for "add-rule"
+    toEmail?: string;   // for "send-model-message"
+    text?: string;      // for "send-model-message"
   };
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Bad request." }, { status: 400 }); }
 
@@ -92,6 +101,35 @@ export async function POST(request: Request) {
       // Pass the deleted id so the read-merge can't resurrect it (delete-resurrection bug).
       await saveTryThisLookState(state, { deletedChatIds: [cid] });
     }
+    return NextResponse.json({ ok: true });
+  }
+
+  // ── Admin: send a "from a model" message to a user (check-in) → Messages + email ──
+  if (body.action === "send-model-message") {
+    if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+    const cid = String(body.curatorId ?? "").trim();
+    const toEmail = String(body.toEmail ?? "").trim().toLowerCase();
+    const text = String(body.text ?? "").trim().slice(0, 1000);
+    if (!cid || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(toEmail) || !text) {
+      return NextResponse.json({ error: "curatorId, a valid toEmail and text are required." }, { status: 400 });
+    }
+    const state = await readTryThisLookState();
+    const c = (state.curators ?? []).find(x => x.id === cid) as any;
+    if (!c) return NextResponse.json({ error: "Model not found." }, { status: 404 });
+    const curatorName = `${c.firstName ?? ""} ${c.lastName ?? ""}`.trim() || c.firstName || "Your model";
+    const dm = { id: `${Date.now()}-${crypto.randomUUID()}`, curatorId: cid, curatorName, toEmail, text, createdAt: new Date().toISOString() };
+    state.directMessages = [dm, ...(state.directMessages ?? [])];
+    await saveTryThisLookState(state);
+    // Email notification (non-blocking — the message is already saved).
+    try {
+      const { sendEmail } = await import("@/lib/email-send");
+      const link = `${process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com"}/curator/${encodeURIComponent(cid)}?chat=1`;
+      await sendEmail({
+        to: toEmail,
+        subject: `${curatorName} sent you a message 💕`,
+        html: `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto"><p style="font-size:16px"><b>${curatorName}</b> just messaged you on LuxuryBandit:</p><blockquote style="border-left:3px solid #e0b64a;margin:0;padding:8px 16px;color:#333;font-size:15px">${text.replace(/</g, "&lt;")}</blockquote><p><a href="${link}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:800;margin-top:8px">Reply to ${curatorName} →</a></p></div>`,
+      });
+    } catch { /* email is best-effort */ }
     return NextResponse.json({ ok: true });
   }
 

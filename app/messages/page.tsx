@@ -5,9 +5,10 @@ export const dynamic = "force-dynamic";
 import { Loader2, MessageCircle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 // Each stored chat lives in localStorage under lb_modelchat_<curatorId>.
-type Convo = { curatorId: string; name: string; photoUrl: string; last: string; count: number };
+type Convo = { curatorId: string; name: string; photoUrl: string; last: string; unread?: boolean };
 
 function stripTags(s: string) {
   return s.replace(/\[\[SHOW_LINGERIE\]\]/g, "").replace(/\*[^*]+\*/g, "").trim();
@@ -19,8 +20,11 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Gather every model chat this device has (key: lb_modelchat_<curatorId>).
-    const raw: { curatorId: string; last: string; count: number }[] = [];
+    // last message per curatorId, and whether there's an unread incoming (admin-sent) one.
+    const lastBy = new Map<string, string>();
+    const unread = new Set<string>();
+
+    // 1) Local model chats this device has (key: lb_modelchat_<curatorId>).
     try {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i) || "";
@@ -29,22 +33,36 @@ export default function MessagesPage() {
         try {
           const saved = JSON.parse(localStorage.getItem(key) || "{}") as { messages?: { role: string; content: string }[] };
           const msgs = Array.isArray(saved.messages) ? saved.messages : [];
-          if (!msgs.length) continue;
-          raw.push({ curatorId, last: stripTags(msgs[msgs.length - 1]?.content || ""), count: msgs.length });
+          if (msgs.length) lastBy.set(curatorId, stripTags(msgs[msgs.length - 1]?.content || ""));
         } catch { /**/ }
       }
     } catch { /**/ }
 
-    if (!raw.length) { setLoading(false); return; }
-    // Fetch model names/photos to label each conversation.
-    fetch("/api/try-this-look?models=1").then(r => r.json()).then(d => {
-      const byId = new Map<string, { name: string; photoUrl: string }>(
-        (Array.isArray(d.models) ? d.models : []).map((m: { id: string; name?: string; photoUrl?: string }) => [m.id, { name: m.name || "Model", photoUrl: m.photoUrl || "" }])
-      );
-      setConvos(raw.map(r => ({ ...r, name: byId.get(r.curatorId)?.name || "Model", photoUrl: byId.get(r.curatorId)?.photoUrl || "" })));
-    }).catch(() => {
-      setConvos(raw.map(r => ({ ...r, name: "Model", photoUrl: "" })));
-    }).finally(() => setLoading(false));
+    const email = getStoredAuthSession()?.user?.email?.trim().toLowerCase() || "";
+    const run = async () => {
+      // 2) Admin-sent "from a model" messages for this user (check-ins) → incoming, unread.
+      if (email) {
+        try {
+          const d = await fetch(`/api/model-chat?inbox=${encodeURIComponent(email)}`).then(r => r.json());
+          const dms: { curatorId: string; text: string; createdAt: string }[] = Array.isArray(d?.messages) ? d.messages : [];
+          // newest first from the server; take the latest per curator as the preview.
+          for (const m of dms) { if (!lastBy.has(`__seen_${m.curatorId}`)) { lastBy.set(m.curatorId, stripTags(m.text)); unread.add(m.curatorId); lastBy.set(`__seen_${m.curatorId}`, "1"); } }
+        } catch { /**/ }
+      }
+      const ids = [...lastBy.keys()].filter(k => !k.startsWith("__seen_"));
+      if (!ids.length) { setLoading(false); return; }
+      try {
+        const d = await fetch("/api/try-this-look?models=1").then(r => r.json());
+        const byId = new Map<string, { name: string; photoUrl: string }>(
+          (Array.isArray(d.models) ? d.models : []).map((m: { id: string; name?: string; photoUrl?: string }) => [m.id, { name: m.name || "Model", photoUrl: m.photoUrl || "" }])
+        );
+        setConvos(ids.map(id => ({ curatorId: id, name: byId.get(id)?.name || "Model", photoUrl: byId.get(id)?.photoUrl || "", last: lastBy.get(id) || "", unread: unread.has(id) })));
+      } catch {
+        setConvos(ids.map(id => ({ curatorId: id, name: "Model", photoUrl: "", last: lastBy.get(id) || "", unread: unread.has(id) })));
+      }
+      setLoading(false);
+    };
+    void run();
   }, []);
 
   return (
@@ -83,8 +101,11 @@ export default function MessagesPage() {
                   <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#0d0b0a] bg-emerald-400" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-black">{c.name}</p>
-                  <p className="truncate text-[13px] font-medium text-white/45">{c.last || "Tap to chat"}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-sm font-black">{c.name}</p>
+                    {c.unread && <span className="shrink-0 rounded-full bg-amber-400 px-1.5 py-0.5 text-[9px] font-black text-black">NEW</span>}
+                  </div>
+                  <p className={`truncate text-[13px] ${c.unread ? "font-bold text-white/80" : "font-medium text-white/45"}`}>{c.last || "Tap to chat"}</p>
                 </div>
               </button>
             ))}
