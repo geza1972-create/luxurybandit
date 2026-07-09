@@ -719,12 +719,15 @@ export default function CuratorPublicPage() {
           </div>
         )}
 
+        {/* Section label — shows for everyone (Gina included), even when empty. */}
+        <p className="mt-5 w-full text-left text-[15px] font-black text-white">Try-ons{videos.length > 0 ? <span className="text-white/40"> {videos.length}</span> : null}</p>
+
         {/* Video gallery — her clips as a thumbnail strip. Tap one → the SAME fullscreen
             "In motion" carousel opens at exactly that clip. (Photo play-ring stays too.)
             Admin/owner additionally see her PHOTO drafts here — the admin turns them
             into videos with one tap. */}
         {(videos.length > 0 || photoDrafts.length > 0) && (
-          <div className="mt-4 w-full">
+          <div className="mt-2 w-full">
             <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {videos.map((t, i) => (
                 <StripClip key={t.id} t={t} onOpen={() => openMotionAt(i)} />
@@ -751,13 +754,13 @@ export default function CuratorPublicPage() {
           </div>
         )}
 
-        {/* New model, no videos yet → a clear placeholder (instead of an empty page). */}
+        {/* New model, no try-ons yet → a clear placeholder (instead of an empty page). */}
         {videos.length === 0 && photoDrafts.length === 0 && (
-          <div className="mt-4 w-full">
+          <div className="mt-2 w-full">
             <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-white/12 bg-white/[0.02] px-6 py-10 text-center">
               <span className="grid h-12 w-12 place-items-center rounded-full bg-white/[0.06]"><Play className="h-5 w-5 text-white/30" fill="currentColor" /></span>
-              <p className="text-sm font-black text-white/50">{name.split(" ")[0]} has no videos yet</p>
-              <p className="text-[12px] font-bold text-white/30">{isAdmin ? "Upload her photos, then generate her first try-on videos here." : "Her try-on videos are coming soon."}</p>
+              <p className="text-sm font-black text-white/50">{name.split(" ")[0]} has no try-ons yet</p>
+              <p className="text-[12px] font-bold text-white/30">{isAdmin ? "Upload her photos, then generate her first try-ons here." : "Her try-ons are coming soon."}</p>
             </div>
           </div>
         )}
