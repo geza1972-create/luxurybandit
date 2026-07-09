@@ -1099,10 +1099,15 @@ export default function TryFunnelPage() {
             ) : (
               <>
                 {motionPicker && <div className="mb-3 -mt-2">{motionPicker}</div>}
-                {/* Free-credit meter: 3 free videos, 1 credit each. */}
-                {!adminProduce && packCredits != null && (
+                {/* Free-credit meter: 3 free videos, 1 credit each. Not signed in → show the
+                    offer, not a wrong "0 left" (anonymous has no balance yet). */}
+                {!adminProduce && (
                   <p className="mb-2 text-center text-[12px] font-black text-white/50">
-                    🎟️ {Math.min(3, Math.max(0, 3 - packCredits))}/3 free videos used{packCredits > 3 ? ` · ${packCredits} credits` : ` · ${packCredits} left`}
+                    {!isAuthed()
+                      ? "🎟️ 3 free videos · 1 credit each"
+                      : packCredits == null
+                      ? ""
+                      : `🎟️ ${Math.min(3, Math.max(0, 3 - packCredits))}/3 free videos used${packCredits > 3 ? ` · ${packCredits} credits` : ` · ${packCredits} left`}`}
                   </p>
                 )}
                 <button type="button" onClick={() => (adminProduce ? generateNow() : goStep3())}
