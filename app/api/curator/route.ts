@@ -346,10 +346,25 @@ export async function POST(request: Request) {
       try {
         const { sendEmail } = await import("@/lib/email-send");
         const hi = curator.firstName ? ` ${curator.firstName}` : "";
+        const site = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://luxurybandit.com";
+        const profileUrl = `${site}/curators/profile`;
         await sendEmail({
           to: String(email),
-          subject: "Your LuxuryBandit Model application 💛",
-          html: `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;color:#111"><p style="font-size:16px">Hi${hi},</p><p>Thank you for applying to become a <b>LuxuryBandit Model</b> — we've received your application and our team is reviewing it right now. 💛</p><p>We'll be in touch very soon with the next steps. If you'd like to speed things up, just reply to this email with 1–3 clear photos of yourself (a portrait and, if you have one, a full-body shot) so we can set up your profile.</p><p>Talk soon,<br/>The LuxuryBandit Team</p></div>`,
+          subject: "Complete your LuxuryBandit Model profile 💛",
+          html: `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;color:#111">
+  <p style="font-size:16px">Hi${hi},</p>
+  <p>Thank you for applying to become a <b>LuxuryBandit Model</b> — we've received your application. 💛</p>
+  <p><b>One more step:</b> please complete your <b>two photos</b> so we can set up your profile and start your try-ons:</p>
+  <ul style="padding-left:18px;color:#333">
+    <li>a clear <b>face / portrait</b> photo, and</li>
+    <li>a <b>full-body, dressed</b> photo (head to toe — this is what the AI styles).</li>
+  </ul>
+  <p style="text-align:center;margin:24px 0">
+    <a href="${profileUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;font-weight:800;padding:14px 28px;border-radius:999px">Add my photos →</a>
+  </p>
+  <p style="font-size:13px;color:#666">Open the link, sign in with this email address (<b>${String(email)}</b>), and upload both photos on your profile page. You can also just reply to this email with the photos.</p>
+  <p>Talk soon,<br/>The LuxuryBandit Team</p>
+</div>`,
         });
       } catch { /* email is best-effort */ }
     }

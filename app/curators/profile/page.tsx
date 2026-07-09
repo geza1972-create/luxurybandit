@@ -24,6 +24,11 @@ export default function CuratorProfilePage() {
   const [photoData, setPhotoData] = useState(""); // new upload only
   const [photoError, setPhotoError] = useState("");
   const [cropSrc, setCropSrc] = useState("");
+  // Full-body dressed photo (3:4) — SAME as the application form. Powers her try-ons.
+  const [bodyPhotos, setBodyPhotos] = useState<string[]>([]); // new pick (data URL)
+  const [bodyExisting, setBodyExisting] = useState<string[]>([]); // already stored
+  const [bodyCropSrc, setBodyCropSrc] = useState("");
+  const bodyFileRef = useRef<HTMLInputElement>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
@@ -50,7 +55,7 @@ export default function CuratorProfilePage() {
   const snapshot = () => JSON.stringify({
     firstName, lastName, phone, address, instagram,
     brands: brandChips, style: styleChips, colors: colorChips, fabrics: fabricChips, occasions: occasionChips,
-    genderFocus, priceTiers, fitFocus, ageFocus, motto, bio, newPhoto: !!photoData,
+    genderFocus, priceTiers, fitFocus, ageFocus, motto, bio, newPhoto: !!photoData, newBody: !!bodyPhotos.length,
   });
   const dirty = baseline !== null && snapshot() !== baseline;
 
@@ -78,6 +83,7 @@ export default function CuratorProfilePage() {
         if (c) {
           setCuratorId(c.id); setEmail(c.email ?? "");
           setPhoto(c.photoUrl ?? "");
+          setBodyExisting(Array.isArray(c.photoBodyUrls) ? c.photoBodyUrls : []);
           setFirstName(c.firstName ?? ""); setLastName(c.lastName ?? "");
           setPhone(c.phone ?? ""); setAddress(c.address ?? ""); setInstagram(c.instagram ?? "");
           setBrandChips(splitTags(c.brands)); setStyleChips(splitTags(c.style));
@@ -87,7 +93,7 @@ export default function CuratorProfilePage() {
           setBaseline(JSON.stringify({
             firstName: c.firstName ?? "", lastName: c.lastName ?? "", phone: c.phone ?? "", address: c.address ?? "", instagram: c.instagram ?? "",
             brands: splitTags(c.brands), style: splitTags(c.style), colors: splitTags(c.colors), fabrics: splitTags(c.fabrics), occasions: splitTags(c.occasions),
-            genderFocus: c.genderFocus ?? "", priceTiers: splitTags(c.priceTiers), fitFocus: splitTags(c.fitFocus), ageFocus: c.ageFocus ?? "", motto: c.motto ?? "", bio: c.bio ?? "", newPhoto: false,
+            genderFocus: c.genderFocus ?? "", priceTiers: splitTags(c.priceTiers), fitFocus: splitTags(c.fitFocus), ageFocus: c.ageFocus ?? "", motto: c.motto ?? "", bio: c.bio ?? "", newPhoto: false, newBody: false,
           }));
           // keep lb_curator in sync (so studio works after a fresh login)
           try { localStorage.setItem("lb_curator", JSON.stringify({ id: c.id, firstName: c.firstName, email: c.email, style: c.style })); } catch { /**/ }
@@ -114,6 +120,13 @@ export default function CuratorProfilePage() {
     const { src, error: err } = await readPhotoFile(file);
     if (err) { setPhotoError(err); return; }
     if (src) setCropSrc(src);
+  };
+  const onPickBody = async (file?: File) => {
+    if (!file) return;
+    setPhotoError("");
+    const { src, error: err } = await readPhotoFile(file);
+    if (err) { setPhotoError(err); return; }
+    if (src) setBodyCropSrc(src);
   };
 
   const sendLink = async () => {
@@ -151,17 +164,18 @@ export default function CuratorProfilePage() {
           brands: brandChips.join(", "), style: styleChips.join(", "),
           colors: colorChips.join(", "), fabrics: fabricChips.join(", "), occasions: occasionChips.join(", "),
           genderFocus, priceTiers: priceTiers.join(", "), fitFocus: fitFocus.join(", "), ageFocus,
-          motto, bio, ...(photoData ? { photo: photoData } : {}),
+          motto, bio, ...(photoData ? { photo: photoData } : {}), ...(bodyPhotos.length ? { bodyPhotos } : {}),
         }),
       });
       const data = await res.json();
       if (!res.ok || data.error) { setError(data.error || "Could not save."); return; }
       setSaved(true);
       setPhotoData("");
+      if (bodyPhotos.length) { setBodyExisting(bodyPhotos); setBodyPhotos([]); }
       setBaseline(JSON.stringify({
         firstName, lastName, phone, address, instagram,
         brands: brandChips, style: styleChips, colors: colorChips, fabrics: fabricChips, occasions: occasionChips,
-        genderFocus, priceTiers, fitFocus, ageFocus, motto, bio, newPhoto: false,
+        genderFocus, priceTiers, fitFocus, ageFocus, motto, bio, newPhoto: false, newBody: false,
       }));
       try { localStorage.setItem("lb_curator", JSON.stringify({ id: curatorId, firstName, email, style: styleChips.join(", ") })); } catch { /**/ }
       setTimeout(() => setSaved(false), 2500);
@@ -226,6 +240,27 @@ export default function CuratorProfilePage() {
           {photoError && <p className="max-w-xs text-center text-xs font-bold text-red-500">{photoError}</p>}
           <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
             onChange={e => { void onPickPhoto(e.target.files?.[0]); e.target.value = ""; }} />
+
+          {/* Full-body dressed photo — SAME as the application form. Powers her try-ons. */}
+          <p className="mt-4 text-[11px] font-black uppercase tracking-wide text-black/45">Full-body photo · dressed</p>
+          <div className="relative">
+            <button type="button" onClick={() => bodyFileRef.current?.click()}
+              className="relative grid h-44 w-[132px] place-items-center overflow-hidden rounded-2xl border-2 border-dashed border-amber-400/60 bg-black/[0.03] active:scale-95 transition-transform">
+              {(bodyPhotos[0] ?? bodyExisting[0]) ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={bodyPhotos[0] ?? bodyExisting[0]} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <Camera className="h-6 w-6 text-black/30" />
+              )}
+            </button>
+            {!!bodyPhotos[0] && (
+              <button type="button" onClick={() => setBodyPhotos([])}
+                className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black text-white ring-1 ring-white/25">×</button>
+            )}
+          </div>
+          <p className="max-w-xs text-center text-[11px] font-bold text-black/40">Head to toe, dressed — this is what the AI styles. One good photo is enough.</p>
+          <input ref={bodyFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
+            onChange={e => { void onPickBody(e.target.files?.[0]); e.target.value = ""; }} />
         </div>
 
         <div className="mt-3 text-center">
@@ -288,6 +323,10 @@ export default function CuratorProfilePage() {
       {cropSrc && (
         <PhotoCropper src={cropSrc} onCancel={() => setCropSrc("")}
           onDone={(dataUrl) => { setPhoto(dataUrl); setPhotoData(dataUrl); setCropSrc(""); }} />
+      )}
+      {bodyCropSrc && (
+        <PhotoCropper src={bodyCropSrc} aspect="portrait" onCancel={() => setBodyCropSrc("")}
+          onDone={(dataUrl) => { setBodyPhotos([dataUrl]); setBodyCropSrc(""); }} />
       )}
     </main>
   );
