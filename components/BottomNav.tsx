@@ -1,6 +1,7 @@
 "use client";
 
-import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search } from "lucide-react";
+import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield } from "lucide-react";
+import { isAdminEmail } from "@/lib/is-admin-email";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession, signOut } from "@/lib/supabase-auth-client";
@@ -318,6 +319,14 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
             </div>
             {/* Menu items */}
             <div className="grid divide-y divide-black/5">
+              {/* Admin: jump straight to the admin dashboard (no need to type /admin). */}
+              {(!!adminPin || isAdminEmail(displayEmail)) && (
+                <button type="button" onClick={() => navigate("/admin")}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                  <Shield className="h-5 w-5 shrink-0 text-violet-600" />
+                  <span className="text-sm font-black text-black">Admin dashboard</span>
+                </button>
+              )}
               {/* Admin: view/act AS any model (impersonate) — picker with search + photos. */}
               {!!adminPin && (
                 <button type="button" onClick={() => { setShowProfileMenu(false); setPickerQuery(""); setShowModelPicker(true); }}
