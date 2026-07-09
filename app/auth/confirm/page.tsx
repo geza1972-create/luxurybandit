@@ -65,7 +65,7 @@ export default function ConfirmPage() {
         {status === "loading" && (
           <>
             <Loader2 className="h-8 w-8 animate-spin text-black/30" />
-            <p className="text-sm font-bold text-black/40">Dein Account wird bestätigt…</p>
+            <p className="text-sm font-bold text-black/40">Confirming your account…</p>
           </>
         )}
 
@@ -74,24 +74,24 @@ export default function ConfirmPage() {
             <div className="grid h-16 w-16 place-items-center rounded-2xl bg-emerald-50">
               <CheckCircle className="h-8 w-8 text-emerald-500" />
             </div>
-            <p className="text-base font-black text-black">Account bestätigt! 🎉</p>
-            <p className="text-sm font-bold text-black/50">Du bist jetzt eingeloggt. Einen Moment…</p>
+            <p className="text-base font-black text-black">Account confirmed! 🎉</p>
+            <p className="text-sm font-bold text-black/50">You&apos;re signed in. One moment…</p>
           </>
         )}
 
         {status === "error" && (
           <>
             <div className="text-4xl">⚠️</div>
-            <p className="text-base font-black text-black">Bestätigung fehlgeschlagen</p>
+            <p className="text-base font-black text-black">Confirmation failed</p>
             <p className="text-sm font-bold text-black/50 leading-relaxed">
-              Der Link ist ungültig oder abgelaufen. Bitte melde dich an oder registriere dich erneut.
+              The link is invalid or has expired. Please sign in or register again.
             </p>
             <button
               type="button"
               onClick={() => router.push("/stores?panel=account")}
               className="flex h-12 w-full items-center justify-center rounded-2xl bg-black text-sm font-black text-white active:scale-95 transition-transform"
             >
-              Zur App
+              Go to the app
             </button>
           </>
         )}
