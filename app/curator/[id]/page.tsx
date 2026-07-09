@@ -21,7 +21,7 @@ function viewerHeaders(): Record<string, string> {
   return h;
 }
 
-type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string; status?: string };
+type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string; status?: string; profilePhotoUrls?: string[] };
 type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; featured?: boolean; productType?: string; wardrobe?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
 type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string; feed?: boolean };
 
@@ -503,6 +503,19 @@ export default function CuratorPublicPage() {
     finally { setBadgeBusy(false); }
   };
 
+  // Admin: pick which of her candidate photos becomes her main profile photo.
+  const pickProfilePhoto = async (index: number, url: string) => {
+    if (badgeBusy) return;
+    setBadgeBusy(true);
+    try {
+      const res = await fetch("/api/curator", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ action: "set-profile-photo", id, index }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || d.error) throw new Error(d.error || "Failed");
+      setProfile(p => (p ? { ...p, photoUrl: url } : p)); // reflect the new main photo immediately
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehlgeschlagen"); }
+    finally { setBadgeBusy(false); }
+  };
+
   // ── Admin one-click: turn a model's PHOTO try-on into a VIDEO (Pixverse animates the
   // dressed photo; single-image mode — no reference binding needed). The video attaches
   // to the SAME generation, so the photo becomes its poster.
@@ -770,6 +783,27 @@ export default function CuratorPublicPage() {
             )}
             <a href="/model-rules" target="_blank" rel="noopener noreferrer"
               className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-white/40 underline underline-offset-2 hover:text-white/70">See the model rules ↗</a>
+          </div>
+        )}
+
+        {/* Admin: pick her main profile photo from the candidates she uploaded. */}
+        {isAdmin && (profile.profilePhotoUrls?.length ?? 0) > 0 && (
+          <div className="mt-3 w-full max-w-sm rounded-2xl border border-white/12 bg-white/[0.03] p-3 text-left">
+            <p className="text-[11px] font-black uppercase tracking-wide text-white/45">Profile photo · pick her best</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {profile.profilePhotoUrls!.map((url, i) => {
+                const isMain = url === profile.photoUrl;
+                return (
+                  <button key={i} type="button" onClick={() => void pickProfilePhoto(i, url)} disabled={badgeBusy}
+                    className={`relative h-20 w-20 overflow-hidden rounded-xl border-2 transition active:scale-95 disabled:opacity-60 ${isMain ? "border-amber-400" : "border-white/10"}`}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt="" className="h-full w-full object-cover object-top" />
+                    {isMain && <span className="absolute bottom-0.5 left-0.5 rounded-full bg-amber-400 px-1.5 py-px text-[8px] font-black uppercase text-black">Main</span>}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-[11px] font-bold text-white/40">Tap a photo to make it her profile picture.</p>
           </div>
         )}
 

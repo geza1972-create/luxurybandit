@@ -13,6 +13,10 @@ export default function CuratorApplyPage() {
   const [photoFull, setPhotoFull] = useState(""); // the UNCROPPED original (portrait) — shown large on her profile
   const [photoError, setPhotoError] = useState("");
   const [cropSrc, setCropSrc] = useState("");
+  // Candidate PROFILE photos (up to 4) — she uploads several, the admin picks her best one.
+  const [profilePhotos, setProfilePhotos] = useState<string[]>([]); // new picks (data URLs)
+  const [profileExisting, setProfileExisting] = useState<string[]>([]); // edit mode: already stored
+  const profileFileRef = useRef<HTMLInputElement>(null);
   // Full-body dressed photos (3:4 crop, up to 2) — the try-on references.
   const [bodyPhotos, setBodyPhotos] = useState<string[]>([]); // new picks (data URLs)
   const [bodyExisting, setBodyExisting] = useState<string[]>([]); // edit mode: already stored
@@ -101,6 +105,9 @@ export default function CuratorApplyPage() {
         setMotto(c.motto ?? ""); setBio(c.bio ?? "");
         if (c.photoUrl) setPhoto(c.photoUrl); // signed URL — only re-sent if she picks a new one
         setBodyExisting(Array.isArray(c.photoBodyUrls) ? c.photoBodyUrls : []);
+        // Existing candidate profile photos (edit mode) — show them; new picks replace the set.
+        setProfileExisting(Array.isArray(c.profilePhotoUrls) && c.profilePhotoUrls.length
+          ? c.profilePhotoUrls : (c.photoUrl ? [c.photoUrl] : []));
       })
       .catch(() => setError("Could not load the model."));
   }, []);
@@ -125,6 +132,14 @@ export default function CuratorApplyPage() {
     const { src, error } = await readPhotoFile(file);
     if (error) { setPhotoError(error); return; }
     if (src) setBodyCropSrc(src);
+  };
+  // Add a candidate profile photo (raw, no crop — the profile shows it via object-cover). Max 4.
+  const onPickProfile = async (file?: File) => {
+    if (!file) return;
+    setPhotoError("");
+    const { src, error } = await readPhotoFile(file);
+    if (error) { setPhotoError(error); return; }
+    if (src) setProfilePhotos(prev => [...prev, src].slice(0, Math.max(0, 4 - profileExisting.length)));
   };
 
   const suggest = async () => {
@@ -172,6 +187,8 @@ export default function CuratorApplyPage() {
           headers: { "Content-Type": "application/json", "x-try-look-admin-pin": getPin() },
           body: JSON.stringify({
             action: "update", id: editId, ...shared,
+            // New profile-photo picks REPLACE the candidate set (admin then picks the main).
+            ...(profilePhotos.length ? { profilePhotos } : {}),
             // Only send the photo if she picked a NEW one (data URL) — a signed
             // URL from prefill means "unchanged". The uncropped original goes along.
             ...(photo.startsWith("data:image/") ? { photo, ...(photoFull.startsWith("data:image/") ? { photoFull } : {}) } : {}),
@@ -188,7 +205,7 @@ export default function CuratorApplyPage() {
       const res = await fetch("/api/curator", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "apply", ...shared, photo, ...(photoFull.startsWith("data:image/") ? { photoFull } : {}), ...(bodyPhotos.length ? { bodyPhotos } : {}) }),
+        body: JSON.stringify({ action: "apply", ...shared, ...(profilePhotos.length ? { profilePhotos } : {}), ...(photo.startsWith("data:image/") ? { photo, ...(photoFull.startsWith("data:image/") ? { photoFull } : {}) } : {}), ...(bodyPhotos.length ? { bodyPhotos } : {}) }),
       });
       const data = await res.json();
       if (!res.ok || data.error) { setError(data.error || "Could not submit."); return; }
@@ -264,26 +281,44 @@ export default function CuratorApplyPage() {
           </p>
         </div>}
 
-        {/* Photo */}
+        {/* Profile photos — up to 4 candidates; the team picks your best one. */}
         <div className="mt-6 flex flex-col items-center gap-2">
-          <button type="button" onClick={() => fileRef.current?.click()}
-            className="relative grid h-24 w-24 place-items-center overflow-hidden rounded-full border-2 border-dashed border-amber-400/40 bg-white/[0.04] active:scale-95 transition-transform">
-            {photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={photo} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <>
-                {/* Example placeholder — shows WHAT kind of photo we expect. */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/apply-example-face.jpg" alt="" className="h-full w-full object-cover object-top opacity-45" />
-                <span className="absolute inset-0 grid place-items-center"><Camera className="h-6 w-6 text-white drop-shadow" /></span>
-                <span className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-white">Example</span>
-              </>
-            )}
-          </button>
-          <button type="button" onClick={() => fileRef.current?.click()} className="text-xs font-black text-amber-400">
-            {photo ? "Change photo" : "Add your photo"}
-          </button>
+          <span className={`${label} text-center`}>Profile photos · add up to 4</span>
+          {(() => {
+            const combined = [...profilePhotos.map(src => ({ src, isNew: true })), ...profileExisting.map(src => ({ src, isNew: false }))].slice(0, 4);
+            const canAdd = combined.length < 4;
+            return (
+              <div className="flex flex-wrap justify-center gap-2">
+                {combined.map((p, i) => (
+                  <div key={i} className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.src} alt="" className="h-24 w-24 rounded-2xl object-cover object-top" />
+                    <button type="button"
+                      onClick={() => { if (p.isNew) setProfilePhotos(prev => prev.filter(s => s !== p.src)); else setProfileExisting(prev => prev.filter(s => s !== p.src)); }}
+                      className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black text-white ring-1 ring-white/25">×</button>
+                  </div>
+                ))}
+                {canAdd && (
+                  <button type="button" onClick={() => profileFileRef.current?.click()}
+                    className="relative grid h-24 w-24 place-items-center overflow-hidden rounded-2xl border-2 border-dashed border-amber-400/40 bg-white/[0.04] active:scale-95 transition-transform">
+                    {combined.length === 0 ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/apply-example-face.jpg" alt="" className="h-full w-full object-cover object-top opacity-40" />
+                        <span className="absolute inset-0 grid place-items-center"><Camera className="h-6 w-6 text-white drop-shadow" /></span>
+                        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-white">Example</span>
+                      </>
+                    ) : (
+                      <span className="grid place-items-center gap-0.5 text-amber-400"><Camera className="h-6 w-6" /><span className="text-[9px] font-black">Add</span></span>
+                    )}
+                  </button>
+                )}
+              </div>
+            );
+          })()}
+          <p className="max-w-xs text-center text-[11px] font-bold text-white/40">Add a few good face photos — we&apos;ll pick the one that looks best on your profile.</p>
+          <input ref={profileFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
+            onChange={e => { void onPickProfile(e.target.files?.[0]); e.target.value = ""; }} />
           {photoError && <p className="max-w-xs text-center text-xs font-bold text-red-400">{photoError}</p>}
           <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
             onChange={e => { void onPickPhoto(e.target.files?.[0]); e.target.value = ""; }} />

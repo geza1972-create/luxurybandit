@@ -60,7 +60,7 @@ export async function GET(request: Request) {
       likeBoost: (c as any).likeBoost ?? 0, viewBoost: (c as any).viewBoost ?? 0,
       realBadge: (c as any).realBadge === true,
       realModel: (c as any).realModel === true,
-      ...(adminView ? { verificationSelfieUrl: (c as any).verificationSelfieUrl ?? "", phone: c.phone ?? "", status: (c as any).status ?? "active" } : {}),
+      ...(adminView ? { verificationSelfieUrl: (c as any).verificationSelfieUrl ?? "", phone: c.phone ?? "", status: (c as any).status ?? "active", profilePhotoUrls: (c as any).profilePhotoUrls ?? [] } : {}),
     } });
   }
 
@@ -280,17 +280,28 @@ export async function POST(request: Request) {
     let photoPath: string | undefined;
     let photoFullPath: string | undefined;
     let photoBodyPaths: string[] | undefined;
+    let profilePhotoPaths: string[] | undefined;
     const photo = String(payload.photo ?? "");
     // The cropper exports a SQUARE avatar — also keep the ORIGINAL (portrait) photo
     // so her profile lightbox/hero can show it uncropped.
     const photoFull = String((payload as any).photoFull ?? "");
+    // Candidate PROFILE photos (up to 4) — she uploads several, the admin picks her best one.
+    const profilePhotos = Array.isArray((payload as any).profilePhotos)
+      ? ((payload as any).profilePhotos as unknown[]).filter((b): b is string => typeof b === "string" && b.startsWith("data:image/")).slice(0, 4)
+      : [];
     // Full-body dressed photos (3:4 crops, up to 2) — the try-on references.
     const bodyPhotos = Array.isArray((payload as any).bodyPhotos)
       ? ((payload as any).bodyPhotos as unknown[]).filter((b): b is string => typeof b === "string" && b.startsWith("data:image/")).slice(0, 2)
       : [];
-    if (photo.startsWith("data:image/")) {
+    if (photo.startsWith("data:image/") || profilePhotos.length) {
       try {
-        photoPath = await uploadTryThisLookImage("uploads", photo);
+        if (profilePhotos.length) {
+          profilePhotoPaths = await Promise.all(profilePhotos.map(b => uploadTryThisLookImage("uploads", b)));
+          photoPath = profilePhotoPaths[0]; // default main = her first pick; admin can switch it
+        }
+        if (photo.startsWith("data:image/")) {
+          photoPath = await uploadTryThisLookImage("uploads", photo);
+        }
         if (photoFull.startsWith("data:image/")) {
           photoFullPath = await uploadTryThisLookImage("uploads", photoFull);
         }
@@ -327,6 +338,7 @@ export async function POST(request: Request) {
       photoPath,
       photoFullPath,
       photoBodyPaths,
+      profilePhotoPaths,
       // Model applications are REVIEWED: they start "pending" and the admin approves
       // (Power button in the Models list) before they can sign in. This gates the
       // "Werde Model" ad traffic — no self-service accounts go live unchecked.
@@ -403,6 +415,22 @@ export async function POST(request: Request) {
     if (c.status === "deactivated") return jsonError("This account has been deactivated. Contact support.", 403);
     if (c.status === "pending") return jsonError("Your application is under review. We'll email you once you're approved.", 403);
     return NextResponse.json({ curator: { id: c.id, firstName: c.firstName, email: c.email, style: c.style } });
+  }
+
+  // Admin: pick which of the applicant's candidate profile photos becomes her main photo.
+  if (action === "set-profile-photo") {
+    const isAdmin = await isAdminRequest(request);
+    if (!isAdmin) return jsonError("Admin access required.", 401);
+    const id = String(payload.id ?? "").trim();
+    const index = Math.max(0, Math.floor(Number(payload.index) || 0));
+    const state = await readTryThisLookState();
+    const idx = (state.curators ?? []).findIndex(c => c.id === id);
+    if (idx < 0) return jsonError("Profile not found.", 404);
+    const candidates = state.curators![idx].profilePhotoPaths ?? [];
+    if (!candidates[index]) return jsonError("No such photo.", 404);
+    state.curators![idx] = { ...state.curators![idx], photoPath: candidates[index] };
+    await saveTryThisLookState(state);
+    return NextResponse.json({ ok: true });
   }
 
   // Admin: activate / deactivate a curator account (deactivated = cannot sign in).
@@ -612,7 +640,16 @@ export async function POST(request: Request) {
     const bodyPhotos2 = Array.isArray((payload as any).bodyPhotos)
       ? ((payload as any).bodyPhotos as unknown[]).filter((b): b is string => typeof b === "string" && b.startsWith("data:image/")).slice(0, 2)
       : [];
+    // New candidate profile photos REPLACE the stored set (up to 4); first becomes the main.
+    const profilePhotos2 = Array.isArray((payload as any).profilePhotos)
+      ? ((payload as any).profilePhotos as unknown[]).filter((b): b is string => typeof b === "string" && b.startsWith("data:image/")).slice(0, 4)
+      : [];
     try {
+      if (profilePhotos2.length) {
+        const paths = await Promise.all(profilePhotos2.map(b => uploadTryThisLookImage("uploads", b)));
+        (updated as any).profilePhotoPaths = paths;
+        if (!photo.startsWith("data:image/")) updated.photoPath = paths[0]; // default main unless a specific photo was also sent
+      }
       if (photo.startsWith("data:image/")) {
         updated.photoPath = await uploadTryThisLookImage("uploads", photo);
         // Keep the uncropped original too (portrait) — used by the profile lightbox.

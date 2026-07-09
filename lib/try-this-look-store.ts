@@ -195,6 +195,8 @@ export type CuratorProfile = {
   photoFullUrl?: string;      // hydrated signed URL (read side only)
   photoBodyPaths?: string[];  // full-body dressed photos (3:4 crops, up to 2) — try-on references
   photoBodyUrls?: string[];   // hydrated signed URLs (read side only)
+  profilePhotoPaths?: string[]; // candidate profile photos the applicant uploaded (up to 4) — admin picks one as photoPath
+  profilePhotoUrls?: string[];  // hydrated signed URLs (read side only)
   verificationSelfiePath?: string; // liveness selfie (holding the code) — admin reviews to verify
   verificationSelfieUrl?: string;  // hydrated signed URL (read side only)
   consentAt?: string;          // ISO time the applicant accepted the model rules & terms (audit trail)
@@ -598,6 +600,7 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
     if (cur.photoFullPath) allPaths.push(cur.photoFullPath);
     if (cur.verificationSelfiePath) allPaths.push(cur.verificationSelfiePath);
     for (const p of cur.photoBodyPaths ?? []) allPaths.push(p);
+    for (const p of cur.profilePhotoPaths ?? []) allPaths.push(p);
   }
   for (const outfit of state.outfits ?? []) {
     const p = outfit.imagePath ?? extractPathFromUrl(outfit.imageUrl);
@@ -661,6 +664,7 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
     photoUrl: cur.photoPath ? (signed.get(cur.photoPath) ?? cur.photoUrl) : cur.photoUrl,
     photoFullUrl: cur.photoFullPath ? (signed.get(cur.photoFullPath) ?? cur.photoFullUrl) : cur.photoFullUrl,
     photoBodyUrls: (cur.photoBodyPaths ?? []).map(p => signed.get(p)).filter((u): u is string => !!u),
+    profilePhotoUrls: (cur.profilePhotoPaths ?? []).map(p => signed.get(p)).filter((u): u is string => !!u),
     verificationSelfieUrl: cur.verificationSelfiePath ? (signed.get(cur.verificationSelfiePath) ?? cur.verificationSelfieUrl) : cur.verificationSelfieUrl,
   }));
 
@@ -841,7 +845,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     comments: (state.comments ?? []).slice(0, 2000),
     follows: (state.follows ?? []).slice(0, 5000),
     messages: (state.messages ?? []).slice(0, 2000),
-    curators: (state.curators ?? []).map(({ photoUrl, photoFullUrl, photoBodyUrls, verificationSelfieUrl, ...curator }) => curator).slice(0, 2000),
+    curators: (state.curators ?? []).map(({ photoUrl, photoFullUrl, photoBodyUrls, profilePhotoUrls, verificationSelfieUrl, ...curator }) => curator).slice(0, 2000),
     outfits: (state.outfits ?? []).map(({ imageUrl, ...outfit }) => outfit).slice(0, 500),
     funnelVideoPrompt: state.funnelVideoPrompt,
     viewsByDay: state.viewsByDay ?? {},
