@@ -658,12 +658,12 @@ export default function TryFunnelPage() {
   const adminProduceStrip = adminProduce ? (
     <div className="mt-4">
       <div className="mb-2 flex items-center gap-1.5">
-        <span className="mr-1 text-[11px] font-black uppercase tracking-wide text-white/40">Produce</span>
-        {([["all", "All"], ["novideo", "To do"], ["video", "🎬"]] as const).map(([k, label]) => (
+        <span className="mr-1 text-[11px] font-black uppercase tracking-wide text-white/40">Outfits</span>
+        {([["all", "All"], ["novideo", "No video"], ["video", "🎬 Has video"]] as const).map(([k, label]) => (
           <button key={k} type="button" onClick={() => setLookVideoFilter(k)}
             className={`rounded-full px-3 py-1 text-[11px] font-black transition ${lookVideoFilter === k ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>{label}</button>
         ))}
-        <span className="ml-auto text-[10px] font-bold text-white/35">tap = generate</span>
+        <span className="ml-auto text-[10px] font-bold text-white/35">tap to pick</span>
       </div>
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {gGarments.length === 0 ? (
