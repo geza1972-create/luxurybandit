@@ -13,6 +13,21 @@ import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 type Outfit = { id: string; name: string; imageUrl: string; lookId?: string };
 type Look = { id: string; name: string; imageUrl?: string; frontImageUrl?: string; videoPosterUrl?: string; modelPhotoUrl?: string; curatorName?: string; featured?: boolean };
 
+// Rotating video prompts — a DIFFERENT scene/lighting/motion each generation, so the same
+// model×look never looks the same twice (never boring). First @-token = person, second =
+// outfit (server binds by order). Keep the "exactly the same" guarantee + "no text/logos".
+const PROMPT_POOL = [
+  "@1 presents the @2 in an elegant studio with soft premium lighting and a subtle gentle sway. Keep @1 face and appearance and the @2 exactly the same. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.",
+  "@1 presents the @2 on a rooftop terrace at golden-hour sunset with a warm glow and a slow graceful turn. Keep @1 face and appearance and the @2 exactly the same. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.",
+  "@1 presents the @2 in a bright minimalist white studio with soft daylight and a slow confident walk toward the camera. Keep @1 face and appearance and the @2 exactly the same. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.",
+  "@1 presents the @2 in a luxury penthouse beside floor-to-ceiling windows with soft natural light and a graceful side-to-side sway. Keep @1 face and appearance and the @2 exactly the same. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.",
+  "@1 presents the @2 in a marble hallway with warm ambient light and a slow quarter turn. Keep @1 face and appearance and the @2 exactly the same. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.",
+  "@1 presents the @2 on a sunlit garden terrace with natural light and a light playful spin. Keep @1 face and appearance and the @2 exactly the same. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.",
+  "@1 presents the @2 in a dark studio under a single soft spotlight with a slow elegant turn. Keep @1 face and appearance and the @2 exactly the same. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.",
+  "@1 presents the @2 in a chic boutique with warm designer lighting and a subtle confident sway. Keep @1 face and appearance and the @2 exactly the same. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.",
+];
+const pickPrompt = () => PROMPT_POOL[Math.floor(Math.random() * PROMPT_POOL.length)];
+
 // Downscale a picked avatar so it stays small (never uploaded before payment anyway).
 async function fileToDataUrl(file: File, max = 1000, quality = 0.85): Promise<string> {
   const dataUrl = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file); });
@@ -381,7 +396,10 @@ export default function TryFunnelPage() {
       }
       // Send the admin prompt EXACTLY as written (tokens like @Bild1 / @Bild2 bind to the
       // reference images server-side) — no remapping, same as typing it into Pixverse.
-      const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ lookId, garment, person, prompt: prompt || "", motion, slowmo }) }).then(r => r.json());
+      // Rotate the prompt each generation (turn motion) so every clip differs; dance keeps
+      // its own server prompt.
+      const genPrompt = motion === "dance" ? (prompt || "") : pickPrompt();
+      const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ lookId, garment, person, prompt: genPrompt, motion, slowmo }) }).then(r => r.json());
       if (!start.videoId) throw new Error(start.error || "Start fehlgeschlagen.");
       let videoUrl = "";
       for (let i = 0; i < 45; i++) {
@@ -453,15 +471,14 @@ export default function TryFunnelPage() {
   // would burn Pixverse credits on every test) — they trigger it with an explicit button.
   useEffect(() => { if (step === 5 && !adminPin) void generateReal(); }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Admin production: tap a garment in the strip → reload the funnel on it for the SAME
-  // model and auto-generate, so the admin just switches outfits and gets a video each time.
-  const autogenParam = searchParams?.get("autogen") === "1";
+  // ── Admin production: tap a garment in the strip → just SELECT it (reload the funnel on it
+  // for the SAME model). It does NOT auto-generate — the admin then taps "Generate video now".
   const produceForGarment = (g: { id: string; img: string }) => {
-    const qs = new URLSearchParams({ modelId: chosenModelId, model: modelImg, garment: g.img, modelName: chosenModelName, autogen: "1" });
+    const qs = new URLSearchParams({ modelId: chosenModelId, model: modelImg, garment: g.img, modelName: chosenModelName });
     router.push(`/try/${g.id}?${qs.toString()}`);
   };
-  useEffect(() => { if (autogenParam && look && adminPin && !previewAsUser && step === 2) setStep(5); }, [autogenParam, look, adminPin, previewAsUser, step]);
-  useEffect(() => { if (autogenParam && step === 5) void generateReal(); }, [autogenParam, step]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Admin: generate the current model×garment now (real, fresh) — the manual trigger.
+  const generateNow = () => { setStep(5); void generateReal(); };
 
   // Once done: load the chosen model's videos (incl. the one just made) → shown as a gallery
   // on the result screen so the admin sees it landed in her "In motion".
@@ -1061,9 +1078,9 @@ export default function TryFunnelPage() {
               <>
                 {/* Motion pick lives right at the decision point (also on steps 3+5). */}
                 {motionPicker && <div className="mb-3 -mt-2">{motionPicker}</div>}
-                <button type="button" onClick={goStep3}
+                <button type="button" onClick={() => (adminProduce ? generateNow() : goStep3())}
                   className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                  <Sparkles className="h-5 w-5" /> {isModelSession ? "Generate my photo" : "Generate my video"}
+                  <Sparkles className="h-5 w-5" /> {adminProduce ? "Generate video now" : isModelSession ? "Generate my photo" : "Generate my video"}
                 </button>
               </>
             )
