@@ -70,6 +70,15 @@ export default function PremiumSync() {
           changed = true;
           // Funnel: a subscription just went active on this device → the completed conversion.
           try { const { logFunnelEvent } = await import("@/lib/track-funnel"); logFunnelEvent("subscribe_success", { lookName: "Premium" }); } catch { /**/ }
+          // Meta Pixel Purchase — the conversion ad campaigns optimize + measure ROAS against.
+          // Fired once per device when the sub is first detected (guarded by lb_purchase_pixel).
+          try {
+            if (localStorage.getItem("lb_purchase_pixel") !== email) {
+              localStorage.setItem("lb_purchase_pixel", email);
+              const { trackMetaPixel } = await import("@/lib/meta-pixel");
+              trackMetaPixel("Purchase", { value: 8, currency: "USD", content_name: "Premium subscription" });
+            }
+          } catch { /**/ }
         }
       }
       else if (wasSub === "1") { localStorage.removeItem("lb_subscribed"); changed = true; }
