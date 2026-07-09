@@ -1362,6 +1362,23 @@ export async function POST(request: Request) {
         userAgent: request.headers.get("user-agent") ?? undefined
       });
 
+      // ── Pay the REAL model ───────────────────────────────────────────────
+      // When a genuine USER (not admin, not the model herself) generates a VIDEO try-on with
+      // a REAL model's photo, credit her earnings. Photos (model self-service) never earn, so
+      // she can't farm her own account. Rate via MODEL_EARNING_PER_TRYON_CENTS (default 20¢).
+      try {
+        const cid = String(payload.curatorId ?? "").trim();
+        const isVideo = ["video", "video360"].includes(String(payload.genKind));
+        if (cid && isVideo && !creatorIsAdmin) {
+          const m = (state.curators ?? []).find(c => c.id === cid) as any;
+          if (m && m.realModel === true) {
+            const cents = Math.max(0, Number(process.env.MODEL_EARNING_PER_TRYON_CENTS ?? 20));
+            m.earningsCents = Math.max(0, Number(m.earningsCents ?? 0)) + cents;
+            m.earningsLog = [{ cents, at: now, lookName: String(payload.lookName ?? "").trim() || undefined }, ...(Array.isArray(m.earningsLog) ? m.earningsLog : [])].slice(0, 500);
+          }
+        }
+      } catch { /* earnings are best-effort — never block the generation */ }
+
       const updatedState = await saveTryThisLookState(state);
 
       // ── WhatsApp notification to admin (non-blocking) ────────────────────

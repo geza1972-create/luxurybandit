@@ -607,6 +607,9 @@ export async function POST(request: Request) {
       return jsonError("The new photo could not be uploaded — please try again (or use a smaller image).", 500);
     }
 
+    // Payout details (IBAN / PayPal) — the model edits her own; used for earnings payouts.
+    if (typeof (payload as any).payoutMethod === "string") (updated as any).payoutMethod = (payload as any).payoutMethod.trim() || undefined;
+
     const curators = [...state.curators!]; curators[idx] = updated;
     const brands = mergeTags(state.brands ?? [], updated.brands ?? "");
     const styles = mergeTags(state.styles ?? [], updated.style ?? "");
@@ -614,6 +617,49 @@ export async function POST(request: Request) {
     const fabrics = mergeTags(state.fabrics ?? [], updated.fabrics ?? "");
     const occasions = mergeTags(state.occasions ?? [], updated.occasions ?? "");
     await saveTryThisLookState({ ...state, curators, brands, styles, colors, fabrics, occasions });
+    return NextResponse.json({ ok: true });
+  }
+
+  // A real model requests a payout of her accumulated try-on earnings. Moves the whole
+  // balance into a PENDING payout request (earningsCents → 0) and pings the admin.
+  if (action === "request-payout") {
+    const id = String(payload.id ?? "").trim();
+    const state = await readTryThisLookState();
+    const idx = (state.curators ?? []).findIndex(c => c.id === id);
+    if (idx < 0) return jsonError("Profile not found.", 404);
+    const cur = state.curators![idx] as any;
+    const isAdmin = await isAdminRequest(request);
+    const tokenEmail = await emailFromToken(request);
+    const ownsBySession = request.headers.get("x-curator-id") === id;
+    const ownsByToken = tokenEmail && tokenEmail === (cur.email ?? "").trim().toLowerCase();
+    if (!isAdmin && !ownsByToken && !ownsBySession) return jsonError("Not allowed.", 403);
+    const MIN = Math.max(0, Number(process.env.MODEL_PAYOUT_MIN_CENTS ?? 2000)); // €20 default
+    const balance = Math.max(0, Number(cur.earningsCents ?? 0));
+    if (balance < MIN) return jsonError(`You need at least €${(MIN / 100).toFixed(0)} to request a payout — you have €${(balance / 100).toFixed(2)}.`, 400);
+    const method = (typeof (payload as any).payoutMethod === "string" && (payload as any).payoutMethod.trim()) ? (payload as any).payoutMethod.trim() : (cur.payoutMethod || "");
+    if (!method) return jsonError("Add your payout details (IBAN or PayPal) first.", 400);
+    cur.payoutMethod = method;
+    const req = { id: `${Date.now()}-${crypto.randomUUID()}`, amountCents: balance, method, status: "pending", requestedAt: new Date().toISOString() };
+    cur.payouts = [req, ...(Array.isArray(cur.payouts) ? cur.payouts : [])].slice(0, 100);
+    cur.earningsCents = 0;
+    await saveTryThisLookState(state);
+    notifyAdminWhatsApp(`💸 Payout requested: ${[cur.firstName, cur.lastName].filter(Boolean).join(" ")} — €${(balance / 100).toFixed(2)} to ${method}. ${ADMIN_URL}`);
+    return NextResponse.json({ ok: true, request: req });
+  }
+
+  // Admin marks a payout request as paid.
+  if (action === "mark-payout-paid") {
+    const isAdmin = await isAdminRequest(request);
+    if (!isAdmin) return jsonError("Admin access required.", 401);
+    const id = String(payload.id ?? "").trim();
+    const reqId = String((payload as any).requestId ?? "").trim();
+    const state = await readTryThisLookState();
+    const cur = (state.curators ?? []).find(c => c.id === id) as any;
+    if (!cur) return jsonError("Profile not found.", 404);
+    const r = (Array.isArray(cur.payouts) ? cur.payouts : []).find((p: any) => p.id === reqId);
+    if (!r) return jsonError("Payout request not found.", 404);
+    r.status = "paid"; r.paidAt = new Date().toISOString();
+    await saveTryThisLookState(state);
     return NextResponse.json({ ok: true });
   }
 

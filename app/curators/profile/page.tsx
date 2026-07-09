@@ -29,6 +29,13 @@ export default function CuratorProfilePage() {
   const [bodyExisting, setBodyExisting] = useState<string[]>([]); // already stored
   const [bodyCropSrc, setBodyCropSrc] = useState("");
   const bodyFileRef = useRef<HTMLInputElement>(null);
+  // Earnings (real models only): try-on earnings + payout details + payout requests.
+  const [isRealModel, setIsRealModel] = useState(false);
+  const [earningsCents, setEarningsCents] = useState(0);
+  const [payoutMethod, setPayoutMethod] = useState("");
+  const [payouts, setPayouts] = useState<{ id: string; amountCents: number; method: string; status: string; requestedAt?: string }[]>([]);
+  const [payoutBusy, setPayoutBusy] = useState(false);
+  const [payoutMsg, setPayoutMsg] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
@@ -55,7 +62,7 @@ export default function CuratorProfilePage() {
   const snapshot = () => JSON.stringify({
     firstName, lastName, phone, address, instagram,
     brands: brandChips, style: styleChips, colors: colorChips, fabrics: fabricChips, occasions: occasionChips,
-    genderFocus, priceTiers, fitFocus, ageFocus, motto, bio, newPhoto: !!photoData, newBody: !!bodyPhotos.length,
+    genderFocus, priceTiers, fitFocus, ageFocus, motto, bio, payoutMethod, newPhoto: !!photoData, newBody: !!bodyPhotos.length,
   });
   const dirty = baseline !== null && snapshot() !== baseline;
 
@@ -84,6 +91,10 @@ export default function CuratorProfilePage() {
           setCuratorId(c.id); setEmail(c.email ?? "");
           setPhoto(c.photoUrl ?? "");
           setBodyExisting(Array.isArray(c.photoBodyUrls) ? c.photoBodyUrls : []);
+          setIsRealModel(c.realModel === true);
+          setEarningsCents(Number(c.earningsCents ?? 0));
+          setPayoutMethod(c.payoutMethod ?? "");
+          setPayouts(Array.isArray(c.payouts) ? c.payouts : []);
           setFirstName(c.firstName ?? ""); setLastName(c.lastName ?? "");
           setPhone(c.phone ?? ""); setAddress(c.address ?? ""); setInstagram(c.instagram ?? "");
           setBrandChips(splitTags(c.brands)); setStyleChips(splitTags(c.style));
@@ -93,7 +104,7 @@ export default function CuratorProfilePage() {
           setBaseline(JSON.stringify({
             firstName: c.firstName ?? "", lastName: c.lastName ?? "", phone: c.phone ?? "", address: c.address ?? "", instagram: c.instagram ?? "",
             brands: splitTags(c.brands), style: splitTags(c.style), colors: splitTags(c.colors), fabrics: splitTags(c.fabrics), occasions: splitTags(c.occasions),
-            genderFocus: c.genderFocus ?? "", priceTiers: splitTags(c.priceTiers), fitFocus: splitTags(c.fitFocus), ageFocus: c.ageFocus ?? "", motto: c.motto ?? "", bio: c.bio ?? "", newPhoto: false, newBody: false,
+            genderFocus: c.genderFocus ?? "", priceTiers: splitTags(c.priceTiers), fitFocus: splitTags(c.fitFocus), ageFocus: c.ageFocus ?? "", motto: c.motto ?? "", bio: c.bio ?? "", payoutMethod: c.payoutMethod ?? "", newPhoto: false, newBody: false,
           }));
           // keep lb_curator in sync (so studio works after a fresh login)
           try { localStorage.setItem("lb_curator", JSON.stringify({ id: c.id, firstName: c.firstName, email: c.email, style: c.style })); } catch { /**/ }
@@ -164,7 +175,7 @@ export default function CuratorProfilePage() {
           brands: brandChips.join(", "), style: styleChips.join(", "),
           colors: colorChips.join(", "), fabrics: fabricChips.join(", "), occasions: occasionChips.join(", "),
           genderFocus, priceTiers: priceTiers.join(", "), fitFocus: fitFocus.join(", "), ageFocus,
-          motto, bio, ...(photoData ? { photo: photoData } : {}), ...(bodyPhotos.length ? { bodyPhotos } : {}),
+          motto, bio, payoutMethod, ...(photoData ? { photo: photoData } : {}), ...(bodyPhotos.length ? { bodyPhotos } : {}),
         }),
       });
       const data = await res.json();
@@ -175,12 +186,27 @@ export default function CuratorProfilePage() {
       setBaseline(JSON.stringify({
         firstName, lastName, phone, address, instagram,
         brands: brandChips, style: styleChips, colors: colorChips, fabrics: fabricChips, occasions: occasionChips,
-        genderFocus, priceTiers, fitFocus, ageFocus, motto, bio, newPhoto: false, newBody: false,
+        genderFocus, priceTiers, fitFocus, ageFocus, motto, bio, payoutMethod, newPhoto: false, newBody: false,
       }));
       try { localStorage.setItem("lb_curator", JSON.stringify({ id: curatorId, firstName, email, style: styleChips.join(", ") })); } catch { /**/ }
       setTimeout(() => setSaved(false), 2500);
     } catch { setError("Could not save."); }
     finally { setSaving(false); }
+  };
+
+  const requestPayout = async () => {
+    setPayoutBusy(true); setPayoutMsg("");
+    try {
+      const res = await fetch("/api/curator", {
+        method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ action: "request-payout", id: curatorId, payoutMethod }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) { setPayoutMsg(data.error || "Could not request payout."); return; }
+      setPayoutMsg("Payout requested — we'll transfer it shortly. 💛");
+      if (data.request) { setPayouts(p => [data.request, ...p]); setEarningsCents(0); }
+    } catch { setPayoutMsg("Could not request payout."); }
+    finally { setPayoutBusy(false); }
   };
 
   const field = "h-12 w-full rounded-xl border border-black/12 bg-black/[0.02] px-4 text-sm font-bold text-black outline-none focus:border-black placeholder:text-black/30";
@@ -271,6 +297,34 @@ export default function CuratorProfilePage() {
         <a href={curatorId ? `/curator/${curatorId}` : "/stores"} className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-black text-sm font-black text-white active:scale-95 transition-transform">
           <Sparkles className="h-4 w-4" /> Open my model page
         </a>
+
+        {/* Earnings — only for real models (they earn when users try them on). */}
+        {isRealModel && (
+          <div className="mt-5 rounded-2xl border border-amber-400/40 bg-amber-50 p-4">
+            <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">Your earnings</p>
+            <p className="mt-1 text-3xl font-black text-black">€{(earningsCents / 100).toFixed(2)}</p>
+            <p className="mt-0.5 text-[12px] font-bold text-black/50">You earn every time someone creates a try-on video with your photo.</p>
+
+            <label className={`${label} mt-4`}>Payout details (IBAN or PayPal)</label>
+            <input className={field} value={payoutMethod} onChange={e => setPayoutMethod(e.target.value)} placeholder="RO49 AAAA… or you@paypal.com" />
+
+            <button type="button" onClick={() => void requestPayout()} disabled={payoutBusy || earningsCents <= 0 || !payoutMethod.trim()}
+              className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-black text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
+              {payoutBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Request payout
+            </button>
+            {payoutMsg && <p className="mt-2 text-center text-[12px] font-bold text-black/60">{payoutMsg}</p>}
+            {payouts.length > 0 && (
+              <div className="mt-3 space-y-1.5">
+                {payouts.slice(0, 5).map(p => (
+                  <div key={p.id} className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-[12px] font-bold text-black/70">
+                    <span>€{(p.amountCents / 100).toFixed(2)} · {p.requestedAt ? new Date(p.requestedAt).toLocaleDateString() : ""}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${p.status === "paid" ? "bg-emerald-500 text-white" : "bg-amber-400 text-black"}`}>{p.status === "paid" ? "Paid" : "Pending"}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Identity */}
         <div className="mt-5 grid gap-3">
