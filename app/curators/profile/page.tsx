@@ -205,8 +205,8 @@ export default function CuratorProfilePage() {
         </div>
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 text-center">
           <div className="mb-3 text-4xl">✨</div>
-          <h1 className="text-2xl font-black text-black">You&apos;re not a curator yet</h1>
-          <p className="mt-1 text-sm font-medium text-black/55">You&apos;re signed in, but this account doesn&apos;t have a curator profile. Become a model to open your studio — it&apos;s free.</p>
+          <h1 className="text-2xl font-black text-black">You&apos;re not a model yet</h1>
+          <p className="mt-1 text-sm font-medium text-black/55">You&apos;re signed in, but this account doesn&apos;t have a model profile yet. Become a model — it&apos;s free.</p>
           <a href="/curators" className="mt-5 flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-black px-4 py-3.5 text-sm font-black text-white active:scale-95 transition-transform">
             <Sparkles className="h-4 w-4" /> Become a model
           </a>
@@ -218,10 +218,10 @@ export default function CuratorProfilePage() {
 
   // Identified → editable profile
   return (
-    <main className="min-h-[100dvh] bg-white" style={{ paddingBottom: (dirty || saving || saved) ? "150px" : "80px" }}>
+    <main className="mx-auto min-h-[100dvh] w-full max-w-[440px] bg-white shadow-[0_0_60px_rgba(0,0,0,0.25)]" style={{ paddingBottom: (dirty || saving || saved) ? "150px" : "80px" }}>
       <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/8 bg-white/95 px-4 py-3 backdrop-blur">
         <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10"><ArrowLeft className="h-4 w-4" /></button>
-        <p className="flex-1 text-sm font-black text-black">My curator profile</p>
+        <p className="flex-1 text-sm font-black text-black">My model profile</p>
         <button type="button" onClick={() => { signOut(); try { localStorage.removeItem("lb_curator"); } catch { /**/ } router.push("/stores"); }}
           className="inline-flex items-center gap-1 text-xs font-black text-black/45 active:opacity-70"><LogOut className="h-3.5 w-3.5" /> Sign out</button>
       </div>
@@ -310,7 +310,7 @@ export default function CuratorProfilePage() {
 
       {/* Save bar — only appears when there are unsaved changes (floats above nav) */}
       {(dirty || saving || saved) && (
-        <div className="fixed inset-x-0 z-20 border-t border-black/8 bg-white/95 px-5 pt-3 backdrop-blur"
+        <div className="lb-phone-col fixed z-20 border-t border-black/8 bg-white/95 px-5 pt-3 backdrop-blur"
           style={{ bottom: "calc(56px + env(safe-area-inset-bottom))", paddingBottom: "0.75rem" }}>
           <button type="button" onClick={() => void save()} disabled={saving}
             className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-black text-base font-black text-white shadow-lg disabled:opacity-50 active:scale-95 transition-transform">
