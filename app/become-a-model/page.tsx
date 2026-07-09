@@ -79,7 +79,7 @@ export default async function BecomeAModelPage() {
           <p className="mx-auto mt-3 max-w-md text-[15px] font-semibold leading-7 text-white/60">
             A <strong className="text-white">LuxuryBandit Model</strong> is not a normal model.
             On Instagram, Facebook and TikTok your photos earn likes — for the platform.
-            Here, fans put YOU in luxury looks, and you get paid every single time.
+            Here you earn <strong className="text-white">from chatting with your fans and from try-ons</strong>.
           </p>
         </div>
 
@@ -132,11 +132,11 @@ export default async function BecomeAModelPage() {
 
             {/* 4 · Money lands */}
             <div className="rounded-2xl border border-amber-400/40 bg-amber-400/[0.08] p-4">
-              <p className="text-sm font-black text-amber-400"><span className="mr-2 inline-grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[12px] text-black">4</span>Every paid try-on pays her</p>
-              {/* NO concrete amounts — we don't promise numbers, only the mechanism:
-                  fans PAY for premium try-ons, and she gets her share of each one. */}
+              <p className="text-sm font-black text-amber-400"><span className="mr-2 inline-grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[12px] text-black">4</span>You earn from chat &amp; try-ons</p>
+              {/* NO concrete amounts — only the mechanism: she earns when fans chat with her
+                  and when fans do premium try-ons with her photo. */}
               <div className="mt-3 grid gap-1.5">
-                {["Fan try-on · Riviera look", "Video try-on · Evening look", "360° view · Premium"].map(label => (
+                {["Chat with a fan", "Fan try-on · your look", "Video try-on · premium"].map(label => (
                   <div key={label} className="flex items-center justify-between rounded-xl bg-black/30 px-3.5 py-2.5">
                     <span className="flex items-center gap-2 text-[13px] font-bold text-white/70"><Coins className="h-4 w-4 text-amber-400" /> {label}</span>
                     <span className="text-[13px] font-black text-amber-400">→ her share</span>
@@ -197,10 +197,23 @@ export default async function BecomeAModelPage() {
           <div className="flex items-start gap-3.5 rounded-2xl border border-amber-400/40 bg-amber-400/[0.08] p-4">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-black"><Coins className="h-5 w-5" /></span>
             <div>
-              <p className="text-sm font-black text-amber-400">Earn with every look</p>
+              <p className="text-sm font-black text-amber-400">Earn from chat &amp; try-ons</p>
               <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/60">
-                Every time someone picks YOU to wear a look, you earn. More looks, more videos,
-                more fans — more money. Your beauty, your income.
+                You earn when fans <strong className="text-white">chat with you</strong> and when they
+                <strong className="text-white"> try you on</strong> in a look. The more fans, the more you earn.
+              </p>
+            </div>
+          </div>
+
+          {/* Verification — real people only. */}
+          <div className="flex items-start gap-3.5 rounded-2xl border border-white/12 bg-white/[0.03] p-4">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10"><BadgeCheck className="h-5 w-5 text-emerald-400" /></span>
+            <div>
+              <p className="text-sm font-black text-white">Real models only — you get verified</p>
+              <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/60">
+                Every application is <strong className="text-white">manually checked</strong> by our team
+                (a selfie + your WhatsApp). Fake or stolen photos don&apos;t get in. Your WhatsApp is
+                <strong className="text-white"> only for us</strong> to reach you — never shown publicly.
               </p>
             </div>
           </div>

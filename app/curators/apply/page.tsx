@@ -54,6 +54,7 @@ export default function CuratorApplyPage() {
   const [mottoIdeas, setMottoIdeas] = useState<string[]>([]);
   const [suggesting, setSuggesting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [agreed, setAgreed] = useState(false); // 18+, real me, accepts the model rules
   const [applied, setApplied] = useState(false);
   const [error, setError] = useState("");
 
@@ -151,11 +152,12 @@ export default function CuratorApplyPage() {
     if (!firstName.trim() || !lastName.trim() || !email.trim()) {
       setError("First name, last name and email are required."); return;
     }
+    if (!agreed) { setError("Please confirm you're 18+, the photos are really you, and you accept the model rules."); return; }
     setError(""); setSubmitting(true);
     try {
       const shared = {
         firstName, lastName, email, phone, address, instagram, brands, style, motto, bio,
-        genderFocus,
+        genderFocus, consent: agreed, consentText: "18+, photos are really me, accept model rules & terms",
         colors: colorChips.join(", "),
         fabrics: fabricChips.join(", "),
         occasions: occasionChips.join(", "),
@@ -382,13 +384,24 @@ export default function CuratorApplyPage() {
           </div>
         </div>
 
+        {/* Consent — required. She confirms she's real + accepts the rules (T&C). */}
+        <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-white/12 bg-white/[0.03] p-4">
+          <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
+            className="mt-0.5 h-5 w-5 shrink-0 accent-amber-400" />
+          <span className="text-[12px] font-bold leading-relaxed text-white/70">
+            I&apos;m <b className="text-white">18 or older</b>, the photos are <b className="text-white">really me</b>, and I accept the{" "}
+            <a href="/model-rules" target="_blank" rel="noopener noreferrer" className="text-amber-400 underline underline-offset-2">model rules &amp; terms</a>.
+            I understand every application is <b className="text-white">manually verified</b> — fake or stolen photos are rejected.
+          </span>
+        </label>
+
         {error && <p className="mt-4 text-center text-xs font-bold text-red-400">{error}</p>}
       </div>
 
       {/* Submit */}
       <div className="lb-phone-col fixed inset-x-0 bottom-0 z-20 border-t border-white/10 bg-[#0d0b0a]/95 px-5 pt-3 backdrop-blur"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
-        <button type="button" onClick={() => void submit()} disabled={submitting}
+        <button type="button" onClick={() => void submit()} disabled={submitting || (!editId && !agreed)}
           className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black disabled:opacity-50 active:scale-95 transition-transform">
           {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Coins className="h-5 w-5" />}
           {submitting ? (editId ? "Saving…" : "Setting up…") : (editId ? "Save changes" : "Sign up & start earning")}

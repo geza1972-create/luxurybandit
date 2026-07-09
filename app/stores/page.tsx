@@ -2521,12 +2521,7 @@ function StoresPage() {
               <MessageCircle className="h-4 w-4" />
             </button>
 
-            {/* Account — opens the profile sheet (lives in BottomNav, via event) */}
-            <button type="button" onClick={() => window.dispatchEvent(new Event("lb-open-account"))}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/60 hover:text-white transition"
-              aria-label="Account">
-              <User className="h-4 w-4" />
-            </button>
+            {/* Account moved to the bottom nav — removed from the top header. */}
           </div>
         </div>
 
