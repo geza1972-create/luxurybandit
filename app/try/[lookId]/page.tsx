@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2 } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2, Crown } from "lucide-react";
 import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
@@ -839,7 +839,13 @@ export default function TryFunnelPage() {
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={m.photoUrl} alt={m.name} draggable={false} className={`h-full w-full object-cover object-top ${mLocked ? "blur-[3px] opacity-70" : ""}`} />
                             {mLocked
-                              ? <span className="absolute inset-0 grid place-items-center bg-black/30"><span className="grid h-11 w-11 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-5 w-5 text-white" /></span></span>
+                              ? (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/45 px-4 text-center">
+                                  <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-black shadow-lg"><Crown className="h-6 w-6" /></span>
+                                  <span className="text-[13px] font-black uppercase tracking-wide text-amber-300">Premium</span>
+                                  {isActive && <span className="text-[11px] font-bold leading-snug text-white/80">This is a Premium feature. Unlock to try her on.</span>}
+                                </div>
+                              )
                               : m.featured && <span className="absolute left-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-black text-white">Free</span>}
                             {isActive && !mLocked && chosenModelName && (
                               <button type="button" onClick={(e) => { e.stopPropagation(); setShowChat(true); }} title={`Chat with ${chosenModelName.split(/\s+/)[0]}`}
@@ -847,9 +853,11 @@ export default function TryFunnelPage() {
                                 <MessageCircle className="h-4 w-4" /> Chat
                               </button>
                             )}
-                            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pb-2 pt-6">
-                              <span className={`text-[14px] font-black ${mLocked ? "text-amber-300" : "text-white"}`}>{mLocked ? "Premium" : m.name}</span>
-                            </div>
+                            {!mLocked && (
+                              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pb-2 pt-6">
+                                <span className="text-[14px] font-black text-white">{m.name}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
