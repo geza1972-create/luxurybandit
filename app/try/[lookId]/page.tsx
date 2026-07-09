@@ -798,6 +798,9 @@ export default function TryFunnelPage() {
                   <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     {modelImg ? <img src={modelImg} alt="" className={`h-full w-full object-cover object-top ${chosenModelLocked ? "blur-[3px] opacity-70" : ""}`} /> : <div className="h-full w-full bg-white/5" />}
+                    {!chosenModelLocked && chosenModelObj?.featured && (
+                      <span className="absolute left-1.5 top-1.5 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-black text-white">Free</span>
+                    )}
                     {chosenModelLocked ? (
                       // Premium (non-free) model → show the same crown/PREMIUM lock as the carousel.
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/45 px-2 text-center">
