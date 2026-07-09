@@ -485,7 +485,10 @@ export default function TryFunnelPage() {
   // Once done: load the chosen model's videos (incl. the one just made) → shown as a gallery
   // on the result screen so the admin sees it landed in her "In motion".
   useEffect(() => {
-    if (genStatus !== "done" || !chosenModelId) return;
+    // Load her generated videos after a generation (result screen) AND on the model step for
+    // admin (so the production gallery shows under the Generate button).
+    const wantLoad = (genStatus === "done" || (adminPin && step === 2)) && chosenModelId;
+    if (!wantLoad) return;
     const t = setTimeout(() => {
       // Admins see all of her videos (incl. the just-made, still-unpublished one via manage=1);
       // end-users only her published ones.
@@ -495,18 +498,18 @@ export default function TryFunnelPage() {
         .catch(() => {});
     }, 1200);
     return () => clearTimeout(t);
-  }, [genStatus, chosenModelId, adminPin]);
+  }, [genStatus, chosenModelId, adminPin, step]);
 
   // ── Paid video pack ($8 → 4 videos) ────────────────────────────────────────
   const payEmail = () => getStoredAuthSession()?.user?.email?.trim().toLowerCase() || "";
   // Load the signed-in user's remaining video credits when they hit the paywall.
   useEffect(() => {
-    if (step !== 4 || adminPin) return;
+    if (step !== 2 && step !== 4) return; // show credits on the model step too
     const email = payEmail();
     if (!email) { setPackCredits(0); return; }
     fetch(`/api/video-pack?email=${encodeURIComponent(email)}`).then(r => r.json())
       .then(d => setPackCredits(Number(d.credits ?? 0))).catch(() => setPackCredits(0));
-  }, [step, adminPin]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Buy the $8 pack: navigate the ALREADY-OPEN popup (opened synchronously in the click,
   // so the popup blocker doesn't kill it), then poll until Stripe reports it paid.
@@ -803,6 +806,22 @@ export default function TryFunnelPage() {
             </div>
           )}
           {adminProduceStrip}
+          {/* Admin: the videos already generated for this model — right under the strip. */}
+          {adminProduce && madeVideos.length > 0 && (
+            <div className="mt-5">
+              <p className="mb-2 text-[13px] font-black">{chosenModelName ? `${chosenModelName.split(/\s+/)[0]}'s videos` : "Generated videos"} <span className="text-white/40">{madeVideos.length}</span></p>
+              <div className="grid grid-cols-3 gap-2">
+                {madeVideos.map(v => (
+                  <a key={v.id} href={chosenModelId ? `/curator/${chosenModelId}` : "#"} className="relative block aspect-[9/16] overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] active:opacity-80">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={v.imageUrl} alt={v.lookName ?? ""} loading="lazy" className="h-full w-full object-cover object-top" />
+                    <span className="absolute inset-0 grid place-items-center text-white/90"><Play className="h-7 w-7 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" fill="currentColor" /></span>
+                    <span className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[8px] font-black backdrop-blur ${v.public ? "bg-emerald-500 text-white" : v.feed ? "bg-amber-400 text-black" : "bg-black/70 text-white"}`}>{v.public ? "Public" : v.feed ? "Show" : "Private"}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
           {adminPromptPanel}
         </div>
       )}
@@ -1086,11 +1105,17 @@ export default function TryFunnelPage() {
               <p className="text-center text-[12px] font-bold text-white/35">Pick a model above to continue</p>
             ) : (
               <>
-                {/* Motion pick lives right at the decision point (also on steps 3+5). */}
                 {motionPicker && <div className="mb-3 -mt-2">{motionPicker}</div>}
+                {/* Free-credit meter: 3 free videos, 1 credit each. */}
+                {!adminProduce && packCredits != null && (
+                  <p className="mb-2 text-center text-[12px] font-black text-white/50">
+                    🎟️ {Math.min(3, Math.max(0, 3 - packCredits))}/3 free videos used{packCredits > 3 ? ` · ${packCredits} credits` : ` · ${packCredits} left`}
+                  </p>
+                )}
                 <button type="button" onClick={() => (adminProduce ? generateNow() : goStep3())}
                   className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                  <Sparkles className="h-5 w-5" /> {adminProduce ? "Generate video now" : isModelSession ? "Generate my photo" : "Generate my video"}
+                  <Sparkles className="h-5 w-5" /> {adminProduce ? "Generate video now" : (isModelSession ? "Generate my photo" : "Generate my video")}
+                  {!adminProduce && !isModelSession && <span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">1 credit</span>}
                 </button>
               </>
             )
