@@ -331,10 +331,16 @@ export default function CuratorApplyPage() {
             <div><span className={label}>Last name</span><input className={field} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Popescu" /></div>
           </div>
           <div><span className={label}>Email</span><input type="email" className={field} value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><span className={label}>WhatsApp</span><input type="tel" className={field} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+40 7xx… (WhatsApp)" /></div>
-            <div><span className={label}>Instagram</span><input className={field} value={instagram} onChange={e => setInstagram(e.target.value)} placeholder="@handle" /></div>
+          <div>
+            <span className={label}>WhatsApp 🔒</span>
+            <input type="tel" className={field} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+40 7xx… (WhatsApp)" />
+            <p className="mt-1.5 text-[11px] font-bold leading-relaxed text-white/45">
+              Never shown publicly — only our team sees it. We use it to notify you about fan
+              chats &amp; try-ons and to verify you&rsquo;re a real person.{" "}
+              <a href="/model-rules" target="_blank" rel="noopener noreferrer" className="text-amber-400 underline underline-offset-2">See the rules</a>.
+            </p>
           </div>
+          <div><span className={label}>Instagram</span><input className={field} value={instagram} onChange={e => setInstagram(e.target.value)} placeholder="@handle" /></div>
           <div><span className={label}>Address</span><input className={field} value={address} onChange={e => setAddress(e.target.value)} placeholder="City, country" /></div>
         </div>
 
