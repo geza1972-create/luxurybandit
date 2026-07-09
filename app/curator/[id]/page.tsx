@@ -133,8 +133,6 @@ export default function CuratorPublicPage() {
   }, [id]);
   // "See her in other looks" scrolls down to her wardrobe (her outfits).
   const wardrobeRef = useRef<HTMLDivElement>(null);
-  // Wardrobe category filter (mirrors the Garderobe tab).
-  const [wardrobeCat, setWardrobeCat] = useState<"all" | LookCategory>("all");
   // Admin per-item management sheet (delete / hide / replace / move category / edit text).
   const [manageId, setManageId] = useState("");
   const [mName, setMName] = useState("");
@@ -806,8 +804,7 @@ export default function CuratorPublicPage() {
           // everything else is Premium (locked) unless the visitor is paid/admin.
           const wardrobeAll = allLooks.filter(l => isGarment(l) && dedupe(l))
             .sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
-          const catOf = (l: Look): LookCategory => (isLookCategory(l.category) ? l.category : categorizeLook(l as never));
-          const wardrobe = wardrobeCat === "all" ? wardrobeAll : wardrobeAll.filter(l => catOf(l) === wardrobeCat);
+          const wardrobe = wardrobeAll;
           return (
             <>
               {/* Section header + admin "generate wardrobe" (moved out of the profile). */}
@@ -822,16 +819,6 @@ export default function CuratorPublicPage() {
                 )}
               </div>
               {isAdmin && genMsg && <p className="mb-2 text-[11px] font-bold text-white/50">{genMsg}</p>}
-
-              {/* Category filter — ALL worlds (boudoir → "Lingerie"), same as the Garderobe. */}
-              <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {(["all", ...LOOK_CATEGORIES.map(c => c.slug)] as ("all" | LookCategory)[]).map(slug => (
-                  <button key={slug} type="button" onClick={() => setWardrobeCat(slug)}
-                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${wardrobeCat === slug ? "bg-white text-black" : "bg-white/10 text-white/70"}`}>
-                    {slug === "all" ? "Alle" : catLabel(slug)}
-                  </button>
-                ))}
-              </div>
 
               {wardrobe.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-16 text-center">
