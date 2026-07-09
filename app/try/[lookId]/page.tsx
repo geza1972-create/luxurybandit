@@ -810,7 +810,12 @@ export default function TryFunnelPage() {
                   <p className={`mt-1 text-center text-[11px] font-black uppercase tracking-wide ${chosenModelLocked ? "text-amber-400" : "text-white/45"}`}>{chosenModelLocked ? "Premium" : (chosenModelName?.split(/\s+/)[0] || "Model")}</p>
                 </div>
               </div>
-              <button type="button" onClick={() => setComboCancelled(true)}
+              <button type="button" onClick={() => {
+                  setComboCancelled(true);
+                  // Reopen the carousel on the FIRST model (Gina / featured), not the last pick.
+                  const first = [...gModels].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0))[0];
+                  if (first) { setAvatar(""); setPickedModel(first.photoUrl); setPickedModelId(first.id); setPickedModelName(first.name); }
+                }}
                 className="mx-auto mt-3 flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[12px] font-black text-white/70 active:scale-95 transition">
                 <X className="h-3.5 w-3.5" /> Cancel — choose again
               </button>
