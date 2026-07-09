@@ -418,6 +418,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ curator: { id: c.id, firstName: c.firstName, email: c.email, style: c.style } });
   }
 
+  // Anyone can REPORT a profile → the admin gets a WhatsApp to review it.
+  if (action === "report-profile") {
+    const id = String(payload.id ?? "").trim();
+    const reason = String((payload as any).reason ?? "").trim().slice(0, 300);
+    const state = await readTryThisLookState();
+    const c = (state.curators ?? []).find(x => x.id === id);
+    const name = c ? [c.firstName, c.lastName].filter(Boolean).join(" ") || id : id;
+    notifyAdminWhatsApp(`🚩 Profile REPORTED: ${name} (${id})${reason ? ` — "${reason}"` : ""}. Review: ${ADMIN_URL}/curator/${id}`);
+    return NextResponse.json({ ok: true });
+  }
+
   // Admin: pick which of the applicant's candidate profile photos becomes her main photo.
   if (action === "set-profile-photo") {
     const isAdmin = await isAdminRequest(request);

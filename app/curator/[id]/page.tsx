@@ -492,17 +492,26 @@ export default function CuratorPublicPage() {
   // Admin: REJECT (deactivate + remove the real flags).
   const rejectModel = async () => {
     if (badgeBusy || !profile) return;
-    // A reason is EMAILED to her (so she can fix it & re-apply). Empty = reject without a note. Cancel = abort.
-    const reason = window.prompt("Reason for rejection — she gets this by email (e.g. \"Photo isn't sharp, please upload a clearer one\"). Leave empty to reject without a note.", "");
-    if (reason === null) return;
+    // Rejected is rejected — no reason needed. She can't sign in and doesn't get a notice.
+    if (!confirm("Reject this model? She won't be able to sign in.")) return;
     setBadgeBusy(true);
     try {
       const H = { "Content-Type": "application/json", ...adminHeaders() };
-      await fetch("/api/curator", { method: "POST", headers: H, body: JSON.stringify({ action: "set-curator-status", id, status: "deactivated", reason: reason.trim() }) });
+      await fetch("/api/curator", { method: "POST", headers: H, body: JSON.stringify({ action: "set-curator-status", id, status: "deactivated" }) });
       await fetch("/api/curator", { method: "POST", headers: H, body: JSON.stringify({ action: "update", id, realBadge: false, realModel: false }) });
       setProfile(p => (p ? { ...p, realBadge: false, realModel: false, status: "deactivated" } : p));
     } catch (e) { alert(e instanceof Error ? e.message : "Fehlgeschlagen"); }
     finally { setBadgeBusy(false); }
+  };
+
+  // Anyone can report a profile → the admin is notified to review it.
+  const reportProfile = async () => {
+    const reason = window.prompt("Report this profile — what's wrong? (fake, not a real person, offensive, stolen photos…)", "");
+    if (reason === null) return;
+    try {
+      await fetch("/api/curator", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "report-profile", id, reason: (reason || "").trim() }) });
+      alert("Thanks — we'll review this profile.");
+    } catch { alert("Could not send the report. Please try again."); }
   };
 
   // Admin: pick which of her candidate photos becomes her main profile photo.
@@ -820,6 +829,12 @@ export default function CuratorPublicPage() {
             See {profile.firstName || "her"} in other looks
           </button>
         </div>
+
+        {/* Report — any visitor can flag a profile for review. */}
+        {!isOwn && (
+          <button type="button" onClick={() => void reportProfile()}
+            className="mt-2 text-[11px] font-bold text-white/30 underline underline-offset-2 active:opacity-70">⚠ Report this profile</button>
+        )}
 
         {/* Trust badge in gold (~every 2nd visit): the models are REAL people.
             PURE trust signal for VISITORS — the model herself never sees it

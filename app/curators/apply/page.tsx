@@ -282,8 +282,14 @@ export default function CuratorApplyPage() {
           </p>
         </div>}
 
+        {/* One-shot warning — sets expectations before she uploads. */}
+        <div className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/[0.07] px-4 py-3 text-center">
+          <p className="text-[13px] font-black text-amber-300">⚠️ You get one shot — send your very best photos.</p>
+          <p className="mt-1 text-[11px] font-bold leading-relaxed text-white/55">Blurry, low-quality or fake photos are rejected — and a rejected application can&apos;t apply again. Sharp, well-lit, real photos only.</p>
+        </div>
+
         {/* Profile photos — one main + up to 3 more; the team picks the best one. */}
-        <div className="mt-6 flex flex-col items-center gap-2">
+        <div className="mt-5 flex flex-col items-center gap-2">
           <span className={`${label} text-center`}>Profile photo{` `}· main</span>
           {(() => {
             const combined = [...profilePhotos.map(src => ({ src, isNew: true })), ...profileExisting.map(src => ({ src, isNew: false }))].slice(0, 4);
