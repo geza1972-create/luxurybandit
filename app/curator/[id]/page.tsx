@@ -830,8 +830,9 @@ export default function CuratorPublicPage() {
                   {wardrobe.map(l => {
                     const garment = (l.frontImageUrl ?? l.imageUrl) as string;
                     const hidden = l.published === false;
-                    // Only the featured (free) pieces are usable; the rest are Premium.
-                    const locked = !l.featured && !isPaid;
+                    // Show ALL outfits clearly — tapping one goes to the funnel, where the
+                    // paywall/credits actually apply. No blurred/locked thumbnails here.
+                    const locked = false; void isPaid;
                     return (
                       <div key={l.id} className="relative flex flex-col overflow-hidden rounded-2xl bg-white">
                         <button type="button"
