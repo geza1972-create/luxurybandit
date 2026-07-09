@@ -674,10 +674,6 @@ export default function TryFunnelPage() {
     <div className="mt-4">
       <div className="mb-2 flex items-center gap-1.5">
         <span className="mr-1 text-[11px] font-black uppercase tracking-wide text-white/40">Outfits</span>
-        {([["all", "All"], ["novideo", "No video"], ["video", "🎬 Has video"]] as const).map(([k, label]) => (
-          <button key={k} type="button" onClick={() => setLookVideoFilter(k)}
-            className={`rounded-full px-3 py-1 text-[11px] font-black transition ${lookVideoFilter === k ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>{label}</button>
-        ))}
         <span className="ml-auto text-[10px] font-bold text-white/35">tap to pick</span>
       </div>
       <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -778,19 +774,19 @@ export default function TryFunnelPage() {
                 <div className="relative aspect-[9/16] h-[38vh] max-w-[78vw]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {modelImg ? <img src={modelImg} alt="" className="h-full w-full object-cover object-top" /> : <div className="h-full w-full bg-white/5" />}
+                  {/* Chat with her — golden button on her photo, top-right. */}
+                  {chosenModelId && chosenModelName && !avatar && (
+                    <button type="button" onClick={() => setShowChat(true)} title={`Chat with ${chosenModelName.split(/\s+/)[0]}`}
+                      className="lb-gold absolute right-2 top-2 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-black shadow-lg active:scale-95 transition">
+                      <MessageCircle className="h-4 w-4" /> Chat
+                    </button>
+                  )}
                   <button type="button" onClick={() => (avatar ? fileRef.current?.click() : (setPickedModel(""), setChooseModel(true)))}
                     className="absolute inset-x-3 bottom-3 flex items-center justify-center gap-2 rounded-full bg-black/70 px-4 py-2.5 text-[13px] font-black backdrop-blur active:scale-95">
                     <RefreshCw className="h-3.5 w-3.5" /> {avatar ? "Change photo" : "Change model"}
                   </button>
                 </div>
               </div>
-              {/* Chat with her — right in the try-on, so it feels like a real person. */}
-              {chosenModelId && chosenModelName && !avatar && (
-                <button type="button" onClick={() => setShowChat(true)}
-                  className="mx-auto mt-3 flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/10 px-5 py-2.5 text-[13px] font-black text-amber-300 active:scale-95 transition">
-                  <MessageCircle className="h-4 w-4" /> Chat with {chosenModelName.split(" ")[0]}
-                </button>
-              )}
             </>
           )}
           <input ref={fileRef} type="file" accept="image/*" className="hidden"
