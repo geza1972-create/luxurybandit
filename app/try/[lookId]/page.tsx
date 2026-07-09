@@ -7,7 +7,6 @@ import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
 import { FeedGate } from "@/components/FeedGate";
-import BottomNav from "@/components/BottomNav";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 type Outfit = { id: string; name: string; imageUrl: string; lookId?: string };
@@ -1337,7 +1336,6 @@ export default function TryFunnelPage() {
           )}
         </div>
       )}
-      {step === 5 && <BottomNav forceShow />}
 
       {gateOpen && (
         <FeedGate mode="auth" reason="Register or sign in to watch your video" lookId={lookId} lookName={look?.name}
