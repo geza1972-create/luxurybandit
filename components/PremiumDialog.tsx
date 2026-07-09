@@ -26,10 +26,11 @@ export default function PremiumDialog({ open, onClose, title = "Unlock the full 
     logFunnelEvent("premium_click", { paywall: "premium", lookName: "Premium" });
     const email = getStoredAuthSession()?.user?.email?.trim().toLowerCase();
     if (!email) {
-      // Not signed in → sign in first, then RESUME checkout via /go/premium (which forwards
-      // straight to Stripe once the email is known). Returning to the page would lose the
-      // payment intent — this is what kept the customer "falling out" before paying.
-      // (checkout_start fires from /go/premium once the email is known.)
+      // Not signed in → mark a pending checkout, then sign in. PremiumSync resumes it straight
+      // to Stripe the moment they're signed in — no matter where the OAuth round-trip lands
+      // them (this is the durable net that stops the customer "falling out" after a Google login;
+      // /go/premium is the fast path when the return survives, checkout_start fires from either).
+      try { localStorage.setItem("lb_pending_checkout", String(Date.now())); } catch { /**/ }
       window.location.href = `/login?returnTo=${encodeURIComponent("/go/premium")}`;
       return;
     }

@@ -23,7 +23,9 @@ export default function GoPremiumPage() {
     const attempt = () => {
       const email = getStoredAuthSession()?.user?.email?.trim().toLowerCase();
       if (email) {
-        // Signed in → go straight to Stripe. No dead-ends, no lost intent.
+        // Signed in → go straight to Stripe. No dead-ends, no lost intent. Clear the pending
+        // flag so PremiumSync's safety-net resume doesn't also fire (avoids a double event).
+        try { localStorage.removeItem("lb_pending_checkout"); } catch { /**/ }
         logFunnelEvent("checkout_start", { paywall: "resume", lookName: "Premium" });
         window.location.replace(premiumCheckoutUrl(email));
         return;

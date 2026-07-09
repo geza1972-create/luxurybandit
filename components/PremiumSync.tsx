@@ -33,6 +33,27 @@ export default function PremiumSync() {
 
     const sync = async () => {
       const email = emailNow();
+
+      // Resume a checkout the guest started before logging in. A guest who taps "Start Premium"
+      // sets lb_pending_checkout, then signs in. The OAuth round-trip can land them ANYWHERE
+      // (dashboard/home/…) and sessionStorage return-paths can be dropped — so instead of
+      // relying on where they land, we forward straight to Stripe the moment they're signed in.
+      // This is what stops the customer "falling out" before paying after a Google login.
+      if (email) {
+        try {
+          const pend = Number(localStorage.getItem("lb_pending_checkout") || 0);
+          if (pend && Date.now() - pend < 30 * 60 * 1000) {
+            localStorage.removeItem("lb_pending_checkout");
+            const [{ premiumCheckoutUrl }, { logFunnelEvent }] = await Promise.all([
+              import("@/lib/premium-link"), import("@/lib/track-funnel"),
+            ]);
+            logFunnelEvent("checkout_start", { paywall: "resume", lookName: "Premium" });
+            window.location.href = premiumCheckoutUrl(email);
+            return;
+          }
+        } catch { /**/ }
+      }
+
       const flagEmail = (() => { try { return localStorage.getItem("lb_paid_email") || ""; } catch { return ""; } })();
       const clearAll = () => { try { localStorage.removeItem("lb_paid"); localStorage.removeItem("lb_paid_email"); localStorage.removeItem("lb_subscribed"); } catch { /**/ } };
       if (!email) { if (flagEmail) clearAll(); return; }          // signed out → drop stale flags
