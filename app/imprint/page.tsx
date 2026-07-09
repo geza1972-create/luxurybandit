@@ -18,8 +18,7 @@ export default function ImprintPage() {
 
       <h2>Contact</h2>
       <p>
-        Email: [email]<br />
-        Phone: [optional]
+        Email: [email]
       </p>
 
       <h2>Represented by</h2>

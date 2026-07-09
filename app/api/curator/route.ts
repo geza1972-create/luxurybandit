@@ -357,21 +357,24 @@ export async function POST(request: Request) {
         const hi = curator.firstName ? ` ${curator.firstName}` : "";
         const site = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://luxurybandit.com";
         const profileUrl = `${site}/curators/profile`;
+        const rulesUrl = `${site}/model-rules`;
         await sendEmail({
           to: String(email),
           subject: "Complete your LuxuryBandit Model profile 💛",
           html: `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;color:#111">
   <p style="font-size:16px">Hi${hi},</p>
-  <p>Thank you for applying to become a <b>LuxuryBandit Model</b> — we've received your application. 💛</p>
-  <p><b>One more step:</b> please complete your <b>two photos</b> so we can set up your profile and start your try-ons:</p>
+  <p>Thank you for applying to become a <b>LuxuryBandit Model</b>. 💛</p>
+  <p><b>Now complete your profile yourself</b> — open the link below, sign in with this email (<b>${String(email)}</b>) and fill in everything:</p>
   <ul style="padding-left:18px;color:#333">
-    <li>a clear <b>face / portrait</b> photo, and</li>
-    <li>a <b>full-body, dressed</b> photo (head to toe — this is what the AI styles).</li>
+    <li>your <b>face / portrait</b> photo and a <b>full-body, dressed</b> photo</li>
+    <li>your <b>verification selfie</b> (holding a paper with “LuxuryBandit” + today’s date)</li>
+    <li>your <b>WhatsApp number</b> (only for us — never shown publicly) and your details</li>
   </ul>
+  <p>Please also <b>read and accept our <a href="${rulesUrl}" style="color:#b8860b">model rules &amp; terms</a></b>. Every profile is <b>manually verified</b> — fake or stolen photos are rejected.</p>
   <p style="text-align:center;margin:24px 0">
-    <a href="${profileUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;font-weight:800;padding:14px 28px;border-radius:999px">Add my photos →</a>
+    <a href="${profileUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;font-weight:800;padding:14px 28px;border-radius:999px">Complete my profile →</a>
   </p>
-  <p style="font-size:13px;color:#666">Open the link, sign in with this email address (<b>${String(email)}</b>), and upload both photos on your profile page. You can also just reply to this email with the photos.</p>
+  <p style="font-size:13px;color:#666">Once everything is complete and verified, we’ll approve you and you can start earning from chats and try-ons.</p>
   <p>Talk soon,<br/>The LuxuryBandit Team</p>
 </div>`,
         });
