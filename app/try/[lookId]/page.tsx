@@ -829,33 +829,50 @@ export default function TryFunnelPage() {
               {(() => {
                 const om = [...gModels].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
                 if (om.length === 0) return <div className="grid h-[46vh] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/30" /></div>;
+                // "Use your own photo" lives IN the carousel as a card (3rd position), not a
+                // separate button. It uploads (paid/admin) or opens the paywall.
+                const YOURPHOTO = { id: "__yourphoto", name: "Your photo", photoUrl: "", featured: false } as typeof om[number];
+                const cards = [...om];
+                cards.splice(Math.min(2, cards.length), 0, YOURPHOTO);
                 // Admin (production) and paying users can pick ANY model; everyone else only Gina.
                 const unlockAll = isPaid || adminProduce;
-                const active = Math.max(0, om.findIndex(m => m.id === chosenModelId));
+                const active = Math.max(0, cards.findIndex(m => m.id === chosenModelId));
                 // Bring a model to the front — by tap OR swipe. Locked (Premium) models still
                 // come forward with their padlock; the paywall only fires on "Generate".
                 const setFront = (m: { id: string; name: string; photoUrl: string; featured?: boolean }) => {
+                  if (m.id === "__yourphoto") return; // the upload tile isn't a "front" model
                   setLockedNudge(false); setAvatar("");
                   setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name);
                 };
                 const slide = (dir: number) => {
-                  const ni = Math.min(om.length - 1, Math.max(0, active + dir));
-                  if (ni !== active) setFront(om[ni]);
+                  let ni = active + dir;
+                  if (cards[ni]?.id === "__yourphoto") ni += dir; // hop over the upload tile
+                  ni = Math.min(cards.length - 1, Math.max(0, ni));
+                  if (cards[ni]?.id === "__yourphoto") ni -= dir; // never land on it
+                  if (ni !== active && cards[ni] && cards[ni].id !== "__yourphoto") setFront(cards[ni]);
                 };
                 return (
                   <div className="relative mx-auto mt-2 h-[72vw] max-h-[300px] select-none overflow-hidden touch-pan-y" style={{ perspective: "1100px" }}
                     onPointerDown={(e) => { swipeRef.current = e.clientX; swipedRef.current = false; }}
                     onPointerUp={(e) => { const dx = e.clientX - swipeRef.current; if (Math.abs(dx) > 30) { swipedRef.current = true; slide(dx < 0 ? 1 : -1); } }}>
-                    {om.map((m, i) => {
+                    {cards.map((m, i) => {
                       const off = i - active;
                       if (Math.abs(off) > 2) return null;
-                      const mLocked = !unlockAll && !m.featured;
+                      const isUpload = m.id === "__yourphoto";
+                      const mLocked = !isUpload && !unlockAll && !m.featured;
                       const isActive = off === 0;
                       return (
-                        <div key={m.id} onClick={() => { if (swipedRef.current) { swipedRef.current = false; return; } if (!isActive) setFront(m); }}
+                        <div key={m.id} onClick={() => { if (swipedRef.current) { swipedRef.current = false; return; } if (isUpload) { (isPaid || adminProduce) ? fileRef.current?.click() : setShowPremium(true); return; } if (!isActive) setFront(m); }}
                           className="absolute left-1/2 top-1/2 w-[54%] max-w-[220px] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-2xl transition-all duration-300 ease-out"
-                          style={{ transform: `translate(-50%,-50%) translateX(${off * 56}%) rotateY(${-off * 38}deg) scale(${isActive ? 1 : 0.82})`, zIndex: 20 - Math.abs(off), opacity: Math.abs(off) === 2 ? 0.45 : 1, cursor: isActive ? "default" : "pointer" }}>
+                          style={{ transform: `translate(-50%,-50%) translateX(${off * 56}%) rotateY(${-off * 38}deg) scale(${isActive ? 1 : 0.82})`, zIndex: 20 - Math.abs(off), opacity: Math.abs(off) === 2 ? 0.45 : 1, cursor: "pointer" }}>
                           <div className="relative aspect-[3/4] w-full">
+                            {isUpload ? (
+                              <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-white/[0.04] px-3 text-center">
+                                {(isPaid || adminProduce) ? <ImageUp className="h-9 w-9 text-amber-400" /> : <Lock className="h-8 w-8 text-amber-400" />}
+                                <span className="text-[13px] font-black text-amber-300">Your photo</span>
+                                <span className="text-[10px] font-bold text-white/55">{(isPaid || adminProduce) ? "Upload a selfie" : "Premium"}</span>
+                              </div>
+                            ) : (<>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={m.photoUrl} alt={m.name} draggable={false} className={`h-full w-full object-cover object-top ${mLocked ? "blur-[3px] opacity-70" : ""}`} />
                             {m.realModel && (
@@ -881,6 +898,7 @@ export default function TryFunnelPage() {
                                 <span className="text-[14px] font-black text-white">{m.name}</span>
                               </div>
                             )}
+                            </>)}
                           </div>
                         </div>
                       );
@@ -888,11 +906,6 @@ export default function TryFunnelPage() {
                   </div>
                 );
               })()}
-              {/* Use your own photo — the paid custom feature (padlock for non-payers). */}
-              <button type="button" onClick={() => ((isPaid || adminProduce) ? fileRef.current?.click() : setShowPremium(true))}
-                className="mx-auto mt-2 flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[12px] font-black text-white/70 active:scale-95 transition">
-                {(isPaid || adminProduce) ? <ImageUp className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5 text-amber-400" />} Use your own photo
-              </button>
             </>
           )}
           <input ref={fileRef} type="file" accept="image/*" className="hidden"
