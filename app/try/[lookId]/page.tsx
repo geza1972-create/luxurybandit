@@ -1269,15 +1269,17 @@ export default function TryFunnelPage() {
             ) : (
               <>
                 {motionPicker && <div className="mb-3 -mt-2">{motionPicker}</div>}
-                {/* Free-credit meter: 3 free videos, 1 credit each. Not signed in → show the
+                {/* Free-credit meter: 1 free video, 1 credit each. Not signed in → show the
                     offer, not a wrong "0 left" (anonymous has no balance yet). */}
                 {!adminProduce && !chosenModelLocked && (
                   <p className="mb-2 text-center text-[12px] font-black text-white/50">
                     {!isAuthed()
-                      ? "🎟️ 3 free videos · 1 credit each"
+                      ? "🎟️ 1 free video, then Premium"
                       : packCredits == null
                       ? ""
-                      : `🎟️ ${Math.min(3, Math.max(0, 3 - packCredits))}/3 free videos used${packCredits > 3 ? ` · ${packCredits} credits` : ` · ${packCredits} left`}`}
+                      : packCredits > 0
+                      ? `🎟️ ${packCredits} free video${packCredits === 1 ? "" : "s"} left`
+                      : "🎟️ Free video used — go Premium to keep creating"}
                   </p>
                 )}
                 {!adminProduce && chosenModelLocked && (
@@ -1426,7 +1428,7 @@ export default function TryFunnelPage() {
                 .filter(g => lookVideoFilter === "all" || (lookVideoFilter === "video" ? g.hasVideo : !g.hasVideo))
                 .map(g => {
                 // All looks are selectable now (even for guests) — you only pay per GENERATION
-                // (3 free, then $8), not per look. So nothing is locked here.
+                // (1 free, then Premium), not per look. So nothing is locked here.
                 const locked = false; void anyFeatured;
                 return (
                   <button key={g.id} type="button"

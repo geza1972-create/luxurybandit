@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Sparkles, MessageCircle, ArrowLeft } from "lucide-react";
 
-// Public pricing menu. Watching & browsing is free (plus 3 free try-on videos);
+// Public pricing menu. Watching & browsing is free (plus 1 free try-on video);
 // creating more needs Premium — a $49/month subscription, first month just $8,
 // which grants 40 try-on videos every month and unlocks all models & full videos.
 export default function PricingPage() {
@@ -18,7 +18,7 @@ export default function PricingPage() {
         </div>
 
         <h1 className="text-3xl font-black leading-tight">Simple pricing</h1>
-        <p className="mt-1.5 text-sm font-bold text-white/50">Browsing & watching is free — plus 3 free try-on videos. Go Premium to keep creating.</p>
+        <p className="mt-1.5 text-sm font-bold text-white/50">Browsing & watching is free — plus 1 free try-on video. Go Premium to keep creating.</p>
 
         {/* Free */}
         <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
