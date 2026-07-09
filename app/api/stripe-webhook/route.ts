@@ -1,12 +1,16 @@
-import { addCreditsToLedger } from "@/lib/billing";
-import { addPurchasedCredits } from "@/lib/credits-store";
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
-// How many try-on credits does each Stripe purchase give?
-const CREDITS_PER_PURCHASE = Number(process.env.STRIPE_CREDITS_PER_PURCHASE ?? 10);
+// NOTE: this webhook no longer grants credits. Every paid flow is fulfilled elsewhere:
+//   • per-try-on payments  → client polls /api/checkout-status on return
+//   • the (retired) $8 pack → client polled /api/checkout-status too
+//   • Premium subscription → pull-based: PremiumSync → /api/premium →
+//     grantMonthlySubscriptionCredits (see [premium-subscription] memory)
+// The old branch here wrote CREDITS_PER_PURCHASE into lib/credits-store, a ledger nothing
+// reads, so a subscriber got phantom credits that never surfaced. Kept as a verified,
+// logging-only endpoint (safe to point Stripe at) — no credit writes.
 
 function verifyStripeSignature(rawBody: string, header: string, secret: string): boolean {
   try {
@@ -59,27 +63,10 @@ export async function POST(request: Request) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-
-    // Per-try-on payments (create-checkout marks metadata.kind = "tryon") are fulfilled
-    // client-side via /api/checkout-status on return — they must NOT add credits here.
-    const kind = String((session.metadata as Record<string, unknown> | undefined)?.kind ?? "");
-    if (kind === "tryon") {
-      console.info("[stripe-webhook] tryon payment completed (no credits) —", session.id);
-      return NextResponse.json({ received: true });
-    }
-
-    const accountId = String(session.client_reference_id ?? "").trim();
-
-    if (!accountId) {
-      console.warn("[stripe-webhook] checkout.session.completed without client_reference_id — credits not assigned.");
-      return NextResponse.json({ received: true });
-    }
-
-    // Persist to disk + update live in-memory ledger
-    const newTotal = addPurchasedCredits(accountId, CREDITS_PER_PURCHASE);
-    addCreditsToLedger(accountId, CREDITS_PER_PURCHASE);
-
-    console.info(`[stripe-webhook] +${CREDITS_PER_PURCHASE} credits → ${accountId} (total purchased: ${newTotal})`);
+    const kind = String((session.metadata as Record<string, unknown> | undefined)?.kind ?? "") || "subscription/other";
+    const ref = String(session.client_reference_id ?? "").trim();
+    // Log-only — fulfilment happens client-side (checkout-status) or via PremiumSync.
+    console.info(`[stripe-webhook] checkout.session.completed (${kind}) — ${session.id}${ref ? ` · ${ref}` : ""} · no action (fulfilled elsewhere)`);
   }
 
   return NextResponse.json({ received: true });
