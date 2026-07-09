@@ -8,6 +8,9 @@ export const dynamic = "force-dynamic";
 // The Premium monthly price. Override with STRIPE_PREMIUM_PRICE_ID on Vercel to
 // swap the plan/price without a code change.
 const PRICE_ID = process.env.STRIPE_PREMIUM_PRICE_ID?.trim() || "price_1TqvRE1jPNCWoiztVkIaOg7x";
+// First-month discount coupon ("Erster Monat Rabatt" — $41 off once → $8 first month).
+// Auto-applied at checkout. Override via env to swap the promo without a code change.
+const FIRST_MONTH_COUPON = process.env.STRIPE_PREMIUM_FIRST_MONTH_COUPON?.trim() || "CjOJYKVV";
 
 // GET /api/premium?email=…  → { premium, credits? }  (queries Stripe live)
 // Subscribers also get their monthly video-credit allowance topped up here (idempotent per
@@ -44,6 +47,7 @@ export async function POST(request: Request) {
     const { url } = await createSubscriptionCheckout({
       priceId: PRICE_ID,
       email,
+      coupon: FIRST_MONTH_COUPON || undefined,
       successUrl: `${origin}${safeRp}${sep}premium=success`,
       cancelUrl: `${origin}${safeRp}${sep}premium=cancelled`,
     });

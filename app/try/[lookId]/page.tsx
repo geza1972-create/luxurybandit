@@ -540,54 +540,27 @@ export default function TryFunnelPage() {
       .then(d => setPackCredits(Number(d.credits ?? 0))).catch(() => setPackCredits(0));
   }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Buy the $8 pack: navigate the ALREADY-OPEN popup (opened synchronously in the click,
-  // so the popup blocker doesn't kill it), then poll until Stripe reports it paid.
-  const buyPack = async (payWin: Window | null): Promise<boolean> => {
-    const email = payEmail();
-    if (!email) return false;
-    const res = await fetch("/api/video-pack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
-    const d = await res.json().catch(() => ({}));
-    if (!res.ok || !d.url) { try { payWin?.close(); } catch { /**/ } throw new Error(d.error ?? "Could not start checkout."); }
-    if (payWin && !payWin.closed) payWin.location.href = d.url;
-    else { window.location.href = d.url; return false; } // popup blocked → full-page fallback
-    // Poll until Stripe reports the session paid (credits granted) or the user gives up.
-    for (let i = 0; i < 150; i++) {
-      await new Promise(r => setTimeout(r, 2000));
-      try {
-        const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(d.sessionId)}`).then(r => r.json());
-        if (st?.paid) { try { payWin?.close(); } catch { /**/ } if (typeof st.credits === "number") setPackCredits(st.credits); return true; }
-      } catch { /**/ }
-      if (payWin && payWin.closed) break;
-    }
-    return false;
-  };
-
-  // The paywall's main action: spend a credit and generate — buying a pack first if empty.
+  // The paywall's main action: spend a credit and generate. When the 3 free credits (and any
+  // monthly subscriber allowance) are used up, open the Premium subscription paywall instead
+  // (first month $8, then $49/mo → 40 videos/month). Premium is the only paid tier now.
   const startPaidGenerate = async () => {
     if (adminPin) { setStep(5); return; }
     const email = payEmail();
     if (!email) { window.location.href = `/login?returnTo=${encodeURIComponent(window.location.pathname + window.location.search)}`; return; }
-    // If we'll need to buy, open the popup SYNCHRONOUSLY here in the click gesture — else
-    // the browser blocks a popup opened later (after the await), and "nothing happens".
-    const needBuy = (packCredits ?? 0) <= 0;
-    const payWin = needBuy ? window.open("about:blank", "lb_pay", "width=480,height=800") : null;
     setPayError(""); setPayBusy(true);
     try {
-      // Try to spend a credit; if none, buy a pack (in the pre-opened popup) then spend.
-      let spend = await fetch("/api/video-pack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, action: "spend" }) });
+      const spend = await fetch("/api/video-pack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, action: "spend" }) });
       if (spend.status === 402) {
-        const bought = await buyPack(payWin);
-        if (!bought) { setPayBusy(false); return; }
-        spend = await fetch("/api/video-pack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, action: "spend" }) });
-      } else {
-        try { payWin?.close(); } catch { /**/ }
+        // Out of credits → Premium subscription (the only way to get more videos now).
+        setPayBusy(false);
+        setShowPremium(true);
+        return;
       }
       const sd = await spend.json().catch(() => ({}));
       if (!spend.ok) throw new Error(sd.error ?? "Could not start your video.");
       setPackCredits(typeof sd.credits === "number" ? sd.credits : (c => (c ?? 1) - 1)(packCredits));
       setStep(5);
     } catch (e) {
-      try { payWin?.close(); } catch { /**/ }
       setPayError(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
       setPayBusy(false);
@@ -1015,7 +988,7 @@ export default function TryFunnelPage() {
       {step === 4 && (
         <div className="px-4 pb-28 pt-2">
           <h1 className="text-center text-[26px] font-black">Create your video</h1>
-          <p className="mt-1 text-center text-[13px] font-bold text-white/50">{(packCredits ?? 0) > 0 ? "Ready to go — this uses 1 video credit." : "Get 4 try-on videos — pay once, no subscription."}</p>
+          <p className="mt-1 text-center text-[13px] font-bold text-white/50">{(packCredits ?? 0) > 0 ? "Ready to go — this uses 1 video credit." : "Go Premium — first month just $8, then $49/month."}</p>
 
           {(packCredits ?? 0) > 0 ? (
             /* Has credits → just generate. */
@@ -1024,13 +997,13 @@ export default function TryFunnelPage() {
               <p className="mt-1 text-[12px] font-bold text-white/45">Generating this video uses 1 credit.</p>
             </div>
           ) : (
-            /* No credits → the $8 pack. */
+            /* No credits → Premium subscription (first month $8, then $49/mo → 40 videos). */
             <div className="mx-auto mt-6 max-w-sm rounded-3xl border border-amber-400/30 bg-amber-400/[0.06] p-6 text-center">
-              <p className="text-4xl font-black text-white">$8</p>
-              <p className="mt-1 text-sm font-black text-amber-400">4 try-on videos</p>
-              <p className="mt-0.5 text-[12px] font-bold text-white/45">$2 per video · pay once · no subscription</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Premium</p>
+              <p className="mt-1.5 flex items-end justify-center gap-1.5"><span className="text-4xl font-black text-white">$8</span><span className="mb-1 text-sm font-bold text-white/50">first month</span></p>
+              <p className="mt-0.5 text-[12px] font-bold text-white/45">then $49/month · 40 try-on videos every month</p>
               <div className="mt-4 grid gap-2 text-left">
-                {["Your try-on in full quality", "Use it 4 times, any look", "Yours to keep, share & download"].map(perk => (
+                {["40 try-on videos every month", "Every model, look & full video unlocked", "First month $8 · cancel anytime"].map(perk => (
                   <div key={perk} className="flex items-center gap-2.5"><Check className="h-4 w-4 shrink-0 text-amber-400" /><span className="text-[13px] font-bold text-white/80">{perk}</span></div>
                 ))}
               </div>
@@ -1269,7 +1242,7 @@ export default function TryFunnelPage() {
           {step === 4 && !(adminPin && !previewAsUser) && (
             <button type="button" onClick={() => void startPaidGenerate()} disabled={payBusy || packCredits === null}
               className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform disabled:opacity-60">
-              {payBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : ((packCredits ?? 0) > 0 ? "Generate my video →" : "Get 4 videos — $8")}
+              {payBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : ((packCredits ?? 0) > 0 ? "Generate my video →" : "Start Premium — $8 first month")}
             </button>
           )}
         </div>

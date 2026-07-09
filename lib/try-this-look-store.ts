@@ -1050,7 +1050,7 @@ export async function grantVideoCredits(email: string, sessionId: string, n: num
 }
 
 // How many video credits an active $49/mo subscriber gets each calendar month.
-export const SUBSCRIPTION_MONTHLY_CREDITS = Number(process.env.SUBSCRIPTION_MONTHLY_CREDITS ?? 50);
+export const SUBSCRIPTION_MONTHLY_CREDITS = Number(process.env.SUBSCRIPTION_MONTHLY_CREDITS ?? 40);
 
 // Grant the monthly subscriber allowance ONCE per calendar month (idempotent via subMonths,
 // keyed "email|YYYY-MM"). Call it whenever we confirm an active subscription. Returns balance.

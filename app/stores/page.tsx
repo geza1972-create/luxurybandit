@@ -2422,14 +2422,14 @@ function StoresPage() {
   };
 
   // Two paywalls, dropped into every render branch:
-  //  • paywallModal   = locked MODELS → $8 video pack (sets lb_paid).
-  //  • subscribeModal = the COMMUNITY feed → $49/mo subscription (sets the Stripe sub).
+  //  • paywallModal   = locked MODELS → Premium subscription (first month $8 → 40 videos/mo).
+  //  • subscribeModal = the COMMUNITY feed → the same $49/mo subscription.
   const paywallModal = (
     <PremiumDialog
       open={showPaywall}
       onClose={() => { setShowPaywall(false); setPaywallDone(false); }}
-      title="Members only"
-      subtitle="Unlock every model & full video — get the video pack."
+      title="Unlock the full experience"
+      subtitle="Every model, look & full video — first month just $8, then $49/month."
     />
   );
   const subscribeModal = (

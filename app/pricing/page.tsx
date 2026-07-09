@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Sparkles, MessageCircle, ArrowLeft } from "lucide-react";
 
-// Public pricing menu. Pay-as-you-go: watching & browsing is free; generating your
-// own try-on videos is a one-time $8 pack (4 videos). No subscription.
+// Public pricing menu. Watching & browsing is free (plus 3 free try-on videos);
+// creating more needs Premium — a $49/month subscription, first month just $8,
+// which grants 40 try-on videos every month and unlocks all models & full videos.
 export default function PricingPage() {
   const router = useRouter();
   return (
@@ -17,7 +18,7 @@ export default function PricingPage() {
         </div>
 
         <h1 className="text-3xl font-black leading-tight">Simple pricing</h1>
-        <p className="mt-1.5 text-sm font-bold text-white/50">Browsing & watching is free. You only pay when you create your own try-on video.</p>
+        <p className="mt-1.5 text-sm font-bold text-white/50">Browsing & watching is free — plus 3 free try-on videos. Go Premium to keep creating.</p>
 
         {/* Free */}
         <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
@@ -30,16 +31,16 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* $8 pack — the main offer */}
+        {/* Premium — the main offer (subscription) */}
         <div className="mt-4 rounded-3xl border border-amber-400/40 bg-amber-400/[0.06] p-5 shadow-[0_0_40px_-15px_rgba(251,191,36,0.5)]">
           <div className="flex items-center justify-between">
-            <p className="text-[12px] font-black uppercase tracking-wide text-amber-400">Video pack</p>
-            <span className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[11px] font-black text-black">Most popular</span>
+            <p className="text-[12px] font-black uppercase tracking-wide text-amber-400">Premium</p>
+            <span className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[11px] font-black text-black">First month $8</span>
           </div>
-          <p className="mt-1 flex items-end gap-1.5"><span className="text-4xl font-black">$8</span><span className="mb-1 text-sm font-bold text-white/50">for 4 videos</span></p>
-          <p className="text-[12px] font-black text-amber-400/90">$2 per video · pay once · no subscription</p>
+          <p className="mt-1 flex items-end gap-1.5"><span className="text-4xl font-black">$8</span><span className="mb-1 text-sm font-bold text-white/50">first month, then $49/mo</span></p>
+          <p className="text-[12px] font-black text-amber-400/90">40 try-on videos every month · cancel anytime</p>
           <div className="mt-4 grid gap-2">
-            {["Your own try-on in full quality", "Put any model in any look", "Keep, share & download your videos", "Unused videos never expire"].map(f => (
+            {["40 try-on videos every month", "Put any model in any look", "Every model, look & full video unlocked", "Keep, share & download your videos"].map(f => (
               <div key={f} className="flex items-center gap-2.5"><Check className="h-4 w-4 shrink-0 text-amber-400" /><span className="text-[13px] font-bold text-white/85">{f}</span></div>
             ))}
           </div>
@@ -54,7 +55,7 @@ export default function PricingPage() {
           <p className="text-[13px] font-bold text-white/60">Chat with the models is free to try. Tap the message icon on any model to start.</p>
         </div>
 
-        <p className="mt-6 text-center text-[11px] font-bold text-white/30">Prices in USD. Payments are handled securely by Stripe.</p>
+        <p className="mt-6 text-center text-[11px] font-bold text-white/30">Payments are handled securely by Stripe. Cancel anytime.</p>
       </div>
     </div>
   );

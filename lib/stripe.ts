@@ -119,8 +119,14 @@ export async function createSubscriptionCheckout(opts: {
   email?: string;
   successUrl: string;
   cancelUrl: string;
+  coupon?: string;          // auto-apply this Stripe coupon (e.g. first-month discount)
   metadata?: Record<string, string>;
 }): Promise<{ id: string; url: string }> {
+  // Stripe rejects `discounts` together with `allow_promotion_codes` — if we auto-apply
+  // a coupon (first month cheaper), don't also show the manual promo-code box.
+  const discountFields = opts.coupon
+    ? { discounts: [{ coupon: opts.coupon }] }
+    : { allow_promotion_codes: true };
   const session = await stripeRequest("POST", "/checkout/sessions", {
     mode: "subscription",
     success_url: opts.successUrl,
@@ -128,7 +134,7 @@ export async function createSubscriptionCheckout(opts: {
     ...(opts.email ? { customer_email: opts.email } : {}),
     client_reference_id: opts.email,
     line_items: [{ price: opts.priceId, quantity: 1 }],
-    allow_promotion_codes: true,
+    ...discountFields,
     metadata: { kind: "premium", ...(opts.metadata ?? {}) },
     subscription_data: { metadata: { kind: "premium", ...(opts.metadata ?? {}) } },
   });
