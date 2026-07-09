@@ -404,9 +404,6 @@ export default function CuratorProfilePage() {
           <TagField label="Brands you love" list={db.brands} value={brandChips} onChange={setBrandChips} placeholder="Start typing… Zimmermann, Gucci…" />
           <TagField label="Your style" list={db.styles} value={styleChips} onChange={setStyleChips} placeholder="Start typing… boho, old money…" />
           <PillRow label="Who do you curate for?" options={["Womenswear", "Menswear", "Unisex"]} value={genderFocus} onChange={(v) => setGenderFocus(v as string)} />
-          <TagField label="Colors you love" list={db.colors} value={colorChips} onChange={setColorChips} placeholder="Start typing… black, blush…" />
-          <TagField label="Fabrics" list={db.fabrics} value={fabricChips} onChange={setFabricChips} placeholder="Start typing… linen, silk…" />
-          <TagField label="Occasions" list={db.occasions} value={occasionChips} onChange={setOccasionChips} placeholder="Start typing… evening, resort…" />
         </div>
 
         {/* AI motto & bio — same as the application form. Improves existing text if present. */}
