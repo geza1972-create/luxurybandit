@@ -111,6 +111,27 @@ export default function ModelChat({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, sending, stage]);
 
+  // iOS keyboard fix: size the chat to the VISUAL viewport (the area above the keyboard) so
+  // the composer sits right on the keyboard and the page behind never shows through. Also lock
+  // body scroll while the chat is open.
+  const [vpStyle, setVpStyle] = useState<React.CSSProperties>({});
+  useEffect(() => {
+    if (!open) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const vp = window.visualViewport;
+    const update = () => { if (vp) setVpStyle({ height: `${vp.height}px`, top: `${vp.offsetTop}px` }); };
+    update();
+    vp?.addEventListener("resize", update);
+    vp?.addEventListener("scroll", update);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      vp?.removeEventListener("resize", update);
+      vp?.removeEventListener("scroll", update);
+      setVpStyle({});
+    };
+  }, [open]);
+
   if (!open) return null;
 
   const userTurns = messages.filter(m => m.role === "user").length;
@@ -187,6 +208,7 @@ export default function ModelChat({
   return (
     <div className="fixed inset-0 z-[92] bg-black/60" onClick={onClose}>
       <div className="lb-phone-col fixed inset-x-0 top-0 mx-auto flex h-[100dvh] max-w-[440px] flex-col bg-[#0d0b0a]"
+        style={vpStyle}
         onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
