@@ -824,7 +824,7 @@ export default function TryFunnelPage() {
                 };
                 return (
                   <div className="relative mx-auto mt-2 h-[72vw] max-h-[300px] select-none overflow-hidden touch-pan-y" style={{ perspective: "1100px" }}
-                    onPointerDown={(e) => { swipeRef.current = e.clientX; swipedRef.current = false; (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); }}
+                    onPointerDown={(e) => { swipeRef.current = e.clientX; swipedRef.current = false; }}
                     onPointerUp={(e) => { const dx = e.clientX - swipeRef.current; if (Math.abs(dx) > 30) { swipedRef.current = true; slide(dx < 0 ? 1 : -1); } }}>
                     {om.map((m, i) => {
                       const off = i - active;
