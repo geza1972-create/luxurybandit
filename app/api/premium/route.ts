@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   if (!stripeConfigured()) {
     return NextResponse.json({ error: "Payments aren't set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { email?: string; returnPath?: string };
+  const body = (await request.json().catch(() => ({}))) as { email?: string; returnPath?: string; allowPromo?: boolean };
   const email = String(body.email ?? "").trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return NextResponse.json({ error: "Sign in first so we can link your subscription." }, { status: 401 });
@@ -43,11 +43,14 @@ export async function POST(request: Request) {
   const rp = String(body.returnPath ?? "/stores");
   const safeRp = rp.startsWith("/") && !rp.startsWith("//") ? rp : "/stores";
   const sep = safeRp.includes("?") ? "&" : "?";
+  // allowPromo → skip the auto first-month coupon so Stripe shows a promo-code field instead
+  // (Stripe forbids a coupon + a promo box together). Used to redeem a 100%-off test code.
+  const coupon = body.allowPromo ? undefined : (FIRST_MONTH_COUPON || undefined);
   try {
     const { url } = await createSubscriptionCheckout({
       priceId: PRICE_ID,
       email,
-      coupon: FIRST_MONTH_COUPON || undefined,
+      coupon,
       successUrl: `${origin}${safeRp}${sep}premium=success`,
       cancelUrl: `${origin}${safeRp}${sep}premium=cancelled`,
     });

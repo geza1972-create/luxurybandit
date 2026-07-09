@@ -27,7 +27,10 @@ export default function GoPremiumPage() {
         // PremiumSync's safety-net resume doesn't also fire (avoids a double event).
         try { localStorage.removeItem("lb_pending_checkout"); } catch { /**/ }
         logFunnelEvent("checkout_start", { paywall: "resume", lookName: "Premium" });
-        startPremiumCheckout(email, "/stores").catch(() => setStuck(true));
+        // ?code=1 → open a checkout WITH a promo-code field (to redeem a 100%-off test code)
+        // instead of the automatic $8 first-month coupon.
+        const allowPromo = new URLSearchParams(window.location.search).get("code") === "1";
+        startPremiumCheckout(email, "/stores", allowPromo).catch(() => setStuck(true));
         return;
       }
       // Session may still be settling right after OAuth — retry briefly before giving up.
