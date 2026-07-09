@@ -25,8 +25,9 @@ export default function CuratorProfilePage() {
   const [photoError, setPhotoError] = useState("");
   const [cropSrc, setCropSrc] = useState("");
   // Profile photos — one main + up to 3 more; admin picks the best.
-  const [profilePhotos, setProfilePhotos] = useState<string[]>([]); // new picks (data URLs)
+  const [profilePhotos, setProfilePhotos] = useState<string[]>([]); // new picks (cropped data URLs)
   const [profileExisting, setProfileExisting] = useState<string[]>([]); // already stored
+  const [profileCropSrc, setProfileCropSrc] = useState(""); // photo waiting to be cropped
   const profileFileRef = useRef<HTMLInputElement>(null);
   // Full-body dressed photo (3:4) — SAME as the application form. Powers her try-ons.
   const [bodyPhotos, setBodyPhotos] = useState<string[]>([]); // new pick (data URL)
@@ -159,7 +160,7 @@ export default function CuratorProfilePage() {
     setPhotoError("");
     const { src, error: err } = await readPhotoFile(file);
     if (err) { setPhotoError(err); return; }
-    if (src) setProfilePhotos(prev => [...prev, src].slice(0, Math.max(0, 4 - profileExisting.length)));
+    if (src) setProfileCropSrc(src); // crop first, then add
   };
   const onPickVerification = async (file?: File) => {
     if (!file) return;
@@ -508,6 +509,10 @@ export default function CuratorProfilePage() {
       {bodyCropSrc && (
         <PhotoCropper src={bodyCropSrc} aspect="portrait" onCancel={() => setBodyCropSrc("")}
           onDone={(dataUrl) => { setBodyPhotos([dataUrl]); setBodyCropSrc(""); }} />
+      )}
+      {profileCropSrc && (
+        <PhotoCropper src={profileCropSrc} onCancel={() => setProfileCropSrc("")}
+          onDone={(dataUrl) => { setProfilePhotos(prev => [...prev, dataUrl].slice(0, Math.max(0, 4 - profileExisting.length))); setProfileCropSrc(""); }} />
       )}
     </main>
   );

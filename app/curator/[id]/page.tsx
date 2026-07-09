@@ -492,11 +492,13 @@ export default function CuratorPublicPage() {
   // Admin: REJECT (deactivate + remove the real flags).
   const rejectModel = async () => {
     if (badgeBusy || !profile) return;
-    if (!confirm("Reject this model? She won't be able to sign in.")) return;
+    // A reason is EMAILED to her (so she can fix it & re-apply). Empty = reject without a note. Cancel = abort.
+    const reason = window.prompt("Reason for rejection — she gets this by email (e.g. \"Photo isn't sharp, please upload a clearer one\"). Leave empty to reject without a note.", "");
+    if (reason === null) return;
     setBadgeBusy(true);
     try {
       const H = { "Content-Type": "application/json", ...adminHeaders() };
-      await fetch("/api/curator", { method: "POST", headers: H, body: JSON.stringify({ action: "set-curator-status", id, status: "deactivated" }) });
+      await fetch("/api/curator", { method: "POST", headers: H, body: JSON.stringify({ action: "set-curator-status", id, status: "deactivated", reason: reason.trim() }) });
       await fetch("/api/curator", { method: "POST", headers: H, body: JSON.stringify({ action: "update", id, realBadge: false, realModel: false }) });
       setProfile(p => (p ? { ...p, realBadge: false, realModel: false, status: "deactivated" } : p));
     } catch (e) { alert(e instanceof Error ? e.message : "Fehlgeschlagen"); }

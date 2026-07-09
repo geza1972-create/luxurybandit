@@ -15,10 +15,11 @@ import nodemailer from "nodemailer";
 
 export type SendResult = { ok: boolean; via?: "smtp" | "resend"; skipped?: string; error?: string };
 
-export async function sendEmail(opts: { to: string; subject: string; html: string; replyTo?: string }): Promise<SendResult> {
+export async function sendEmail(opts: { to: string; subject: string; html: string; replyTo?: string; bcc?: string }): Promise<SendResult> {
   const to = (opts.to ?? "").trim();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return { ok: false, error: "invalid recipient" };
   const replyTo = (opts.replyTo ?? "").trim() || undefined;
+  const bcc = (opts.bcc ?? "").trim() || undefined; // silent copy (e.g. support@ so the admin sees model emails)
 
   const host = process.env.SMTP_HOST?.trim();
   const user = process.env.SMTP_USER?.trim();
@@ -35,7 +36,7 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
         secure: port === 465, // 465 = implicit TLS; 587 = STARTTLS
         auth: { user, pass },
       });
-      await transporter.sendMail({ from, to, subject: opts.subject, html: opts.html, replyTo });
+      await transporter.sendMail({ from, to, subject: opts.subject, html: opts.html, replyTo, ...(bcc ? { bcc } : {}) });
       return { ok: true, via: "smtp" };
     } catch (e) {
       return { ok: false, via: "smtp", error: e instanceof Error ? e.message : "smtp send failed" };
@@ -55,6 +56,7 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
           subject: opts.subject,
           html: opts.html,
           ...(replyTo ? { reply_to: replyTo } : {}),
+          ...(bcc ? { bcc: [bcc] } : {}),
         }),
       });
       if (!res.ok) {

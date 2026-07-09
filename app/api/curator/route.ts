@@ -377,6 +377,7 @@ export async function POST(request: Request) {
         const rulesUrl = `${site}/model-rules`;
         await sendEmail({
           to: String(email),
+          bcc: process.env.SUPPORT_EMAIL?.trim() || "support@luxurybandit.com", // copy to the team
           subject: "Complete your LuxuryBandit Model profile 💛",
           html: `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;color:#111">
   <p style="font-size:16px">Hi${hi},</p>
@@ -455,6 +456,7 @@ export async function POST(request: Request) {
         const site = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://luxurybandit.com";
         await sendEmail({
           to: String(model.email),
+          bcc: process.env.SUPPORT_EMAIL?.trim() || "support@luxurybandit.com", // copy to the team
           subject: "You're approved on LuxuryBandit 🎉",
           html: `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;color:#111">
   <p style="font-size:16px">Hi${hi},</p>
@@ -464,6 +466,31 @@ export async function POST(request: Request) {
     <a href="${site}/login" style="display:inline-block;background:#111;color:#fff;text-decoration:none;font-weight:800;padding:14px 28px;border-radius:999px">Sign in to my page →</a>
   </p>
   <p>Welcome aboard,<br/>The LuxuryBandit Team</p>
+</div>`,
+        });
+      } catch { /* email is best-effort */ }
+    }
+
+    // Rejection WITH a reason → tell her what to fix so she can re-apply. Non-blocking.
+    const reason = String((payload as any).reason ?? "").trim();
+    if (next === "deactivated" && reason && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(model.email ?? ""))) {
+      try {
+        const { sendEmail } = await import("@/lib/email-send");
+        const hi = model.firstName ? ` ${model.firstName}` : "";
+        const site = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://luxurybandit.com";
+        await sendEmail({
+          to: String(model.email),
+          bcc: process.env.SUPPORT_EMAIL?.trim() || "support@luxurybandit.com",
+          subject: "Your LuxuryBandit application — one thing to fix",
+          html: `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;color:#111">
+  <p style="font-size:16px">Hi${hi},</p>
+  <p>Thanks for applying to LuxuryBandit. We couldn&rsquo;t approve your profile just yet:</p>
+  <blockquote style="border-left:3px solid #e0b64a;margin:12px 0;padding:8px 16px;color:#333;font-size:15px">${reason.replace(/</g, "&lt;")}</blockquote>
+  <p>Please fix it and apply again with the same email — we&rsquo;ll review it right away.</p>
+  <p style="text-align:center;margin:24px 0">
+    <a href="${site}/curators/apply" style="display:inline-block;background:#111;color:#fff;text-decoration:none;font-weight:800;padding:14px 28px;border-radius:999px">Re-apply →</a>
+  </p>
+  <p>Thanks,<br/>The LuxuryBandit Team</p>
 </div>`,
         });
       } catch { /* email is best-effort */ }
