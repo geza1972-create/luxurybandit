@@ -205,8 +205,9 @@ export default function CuratorApplyPage() {
     }
   };
 
-  const field = "h-12 w-full rounded-xl border border-amber-400/50 bg-white/[0.04] px-4 text-sm font-bold text-white outline-none focus:border-amber-400 placeholder:text-white/30";
-  const label = "mb-1 block text-[11px] font-black uppercase tracking-wider text-amber-400";
+  // Neutral field styling — matches the profile form (no gold-everywhere).
+  const field = "h-12 w-full rounded-xl border border-white/12 bg-white/[0.03] px-4 text-sm font-bold text-white outline-none focus:border-white/40 placeholder:text-white/30";
+  const label = "mb-1 block text-[11px] font-black uppercase tracking-wider text-white/45";
 
   if (applied) {
     return (
