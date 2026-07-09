@@ -35,9 +35,12 @@ export default function GoPremiumPage() {
       }
       // Session may still be settling right after OAuth — retry briefly before giving up.
       if (tries++ < 12) { timer = setTimeout(attempt, 300); return; }
-      // Still no session → send to login, then come straight back here to resume.
-      if (new URLSearchParams(window.location.search).get("tried") === "1") { setStuck(true); return; }
-      window.location.replace("/login?returnTo=" + encodeURIComponent("/go/premium?tried=1"));
+      // Still no session → send to login, then come straight back here to resume. Preserve
+      // ?code=1 through the login round-trip so the promo-code test checkout isn't lost.
+      const sp = new URLSearchParams(window.location.search);
+      if (sp.get("tried") === "1") { setStuck(true); return; }
+      const codeSuffix = sp.get("code") === "1" ? "&code=1" : "";
+      window.location.replace("/login?returnTo=" + encodeURIComponent("/go/premium?tried=1" + codeSuffix));
     };
 
     attempt();
