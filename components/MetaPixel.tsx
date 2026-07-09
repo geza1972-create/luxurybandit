@@ -2,7 +2,7 @@
 
 import Script from "next/script";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Meta (Facebook) Pixel. ID is overridable via NEXT_PUBLIC_META_PIXEL_ID; falls back
 // to the account pixel so it works out of the box.
@@ -10,18 +10,29 @@ const PIXEL_ID = (process.env.NEXT_PUBLIC_META_PIXEL_ID || "2587056621709307").t
 
 // The base snippet fires PageView on first load. Next.js is client-routed, so we also
 // fire PageView on every in-app navigation — otherwise Meta only ever sees one view.
+// GDPR/ePrivacy: the marketing pixel loads ONLY after the user accepts cookies
+// (lb_cookie_consent === "accepted"); until then nothing about Meta is loaded.
 export default function MetaPixel() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const firstLoad = useRef(true);
+  const [consented, setConsented] = useState(false);
 
   useEffect(() => {
+    const check = () => { try { setConsented(localStorage.getItem("lb_cookie_consent") === "accepted"); } catch { /**/ } };
+    check();
+    window.addEventListener("lb-cookie-consent", check);
+    return () => window.removeEventListener("lb-cookie-consent", check);
+  }, []);
+
+  useEffect(() => {
+    if (!consented) return;
     if (firstLoad.current) { firstLoad.current = false; return; } // base snippet already counted it
     const fbq = (window as unknown as { fbq?: (...a: unknown[]) => void }).fbq;
     if (fbq) fbq("track", "PageView");
-  }, [pathname, searchParams]);
+  }, [pathname, searchParams, consented]);
 
-  if (!PIXEL_ID) return null;
+  if (!PIXEL_ID || !consented) return null;
 
   return (
     <>

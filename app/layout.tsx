@@ -5,6 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import MetaPixel from "@/components/MetaPixel";
 import AdminUrlMirror from "@/components/AdminUrlMirror";
 import AgeGate from "@/components/AgeGate";
+import CookieConsent from "@/components/CookieConsent";
 import PremiumSync from "@/components/PremiumSync";
 import AuthRefresh from "@/components/AuthRefresh";
 import VisitTracker from "@/components/VisitTracker";
@@ -63,6 +64,8 @@ export default function RootLayout({
           {/* The whole portal is 18+ — blocks every page until the visitor confirms a
               date of birth ≥ 18 (admins bypass). */}
           <AgeGate />
+          {/* Cookie consent — gates the Meta Pixel (marketing) until the visitor accepts. */}
+          <CookieConsent />
           {/* Suspense so BottomNav's useSearchParams doesn't force CSR bailout on
               statically-prerendered pages (e.g. 404) — required for the prod build. */}
           <Suspense fallback={null}>
