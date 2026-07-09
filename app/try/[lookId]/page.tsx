@@ -112,6 +112,7 @@ export default function TryFunnelPage() {
   const [payError, setPayError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const swipeRef = useRef(0); // carousel drag: pointer-down X, to detect left/right swipes
+  const swipedRef = useRef(false); // a swipe just happened → suppress the trailing card click
   const [lockedNudge, setLockedNudge] = useState(false); // tried to generate on a Premium model
 
   // Admin-only prompt preview/editor (@Bild1 = model, @Bild2 = outfit).
@@ -705,7 +706,7 @@ export default function TryFunnelPage() {
   ) : null;
 
   return (
-    <div className="relative min-h-[100dvh] bg-[#0d0b0a] text-white">
+    <div className="relative mx-auto min-h-[100dvh] w-full max-w-[440px] bg-[#0d0b0a] text-white shadow-[0_0_60px_rgba(0,0,0,0.45)]">
       {/* Top bar */}
       <div className="sticky top-0 z-20 bg-[#0d0b0a]/90 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
@@ -826,16 +827,16 @@ export default function TryFunnelPage() {
                   else { setPickedModel(m.photoUrl); setPickedModelId(m.id); setPickedModelName(m.name); } // show locked model up front
                 };
                 return (
-                  <div className="relative mx-auto mt-3 h-[46vh] max-h-[400px] select-none touch-pan-y" style={{ perspective: "1100px" }}
-                    onPointerDown={(e) => { swipeRef.current = e.clientX; (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); }}
-                    onPointerUp={(e) => { const dx = e.clientX - swipeRef.current; if (Math.abs(dx) > 30) slide(dx < 0 ? 1 : -1); }}>
+                  <div className="relative mx-auto mt-3 h-[46vh] max-h-[400px] select-none overflow-hidden touch-pan-y" style={{ perspective: "1100px" }}
+                    onPointerDown={(e) => { swipeRef.current = e.clientX; swipedRef.current = false; (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); }}
+                    onPointerUp={(e) => { const dx = e.clientX - swipeRef.current; if (Math.abs(dx) > 30) { swipedRef.current = true; slide(dx < 0 ? 1 : -1); } }}>
                     {om.map((m, i) => {
                       const off = i - active;
                       if (Math.abs(off) > 2) return null;
                       const mLocked = !unlockAll && !m.featured;
                       const isActive = off === 0;
                       return (
-                        <div key={m.id} onClick={() => (isActive ? undefined : pick(m))}
+                        <div key={m.id} onClick={() => { if (swipedRef.current) { swipedRef.current = false; return; } if (!isActive) pick(m); }}
                           className="absolute left-1/2 top-1/2 w-[54%] max-w-[220px] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-2xl transition-all duration-300 ease-out"
                           style={{ transform: `translate(-50%,-50%) translateX(${off * 56}%) rotateY(${-off * 38}deg) scale(${isActive ? 1 : 0.82})`, zIndex: 20 - Math.abs(off), opacity: Math.abs(off) === 2 ? 0.45 : 1, cursor: isActive ? "default" : "pointer" }}>
                           <div className="relative aspect-[3/4] w-full">
