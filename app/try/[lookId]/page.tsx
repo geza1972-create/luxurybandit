@@ -734,7 +734,7 @@ export default function TryFunnelPage() {
       {/* ── Step 2: model / replace avatar ─────────────────────────────────── */}
       {step === 2 && (
         <div className="px-4 pb-64 pt-2">
-          <h1 className="text-[22px] font-black leading-tight">{!avatar && chosenModelName && !((pickModel || chooseModel) && !pickedModel) ? `Watch ${chosenModelName.split(/\s+/)[0]} in her hottest looks 🔥` : "Who should wear it?"}</h1>
+          <h1 className="text-[22px] font-black leading-tight">{!avatar && chosenModelName && !((pickModel || chooseModel) && !pickedModel) ? `Watch ${chosenModelName.split(/\s+/)[0]} in her hottest looks 🔥` : "Who should wear it?"}</h1>
           {(pickModel || chooseModel) && !pickedModel && !avatar ? (
             <>
               <p className="mt-2 text-[13px] font-bold text-white/50">Pick a model to wear this piece.</p>
