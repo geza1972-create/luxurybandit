@@ -407,9 +407,6 @@ export default function CuratorProfilePage() {
           <TagField label="Colors you love" list={db.colors} value={colorChips} onChange={setColorChips} placeholder="Start typing… black, blush…" />
           <TagField label="Fabrics" list={db.fabrics} value={fabricChips} onChange={setFabricChips} placeholder="Start typing… linen, silk…" />
           <TagField label="Occasions" list={db.occasions} value={occasionChips} onChange={setOccasionChips} placeholder="Start typing… evening, resort…" />
-          <PillRow label="Price tier" options={["Budget", "Mid-range", "Luxury"]} value={priceTiers} onChange={(v) => setPriceTiers(v as string[])} multi />
-          <PillRow label="Fit focus" options={["Standard", "Petite", "Curve / Plus", "Tall"]} value={fitFocus} onChange={(v) => setFitFocus(v as string[])} multi />
-          <PillRow label="Audience age" options={["18–25", "25–35", "35–45", "45+"]} value={ageFocus} onChange={(v) => setAgeFocus(v as string)} />
         </div>
 
         {/* AI motto & bio — same as the application form. Improves existing text if present. */}
