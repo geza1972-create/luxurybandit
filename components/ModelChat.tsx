@@ -334,6 +334,8 @@ export default function ModelChat({
           {!isPaid && stage === "chat" && !locked && (
             <p className="mt-2 text-center text-[11px] font-bold text-white/30">{Math.max(0, FREE_USER_MESSAGES - userTurns)} free messages left · Premium saves your chat</p>
           )}
+          {/* AI transparency (EU AI Act) — users must be told they're chatting with an AI. */}
+          <p className="mt-1.5 text-center text-[10px] font-bold text-white/25">✨ AI chat · you&apos;re messaging an AI persona, for fun</p>
         </div>
       </div>
     </div>

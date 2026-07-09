@@ -15,16 +15,16 @@ type Look = { id: string; name: string; imageUrl?: string; frontImageUrl?: strin
 // Rotating video prompts — a DIFFERENT scene/lighting/motion each generation, so the same
 // model×look never looks the same twice (never boring). First @-token = person, second =
 // outfit (server binds by order). Keep the "exactly the same" guarantee + "no text/logos".
-// Every prompt = a full, slow 360° TURN so she always shows the whole outfit (front→side→
-// back→side→front). Static camera, no zoom/pan (no "cinematic" camera moves). Neutral wording
-// (Pixverse flags skin/lingerie words). Modest setting variety so the clips aren't identical.
+// A fitting VACATION setting + she TURNS all the way around AND WALKS a few steps, ~7s, so the
+// whole outfit is shown from every side. Neutral wording (Pixverse flags skin/lingerie words).
+// Varied holiday locations so the clips aren't identical.
 const PROMPT_POOL = [
-  "@1 presents the @2 in an elegant studio with soft premium lighting. She stands upright and turns slowly and smoothly through one full 360° — front, right side, back, left side, back to front. Static camera at hip height, no zoom, no camera movement. Keep @1 face and appearance and the @2 exactly the same throughout. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.",
-  "@1 presents the @2 in a bright minimalist white studio with soft daylight. She stands upright and turns slowly and smoothly through one full 360° — front, right side, back, left side, back to front. Static camera at hip height, no zoom, no camera movement. Keep @1 face and appearance and the @2 exactly the same throughout. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.",
-  "@1 presents the @2 in a luxury penthouse beside tall windows with soft natural light. She stands upright and turns slowly and smoothly through one full 360° — front, right side, back, left side, back to front. Static camera at hip height, no zoom, no camera movement. Keep @1 face and appearance and the @2 exactly the same throughout. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.",
-  "@1 presents the @2 in a chic boutique with warm designer lighting. She stands upright and turns slowly and smoothly through one full 360° — front, right side, back, left side, back to front. Static camera at hip height, no zoom, no camera movement. Keep @1 face and appearance and the @2 exactly the same throughout. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.",
-  "@1 presents the @2 in a marble hallway with warm ambient light. She stands upright and turns slowly and smoothly through one full 360° — front, right side, back, left side, back to front. Static camera at hip height, no zoom, no camera movement. Keep @1 face and appearance and the @2 exactly the same throughout. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.",
-  "@1 presents the @2 in a dark studio under soft even lighting. She stands upright and turns slowly and smoothly through one full 360° — front, right side, back, left side, back to front. Static camera at hip height, no zoom, no camera movement. Keep @1 face and appearance and the @2 exactly the same throughout. Fluid calm motion, photorealistic, high-end fashion catalogue look. No text or logos.",
+  "@1 presents the @2 on a sunny beach promenade by the sea with warm natural light. She turns slowly all the way around to show the outfit from every side, then walks a few relaxed steps toward the camera. Keep @1 face and appearance and the @2 exactly the same throughout. Fluid natural motion, photorealistic, high-end holiday fashion look. No text or logos.",
+  "@1 presents the @2 at a luxury resort poolside with palm trees and soft daylight. She turns slowly all the way around to show the outfit from every side, then walks a few relaxed steps toward the camera. Keep @1 face and appearance and the @2 exactly the same throughout. Fluid natural motion, photorealistic, high-end holiday fashion look. No text or logos.",
+  "@1 presents the @2 on a charming Mediterranean old-town street with warm golden light. She turns slowly all the way around to show the outfit from every side, then walks a few relaxed steps toward the camera. Keep @1 face and appearance and the @2 exactly the same throughout. Fluid natural motion, photorealistic, high-end holiday fashion look. No text or logos.",
+  "@1 presents the @2 on a rooftop terrace overlooking the sea at golden hour. She turns slowly all the way around to show the outfit from every side, then walks a few relaxed steps toward the camera. Keep @1 face and appearance and the @2 exactly the same throughout. Fluid natural motion, photorealistic, high-end holiday fashion look. No text or logos.",
+  "@1 presents the @2 on a wooden yacht deck by a marina with bright natural light. She turns slowly all the way around to show the outfit from every side, then walks a few relaxed steps toward the camera. Keep @1 face and appearance and the @2 exactly the same throughout. Fluid natural motion, photorealistic, high-end holiday fashion look. No text or logos.",
+  "@1 presents the @2 in a lush tropical garden with soft dappled daylight. She turns slowly all the way around to show the outfit from every side, then walks a few relaxed steps toward the camera. Keep @1 face and appearance and the @2 exactly the same throughout. Fluid natural motion, photorealistic, high-end holiday fashion look. No text or logos.",
 ];
 const pickPrompt = () => PROMPT_POOL[Math.floor(Math.random() * PROMPT_POOL.length)];
 
@@ -42,7 +42,7 @@ async function fileToDataUrl(file: File, max = 1000, quality = 0.85): Promise<st
 const isAuthed = () => { try { return !!getStoredAuthSession(); } catch { return false; } };
 
 // Fallback prompt shown when the admin taps "Reset text" (mirrors the server default).
-const DEFAULT_HINT = "Mache die Frau aus @Bild1 angezogen in @Bild2 in verschiedenen Urlaubsorten auf der Welt, in unterschiedlichen Locations, wie sie durchläuft.";
+const DEFAULT_HINT = "Mache die Frau aus @Bild1 angezogen in @Bild2 an einem passenden Urlaubsort. Sie dreht sich einmal langsam komplett um (alle Seiten zeigen) und läuft dann ein paar entspannte Schritte. @Bild2 und ihr Gesicht exakt gleich lassen.";
 
 export default function TryFunnelPage() {
   const params = useParams();

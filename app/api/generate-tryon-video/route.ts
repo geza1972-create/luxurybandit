@@ -142,7 +142,7 @@ async function pixverseStartReference(key: string, garment: string, person: stri
     // looks good the admin upscales THAT clip to HD (1080p) via the upscale action — so
     // we only pay HD on the keepers. (360p is Pixverse's floor; there is no 320p tier.)
     model: "v6",                     // V6 keeps the reference outfit/person (v4.5 ignored it)
-    duration: turnaround ? 10 : (slowmo ? 10 : 5), // slow-mo = 10s (ad quality) → same motion, much slower
+    duration: turnaround ? 10 : (slowmo ? 10 : 8), // funnel = 8s (Pixverse has no 7s) so the turn + walk fit; slow-mo = 10s
     // Slow-mo is "ad mode": render straight to 1080p HD (no 360p→upscale step). Normal
     // clips stay 360p (cheap previews for the free reuse cache).
     quality: turnaround ? "720p" : (slowmo ? "1080p" : "360p"),
