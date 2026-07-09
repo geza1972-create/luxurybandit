@@ -341,6 +341,19 @@ export async function POST(request: Request) {
 
     notifyAdminWhatsApp(`👤 New MODEL application (pending review): ${[firstName, lastName].filter(Boolean).join(" ")} (${email}). Approve: ${ADMIN_URL}`);
 
+    // Confirmation email to the applicant (non-blocking) — so she knows it arrived.
+    if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email))) {
+      try {
+        const { sendEmail } = await import("@/lib/email-send");
+        const hi = curator.firstName ? ` ${curator.firstName}` : "";
+        await sendEmail({
+          to: String(email),
+          subject: "Your LuxuryBandit Model application 💛",
+          html: `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;color:#111"><p style="font-size:16px">Hi${hi},</p><p>Thank you for applying to become a <b>LuxuryBandit Model</b> — we've received your application and our team is reviewing it right now. 💛</p><p>We'll be in touch very soon with the next steps. If you'd like to speed things up, just reply to this email with 1–3 clear photos of yourself (a portrait and, if you have one, a full-body shot) so we can set up your profile.</p><p>Talk soon,<br/>The LuxuryBandit Team</p></div>`,
+        });
+      } catch { /* email is best-effort */ }
+    }
+
     // Pending review → NO session is returned (she cannot act until the admin
     // approves her via the Models list; signin blocks "pending" too).
     return NextResponse.json({ approved: false, pending: true, firstName: curator.firstName });

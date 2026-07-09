@@ -11,7 +11,19 @@ type Range = "today" | "7d" | "30d" | "all";
 
 const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(Math.round(n)));
 const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0);
-const srcLabel = (s: string) => ({ instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", search: "Search", direct: "Direct", host: "Referral" } as Record<string, string>)[s] || (s ? s[0].toUpperCase() + s.slice(1) : "Unknown");
+// Collapse the many raw source spellings into clean buckets (fb + facebook + meta → one, etc.).
+const normSource = (raw?: string) => {
+  const s = (raw || "").toLowerCase().trim();
+  if (!s) return "";
+  if (s === "fb" || s.includes("facebook") || s.includes("meta") || s.includes("fbclid")) return "facebook";
+  if (s === "ig" || s.includes("instagram")) return "instagram";
+  if (s.includes("tiktok") || s === "tt") return "tiktok";
+  if (s.includes("twitter") || s === "x" || s.includes("t.co")) return "twitter";
+  if (s.includes("localhost") || s.includes("127.0.0.1") || s.includes("vercel.app")) return "dev";
+  if (s.includes("google") || s.includes("search")) return "search";
+  return s;
+};
+const srcLabel = (s: string) => ({ instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", twitter: "Twitter/X", search: "Search", direct: "Direct", host: "Referral", dev: "Dev / test" } as Record<string, string>)[s] || (s ? s[0].toUpperCase() + s.slice(1) : "Unknown");
 
 export default function InsightsPro({
   feedEvents, viewsByDay, visitsByDay, looks, range, setRange, onReset, resetting,
@@ -54,7 +66,7 @@ export default function InsightsPro({
       for (const e of evs) { const k = (pick(e) || "").trim(); if (!k) continue; m.set(k, (m.get(k) ?? 0) + 1); }
       return [...m.entries()].sort((a, b) => b[1] - a[1]);
     };
-    const sources = bd(e => e.source).slice(0, 6);
+    const sources = bd(e => normSource(e.source)).slice(0, 6);
     const countries = bd(e => e.country).slice(0, 6);
 
     // Top content: looks by intent events.
