@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield } from "lucide-react";
+import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu } from "lucide-react";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -247,10 +247,10 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
           </button>
         )}
 
-        {/* Account */}
+        {/* Menu — opens the account/menu sheet (account, saved, try-ons, admin, sign out). */}
         <button type="button" onClick={() => { setActive("account"); setShowProfileMenu(true); }} className={btn("account")}>
-          <User className="h-5 w-5" />
-          <span className="text-[10px] font-bold">Account</span>
+          <Menu className="h-5 w-5" />
+          <span className="text-[10px] font-bold">Menu</span>
         </button>
 
       </div>

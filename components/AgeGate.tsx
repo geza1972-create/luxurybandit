@@ -28,6 +28,7 @@ export default function AgeGate() {
 
   const confirm = () => {
     try { localStorage.setItem(OK_KEY, "1"); } catch { /* ignore */ }
+    try { window.dispatchEvent(new Event("lb-age-ok")); } catch { /**/ } // let the cookie banner appear now
     setOpen(false);
   };
 

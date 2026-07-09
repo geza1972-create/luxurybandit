@@ -9,7 +9,18 @@ export default function CookieConsent() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    try { if (!localStorage.getItem("lb_cookie_consent")) setShow(true); } catch { /**/ }
+    // Only show AFTER the 18+ age gate is passed (or admin) — otherwise the banner overlaps it.
+    const check = () => {
+      try {
+        if (localStorage.getItem("lb_cookie_consent")) { setShow(false); return; }
+        const ageOk = localStorage.getItem("lb_age_verified") === "1"
+          || !!localStorage.getItem("luxurybandit-try-look-admin-pin");
+        setShow(ageOk);
+      } catch { /**/ }
+    };
+    check();
+    window.addEventListener("lb-age-ok", check); // appear right after they confirm 18+
+    return () => window.removeEventListener("lb-age-ok", check);
   }, []);
 
   const choose = (v: "accepted" | "rejected") => {
