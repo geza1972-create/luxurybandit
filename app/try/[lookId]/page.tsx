@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Sparkles, ArrowLeft, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2, Crown } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, ArrowRight, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2, Crown } from "lucide-react";
 import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
@@ -792,6 +792,7 @@ export default function TryFunnelPage() {
                   </button>
                   <p className="mt-1 text-center text-[11px] font-black uppercase tracking-wide text-white/45">Outfit</p>
                 </div>
+                <div className="flex shrink-0 items-center self-center pb-4"><ArrowRight className="h-6 w-6 text-amber-400" /></div>
                 <div className="w-[42%] max-w-[160px]">
                   <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
