@@ -7,7 +7,7 @@ import { Loader2, X, Send, Lock, Sparkles, Smile, Gift } from "lucide-react";
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
 // Free users get a few lines to try; after that the composer locks and we upsell.
-const FREE_USER_MESSAGES = 5;
+const FREE_USER_MESSAGES = 30;
 // When the model offers to show herself in hot outfits (e.g. after a nudes request), the
 // AI ends its reply with this tag; the client hides the tag and renders tappable lingerie
 // looks she can be tried on in — turning the request into a paid try-on.
@@ -80,9 +80,14 @@ export default function ModelChat({
     router.push(`/try/${lookId}?${qs.toString()}`);
   };
 
-  // Restore any previous conversation for this model.
+  // On open / model switch: ALWAYS start fresh (so one model's chat never leaks into
+  // another's), then restore saved history ONLY for paying members — free chats are not
+  // saved. `isPaid` here = an active subscriber (passed from the caller).
   useEffect(() => {
     if (!open) return;
+    setMessages([]); setUserName(""); setStage("name");
+    setShowEmoji(false); setShowGifts(false);
+    if (!isPaid) return; // free = ephemeral, nothing to restore
     try {
       const raw = localStorage.getItem(storeKey);
       if (raw) {
@@ -92,13 +97,13 @@ export default function ModelChat({
       }
     } catch { /**/ }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, storeKey]);
+  }, [open, storeKey, isPaid]);
 
-  // Persist on every change.
+  // Persist ONLY for paying members; free chats stay ephemeral (cleared on close/switch).
   useEffect(() => {
-    if (!open) return;
+    if (!open || !isPaid) return;
     try { localStorage.setItem(storeKey, JSON.stringify({ userName, messages })); } catch { /**/ }
-  }, [open, storeKey, userName, messages]);
+  }, [open, storeKey, userName, messages, isPaid]);
 
   // Auto-scroll to the newest message.
   useEffect(() => {
@@ -236,7 +241,7 @@ export default function ModelChat({
             <div className="mt-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-center">
               <Lock className="mx-auto h-5 w-5 text-amber-400" />
               <p className="mt-2 text-sm font-black text-white">Keep chatting with {first}</p>
-              <p className="mt-1 text-[12px] font-bold text-white/55">You've used your free messages. Go Premium to chat with {first} without limits.</p>
+              <p className="mt-1 text-[12px] font-bold text-white/55">You&apos;ve used your {FREE_USER_MESSAGES} free messages. Go Premium to chat with {first} without limits — and your conversations are saved so you can pick up where you left off.</p>
               <button type="button" onClick={onNeedPremium}
                 className="lb-gold mt-3 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[13px] font-black active:scale-95 transition">
                 <Sparkles className="h-4 w-4" /> Unlock Premium
@@ -305,7 +310,7 @@ export default function ModelChat({
             </>
           )}
           {!isPaid && stage === "chat" && !locked && (
-            <p className="mt-2 text-center text-[11px] font-bold text-white/30">{Math.max(0, FREE_USER_MESSAGES - userTurns)} free messages left</p>
+            <p className="mt-2 text-center text-[11px] font-bold text-white/30">{Math.max(0, FREE_USER_MESSAGES - userTurns)} free messages left · Premium saves your chat</p>
           )}
         </div>
       </div>
