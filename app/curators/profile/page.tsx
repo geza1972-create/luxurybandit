@@ -323,7 +323,7 @@ export default function CuratorProfilePage() {
           <div className="mt-5 rounded-2xl border border-amber-400/40 bg-amber-50 p-4">
             <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">Your earnings</p>
             <p className="mt-1 text-3xl font-black text-black">€{(earningsCents / 100).toFixed(2)}</p>
-            <p className="mt-0.5 text-[12px] font-bold text-black/50">You earn every time someone creates a try-on video with your photo.</p>
+            <p className="mt-0.5 text-[12px] font-bold text-black/50">A small bonus each time a fan tries you on. Your main earnings will come from chatting with fans — coming soon. 💬</p>
 
             <label className={`${label} mt-4`}>Payout details (IBAN or PayPal)</label>
             <input className={field} value={payoutMethod} onChange={e => setPayoutMethod(e.target.value)} placeholder="RO49 AAAA… or you@paypal.com" />
