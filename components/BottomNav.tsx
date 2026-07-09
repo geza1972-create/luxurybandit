@@ -157,8 +157,8 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
     pathname.startsWith("/login") ||
     pathname.startsWith("/seller/register") ||
     pathname.startsWith("/curators/apply") ||
-    pathname.startsWith("/tryon") || // focused try-on funnel — no bottom nav (it cut off content)
-    pathname.startsWith("/try/")     // new Try-On funnel — full-screen, no bottom nav
+    pathname.includes("/tryon") || // focused try-on funnel — no bottom nav (it cut off content)
+    pathname.includes("/try/")     // new Try-On funnel (also /admin/try/*) — full-screen, no bottom nav
   );
 
   const go = (tab: Tab, href: string) => {
