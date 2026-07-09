@@ -1208,9 +1208,9 @@ export default function AdminPage() {
         )}
 
         {/* ── Curators ── */}
-        {tab === "curators" && (
-          <div className="mt-3"><AdminConnections posts={posts} looks={looks} models={curators} onAttach={attachLookVideo} onDetach={detachLookVideo} /></div>
-        )}
+        {/* "Try-on connections" panel removed from the Models tab (admin request — didn't
+            belong here). The attach/detach handlers + AdminConnections component are kept for
+            reuse elsewhere if needed. */}
         {tab === "curators" && (
           <div className="mt-3 flex items-center gap-1.5">
             <span className="text-[11px] font-black uppercase tracking-wider text-ink/35">Sort</span>
