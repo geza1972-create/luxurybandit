@@ -286,6 +286,16 @@ export default function TryFunnelPage() {
   // Re-check the cache when the motion chip changes on the ready step (turn ↔ dance).
   useEffect(() => { if (step === 3) void lookupCachedVideo(); }, [motion]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Resume after a login round-trip (esp. Google OAuth, which fully reloads): if we come back
+  // signed in with the resume flag set, replay the reveal instead of dropping at step 2.
+  useEffect(() => {
+    if (!look || step !== 2) return;
+    let resume = false;
+    try { resume = sessionStorage.getItem("lb_tryon_resume") === "1"; } catch { /**/ }
+    if (resume && isAuthed()) { try { sessionStorage.removeItem("lb_tryon_resume"); } catch { /**/ } void goStep3(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [look]);
+
   // A FREE (cached) try-on is served from the shared library, so nothing is saved for the
   // user by default → their "My try-ons" stays empty. Claim it: copy the shared clip into a
   // generation owned by the signed-in user (idempotent) so it shows in their gallery and gets
@@ -323,7 +333,12 @@ export default function TryFunnelPage() {
     // In the admin's "User view", still show the gate so they can test the guest experience.
     // Free look → straight to generation (no paywall). Paid look → plans/pack step.
     if (isAuthed() || (adminPin && !previewAsUser)) setStep(lookIsFree ? 5 : 4);
-    else setGateOpen(true);
+    else {
+      // Remember we're mid-funnel so a Google-OAuth round-trip (full reload) resumes the
+      // reveal instead of dropping the visitor back at step 2.
+      try { sessionStorage.setItem("lb_tryon_resume", "1"); } catch { /**/ }
+      setGateOpen(true);
+    }
   };
 
   // Extract a poster frame from the finished video (for the generation thumbnail).
@@ -1161,6 +1176,7 @@ export default function TryFunnelPage() {
           advanceOnSignup
           onClose={() => setGateOpen(false)} onAuthed={() => {
             setGateOpen(false);
+            try { sessionStorage.removeItem("lb_tryon_resume"); } catch { /**/ } // resumed in-place, don't re-fire on reload
             // If the video is already generated & cached, they signed in to WATCH it → save it
             // to their gallery, then open their own post. Otherwise continue the flow.
             if (previewVideoUrl && previewGenId) claimCachedTryOn().then(id => goToResult(id || previewGenId));
@@ -1218,7 +1234,7 @@ export default function TryFunnelPage() {
               </div>
             </div>
           ) : (
-            <p className="px-4 pb-2 text-[12px] font-bold text-white/45">Only the free looks are selectable — the rest are Premium.</p>
+            <p className="px-4 pb-2 text-[12px] font-bold text-white/45">Pick any look — your first 3 videos are free.</p>
           )}
           <div className="flex-1 overflow-y-auto overscroll-contain px-3 pb-8" onClick={(e) => e.stopPropagation()}>
            <div className="grid grid-cols-3 gap-2">
@@ -1229,7 +1245,9 @@ export default function TryFunnelPage() {
               return gGarments
                 .filter(g => lookVideoFilter === "all" || (lookVideoFilter === "video" ? g.hasVideo : !g.hasVideo))
                 .map(g => {
-                const locked = anyFeatured && !g.featured && !isPaid;
+                // All looks are selectable now (even for guests) — you only pay per GENERATION
+                // (3 free, then $8), not per look. So nothing is locked here.
+                const locked = false; void anyFeatured;
                 return (
                   <button key={g.id} type="button"
                     onClick={() => {
