@@ -44,11 +44,11 @@ export default function PremiumSync() {
           const pend = Number(localStorage.getItem("lb_pending_checkout") || 0);
           if (pend && Date.now() - pend < 30 * 60 * 1000) {
             localStorage.removeItem("lb_pending_checkout");
-            const [{ premiumCheckoutUrl }, { logFunnelEvent }] = await Promise.all([
-              import("@/lib/premium-link"), import("@/lib/track-funnel"),
+            const [{ startPremiumCheckout }, { logFunnelEvent }] = await Promise.all([
+              import("@/lib/start-premium-checkout"), import("@/lib/track-funnel"),
             ]);
             logFunnelEvent("checkout_start", { paywall: "resume", lookName: "Premium" });
-            window.location.href = premiumCheckoutUrl(email);
+            await startPremiumCheckout(email, "/stores");
             return;
           }
         } catch { /**/ }

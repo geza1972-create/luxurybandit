@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
-import { premiumCheckoutUrl } from "@/lib/premium-link";
+import { startPremiumCheckout } from "@/lib/start-premium-checkout";
 import { logFunnelEvent } from "@/lib/track-funnel";
 
 // Payment resume route. A guest who taps "Start Premium" is sent to /login?returnTo=/go/premium;
@@ -23,11 +23,11 @@ export default function GoPremiumPage() {
     const attempt = () => {
       const email = getStoredAuthSession()?.user?.email?.trim().toLowerCase();
       if (email) {
-        // Signed in → go straight to Stripe. No dead-ends, no lost intent. Clear the pending
-        // flag so PremiumSync's safety-net resume doesn't also fire (avoids a double event).
+        // Signed in → API checkout (applies the $8 coupon). Clear the pending flag so
+        // PremiumSync's safety-net resume doesn't also fire (avoids a double event).
         try { localStorage.removeItem("lb_pending_checkout"); } catch { /**/ }
         logFunnelEvent("checkout_start", { paywall: "resume", lookName: "Premium" });
-        window.location.replace(premiumCheckoutUrl(email));
+        startPremiumCheckout(email, "/stores").catch(() => setStuck(true));
         return;
       }
       // Session may still be settling right after OAuth — retry briefly before giving up.

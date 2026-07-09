@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Crown, Check, X, Loader2 } from "lucide-react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
-import { premiumCheckoutUrl } from "@/lib/premium-link";
+import { startPremiumCheckout } from "@/lib/start-premium-checkout";
 import { logFunnelEvent } from "@/lib/track-funnel";
 
 // Unlock dialog for locked models / looks / full videos / chats. Premium is now a single
@@ -21,7 +21,7 @@ export default function PremiumDialog({ open, onClose, title = "Unlock the full 
   if (!open) return null;
   const close = () => { setError(""); onClose(); };
 
-  const buy = () => {
+  const buy = async () => {
     setError("");
     logFunnelEvent("premium_click", { paywall: "premium", lookName: "Premium" });
     const email = getStoredAuthSession()?.user?.email?.trim().toLowerCase();
@@ -35,9 +35,11 @@ export default function PremiumDialog({ open, onClose, title = "Unlock the full 
       return;
     }
     setBusy(true);
-    // Signed in → straight to the Stripe Payment Link (first month $8 via its built-in coupon).
+    // Signed in → API checkout (applies the first-month $8 coupon; the Payment Link did not).
     logFunnelEvent("checkout_start", { paywall: "premium", lookName: "Premium" });
-    window.location.href = premiumCheckoutUrl(email);
+    const here = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/stores";
+    try { await startPremiumCheckout(email, here); }
+    catch (e) { setBusy(false); setError(e instanceof Error ? e.message : "Could not start checkout."); }
   };
 
   return (

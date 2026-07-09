@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Crown, Check, X, Loader2 } from "lucide-react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
-import { premiumCheckoutUrl } from "@/lib/premium-link";
+import { startPremiumCheckout } from "@/lib/start-premium-checkout";
 import { logFunnelEvent } from "@/lib/track-funnel";
 
 // Community membership dialog — a $49/mo Stripe subscription (separate from the $8 video
@@ -18,7 +18,7 @@ export default function SubscribeDialog({ open, onClose }: { open: boolean; onCl
   if (!open) return null;
   const close = () => { setError(""); onClose(); };
 
-  const subscribe = () => {
+  const subscribe = async () => {
     setError("");
     logFunnelEvent("premium_click", { paywall: "community", lookName: "Premium" });
     const email = getStoredAuthSession()?.user?.email?.trim().toLowerCase();
@@ -30,9 +30,11 @@ export default function SubscribeDialog({ open, onClose }: { open: boolean; onCl
       return;
     }
     setBusy(true);
-    // Same Premium subscription as everywhere else — the Stripe Payment Link (first month $8).
+    // API checkout — applies the first-month $8 coupon (the hosted Payment Link did not).
     logFunnelEvent("checkout_start", { paywall: "community", lookName: "Premium" });
-    window.location.href = premiumCheckoutUrl(email);
+    const here = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/stores";
+    try { await startPremiumCheckout(email, here); }
+    catch (e) { setBusy(false); setError(e instanceof Error ? e.message : "Could not start checkout."); }
   };
 
   return (
