@@ -88,7 +88,7 @@ export default function PremiumDialog({ open, onClose, title = "Unlock the full 
         {signedIn ? (
           <button type="button" onClick={close} className="mt-2 w-full py-2 text-[13px] font-black text-white/45">Maybe later</button>
         ) : (
-          <button type="button" onClick={freeSignup} className="mt-2 w-full py-2.5 text-[13px] font-black text-white/70 underline decoration-white/25 underline-offset-4">Create free account · $0</button>
+          <button type="button" onClick={freeSignup} className="lb-gold mt-3 flex w-full items-center justify-center rounded-full px-5 py-3.5 text-sm font-black active:scale-95 transition-transform">Create free account · $0</button>
         )}
       </div>
     </div>
