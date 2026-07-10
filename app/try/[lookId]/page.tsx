@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Sparkles, ArrowLeft, ArrowRight, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2, Crown } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, ArrowRight, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2, Crown, Volume2, VolumeX } from "lucide-react";
 import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
@@ -162,9 +162,14 @@ export default function TryFunnelPage() {
   const [revealSharp, setRevealSharp] = useState(false);
   const [previewPoster, setPreviewPoster] = useState("");
   const revealVideoRef = useRef<HTMLVideoElement>(null);
-  // The clip is PRE-GENERATED — just play it. A short fade-in (not a fake 10s "generating"
-  // reveal) so it starts almost immediately.
-  const REVEAL_MS = 1500;
+  // Background music (the clips have no audio) + a sound toggle; tap the video to pause it.
+  const musicRef = useRef<HTMLAudioElement>(null);
+  const [musicMuted, setMusicMuted] = useState(false);
+  const [vidPaused, setVidPaused] = useState(false);
+  const toggleMusic = () => { const a = musicRef.current; if (!a) return; a.muted = !a.muted; if (!a.muted) { a.play().catch(() => {}); } setMusicMuted(a.muted); };
+  const toggleVideo = () => { const v = revealVideoRef.current; const a = musicRef.current; if (!v) return; if (v.paused) { v.play().catch(() => {}); a?.play().catch(() => {}); setVidPaused(false); } else { v.pause(); a?.pause(); setVidPaused(true); } };
+  // Scanner "generation" reveal runs ~5s, then the pre-generated clip plays clear.
+  const REVEAL_MS = 5000;
   // "Motion" pick: what she DOES in the video. The user only sees the two chips —
   // the prompt swap happens server-side. Dance = Pixverse also generates music.
   const [motion, setMotion] = useState<"turn" | "dance">("turn");
@@ -297,6 +302,8 @@ export default function TryFunnelPage() {
   }, [revealing, previewVideoUrl]);
 
   const goStep3 = async () => {
+    // Start the music now — within the tap gesture, so autoplay-with-sound is allowed.
+    try { const a = musicRef.current; if (a) { a.muted = false; a.volume = 0.6; a.play().catch(() => {}); setMusicMuted(false); } } catch { /**/ }
     setStep(3);
     setRendering(true); setRevealing(false); setRevealSharp(false);
     const hit = await lookupCachedVideo();
@@ -709,6 +716,10 @@ export default function TryFunnelPage() {
 
   return (
     <div className="relative mx-auto min-h-[100dvh] w-full max-w-[440px] bg-[#0d0b0a] text-white shadow-[0_0_60px_rgba(0,0,0,0.45)]">
+      {/* Background music for the try-on video (the clips have no audio). Always mounted so
+          it can start within the GO tap gesture. */}
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <audio ref={musicRef} src="/fassounds-escape-your-love-upbeat-fashion-pop-dance-412230.mp3" loop preload="auto" />
       {/* Top bar */}
       <div className="sticky top-0 z-20 bg-[#0d0b0a]/90 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
@@ -1017,15 +1028,30 @@ export default function TryFunnelPage() {
               // Free video already exists. Reveal it theatrically: it plays and slowly
               // sharpens from blurry over ~30s, THEN becomes fully watchable (controls).
               <div className="relative h-[52vh] w-full overflow-hidden bg-black">
-                <video ref={revealVideoRef} src={previewVideoUrl} poster={previewPoster || undefined} preload="auto" className="h-full w-full object-contain"
+                <video ref={revealVideoRef} src={previewVideoUrl} poster={previewPoster || undefined} preload="auto"
+                  onClick={() => { if (!revealing) toggleVideo(); }}
+                  className="h-full w-full cursor-pointer object-contain"
                   style={
                     revealing
                       ? { filter: `blur(${revealSharp ? 0 : 26}px)`, transform: `scale(${revealSharp ? 1 : 1.08})`, transition: `filter ${REVEAL_MS}ms linear, transform ${REVEAL_MS}ms ease-out` }
-                      : guest
-                      ? { filter: "blur(22px)", transform: "scale(1.08)" } // finished but LOCKED until sign-in
                       : undefined
                   }
-                  loop playsInline muted={revealing || guest} controls={!revealing && !guest} />
+                  autoPlay loop playsInline muted={revealing} />
+                {!revealing && (
+                  <>
+                    {/* Sound (music) toggle */}
+                    <button type="button" onClick={(e) => { e.stopPropagation(); toggleMusic(); }}
+                      className="absolute right-3 top-3 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/60 text-white backdrop-blur active:scale-90 transition">
+                      {musicMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                    </button>
+                    {/* Paused → big play button (tap the video to resume) */}
+                    {vidPaused && (
+                      <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-black/25">
+                        <span className="grid h-16 w-16 place-items-center rounded-full bg-white/20 backdrop-blur"><Play className="h-8 w-8 fill-white text-white" /></span>
+                      </div>
+                    )}
+                  </>
+                )}
                 {revealing ? (
                   <>
                     {/* White scanner beam sweeping down then up. */}
@@ -1041,15 +1067,6 @@ export default function TryFunnelPage() {
                       <span className="text-sm font-black">Revealing your look…</span>
                     </div>
                   </>
-                ) : guest ? (
-                  // Reveal finished but the visitor isn't signed in → keep it locked behind
-                  // the register/sign-in wall (the CTA sits in the button below).
-                  <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-black/35">
-                    <div className="flex flex-col items-center gap-2 text-center">
-                      <span className="grid h-16 w-16 place-items-center rounded-full bg-white/15 backdrop-blur"><Lock className="h-7 w-7 text-white" /></span>
-                      <span className="mt-1 flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1 text-[12px] font-black"><Check className="h-3.5 w-3.5" /> Video ready</span>
-                    </div>
-                  </div>
                 ) : (
                   <span className="pointer-events-none absolute right-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black"><Check className="h-3.5 w-3.5" /> Free</span>
                 )}
@@ -1077,8 +1094,8 @@ export default function TryFunnelPage() {
           </div>
           {!rendering && !revealing && (
             <>
-              <h1 className="mt-6 text-center text-[22px] font-black leading-tight">Your video is ready 🎉</h1>
-              <p className="mt-2 text-center text-[13px] font-bold text-white/50">{guest ? "Register or sign in to watch your video." : previewVideoUrl ? "It's free — tap 🔊 for sound. Saved to your account." : "Watch and download it in full quality."}</p>
+              <h1 className="mt-6 text-center text-[22px] font-black leading-tight">{guest ? "Want to see more? 🔥" : "Your video is ready 🎉"}</h1>
+              <p className="mt-2 text-center text-[13px] font-bold text-white/50">{guest ? "Sign in free to unlock sound, save it, and watch more looks." : previewVideoUrl ? "It's free — tap 🔊 for sound. Saved to your account." : "Watch and download it in full quality."}</p>
               {/* Motion was chosen before generating — no picker on the ready step. */}
               {adminPromptPanel}
             </>
@@ -1332,10 +1349,10 @@ export default function TryFunnelPage() {
           {step === 3 && !rendering && !revealing && (
             previewVideoUrl && previewGenId ? (
               guest ? (
-                // Video is ready but LOCKED → register / sign in to watch it (lead gate).
+                // Video already played free → sign in to see more (soft lead gate).
                 <button type="button" onClick={onUnlock}
                   className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                  <Lock className="h-5 w-5" /> Register or sign in to watch
+                  <Sparkles className="h-5 w-5" /> Want to see more? Sign in
                 </button>
               ) : (
                 // Signed in → view the ready one, OR generate a fresh, unique one (new scene).
