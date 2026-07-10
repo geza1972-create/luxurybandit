@@ -2,34 +2,92 @@
 
 export const dynamic = "force-dynamic";
 
-import { Plus, ArrowUp, Check, X } from "lucide-react";
+import { Plus, ArrowUp, X } from "lucide-react";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // ────────────────────────────────────────────────────────────────────────────
-// "Găsește-l mai ieftin" — a Dupe-style funnel (Romanian, DARK). DESIGN ONLY:
-// one big box — paste a link, search, or add a photo → we (will) find it cheaper.
-// No backend yet — submit shows a short confirmation. Search wiring comes later.
+// "Găsește-l mai ieftin" — a Dupe-style AI chat funnel (Romanian, DARK). The user
+// types freely ("găsește o geantă ca de la Versace mai ieftin"), can attach a photo,
+// and chats with an AI assistant (Claude Haiku via /api/mai-ieftin-chat) that helps
+// find cheaper versions. Real product search isn't wired yet — the AI guides.
 // ────────────────────────────────────────────────────────────────────────────
+type Msg = { role: "user" | "assistant"; content: string };
+
+const SUGGESTIONS = [
+  "o geantă ca de la Versace, mai ieftin",
+  "adidași ca Golden Goose",
+  "o rochie de seară sub 200 lei",
+];
+
 export default function MaiIeftinPage() {
+  const [messages, setMessages] = useState<Msg[]>([]);
   const [text, setText] = useState("");
-  const [preview, setPreview] = useState(""); // object URL of an added photo
-  const [submitted, setSubmitted] = useState(false);
+  const [preview, setPreview] = useState(""); // object URL of an attached photo
+  const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
 
-  const pickFile = (f?: File | null) => {
-    if (!f) return;
-    try { setPreview(URL.createObjectURL(f)); } catch { /**/ }
-  };
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
+
+  const pickFile = (f?: File | null) => { if (f) { try { setPreview(URL.createObjectURL(f)); } catch { /**/ } } };
   const clearFile = () => { setPreview(""); if (fileRef.current) fileRef.current.value = ""; };
 
-  const canSubmit = text.trim().length > 2 || !!preview;
-  const submit = () => { if (canSubmit) setSubmitted(true); }; // no backend yet
+  const canSend = (text.trim().length > 0 || !!preview) && !loading;
+
+  const send = async (override?: string) => {
+    const raw = (override ?? text).trim();
+    if ((!raw && !preview) || loading) return;
+    const content = raw + (preview ? `${raw ? " " : ""}(am atașat o poză)` : "");
+    const next: Msg[] = [...messages, { role: "user", content }];
+    setMessages(next);
+    setText(""); clearFile(); setLoading(true);
+    try {
+      const r = await fetch("/api/mai-ieftin-chat", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: next }),
+      });
+      const d = await r.json().catch(() => ({}));
+      setMessages((m) => [...m, { role: "assistant", content: d.reply || "Momentan nu pot răspunde. Mai încearcă o dată." }]);
+    } catch {
+      setMessages((m) => [...m, { role: "assistant", content: "Ceva n-a mers. Mai încearcă o dată." }]);
+    } finally { setLoading(false); }
+  };
+
+  const empty = messages.length === 0 && !loading;
+
+  // The input box — reused in both the empty (centered) and chat (bottom) layouts.
+  const inputBox = (
+    <div className="rounded-[28px] bg-white/[0.07] p-3 ring-1 ring-white/10 focus-within:ring-white/25 transition">
+      {preview && (
+        <div className="mb-2 inline-flex items-center gap-2 rounded-2xl bg-white/10 p-1 pr-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={preview} alt="" className="h-10 w-10 rounded-xl object-cover" />
+          <button type="button" onClick={clearFile} aria-label="Șterge" className="text-white/60 active:scale-90 transition"><X className="h-4 w-4" /></button>
+        </div>
+      )}
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
+        rows={2}
+        placeholder="Scrie ce cauți, lipește un link sau o poză…"
+        className="w-full resize-none bg-transparent px-2 pt-1 text-[16px] font-semibold text-white placeholder:text-white/40 outline-none"
+      />
+      <div className="mt-1 flex items-center justify-between px-1">
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => pickFile(e.target.files?.[0])} />
+        <button type="button" onClick={() => fileRef.current?.click()} aria-label="Adaugă o poză"
+          className="grid h-9 w-9 place-items-center rounded-full text-white/70 hover:bg-white/10 active:scale-90 transition"><Plus className="h-5 w-5" /></button>
+        <button type="button" onClick={() => void send()} disabled={!canSend} aria-label="Trimite"
+          className="grid h-9 w-9 place-items-center rounded-full bg-white text-black disabled:bg-white/15 disabled:text-white/40 active:scale-90 transition"><ArrowUp className="h-5 w-5" strokeWidth={2.5} /></button>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="flex min-h-screen flex-col bg-black text-white">
+    <div className="flex h-screen flex-col bg-black text-white">
       {/* Top bar */}
-      <header className="flex items-center px-5 py-4">
+      <header className="flex shrink-0 items-center px-5 py-4">
         <Link href="/home" aria-label="LuxuryBandit" className="inline-flex items-center gap-2 active:scale-95 transition">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/lb-logo.png" alt="" className="h-8 w-8 rounded-full object-contain" />
@@ -37,72 +95,52 @@ export default function MaiIeftinPage() {
         </Link>
       </header>
 
-      {/* Center */}
-      <main className="flex flex-1 flex-col items-center justify-center px-5 pb-24">
-        {!submitted ? (
+      {empty ? (
+        /* Empty / landing state — centered */
+        <main className="flex flex-1 flex-col items-center justify-center px-5 pb-24">
           <div className="w-full max-w-md">
-            <h1 className="mb-8 text-center text-[32px] font-black leading-tight tracking-tight">
-              Găsește-l mai ieftin
-            </h1>
-
-            {/* The one box */}
-            <div className="rounded-[28px] bg-white/[0.07] p-3 ring-1 ring-white/10 focus-within:ring-white/25 transition">
-              {preview && (
-                <div className="mb-2 inline-flex items-center gap-2 rounded-2xl bg-white/10 p-1 pr-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={preview} alt="" className="h-10 w-10 rounded-xl object-cover" />
-                  <button type="button" onClick={clearFile} aria-label="Șterge" className="text-white/60 active:scale-90 transition">
-                    <X className="h-4 w-4" />
-                  </button>
+            <h1 className="mb-8 text-center text-[32px] font-black leading-tight tracking-tight">Găsește-l mai ieftin</h1>
+            {inputBox}
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              {SUGGESTIONS.map((s) => (
+                <button key={s} type="button" onClick={() => void send(s)}
+                  className="rounded-full bg-white/[0.07] px-3 py-1.5 text-[13px] font-semibold text-white/70 ring-1 ring-white/10 active:scale-95 transition">{s}</button>
+              ))}
+            </div>
+            <p className="mt-4 text-center text-[13px] font-semibold text-white/40">Gratis · fără cont · în câteva secunde</p>
+          </div>
+        </main>
+      ) : (
+        /* Chat state */
+        <>
+          <main className="flex-1 overflow-y-auto px-4 pb-4">
+            <div className="mx-auto flex max-w-md flex-col gap-3 py-2">
+              {messages.map((m, i) => (
+                <div key={i} className={m.role === "user" ? "self-end max-w-[85%]" : "self-start max-w-[85%]"}>
+                  <div className={m.role === "user"
+                    ? "rounded-3xl rounded-br-lg bg-white px-4 py-2.5 text-[15px] font-semibold text-black"
+                    : "rounded-3xl rounded-bl-lg bg-white/10 px-4 py-2.5 text-[15px] font-medium leading-relaxed text-white"}>
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+              {loading && (
+                <div className="self-start">
+                  <div className="flex items-center gap-1.5 rounded-3xl rounded-bl-lg bg-white/10 px-4 py-3.5">
+                    {[0, 1, 2].map((d) => (
+                      <span key={d} className="h-2 w-2 animate-bounce rounded-full bg-white/50" style={{ animationDelay: `${d * 0.15}s` }} />
+                    ))}
+                  </div>
                 </div>
               )}
-
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
-                rows={2}
-                placeholder="Lipește un link, o poză sau caută…"
-                className="w-full resize-none bg-transparent px-2 pt-1 text-[16px] font-semibold text-white placeholder:text-white/40 outline-none"
-              />
-
-              <div className="mt-1 flex items-center justify-between px-1">
-                {/* + = add a photo */}
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => pickFile(e.target.files?.[0])} />
-                <button type="button" onClick={() => fileRef.current?.click()} aria-label="Adaugă o poză"
-                  className="grid h-9 w-9 place-items-center rounded-full text-white/70 hover:bg-white/10 active:scale-90 transition">
-                  <Plus className="h-5 w-5" />
-                </button>
-
-                {/* send */}
-                <button type="button" onClick={submit} disabled={!canSubmit} aria-label="Caută"
-                  className="grid h-9 w-9 place-items-center rounded-full bg-white text-black disabled:bg-white/15 disabled:text-white/40 active:scale-90 transition">
-                  <ArrowUp className="h-5 w-5" strokeWidth={2.5} />
-                </button>
-              </div>
+              <div ref={endRef} />
             </div>
-
-            <p className="mt-4 text-center text-[13px] font-semibold text-white/40">
-              Gratis · fără cont · în câteva secunde
-            </p>
+          </main>
+          <div className="shrink-0 px-4 pb-5 pt-1" style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}>
+            <div className="mx-auto max-w-md">{inputBox}</div>
           </div>
-        ) : (
-          /* Confirmation (no backend yet) */
-          <div className="flex w-full max-w-md flex-col items-center text-center">
-            <div className="grid h-16 w-16 place-items-center rounded-full bg-white">
-              <Check className="h-8 w-8 text-black" strokeWidth={3} />
-            </div>
-            <h2 className="mt-5 text-[24px] font-black leading-tight">Am primit! 🔎</h2>
-            <p className="mx-auto mt-3 max-w-[19rem] text-[15px] font-semibold leading-relaxed text-white/55">
-              Căutăm cele mai bune prețuri. Îți arătăm rezultatele în câteva momente.
-            </p>
-            <button type="button" onClick={() => { setSubmitted(false); setText(""); clearFile(); }}
-              className="mt-7 rounded-full bg-white/10 px-6 py-3 text-[14px] font-black text-white active:scale-95 transition">
-              Caută altceva
-            </button>
-          </div>
-        )}
-      </main>
+        </>
+      )}
     </div>
   );
 }
