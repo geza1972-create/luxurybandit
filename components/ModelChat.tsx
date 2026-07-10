@@ -111,21 +111,26 @@ export default function ModelChat({
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, sending, stage]);
 
-  // iOS keyboard fix: size the chat to the VISUAL viewport (the area above the keyboard) so
-  // the composer sits right on the keyboard and the page behind never shows through. Also lock
-  // body scroll while the chat is open.
+  // iOS keyboard fix. Two parts:
+  //  (1) FREEZE the page: overflow:hidden alone is ignored by iOS Safari, so we position:fixed
+  //      the body (preserving scroll) — nothing can scroll/peek behind the chat.
+  //  (2) Size the overlay to the VISUAL viewport (the area above the keyboard) and translateY by
+  //      its offset, so the composer sits right on the keyboard with no gap.
   const [vpStyle, setVpStyle] = useState<React.CSSProperties>({});
   useEffect(() => {
     if (!open) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const scrollY = window.scrollY;
+    const b = document.body.style;
+    const prev = { position: b.position, top: b.top, left: b.left, right: b.right, width: b.width, overflow: b.overflow };
+    b.position = "fixed"; b.top = `-${scrollY}px`; b.left = "0"; b.right = "0"; b.width = "100%"; b.overflow = "hidden";
     const vp = window.visualViewport;
-    const update = () => { if (vp) setVpStyle({ height: `${vp.height}px`, top: `${vp.offsetTop}px` }); };
+    const update = () => { if (vp) setVpStyle({ height: `${vp.height}px`, transform: `translateY(${vp.offsetTop}px)` }); };
     update();
     vp?.addEventListener("resize", update);
     vp?.addEventListener("scroll", update);
     return () => {
-      document.body.style.overflow = prevOverflow;
+      Object.assign(b, prev);
+      window.scrollTo(0, scrollY);
       vp?.removeEventListener("resize", update);
       vp?.removeEventListener("scroll", update);
       setVpStyle({});
@@ -206,9 +211,8 @@ export default function ModelChat({
   };
 
   return (
-    <div className="fixed inset-0 z-[92] bg-black/60" onClick={onClose}>
-      <div className="lb-phone-col fixed inset-x-0 top-0 mx-auto flex h-[100dvh] max-w-[440px] flex-col bg-[#0d0b0a]"
-        style={vpStyle}
+    <div className="fixed left-0 top-0 z-[92] h-[100dvh] w-full origin-top bg-black/60" style={vpStyle} onClick={onClose}>
+      <div className="absolute inset-0 mx-auto flex max-w-[440px] flex-col bg-[#0d0b0a]"
         onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
