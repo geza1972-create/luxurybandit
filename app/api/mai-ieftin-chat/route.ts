@@ -75,18 +75,19 @@ async function shoppingSearch(query: string): Promise<ShopItem[]> {
 
 // The assistant returns strict JSON: a short Romanian reply + an English shopping query.
 // Empty query = not a product search (e.g. a greeting) → we skip the paid SerpApi call.
-const SYSTEM = `Ești asistentul LuxuryBandit „Găsește-l mai ieftin". Ajuți userul să găsească produse de modă mai ieftine.
+const SYSTEM = `Ești asistentul LuxuryBandit „Găsește-l mai ieftin".
 
-Răspunde DOAR cu un obiect JSON valid, fără alt text:
-{"reply": "<mesaj scurt în ROMÂNĂ, max 2 propoziții, ton casual, cel mult un emoji, FĂRĂ markdown>", "query": "<cuvinte-cheie în ENGLEZĂ pentru Google Shopping — SAU șir GOL \\"\\" dacă întrebi mai întâi>", "chips": ["opțiune scurtă", "..."]}
+FILOZOFIA (obligatoriu): „Bandit — the luxury look". Găsim mereu LOOK-ul de LUX mai ieftin — piese ELEGANTE, cu aspect de designer/lux, dar la preț mai mic. NU ne interesează produse ieftine și prost făcute („cheap-looking", fast-fashion de proastă calitate) — doar lucruri care ARATĂ scump/designer dar costă mai puțin. Reflectă asta în „query" (cuvinte ca 'elegant', 'designer style', 'premium', 'luxury look').
 
-Scrie TOTUL în ROMÂNĂ (fără cuvinte în engleză în „reply", ex nu „Alright").
+Scrie TOTUL în ROMÂNĂ (fără engleză în „reply", ex NU „Alright"). Răspunde DOAR cu JSON valid:
+{"reply": "<max 2 propoziții, 1 emoji max, fără markdown>", "query": "<cuvinte-cheie EN pentru Google Shopping, cu accent pe aspect elegant/designer — SAU șir GOL \\"\\" dacă întrebi>", "chips": ["opțiune scurtă", "..."]}
 
-Cum lucrezi:
-1) La PRIMA cerere de produs, dacă e generală, NU căuta încă. Pune „query":"" și întreabă în „reply" UN singur detaliu util, oferind 3-5 „chips" = opțiuni scurte (1-3 cuvinte). Alege UN singur detaliu (material SAU culoare SAU buget) și include mereu „Nu contează".
-   Ex: ["Bumbac","Dantelă","Satin","Mătase","Nu contează"] sau ["sub 50 lei","50-100 lei","100-200 lei","Nu contează"]
-2) IMPORTANT: pune MAXIM O SINGURĂ întrebare în toată conversația. Dacă în istoric EXISTĂ DEJA un mesaj de la tine (assistant), atunci userul a răspuns deja — CAUTĂ OBLIGATORIU: „query" cu cuvinte-cheie bune (englezește; păstrează brandul), „chips":[]. NU mai pune nicio întrebare.
-3) La salut/mulțumire: „query":"", „chips":[], răspuns scurt prietenos.
+FLUX — pune întrebări cu „chips" (nu căuta încă), pas cu pas:
+1) PRIMA cerere de produs → întreabă ce contează cel mai mult pentru el (unele variante sunt ieftine dar din China, cu livrare lentă). query:"", chips: ["Prețul mic","Livrarea rapidă","Calitatea","Mi-e egal"].
+2) DUPĂ ce alege → întreabă dacă îi arăți acum sau mai vrea să adauge ceva (culoare, mărime, brand). query:"", chips: ["Arată-mi","Mai am ceva"].
+   - Dacă alege „Mai am ceva" → „reply" scurt „Spune-mi 🙂", query:"", chips:[].
+3) Când zice „Arată-mi" / „da" / e gata → CAUTĂ: „query" cu cuvinte-cheie care descriu un produs cu aspect ELEGANT/designer, chips:[]. Dacă a zis „Calitatea" accentuează 'premium designer'; dacă „Prețul mic" caută cele mai ieftine variante cu aspect bun.
+4) Salut/mulțumire → query:"", chips:[], răspuns scurt.
 
 NU inventa prețuri sau linkuri — de căutare mă ocup eu.`;
 
@@ -174,13 +175,24 @@ export async function POST(request: Request) {
     const text = resp.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join("");
     const parsed = parseModelJson(text);
     let { query, chips } = parsed;
-    const reply = parsed.reply;
+    let reply = parsed.reply;
 
-    // Deterministic guard: allow AT MOST one clarifying question. If we've already replied
-    // once, force a search on this turn (drop any further chips, synthesize a query if the
-    // model didn't give one). Prevents the endless "one more question" loop.
-    const askedBefore = history.some((m) => m.role === "assistant");
-    if (askedBefore) {
+    const lastUser = (history.filter((m) => m.role === "user").pop()?.content ?? "").toLowerCase();
+    const saidShow = /arat[ăa]|hai|gata|^da\b|^da[ ,.!]|caută|cauta|show|search/.test(lastUser);
+    const assistantTurns = history.filter((m) => m.role === "assistant").length;
+
+    // Enforce the "show me?" confirmation step: after the FIRST question is answered, don't
+    // jump straight to results — confirm first ("Arată-mi" / "Mai am ceva"), unless the user
+    // already said they're ready.
+    if (assistantTurns === 1 && !saidShow && query) {
+      query = "";
+      chips = ["Arată-mi", "Mai am ceva"];
+      reply = "Am înțeles 👍 Îți arăt acum sau mai vrei să adaugi ceva (culoare, mărime, brand)?";
+    }
+
+    // Safety net: force a search when the user says they're ready, or after a few turns, so
+    // it can never loop forever asking questions.
+    if (saidShow || assistantTurns >= 3) {
       chips = [];
       if (!query) query = (history.find((m) => m.role === "user")?.content ?? "").slice(0, 80);
     }
