@@ -20,7 +20,7 @@ import { LOOK_CATEGORIES, isHiddenFromAll, isLookCategory, type LookCategory } f
 import { publicLookLabel } from "@/lib/look-title";
 import { publicAuthorName } from "@/lib/display-name";
 import { safeLookImage } from "@/lib/look-image";
-import { Bookmark, Crop, Download, Eye, EyeOff, Heart, Home, Image as ImageIcon, ImageUp, Info, Instagram, LayoutGrid, Loader2, Lock, LogOut, MessageCircle, Play, Search, Send, ShoppingBag, SlidersHorizontal, Sparkles, Trash2, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
+import { Bookmark, Crop, Download, Eye, EyeOff, Heart, Home, Image as ImageIcon, ImageUp, Info, Instagram, LayoutGrid, Loader2, Lock, LogOut, Menu, MessageCircle, Play, Search, Send, ShoppingBag, SlidersHorizontal, Sparkles, Trash2, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -2581,14 +2581,13 @@ function StoresPage() {
               <Instagram className="h-4 w-4" />
             </a>
 
-            {/* Messages — moved up from the (removed) bottom bar */}
-            <button type="button" onClick={() => router.push("/messages")}
+            {/* Menu — opens the app menu sheet (Home, account, saved, Găsește-l mai
+                ieftin, admin, sign out) via the shared event the bottom nav listens for. */}
+            <button type="button" onClick={() => { try { window.dispatchEvent(new Event("lb-open-account")); } catch { /**/ } }}
               className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/60 hover:text-white transition"
-              aria-label="Messages">
-              <MessageCircle className="h-4 w-4" />
+              aria-label="Menu">
+              <Menu className="h-4 w-4" />
             </button>
-
-            {/* Account moved to the bottom nav — removed from the top header. */}
           </div>
         </div>
 
