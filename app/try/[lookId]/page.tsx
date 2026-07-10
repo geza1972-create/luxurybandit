@@ -809,10 +809,10 @@ export default function TryFunnelPage() {
               <p className="mt-2 text-[13px] font-bold text-white/50">{chosenModelLocked ? "This model is Premium — unlock her to generate, or cancel and pick a free model." : "Your look is set — tap “Start” to watch it free, or cancel to choose again."}</p>
               <div className="mx-auto mt-3 flex items-stretch justify-center gap-3">
                 <div className="w-[42%] max-w-[160px]">
-                  <button type="button" onClick={() => { setZoomSrc(garmentParam || outfit?.imageUrl || ""); setZoomName(outfit?.name || ""); setOutfitZoom(true); }} className="block w-full overflow-hidden rounded-2xl border border-white/10 bg-white active:scale-95 transition">
-                    <div className="relative aspect-[3/4] w-full bg-white">
+                  <button type="button" onClick={() => { setZoomSrc(look?.frontImageUrl || look?.imageUrl || garmentParam || outfit?.imageUrl || ""); setZoomName(outfit?.name || ""); setOutfitZoom(true); }} className="block w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-95 transition">
+                    <div className="relative aspect-[3/4] w-full bg-white/[0.04]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={garmentParam || outfit?.imageUrl || ""} alt="" className="h-full w-full object-contain" />
+                      <img src={look?.frontImageUrl || look?.imageUrl || garmentParam || outfit?.imageUrl || ""} alt="" className="h-full w-full object-cover object-top" />
                     </div>
                   </button>
                   <p className="mt-1 text-center text-[11px] font-black uppercase tracking-wide text-white/45">Outfit</p>
