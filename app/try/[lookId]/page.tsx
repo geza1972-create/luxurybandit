@@ -698,6 +698,9 @@ export default function TryFunnelPage() {
   // on. AI models are free for everyone; only REAL models are Premium-locked.
   const chosenModelObj = gModels.find(m => m.id === chosenModelId);
   const chosenModelLocked = !isPaid && !adminProduce && !avatar && !!chosenModelObj?.realModel;
+  // The outfit+model confirm view — there the GO button sits INLINE under the images
+  // (not in the sticky footer), so we hide the footer for this view.
+  const inConfirm = step === 2 && !avatar && !((pickModel || chooseModel) && !pickedModel) && pickedParam && !comboCancelled;
 
   return (
     <div className="relative mx-auto min-h-[100dvh] w-full max-w-[440px] bg-[#0d0b0a] text-white shadow-[0_0_60px_rgba(0,0,0,0.45)]">
@@ -713,10 +716,8 @@ export default function TryFunnelPage() {
                 setStep(2);
                 return;
               }
-              // On step 2 (or opened straight from an ad link, no history) → go home instead
-              // of a dead router.back().
-              if (typeof window !== "undefined" && window.history.length > 1) router.back();
-              else router.push("/home");
+              // Exiting the funnel (step ≤ 2, incl. straight from an ad link) → the Models gallery.
+              router.push("/stores?view=models");
             }}
             className="grid h-9 w-9 place-items-center rounded-full bg-white/10 active:opacity-70">
             <ArrowLeft className="h-4 w-4" />
@@ -850,6 +851,23 @@ export default function TryFunnelPage() {
                   }}
                   className="underline decoration-white/20 underline-offset-4 active:opacity-70">Change model</button>
               </div>
+
+              {/* GO — inline, right under the images (NOT sticky). */}
+              {!chosenModelLocked ? (
+                <p className="mt-5 text-center text-[12px] font-black text-white/50">
+                  {!isAuthed() ? "🎟️ 1 free video, then Premium" : packCredits == null ? "" : packCredits > 0 ? `🎟️ ${packCredits} free video${packCredits === 1 ? "" : "s"} left` : "🎟️ Free video used — go Premium to keep creating"}
+                </p>
+              ) : (
+                <p className="mt-5 text-center text-[12px] font-black text-amber-400/90">👑 Premium model · first month $8</p>
+              )}
+              <button type="button" onClick={() => { logFunnelEvent("tryon_click", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) }); if (chosenModelLocked) { setLockedNudge(true); setShowPremium(true); return; } (adminProduce ? generateNow() : goStep3()); }}
+                className="lb-gold mx-auto mt-2 flex h-14 w-full max-w-sm items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
+                {chosenModelLocked
+                  ? <><Crown className="h-5 w-5" /> Unlock with Premium</>
+                  : adminProduce ? <><Sparkles className="h-5 w-5" /> Generate video now</>
+                  : isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
+                  : <><Play className="h-5 w-5 fill-current" /> GO<span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">Free</span></>}
+              </button>
             </>
           ) : (
             // Customer model picker: a 3D coverflow. The chosen model sits large in front;
@@ -1273,8 +1291,9 @@ export default function TryFunnelPage() {
       )}
 
       {/* Sticky CTA — funnel steps 1-4. On step 5 (unlocked) we bring the app's bottom
-          navigation back instead of a funnel button. */}
-      {step !== 5 && (
+          navigation back instead of a funnel button. Hidden on the confirm view, where the
+          GO button is rendered inline under the images instead. */}
+      {step !== 5 && !inConfirm && (
         <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[#0d0b0a] via-[#0d0b0a] to-transparent px-4 pb-5 pt-8 lb-phone-col">
           {step === 1 && (
             <p className="text-center text-[12px] font-bold text-white/35">Pick an outfit above to continue</p>
