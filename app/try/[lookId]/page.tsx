@@ -876,7 +876,6 @@ export default function TryFunnelPage() {
                 className="lb-gold mx-auto mt-4 flex h-14 w-full max-w-sm items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
                 {chosenModelLocked
                   ? <><Crown className="h-5 w-5" /> Unlock with Premium</>
-                  : adminProduce ? <><Sparkles className="h-5 w-5" /> Generate video now</>
                   : isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
                   : <><Play className="h-5 w-5 fill-current" /> GO<span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">Free</span></>}
               </button>
@@ -1386,7 +1385,6 @@ export default function TryFunnelPage() {
                   className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
                   {chosenModelLocked
                     ? <><Crown className="h-5 w-5" /> Unlock with Premium</>
-                    : adminProduce ? <><Sparkles className="h-5 w-5" /> Generate video now</>
                     : isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
                     : <><Play className="h-5 w-5 fill-current" /> GO<span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">Free</span></>}
                 </button>
