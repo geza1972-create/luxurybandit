@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { Plus, ArrowUp, X } from "lucide-react";
+import { Plus, ArrowUp, X, Menu, Home, Search, User, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -21,11 +21,20 @@ const SUGGESTIONS = [
   "o rochie de seară sub 200 lei",
 ];
 
+// Relevant links pulled into the top hamburger menu (Romanian).
+const MENU_LINKS = [
+  { href: "/home", label: "Acasă", Icon: Home },
+  { href: "/stores?view=models", label: "Modele", Icon: Sparkles },
+  { href: "/mai-ieftin", label: "Găsește-l mai ieftin", Icon: Search },
+  { href: "/login?mode=signup&returnTo=/mai-ieftin", label: "Cont", Icon: User },
+];
+
 export default function MaiIeftinPage() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [text, setText] = useState("");
   const [preview, setPreview] = useState(""); // object URL of an attached photo
   const [loading, setLoading] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -86,21 +95,52 @@ export default function MaiIeftinPage() {
   );
 
   return (
-    <div className="flex h-screen flex-col bg-black text-white">
+    <div className="flex h-screen flex-col bg-black text-white/90">
       {/* Top bar */}
-      <header className="flex shrink-0 items-center px-5 py-4">
+      <header className="flex shrink-0 items-center justify-between px-5 py-4">
         <Link href="/home" aria-label="LuxuryBandit" className="inline-flex items-center gap-2 active:scale-95 transition">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/lb-logo.png" alt="" className="h-8 w-8 rounded-full object-contain" />
-          <span className="text-[17px] font-black tracking-tight">LuxuryBandit</span>
+          <span className="text-[17px] font-black tracking-tight text-white/85">LuxuryBandit</span>
         </Link>
+        <button type="button" onClick={() => setMenuOpen(true)} aria-label="Meniu"
+          className="grid h-10 w-10 place-items-center rounded-full text-white/75 hover:bg-white/10 active:scale-90 transition">
+          <Menu className="h-6 w-6" />
+        </button>
       </header>
+
+      {/* Hamburger drawer */}
+      {menuOpen && (
+        <>
+          <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm" onClick={() => setMenuOpen(false)} />
+          <div className="fixed right-0 top-0 z-[61] flex h-full w-72 max-w-[85vw] flex-col bg-[#111] p-5 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <span className="text-[15px] font-black text-white/85">Meniu</span>
+              <button type="button" onClick={() => setMenuOpen(false)} aria-label="Închide"
+                className="grid h-9 w-9 place-items-center rounded-full text-white/60 hover:bg-white/10 active:scale-90 transition"><X className="h-5 w-5" /></button>
+            </div>
+            <nav className="mt-6 flex flex-col gap-1">
+              {MENU_LINKS.map((l) => (
+                <Link key={l.href} href={l.href} onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] font-bold text-white/85 hover:bg-white/10 active:scale-[0.98] transition">
+                  <l.Icon className="h-5 w-5 text-white/45" /> {l.label}
+                </Link>
+              ))}
+            </nav>
+            <div className="mt-auto flex flex-wrap gap-x-4 gap-y-2 pt-6 text-[12px] font-semibold text-white/35">
+              <Link href="/terms" onClick={() => setMenuOpen(false)}>Termeni</Link>
+              <Link href="/privacy" onClick={() => setMenuOpen(false)}>Confidențialitate</Link>
+              <Link href="/contact" onClick={() => setMenuOpen(false)}>Contact</Link>
+            </div>
+          </div>
+        </>
+      )}
 
       {empty ? (
         /* Empty / landing state — centered */
         <main className="flex flex-1 flex-col items-center justify-center px-5 pb-24">
           <div className="w-full max-w-md">
-            <h1 className="mb-8 text-center text-[32px] font-black leading-tight tracking-tight">Găsește-l mai ieftin</h1>
+            <h1 className="mb-8 text-center text-[32px] font-black leading-tight tracking-tight text-white/75">Găsește-l mai ieftin</h1>
             {inputBox}
             <div className="mt-3 flex flex-wrap justify-center gap-2">
               {SUGGESTIONS.map((s) => (
@@ -121,7 +161,7 @@ export default function MaiIeftinPage() {
                   <div className={m.role === "user" ? "self-end max-w-[85%]" : "self-start max-w-[85%]"}>
                     <div className={m.role === "user"
                       ? "rounded-3xl rounded-br-lg bg-white px-4 py-2.5 text-[15px] font-semibold text-black"
-                      : "rounded-3xl rounded-bl-lg bg-white/10 px-4 py-2.5 text-[15px] font-medium leading-relaxed text-white"}>
+                      : "rounded-3xl rounded-bl-lg bg-white/10 px-4 py-2.5 text-[15px] font-medium leading-relaxed text-white/80"}>
                       {m.content}
                     </div>
                   </div>
