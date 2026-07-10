@@ -248,8 +248,8 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
 
       return (
         <>
-          {/* Backdrop */}
-          <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm" onClick={() => setShowProfileMenu(false)} />
+          {/* Backdrop — opaque so the page behind never shows through (no "doubled" look). */}
+          <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-md" onClick={() => setShowProfileMenu(false)} />
           {/* Drawer — slides in from the right, dark. */}
           <div className="fixed right-0 top-0 z-[61] flex h-full w-80 max-w-[85vw] flex-col overflow-y-auto bg-[#111] pt-5 shadow-2xl animate-[slideIn_0.2s_ease-out]"
             style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
@@ -276,16 +276,12 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
             </div>
             {/* Menu items */}
             <div className="grid divide-y divide-white/10">
-              {/* Home + Try-Ons — moved here from the old white bottom bar. */}
+              {/* Home — moved here from the old white bottom bar. (Try-Ons lives below as a
+                  single sign-in-gated entry; showing it logged-out made no sense.) */}
               <button type="button" onClick={() => navigate("/home")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <Home className="h-5 w-5 shrink-0 text-white/50" />
                 <span className="text-sm font-black text-white">Home</span>
-              </button>
-              <button type="button" onClick={() => navigate("/stores?view=grid")}
-                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                <Shirt className="h-5 w-5 shrink-0 text-white/50" />
-                <span className="text-sm font-black text-white">Try-Ons</span>
               </button>
               {/* Găsește-l mai ieftin — the Dupe-style price-finder funnel (everyone). */}
               <button type="button" onClick={() => navigate("/mai-ieftin")}
@@ -343,8 +339,8 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               {signedIn && !curator?.id && (
                 <button type="button" onClick={() => navigate("/user/tryons")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <ImageIcon className="h-5 w-5 text-white/50 shrink-0" />
-                  <span className="text-sm font-black text-white">My try ons</span>
+                  <Shirt className="h-5 w-5 text-white/50 shrink-0" />
+                  <span className="text-sm font-black text-white">Try-Ons</span>
                 </button>
               )}
               {signedIn ? (
