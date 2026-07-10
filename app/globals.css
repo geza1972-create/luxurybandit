@@ -101,6 +101,12 @@ svg {
   100% { background-position: -200% 0; }
 }
 
+/* Right-side drawer slide-in (menu). */
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
 /* Scanner beam for the try-on "reveal": a horizontal line sweeps down then up. */
 @keyframes lb-scan {
   0%, 100% { top: 3%; }

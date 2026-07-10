@@ -250,131 +250,127 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
         <>
           {/* Backdrop */}
           <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm" onClick={() => setShowProfileMenu(false)} />
-          {/* Sheet */}
-          <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[61] rounded-t-2xl bg-white shadow-2xl"
+          {/* Drawer — slides in from the right, dark. */}
+          <div className="fixed right-0 top-0 z-[61] flex h-full w-80 max-w-[85vw] flex-col overflow-y-auto bg-[#111] pt-5 shadow-2xl animate-[slideIn_0.2s_ease-out]"
             style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-2">
-              <div className="h-1 w-10 rounded-full bg-black/15" />
-            </div>
             {/* Header — show who's signed in */}
             <div className="flex items-center gap-3 px-5 pb-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-black text-sm font-black text-white">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-sm font-black text-white">
                 {(displayName || "?").slice(0, 1).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-base font-black text-black">{displayName || (signedIn ? "Account" : "Not signed in")}</p>
+                <p className="truncate text-base font-black text-white">{displayName || (signedIn ? "Account" : "Not signed in")}</p>
                 {signedIn ? (
-                  <p className="flex items-center gap-1 truncate text-[11px] font-bold text-emerald-600">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  <p className="flex items-center gap-1 truncate text-[11px] font-bold text-emerald-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                     {curator?.id ? "Signed in as model" : isPinAdmin ? "Admin (PIN)" : "Signed in"}{displayEmail ? ` · ${displayEmail}` : ""}
                   </p>
                 ) : (
-                  <p className="truncate text-[11px] font-bold text-black/40">Sign in to save & curate</p>
+                  <p className="truncate text-[11px] font-bold text-white/40">Sign in to save & curate</p>
                 )}
               </div>
               <button type="button" onClick={() => setShowProfileMenu(false)}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-black/5 text-black/50">
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/10 text-white/60">
                 <X className="h-4 w-4" />
               </button>
             </div>
             {/* Menu items */}
-            <div className="grid divide-y divide-black/5">
+            <div className="grid divide-y divide-white/10">
               {/* Home + Try-Ons — moved here from the old white bottom bar. */}
               <button type="button" onClick={() => navigate("/home")}
-                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
-                <Home className="h-5 w-5 shrink-0 text-black/50" />
-                <span className="text-sm font-black text-black">Home</span>
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                <Home className="h-5 w-5 shrink-0 text-white/50" />
+                <span className="text-sm font-black text-white">Home</span>
               </button>
               <button type="button" onClick={() => navigate("/stores?view=grid")}
-                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
-                <Shirt className="h-5 w-5 shrink-0 text-black/50" />
-                <span className="text-sm font-black text-black">Try-Ons</span>
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                <Shirt className="h-5 w-5 shrink-0 text-white/50" />
+                <span className="text-sm font-black text-white">Try-Ons</span>
               </button>
               {/* Găsește-l mai ieftin — the Dupe-style price-finder funnel (everyone). */}
               <button type="button" onClick={() => navigate("/mai-ieftin")}
-                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <Search className="h-5 w-5 shrink-0 text-[#b8912f]" />
-                <span className="text-sm font-black text-black">Găsește-l mai ieftin</span>
+                <span className="text-sm font-black text-white">Găsește-l mai ieftin</span>
               </button>
               {/* Admin: jump straight to the admin dashboard (no need to type /admin). */}
               {(!!adminPin || isAdminEmail(displayEmail)) && (
                 <button type="button" onClick={() => navigate("/admin")}
-                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
-                  <Shield className="h-5 w-5 shrink-0 text-violet-600" />
-                  <span className="text-sm font-black text-black">Admin dashboard</span>
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                  <Shield className="h-5 w-5 shrink-0 text-violet-400" />
+                  <span className="text-sm font-black text-white">Admin dashboard</span>
                 </button>
               )}
               {/* Admin: view/act AS any model (impersonate) — picker with search + photos. */}
               {!!adminPin && (
                 <button type="button" onClick={() => { setShowProfileMenu(false); setPickerQuery(""); setShowModelPicker(true); }}
-                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
-                  <Eye className="h-5 w-5 shrink-0 text-black/50" />
-                  <span className="text-sm font-black text-black">View as model…</span>
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                  <Eye className="h-5 w-5 shrink-0 text-white/50" />
+                  <span className="text-sm font-black text-white">View as model…</span>
                 </button>
               )}
               {/* Models land on THEIR OWN page (wardrobe + photos) — the old Studio
                   tool is retired for models; the team handles videos & publishing. */}
               {isCurator && (
                 <button type="button" onClick={() => navigate(curatorId ? `/curator/${curatorId}` : "/stores")}
-                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
-                  <Sparkles className="h-5 w-5 shrink-0 text-black/50" />
-                  <span className="text-sm font-black text-black">My model page</span>
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                  <Sparkles className="h-5 w-5 shrink-0 text-white/50" />
+                  <span className="text-sm font-black text-white">My model page</span>
                 </button>
               )}
               {/* Curator → My profile (their form data); others → generic account */}
               {isCurator ? (
                 <button type="button" onClick={() => navigate("/curators/profile")}
-                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
-                  <User className="h-5 w-5 text-black/50 shrink-0" />
-                  <span className="text-sm font-black text-black">My profile</span>
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                  <User className="h-5 w-5 text-white/50 shrink-0" />
+                  <span className="text-sm font-black text-white">My profile</span>
                 </button>
               ) : (
                 <button type="button" onClick={() => navigate(slug ? `/${slug}/myaccount` : "/user/myaccount")}
-                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
-                  <Settings className="h-5 w-5 text-black/50 shrink-0" />
-                  <span className="text-sm font-black text-black">Account</span>
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                  <Settings className="h-5 w-5 text-white/50 shrink-0" />
+                  <span className="text-sm font-black text-white">Account</span>
                 </button>
               )}
               <button type="button" onClick={() => navigate("/stores?panel=saved")}
-                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
-                <Bookmark className="h-5 w-5 text-black/50 shrink-0" />
-                <span className="text-sm font-black text-black">Saved</span>
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                <Bookmark className="h-5 w-5 text-white/50 shrink-0" />
+                <span className="text-sm font-black text-white">Saved</span>
               </button>
               {/* My try ons → the account dashboard, which lists the user's try-ons
                   (bound by email, incl. funnel ones) with view/download/delete. The
                   public profile (/[slug]) only works for curators, so don't route there. */}
               {signedIn && !curator?.id && (
                 <button type="button" onClick={() => navigate("/user/tryons")}
-                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
-                  <ImageIcon className="h-5 w-5 text-black/50 shrink-0" />
-                  <span className="text-sm font-black text-black">My try ons</span>
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                  <ImageIcon className="h-5 w-5 text-white/50 shrink-0" />
+                  <span className="text-sm font-black text-white">My try ons</span>
                 </button>
               )}
               {signedIn ? (
                 <button type="button" onClick={() => void handleSignOut()}
-                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <LogOut className="h-5 w-5 text-red-400 shrink-0" />
                   <span className="text-sm font-black text-red-500">Sign out</span>
                 </button>
               ) : (
                 <button type="button" onClick={() => navigate("/stores?panel=account")}
-                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
-                  <User className="h-5 w-5 text-black/50 shrink-0" />
-                  <span className="text-sm font-black text-black">Sign in</span>
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                  <User className="h-5 w-5 text-white/50 shrink-0" />
+                  <span className="text-sm font-black text-white">Sign in</span>
                 </button>
               )}
             </div>
 
             {/* Info & legal */}
-            <div className="mt-4 border-t border-black/5 px-5 pt-3">
-              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-black/30">Info &amp; legal</p>
-              <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-bold text-black/45">
-                <button type="button" onClick={() => navigate("/contact")} className="hover:text-black">Contact</button>
-                <button type="button" onClick={() => navigate("/about")} className="hover:text-black">About</button>
-                <button type="button" onClick={() => navigate("/terms")} className="hover:text-black">Terms</button>
-                <button type="button" onClick={() => navigate("/privacy")} className="hover:text-black">Privacy</button>
-                <button type="button" onClick={() => navigate("/imprint")} className="hover:text-black">Imprint</button>
+            <div className="mt-4 border-t border-white/10 px-5 pt-3">
+              <p className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/30">Info &amp; legal</p>
+              <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-bold text-white/45">
+                <button type="button" onClick={() => navigate("/contact")} className="hover:text-white">Contact</button>
+                <button type="button" onClick={() => navigate("/about")} className="hover:text-white">About</button>
+                <button type="button" onClick={() => navigate("/terms")} className="hover:text-white">Terms</button>
+                <button type="button" onClick={() => navigate("/privacy")} className="hover:text-white">Privacy</button>
+                <button type="button" onClick={() => navigate("/imprint")} className="hover:text-white">Imprint</button>
               </div>
             </div>
           </div>
