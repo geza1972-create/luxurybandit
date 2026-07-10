@@ -8,6 +8,7 @@ import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
 import { FeedGate } from "@/components/FeedGate";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
+import { logFunnelEvent } from "@/lib/track-funnel";
 
 type Outfit = { id: string; name: string; imageUrl: string; lookId?: string };
 type Look = { id: string; name: string; imageUrl?: string; frontImageUrl?: string; videoPosterUrl?: string; modelPhotoUrl?: string; curatorName?: string; featured?: boolean };
@@ -214,6 +215,14 @@ export default function TryFunnelPage() {
     // Admin "view as her" preview: PIN ignored so the funnel behaves exactly like
     // for the model herself (photo path, no admin panels).
     try { setAdminPin(localStorage.getItem("lb_preview_model") ? "" : (localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "")); } catch { /**/ }
+  }, []);
+
+  // Landing event for the ad funnel — fires once when someone opens /try (e.g. from the
+  // Gina Facebook ad). Attaches utm_source (fb/ig) so Insights shows ad clicks + drop-off.
+  useEffect(() => {
+    if (!lookId) return;
+    logFunnelEvent("tryon_open", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
