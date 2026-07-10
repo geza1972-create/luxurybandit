@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readTryThisLookState, uploadTryThisLookBytes, getSignedUrl, createSignedUploadUrl } from "@/lib/try-this-look-store";
+import { readTryThisLookState, uploadTryThisLookBytes, getSignedUrl, createSignedUploadUrl, bumpDailyGenLimit } from "@/lib/try-this-look-store";
 import { chargeCredits, refundCredits, VIDEO_CREDITS } from "@/lib/curator-budget";
 import { authorizeStudio } from "@/lib/studio-auth";
 import { isAdminRequest } from "@/lib/admin-auth";
@@ -321,6 +321,21 @@ export async function POST(request: Request) {
   // Staff (admin or an acting-as curator session, e.g. Szidonia) generate for FREE
   // — no credit charge, no paywall. End-user charging comes with Stripe.
   const staff = (await authorizeStudio(request)).ok;
+  // Anti-abuse cap: a non-staff caller (guest / direct API) may trigger at most
+  // FREE_VIDEO_GEN_PER_DAY (default 1) generations per IP per day. Guests normally never
+  // reach here — GO plays a pre-generated video — so this only bites direct-API abuse and
+  // caps runaway Pixverse spend. Admin/staff bypass. Keyed on the Vercel-set client IP
+  // (can't be spoofed like a header); device id is only a dev-local fallback.
+  if (!staff) {
+    const ip = (request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("x-real-ip") || "").trim();
+    const device = (request.headers.get("x-lb-device") || "").trim();
+    const gateKey = ip ? `ip:${ip}` : device ? `d:${device}` : "anon";
+    const gate = await bumpDailyGenLimit(gateKey);
+    if (!gate.ok) return NextResponse.json(
+      { error: "Free limit reached — 1 video per day. Sign up for more.", limitReached: true, resetsDaily: true, limit: gate.limit },
+      { status: 429 },
+    );
+  }
   const chargeOwner = !!curatorId && !staff;
   if (chargeOwner) {
     const charge = await chargeCredits(curatorId, VIDEO_CREDITS, "try-on video");

@@ -335,7 +335,7 @@ export type TryThisLookState = {
   // $8 pack = +4). redeemed = Stripe session ids already granted (idempotency).
   // welcomed = emails that already got their free welcome credits (granted once).
   // subMonths = "email|YYYY-MM" keys already granted the monthly subscriber allowance (idempotency).
-  videoCredits?: { balances: Record<string, number>; redeemed: string[]; welcomed?: string[]; subMonths?: string[] };
+  videoCredits?: { balances: Record<string, number>; redeemed: string[]; welcomed?: string[]; subMonths?: string[]; genLog?: Record<string, number> };
 };
 
 export type ModelChatLog = {
@@ -1106,6 +1106,35 @@ async function grantMonthlySubscriptionCreditsInner(email: string, n: number): P
   state.videoCredits = vc;
   await saveTryThisLookState(state);
   return vc.balances[e];
+}
+
+// Anti-abuse cap: how many FREE (uncharged, non-staff) video generations a single
+// device/IP may trigger per calendar day. Guests normally never generate (GO plays a
+// pre-generated video), so this only ever bites direct-API abuse. Override via env.
+export const FREE_VIDEO_GEN_PER_DAY = Number(process.env.FREE_VIDEO_GEN_PER_DAY ?? 1);
+
+// Increment today's generation counter for `key` (an IP or device id) and report whether
+// it stayed within `limit`. Piggybacks on the persisted videoCredits blob (no new top-level
+// state field → dodges the whitelist gotcha). Old days are pruned so the map stays tiny.
+// Read-modify-write on the shared JSON isn't atomic, so a burst may undercount by a few —
+// acceptable for an anti-abuse guard.
+export async function bumpDailyGenLimit(
+  key: string,
+  limit = FREE_VIDEO_GEN_PER_DAY,
+): Promise<{ ok: boolean; count: number; limit: number }> {
+  const k = (key || "anon").slice(0, 120);
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+  const state = await readTryThisLookState();
+  const vc = state.videoCredits ?? { balances: {}, redeemed: [] };
+  vc.genLog = vc.genLog ?? {};
+  for (const kk of Object.keys(vc.genLog)) { if (!kk.endsWith(`|${today}`)) delete vc.genLog[kk]; } // prune stale days
+  const mapKey = `${k}|${today}`;
+  const count = Math.max(0, Number(vc.genLog[mapKey] ?? 0));
+  if (count >= limit) return { ok: false, count, limit };
+  vc.genLog[mapKey] = count + 1;
+  state.videoCredits = vc;
+  await saveTryThisLookState(state);
+  return { ok: true, count: count + 1, limit };
 }
 
 // Spend one credit for a generation. Returns the new balance, or null if none left.
