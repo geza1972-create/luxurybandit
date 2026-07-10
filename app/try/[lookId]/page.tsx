@@ -779,7 +779,7 @@ export default function TryFunnelPage() {
             </>
           ) : avatar ? (
             <>
-              <p className="mt-2 text-[13px] font-bold text-white/50">{!avatar && chosenModelName ? `Tap “Generate” to see ${chosenModelName.split(/\s+/)[0]} wear it — or switch the look / use your own photo.` : (pickedModel ? "Great pick — or replace her with your own photo." : "The model from the video is ready. Keep her, or replace her with your own photo.")}</p>
+              <p className="mt-2 text-[13px] font-bold text-white/50">{!avatar && chosenModelName ? `Tap “Start” to see ${chosenModelName.split(/\s+/)[0]} wear it — free. Or switch the look / use your own photo.` : (pickedModel ? "Great pick — or replace her with your own photo." : "The model from the video is ready. Keep her, or replace her with your own photo.")}</p>
               <div className="mx-auto mt-3 w-fit overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04]">
                 {/* Height-constrained so 'Choose other model' + the outfit stay on screen. */}
                 <div className="relative aspect-[9/16] h-[38vh] max-w-[78vw]">
@@ -803,7 +803,7 @@ export default function TryFunnelPage() {
             // Outfit chosen → confirm view: the OUTFIT (left) + the chosen MODEL (right),
             // with Cancel to reopen the picker.
             <>
-              <p className="mt-2 text-[13px] font-bold text-white/50">{chosenModelLocked ? "This model is Premium — unlock her to generate, or cancel and pick a free model." : "Your look is set — tap “Generate” to see it, or cancel to choose again."}</p>
+              <p className="mt-2 text-[13px] font-bold text-white/50">{chosenModelLocked ? "This model is Premium — unlock her to generate, or cancel and pick a free model." : "Your look is set — tap “Start” to watch it free, or cancel to choose again."}</p>
               <div className="mx-auto mt-3 flex items-stretch justify-center gap-3">
                 <div className="w-[42%] max-w-[160px]">
                   <button type="button" onClick={() => { setZoomSrc(garmentParam || outfit?.imageUrl || ""); setZoomName(outfit?.name || ""); setOutfitZoom(true); }} className="block w-full overflow-hidden rounded-2xl border border-white/10 bg-white active:scale-95 transition">
@@ -850,7 +850,7 @@ export default function TryFunnelPage() {
             // her neighbours angle back on both sides. Tap a side card (or an arrow) to bring
             // her forward — that selects her. Locked models (not Gina) show a padlock.
             <>
-              <p className="mt-2 text-[13px] font-bold text-white/50">Swipe the models — your pick stands up front. Tap “Generate” to see her wear it.</p>
+              <p className="mt-2 text-[13px] font-bold text-white/50">Swipe the models — your pick stands up front. Tap “Start” to see her wear it, free.</p>
               {(() => {
                 const om = [...gModels].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
                 if (om.length === 0) return <div className="grid h-[46vh] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/30" /></div>;
@@ -1305,8 +1305,9 @@ export default function TryFunnelPage() {
                   className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
                   {chosenModelLocked
                     ? <><Crown className="h-5 w-5" /> Unlock with Premium</>
-                    : <><Sparkles className="h-5 w-5" /> {adminProduce ? "Generate video now" : (isModelSession ? "Generate my photo" : "Generate my video")}
-                        {!adminProduce && !isModelSession && <span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">1 credit</span>}</>}
+                    : adminProduce ? <><Sparkles className="h-5 w-5" /> Generate video now</>
+                    : isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
+                    : <><Play className="h-5 w-5 fill-current" /> Start<span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">Free</span></>}
                 </button>
               </>
             )
