@@ -339,13 +339,15 @@ export async function GET(request: Request) {
       const curatorId = (cCurator ?? "").trim();
       const lookId = (cLook ?? "").trim();
       if (!curatorId || !lookId) return NextResponse.json({ hit: false });
-      // state.generations is newest-first; the first match is the freshest reusable clip.
-      const hitGen = state.generations.find((g) => {
-        if ((g as any).hidden || (g as any).reuseCopy || !(g as any).videoUrl) return false;
+      // All pre-generated clips for this model×look×motion (incl. hidden-from-feed ones —
+      // the funnel may still reuse them). Pick a RANDOM one so repeat visitors see variety.
+      const matches = state.generations.filter((g) => {
+        if ((g as any).reuseCopy || !(g as any).videoUrl) return false;
         if ((g as any).curatorId !== curatorId || g.lookId !== lookId) return false;
         const m = (g as any).motion === "dance" ? "dance" : "turn"; // missing = legacy turn
         return m === cMotion;
       });
+      const hitGen = matches.length ? matches[Math.floor(Math.random() * matches.length)] : undefined;
       if (hitGen) {
         return NextResponse.json({
           hit: true,
