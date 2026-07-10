@@ -12,7 +12,8 @@ import { useEffect, useRef, useState } from "react";
 // and chats with an AI assistant (Claude Haiku via /api/mai-ieftin-chat) that helps
 // find cheaper versions. Real product search isn't wired yet — the AI guides.
 // ────────────────────────────────────────────────────────────────────────────
-type Msg = { role: "user" | "assistant"; content: string };
+type ShopItem = { title: string; link: string; source?: string; thumbnail: string; price?: string };
+type Msg = { role: "user" | "assistant"; content: string; products?: ShopItem[] };
 
 const SUGGESTIONS = [
   "o geantă ca de la Versace, mai ieftin",
@@ -48,7 +49,7 @@ export default function MaiIeftinPage() {
         body: JSON.stringify({ messages: next }),
       });
       const d = await r.json().catch(() => ({}));
-      setMessages((m) => [...m, { role: "assistant", content: d.reply || "Momentan nu pot răspunde. Mai încearcă o dată." }]);
+      setMessages((m) => [...m, { role: "assistant", content: d.reply || "Momentan nu pot răspunde. Mai încearcă o dată.", products: Array.isArray(d.products) ? d.products : undefined }]);
     } catch {
       setMessages((m) => [...m, { role: "assistant", content: "Ceva n-a mers. Mai încearcă o dată." }]);
     } finally { setLoading(false); }
@@ -116,12 +117,33 @@ export default function MaiIeftinPage() {
           <main className="flex-1 overflow-y-auto px-4 pb-4">
             <div className="mx-auto flex max-w-md flex-col gap-3 py-2">
               {messages.map((m, i) => (
-                <div key={i} className={m.role === "user" ? "self-end max-w-[85%]" : "self-start max-w-[85%]"}>
-                  <div className={m.role === "user"
-                    ? "rounded-3xl rounded-br-lg bg-white px-4 py-2.5 text-[15px] font-semibold text-black"
-                    : "rounded-3xl rounded-bl-lg bg-white/10 px-4 py-2.5 text-[15px] font-medium leading-relaxed text-white"}>
-                    {m.content}
+                <div key={i} className="flex flex-col gap-2">
+                  <div className={m.role === "user" ? "self-end max-w-[85%]" : "self-start max-w-[85%]"}>
+                    <div className={m.role === "user"
+                      ? "rounded-3xl rounded-br-lg bg-white px-4 py-2.5 text-[15px] font-semibold text-black"
+                      : "rounded-3xl rounded-bl-lg bg-white/10 px-4 py-2.5 text-[15px] font-medium leading-relaxed text-white"}>
+                      {m.content}
+                    </div>
                   </div>
+                  {/* Gemini-style product cards (image + price + link) */}
+                  {m.products && m.products.length > 0 && (
+                    <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
+                      {m.products.map((p, idx) => (
+                        <a key={idx} href={p.link} target="_blank" rel="noopener noreferrer"
+                          className="w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-white/10 active:scale-95 transition">
+                          <div className="aspect-square w-full bg-white">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-contain" />
+                          </div>
+                          <div className="p-2">
+                            {p.price && <p className="text-[14px] font-black text-white">{p.price}</p>}
+                            <p className="mt-0.5 line-clamp-2 text-[11px] font-semibold leading-tight text-white/65">{p.title}</p>
+                            {p.source && <p className="mt-1 truncate text-[10px] font-bold text-white/35">{p.source}</p>}
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
               {loading && (
