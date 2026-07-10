@@ -49,11 +49,14 @@ function GridClip({ videoUrl, poster, alt }: { videoUrl: string; poster: string;
   return (
     <div ref={ref} className="relative h-full w-full">
       {/* Optimized still (400w) shows INSTANTLY and stays underneath as the fallback,
-          so a slow/buffering video never leaves the tile blank. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={optImg(poster, 400)} alt={alt} loading="lazy" decoding="async"
-        onError={(e) => { const im = e.currentTarget; if (poster && im.src !== poster) im.src = poster; }}
-        className="absolute inset-0 h-full w-full object-cover object-top" />
+          so a slow/buffering video never leaves the tile blank. Skipped when there's
+          no poster (posterless videos) so we never emit an empty img src. */}
+      {poster && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={optImg(poster, 400)} alt={alt} loading="lazy" decoding="async"
+          onError={(e) => { const im = e.currentTarget; if (poster && im.src !== poster) im.src = poster; }}
+          className="absolute inset-0 h-full w-full object-cover object-top" />
+      )}
       {inView && (
         /* Video fades in only once it's playing; until then the still is visible. */
         <video src={videoUrl} muted loop playsInline autoPlay preload="metadata"
@@ -2943,9 +2946,12 @@ function StoresPage() {
                         <img src={optImg(poster, 400)} alt={it.name} loading="lazy" decoding="async"
                           onError={(e) => { const im = e.currentTarget; if (poster && im.src !== poster) im.src = poster; }}
                           className="h-full w-full object-cover object-top" />
+                      ) : it.videoUrl ? (
+                        // Posterless video → play it (IO-gated) so the tile shows real
+                        // frames instead of an unpainted black <video preload="metadata">.
+                        <GridClip videoUrl={it.videoUrl} poster="" alt={it.name} />
                       ) : (
-                        <video src={`${it.videoUrl}#t=0.1`} muted playsInline preload="metadata"
-                          className="h-full w-full bg-black object-cover object-top" />
+                        <div className="h-full w-full bg-black/[0.06]" />
                       ); })()
                     ) : it.thumb ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -2957,7 +2963,7 @@ function StoresPage() {
                       // which makes the browser re-request the whole page).
                       <div className="h-full w-full bg-black/[0.06]" />
                     )}
-                    {it.videoUrl && !it.animated && (
+                    {it.videoUrl && !it.animated && (it.videoPoster || it.thumb) && (
                       <span className="pointer-events-none absolute inset-0 grid place-items-center"><Play className="h-7 w-7 fill-white text-white opacity-25 drop-shadow-[0_1px_3px_rgba(0,0,0,0.25)]" /></span>
                     )}
                     {/* Label at the BOTTOM — the face is usually at the top of the crop.
