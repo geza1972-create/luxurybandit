@@ -85,26 +85,48 @@ Reguli:
 - Pune „query" GOL doar dacă mesajul chiar NU e o căutare de produs (salut, mulțumesc, întrebare generală).
 - NU inventa prețuri sau linkuri — de căutare mă ocup eu.`;
 
+// Product-TYPE groups (EN + RO). We only surface our looks whose garment type matches the
+// query's type — otherwise a "bag" search returns lingerie (generic words like "style"
+// falsely matched). First keyword is the group id.
+const TYPE_GROUPS: string[][] = [
+  ["dress", "rochie", "rochii", "gown", "cocktail"],
+  ["bikini", "swimsuit", "swimwear", "monokini", "swim", "costum de baie", "one-piece", "one piece"],
+  ["lingerie", "bra", "thong", "bodysuit", "corset", "sutien", "lenjerie", "babydoll", "bralette", "garter"],
+  ["bag", "handbag", "geanta", "geantă", "purse", "clutch", "tote", "poseta", "poșeta"],
+  ["shoe", "heel", "sneaker", "boot", "pantofi", "adidasi", "adidași", "sandal", "sandale"],
+  ["top", "blouse", "cămașă", "camasa", "bluza", "bluză", "shirt"],
+  ["skirt", "fusta", "fustă"],
+  ["jacket", "coat", "blazer", "geaca", "geacă", "palton", "trench", "jacheta"],
+  ["pants", "trousers", "pantaloni", "jeans", "leggings", "colanti"],
+  ["jewelry", "necklace", "earrings", "bijuterii", "colier", "cercei", "bracelet"],
+];
+function typesIn(text: string): Set<string> {
+  const t = text.toLowerCase();
+  return new Set(TYPE_GROUPS.filter((g) => g.some((w) => t.includes(w))).map((g) => g[0]));
+}
+
 // Our OWN catalogue, matched to the query — shown as a "din colecția LuxuryBandit" shelf
-// under the external results so shoppers also see what we have. Never the raw brand name
-// (licensing) → publicLookLabel. Falls back to recent looks so the shelf is never empty.
+// under the external results so shoppers also see what we have. Type-gated (no lingerie for
+// a bag query) and licensing-safe (publicLookLabel, never the raw brand name).
 async function ownProductsFor(query: string): Promise<ShopItem[]> {
   try {
     const state = await readTryThisLookState();
     const looks = (state.looks || []).filter(
       (l) => ((l as { imageUrl?: string }).imageUrl || l.frontImageUrl) && (l as { published?: boolean }).published !== false,
     );
+    const qTypes = typesIn(query);
     const words = query.toLowerCase().split(/[^a-z0-9ăâîșț]+/i).filter((w) => w.length > 2);
     const scored = looks.map((l) => {
       const hay = `${(l as { curatorNote?: string }).curatorNote ?? ""} ${l.productNote ?? ""} ${l.name ?? ""} ${l.brand ?? ""} ${l.campaignName ?? ""}`.toLowerCase();
-      return { l, score: words.reduce((n, w) => n + (hay.includes(w) ? 1 : 0), 0) };
+      const lTypes = typesIn(hay);
+      // If the query names a garment type, the look MUST be that type — else drop it.
+      if (qTypes.size > 0 && ![...lTypes].some((t) => qTypes.has(t))) return { l, score: -1 };
+      const wordScore = words.reduce((n, w) => n + (hay.includes(w) ? 1 : 0), 0);
+      const typeBonus = qTypes.size > 0 ? 5 : 0; // reached here → type matched
+      return { l, score: wordScore + typeBonus };
     });
+    // Only genuinely relevant looks. Empty shelf is fine if nothing matches the type.
     const picked = scored.filter((s) => s.score > 0).sort((a, b) => b.score - a.score);
-    if (picked.length < 4) {
-      const recent = [...looks].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
-      const seen = new Set(picked.map((p) => p.l.id));
-      for (const l of recent) { if (picked.length >= 6) break; if (!seen.has(l.id)) { picked.push({ l, score: 0 }); seen.add(l.id); } }
-    }
     return picked.slice(0, 6).map(({ l }) => ({
       title: publicLookLabel(l as { curatorNote?: string; productNote?: string }) || "Look LuxuryBandit",
       link: `/look/${l.id}`,
