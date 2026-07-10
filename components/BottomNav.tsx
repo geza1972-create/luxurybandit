@@ -250,9 +250,10 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
         <>
           {/* Backdrop — opaque so the page behind never shows through (no "doubled" look). */}
           <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-md" onClick={() => setShowProfileMenu(false)} />
-          {/* Drawer — a side panel sliding in from the right (dark). Not full width, so a
-              strip of dimmed backdrop stays on the left; tap it to close. */}
-          <div className="fixed right-0 top-0 z-[61] flex h-full w-[82%] max-w-xs flex-col overflow-y-auto bg-[#111] pt-5 shadow-2xl animate-[slideIn_0.2s_ease-out]"
+          {/* Drawer — a side panel sliding in from the right (dark). On phones it's ~82%
+              (a dimmed strip stays on the left to tap-close). On desktop, lb-phone-col
+              pins it inside the 440px phone frame instead of the far window edge. */}
+          <div className="lb-phone-col fixed right-0 top-0 z-[61] flex h-full w-[82%] max-w-xs flex-col overflow-y-auto bg-[#111] pt-5 shadow-2xl animate-[slideIn_0.2s_ease-out]"
             style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
             {/* Header — show who's signed in */}
             <div className="flex items-center gap-3 px-5 pb-3">
