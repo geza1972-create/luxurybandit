@@ -328,11 +328,13 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-sm font-black text-white">Account</span>
                 </button>
               )}
-              <button type="button" onClick={() => navigate("/stores?panel=saved")}
-                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                <Bookmark className="h-5 w-5 text-white/50 shrink-0" />
-                <span className="text-sm font-black text-white">Saved</span>
-              </button>
+              {signedIn && (
+                <button type="button" onClick={() => navigate("/stores?panel=saved")}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                  <Bookmark className="h-5 w-5 text-white/50 shrink-0" />
+                  <span className="text-sm font-black text-white">Saved</span>
+                </button>
+              )}
               {/* My try ons → the account dashboard, which lists the user's try-ons
                   (bound by email, incl. funnel ones) with view/download/delete. The
                   public profile (/[slug]) only works for curators, so don't route there. */}
