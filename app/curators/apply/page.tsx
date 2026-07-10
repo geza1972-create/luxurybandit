@@ -296,11 +296,14 @@ export default function CuratorApplyPage() {
             const remove = (p: { src: string; isNew: boolean }) => { if (p.isNew) setProfilePhotos(prev => prev.filter(s => s !== p.src)); else setProfileExisting(prev => prev.filter(s => s !== p.src)); };
             const slot = (item: { src: string; isNew: boolean } | undefined, sizeCls: string, isMain: boolean) => item ? (
               <div className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.src} alt="" className={`${sizeCls} rounded-2xl object-cover object-top`} />
-                <button type="button" onClick={() => remove(item)}
+                {/* Tap the photo itself to change it (opens the picker); the × removes it. */}
+                <button type="button" onClick={() => profileFileRef.current?.click()} title="Tap to change this photo" className="block">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={item.src} alt="" className={`${sizeCls} rounded-2xl object-cover object-top`} />
+                </button>
+                <button type="button" onClick={(e) => { e.stopPropagation(); remove(item); }}
                   className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black text-white ring-1 ring-white/25">×</button>
-                {isMain && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-amber-400 px-2 py-px text-[8px] font-black uppercase tracking-wide text-black">Main</span>}
+                {isMain && <span className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-amber-400 px-2 py-px text-[8px] font-black uppercase tracking-wide text-black">Main</span>}
               </div>
             ) : (
               <button type="button" onClick={() => profileFileRef.current?.click()}
@@ -475,7 +478,7 @@ export default function CuratorApplyPage() {
       )}
       {profileCropSrc && (
         <PhotoCropper src={profileCropSrc} onCancel={() => setProfileCropSrc("")}
-          onDone={(dataUrl) => { setProfilePhotos(prev => [...prev, dataUrl].slice(0, Math.max(0, 4 - profileExisting.length))); setProfileCropSrc(""); }} />
+          onDone={(dataUrl) => { setProfilePhotos(prev => [...prev, dataUrl].slice(0, 4)); setProfileCropSrc(""); }} />
       )}
     </div>
   );
