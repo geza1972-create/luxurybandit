@@ -314,6 +314,9 @@ export default function TryFunnelPage() {
       // next frame: flip to sharp so the CSS filter transition (REVEAL_MS) animates.
       requestAnimationFrame(() => requestAnimationFrame(() => setRevealSharp(true)));
       window.setTimeout(() => setRevealing(false), REVEAL_MS);
+    } else if (adminProduce) {
+      // No pre-generated video yet AND this is the admin → build one (production).
+      generateNow();
     } else {
       // No cached video → the old short spinner, then the blurred teaser + sign-in gate.
       window.setTimeout(() => setRendering(false), 2200);
@@ -867,7 +870,7 @@ export default function TryFunnelPage() {
 
               {/* GO — inline, right under the images (NOT sticky). */}
               {chosenModelLocked && <p className="mt-4 text-center text-[12px] font-black text-amber-400/90">👑 Premium model · first month $8</p>}
-              <button type="button" onClick={() => { logFunnelEvent("tryon_click", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) }); if (chosenModelLocked) { setLockedNudge(true); setShowPremium(true); return; } (adminProduce ? generateNow() : goStep3()); }}
+              <button type="button" onClick={() => { logFunnelEvent("tryon_click", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) }); if (chosenModelLocked) { setLockedNudge(true); setShowPremium(true); return; } goStep3(); }}
                 className="lb-gold mx-auto mt-4 flex h-14 w-full max-w-sm items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
                 {chosenModelLocked
                   ? <><Crown className="h-5 w-5" /> Unlock with Premium</>
@@ -1366,7 +1369,7 @@ export default function TryFunnelPage() {
                     <span>This model is Premium. Pick a free model (Gina) to generate now — or go Premium to unlock everyone.</span>
                   </div>
                 )}
-                <button type="button" onClick={() => { logFunnelEvent("tryon_click", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) }); if (chosenModelLocked) { setLockedNudge(true); setShowPremium(true); return; } (adminProduce ? generateNow() : goStep3()); }}
+                <button type="button" onClick={() => { logFunnelEvent("tryon_click", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) }); if (chosenModelLocked) { setLockedNudge(true); setShowPremium(true); return; } goStep3(); }}
                   className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
                   {chosenModelLocked
                     ? <><Crown className="h-5 w-5" /> Unlock with Premium</>
