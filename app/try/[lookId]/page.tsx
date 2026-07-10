@@ -1301,7 +1301,7 @@ export default function TryFunnelPage() {
                     <span>This model is Premium. Pick a free model (Gina) to generate now — or go Premium to unlock everyone.</span>
                   </div>
                 )}
-                <button type="button" onClick={() => { if (chosenModelLocked) { setLockedNudge(true); setShowPremium(true); return; } (adminProduce ? generateNow() : goStep3()); }}
+                <button type="button" onClick={() => { logFunnelEvent("tryon_click", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) }); if (chosenModelLocked) { setLockedNudge(true); setShowPremium(true); return; } (adminProduce ? generateNow() : goStep3()); }}
                   className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
                   {chosenModelLocked
                     ? <><Crown className="h-5 w-5" /> Unlock with Premium</>
