@@ -708,16 +708,14 @@ export default function TryFunnelPage() {
   // Admin production strip: a horizontal, scrollable row of garments; tap one → generate a
   // video for the CURRENT model on that garment (same window). 🎬 = already has a video.
   const adminProduce = !!adminPin && !previewAsUser;
-  // The currently-chosen model, and whether it's a protected one the visitor can't generate
-  // on. AI models are free for everyone; only REAL models are Premium-locked.
   const chosenModelObj = gModels.find(m => m.id === chosenModelId);
-  const chosenModelLocked = !isPaid && !adminProduce && !avatar && !!chosenModelObj?.realModel;
-  // The outfit+model confirm view — there the GO button sits INLINE under the images
-  // (not in the sticky footer), so we hide the footer for this view.
-  // Landing straight from an ad (a model is chosen via ?modelId, no browsing yet) → show the
+  // Landing straight from an ad (a model chosen via ?modelId, no browsing yet) → show the
   // OUTFIT→MODEL confirm view immediately (the look IS the outfit), not the coverflow. The
   // "Change outfit / Change model" links let them browse from there.
   const adLanding = !!modelIdParam && !!chosenModelName && !avatar && !pickModel && !chooseModel && !pickedModel;
+  // AI models are free for everyone; REAL models are Premium-locked — EXCEPT on a direct ad
+  // landing (the ad features THIS model, so show her + her free hook video, then paywall for more).
+  const chosenModelLocked = !isPaid && !adminProduce && !avatar && !!chosenModelObj?.realModel && !adLanding;
   const showConfirm = (pickedParam || adLanding) && !comboCancelled;
   const inConfirm = step === 2 && !avatar && !((pickModel || chooseModel) && !pickedModel) && showConfirm;
 
