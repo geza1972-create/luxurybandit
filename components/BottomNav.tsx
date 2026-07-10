@@ -320,6 +320,12 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
             </div>
             {/* Menu items */}
             <div className="grid divide-y divide-black/5">
+              {/* Găsește-l mai ieftin — the Dupe-style price-finder funnel (everyone). */}
+              <button type="button" onClick={() => navigate("/mai-ieftin")}
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                <Search className="h-5 w-5 shrink-0 text-[#b8912f]" />
+                <span className="text-sm font-black text-black">Găsește-l mai ieftin</span>
+              </button>
               {/* Admin: jump straight to the admin dashboard (no need to type /admin). */}
               {(!!adminPin || isAdminEmail(displayEmail)) && (
                 <button type="button" onClick={() => navigate("/admin")}
