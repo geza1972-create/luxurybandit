@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { ImageUp, Lock, Loader2, X } from "lucide-react";
 import PremiumDialog from "@/components/PremiumDialog";
 
-type FeaturedModel = { id: string; name: string; photo: string; featured?: boolean };
-type Model = { id: string; name: string; photoUrl: string; featured?: boolean };
+type FeaturedModel = { id: string; name: string; photo: string; featured?: boolean; realModel?: boolean };
+type Model = { id: string; name: string; photoUrl: string; featured?: boolean; realModel?: boolean };
 
 // Step-1 "Pick your model": tiles for the models + a locked "Your Picture" (Premium).
-// Only FREE (featured) models are unlocked; the rest wear a padlock. Tapping a free model
+// AI models are free for everyone; only REAL models wear a padlock. Tapping a free model
 // starts the try-on (dress her), NOT her profile.
 export default function AboutStep1Models({ featured, garment }: { featured: FeaturedModel[]; garment?: { id: string; img: string } }) {
   const router = useRouter();
@@ -58,7 +58,7 @@ export default function AboutStep1Models({ featured, garment }: { featured: Feat
   // Step-1 tiles: featured[0], featured[1], YOUR PICTURE (3rd), featured[2]…
   const step1 = [...featured];
   const step1Tiles: React.ReactNode[] = step1.map(m => {
-    const locked = !m.featured && !isPaid; // only the free (featured) model is unlocked
+    const locked = !!m.realModel && !isPaid; // AI models are free; only real models lock
     return (
       <button key={m.id} type="button" onClick={() => (locked ? premiumAlert() : dress(m.id, m.name, m.photo))}
         className="relative block overflow-hidden rounded-xl lb-media-bg active:scale-95 transition-transform">
@@ -85,16 +85,15 @@ export default function AboutStep1Models({ featured, garment }: { featured: Feat
               <p className="text-sm font-black text-white">All models</p>
               <button type="button" onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white"><X className="h-4 w-4" /></button>
             </div>
-            <p className="px-4 pt-2 text-[11px] font-bold text-white/45">Only the featured models are free — everyone else and your own photo are Premium (paying members).</p>
+            <p className="px-4 pt-2 text-[11px] font-bold text-white/45">AI models are free — real models and your own photo are Premium (paying members).</p>
             {loading ? (
               <div className="grid place-items-center py-16"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>
             ) : (
               <div className="grid max-h-[calc(85dvh-92px)] grid-cols-3 gap-2 overflow-y-auto overscroll-contain p-3">
                 {(() => {
-                  const anyFeatured = all.some(m => m.featured);
                   const ordered = [...all].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
                   const tiles: React.ReactNode[] = ordered.map(m => {
-                    const locked = anyFeatured && !m.featured && !isPaid;
+                    const locked = !!m.realModel && !isPaid; // AI free; only real models lock
                     return (
                       <button key={m.id} type="button"
                         onClick={() => (locked ? premiumAlert() : dress(m.id, m.name, m.photoUrl))}

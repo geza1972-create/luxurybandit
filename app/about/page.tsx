@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 type StepMedia = {
   clips: { poster: string; video: string }[]; // Gina hero clips
   curatorId: string;
-  models: { id: string; name: string; photo: string; featured?: boolean }[];   // step 1 — free (featured) first, rest locked
+  models: { id: string; name: string; photo: string; featured?: boolean; realModel?: boolean }[];   // step 1 — AI free, real models locked
   garments: { id: string; name: string; img: string }[];   // step 2 — some outfits
   videos: { poster: string }[];                            // step 3 — blurred (members-only)
 };
@@ -34,7 +34,7 @@ async function stepMedia(): Promise<StepMedia> {
       .filter(c => (c as { photoUrl?: string }).photoUrl && ((c as { status?: string }).status ?? "active") === "active")
       .sort((a, b) => ((b as { featured?: boolean }).featured ? 1 : 0) - ((a as { featured?: boolean }).featured ? 1 : 0))
       .slice(0, 3)
-      .map(c => ({ id: c.id, name: [c.firstName, c.lastName].filter(Boolean).join(" ").trim(), photo: (c as { photoUrl?: string }).photoUrl as string, featured: !!(c as { featured?: boolean }).featured }));
+      .map(c => ({ id: c.id, name: [c.firstName, c.lastName].filter(Boolean).join(" ").trim(), photo: (c as { photoUrl?: string }).photoUrl as string, featured: !!(c as { featured?: boolean }).featured, realModel: !!(c as { realModel?: boolean }).realModel }));
     // Step 2 — outfits. Admin-picked (featured) looks lead; if none are picked yet,
     // fall back to the first few wardrobe pieces so the section is never empty.
     const wardrobe = (state.looks ?? [])
