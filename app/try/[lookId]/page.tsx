@@ -1184,6 +1184,17 @@ export default function TryFunnelPage() {
       {/* ── Step 5: unlocked / paid result ─────────────────────────────────── */}
       {step === 5 && (
         <div className="px-4 pb-40 pt-2">
+          {/* Cancel — abort the generation and go back to the confirm view. */}
+          <button type="button" onClick={() => {
+              if (armTimerRef.current) { clearTimeout(armTimerRef.current); armTimerRef.current = null; }
+              setArming(false); genStartedRef.current = false; setGenStatus("idle");
+              try { musicRef.current?.pause(); } catch { /**/ }
+              setRevealing(false); setRendering(false);
+              setStep(2);
+            }}
+            className="mb-3 flex w-full items-center justify-center gap-2 rounded-full border border-white/20 bg-black py-3 text-sm font-black text-white active:scale-95 transition">
+            <X className="h-4 w-4" /> Cancel
+          </button>
           {genStatus === "idle" && motionPicker && <div className="mb-3">{motionPicker}</div>}
           <div className="relative mx-auto mt-2 max-w-[78vw] overflow-hidden rounded-3xl border border-emerald-400/30 bg-black">
             <div className="relative aspect-[9/16] w-full">
