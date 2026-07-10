@@ -25,6 +25,11 @@ const normSource = (raw?: string) => {
 };
 const srcLabel = (s: string) => ({ instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", twitter: "Twitter/X", search: "Search", direct: "Direct", host: "Referral", dev: "Dev / test" } as Record<string, string>)[s] || (s ? s[0].toUpperCase() + s.slice(1) : "Unknown");
 
+// Country ISO code → flag emoji + readable name, so "RO" reads as "🇷🇴 Romania".
+const CN: Record<string, string> = { RO: "Romania", DE: "Germany", GR: "Greece", US: "United States", GB: "United Kingdom", FR: "France", ES: "Spain", IT: "Italy", TH: "Thailand", NL: "Netherlands", AT: "Austria", CH: "Switzerland", MD: "Moldova", PL: "Poland", HU: "Hungary", BG: "Bulgaria", TR: "Turkey", AE: "UAE", RS: "Serbia", UA: "Ukraine", PT: "Portugal", BE: "Belgium", IE: "Ireland", SE: "Sweden", CZ: "Czechia" };
+const flagOf = (cc: string) => cc.length === 2 && /^[A-Z]{2}$/.test(cc) ? String.fromCodePoint(...[...cc].map(c => 0x1f1e6 + c.charCodeAt(0) - 65)) : "";
+const countryLabel = (cc?: string) => { const c = (cc || "").toUpperCase(); if (!c) return "Unknown"; return `${flagOf(c)} ${CN[c] || c}`.trim(); };
+
 export default function InsightsPro({
   feedEvents, viewsByDay, visitsByDay, looks, range, setRange, onReset, resetting,
 }: {
@@ -215,8 +220,8 @@ export default function InsightsPro({
           <div className="mt-3"><Bars rows={data.sources.map(([k, n]) => [srcLabel(k), n])} /></div>
         </div>
         <div className={card}>
-          <p className="text-sm font-black text-ink">Top countries</p>
-          <div className="mt-3"><Bars rows={data.countries} accent="bg-emerald-500" /></div>
+          <p className="flex items-center gap-1.5 text-sm font-black text-ink"><Globe className="h-4 w-4 text-ink/40" /> Top countries</p>
+          <div className="mt-3">{data.countries.length ? <Bars rows={data.countries.map(([k, n]) => [countryLabel(k), n])} accent="bg-emerald-500" /> : <p className="text-xs font-bold text-ink/35">No geo yet for this range.</p>}</div>
         </div>
       </div>
 

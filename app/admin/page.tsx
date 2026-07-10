@@ -194,7 +194,7 @@ export default function AdminPage() {
   const [feedEvents, setFeedEvents] = useState<FeedEvent[]>([]);
   const [viewsByDay, setViewsByDay] = useState<Record<string, number>>({}); // per-date view tallies
   const [visitsByDay, setVisitsByDay] = useState<Record<string, number>>({}); // per-date SITE visits
-  const [insightsRange, setInsightsRange] = useState<"today" | "7d" | "30d" | "all">("7d");
+  const [insightsRange, setInsightsRange] = useState<"today" | "7d" | "30d" | "all">("today");
   const [insightsGroup, setInsightsGroup] = useState<"day" | "hour">("day");
   const [reply, setReply] = useState<Record<string, string>>({});
   const [sendingId, setSendingId] = useState("");
