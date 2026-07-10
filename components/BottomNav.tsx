@@ -250,8 +250,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
         <>
           {/* Backdrop — opaque so the page behind never shows through (no "doubled" look). */}
           <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-md" onClick={() => setShowProfileMenu(false)} />
-          {/* Drawer — slides in from the right, dark. */}
-          <div className="fixed right-0 top-0 z-[61] flex h-full w-80 max-w-[85vw] flex-col overflow-y-auto bg-[#111] pt-5 shadow-2xl animate-[slideIn_0.2s_ease-out]"
+          {/* Drawer — slides in from the right, dark, FULL WIDTH so nothing behind ever
+              shows through (no "doubled/overlaid" look). Phone-column on desktop. */}
+          <div className="lb-phone-col fixed inset-0 z-[61] flex flex-col overflow-y-auto bg-[#111] pt-5 shadow-2xl animate-[slideIn_0.2s_ease-out]"
             style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
             {/* Header — show who's signed in */}
             <div className="flex items-center gap-3 px-5 pb-3">
