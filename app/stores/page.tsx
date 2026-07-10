@@ -1173,7 +1173,9 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
   const [session, setSession] = useState(() => {
     try { return getStoredAuthSession(); } catch { return null; }
   });
-  const [tab, setTab] = useState<"signin" | "register" | "forgot">("signin");
+  // Default to register: we have no existing users yet, so creating an account is the
+  // primary action. "Already have an account? Sign in" sits right below for returners.
+  const [tab, setTab] = useState<"signin" | "register" | "forgot">("register");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1387,13 +1389,18 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
 
             <button type="button" disabled={loading || !email.trim()} onClick={() => void handle(tab)}
               className="flex h-12 items-center justify-center rounded-xl bg-ink text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : tab === "register" ? "Create account" : tab === "forgot" ? "Send reset link" : "Sign in"}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : tab === "register" ? "Create free account" : tab === "forgot" ? "Send reset link" : "Sign in"}
             </button>
 
-            <div className="flex items-center justify-between text-[11px] font-bold text-ink/45">
-              <button type="button" onClick={() => { setError(""); setMessage(""); setTab(tab === "register" ? "signin" : "register"); }}>
-                {tab === "register" ? "Have an account? Sign in" : "New here? Create account"}
+            {/* Prominent switch between sign-in and create-account — most visitors are new. */}
+            {tab !== "forgot" && (
+              <button type="button" onClick={() => { setError(""); setMessage(""); setTab(tab === "register" ? "signin" : "register"); }}
+                className="flex h-12 items-center justify-center rounded-xl border-2 border-ink/80 bg-white text-sm font-black text-ink active:scale-95 transition-transform">
+                {tab === "register" ? "← Already have an account? Sign in" : "New here? Create a free account →"}
               </button>
+            )}
+
+            <div className="flex items-center justify-center text-[11px] font-bold text-ink/45">
               {tab !== "forgot" ? (
                 <button type="button" onClick={() => { setError(""); setMessage(""); setTab("forgot"); }}>Forgot password?</button>
               ) : (
@@ -1401,14 +1408,15 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
               )}
             </div>
 
-            <div className="my-1 flex items-center gap-3">
+            {/* Models only — kept small & clearly labelled so fans don't confuse it with the normal sign-in. */}
+            <div className="mt-3 flex items-center gap-3">
               <span className="h-px flex-1 bg-black/10" />
-              <span className="text-[11px] font-black uppercase tracking-wider text-ink/30">curator?</span>
+              <span className="text-[10px] font-black uppercase tracking-wider text-ink/25">work with us as a model?</span>
               <span className="h-px flex-1 bg-black/10" />
             </div>
             <button type="button" disabled={loading || !email.trim()} onClick={() => void handleCuratorSignin()}
-              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-black/15 bg-white text-sm font-black text-ink active:scale-95 transition-transform disabled:opacity-40">
-              Sign in as model (email above)
+              className="mx-auto text-[12px] font-black text-ink/45 underline decoration-ink/20 underline-offset-4 active:opacity-70 disabled:opacity-30">
+              Model login (uses email above) →
             </button>
           </div>
         )}
@@ -1460,7 +1468,7 @@ function StoresPage() {
   }, []);
   // Home has two views: the Feeds thumbnail grid, and the Models gallery (a grid of the
   // model profiles). Toggled at the top of the home.
-  type GalleryModel = { id: string; name: string; photoUrl: string; style: string; lookCount: number; bio?: string; motto?: string; hidden?: boolean; hairColor?: string; createdAt?: string; pinned?: boolean; featured?: boolean; chatPersona?: string; chatEnabled?: boolean };
+  type GalleryModel = { id: string; name: string; photoUrl: string; style: string; lookCount: number; bio?: string; motto?: string; hidden?: boolean; hairColor?: string; createdAt?: string; pinned?: boolean; featured?: boolean; chatPersona?: string; chatEnabled?: boolean; realModel?: boolean };
   const [models, setModels] = useState<GalleryModel[]>([]);
   // Models tab: sort (newest first by default, so a freshly added model is on top)
   // + optional hair-color filter (models are AI-tagged blond/brunette/black/red).
@@ -1489,7 +1497,14 @@ function StoresPage() {
   const hairColorsPresent = useMemo(() => [...new Set(models.map(m => m.hairColor || "").filter(Boolean))], [models]);
   // Models is the default grid tab — home is the curated Featured-models showcase.
   // Home/start page (/stores?view=grid) opens on the "Let's Play Big" feeds grid — NOT Models.
-  const [homeTab, setHomeTab] = useState<"feeds" | "models" | "garderobe">("feeds");
+  // Initial tab from the URL so a shared link opens the right section (?view=models
+  // / ?view=garderobe). Everything else lands on the feeds tab.
+  const [homeTab, setHomeTab] = useState<"feeds" | "models" | "garderobe">(() => {
+    const v = searchParams.get("view");
+    return v === "models" ? "models" : v === "garderobe" ? "garderobe" : "feeds";
+  });
+  // IDs of REAL models → the feed tags their try-on videos with a "Real model" badge.
+  const realModelIds = useMemo(() => models.filter(m => m.realModel).map(m => m.id), [models]);
   // Garderobe = every generated garment (all models' wardrobes), browsable by type.
   const [garmentType, setGarmentType] = useState<LookCategory | null>(null);
   // Admin: add a real Luxury Bandi garment (from a photo) into the Garderobe.
@@ -1715,15 +1730,33 @@ function StoresPage() {
   const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
   const [bulkAssignName, setBulkAssignName] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   // Home = the full-screen scrolling reels feed (DEFAULT landing). ?view=grid =
   // the 3-col grid overview. ?view=alist = The A List (HomeFeed of look posts).
   const view = searchParams.get("view");
   const showAList = false; // The A List was removed — one feed now (legacy ?view=alist → grid)
   // /home (the start page, its own clean URL) always shows the grid — same as ?view=grid.
   const onHome = pathname.endsWith("/home");
-  const showGrid = view === "grid" || view === "alist" || onHome;
+  const showGrid = view === "grid" || view === "alist" || view === "models" || view === "garderobe" || onHome;
   // Account/Saved deep links open over the grid, not the immersive reels.
   const showReels = !showAList && !showGrid && !searchParams.get("panel"); // default
+  // Keep ?view in sync with the active home tab so the address bar is always
+  // shareable (a friend opening /stores?view=models lands on the Models gallery).
+  // Only manage it inside the grid overview, where the tab toggle is visible.
+  useEffect(() => {
+    if (!showGrid) return;
+    const cur = searchParams.get("view");
+    let want: string | null = null;
+    if (homeTab === "models") want = "models";
+    else if (homeTab === "garderobe") want = "garderobe";
+    // feeds: only rewrite when leaving a models/garderobe deep link — never touch /home or ?view=grid
+    else if (cur === "models" || cur === "garderobe") want = "grid";
+    if (!want || cur === want) return;
+    const sp = new URLSearchParams(Array.from(searchParams.entries()));
+    sp.set("view", want);
+    router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [homeTab]);
   const [brandFilter, setBrandFilter] = useState<string | null>(null);
   // Editorial category filter (After Dark / Riviera / Boudoir / Off-Duty). Replaces
   // brand names as the top-level chips. null = "All" (Boudoir hidden from All).
@@ -2448,14 +2481,14 @@ function StoresPage() {
         </div>
       );
     }
-    return <HomeFeed looks={looksForFeedPublic} />;
+    return <HomeFeed looks={looksForFeedPublic} realModelIds={realModelIds} />;
   }
 
   // ── The A List = HomeFeed of look posts (?view=alist) ──
   if (!searchOpen && showAList) {
     return (
       <div className="min-h-dvh bg-black" style={{ maxWidth: "100vw" }}>
-        <HomeFeed looks={looks} />
+        <HomeFeed looks={looks} realModelIds={realModelIds} />
         {/* Floating controls (top-right): home + search */}
         <div className="fixed right-3 z-30 flex items-center gap-2" style={{ top: "calc(env(safe-area-inset-top) + 0.6rem)" }}>
           <button type="button" aria-label="Home" onClick={() => router.push("/stores")}
@@ -2487,8 +2520,12 @@ function StoresPage() {
           {/* Logo → back to the feeds (the full-screen scrolling reel = /stores default). */}
           <button type="button" onClick={() => router.push("/stores")} aria-label="Feeds"
             className="flex items-center gap-2 active:opacity-70 transition-opacity">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-black text-white text-xs font-black tracking-tight select-none">
-              LB
+            <div className="relative h-9 w-9 shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/lb-logo.png" alt="LuxuryBandit" className="h-9 w-9 rounded-full object-contain"
+                onError={(e) => { e.currentTarget.style.display = "none"; const f = e.currentTarget.nextElementSibling as HTMLElement | null; if (f) f.style.display = "flex"; }} />
+              {/* Fallback until /lb-logo.png is added */}
+              <div style={{ display: "none" }} className="absolute inset-0 items-center justify-center rounded-full bg-black text-white text-xs font-black tracking-tight select-none">LB</div>
             </div>
             <div className="text-left">
               <div className="text-sm font-black uppercase tracking-widest text-white leading-none">LuxuryBandit</div>
@@ -2506,6 +2543,18 @@ function StoresPage() {
               }`}
               aria-label="Suche">
               <Search className="h-4 w-4" />
+            </button>
+
+            {/* Share the current view (URL already reflects ?view=models etc.) */}
+            <button type="button"
+              onClick={() => {
+                const url = window.location.href;
+                if (typeof navigator !== "undefined" && navigator.share) { navigator.share({ title: "LuxuryBandit", url }).catch(() => {}); }
+                else { navigator.clipboard?.writeText(url).then(() => { setShareCopied(true); setTimeout(() => setShareCopied(false), 1600); }).catch(() => {}); }
+              }}
+              className={`flex h-9 w-9 items-center justify-center rounded-full border transition ${shareCopied ? "border-emerald-400 bg-emerald-400 text-black" : "border-white/15 bg-white/5 text-white/60 hover:text-white"}`}
+              aria-label="Share">
+              <Send className="h-4 w-4" />
             </button>
 
             <a href={`https://instagram.com/${process.env.NEXT_PUBLIC_INSTAGRAM_HANDLE ?? "luxurybandit"}`} target="_blank" rel="noopener noreferrer"
@@ -2598,7 +2647,7 @@ function StoresPage() {
                 <div className="mt-3 grid gap-1.5">
                   {[
                     [<Sparkles key="i" className="h-4 w-4 text-amber-400" />, "See her in any look", "Put your favorite model in the outfit YOU choose — like it, share it, shop it."],
-                    [<MessageCircle key="i" className="h-4 w-4 text-amber-400" />, "Chat with her", "Talk to your favorite model in a live chat, follow her and get to know her — right from her profile."],
+                    [<MessageCircle key="i" className="h-4 w-4 text-amber-400" />, "Chat with her AI", "Talk to your favorite model's AI Assistant in a live chat, follow her and get to know her — right from her profile."],
                   ].map(([icon, title, text], i) => (
                     <div key={i} className="flex items-start gap-2.5">
                       <span className="mt-0.5 shrink-0">{icon as React.ReactNode}</span>
@@ -2672,7 +2721,10 @@ function StoresPage() {
                 {shownModels.map(m => {
                   // Non-featured models are LOCKED for free visitors once a featured
                   // showcase exists. Paid members + admin see everything unlocked.
-                  const locked = hasFeatured && !m.featured && !isPaidMember && !isAdmin;
+                  // AI models are free for EVERYONE (even signed-out). REAL models are
+                  // protected: anonymous visitors see a blurred teaser + "Free sign in",
+                  // and only a (free) sign-in reveals them. Admins always see everything.
+                  const locked = !!m.realModel && !isSignedIn && !isAdmin;
                   return (
                   <div key={m.id} className="relative">
                     {/* No light border — bright photo edges made it flash white on dark. */}
@@ -2683,7 +2735,7 @@ function StoresPage() {
                           setModelSelected(prev => { const n = new Set(prev); if (n.has(m.id)) n.delete(m.id); else n.add(m.id); return n; });
                           return;
                         }
-                        if (locked) { e.preventDefault(); setShowPaywall(true); }
+                        if (locked) { e.preventDefault(); setShowUserPanel(true); }
                       }}
                       className={`flex flex-col overflow-hidden rounded-2xl bg-white/[0.04] active:opacity-80 transition-opacity ${modelSelect && isAdmin && modelSelected.has(m.id) ? "ring-2 ring-amber-400" : ""}`}>
                       <div className="relative aspect-[9/16] overflow-hidden lb-media-bg">
@@ -2699,8 +2751,9 @@ function StoresPage() {
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={m.photoUrl} alt={m.name} loading="lazy" decoding="async" className={`h-full w-full object-cover object-top ${m.hidden ? "opacity-40" : ""} ${locked ? "blur-[6px] scale-105 opacity-70" : ""}`} />
                         {locked && (
-                          <span className="absolute inset-0 z-10 grid place-items-center bg-black/25">
+                          <span className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/25">
                             <span className="grid h-11 w-11 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-5 w-5 text-white" /></span>
+                            <span className="rounded-full bg-amber-400 px-3 py-1 text-[11px] font-black text-black shadow">Free sign up</span>
                           </span>
                         )}
                         {m.lookCount > 0 && !locked && (
@@ -2708,7 +2761,8 @@ function StoresPage() {
                         )}
                       </div>
                       <div className="px-2.5 py-2">
-                        <p className="truncate text-[13px] font-black text-white">{m.name}</p>
+                        <p className="truncate text-[13px] font-black text-white">{m.name}{m.realModel && <span className="ml-1 align-middle text-emerald-400">✓</span>}</p>
+                        {m.realModel && <p className="truncate text-[11px] font-black text-emerald-400">✓ Real model</p>}
                         {locked ? <p className="truncate text-[11px] font-black text-amber-400">Premium · Members only</p> : m.style && <p className="truncate text-[11px] font-bold text-white/40">{m.style}</p>}
                       </div>
                     </a>
@@ -3653,6 +3707,7 @@ function StoresPage() {
             initialTryOnId={feedOpen.tryOnId}
             initialLookId={feedOpen.lookId}
             onClose={closeFeedOverlay}
+            realModelIds={realModelIds}
           />
         </div>
       )}

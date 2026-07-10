@@ -822,7 +822,7 @@ export default function CuratorPublicPage() {
         <div className="mt-3 flex w-full max-w-sm items-stretch gap-2">
           <button type="button" onClick={() => router.push(`/chat/${id}`)}
             className="lb-gold flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-black leading-tight active:scale-95 transition">
-            <MessageCircle className="h-4 w-4 shrink-0" /> Chat with her!
+            <MessageCircle className="h-4 w-4 shrink-0" /> Chat with her AI Assistant
           </button>
           <button type="button" onClick={() => wardrobeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
             className="lb-gold flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-black leading-tight active:scale-95 transition">

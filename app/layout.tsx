@@ -22,6 +22,7 @@ export const metadata: Metadata = {
   },
   // fb:app_id on EVERY page — the "luxurybandit" Meta app (also powers FB login).
   facebook: { appId: process.env.NEXT_PUBLIC_FB_APP_ID ?? "1385612150051040" },
+  icons: { icon: "/lb-logo.png", shortcut: "/lb-logo.png", apple: "/lb-logo.png" },
 };
 
 export const viewport: Viewport = {

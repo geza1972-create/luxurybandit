@@ -87,7 +87,7 @@ function RailButton({ icon, label, active, onClick }: { icon: React.ReactNode; l
   );
 }
 
-function Slide({ look, onComment, muted, setMuted, index, onActive, single = false, onClose, recruitAd = false }: { look: FeedLook; onComment: (look: FeedLook) => void; muted: boolean; setMuted: (fn: (m: boolean) => boolean) => void; index: number; onActive: (i: number) => void; single?: boolean; onClose?: () => void; recruitAd?: boolean }) {
+function Slide({ look, onComment, muted, setMuted, index, onActive, single = false, onClose, recruitAd = false, realModelIds = [] }: { look: FeedLook; onComment: (look: FeedLook) => void; muted: boolean; setMuted: (fn: (m: boolean) => boolean) => void; index: number; onActive: (i: number) => void; single?: boolean; onClose?: () => void; recruitAd?: boolean; realModelIds?: string[] }) {
   const router = useRouter();
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(look.likeCount ?? 0);
@@ -212,6 +212,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const authorName = rep?.name || look.curatorName;
   const authorPhotoUrl = (rep?.name ? rep?.curatorPhotoUrl || rep?.userPhotoUrl : "") || look.curatorPhotoUrl;
   const authorCuratorId = (rep?.name ? rep?.curatorId : "") || look.curatorId;
+  const isRealModel = !!authorCuratorId && realModelIds.includes(authorCuratorId);
   // LOCKED carousel order (see memory feed-post-carousel-structure):
   //   1) the try-on (member's try-on video, else the look's own video)
   //   2) Before/After compare (uploaded Before | After result) — when a before photo exists
@@ -731,6 +732,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           </span>
           <span className="truncate text-sm font-black text-white">{publicAuthorName(authorName)}</span>
         </button>
+        {isRealModel && (
+          <span className="shrink-0 rounded-full bg-emerald-500/90 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white shadow">✓ Real model</span>
+        )}
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${look.aiCreated ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
           {look.aiCreated ? "✦ Original" : "Model"}
         </span>
@@ -1073,7 +1077,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 onClick={(e) => { e.stopPropagation(); router.push(`/chat/${authorCuratorId}`); }}
                 onPointerDown={(e) => e.stopPropagation()}
                 className="flex items-center gap-2 whitespace-nowrap rounded-full border border-white/25 bg-black/45 px-6 py-2.5 text-sm font-black text-white backdrop-blur active:scale-95 transition">
-                <MessageCircle className="h-4 w-4" /> Chat with her
+                <MessageCircle className="h-4 w-4" /> Chat with her AI Assistant
               </button>
             )}
             <button type="button"
@@ -1440,7 +1444,7 @@ function CommentsSheet({ look, onClose }: { look: FeedLook; onClose: () => void 
   );
 }
 
-export default function HomeFeed({ looks, single = false, initialLookId, initialTryOnId, onClose }: { looks: FeedLook[]; single?: boolean; initialLookId?: string; initialTryOnId?: string; onClose?: () => void }) {
+export default function HomeFeed({ looks, single = false, initialLookId, initialTryOnId, onClose, realModelIds = [] }: { looks: FeedLook[]; single?: boolean; initialLookId?: string; initialTryOnId?: string; onClose?: () => void; realModelIds?: string[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [commentsFor, setCommentsFor] = useState<FeedLook | null>(null);
   // One global sound switch for the whole feed. It now gates each clip's OWN baked-in
@@ -1553,7 +1557,7 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
           up to full width (which pushed the Look/Escape thumbs off the bottom). */}
       <div className="flex h-[100dvh] w-full justify-center bg-black">
         <div ref={scrollRef} className="h-[100dvh] w-full max-w-[440px] snap-y snap-mandatory overflow-y-scroll overscroll-contain bg-black [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {feed.map((entry, i) => <Slide key={entry.key} look={entry.look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} index={i} onActive={handleActive} single={single} onClose={onClose} recruitAd={i % 4 === 1} />)}
+          {feed.map((entry, i) => <Slide key={entry.key} look={entry.look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} index={i} onActive={handleActive} single={single} onClose={onClose} recruitAd={i % 4 === 1} realModelIds={realModelIds} />)}
         </div>
       </div>
       {/* Slide-coupled feed soundtrack — shuffled /public mp3s, the track changes

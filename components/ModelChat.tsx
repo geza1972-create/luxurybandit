@@ -6,6 +6,26 @@ import { Loader2, X, Send, Lock, Sparkles, Smile, Gift } from "lucide-react";
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
+// The visitor picks the chat language; the AI persona greets & replies in it (and still
+// follows the fan if they switch mid-chat). Opener/placeholder/first-greeting are localised.
+const LANGS = [
+  { code: "en", label: "English" },
+  { code: "ro", label: "Română" },
+  { code: "de", label: "Deutsch" },
+  { code: "fr", label: "Français" },
+  { code: "es", label: "Español" },
+  { code: "it", label: "Italiano" },
+] as const;
+type Lang = (typeof LANGS)[number]["code"];
+const CHAT_T: Record<Lang, { who: string; name: string; msg: (f: string) => string; greet: (n: string) => string }> = {
+  en: { who: "Hi 💕 who are you?", name: "Type your name…", msg: f => `Message ${f}…`, greet: n => `Love that name, ${n}! 😍 So tell me — what look are you in the mood for today?` },
+  ro: { who: "Bună 💕 cine ești?", name: "Scrie numele tău…", msg: f => `Scrie-i lui ${f}…`, greet: n => `Îmi place numele, ${n}! 😍 Spune-mi — ce ținută ai chef să vezi azi?` },
+  de: { who: "Hi 💕 wer bist du?", name: "Dein Name…", msg: f => `Nachricht an ${f}…`, greet: n => `Schöner Name, ${n}! 😍 Sag mal — auf welchen Look hast du heute Lust?` },
+  fr: { who: "Coucou 💕 qui es-tu ?", name: "Ton prénom…", msg: f => `Message à ${f}…`, greet: n => `J'adore ce prénom, ${n} ! 😍 Dis-moi — quel look te tente aujourd'hui ?` },
+  es: { who: "Hola 💕 ¿quién eres?", name: "Tu nombre…", msg: f => `Mensaje para ${f}…`, greet: n => `¡Me encanta ese nombre, ${n}! 😍 Dime — ¿qué look te apetece hoy?` },
+  it: { who: "Ciao 💕 chi sei?", name: "Il tuo nome…", msg: f => `Messaggio a ${f}…`, greet: n => `Che bel nome, ${n}! 😍 Dimmi — che look ti va di vedere oggi?` },
+};
+
 // Free users get a few lines to try; after that the composer locks and we upsell.
 const FREE_USER_MESSAGES = 30;
 // When the model offers to show herself in hot outfits (e.g. after a nudes request), the
@@ -48,6 +68,10 @@ export default function ModelChat({
     try { let v = localStorage.getItem("lb_visitor"); if (!v) { v = (crypto.randomUUID?.() ?? String(Date.now())); localStorage.setItem("lb_visitor", v); } return v; } catch { return "anon"; }
   })();
   const [stage, setStage] = useState<"name" | "chat">("name");
+  const [lang, setLang] = useState<Lang>(() => {
+    try { const b = (navigator.language || "en").slice(0, 2).toLowerCase(); return (LANGS.some(l => l.code === b) ? b : "en") as Lang; } catch { return "en"; }
+  });
+  const t = CHAT_T[lang] ?? CHAT_T.en;
   const [userName, setUserName] = useState("");
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
@@ -150,7 +174,7 @@ export default function ModelChat({
     setInput("");
     setStage("chat");
     // Warm, free greeting — no API call for the intro.
-    setMessages([{ role: "assistant", content: `Love that name, ${n}! 😍 So tell me — what look are you in the mood for today?` }]);
+    setMessages([{ role: "assistant", content: t.greet(n) }]);
   };
 
   const sendMessage = async (textArg?: string) => {
@@ -167,7 +191,7 @@ export default function ModelChat({
       const res = await fetch("/api/model-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ curatorId, visitorId, userName, messages: next }),
+        body: JSON.stringify({ curatorId, visitorId, userName, messages: next, lang }),
       });
       const ct = res.headers.get("content-type") || "";
       // JSON = an error or the "chat disabled" case; otherwise it's the streamed reply.
@@ -229,9 +253,14 @@ export default function ModelChat({
             <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#0d0b0a] bg-emerald-400" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-black text-white">{first}</p>
+            <p className="truncate text-sm font-black text-white">{first}<span className="ml-1.5 font-bold text-white/45">· AI Assistant</span></p>
             <p className="text-[11px] font-bold text-emerald-400">online now</p>
           </div>
+          {/* Language picker — the fan chooses; the AI greets & replies in it. */}
+          <select value={lang} onChange={e => setLang(e.target.value as Lang)} aria-label="Chat language"
+            className="h-8 shrink-0 rounded-full border border-white/15 bg-white/5 px-2 text-[12px] font-black text-white/80 outline-none focus:border-amber-400">
+            {LANGS.map(l => <option key={l.code} value={l.code} className="bg-[#0d0b0a] text-white">{l.label}</option>)}
+          </select>
           <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white active:scale-90 transition"><X className="h-5 w-5" /></button>
         </div>
 
@@ -241,7 +270,7 @@ export default function ModelChat({
           {stage === "name" && messages.length === 0 && (
             <div className="flex justify-start">
               <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-white/10 px-3.5 py-2.5 text-sm font-medium text-white/90">
-                Hey there 💕 I'm {first}. Before we start… what should I call you?
+                {t.who}
               </div>
             </div>
           )}
@@ -351,7 +380,7 @@ export default function ModelChat({
                 onKeyDown={onKey}
                 onFocus={() => { setShowEmoji(false); setShowGifts(false); }}
                 rows={1}
-                placeholder={stage === "name" ? "Type your name…" : `Message ${first}…`}
+                placeholder={stage === "name" ? t.name : t.msg(first)}
                 className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium text-white outline-none focus:border-amber-400 placeholder:text-white/30" />
               <button type="button"
                 onClick={() => (stage === "name" ? submitName() : void sendMessage())}
@@ -366,7 +395,7 @@ export default function ModelChat({
             <p className="mt-2 text-center text-[11px] font-bold text-white/30">{Math.max(0, FREE_USER_MESSAGES - userTurns)} free messages left · Premium saves your chat</p>
           )}
           {/* AI transparency (EU AI Act) — users must be told they're chatting with an AI. */}
-          <p className="mt-1.5 text-center text-[10px] font-bold text-white/25">✨ AI chat · you&apos;re messaging an AI persona, for fun</p>
+          <p className="mt-1.5 text-center text-[11px] font-bold text-white/45">✨ You&apos;re chatting with {first}&apos;s AI Assistant — an AI persona, not the real person.</p>
         </div>
       </div>
     </div>

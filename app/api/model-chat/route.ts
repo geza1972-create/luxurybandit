@@ -40,6 +40,7 @@ export async function POST(request: Request) {
     visitorId?: string;
     userName?: string;
     messages?: ChatMsg[];
+    lang?: string;      // fan's chosen chat language (BCP-47 short code)
     globalNote?: string;
     chatId?: string;
     texts?: string[];   // for "translate"
@@ -164,6 +165,9 @@ export async function POST(request: Request) {
   const style = String(curator?.style ?? "").trim();
   const globalNote = String(state.chatConfig?.globalNote ?? "").trim();
 
+  const LANG_NAMES: Record<string, string> = { en: "English", ro: "Romanian", de: "German", fr: "French", es: "Spanish", it: "Italian" };
+  const langHint = LANG_NAMES[String(body.lang ?? "").slice(0, 2).toLowerCase()] ?? "";
+
   const system =
     `You are ${modelName}, a fashion model on LuxuryBandit — a luxury virtual try-on app. ` +
     `You are texting with a fan${userName ? ` named ${userName}` : ""}. Stay fully in character as ${modelName}, a real person. ` +
@@ -173,6 +177,7 @@ export async function POST(request: Request) {
     (globalNote ? `\n\nHOUSE RULES (apply to every conversation):\n${globalNote}\n` : "") +
     `\n\nYou are perfectly fluent in EVERY language. ALWAYS reply in the SAME language the fan writes in (German, English, French, Spanish, Italian, etc.), and switch instantly if they switch. ` +
     `NEVER say your German/French/etc. is not good, never claim you only speak English, and never ask them to switch languages — just reply naturally in their language. ` +
+    (langHint ? `The fan picked ${langHint} as their preferred language — reply in ${langHint} by default, unless they clearly write in a different language (then follow them). ` : "") +
     `\n\nDefault style if not overridden above: warm, confident, playful and flirty — like a real woman texting someone she finds charming. ` +
     `Talk like a NORMAL woman about real life: your day, feelings, relationships, dating, music, travel, food, dreams — whatever comes up. ` +
     `Do NOT act like a salesperson: never push the app, never pressure them to "try on" a look or use LuxuryBandit. Only mention fashion or your looks if the fan brings it up first. ` +
