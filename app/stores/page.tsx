@@ -1422,10 +1422,17 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
               <span className="text-[10px] font-black uppercase tracking-wider text-ink/25">work with us as a model?</span>
               <span className="h-px flex-1 bg-black/10" />
             </div>
-            <button type="button" disabled={loading} onClick={() => void handleCuratorSignin()}
-              className="mx-auto text-[12px] font-black text-ink/45 underline decoration-ink/20 underline-offset-4 active:opacity-70 disabled:opacity-30">
-              Model login (uses email above) →
-            </button>
+            <div className="flex flex-col items-center gap-2">
+              {/* New models apply here (recruiting funnel); existing models log in below. */}
+              <a href="/become-a-model" onClick={onClose}
+                className="flex h-10 w-full items-center justify-center rounded-xl border border-ink/20 bg-white text-[13px] font-black text-ink active:scale-95 transition-transform">
+                Apply to become a model →
+              </a>
+              <button type="button" disabled={loading} onClick={() => void handleCuratorSignin()}
+                className="text-[12px] font-black text-ink/45 underline decoration-ink/20 underline-offset-4 active:opacity-70 disabled:opacity-30">
+                Already a model? Log in (uses email above) →
+              </button>
+            </div>
           </div>
         )}
       </div>
