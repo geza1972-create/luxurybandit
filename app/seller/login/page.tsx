@@ -24,12 +24,9 @@ function LoginForm() {
   const [mode, setMode] = useState<"signin" | "signup">(params.get("mode") === "signup" ? "signup" : "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false); // reveal the password field
-  const [agree, setAgree] = useState(false); // Terms & Privacy — required to create an account
-  const [news, setNews] = useState(true);     // Product news & updates — opt-in, on by default
   const [message, setMessage] = useState(""); // success notice (e.g. password-reset email sent)
   const [resetLoading, setResetLoading] = useState(false);
 
@@ -49,11 +46,10 @@ function LoginForm() {
     setError("");
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) { setError("Please enter a valid email."); return; }
     if (password.length < 6) { setError("Password must be at least 6 characters."); return; }
-    if (mode === "signup" && !agree) { setError("Please accept the Terms & Privacy Policy to continue."); return; }
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { session, confirmationRequired } = await signUpWithPassword(email.trim(), password, name.trim() || undefined, { marketingOptIn: news });
+        const { session, confirmationRequired } = await signUpWithPassword(email.trim(), password, undefined, { marketingOptIn: true });
         if (session) { window.location.href = returnPath; return; }
         if (confirmationRequired) { setError("Account created — check your email to confirm, then sign in."); setMode("signin"); return; }
       } else {
@@ -61,7 +57,11 @@ function LoginForm() {
         window.location.href = returnPath;
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      const msg = err instanceof Error ? err.message : "Something went wrong.";
+      // Supabase rejects common/leaked passwords — turn its raw message into a friendly nudge.
+      setError(/weak|known to be|easy to guess|pwned|leaked|compromis/i.test(msg)
+        ? "That password is too common. Pick a longer, less obvious one — or just tap “Continue with Google” above."
+        : msg);
     } finally {
       setLoading(false);
     }
@@ -101,7 +101,8 @@ function LoginForm() {
         <div className="mb-8 text-center">
           {/* Logo → homepage */}
           <Link href="/home" aria-label="Go to LuxuryBandit home" className="inline-flex flex-col items-center active:scale-95 transition">
-            <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-black text-white text-sm font-black tracking-tight">LB</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/lb-logo.png" alt="LuxuryBandit" className="h-12 w-12 rounded-full object-contain" />
             <span className="mt-3 text-2xl font-black tracking-tight text-black">LuxuryBandit</span>
           </Link>
           <p className="mt-1 text-sm font-bold text-black/40">{mode === "signup" ? "Create your account" : "Sign in"}</p>
@@ -117,9 +118,9 @@ function LoginForm() {
         </div>
 
         <p className="mt-3 text-center text-[11px] font-bold leading-relaxed text-black/40">
-          By continuing you agree to our{" "}
+          By continuing or creating an account you agree to our{" "}
           <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-black/60 underline underline-offset-2">Terms</a> &amp;{" "}
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-black/60 underline underline-offset-2">Privacy Policy</a>, and to receive news &amp; updates from us.
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-black/60 underline underline-offset-2">Privacy Policy</a>. You confirm you are 18+.
         </p>
 
         <div className="my-5 flex items-center gap-3">
@@ -129,10 +130,6 @@ function LoginForm() {
         </div>
 
         <form onSubmit={handlePassword} className="grid gap-3">
-              {mode === "signup" && (
-                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your name"
-                  className="h-12 rounded-xl border border-black/12 bg-white px-4 text-sm font-bold text-black outline-none focus:border-black" />
-              )}
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" required
                 className="h-12 rounded-xl border border-black/12 bg-white px-4 text-sm font-bold text-black outline-none focus:border-black" />
               <div className="relative">
@@ -144,30 +141,10 @@ function LoginForm() {
                 </button>
               </div>
 
-              {mode === "signup" && (
-                <div className="mt-0.5 grid gap-2.5">
-                  <label className="flex cursor-pointer items-start gap-2.5">
-                    <input type="checkbox" checked={agree} onChange={e => setAgree(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 shrink-0 accent-black" />
-                    <span className="text-[12px] font-bold leading-snug text-black/55">
-                      I accept the{" "}
-                      <a href="/terms" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-black underline underline-offset-2">Terms &amp; Conditions</a>{" "}
-                      and{" "}
-                      <a href="/privacy" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="text-black underline underline-offset-2">Privacy Policy</a>.
-                    </span>
-                  </label>
-                  <label className="flex cursor-pointer items-start gap-2.5">
-                    <input type="checkbox" checked={news} onChange={e => setNews(e.target.checked)}
-                      className="mt-0.5 h-4 w-4 shrink-0 accent-black" />
-                    <span className="text-[12px] font-bold leading-snug text-black/55">Email me news, offers and product updates.</span>
-                  </label>
-                </div>
-              )}
-
               {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-bold text-red-600">{error}</p>}
               {message && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">{message}</p>}
 
-              <button type="submit" disabled={loading || (mode === "signup" && !agree)}
+              <button type="submit" disabled={loading}
                 className="flex h-12 items-center justify-center gap-2 rounded-xl bg-black text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {loading ? "Please wait…" : mode === "signup" ? "Create account" : "Sign in"}
