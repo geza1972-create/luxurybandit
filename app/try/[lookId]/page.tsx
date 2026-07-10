@@ -742,7 +742,7 @@ export default function TryFunnelPage() {
       {step === 2 && (
         <div className="px-4 pb-64 pt-2">
           {/* Reserve two lines so a longer name (which wraps) doesn't shift the carousel down. */}
-          <h1 className="min-h-[2.5em] text-[22px] font-black leading-tight">{!avatar && chosenModelName && !((pickModel || chooseModel) && !pickedModel) ? `Watch ${chosenModelName.split(/\s+/)[0]} in her hottest looks 🔥` : "Who should wear it?"}</h1>
+          <h1 className="text-[22px] font-black leading-tight">{!avatar && chosenModelName && !((pickModel || chooseModel) && !pickedModel) ? `Watch ${chosenModelName.split(/\s+/)[0]} in her hottest looks 🔥` : "Who should wear it?"}</h1>
           {(pickModel || chooseModel) && !pickedModel && !avatar ? (
             <>
               <p className="mt-2 text-[13px] font-bold text-white/50">Pick a model to wear this piece.</p>
@@ -811,7 +811,7 @@ export default function TryFunnelPage() {
             // Outfit chosen → confirm view: the OUTFIT (left) + the chosen MODEL (right),
             // with Cancel to reopen the picker.
             <>
-              <p className="mt-2 text-[13px] font-bold text-white/50">{chosenModelLocked ? "This model is Premium — unlock her, or pick a free model below." : "Your look is set — tap “GO” below to watch it, free."}</p>
+              <p className="mt-1 text-[13px] font-bold text-white/50">{chosenModelLocked ? "This model is Premium — unlock her, or pick a free model below." : "Your look is set — tap “GO” below to watch it, free."}</p>
               <div className="mx-auto mt-3 flex items-stretch justify-center gap-3">
                 <div className="w-[42%] max-w-[160px]">
                   <button type="button" onClick={() => { setZoomSrc(look?.frontImageUrl || look?.imageUrl || garmentParam || outfit?.imageUrl || ""); setZoomName(outfit?.name || ""); setOutfitZoom(true); }} className="block w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-95 transition">
@@ -820,9 +820,8 @@ export default function TryFunnelPage() {
                       <img src={look?.frontImageUrl || look?.imageUrl || garmentParam || outfit?.imageUrl || ""} alt="" className="h-full w-full object-cover object-top" />
                     </div>
                   </button>
-                  <p className="mt-1 text-center text-[11px] font-black uppercase tracking-wide text-white/45">Outfit</p>
                 </div>
-                <div className="flex shrink-0 items-center self-center pb-4"><ArrowRight className="h-6 w-6 text-amber-400" /></div>
+                <div className="flex shrink-0 items-center self-center"><ArrowRight className="h-6 w-6 text-amber-400" /></div>
                 <div className="w-[42%] max-w-[160px]">
                   <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -840,7 +839,6 @@ export default function TryFunnelPage() {
                       <button type="button" onClick={() => chosenModelId && router.push(`/chat/${chosenModelId}`)} className="lb-gold absolute right-1.5 top-1.5 flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black shadow"><MessageCircle className="h-3.5 w-3.5" /> AI Chat</button>
                     )}
                   </div>
-                  <p className={`mt-1 text-center text-[11px] font-black uppercase tracking-wide ${chosenModelLocked ? "text-amber-400" : "text-white/45"}`}>{chosenModelLocked ? "Premium" : (chosenModelName?.split(/\s+/)[0] || "Model")}</p>
                 </div>
               </div>
               {/* Subtle secondary options — the GO button is the star; these stay grey. */}
@@ -853,15 +851,9 @@ export default function TryFunnelPage() {
               </div>
 
               {/* GO — inline, right under the images (NOT sticky). */}
-              {!chosenModelLocked ? (
-                <p className="mt-5 text-center text-[12px] font-black text-white/50">
-                  {!isAuthed() ? "🎟️ 1 free video, then Premium" : packCredits == null ? "" : packCredits > 0 ? `🎟️ ${packCredits} free video${packCredits === 1 ? "" : "s"} left` : "🎟️ Free video used — go Premium to keep creating"}
-                </p>
-              ) : (
-                <p className="mt-5 text-center text-[12px] font-black text-amber-400/90">👑 Premium model · first month $8</p>
-              )}
+              {chosenModelLocked && <p className="mt-4 text-center text-[12px] font-black text-amber-400/90">👑 Premium model · first month $8</p>}
               <button type="button" onClick={() => { logFunnelEvent("tryon_click", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) }); if (chosenModelLocked) { setLockedNudge(true); setShowPremium(true); return; } (adminProduce ? generateNow() : goStep3()); }}
-                className="lb-gold mx-auto mt-2 flex h-14 w-full max-w-sm items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
+                className="lb-gold mx-auto mt-4 flex h-14 w-full max-w-sm items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
                 {chosenModelLocked
                   ? <><Crown className="h-5 w-5" /> Unlock with Premium</>
                   : adminProduce ? <><Sparkles className="h-5 w-5" /> Generate video now</>
