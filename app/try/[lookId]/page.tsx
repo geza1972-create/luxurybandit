@@ -1102,6 +1102,33 @@ export default function TryFunnelPage() {
               <p className="mt-2 text-center text-[13px] font-bold text-white/50">{guest ? "Sign in free to unlock sound, save it, and watch more looks." : previewVideoUrl ? "It's free — tap 🔊 for sound. Saved to your account." : "Watch and download it in full quality."}</p>
               {/* Motion was chosen before generating — no picker on the ready step. */}
               {adminPromptPanel}
+              {/* CTA — inline right under the video (NOT sticky). */}
+              <div className="mx-auto mt-5 w-full max-w-sm">
+                {previewVideoUrl && previewGenId ? (
+                  guest ? (
+                    <button type="button" onClick={onUnlock}
+                      className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
+                      <Sparkles className="h-5 w-5" /> Want to see more? Sign in
+                    </button>
+                  ) : (
+                    <div className="grid gap-2">
+                      <button type="button" onClick={async () => goToResult(await claimCachedTryOn())}
+                        className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
+                        <Sparkles className="h-5 w-5" /> View your video →
+                      </button>
+                      <button type="button" onClick={() => { forceFreshRef.current = true; genStartedRef.current = false; setGenStatus("idle"); void startPaidGenerate(); }}
+                        className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-white/20 bg-white/[0.06] text-[13px] font-black text-white active:scale-95 transition">
+                        <RefreshCw className="h-4 w-4" /> Generate a fresh one — see her differently
+                      </button>
+                    </div>
+                  )
+                ) : (
+                  <button type="button" onClick={onUnlock}
+                    className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
+                    {(isAuthed() || (adminPin && !previewAsUser)) ? "Continue" : "Register or sign in to watch"}
+                  </button>
+                )}
+              </div>
             </>
           )}
         </div>
@@ -1306,7 +1333,7 @@ export default function TryFunnelPage() {
       {/* Sticky CTA — funnel steps 1-4. On step 5 (unlocked) we bring the app's bottom
           navigation back instead of a funnel button. Hidden on the confirm view, where the
           GO button is rendered inline under the images instead. */}
-      {step !== 5 && !inConfirm && (
+      {step !== 5 && step !== 3 && !inConfirm && (
         <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[#0d0b0a] via-[#0d0b0a] to-transparent px-4 pb-5 pt-8 lb-phone-col">
           {step === 1 && (
             <p className="text-center text-[12px] font-bold text-white/35">Pick an outfit above to continue</p>
@@ -1348,34 +1375,6 @@ export default function TryFunnelPage() {
                     : <><Play className="h-5 w-5 fill-current" /> GO<span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">Free</span></>}
                 </button>
               </>
-            )
-          )}
-          {step === 3 && !rendering && !revealing && (
-            previewVideoUrl && previewGenId ? (
-              guest ? (
-                // Video already played free → sign in to see more (soft lead gate).
-                <button type="button" onClick={onUnlock}
-                  className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                  <Sparkles className="h-5 w-5" /> Want to see more? Sign in
-                </button>
-              ) : (
-                // Signed in → view the ready one, OR generate a fresh, unique one (new scene).
-                <div className="grid gap-2">
-                  <button type="button" onClick={async () => goToResult(await claimCachedTryOn())}
-                    className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                    <Sparkles className="h-5 w-5" /> View your video →
-                  </button>
-                  <button type="button" onClick={() => { forceFreshRef.current = true; genStartedRef.current = false; setGenStatus("idle"); void startPaidGenerate(); }}
-                    className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-white/20 bg-white/[0.06] text-[13px] font-black text-white active:scale-95 transition">
-                    <RefreshCw className="h-4 w-4" /> Generate a fresh one — see her differently
-                  </button>
-                </div>
-              )
-            ) : (
-              <button type="button" onClick={onUnlock}
-                className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                {(isAuthed() || (adminPin && !previewAsUser)) ? "Continue" : "Register or sign in to watch"}
-              </button>
             )
           )}
           {step === 4 && !(adminPin && !previewAsUser) && (
