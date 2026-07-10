@@ -13,7 +13,7 @@ import { useEffect, useRef, useState } from "react";
 // find cheaper versions. Real product search isn't wired yet — the AI guides.
 // ────────────────────────────────────────────────────────────────────────────
 type ShopItem = { title: string; link: string; source?: string; thumbnail: string; price?: string };
-type Msg = { role: "user" | "assistant"; content: string; products?: ShopItem[] };
+type Msg = { role: "user" | "assistant"; content: string; products?: ShopItem[]; ownProducts?: ShopItem[] };
 
 const SUGGESTIONS = [
   "o geantă ca de la Versace, mai ieftin",
@@ -49,7 +49,7 @@ export default function MaiIeftinPage() {
         body: JSON.stringify({ messages: next }),
       });
       const d = await r.json().catch(() => ({}));
-      setMessages((m) => [...m, { role: "assistant", content: d.reply || "Momentan nu pot răspunde. Mai încearcă o dată.", products: Array.isArray(d.products) ? d.products : undefined }]);
+      setMessages((m) => [...m, { role: "assistant", content: d.reply || "Momentan nu pot răspunde. Mai încearcă o dată.", products: Array.isArray(d.products) ? d.products : undefined, ownProducts: Array.isArray(d.ownProducts) ? d.ownProducts : undefined }]);
     } catch {
       setMessages((m) => [...m, { role: "assistant", content: "Ceva n-a mers. Mai încearcă o dată." }]);
     } finally { setLoading(false); }
@@ -149,6 +149,28 @@ export default function MaiIeftinPage() {
                         </a>
                       ))}
                     </div>
+                  )}
+                  {/* Our own catalogue — "din colecția LuxuryBandit" */}
+                  {m.ownProducts && m.ownProducts.length > 0 && (
+                    <>
+                      <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#b8912f]">Din colecția LuxuryBandit</p>
+                      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
+                        {m.ownProducts.map((p, idx) => (
+                          <a key={idx} href={p.link}
+                            className="w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#b8912f]/30 active:scale-95 transition">
+                            <div className="aspect-square w-full bg-white">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" />
+                            </div>
+                            <div className="p-2">
+                              {p.price && <p className="text-[14px] font-black text-white">{p.price}</p>}
+                              <p className="mt-0.5 line-clamp-2 text-[11px] font-semibold leading-tight text-white/65">{p.title}</p>
+                              <p className="mt-1 truncate text-[10px] font-bold text-[#b8912f]">LuxuryBandit</p>
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    </>
                   )}
                 </div>
               ))}

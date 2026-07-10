@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { readTryThisLookState } from "@/lib/try-this-look-store";
+import { publicLookLabel } from "@/lib/look-title";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -83,6 +85,36 @@ Reguli:
 - Pune „query" GOL doar dacă mesajul chiar NU e o căutare de produs (salut, mulțumesc, întrebare generală).
 - NU inventa prețuri sau linkuri — de căutare mă ocup eu.`;
 
+// Our OWN catalogue, matched to the query — shown as a "din colecția LuxuryBandit" shelf
+// under the external results so shoppers also see what we have. Never the raw brand name
+// (licensing) → publicLookLabel. Falls back to recent looks so the shelf is never empty.
+async function ownProductsFor(query: string): Promise<ShopItem[]> {
+  try {
+    const state = await readTryThisLookState();
+    const looks = (state.looks || []).filter(
+      (l) => ((l as { imageUrl?: string }).imageUrl || l.frontImageUrl) && (l as { published?: boolean }).published !== false,
+    );
+    const words = query.toLowerCase().split(/[^a-z0-9ăâîșț]+/i).filter((w) => w.length > 2);
+    const scored = looks.map((l) => {
+      const hay = `${(l as { curatorNote?: string }).curatorNote ?? ""} ${l.productNote ?? ""} ${l.name ?? ""} ${l.brand ?? ""} ${l.campaignName ?? ""}`.toLowerCase();
+      return { l, score: words.reduce((n, w) => n + (hay.includes(w) ? 1 : 0), 0) };
+    });
+    const picked = scored.filter((s) => s.score > 0).sort((a, b) => b.score - a.score);
+    if (picked.length < 4) {
+      const recent = [...looks].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
+      const seen = new Set(picked.map((p) => p.l.id));
+      for (const l of recent) { if (picked.length >= 6) break; if (!seen.has(l.id)) { picked.push({ l, score: 0 }); seen.add(l.id); } }
+    }
+    return picked.slice(0, 6).map(({ l }) => ({
+      title: publicLookLabel(l as { curatorNote?: string; productNote?: string }) || "Look LuxuryBandit",
+      link: `/look/${l.id}`,
+      thumbnail: (l as { imageUrl?: string }).imageUrl || l.frontImageUrl || "",
+      price: l.salePrice || l.price || undefined,
+      source: "LuxuryBandit",
+    })).filter((p) => p.thumbnail);
+  } catch { return []; }
+}
+
 function parseModelJson(text: string): { reply: string; query: string } {
   const t = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
   const a = t.indexOf("{"), b = t.lastIndexOf("}");
@@ -114,10 +146,12 @@ export async function POST(request: Request) {
     const text = resp.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join("");
     const { reply, query } = parseModelJson(text);
 
-    const products = query ? await shoppingSearch(query) : [];
+    const [products, ownProducts] = query
+      ? await Promise.all([shoppingSearch(query), ownProductsFor(query)])
+      : [[], []];
     const finalReply = reply
       || (products.length ? "Uite ce am găsit pentru tine 🔎" : "Spune-mi ce produs cauți și îți găsesc variante mai ieftine.");
-    return NextResponse.json({ reply: finalReply, products, query });
+    return NextResponse.json({ reply: finalReply, products, ownProducts, query });
   } catch {
     return NextResponse.json({ error: "Chat failed." }, { status: 502 });
   }
