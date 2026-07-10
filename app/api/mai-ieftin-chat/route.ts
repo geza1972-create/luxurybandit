@@ -91,7 +91,7 @@ Reguli:
 const TYPE_GROUPS: string[][] = [
   ["dress", "rochie", "rochii", "gown", "cocktail"],
   ["bikini", "swimsuit", "swimwear", "monokini", "swim", "costum de baie", "one-piece", "one piece"],
-  ["lingerie", "bra", "thong", "bodysuit", "corset", "sutien", "lenjerie", "babydoll", "bralette", "garter"],
+  ["lingerie", "bra", "thong", "bodysuit", "corset", "sutien", "lenjerie", "babydoll", "bralette", "garter", "panties", "panty", "brief", "briefs", "knickers", "underwear", "chiloti", "chiloți", "tanga", "boxeri"],
   ["bag", "handbag", "geanta", "geantă", "purse", "clutch", "tote", "poseta", "poșeta"],
   ["shoe", "heel", "sneaker", "boot", "pantofi", "adidasi", "adidași", "sandal", "sandale"],
   ["top", "blouse", "cămașă", "camasa", "bluza", "bluză", "shirt"],
