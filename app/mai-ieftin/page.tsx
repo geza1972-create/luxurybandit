@@ -13,7 +13,7 @@ import { useEffect, useRef, useState } from "react";
 // find cheaper versions. Real product search isn't wired yet — the AI guides.
 // ────────────────────────────────────────────────────────────────────────────
 type ShopItem = { title: string; link: string; source?: string; thumbnail: string; price?: string };
-type Msg = { role: "user" | "assistant"; content: string; products?: ShopItem[]; ownProducts?: ShopItem[] };
+type Msg = { role: "user" | "assistant"; content: string; products?: ShopItem[]; ownProducts?: ShopItem[]; chips?: string[] };
 
 const SUGGESTIONS = [
   "o geantă ca de la Versace, mai ieftin",
@@ -49,7 +49,7 @@ export default function MaiIeftinPage() {
         body: JSON.stringify({ messages: next }),
       });
       const d = await r.json().catch(() => ({}));
-      setMessages((m) => [...m, { role: "assistant", content: d.reply || "Momentan nu pot răspunde. Mai încearcă o dată.", products: Array.isArray(d.products) ? d.products : undefined, ownProducts: Array.isArray(d.ownProducts) ? d.ownProducts : undefined }]);
+      setMessages((m) => [...m, { role: "assistant", content: d.reply || "Momentan nu pot răspunde. Mai încearcă o dată.", products: Array.isArray(d.products) ? d.products : undefined, ownProducts: Array.isArray(d.ownProducts) ? d.ownProducts : undefined, chips: Array.isArray(d.chips) ? d.chips : undefined }]);
     } catch {
       setMessages((m) => [...m, { role: "assistant", content: "Ceva n-a mers. Mai încearcă o dată." }]);
     } finally { setLoading(false); }
@@ -131,6 +131,17 @@ export default function MaiIeftinPage() {
                       {m.content}
                     </div>
                   </div>
+                  {/* Quick-reply chips — tap to refine (only on the latest reply) */}
+                  {m.role === "assistant" && i === messages.length - 1 && !loading && m.chips && m.chips.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-0.5">
+                      {m.chips.map((c, idx) => (
+                        <button key={idx} type="button" onClick={() => void send(c)}
+                          className="rounded-full bg-white/[0.07] px-3.5 py-2 text-[13px] font-bold text-white/85 ring-1 ring-white/15 active:scale-95 transition">
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {/* Gemini-style product cards (image + price + link) */}
                   {m.products && m.products.length > 0 && (
                     <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">

@@ -75,15 +75,20 @@ async function shoppingSearch(query: string): Promise<ShopItem[]> {
 
 // The assistant returns strict JSON: a short Romanian reply + an English shopping query.
 // Empty query = not a product search (e.g. a greeting) → we skip the paid SerpApi call.
-const SYSTEM = `Ești asistentul LuxuryBandit „Găsește-l mai ieftin". Ajuți userul să găsească produse de modă (haine, genți, pantofi, accesorii, bijuterii) mai ieftine.
+const SYSTEM = `Ești asistentul LuxuryBandit „Găsește-l mai ieftin". Ajuți userul să găsească produse de modă mai ieftine.
 
-Răspunde DOAR cu un obiect JSON valid, fără alt text, în formatul exact:
-{"reply": "<mesaj scurt în ROMÂNĂ, max 2 propoziții, ton casual de prieten la shopping, cel mult un emoji, FĂRĂ markdown>", "query": "<cuvinte-cheie pentru Google Shopping care descriu produsul căutat, ex: 'black chain shoulder bag versace style' sau 'white gold bikini' — sau șir GOL \\"\\" dacă mesajul NU e o căutare de produs (salut, mulțumesc, întrebare generală)>"}
+Răspunde DOAR cu un obiect JSON valid, fără alt text:
+{"reply": "<mesaj scurt în ROMÂNĂ, max 2 propoziții, ton casual, cel mult un emoji, FĂRĂ markdown>", "query": "<cuvinte-cheie în ENGLEZĂ pentru Google Shopping — SAU șir GOL \\"\\" dacă întrebi mai întâi>", "chips": ["opțiune scurtă", "..."]}
 
-Reguli:
-- CAUTĂ IMEDIAT. Dacă mesajul conține un produs, pune ÎNTOTDEAUNA cuvinte-cheie bune în „query" (englezește merge cel mai bine; păstrează numele brandului dacă îl zice) — NU pune întrebări înainte de a arăta rezultate. În „reply" spune scurt „Uite ce am găsit 🔎" sau ceva similar, și eventual întreabă o rafinare DUPĂ (ex: „spune-mi culoarea și caut mai exact").
-- Pune „query" GOL doar dacă mesajul chiar NU e o căutare de produs (salut, mulțumesc, întrebare generală).
-- NU inventa prețuri sau linkuri — de căutare mă ocup eu.`;
+Scrie TOTUL în ROMÂNĂ (fără cuvinte în engleză în „reply", ex nu „Alright").
+
+Cum lucrezi:
+1) La PRIMA cerere de produs, dacă e generală, NU căuta încă. Pune „query":"" și întreabă în „reply" UN singur detaliu util, oferind 3-5 „chips" = opțiuni scurte (1-3 cuvinte). Alege UN singur detaliu (material SAU culoare SAU buget) și include mereu „Nu contează".
+   Ex: ["Bumbac","Dantelă","Satin","Mătase","Nu contează"] sau ["sub 50 lei","50-100 lei","100-200 lei","Nu contează"]
+2) IMPORTANT: pune MAXIM O SINGURĂ întrebare în toată conversația. Dacă în istoric EXISTĂ DEJA un mesaj de la tine (assistant), atunci userul a răspuns deja — CAUTĂ OBLIGATORIU: „query" cu cuvinte-cheie bune (englezește; păstrează brandul), „chips":[]. NU mai pune nicio întrebare.
+3) La salut/mulțumire: „query":"", „chips":[], răspuns scurt prietenos.
+
+NU inventa prețuri sau linkuri — de căutare mă ocup eu.`;
 
 // Product-TYPE groups (EN + RO). We only surface our looks whose garment type matches the
 // query's type — otherwise a "bag" search returns lingerie (generic words like "style"
@@ -137,16 +142,17 @@ async function ownProductsFor(query: string): Promise<ShopItem[]> {
   } catch { return []; }
 }
 
-function parseModelJson(text: string): { reply: string; query: string } {
+function parseModelJson(text: string): { reply: string; query: string; chips: string[] } {
   const t = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
   const a = t.indexOf("{"), b = t.lastIndexOf("}");
   if (a >= 0 && b > a) {
     try {
       const o = JSON.parse(t.slice(a, b + 1));
-      return { reply: String(o?.reply ?? "").trim(), query: String(o?.query ?? "").trim() };
+      const chips = Array.isArray(o?.chips) ? o.chips.map((c: unknown) => String(c).trim().slice(0, 30)).filter(Boolean).slice(0, 6) : [];
+      return { reply: String(o?.reply ?? "").trim(), query: String(o?.query ?? "").trim(), chips };
     } catch { /**/ }
   }
-  return { reply: text.trim(), query: "" }; // fall back to raw text as the reply
+  return { reply: text.trim(), query: "", chips: [] }; // fall back to raw text as the reply
 }
 
 export async function POST(request: Request) {
@@ -166,14 +172,35 @@ export async function POST(request: Request) {
     const client = new Anthropic({ apiKey: key });
     const resp = await client.messages.create({ model: MODEL, max_tokens: MAX_TOKENS, system: SYSTEM, messages: history });
     const text = resp.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join("");
-    const { reply, query } = parseModelJson(text);
+    const parsed = parseModelJson(text);
+    let { query, chips } = parsed;
+    const reply = parsed.reply;
 
-    const [products, ownProducts] = query
-      ? await Promise.all([shoppingSearch(query), ownProductsFor(query)])
+    // Deterministic guard: allow AT MOST one clarifying question. If we've already replied
+    // once, force a search on this turn (drop any further chips, synthesize a query if the
+    // model didn't give one). Prevents the endless "one more question" loop.
+    const askedBefore = history.some((m) => m.role === "assistant");
+    if (askedBefore) {
+      chips = [];
+      if (!query) query = (history.find((m) => m.role === "user")?.content ?? "").slice(0, 80);
+    }
+    // Strip budget/price noise from the shopping query — "red panties 50-100 RON" returns
+    // nothing on Google Shopping. Keep the product words only.
+    const cleanQuery = query
+      .replace(/\b(sub|peste|între|intre|max|maxim|până la|pana la)\b/gi, " ")
+      .replace(/\d+\s*[-–]\s*\d+/g, " ")
+      .replace(/\b\d+\b/g, " ")
+      .replace(/\b(lei|ron|eur|euro|usd)\b/gi, " ")
+      .replace(/[$€£]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const [products, ownProducts] = cleanQuery
+      ? await Promise.all([shoppingSearch(cleanQuery), ownProductsFor(cleanQuery)])
       : [[], []];
     const finalReply = reply
-      || (products.length ? "Uite ce am găsit pentru tine 🔎" : "Spune-mi ce produs cauți și îți găsesc variante mai ieftine.");
-    return NextResponse.json({ reply: finalReply, products, ownProducts, query });
+      || (products.length ? "Uite ce am găsit pentru tine 🔎" : "Spune-mi ce cauți și îți găsesc variante mai ieftine.");
+    return NextResponse.json({ reply: finalReply, products, ownProducts, chips, query: cleanQuery });
   } catch {
     return NextResponse.json({ error: "Chat failed." }, { status: 502 });
   }
