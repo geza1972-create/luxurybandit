@@ -86,6 +86,7 @@ export default function CuratorApplyPage() {
   // ── Edit mode: /admin/curators/apply?edit=<id> opens this SAME form prefilled
   // with an existing model and saves via the "update" action (admin only).
   const [editId, setEditId] = useState("");
+  const [savedDone, setSavedDone] = useState<{ photo: string } | null>(null); // success confirmation
   const getPin = () => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } };
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("edit") || "";
@@ -199,7 +200,8 @@ export default function CuratorApplyPage() {
         });
         const data = await res.json();
         if (!res.ok || data.error) { setError(data.error || "Could not save."); return; }
-        router.push("/admin?tab=curators");
+        // Explicit confirmation (with the new photo as proof) instead of a silent redirect.
+        setSavedDone({ photo: profilePhotos[0] || (photo.startsWith("data:image/") ? photo : "") });
         return;
       }
 
@@ -479,6 +481,23 @@ export default function CuratorApplyPage() {
       {profileCropSrc && (
         <PhotoCropper src={profileCropSrc} onCancel={() => setProfileCropSrc("")}
           onDone={(dataUrl) => { setProfilePhotos(prev => [...prev, dataUrl].slice(0, 4)); setProfileCropSrc(""); }} />
+      )}
+
+      {/* Save confirmation — proves what was saved (shows the new photo) before leaving. */}
+      {savedDone && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 p-6 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-3xl border border-emerald-400/30 bg-[#141210] p-6 text-center">
+            <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-emerald-500 text-white text-2xl font-black">✓</span>
+            <h3 className="mt-3 text-lg font-black text-white">Saved!</h3>
+            <p className="mt-1 text-[13px] font-bold text-white/55">{savedDone.photo ? "The profile photo has been updated." : "Changes saved."}</p>
+            {savedDone.photo && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={savedDone.photo} alt="" className="mx-auto mt-4 h-40 w-32 rounded-2xl object-cover object-top ring-2 ring-emerald-400/40" />
+            )}
+            <button type="button" onClick={() => router.push("/admin?tab=curators")}
+              className="lb-gold mt-5 w-full rounded-full px-5 py-3 text-sm font-black active:scale-95 transition">Back to models</button>
+          </div>
+        </div>
       )}
     </div>
   );
