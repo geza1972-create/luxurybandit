@@ -184,6 +184,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
     !gridShowing &&
     !searchParams.get("panel");
   const hideBar = reelShowing || pathname.startsWith("/look/");
+  // The feed (/stores grid + /home) already has a hamburger in its own top header, so
+  // the global floating hamburger is suppressed there to avoid two of them.
+  const onFeed = pathname === "/stores" || pathname.endsWith("/stores") || pathname.endsWith("/home");
 
   return (
     <>
@@ -200,53 +203,19 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
         </button>
       </div>
     )}
-    {!hideChrome && !hideBar && (
-    <nav
-      className="lb-phone-col fixed bottom-0 inset-x-0 z-50 border-t border-black/10 bg-white/95 backdrop-blur-md"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-    >
-      <div className="mx-auto grid max-w-lg grid-cols-4 h-14">
-
-        {/* Home — the single feed (The A List was removed; one feed now) */}
-        {(() => {
-          const homeActive = pathname === "/stores" || pathname.endsWith("/home");
-          return (
-            <button type="button" onClick={() => { setActive("home"); router.push("/home"); }}
-              className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${homeActive ? "text-black" : "text-black/35"}`}>
-              <Home className="h-5 w-5" />
-              <span className="text-[10px] font-bold">Home</span>
-            </button>
-          );
-        })()}
-
-        {/* Try-Ons — leads to the home feed (the try-on videos). Always shown. */}
-        <button
-          type="button"
-          onClick={() => { setActive("home"); router.push("/home"); }}
-          className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${pathname.endsWith("/home") ? "text-black" : "text-black/35"}`}
-        >
-          <Shirt className="h-5 w-5" />
-          <span className="text-[10px] font-bold">Try-Ons</span>
-        </button>
-
-        {/* Mai ieftin — the Dupe-style price-finder funnel. */}
-        <button
-          type="button"
-          onClick={() => { setActive("home"); router.push("/mai-ieftin"); }}
-          className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${pathname.startsWith("/mai-ieftin") ? "text-black" : "text-black/35"}`}
-        >
-          <Search className="h-5 w-5" />
-          <span className="text-[10px] font-bold">Mai ieftin</span>
-        </button>
-
-        {/* Menu — opens the account/menu sheet (account, saved, try-ons, admin, sign out). */}
-        <button type="button" onClick={() => { setActive("account"); setShowProfileMenu(true); }} className={btn("account")}>
-          <Menu className="h-5 w-5" />
-          <span className="text-[10px] font-bold">Menu</span>
-        </button>
-
+    {/* Floating hamburger — replaces the old white bottom bar everywhere. All the bar's
+        destinations (Home, Try-Ons, Mai ieftin) now live inside the menu sheet. Hidden on
+        the feed (its top header has its own hamburger) and on full-screen/funnel pages. */}
+    {!hideChrome && !hideBar && !onFeed && (
+      <div className="lb-phone-col pointer-events-none fixed inset-x-0 bottom-0 z-50"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <div className="flex justify-end px-4 pb-4">
+          <button type="button" onClick={() => { setActive("account"); setShowProfileMenu(true); }} aria-label="Menu"
+            className="pointer-events-auto grid h-12 w-12 place-items-center rounded-full border border-white/15 bg-black/85 text-white shadow-xl backdrop-blur-md active:scale-90 transition">
+            <Menu className="h-6 w-6" />
+          </button>
+        </div>
       </div>
-    </nav>
     )}
 
     {/* Profile menu sheet */}
@@ -311,6 +280,17 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
             </div>
             {/* Menu items */}
             <div className="grid divide-y divide-black/5">
+              {/* Home + Try-Ons — moved here from the old white bottom bar. */}
+              <button type="button" onClick={() => navigate("/home")}
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                <Home className="h-5 w-5 shrink-0 text-black/50" />
+                <span className="text-sm font-black text-black">Home</span>
+              </button>
+              <button type="button" onClick={() => navigate("/stores?view=grid")}
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
+                <Shirt className="h-5 w-5 shrink-0 text-black/50" />
+                <span className="text-sm font-black text-black">Try-Ons</span>
+              </button>
               {/* Găsește-l mai ieftin — the Dupe-style price-finder funnel (everyone). */}
               <button type="button" onClick={() => navigate("/mai-ieftin")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-black/5 transition">
