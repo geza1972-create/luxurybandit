@@ -728,7 +728,11 @@ export default function TryFunnelPage() {
               // (the model + outfit picker), not the previous step / the tariff.
               if (step > 2) {
                 if (armTimerRef.current) { clearTimeout(armTimerRef.current); setArming(false); }
-                genStartedRef.current = false; setGenStatus("idle"); setComboCancelled(true);
+                genStartedRef.current = false; setGenStatus("idle");
+                try { musicRef.current?.pause(); } catch { /**/ }
+                setRevealing(false); setRendering(false);
+                // Keep the combo → return to the outfit+model confirm view (the red set + Gina),
+                // NOT the coverflow.
                 setStep(2);
                 return;
               }
