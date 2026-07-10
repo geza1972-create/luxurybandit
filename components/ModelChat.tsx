@@ -26,7 +26,7 @@ const GIFTS = [
 ];
 
 export default function ModelChat({
-  open, onClose, curatorId, modelName, modelFirstName, bio, style, avatarUrl, isPaid, onNeedPremium,
+  open, onClose, curatorId, modelName, modelFirstName, bio, style, avatarUrl, isPaid, onNeedPremium, page = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -38,6 +38,7 @@ export default function ModelChat({
   avatarUrl?: string;
   isPaid: boolean;
   onNeedPremium: () => void;
+  page?: boolean; // true = render as a full dedicated page (no overlay/backdrop) — avoids the iOS keyboard bug
 }) {
   const router = useRouter();
   const storeKey = `lb_modelchat_${curatorId}`;
@@ -211,9 +212,13 @@ export default function ModelChat({
   };
 
   return (
-    <div className="fixed left-0 top-0 z-[92] h-[100dvh] w-full origin-top bg-black/60" style={vpStyle} onClick={onClose}>
-      <div className="absolute inset-0 mx-auto flex max-w-[440px] flex-col bg-[#0d0b0a]"
-        onClick={e => e.stopPropagation()}>
+    <div className={page ? "" : "fixed left-0 top-0 z-[92] h-[100dvh] w-full origin-top bg-black/60"}
+      style={page ? undefined : vpStyle} onClick={page ? undefined : onClose}>
+      <div className={page
+          ? "lb-phone-col fixed inset-x-0 top-0 mx-auto flex h-[100dvh] max-w-[440px] flex-col bg-[#0d0b0a]"
+          : "absolute inset-0 mx-auto flex max-w-[440px] flex-col bg-[#0d0b0a]"}
+        style={page ? vpStyle : undefined}
+        onClick={page ? undefined : (e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
           <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white/10">

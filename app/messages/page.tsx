@@ -91,7 +91,7 @@ export default function MessagesPage() {
         ) : (
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] divide-y divide-white/[0.06]">
             {convos.map(c => (
-              <button key={c.curatorId} type="button" onClick={() => router.push(`/curator/${c.curatorId}?chat=1`)}
+              <button key={c.curatorId} type="button" onClick={() => router.push(`/chat/${c.curatorId}`)}
                 className="flex w-full items-center gap-3 px-4 py-3.5 text-left active:bg-white/[0.04] transition">
                 <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/10">
                   {c.photoUrl

@@ -175,8 +175,8 @@ export default function CuratorPublicPage() {
   const [followLoading, setFollowLoading] = useState(false);
   const [showMsg, setShowMsg] = useState(false);
   const [showChat, setShowChat] = useState(false);
-  // Deep link from the Messages list (/curator/<id>?chat=1) opens the chat straight away.
-  useEffect(() => { try { if (new URLSearchParams(window.location.search).get("chat") === "1") setShowChat(true); } catch { /**/ } }, []);
+  // Chat now lives on its own page (/chat/<id>). Old ?chat=1 deep links redirect there.
+  useEffect(() => { try { if (new URLSearchParams(window.location.search).get("chat") === "1") router.replace(`/chat/${id}`); } catch { /**/ } }, [id, router]);
   const [msgText, setMsgText] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -820,7 +820,7 @@ export default function CuratorPublicPage() {
 
         {/* Two gold CTAs side by side — chat with her + jump to her other looks. */}
         <div className="mt-3 flex w-full max-w-sm items-stretch gap-2">
-          <button type="button" onClick={() => setShowChat(true)}
+          <button type="button" onClick={() => router.push(`/chat/${id}`)}
             className="lb-gold flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-black leading-tight active:scale-95 transition">
             <MessageCircle className="h-4 w-4 shrink-0" /> Chat with her!
           </button>

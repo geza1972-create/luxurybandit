@@ -1070,7 +1070,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
             {authorCuratorId && (
               <button type="button"
-                onClick={(e) => { e.stopPropagation(); setShowChat(true); }}
+                onClick={(e) => { e.stopPropagation(); router.push(`/chat/${authorCuratorId}`); }}
                 onPointerDown={(e) => e.stopPropagation()}
                 className="flex items-center gap-2 whitespace-nowrap rounded-full border border-white/25 bg-black/45 px-6 py-2.5 text-sm font-black text-white backdrop-blur active:scale-95 transition">
                 <MessageCircle className="h-4 w-4" /> Chat with her

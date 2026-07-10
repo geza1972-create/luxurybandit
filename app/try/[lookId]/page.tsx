@@ -778,7 +778,7 @@ export default function TryFunnelPage() {
                   {modelImg ? <img src={modelImg} alt="" className="h-full w-full object-cover object-top" /> : <div className="h-full w-full bg-white/5" />}
                   {/* Chat with her — golden button on her photo, top-right. */}
                   {chosenModelId && chosenModelName && !avatar && (
-                    <button type="button" onClick={() => setShowChat(true)} title={`Chat with ${chosenModelName.split(/\s+/)[0]}`}
+                    <button type="button" onClick={() => chosenModelId && router.push(`/chat/${chosenModelId}`)} title={`Chat with ${chosenModelName.split(/\s+/)[0]}`}
                       className="lb-gold absolute right-2 top-2 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-black shadow-lg active:scale-95 transition">
                       <MessageCircle className="h-4 w-4" /> Chat
                     </button>
@@ -820,7 +820,7 @@ export default function TryFunnelPage() {
                         <span className="text-[11px] font-black uppercase tracking-wide text-amber-300">Premium</span>
                       </div>
                     ) : chosenModelObj?.featured && chosenModelId && chosenModelName && (
-                      <button type="button" onClick={() => setShowChat(true)} className="lb-gold absolute right-1.5 top-1.5 flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black shadow"><MessageCircle className="h-3.5 w-3.5" /> Chat</button>
+                      <button type="button" onClick={() => chosenModelId && router.push(`/chat/${chosenModelId}`)} className="lb-gold absolute right-1.5 top-1.5 flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black shadow"><MessageCircle className="h-3.5 w-3.5" /> Chat</button>
                     )}
                   </div>
                   <p className={`mt-1 text-center text-[11px] font-black uppercase tracking-wide ${chosenModelLocked ? "text-amber-400" : "text-white/45"}`}>{chosenModelLocked ? "Premium" : (chosenModelName?.split(/\s+/)[0] || "Model")}</p>
@@ -905,7 +905,7 @@ export default function TryFunnelPage() {
                               : m.featured && <span className="absolute left-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-black text-white">Free</span>}
                             {isActive && m.featured && chosenModelName && (
                               // Chat only with FREE (featured) models — that's the free perk.
-                              <button type="button" onClick={(e) => { e.stopPropagation(); setShowChat(true); }} title={`Chat with ${chosenModelName.split(/\s+/)[0]}`}
+                              <button type="button" onClick={(e) => { e.stopPropagation(); chosenModelId && router.push(`/chat/${chosenModelId}`); }} title={`Chat with ${chosenModelName.split(/\s+/)[0]}`}
                                 className="lb-gold absolute right-2 top-2 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-black shadow-lg active:scale-95 transition">
                                 <MessageCircle className="h-4 w-4" /> Chat
                               </button>
