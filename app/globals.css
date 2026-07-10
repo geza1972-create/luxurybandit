@@ -107,6 +107,14 @@ svg {
   to   { transform: translateX(0); }
 }
 
+/* Ambient ornaments (mai-ieftin): thin gold geometry drifts up the background. */
+@keyframes lb-rise {
+  0%   { transform: translateY(112vh) translateX(0) rotate(0deg); opacity: 0; }
+  12%  { opacity: var(--o, 0.1); }
+  88%  { opacity: var(--o, 0.1); }
+  100% { transform: translateY(-15vh) translateX(var(--dx, 0px)) rotate(var(--r, 180deg)); opacity: 0; }
+}
+
 /* Scanner beam for the try-on "reveal": a horizontal line sweeps down then up. */
 @keyframes lb-scan {
   0%, 100% { top: 3%; }

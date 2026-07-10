@@ -4,7 +4,62 @@ export const dynamic = "force-dynamic";
 
 import { Plus, ArrowUp, X, Menu } from "lucide-react";
 import Link from "next/link";
+import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+
+// ── Ambient background ornaments — thin gold geometry drifting up the dark page. A
+// faint set drifts forever; a brighter "burst" replays on every new message (re-keyed). ──
+const GLYPHS: Record<string, ReactNode> = {
+  circle: <circle cx="12" cy="12" r="10" />,
+  diamond: <polygon points="12,2 22,12 12,22 2,12" />,
+  triangle: <polygon points="12,3 21,20 3,20" />,
+  plus: <path d="M12 3v18M3 12h18" />,
+  hex: <polygon points="12,2 21,7 21,17 12,22 3,17 3,7" />,
+  star: <path d="M12 2l2.4 7H22l-6 4.4 2.3 7L12 16l-6.6 4.4L8 13.4 2 9h7.6z" />,
+};
+type Orn = { type: keyof typeof GLYPHS; left: number; size: number; dur: number; delay: number; dx: number; r: number; op: number };
+const AMBIENT: Orn[] = [
+  { type: "circle", left: 8, size: 34, dur: 26, delay: 0, dx: 20, r: 160, op: 0.06 },
+  { type: "diamond", left: 82, size: 26, dur: 30, delay: 4, dx: -24, r: -200, op: 0.06 },
+  { type: "plus", left: 48, size: 20, dur: 22, delay: 9, dx: 14, r: 120, op: 0.05 },
+  { type: "hex", left: 24, size: 40, dur: 34, delay: 13, dx: -18, r: -140, op: 0.05 },
+  { type: "triangle", left: 68, size: 24, dur: 28, delay: 6, dx: 22, r: 200, op: 0.06 },
+  { type: "star", left: 90, size: 22, dur: 24, delay: 16, dx: -12, r: 180, op: 0.07 },
+];
+const BURST: Orn[] = [
+  { type: "star", left: 15, size: 26, dur: 3.8, delay: 0, dx: 24, r: 200, op: 0.22 },
+  { type: "circle", left: 40, size: 30, dur: 4.4, delay: 0.2, dx: -18, r: -160, op: 0.15 },
+  { type: "diamond", left: 62, size: 22, dur: 4.0, delay: 0.4, dx: 20, r: 220, op: 0.18 },
+  { type: "plus", left: 80, size: 20, dur: 4.2, delay: 0.1, dx: -14, r: 140, op: 0.16 },
+  { type: "hex", left: 30, size: 28, dur: 4.6, delay: 0.5, dx: 16, r: -180, op: 0.13 },
+  { type: "triangle", left: 72, size: 24, dur: 3.6, delay: 0.3, dx: -22, r: 200, op: 0.2 },
+];
+function Orns({ items, oneShot }: { items: Orn[]; oneShot?: boolean }) {
+  return (
+    <>
+      {items.map((o, i) => (
+        <svg key={i} viewBox="0 0 24 24" fill="none" stroke="#c9a23f" strokeWidth="1" strokeLinejoin="round"
+          style={{
+            position: "absolute", left: `${o.left}%`, top: 0, width: o.size, height: o.size, opacity: 0,
+            animation: `lb-rise ${o.dur}s ${o.delay}s ${oneShot ? "ease-out 1 forwards" : "linear infinite"}`,
+            ["--dx" as string]: `${o.dx}px`, ["--r" as string]: `${o.r}deg`, ["--o" as string]: o.op,
+          } as CSSProperties}>
+          {GLYPHS[o.type]}
+        </svg>
+      ))}
+    </>
+  );
+}
+function AmbientGeometry({ burst }: { burst: number }) {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+      <Orns items={AMBIENT} />
+      <div key={burst} className="absolute inset-0">
+        <Orns items={BURST} oneShot />
+      </div>
+    </div>
+  );
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // "Găsește-l mai ieftin" — a Dupe-style AI chat funnel (Romanian, DARK). The user
@@ -86,9 +141,11 @@ export default function MaiIeftinPage() {
   );
 
   return (
-    <div className="flex h-screen flex-col bg-black text-white/90">
+    <div className="relative flex h-screen flex-col overflow-hidden bg-black text-white/90">
+      {/* Ambient gold geometry drifting up the background; a burst replays on each message. */}
+      <AmbientGeometry burst={messages.length} />
       {/* Top bar */}
-      <header className="flex shrink-0 items-center justify-between px-5 py-4">
+      <header className="relative z-10 flex shrink-0 items-center justify-between px-5 py-4">
         <Link href="/home" aria-label="LuxuryBandit" className="inline-flex items-center gap-2 active:scale-95 transition">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/lb-logo.png" alt="" className="h-8 w-8 rounded-full object-contain" />
@@ -104,7 +161,7 @@ export default function MaiIeftinPage() {
 
       {empty ? (
         /* Empty / landing state — centered */
-        <main className="flex flex-1 flex-col items-center justify-center px-5 pb-24">
+        <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-5 pb-24">
           <div className="w-full max-w-md">
             <h1 className="mb-8 text-center text-[32px] font-black leading-tight tracking-tight text-white/75">Găsește-l mai ieftin</h1>
             {inputBox}
@@ -120,7 +177,7 @@ export default function MaiIeftinPage() {
       ) : (
         /* Chat state */
         <>
-          <main className="flex-1 overflow-y-auto px-4 pb-4">
+          <main className="relative z-10 flex-1 overflow-y-auto px-4 pb-4">
             <div className="mx-auto flex max-w-md flex-col gap-3 py-2">
               {messages.map((m, i) => (
                 <div key={i} className="flex flex-col gap-2">
@@ -197,7 +254,7 @@ export default function MaiIeftinPage() {
               <div ref={endRef} />
             </div>
           </main>
-          <div className="shrink-0 px-4 pb-5 pt-1" style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}>
+          <div className="relative z-10 shrink-0 px-4 pb-5 pt-1" style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}>
             <div className="mx-auto max-w-md">{inputBox}</div>
           </div>
         </>
