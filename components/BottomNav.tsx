@@ -218,35 +218,25 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
           );
         })()}
 
-        {/* Messages */}
+        {/* Try-Ons — leads to the home feed (the try-on videos). Always shown. */}
         <button
           type="button"
-          onClick={() => go("messages", "/messages")}
-          className={btn("messages")}
+          onClick={() => { setActive("home"); router.push("/home"); }}
+          className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${pathname.endsWith("/home") ? "text-black" : "text-black/35"}`}
         >
-          <span className="relative">
-            <MessageCircle className="h-5 w-5" />
-            {unreadMessages > 0 && (
-              <span className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[9px] font-black text-white">
-                {unreadMessages > 99 ? "99+" : unreadMessages}
-              </span>
-            )}
-          </span>
-          <span className="text-[10px] font-bold">Messages</span>
+          <Shirt className="h-5 w-5" />
+          <span className="text-[10px] font-bold">Try-Ons</span>
         </button>
 
-        {/* My Try-Ons — promoted out of the Account sheet to a first-class tab.
-            Only for signed-in users (Supabase, curator, or admin PIN). */}
-        {signedIn && (
-          <button
-            type="button"
-            onClick={() => { setActive("account"); router.push("/user/tryons"); }}
-            className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${pathname === "/user/tryons" ? "text-black" : "text-black/35"}`}
-          >
-            <Shirt className="h-5 w-5" />
-            <span className="text-[10px] font-bold">Try-Ons</span>
-          </button>
-        )}
+        {/* Mai ieftin — the Dupe-style price-finder funnel. */}
+        <button
+          type="button"
+          onClick={() => { setActive("home"); router.push("/mai-ieftin"); }}
+          className={`flex flex-col items-center justify-center gap-[3px] transition-colors ${pathname.startsWith("/mai-ieftin") ? "text-black" : "text-black/35"}`}
+        >
+          <Search className="h-5 w-5" />
+          <span className="text-[10px] font-bold">Mai ieftin</span>
+        </button>
 
         {/* Menu — opens the account/menu sheet (account, saved, try-ons, admin, sign out). */}
         <button type="button" onClick={() => { setActive("account"); setShowProfileMenu(true); }} className={btn("account")}>

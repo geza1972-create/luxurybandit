@@ -29,15 +29,11 @@ export default function MaiIeftinPage() {
   return (
     <div className="flex min-h-screen flex-col bg-black text-white">
       {/* Top bar */}
-      <header className="flex items-center justify-between px-5 py-4">
+      <header className="flex items-center px-5 py-4">
         <Link href="/home" aria-label="LuxuryBandit" className="inline-flex items-center gap-2 active:scale-95 transition">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/lb-logo.png" alt="" className="h-8 w-8 rounded-full object-contain" />
           <span className="text-[17px] font-black tracking-tight">LuxuryBandit</span>
-        </Link>
-        <Link href="/login?mode=signup&returnTo=/mai-ieftin"
-          className="rounded-full bg-white/10 px-4 py-2 text-[13px] font-black text-white active:scale-95 transition">
-          Cont
         </Link>
       </header>
 
