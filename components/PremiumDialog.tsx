@@ -20,6 +20,16 @@ export default function PremiumDialog({ open, onClose, title = "Unlock the full 
   useEffect(() => { if (open) logFunnelEvent("paywall_view", { paywall: "premium", lookName: "Premium" }); }, [open]);
   if (!open) return null;
   const close = () => { setError(""); onClose(); };
+  const signedIn = !!getStoredAuthSession()?.user?.email;
+
+  // "Create free account" — the alternative to "Maybe later": capture the visitor as a
+  // free signup (no Premium, no charge) instead of losing them. Lands on the register
+  // form and returns to the funnel; no pending-checkout flag, so PremiumSync won't upsell.
+  const freeSignup = () => {
+    logFunnelEvent("free_signup_click", { paywall: "premium" });
+    const here = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/stores";
+    window.location.href = `/login?mode=signup&returnTo=${encodeURIComponent(here)}`;
+  };
 
   const buy = async () => {
     setError("");
@@ -75,7 +85,11 @@ export default function PremiumDialog({ open, onClose, title = "Unlock the full 
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Start Premium — $8 first month</>}
         </button>
         {error && <p className="mt-2 text-[12px] font-bold text-red-400">{error}</p>}
-        <button type="button" onClick={close} className="mt-2 w-full py-2 text-[13px] font-black text-white/45">Maybe later</button>
+        {signedIn ? (
+          <button type="button" onClick={close} className="mt-2 w-full py-2 text-[13px] font-black text-white/45">Maybe later</button>
+        ) : (
+          <button type="button" onClick={freeSignup} className="mt-2 w-full py-2.5 text-[13px] font-black text-white/70 underline decoration-white/25 underline-offset-4">Create free account · $0</button>
+        )}
       </div>
     </div>
   );

@@ -21,7 +21,7 @@ const GoogleIcon = () => (
 function LoginForm() {
   const params = useSearchParams();
   const confirmed = params.get("confirmed") === "1";
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup">(params.get("mode") === "signup" ? "signup" : "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
