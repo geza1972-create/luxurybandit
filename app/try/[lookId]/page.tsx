@@ -1068,7 +1068,7 @@ export default function TryFunnelPage() {
                     </div>
                   </>
                 ) : (
-                  <span className="pointer-events-none absolute right-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black"><Check className="h-3.5 w-3.5" /> Free</span>
+                  <span className="pointer-events-none absolute left-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black"><Check className="h-3.5 w-3.5" /> Free</span>
                 )}
               </div>
             ) : (
