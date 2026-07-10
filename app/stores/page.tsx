@@ -1243,7 +1243,7 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
   // Curator sign-in (email only, no password — our only login).
   const handleCuratorSignin = async () => {
     const em = email.trim();
-    if (!em) return;
+    if (!em) { setMessage(""); setError("Enter your model email in the field above, then tap Model login."); return; }
     setError(""); setMessage(""); setLoading(true);
     try {
       const res = await fetch("/api/curator", {
@@ -1392,6 +1392,14 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : tab === "register" ? "Create free account" : tab === "forgot" ? "Send reset link" : "Sign in"}
             </button>
 
+            {tab === "register" && (
+              <p className="text-center text-[11px] font-bold leading-snug text-ink/40">
+                By creating an account you agree to our{" "}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline decoration-ink/30 underline-offset-2">Terms</a>{" "}&amp;{" "}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline decoration-ink/30 underline-offset-2">Privacy</a>. You confirm you are 18+.
+              </p>
+            )}
+
             {/* Prominent switch between sign-in and create-account — most visitors are new. */}
             {tab !== "forgot" && (
               <button type="button" onClick={() => { setError(""); setMessage(""); setTab(tab === "register" ? "signin" : "register"); }}
@@ -1414,7 +1422,7 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
               <span className="text-[10px] font-black uppercase tracking-wider text-ink/25">work with us as a model?</span>
               <span className="h-px flex-1 bg-black/10" />
             </div>
-            <button type="button" disabled={loading || !email.trim()} onClick={() => void handleCuratorSignin()}
+            <button type="button" disabled={loading} onClick={() => void handleCuratorSignin()}
               className="mx-auto text-[12px] font-black text-ink/45 underline decoration-ink/20 underline-offset-4 active:opacity-70 disabled:opacity-30">
               Model login (uses email above) →
             </button>
