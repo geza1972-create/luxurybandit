@@ -700,7 +700,12 @@ export default function TryFunnelPage() {
   const chosenModelLocked = !isPaid && !adminProduce && !avatar && !!chosenModelObj?.realModel;
   // The outfit+model confirm view — there the GO button sits INLINE under the images
   // (not in the sticky footer), so we hide the footer for this view.
-  const inConfirm = step === 2 && !avatar && !((pickModel || chooseModel) && !pickedModel) && pickedParam && !comboCancelled;
+  // Landing straight from an ad (a model is chosen via ?modelId, no browsing yet) → show the
+  // OUTFIT→MODEL confirm view immediately (the look IS the outfit), not the coverflow. The
+  // "Change outfit / Change model" links let them browse from there.
+  const adLanding = !!modelIdParam && !!chosenModelName && !avatar && !pickModel && !chooseModel && !pickedModel;
+  const showConfirm = (pickedParam || adLanding) && !comboCancelled;
+  const inConfirm = step === 2 && !avatar && !((pickModel || chooseModel) && !pickedModel) && showConfirm;
 
   return (
     <div className="relative mx-auto min-h-[100dvh] w-full max-w-[440px] bg-[#0d0b0a] text-white shadow-[0_0_60px_rgba(0,0,0,0.45)]">
@@ -802,11 +807,11 @@ export default function TryFunnelPage() {
                 </div>
               </div>
             </>
-          ) : (pickedParam && !comboCancelled) ? (
+          ) : showConfirm ? (
             // Outfit chosen → confirm view: the OUTFIT (left) + the chosen MODEL (right),
             // with Cancel to reopen the picker.
             <>
-              <p className="mt-2 text-[13px] font-bold text-white/50">{chosenModelLocked ? "This model is Premium — unlock her to generate, or cancel and pick a free model." : "Your look is set — tap “Start” to watch it free, or cancel to choose again."}</p>
+              <p className="mt-2 text-[13px] font-bold text-white/50">{chosenModelLocked ? "This model is Premium — unlock her, or pick a free model below." : "Your look is set — tap “GO” below to watch it, free."}</p>
               <div className="mx-auto mt-3 flex items-stretch justify-center gap-3">
                 <div className="w-[42%] max-w-[160px]">
                   <button type="button" onClick={() => { setZoomSrc(look?.frontImageUrl || look?.imageUrl || garmentParam || outfit?.imageUrl || ""); setZoomName(outfit?.name || ""); setOutfitZoom(true); }} className="block w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-95 transition">
@@ -843,12 +848,7 @@ export default function TryFunnelPage() {
                 <button type="button" onClick={() => setChooseLook(true)}
                   className="underline decoration-white/20 underline-offset-4 active:opacity-70">Change outfit</button>
                 <span className="text-white/20">·</span>
-                <button type="button" onClick={() => {
-                    setComboCancelled(true); setYourPhotoFront(false);
-                    // Reopen the carousel on the FIRST model (Gina / featured), not the last pick.
-                    const first = [...gModels].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0))[0];
-                    if (first) { setAvatar(""); setPickedModel(first.photoUrl); setPickedModelId(first.id); setPickedModelName(first.name); }
-                  }}
+                <button type="button" onClick={() => { setComboCancelled(true); setYourPhotoFront(false); setAvatar(""); setPickedModel(""); setChooseModel(true); }}
                   className="underline decoration-white/20 underline-offset-4 active:opacity-70">Change model</button>
               </div>
 
@@ -964,7 +964,7 @@ export default function TryFunnelPage() {
 
           {/* Everyone (admin included) swipes ALL outfits right here; models live in the
               coverflow above. Hidden in the outfit+model confirm view (it distracts there). */}
-          {!(pickedParam && !comboCancelled) && (
+          {!showConfirm && (
             <>
               <div className="mt-4">
                 <p className="mb-2 flex items-center text-[11px] font-black uppercase tracking-wide text-white/40">Outfits<span className="ml-auto text-[10px] font-bold normal-case text-white/35">swipe →</span></p>
@@ -997,7 +997,7 @@ export default function TryFunnelPage() {
             </>
           )}
           {/* Admin: the videos already generated for this model — right under the outfits. */}
-          {!(pickedParam && !comboCancelled) && adminProduce && galleryVideos.length > 0 && (
+          {!showConfirm && adminProduce && galleryVideos.length > 0 && (
             <div className="mt-5">
               <p className="mb-2 text-[13px] font-black">My Gallery <span className="text-white/40">{galleryVideos.length}</span></p>
               <div className="grid grid-cols-3 gap-2">
