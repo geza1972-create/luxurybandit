@@ -692,10 +692,10 @@ export default function TryFunnelPage() {
   // Admin production strip: a horizontal, scrollable row of garments; tap one → generate a
   // video for the CURRENT model on that garment (same window). 🎬 = already has a video.
   const adminProduce = !!adminPin && !previewAsUser;
-  // The currently-chosen model, and whether it's a Premium (non-free) one the visitor can't
-  // generate on. Only lock if the model is in the list AND not featured (unknown → allow).
+  // The currently-chosen model, and whether it's a protected one the visitor can't generate
+  // on. AI models are free for everyone; only REAL models are Premium-locked.
   const chosenModelObj = gModels.find(m => m.id === chosenModelId);
-  const chosenModelLocked = !isPaid && !adminProduce && !avatar && !!chosenModelObj && !chosenModelObj.featured;
+  const chosenModelLocked = !isPaid && !adminProduce && !avatar && !!chosenModelObj?.realModel;
 
   return (
     <div className="relative mx-auto min-h-[100dvh] w-full max-w-[440px] bg-[#0d0b0a] text-white shadow-[0_0_60px_rgba(0,0,0,0.45)]">
@@ -884,7 +884,8 @@ export default function TryFunnelPage() {
                       const off = i - active;
                       if (Math.abs(off) > 2) return null;
                       const isUpload = m.id === "__yourphoto";
-                      const mLocked = !isUpload && !unlockAll && !m.featured;
+                      // AI models are free & fully visible for everyone; only REAL models blur + lock.
+                      const mLocked = !isUpload && !!m.realModel && !unlockAll;
                       const isActive = off === 0;
                       return (
                         <div key={m.id} onClick={() => { if (swipedRef.current) { swipedRef.current = false; return; } if (isUpload) { if (!isActive) { setFront(m); return; } (isPaid || adminProduce) ? fileRef.current?.click() : setShowPremium(true); return; } if (!isActive) setFront(m); }}
@@ -911,9 +912,9 @@ export default function TryFunnelPage() {
                                   {isActive && <span className="text-[11px] font-bold leading-snug text-white/80">This is a Premium feature. Unlock to try her on.</span>}
                                 </div>
                               )
-                              : m.featured && <span className="absolute left-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-black text-white">Free</span>}
-                            {isActive && m.featured && chosenModelName && (
-                              // Chat only with FREE (featured) models — that's the free perk.
+                              : !m.realModel && <span className="absolute left-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-black text-white">Free</span>}
+                            {isActive && !m.realModel && chosenModelName && (
+                              // Chat is available with every (free) AI model.
                               <button type="button" onClick={(e) => { e.stopPropagation(); chosenModelId && router.push(`/chat/${chosenModelId}`); }} title={`Chat with ${chosenModelName.split(/\s+/)[0]}`}
                                 className="lb-gold absolute right-2 top-2 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-black shadow-lg active:scale-95 transition">
                                 <MessageCircle className="h-4 w-4" /> AI Chat
