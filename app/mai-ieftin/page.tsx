@@ -139,6 +139,15 @@ const DEMO: Record<Lang, { btn: string; q: string; a1: string; chips1: string[];
   },
 };
 
+// A stable per-device id so a visitor's model chat groups into ONE conversation in the admin.
+function getChatVisitorId(): string {
+  try {
+    let v = localStorage.getItem("lb_chat_visitor");
+    if (!v) { v = `v-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`; localStorage.setItem("lb_chat_visitor", v); }
+    return v;
+  } catch { return "anon"; }
+}
+
 function MaiIeftinInner() {
   const params = useSearchParams();
   const router = useRouter();
@@ -148,7 +157,7 @@ function MaiIeftinInner() {
   const [preview, setPreview] = useState(""); // object URL of an attached photo
   const [loading, setLoading] = useState(false);
   // Language lives in the URL (?lang=ro|en) so a page can be shared in a given language.
-  const [lang, setLang] = useState<Lang>(params.get("lang") === "en" ? "en" : "ro");
+  const [lang, setLang] = useState<Lang>(params.get("lang") === "ro" ? "ro" : "en"); // default EN now
   const [navOpen, setNavOpen] = useState(false);
   const t = T[lang];
   const setLangUrl = (l: Lang) => {
@@ -181,7 +190,7 @@ function MaiIeftinInner() {
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const refHintRef = useRef<string>(""); // hint from a feed "Bandit the look!" reference
-  const modelRef = useRef<{ name?: string; style?: string; motto?: string; bio?: string } | null>(null); // model persona for the AI
+  const modelRef = useRef<{ id?: string; name?: string; style?: string; motto?: string; bio?: string } | null>(null); // model persona for the AI
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
 
@@ -211,7 +220,7 @@ function MaiIeftinInner() {
           const gallery: { imageUrl?: string; lookName?: string }[] = Array.isArray(gr?.userGallery) ? gr.userGallery : [];
           const n = p.firstName || gr?.displayName || "";
           const looks = gallery.filter((x) => x.imageUrl).slice(0, 8).map((x) => ({ img: x.imageUrl as string, hint: x.lookName || "" }));
-          modelRef.current = { name: n, style: p.style, motto: p.motto, bio: p.bio }; // AI speaks as her
+          modelRef.current = { id: modelId, name: n, style: p.style, motto: p.motto, bio: p.bio }; // AI speaks as her
           refHintRef.current = "";
           setMessages([{ role: "assistant", content: modelGreeting(n), refImg: p.photoUrl || p.photoFullUrl || "", refRound: true, modelLooks: looks, chips: [t.wantOthers] }]);
         } catch { /**/ }
@@ -250,7 +259,7 @@ function MaiIeftinInner() {
       const apiMessages = next.map((m) => ({ role: m.role, content: m.apiContent ?? m.content }));
       const r = await fetch("/api/mai-ieftin-chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages, lang, model: modelRef.current || undefined }),
+        body: JSON.stringify({ messages: apiMessages, lang, model: modelRef.current || undefined, curatorId: modelRef.current?.id, visitorId: getChatVisitorId() }),
       });
       const d = await r.json().catch(() => ({}));
       setMessages((m) => [...m, { role: "assistant", content: d.reply || (lang === "en" ? "Can't reply right now. Try again." : "Momentan nu pot răspunde. Mai încearcă o dată."), products: Array.isArray(d.products) ? d.products : undefined, ownProducts: Array.isArray(d.ownProducts) ? d.ownProducts : undefined, inspo: Array.isArray(d.inspo) ? d.inspo : undefined, original: Array.isArray(d.original) ? d.original : undefined, brand: typeof d.brand === "string" ? d.brand : undefined, chips: Array.isArray(d.chips) ? d.chips : undefined }]);

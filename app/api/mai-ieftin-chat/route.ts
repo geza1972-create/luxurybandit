@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { readTryThisLookState } from "@/lib/try-this-look-store";
+import { readTryThisLookState, saveTryThisLookState, type ModelChatLog } from "@/lib/try-this-look-store";
 import { publicLookLabel } from "@/lib/look-title";
 // Cached designer catalogue (mostly dresses), built once via SerpApi (scripts/build-designer-
 // catalogue.mjs) and served from STORAGE — so we always have "basic" designer pieces without a
@@ -373,6 +373,9 @@ export async function POST(request: Request) {
   if (!history.length) return NextResponse.json({ error: "No message." }, { status: 400 });
 
   const lang = (body as { lang?: string }).lang === "en" ? "en" : "ro";
+  // Model persona chat identity — so the conversation logs into modelChats (admin history).
+  const chatCuratorId = String((body as { curatorId?: string }).curatorId ?? "").trim();
+  const chatVisitorId = String((body as { visitorId?: string }).visitorId ?? "").trim().slice(0, 64) || "anon";
   // Force English HARD (prompt below is Romanian-heavy): a strong header up top + a trailing
   // reminder. Everything in „reply"/„chips" must be English when lang === "en".
   const langHeader = lang === "en"
@@ -463,6 +466,29 @@ export async function POST(request: Request) {
     }
     const finalReply = reply
       || (cheaper.length ? "Uite ce am găsit pentru tine 🔎" : "Spune-mi ce cauți și îți găsesc variante mai ieftine.");
+    // Log this exchange into modelChats so the model persona chat shows in the admin history
+    // (same store the dedicated /api/model-chat uses). Only when it's a model chat (?model=).
+    if (chatCuratorId && finalReply.trim()) {
+      try {
+        const now = new Date().toISOString();
+        const cid = `${chatCuratorId}:${chatVisitorId}`;
+        const lastUser = history[history.length - 1]?.content ?? "";
+        const st = await readTryThisLookState();
+        const chats = st.modelChats ?? [];
+        const existing = chats.find((c) => c.id === cid);
+        if (existing) {
+          existing.messages.push({ role: "user", content: lastUser, at: now });
+          existing.messages.push({ role: "assistant", content: finalReply, at: now });
+          if (existing.messages.length > 200) existing.messages = existing.messages.slice(-200);
+          existing.updatedAt = now;
+        } else {
+          const log: ModelChatLog = { id: cid, curatorId: chatCuratorId, curatorName: model?.name || "Model", visitorId: chatVisitorId, userName: "", createdAt: now, updatedAt: now, messages: [{ role: "user", content: lastUser, at: now }, { role: "assistant", content: finalReply, at: now }] };
+          chats.unshift(log);
+        }
+        st.modelChats = chats;
+        await saveTryThisLookState(st);
+      } catch { /**/ }
+    }
     return NextResponse.json({ reply: finalReply, products: cheaper, original, brand: parsed.brand, ownProducts, inspo, chips, query: cleanQuery });
   } catch {
     return NextResponse.json({ error: "Chat failed." }, { status: 502 });
