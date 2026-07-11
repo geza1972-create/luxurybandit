@@ -285,6 +285,28 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <Home className="h-5 w-5 shrink-0 text-white/50" />
                 <span className="text-sm font-black text-white">Home</span>
               </button>
+              {/* Explore group: Looks Feeds (reel) · Looks - Gallery (grid) · Haine (clothes
+                  & products incl. Bellucci) · Modele — mirrors the Produse-Luxury dropdown. */}
+              <button type="button" onClick={() => navigate("/stores")}
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                <Play className="h-5 w-5 shrink-0 text-white/50" />
+                <span className="text-sm font-black text-white">Looks Feeds</span>
+              </button>
+              <button type="button" onClick={() => navigate("/stores?view=grid")}
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                <ImageIcon className="h-5 w-5 shrink-0 text-white/50" />
+                <span className="text-sm font-black text-white">Looks - Gallery</span>
+              </button>
+              <button type="button" onClick={() => navigate("/haine")}
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                <Shirt className="h-5 w-5 shrink-0 text-[#b8912f]" />
+                <span className="text-sm font-black text-white">Haine</span>
+              </button>
+              <button type="button" onClick={() => navigate("/stores?view=models")}
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                <User className="h-5 w-5 shrink-0 text-white/50" />
+                <span className="text-sm font-black text-white">Modele</span>
+              </button>
               {/* Găsește-l mai ieftin — the Dupe-style price-finder funnel (everyone). */}
               <button type="button" onClick={() => navigate("/mai-ieftin")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">

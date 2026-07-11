@@ -285,6 +285,15 @@ export async function POST(request: Request) {
     const ownProducts = await ownProductsFor("rochie eleganta de seara evening gown dress");
     return NextResponse.json({ ownProducts: ownProducts.slice(0, 3) });
   }
+  // Data for the /haine clothes-&-products gallery: our garment looks (fresh URLs) + Bellucci
+  // (CJ affiliate). NO Anthropic/SerpApi cost — cjSearch is cached & CJ-only.
+  if ((body as { demoProducts?: string }).demoProducts === "haine") {
+    const [ownProducts, bellucci] = await Promise.all([
+      ownProductsFor("rochie lenjerie body top elegant evening dress lingerie"),
+      cjSearch("elegant black lace body lingerie designer"),
+    ]);
+    return NextResponse.json({ ownProducts, products: bellucci ?? [] });
+  }
 
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return NextResponse.json({ error: "Not configured." }, { status: 400 });
