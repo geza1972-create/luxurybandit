@@ -72,7 +72,7 @@ type ShopItem = { title: string; link: string; source?: string; thumbnail: strin
 // `apiContent` = what's sent to the AI (may differ from the displayed `content`, e.g. a
 // "Yes" chip that actually carries the product hint). `refImg` = a reference still shown
 // with the message (carried in from a feed "Bandit the look!" tap).
-type Msg = { role: "user" | "assistant"; content: string; apiContent?: string; refImg?: string; refRound?: boolean; modelLooks?: { img: string; hint: string }[]; products?: ShopItem[]; ownProducts?: ShopItem[]; original?: ShopItem[]; brand?: string; chips?: string[] };
+type Msg = { role: "user" | "assistant"; content: string; apiContent?: string; refImg?: string; refRound?: boolean; modelLooks?: { img: string; hint: string }[]; products?: ShopItem[]; ownProducts?: ShopItem[]; inspo?: ShopItem[]; original?: ShopItem[]; brand?: string; chips?: string[] };
 
 type Lang = "ro" | "en";
 const T: Record<Lang, { title: string; motto: string; ph: string; free: string; original: string; inspo: string; cheaper: string; ours: string; introQ: string; yes: string; no: string; askMore: string; inspo_btn: string; gallery: string; models: string; wantOthers: string; suggestions: string[] }> = {
@@ -252,7 +252,7 @@ function MaiIeftinInner() {
         body: JSON.stringify({ messages: apiMessages, lang, model: modelRef.current || undefined }),
       });
       const d = await r.json().catch(() => ({}));
-      setMessages((m) => [...m, { role: "assistant", content: d.reply || (lang === "en" ? "Can't reply right now. Try again." : "Momentan nu pot răspunde. Mai încearcă o dată."), products: Array.isArray(d.products) ? d.products : undefined, ownProducts: Array.isArray(d.ownProducts) ? d.ownProducts : undefined, original: Array.isArray(d.original) ? d.original : undefined, brand: typeof d.brand === "string" ? d.brand : undefined, chips: Array.isArray(d.chips) ? d.chips : undefined }]);
+      setMessages((m) => [...m, { role: "assistant", content: d.reply || (lang === "en" ? "Can't reply right now. Try again." : "Momentan nu pot răspunde. Mai încearcă o dată."), products: Array.isArray(d.products) ? d.products : undefined, ownProducts: Array.isArray(d.ownProducts) ? d.ownProducts : undefined, inspo: Array.isArray(d.inspo) ? d.inspo : undefined, original: Array.isArray(d.original) ? d.original : undefined, brand: typeof d.brand === "string" ? d.brand : undefined, chips: Array.isArray(d.chips) ? d.chips : undefined }]);
     } catch {
       setMessages((m) => [...m, { role: "assistant", content: lang === "en" ? "Something went wrong. Try again." : "Ceva n-a mers. Mai încearcă o dată." }]);
     } finally { setLoading(false); }
@@ -499,6 +499,27 @@ function MaiIeftinInner() {
                               <p className="mt-0.5 line-clamp-2 text-[12px] font-semibold leading-tight text-white/70">{p.title}</p>
                               <p className="mt-1 truncate text-[10px] font-bold text-[#b8912f]">LuxuryBandit</p>
                             </div>
+                          </a>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  {/* Inspirație — a few of OUR try-on videos (poster still + play badge; tap
+                      opens /look/[id] where the video plays). People want to SEE the vibe. */}
+                  {m.inspo && m.inspo.length > 0 && (
+                    <>
+                      <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#c9a23f]">{lang === "en" ? "Inspiration · our videos" : "Inspirație · videourile noastre"}</p>
+                      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
+                        {m.inspo.map((p, idx) => (
+                          <a key={idx} href={p.link}
+                            className="relative h-52 w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#c9a23f]/25 active:scale-95 transition">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                            <span className="absolute inset-0 grid place-items-center">
+                              <span className="grid h-10 w-10 place-items-center rounded-full bg-black/45 backdrop-blur">
+                                <Play className="h-4 w-4 fill-white text-white" />
+                              </span>
+                            </span>
                           </a>
                         ))}
                       </div>

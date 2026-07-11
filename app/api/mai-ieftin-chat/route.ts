@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { readTryThisLookState } from "@/lib/try-this-look-store";
 import { publicLookLabel } from "@/lib/look-title";
+// Cached designer catalogue (mostly dresses), built once via SerpApi (scripts/build-designer-
+// catalogue.mjs) and served from STORAGE — so we always have "basic" designer pieces without a
+// live API call per request. Re-run the script to refresh.
+import designerCatalogue from "@/data/designer-catalogue.json";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -159,12 +163,51 @@ async function cjSearch(query: string): Promise<ShopItem[] | null> {
   }
 }
 
-// Prefer CJ (affiliate commission); fall back to Google Shopping (SerpApi) when CJ has no
-// keys, no results, or errors.
+// Serve matching designer pieces from the CACHED catalogue (no API cost) — type + keyword
+// scored. This is how a dress query always gets real designer dresses even with SerpApi paused.
+function catalogueSearch(query: string): ShopItem[] {
+  const want = typesIn(query);
+  const words = query.toLowerCase().split(/[^a-z0-9ăâîșț]+/i).filter((w) => w.length > 2);
+  const scored = (designerCatalogue as { title: string; link: string; thumbnail: string; price?: string; source?: string; type: string }[])
+    .map((p) => {
+      if (want.size > 0 && !want.has(p.type)) return { p, s: -1 };
+      const hay = p.title.toLowerCase();
+      const s = words.reduce((n, w) => n + (hay.includes(w) ? 1 : 0), 0) + (want.size > 0 ? 3 : 0);
+      return { p, s };
+    })
+    .filter((x) => x.s > 0)
+    .sort((a, b) => b.s - a.s);
+  return scored.slice(0, 8).map(({ p }) => ({ title: p.title, link: p.link, thumbnail: p.thumbnail, price: p.price, source: p.source }));
+}
+
+// Intimate types — a lingerie/swim item must NOT answer a non-intimate query (a Bellucci
+// "Corset rochie lenjerie set" contains the word "rochie" but is NOT a dress).
+const INTIMATE = new Set(["lingerie", "bikini"]);
+// Types we hold in the cached designer catalogue → for those we lead with the catalogue.
+const CATALOGUE_TYPES = new Set(["dress", "bag", "shoe"]);
+export function typeGate(items: ShopItem[], want: Set<string>): ShopItem[] {
+  if (want.size === 0) return items;
+  const wantsIntimate = [...want].some((t) => INTIMATE.has(t));
+  return items.filter((p) => {
+    const pt = typesIn(`${p.title} ${p.source ?? ""}`);
+    if (!wantsIntimate && [...pt].some((t) => INTIMATE.has(t))) return false; // drop lingerie/swim
+    return pt.size === 0 || [...pt].some((t) => want.has(t));
+  });
+}
+
+// For a garment we curate (dress/bag/shoe) → cached DESIGNER catalogue first (real matching
+// pieces, from storage, no API). Otherwise CJ (affiliate commission) first. Then catalogue, then
+// live Google Shopping (SerpApi, may be paused). All type-gated so a dress query never shows
+// lingerie/swim.
 async function productSearch(query: string): Promise<ShopItem[]> {
+  const want = typesIn(query);
+  const catFirst = [...want].some((t) => CATALOGUE_TYPES.has(t));
+  if (catFirst) { const cat = catalogueSearch(query); if (cat.length) return cat; }
   const cj = await cjSearch(query);
-  if (cj && cj.length) return cj;
-  return shoppingSearch(query);
+  const cjGated = cj ? typeGate(cj, want) : null;
+  if (cjGated && cjGated.length) return cjGated;
+  if (!catFirst) { const cat = catalogueSearch(query); if (cat.length) return cat; }
+  return typeGate(await shoppingSearch(query), want);
 }
 
 // The assistant returns strict JSON: a short Romanian reply + an English shopping query.
@@ -235,6 +278,31 @@ async function ownProductsFor(query: string): Promise<ShopItem[]> {
       thumbnail: (l as { imageUrl?: string }).imageUrl || l.frontImageUrl || "",
       price: l.salePrice || l.price || undefined,
       source: "LuxuryBandit",
+    })).filter((p) => p.thumbnail);
+  } catch { return []; }
+}
+
+// A few of OUR looks that HAVE a try-on video — shown as an "Inspirație" row (poster still +
+// play badge, tap → /look/[id] where the video plays). Type-matches rank first but we always
+// return some (general inspiration). Thumbnail = the look's own still (re-signed), never a black
+// video frame.
+async function inspoVideosFor(query: string): Promise<{ title: string; link: string; thumbnail: string }[]> {
+  try {
+    const state = await readTryThisLookState();
+    const looks = (state.looks || []).filter(
+      (l) => (l as { videoUrl?: string }).videoUrl && ((l as { imageUrl?: string }).imageUrl || l.frontImageUrl) && (l as { published?: boolean }).published !== false,
+    );
+    const qTypes = typesIn(query);
+    const scored = looks.map((l) => {
+      const hay = `${(l as { curatorNote?: string }).curatorNote ?? ""} ${l.productNote ?? ""} ${l.name ?? ""} ${l.campaignName ?? ""}`.toLowerCase();
+      const lTypes = typesIn(hay);
+      const typeMatch = qTypes.size > 0 && [...lTypes].some((t) => qTypes.has(t));
+      return { l, s: (typeMatch ? 3 : 0) + 1 }; // every video look qualifies; type-matches rank first
+    }).sort((a, b) => b.s - a.s);
+    return scored.slice(0, 6).map(({ l }) => ({
+      title: publicLookLabel(l as { curatorNote?: string; productNote?: string }) || "Look LuxuryBandit",
+      link: `/look/${l.id}`,
+      thumbnail: (l as { imageUrl?: string }).imageUrl || l.frontImageUrl || "",
     })).filter((p) => p.thumbnail);
   } catch { return []; }
 }
@@ -369,18 +437,16 @@ export async function POST(request: Request) {
       .replace(/\s+/g, " ")
       .trim();
 
-    const [foundRaw, ownProducts] = cleanQuery
-      ? await Promise.all([productSearch(cleanQuery), ownProductsFor(cleanQuery)])
-      : [[], []];
+    const [foundRaw, ownProducts, inspo] = cleanQuery
+      ? await Promise.all([productSearch(cleanQuery), ownProductsFor(cleanQuery), inspoVideosFor(cleanQuery)])
+      : [[], [], []];
     // Type-gate the external results: if the user asked for a specific garment TYPE (e.g. a
     // DRESS), drop products of a clearly different type (e.g. Bellucci lingerie) — she asked for
     // a dress, don't show her lingerie. Items with no recognizable type are kept. With only a
     // lingerie brand joined on CJ, a "rochie" query now yields NO mismatched cards → the funnel
     // shows our own-catalogue dresses instead of wrong lingerie.
     const wantTypes = typesIn(`${cleanQuery} ${lastUser}`);
-    const found = wantTypes.size > 0
-      ? foundRaw.filter((p) => { const pt = typesIn(`${p.title} ${p.source ?? ""}`); return pt.size === 0 || [...pt].some((t) => wantTypes.has(t)); })
-      : foundRaw;
+    const found = typeGate(foundRaw, wantTypes);
     // Show the designer ORIGINAL (credit/inspiration) separately from the cheaper look-alikes.
     let { original, cheaper } = splitByBrand(found, parsed.brand);
     // If the luxury-biased search didn't surface the real designer piece, do ONE targeted,
@@ -397,7 +463,7 @@ export async function POST(request: Request) {
     }
     const finalReply = reply
       || (cheaper.length ? "Uite ce am găsit pentru tine 🔎" : "Spune-mi ce cauți și îți găsesc variante mai ieftine.");
-    return NextResponse.json({ reply: finalReply, products: cheaper, original, brand: parsed.brand, ownProducts, chips, query: cleanQuery });
+    return NextResponse.json({ reply: finalReply, products: cheaper, original, brand: parsed.brand, ownProducts, inspo, chips, query: cleanQuery });
   } catch {
     return NextResponse.json({ error: "Chat failed." }, { status: 502 });
   }
