@@ -1529,6 +1529,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    // Admin: attach generations to a LOOK (+motion) so the try-on reuse cache rotates among
+    // them (model×look×motion). Lets several manually-made "In motion" clips power one look.
+    if (payload.action === "set-generation-look") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const ids = Array.isArray((payload as any).ids) ? (payload as any).ids.map((x: unknown) => String(x)) : [];
+      const lookId = String((payload as any).lookId ?? "").trim();
+      const motion = (payload as any).motion === "dance" ? "dance" : "turn";
+      if (!ids.length || !lookId) return NextResponse.json({ error: "ids + lookId required." }, { status: 400 });
+      let count = 0;
+      for (const g of state.generations ?? []) if (ids.includes(g.id)) { (g as any).lookId = lookId; (g as any).motion = motion; count++; }
+      if (!count) return NextResponse.json({ error: "Nothing matched." }, { status: 404 });
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, updated: count });
+    }
+
     // Toggle a try-on's consent to appear in the feed carousel.
     if (payload.action === "set-generation-feed") {
       const genId = String(payload.generationId ?? "").trim();
