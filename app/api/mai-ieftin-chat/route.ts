@@ -19,7 +19,8 @@ type ShopItem = { title: string; link: string; source?: string; thumbnail: strin
 const SHOP_CACHE = new Map<string, { at: number; items: ShopItem[] }>();
 const SHOP_TTL_MS = 24 * 60 * 60 * 1000;
 const SHOP_MAX_KEYS = 300;
-const SHOP_DAILY_CAP = 80;          // billable SerpApi calls/day for this chat
+const SHOP_DAILY_CAP = 25;          // billable SerpApi calls/day for this chat (in-memory,
+                                    // per-instance — a soft burst limit, NOT a global cap)
 let shopDay = "";
 let shopCalls = 0;
 function shopWithinCap(): boolean {
@@ -36,6 +37,9 @@ async function shoppingSearch(query: string): Promise<ShopItem[]> {
   if (hit && Date.now() - hit.at < SHOP_TTL_MS) return hit.items;
 
   const key = process.env.SERPAPI_KEY;
+  // Kill-switch: set SERPAPI_PAUSED=1 (Vercel env) to stop ALL billable SerpApi calls
+  // instantly — conserves the monthly quota. Funnel still serves CJ + own catalogue.
+  if (process.env.SERPAPI_PAUSED === "1") return hit?.items ?? [];
   if (!key || !shopWithinCap()) return hit?.items ?? []; // graceful: no key / over cap
 
   try {
