@@ -63,6 +63,16 @@ export default function TryFunnelPage() {
   // when the user switches models in the picker.
   const modelIdParam = searchParams?.get("modelId") ?? "";
   const modelNameParam = searchParams?.get("modelName") ?? "";
+  // Language: `?lang=ro|en` wins (so ad links can pin a language); otherwise auto-detect from the
+  // browser (Romanian browsers → RO, everyone else → EN). Detection runs post-mount to stay
+  // SSR-safe (no hydration mismatch). `L(ro, en)` picks the string.
+  const langParam = (searchParams?.get("lang") ?? "").toLowerCase();
+  const [lang, setLang] = useState<"ro" | "en">(langParam === "ro" ? "ro" : "en");
+  useEffect(() => {
+    if (langParam === "ro" || langParam === "en") { setLang(langParam as "ro" | "en"); return; }
+    try { if (navigator.language?.toLowerCase().startsWith("ro")) setLang("ro"); } catch { /**/ }
+  }, [langParam]);
+  const L = (ro: string, en: string) => (lang === "ro" ? ro : en);
   // When opened from a model's wardrobe: the exact garment to put her in (its image URL).
   const garmentParam = searchParams?.get("garment") ?? "";
   // Garment-first (from the Garderobe tab): the garment is chosen but not the model yet →
@@ -770,7 +780,7 @@ export default function TryFunnelPage() {
       {step === 2 && (
         <div className="px-4 pb-64 pt-2">
           {/* Reserve two lines so a longer name (which wraps) doesn't shift the carousel down. */}
-          <h1 className="text-[22px] font-black leading-tight">{!avatar && chosenModelName && !((pickModel || chooseModel) && !pickedModel) ? `Watch ${chosenModelName.split(/\s+/)[0]} in her hottest looks 🔥` : "Who should wear it?"}</h1>
+          <h1 className="text-[22px] font-black leading-tight">{!avatar && chosenModelName && !((pickModel || chooseModel) && !pickedModel) ? L(`Vezi-o pe ${chosenModelName.split(/\s+/)[0]} în cele mai tari ținute 🔥`, `Watch ${chosenModelName.split(/\s+/)[0]} in her hottest looks 🔥`) : L("Cine s-o poarte?", "Who should wear it?")}</h1>
           {(pickModel || chooseModel) && !pickedModel && !avatar ? (
             <>
               <p className="mt-2 text-[13px] font-bold text-white/50">Pick a model to wear this piece.</p>
@@ -839,7 +849,7 @@ export default function TryFunnelPage() {
             // Outfit chosen → confirm view: the OUTFIT (left) + the chosen MODEL (right),
             // with Cancel to reopen the picker.
             <>
-              <p className="mt-1 text-[13px] font-bold text-white/50">{chosenModelLocked ? "This model is Premium — unlock her, or pick a free model below." : "Your look is set — tap “GO” below to watch it, free."}</p>
+              <p className="mt-1 text-[13px] font-bold text-white/50">{chosenModelLocked ? L("Acest model e Premium — deblocheaz-o sau alege un model gratuit mai jos.", "This model is Premium — unlock her, or pick a free model below.") : L("Ținuta e gata — apasă „GO” mai jos ca s-o vezi, gratuit.", "Your look is set — tap “GO” below to watch it, free.")}</p>
               <div className="mx-auto mt-3 flex items-stretch justify-center gap-3">
                 <div className="w-[42%] max-w-[160px]">
                   <button type="button" onClick={() => { setZoomSrc(look?.frontImageUrl || look?.imageUrl || garmentParam || outfit?.imageUrl || ""); setZoomName(outfit?.name || ""); setOutfitZoom(true); }} className="block w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-95 transition">
@@ -872,10 +882,10 @@ export default function TryFunnelPage() {
               {/* Subtle secondary options — the GO button is the star; these stay grey. */}
               <div className="mx-auto mt-3 flex items-center justify-center gap-4 text-[12px] font-black text-white/40">
                 <button type="button" onClick={() => setChooseLook(true)}
-                  className="underline decoration-white/20 underline-offset-4 active:opacity-70">Change outfit</button>
+                  className="underline decoration-white/20 underline-offset-4 active:opacity-70">{L("Schimbă ținuta", "Change outfit")}</button>
                 <span className="text-white/20">·</span>
                 <button type="button" onClick={() => { setComboCancelled(true); setYourPhotoFront(false); setAvatar(""); setPickedModel(""); setChooseModel(true); }}
-                  className="underline decoration-white/20 underline-offset-4 active:opacity-70">Change model</button>
+                  className="underline decoration-white/20 underline-offset-4 active:opacity-70">{L("Schimbă modelul", "Change model")}</button>
               </div>
 
               {/* GO — inline, right under the images (NOT sticky). */}
@@ -885,7 +895,7 @@ export default function TryFunnelPage() {
                 {chosenModelLocked
                   ? <><Crown className="h-5 w-5" /> Unlock with Premium</>
                   : isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
-                  : <><Play className="h-5 w-5 fill-current" /> GO<span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">Free</span></>}
+                  : <><Play className="h-5 w-5 fill-current" /> GO<span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">{L("Gratis", "Free")}</span></>}
               </button>
             </>
           ) : (
@@ -1080,7 +1090,7 @@ export default function TryFunnelPage() {
                     <div className="pointer-events-none absolute bottom-3 right-3 z-20 h-6 w-6 rounded-br-lg border-b-2 border-r-2 border-white/90" />
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-center justify-center gap-2 bg-gradient-to-t from-black/70 to-transparent p-4 pt-12 text-white">
                       <Sparkles className="h-4 w-4 animate-pulse" />
-                      <span className="text-sm font-black">Revealing your look…</span>
+                      <span className="text-sm font-black">{L("Îți dezvăluim ținuta…", "Revealing your look…")}</span>
                     </div>
                   </>
                 ) : (
@@ -1110,18 +1120,26 @@ export default function TryFunnelPage() {
           </div>
           {!rendering && !revealing && (
             <>
-              <h1 className="mt-6 text-center text-[22px] font-black leading-tight">{guest ? "Want to see more? 🔥" : "Your video is ready 🎉"}</h1>
-              <p className="mt-2 text-center text-[13px] font-bold text-white/50">{guest ? "Sign in free to unlock sound, save it, and watch more looks." : previewVideoUrl ? "It's free — tap 🔊 for sound. Saved to your account." : "Watch and download it in full quality."}</p>
+              <h1 className="mt-6 text-center text-[22px] font-black leading-tight">{guest ? L("Vrei să vezi mai mult? 🔥", "Want to see more? 🔥") : L("Videoul tău e gata 🎉", "Your video is ready 🎉")}</h1>
+              <p className="mt-2 text-center text-[13px] font-bold text-white/50">{guest ? L("Autentifică-te gratis pentru sunet, salvare și mai multe ținute.", "Sign in free to unlock sound, save it, and watch more looks.") : previewVideoUrl ? L("E gratis — apasă 🔊 pentru sunet. Salvat în contul tău.", "It's free — tap 🔊 for sound. Saved to your account.") : L("Vezi-l și descarcă-l la calitate maximă.", "Watch and download it in full quality.")}</p>
               {/* Motion was chosen before generating — no picker on the ready step. */}
               {adminPromptPanel}
               {/* CTA — inline right under the video (NOT sticky). */}
               <div className="mx-auto mt-5 w-full max-w-sm">
                 {previewVideoUrl && previewGenId ? (
                   guest ? (
-                    <button type="button" onClick={onUnlock}
-                      className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                      <Sparkles className="h-5 w-5" /> Want to see more? Sign in
-                    </button>
+                    <div className="grid gap-2">
+                      <button type="button" onClick={onUnlock}
+                        className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
+                        <Sparkles className="h-5 w-5" /> {L("Vrei mai mult? Autentifică-te", "Want to see more? Sign in")}
+                      </button>
+                      {chosenModelId && (
+                        <button type="button" onClick={() => router.push(`/chat/${chosenModelId}`)}
+                          className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
+                          <MessageCircle className="h-4 w-4" /> {L("Vorbește cu", "Chat with")} {chosenModelName ? chosenModelName.split(/\s+/)[0] : L("ea", "her")}
+                        </button>
+                      )}
+                    </div>
                   ) : (
                     <div className="grid gap-2">
                       <button type="button" onClick={async () => goToResult(await claimCachedTryOn())}
@@ -1137,7 +1155,7 @@ export default function TryFunnelPage() {
                 ) : (
                   <button type="button" onClick={onUnlock}
                     className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                    {(isAuthed() || (adminPin && !previewAsUser)) ? "Continue" : "Register or sign in to watch"}
+                    {(isAuthed() || (adminPin && !previewAsUser)) ? L("Continuă", "Continue") : L("Înregistrează-te ca să vezi", "Register or sign in to watch")}
                   </button>
                 )}
               </div>
@@ -1372,7 +1390,7 @@ export default function TryFunnelPage() {
                 {!adminProduce && !chosenModelLocked && (
                   <p className="mb-2 text-center text-[12px] font-black text-white/50">
                     {!isAuthed()
-                      ? "🎟️ 1 free video, then Premium"
+                      ? L("🎟️ 1 video gratuit, apoi Premium", "🎟️ 1 free video, then Premium")
                       : packCredits == null
                       ? ""
                       : packCredits > 0
@@ -1394,7 +1412,7 @@ export default function TryFunnelPage() {
                   {chosenModelLocked
                     ? <><Crown className="h-5 w-5" /> Unlock with Premium</>
                     : isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
-                    : <><Play className="h-5 w-5 fill-current" /> GO<span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">Free</span></>}
+                    : <><Play className="h-5 w-5 fill-current" /> GO<span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">{L("Gratis", "Free")}</span></>}
                 </button>
               </>
             )
