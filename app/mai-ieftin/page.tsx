@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { Plus, ArrowUp, X, Menu } from "lucide-react";
+import { Plus, ArrowUp, X, Menu, Sparkles } from "lucide-react";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -74,7 +74,7 @@ type ShopItem = { title: string; link: string; source?: string; thumbnail: strin
 type Msg = { role: "user" | "assistant"; content: string; apiContent?: string; refImg?: string; products?: ShopItem[]; ownProducts?: ShopItem[]; original?: ShopItem[]; brand?: string; chips?: string[] };
 
 type Lang = "ro" | "en";
-const T: Record<Lang, { title: string; ph: string; free: string; original: string; inspo: string; cheaper: string; ours: string; introQ: string; yes: string; no: string; askMore: string; suggestions: string[] }> = {
+const T: Record<Lang, { title: string; ph: string; free: string; original: string; inspo: string; cheaper: string; ours: string; introQ: string; yes: string; no: string; askMore: string; inspo_btn: string; suggestions: string[] }> = {
   ro: {
     title: "Găsește-l mai ieftin",
     ph: "Scrie ce cauți, lipește un link sau o poză…",
@@ -82,7 +82,7 @@ const T: Record<Lang, { title: string; ph: string; free: string; original: strin
     original: "Originalul", inspo: "sursa noastră de inspirație",
     cheaper: "Același look, mai ieftin", ours: "Din colecția LuxuryBandit",
     introQ: "Vrei acest produs mai ieftin? Sau vrei altul?", yes: "Da", no: "Nu, altul",
-    askMore: "Ok! Spune-mi ce cauți 🙂",
+    askMore: "Ok! Spune-mi ce cauți 🙂", inspo_btn: "Inspirație",
     suggestions: ["o geantă ca de la Versace, mai ieftin", "adidași ca Golden Goose", "o rochie de seară sub 200 lei"],
   },
   en: {
@@ -92,7 +92,7 @@ const T: Record<Lang, { title: string; ph: string; free: string; original: strin
     original: "The original", inspo: "our inspiration",
     cheaper: "Same look, cheaper", ours: "From the LuxuryBandit collection",
     introQ: "Do you want this product cheaper? Or a different one?", yes: "Yes", no: "No, another",
-    askMore: "Ok! Tell me what you're looking for 🙂",
+    askMore: "Ok! Tell me what you're looking for 🙂", inspo_btn: "Inspiration",
     suggestions: ["a bag like Versace, cheaper", "sneakers like Golden Goose", "an evening dress under €50"],
   },
 };
@@ -201,12 +201,15 @@ export default function MaiIeftinPage() {
       <AmbientGeometry burst={messages.length} />
       {/* Top bar */}
       <header className="relative z-10 flex shrink-0 items-center justify-between px-5 py-4">
-        <Link href="/home" aria-label="LuxuryBandit" className="inline-flex items-center gap-2 active:scale-95 transition">
+        <Link href="/home" aria-label="LuxuryBandit" className="inline-flex shrink-0 items-center active:scale-95 transition">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/lb-logo.png" alt="" className="h-8 w-8 rounded-full object-contain" />
-          <span className="text-[17px] font-black tracking-tight text-white/85">LuxuryBandit</span>
+          <img src="/lb-logo.png" alt="LuxuryBandit" className="h-9 w-9 rounded-full object-contain" />
         </Link>
         <div className="flex items-center gap-2">
+          {/* Inspiration → the try-on video feed (where "Bandit the look!" lives). */}
+          <Link href="/stores" className="flex items-center gap-1.5 rounded-full bg-white/[0.07] px-3 py-1.5 text-[13px] font-black text-white/85 ring-1 ring-white/10 active:scale-95 transition">
+            <Sparkles className="h-4 w-4 text-[#c9a23f]" /> {t.inspo_btn}
+          </Link>
           {/* Language switcher — Romanian default, toggle to English. */}
           <div className="flex items-center rounded-full bg-white/[0.07] p-0.5 ring-1 ring-white/10">
             {(["ro", "en"] as Lang[]).map((l) => (
