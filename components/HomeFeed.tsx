@@ -1087,7 +1087,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               }}
               onPointerDown={(e) => e.stopPropagation()}
               className="flex items-center gap-2 whitespace-nowrap rounded-full border border-white/25 bg-black/45 px-6 py-2.5 text-sm font-black text-white backdrop-blur active:scale-95 transition">
-              <Search className="h-4 w-4" /> Find it cheaper
+              <Search className="h-4 w-4" /> Shop the look
             </button>
             <button type="button"
               onClick={(e) => { e.stopPropagation(); goTryOn(); }}

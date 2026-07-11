@@ -77,24 +77,24 @@ type Msg = { role: "user" | "assistant"; content: string; apiContent?: string; r
 type Lang = "ro" | "en";
 const T: Record<Lang, { title: string; motto: string; ph: string; free: string; original: string; inspo: string; cheaper: string; ours: string; introQ: string; yes: string; no: string; askMore: string; inspo_btn: string; gallery: string; models: string; wantOthers: string; suggestions: string[] }> = {
   ro: {
-    title: "Găsește-l mai ieftin", motto: "Bandit the look",
-    ph: "Scrie ce cauți, lipește un link sau o poză…",
+    title: "Descoperă produse de lux", motto: "Bandit the look",
+    ph: "Scrie ce cauți sau lipește un link…",
     free: "Gratis · fără cont · în câteva secunde",
-    original: "Originalul", inspo: "sursa noastră de inspirație",
-    cheaper: "Același look, mai ieftin", ours: "Din colecția LuxuryBandit",
-    introQ: "Vrei acest produs mai ieftin? Sau vrei altul?", yes: "Da", no: "Nu, altul",
-    askMore: "Ok! Spune-mi ce cauți 🙂", inspo_btn: "Inspirație", gallery: "Galerie", models: "Modele", wantOthers: "Vreau altele",
-    suggestions: ["o geantă ca de la Versace, mai ieftin", "adidași ca Golden Goose", "o rochie de seară sub 200 lei"],
+    original: "Piesa de designer", inspo: "inspirația noastră",
+    cheaper: "Piese de lux pentru tine", ours: "Din colecția LuxuryBandit",
+    introQ: "Vrei să-ți arăt piese de lux ca aceasta? Sau altceva?", yes: "Da", no: "Nu, altceva",
+    askMore: "Perfect! Spune-mi ce cauți 🙂", inspo_btn: "Inspirație", gallery: "Galerie", models: "Modele", wantOthers: "Vreau altele",
+    suggestions: ["un body negru elegant", "lenjerie de lux", "o piesă statement pentru diseară"],
   },
   en: {
-    title: "Find it cheaper", motto: "Bandit the look",
-    ph: "Type what you want, paste a link or a photo…",
+    title: "Discover luxury products", motto: "Bandit the look",
+    ph: "Type what you want or paste a link…",
     free: "Free · no account · in seconds",
-    original: "The original", inspo: "our inspiration",
-    cheaper: "Same look, cheaper", ours: "From the LuxuryBandit collection",
-    introQ: "Do you want this product cheaper? Or a different one?", yes: "Yes", no: "No, another",
-    askMore: "Ok! Tell me what you're looking for 🙂", inspo_btn: "Inspiration", gallery: "Gallery", models: "Models", wantOthers: "I want others",
-    suggestions: ["a bag like Versace, cheaper", "sneakers like Golden Goose", "an evening dress under €50"],
+    original: "The designer piece", inspo: "our inspiration",
+    cheaper: "Luxury picks for you", ours: "From the LuxuryBandit collection",
+    introQ: "Want me to show you luxury pieces like this? Or something else?", yes: "Yes", no: "No, something else",
+    askMore: "Perfect! Tell me what you're looking for 🙂", inspo_btn: "Inspiration", gallery: "Gallery", models: "Models", wantOthers: "I want others",
+    suggestions: ["a black elegant bodysuit", "luxury lingerie", "a statement piece for tonight"],
   },
 };
 
