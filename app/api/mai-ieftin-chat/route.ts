@@ -235,7 +235,19 @@ export async function POST(request: Request) {
       ? await Promise.all([shoppingSearch(cleanQuery), ownProductsFor(cleanQuery)])
       : [[], []];
     // Show the designer ORIGINAL (credit/inspiration) separately from the cheaper look-alikes.
-    const { original, cheaper } = splitByBrand(found, parsed.brand);
+    let { original, cheaper } = splitByBrand(found, parsed.brand);
+    // If the luxury-biased search didn't surface the real designer piece, do ONE targeted,
+    // cached search for it so we always credit the designer with their original.
+    if (cleanQuery && parsed.brand && original.length === 0) {
+      const b = parsed.brand.toLowerCase();
+      const origFound = await shoppingSearch(`${parsed.brand} ${cleanQuery}`);
+      original = origFound
+        .filter((p) => `${p.title} ${p.source ?? ""}`.toLowerCase().includes(b))
+        .sort((x, y) => priceValue(y) - priceValue(x))
+        .slice(0, 2);
+      const seen = new Set(original.map((o) => o.link));
+      cheaper = cheaper.filter((p) => !seen.has(p.link));
+    }
     const finalReply = reply
       || (cheaper.length ? "Uite ce am găsit pentru tine 🔎" : "Spune-mi ce cauți și îți găsesc variante mai ieftine.");
     return NextResponse.json({ reply: finalReply, products: cheaper, original, brand: parsed.brand, ownProducts, chips, query: cleanQuery });
