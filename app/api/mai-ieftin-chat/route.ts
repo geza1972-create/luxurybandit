@@ -369,9 +369,18 @@ export async function POST(request: Request) {
       .replace(/\s+/g, " ")
       .trim();
 
-    const [found, ownProducts] = cleanQuery
+    const [foundRaw, ownProducts] = cleanQuery
       ? await Promise.all([productSearch(cleanQuery), ownProductsFor(cleanQuery)])
       : [[], []];
+    // Type-gate the external results: if the user asked for a specific garment TYPE (e.g. a
+    // DRESS), drop products of a clearly different type (e.g. Bellucci lingerie) — she asked for
+    // a dress, don't show her lingerie. Items with no recognizable type are kept. With only a
+    // lingerie brand joined on CJ, a "rochie" query now yields NO mismatched cards → the funnel
+    // shows our own-catalogue dresses instead of wrong lingerie.
+    const wantTypes = typesIn(`${cleanQuery} ${lastUser}`);
+    const found = wantTypes.size > 0
+      ? foundRaw.filter((p) => { const pt = typesIn(`${p.title} ${p.source ?? ""}`); return pt.size === 0 || [...pt].some((t) => wantTypes.has(t)); })
+      : foundRaw;
     // Show the designer ORIGINAL (credit/inspiration) separately from the cheaper look-alikes.
     let { original, cheaper } = splitByBrand(found, parsed.brand);
     // If the luxury-biased search didn't surface the real designer piece, do ONE targeted,
