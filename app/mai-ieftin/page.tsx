@@ -365,7 +365,7 @@ function MaiIeftinInner() {
   );
 
   return (
-    <div className="relative flex h-screen flex-col overflow-hidden bg-black text-white/90">
+    <div className="lb-theme relative flex h-screen flex-col overflow-hidden bg-black text-white/90">
       {/* Ambient gold geometry drifting up the background; a burst replays on each message. */}
       <AmbientGeometry burst={messages.length} />
       {/* Top bar */}
@@ -463,7 +463,7 @@ function MaiIeftinInner() {
                   )}
                   <div className={m.role === "user" ? "self-end max-w-[85%]" : "self-start max-w-[85%]"}>
                     <div className={m.role === "user"
-                      ? "rounded-3xl rounded-br-lg bg-white px-4 py-2.5 text-[15px] font-semibold text-black"
+                      ? "lb-userbubble rounded-3xl rounded-br-lg bg-white px-4 py-2.5 text-[15px] font-semibold text-black"
                       : "rounded-3xl rounded-bl-lg bg-white/10 px-4 py-2.5 text-[15px] font-medium leading-relaxed text-white/80"}>
                       {m.content}
                     </div>
@@ -636,7 +636,7 @@ function MaiIeftinInner() {
 
 export default function MaiIeftinPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+    <Suspense fallback={<div className="lb-theme min-h-screen bg-black" />}>
       <MaiIeftinInner />
     </Suspense>
   );

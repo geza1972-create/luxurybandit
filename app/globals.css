@@ -177,3 +177,37 @@ svg {
     radial-gradient(140% 110% at 88% 92%, rgba(122, 58, 22, 0.45), transparent 68%),
     radial-gradient(90% 75% at 75% 25%, rgba(88, 44, 78, 0.28), transparent 60%);
 }
+
+/* ── /mai-ieftin chat & funnel: auto light/dark by the device setting ───────────
+   The page is authored dark. In LIGHT mode (daylight) we flip the white-based
+   utilities to dark-on-light so it stays readable. Scoped to .lb-theme so the rest
+   of the app is untouched. Gold accents (text-[#…]) are left as-is — they read on both. */
+@media (prefers-color-scheme: light) {
+  .lb-theme.bg-black,
+  .lb-theme .bg-black { background-color: #faf8f4 !important; }
+  .lb-theme { color: #1a160f; }
+
+  /* white text → near-black (Tailwind bakes the /opacity into the color, so we use fixed alphas) */
+  .lb-theme [class*="text-white"] { color: rgb(26 22 15 / 0.9) !important; }
+  /* muted white text (…/30–/65) stays a touch lighter so hierarchy survives */
+  .lb-theme [class*="text-white/6"],
+  .lb-theme [class*="text-white/5"],
+  .lb-theme [class*="text-white/4"],
+  .lb-theme [class*="text-white/3"] { color: rgb(26 22 15 / 0.55) !important; }
+
+  /* translucent white panels → one consistent faint dark tint */
+  .lb-theme [class*="bg-white/"] { background-color: rgb(26 22 15 / 0.06) !important; }
+
+  /* white rings & borders → faint dark */
+  .lb-theme [class*="ring-white/"] { --tw-ring-color: rgb(26 22 15 / 0.12) !important; }
+  .lb-theme [class*="border-white/"] { border-color: rgb(26 22 15 / 0.12) !important; }
+
+  /* placeholders */
+  .lb-theme [class*="placeholder:text-white"]::placeholder { color: rgb(26 22 15 / 0.4) !important; }
+
+  /* dropdown / bottom-sheet cards (#111) → white with a soft shadow */
+  .lb-theme .bg-\[\#111\] { background-color: #ffffff !important; box-shadow: 0 12px 40px rgb(0 0 0 / 0.14) !important; }
+
+  /* the user's own chat bubble is bg-white / text-black — invert it for contrast on a light page */
+  .lb-theme .lb-userbubble { background-color: #1a160f !important; color: #ffffff !important; }
+}
