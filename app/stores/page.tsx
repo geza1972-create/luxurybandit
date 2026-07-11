@@ -29,18 +29,18 @@ import { PhotoCropper } from "../curators/taste-form";
 // Landing hero copy — Romanian by default, English via the switcher.
 const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub: string; b1t: string; b1x: string; b2t: string; b2x: string; cta: string; becomeModel: string }> = {
   ro: {
-    eyebrow: "Modele AI și reale · Look-uri de lux",
-    h1a: "Modelul visurilor tale,", h1b: "în orice ținută.",
-    sub: "Alege un model, alege o ținută de designer și vezi cum o poartă într-un video de calitate runway — dans sau piruetă, tu decizi. Look-uri noi în fiecare zi.",
+    eyebrow: "Modele AI și reale · Modă de lux",
+    h1a: "Descoperă luxul,", h1b: "purtat de modelul tău.",
+    sub: "Modelele noastre poartă piese de designer în videouri de calitate runway. Tu descoperi produsele de lux și le cumperi — cu ea ca stilistă. Look-uri noi în fiecare zi.",
     b1t: "Vezi-o în orice ținută", b1x: "Pune-ți modelul favorit în ținuta pe care O ALEGI TU — dă like, share, cumpără.",
     b2t: "Produse Luxury", b2x: "Îți place o ținută? Modelul îți recomandă piese de lux — și le poți cumpăra direct.",
     cta: "Produse Luxury",
     becomeModel: "Devino Model — câștigă la fiecare look →",
   },
   en: {
-    eyebrow: "AI and real Fashion Models · Luxury Looks",
-    h1a: "Your dream model,", h1b: "in any look.",
-    sub: "Pick a model, choose a designer outfit, and watch her wear it in a runway-quality video — dancing or turning, your call. New looks drop every day.",
+    eyebrow: "AI & real fashion models · Luxury fashion",
+    h1a: "Discover luxury,", h1b: "worn by your model.",
+    sub: "Our models wear designer pieces in runway-quality videos. You discover the luxury products and shop them — with her as your stylist. New looks every day.",
     b1t: "See her in any look", b1x: "Put your favorite model in the outfit YOU choose — like it, share it, shop it.",
     b2t: "Luxury Products", b2x: "Like an outfit? Your model recommends luxury pieces you can shop right away.",
     cta: "Luxury Products",
