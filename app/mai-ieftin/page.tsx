@@ -77,7 +77,7 @@ type Msg = { role: "user" | "assistant"; content: string; apiContent?: string; r
 type Lang = "ro" | "en";
 const T: Record<Lang, { title: string; motto: string; ph: string; free: string; original: string; inspo: string; cheaper: string; ours: string; introQ: string; yes: string; no: string; askMore: string; inspo_btn: string; gallery: string; models: string; wantOthers: string; suggestions: string[] }> = {
   ro: {
-    title: "Descoperă produse de lux", motto: "Bandit the look",
+    title: "Produse Luxury", motto: "Bandit the look",
     ph: "Scrie ce cauți sau lipește un link…",
     free: "Gratis · fără cont · în câteva secunde",
     original: "Piesa de designer", inspo: "inspirația noastră",
@@ -87,7 +87,7 @@ const T: Record<Lang, { title: string; motto: string; ph: string; free: string; 
     suggestions: ["un body negru elegant", "lenjerie de lux", "o piesă statement pentru diseară"],
   },
   en: {
-    title: "Discover luxury products", motto: "Bandit the look",
+    title: "Luxury Products", motto: "Bandit the look",
     ph: "Type what you want or paste a link…",
     free: "Free · no account · in seconds",
     original: "The designer piece", inspo: "our inspiration",
@@ -224,7 +224,7 @@ function MaiIeftinInner() {
       const isYes = c === T.ro.yes || c === T.en.yes;
       if (isYes) {
         const hint = refHintRef.current; refHintRef.current = "";
-        void send(t.yes, `${lang === "en" ? "Find this product cheaper" : "Găsește-mi acest produs mai ieftin"}${hint ? `: ${hint}` : ""}`);
+        void send(t.yes, `${lang === "en" ? "Show me luxury pieces like this" : "Arată-mi piese de lux ca aceasta"}${hint ? `: ${hint}` : ""}`);
         return;
       }
       // "Nu, altul" (feed) or "Vreau altele" (model) → open search.
@@ -237,7 +237,7 @@ function MaiIeftinInner() {
 
   // Tapping one of the model's video looks → find that exact look cheaper (hint hidden).
   const onModelLook = (hint: string) => {
-    void send(lang === "en" ? "This one 💛" : "Asta îmi place 💛", `${lang === "en" ? "Find this product cheaper" : "Găsește-mi acest produs mai ieftin"}${hint ? `: ${hint}` : ""}`);
+    void send(lang === "en" ? "This one 💛" : "Asta îmi place 💛", `${lang === "en" ? "Show me luxury pieces like this" : "Arată-mi piese de lux ca aceasta"}${hint ? `: ${hint}` : ""}`);
   };
 
   const empty = messages.length === 0 && !loading;

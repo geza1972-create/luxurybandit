@@ -33,8 +33,8 @@ const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub
     h1a: "Modelul visurilor tale,", h1b: "în orice ținută.",
     sub: "Alege un model, alege o ținută de designer și vezi cum o poartă într-un video de calitate runway — dans sau piruetă, tu decizi. Look-uri noi în fiecare zi.",
     b1t: "Vezi-o în orice ținută", b1x: "Pune-ți modelul favorit în ținuta pe care O ALEGI TU — dă like, share, cumpără.",
-    b2t: "Descoperă produse de lux", b2x: "Îți place o ținută? Modelul îți recomandă piese de lux — și le poți cumpăra direct.",
-    cta: "Descoperă luxul",
+    b2t: "Produse Luxury", b2x: "Îți place o ținută? Modelul îți recomandă piese de lux — și le poți cumpăra direct.",
+    cta: "Produse Luxury",
     becomeModel: "Devino Model — câștigă la fiecare look →",
   },
   en: {
@@ -42,8 +42,8 @@ const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub
     h1a: "Your dream model,", h1b: "in any look.",
     sub: "Pick a model, choose a designer outfit, and watch her wear it in a runway-quality video — dancing or turning, your call. New looks drop every day.",
     b1t: "See her in any look", b1x: "Put your favorite model in the outfit YOU choose — like it, share it, shop it.",
-    b2t: "Discover luxury products", b2x: "Like an outfit? Your model recommends luxury pieces you can shop right away.",
-    cta: "Discover luxury",
+    b2t: "Luxury Products", b2x: "Like an outfit? Your model recommends luxury pieces you can shop right away.",
+    cta: "Luxury Products",
     becomeModel: "Become a Model — earn with every look →",
   },
 };

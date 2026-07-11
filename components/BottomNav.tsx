@@ -289,7 +289,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               <button type="button" onClick={() => navigate("/mai-ieftin")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <Search className="h-5 w-5 shrink-0 text-[#b8912f]" />
-                <span className="text-sm font-black text-white">Produse de lux</span>
+                <span className="text-sm font-black text-white">Produse Luxury</span>
               </button>
               {/* Admin: jump straight to the admin dashboard (no need to type /admin). */}
               {(!!adminPin || isAdminEmail(displayEmail)) && (
