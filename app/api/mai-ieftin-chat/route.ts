@@ -104,8 +104,9 @@ async function cjSearch(query: string): Promise<ShopItem[] | null> {
   if (!cjWithinCap()) return hit?.items ?? null;
 
   // partnerStatus: JOINED → only advertisers you've joined (so linkCode returns a tracked,
-  // commission-earning click URL). limit high, we keep the first 8 with image + link.
-  const gql = `{ products(companyId: "${cid}", partnerStatus: JOINED, keywords: ${JSON.stringify(q)}, limit: 16) { resultList { title link imageLink advertiserName price { amount currency } salePrice { amount currency }${pid ? ` linkCode(pid: "${pid}") { clickUrl }` : ""} } } }`;
+  // commission-earning click URL). limit high because one product ships in many locale/currency
+  // variants (RON/EUR/HUF/PLN/CZK…) — we filter to RON→EUR and dedupe below.
+  const gql = `{ products(companyId: "${cid}", partnerStatus: JOINED, keywords: ${JSON.stringify(q)}, limit: 60) { resultList { title link imageLink advertiserName price { amount currency } salePrice { amount currency }${pid ? ` linkCode(pid: "${pid}") { clickUrl }` : ""} } } }`;
   try {
     cjCalls++;
     const res = await fetch("https://ads.api.cj.com/query", {
@@ -117,18 +118,40 @@ async function cjSearch(query: string): Promise<ShopItem[] | null> {
     const data = await res.json().catch(() => null);
     const list = data?.data?.products?.resultList;
     if (!Array.isArray(list)) return null; // unexpected/error → fall back
-    const seen = new Set<string>();
-    const items: ShopItem[] = [];
-    for (const r of list) {
-      const link = String(r?.linkCode?.clickUrl || r?.link || "").trim();
-      const thumbnail = String(r?.imageLink || "").trim();
-      if (!link || !thumbnail || seen.has(link)) continue;
-      seen.add(link);
-      const pr = r?.salePrice?.amount ? r.salePrice : r?.price;
-      const price = pr?.amount ? `${pr.amount}${pr.currency ? ` ${pr.currency}` : ""}` : undefined;
-      items.push({ title: String(r?.title ?? "").slice(0, 120), link, thumbnail, price, source: String(r?.advertiserName ?? "").slice(0, 50) || undefined });
-      if (items.length >= 8) break;
-    }
+    // RO audience: keep only RON (preferred) or EUR — drop HUF/PLN/CZK/etc. (they read as
+    // foreign junk). Collapse the same product's size/colour variants into ONE card via a
+    // base-name key so we don't show "Body Hera S / M / L" six times.
+    // Collapse a product to its distinctive STYLE name (e.g. "Ottavia", "Hera") by stripping
+    // sizes, colours and the product-type noun in every locale — so the SAME item titled
+    // "Sutien Ottavia" (RO) / "Reggiseno Ottavia" (IT) / "Ottavia podprsenka" (CZ) dedupes to one.
+    const baseKey = (title: string) => title.toLowerCase()
+      .replace(/\b\d{1,3}\s?[a-h]{1,2}\b/g, " ")                        // bra sizes 75C, 5C, 3D
+      .replace(/\b(xs|s|m|l|xl|xxl|xxxl)\b/g, " ")                      // clothing sizes
+      .replace(/\b(sutien|reggiseno|podprsenka|telo|body|bra|bralette|brief|briefs|thong|tanga|panties|panty|knickers|corset|bodysuit|teddy|garter|melltart[óo]|biustonosz|kalhotky|stringi|figi|perizoma|culotte|guaina)\b/g, " ") // product-type nouns RO/EN/IT/CZ/PL/HU
+      .replace(/\b(black|negru|neagr[ăa]|white|alb[ăa]?|red|ro[șs]u|nude|beige|bej)\b/g, " ") // colours
+      .replace(/[^a-zăâîșț ]/g, " ").replace(/\s+/g, " ").trim();
+    const fmtPrice = (amt: string, cur: string) =>
+      `${String(amt).replace(/[.,]00$/, "")} ${cur}`;                   // "355.00" → "355 RON"
+    const buckets: Record<"RON" | "EUR", ShopItem[]> = { RON: [], EUR: [] };
+    const seenKey = new Set<string>();
+    const collect = (want: "RON" | "EUR") => {
+      for (const r of list) {
+        const pr = r?.salePrice?.amount ? r.salePrice : r?.price;
+        const cur = String(pr?.currency || "").toUpperCase();
+        if (cur !== want) continue;
+        const link = String(r?.linkCode?.clickUrl || r?.link || "").trim();
+        const thumbnail = String(r?.imageLink || "").trim();
+        const title = String(r?.title ?? "").slice(0, 120);
+        if (!link || !thumbnail || !title) continue;
+        const key = baseKey(title) || title.toLowerCase();
+        if (seenKey.has(key)) continue;
+        seenKey.add(key);
+        buckets[want].push({ title, link, thumbnail, price: pr?.amount ? fmtPrice(pr.amount, cur) : undefined, source: String(r?.advertiserName ?? "").slice(0, 50) || undefined });
+      }
+    };
+    collect("RON");   // RON first (dedupe by base name)
+    collect("EUR");   // then fill with EUR for products with no RON variant
+    const items = [...buckets.RON, ...buckets.EUR].slice(0, 8);
     CJ_CACHE.set(cacheKey, { at: Date.now(), items });
     return items;
   } catch {
