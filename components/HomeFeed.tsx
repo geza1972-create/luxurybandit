@@ -1075,7 +1075,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             <button type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                // Carry this look's still + a text hint into the price-finder as a reference.
+                // Open HER price-finder chat (her photo + her looks), same as her profile.
+                // Falls back to a look reference if this video has no model attached.
+                if (authorCuratorId) { router.push(`/mai-ieftin?model=${encodeURIComponent(authorCuratorId)}`); return; }
                 const L = look as { name?: string; frontImageUrl?: string; imageUrl?: string; videoPosterUrl?: string };
                 const m = media[active] as { poster?: string; url?: string; afterUrl?: string } | undefined;
                 const img = L.frontImageUrl || L.imageUrl || m?.poster || m?.afterUrl || m?.url || L.videoPosterUrl || "";

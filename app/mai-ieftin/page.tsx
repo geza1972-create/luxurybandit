@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { Plus, ArrowUp, X, Menu, ChevronDown, LayoutGrid, Users, Play } from "lucide-react";
+import { Plus, ArrowUp, X, Menu, ChevronDown, LayoutGrid, Users, Play, Share2, Check } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
@@ -75,9 +75,9 @@ type ShopItem = { title: string; link: string; source?: string; thumbnail: strin
 type Msg = { role: "user" | "assistant"; content: string; apiContent?: string; refImg?: string; refRound?: boolean; modelLooks?: { img: string; hint: string }[]; products?: ShopItem[]; ownProducts?: ShopItem[]; original?: ShopItem[]; brand?: string; chips?: string[] };
 
 type Lang = "ro" | "en";
-const T: Record<Lang, { title: string; ph: string; free: string; original: string; inspo: string; cheaper: string; ours: string; introQ: string; yes: string; no: string; askMore: string; inspo_btn: string; gallery: string; models: string; wantOthers: string; suggestions: string[] }> = {
+const T: Record<Lang, { title: string; motto: string; ph: string; free: string; original: string; inspo: string; cheaper: string; ours: string; introQ: string; yes: string; no: string; askMore: string; inspo_btn: string; gallery: string; models: string; wantOthers: string; suggestions: string[] }> = {
   ro: {
-    title: "Găsește-l mai ieftin",
+    title: "Găsește-l mai ieftin", motto: "Bandit the look",
     ph: "Scrie ce cauți, lipește un link sau o poză…",
     free: "Gratis · fără cont · în câteva secunde",
     original: "Originalul", inspo: "sursa noastră de inspirație",
@@ -87,7 +87,7 @@ const T: Record<Lang, { title: string; ph: string; free: string; original: strin
     suggestions: ["o geantă ca de la Versace, mai ieftin", "adidași ca Golden Goose", "o rochie de seară sub 200 lei"],
   },
   en: {
-    title: "Find it cheaper",
+    title: "Find it cheaper", motto: "Bandit the look",
     ph: "Type what you want, paste a link or a photo…",
     free: "Free · no account · in seconds",
     original: "The original", inspo: "our inspiration",
@@ -116,35 +116,66 @@ function MaiIeftinInner() {
     p.set("lang", l);
     router.replace(`${pathname}?${p.toString()}`, { scroll: false });
   };
+  const [shared, setShared] = useState(false);
+  const share = async () => {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) { await navigator.share({ title: "LuxuryBandit — Bandit the look", url }); }
+      else { await navigator.clipboard?.writeText(url); setShared(true); setTimeout(() => setShared(false), 1600); }
+    } catch { /**/ }
+  };
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const refHintRef = useRef<string>(""); // hint from a feed "Bandit the look!" reference
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
 
-  // A feed "Bandit the look!" tap stashes a reference (still + hint) in sessionStorage.
-  // On open, show it and ask "want this cheaper, or another?" with Yes/No chips.
+  // Model greeting (bilingual) shown when opened for a specific model.
+  const modelGreeting = (n: string) => {
+    const nm = (n || "").trim();
+    return lang === "en"
+      ? (nm ? `Thanks for choosing me, I'm ${nm}! Do you like my clothes or should I find you others? 💛` : "Thanks for choosing me! Do you like my clothes or should I find you others? 💛")
+      : (nm ? `Merci că m-ai ales, eu sunt ${nm}! Îți plac hainele mele sau vrei să-ți găsesc alte haine? 💛` : "Merci că m-ai ales! Îți plac hainele mele sau vrei să-ți găsesc alte haine? 💛");
+  };
+
+  // Open state: ?model=<curatorId> (shareable) fetches her photo + looks — same as tapping
+  // "Chat with her" on her profile OR "Find it cheaper" on her feed video. Otherwise a
+  // sessionStorage "look" reference (a specific outfit) → the "this one cheaper?" flow.
   useEffect(() => {
+    const modelId = params.get("model");
+    if (modelId) {
+      let alive = true;
+      (async () => {
+        try {
+          const [pr, gr] = await Promise.all([
+            fetch(`/api/curator?profile=${encodeURIComponent(modelId)}`).then((r) => r.json()).catch(() => ({})),
+            fetch(`/api/try-this-look?curatorTryons=${encodeURIComponent(modelId)}`).then((r) => r.json()).catch(() => ({})),
+          ]);
+          if (!alive) return;
+          const p = (pr && pr.profile) || {};
+          const gallery: { imageUrl?: string; lookName?: string }[] = Array.isArray(gr?.userGallery) ? gr.userGallery : [];
+          const n = p.firstName || gr?.displayName || "";
+          const looks = gallery.filter((x) => x.imageUrl).slice(0, 8).map((x) => ({ img: x.imageUrl as string, hint: x.lookName || "" }));
+          refHintRef.current = "";
+          setMessages([{ role: "assistant", content: modelGreeting(n), refImg: p.photoUrl || p.photoFullUrl || "", refRound: true, modelLooks: looks, chips: [t.wantOthers] }]);
+        } catch { /**/ }
+      })();
+      return () => { alive = false; };
+    }
+    // Fallback: a look/product reference stashed in sessionStorage.
     let ref: { img?: string; hint?: string; kind?: string; name?: string; looks?: { img: string; hint: string }[] } | null = null;
     try { const s = sessionStorage.getItem("lb_bandit_ref"); if (s) { ref = JSON.parse(s); sessionStorage.removeItem("lb_bandit_ref"); } } catch { /**/ }
     if (ref && (ref.img || ref.hint)) {
       if (ref.kind === "model") {
-        // From a model's "Chat with her" — greet with her photo + her video looks below, and
-        // ask if they like her clothes (tap a look → find it cheaper) or want other clothes.
         refHintRef.current = "";
-        const n = (ref.name || "").trim();
         const looks = Array.isArray(ref.looks) ? ref.looks.filter((l) => l && l.img).slice(0, 8) : [];
-        setMessages([{ role: "assistant", content: n
-          ? `Merci că m-ai ales, eu sunt ${n}! Îți plac hainele mele sau vrei să-ți găsesc alte haine? 💛`
-          : "Merci că m-ai ales! Îți plac hainele mele sau vrei să-ți găsesc alte haine? 💛",
-          refImg: ref.img || "", refRound: true, modelLooks: looks, chips: [T.ro.wantOthers] }]);
+        setMessages([{ role: "assistant", content: modelGreeting(ref.name || ""), refImg: ref.img || "", refRound: true, modelLooks: looks, chips: [t.wantOthers] }]);
       } else {
-        // From a feed look — ask "this one cheaper, or another?" with Yes/No.
         refHintRef.current = ref.hint || "";
-        setMessages([{ role: "assistant", content: T.ro.introQ, chips: [T.ro.yes, T.ro.no], refImg: ref.img || "" }]);
+        setMessages([{ role: "assistant", content: t.introQ, chips: [t.yes, t.no], refImg: ref.img || "" }]);
       }
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pickFile = (f?: File | null) => { if (f) { try { setPreview(URL.createObjectURL(f)); } catch { /**/ } } };
   const clearFile = () => { setPreview(""); if (fileRef.current) fileRef.current.value = ""; };
@@ -266,6 +297,11 @@ function MaiIeftinInner() {
               </button>
             ))}
           </div>
+          {/* Share this page (URL carries ?model / ?lang so it opens the same view). */}
+          <button type="button" onClick={() => void share()} aria-label="Share"
+            className="grid h-10 w-10 place-items-center rounded-full text-white/75 hover:bg-white/10 active:scale-90 transition">
+            {shared ? <Check className="h-5 w-5 text-emerald-400" /> : <Share2 className="h-5 w-5" />}
+          </button>
           {/* Opens the SAME app drawer as everywhere (mounted globally in BottomNav). */}
           <button type="button" onClick={() => { try { window.dispatchEvent(new Event("lb-open-account")); } catch { /**/ } }} aria-label="Meniu"
             className="grid h-10 w-10 place-items-center rounded-full text-white/75 hover:bg-white/10 active:scale-90 transition">
@@ -278,6 +314,7 @@ function MaiIeftinInner() {
         /* Empty / landing state — centered */
         <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-5 pb-24">
           <div className="w-full max-w-md">
+            <p className="mb-1.5 text-center text-[12px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">{t.motto}</p>
             <h1 className="mb-8 text-center text-[32px] font-black leading-tight tracking-tight text-white/75">{t.title}</h1>
             {inputBox}
             <div className="mt-3 flex flex-wrap justify-center gap-2">
