@@ -1537,8 +1537,9 @@ export async function POST(request: Request) {
       const lookId = String((payload as any).lookId ?? "").trim();
       const motion = (payload as any).motion === "dance" ? "dance" : "turn";
       if (!ids.length || !lookId) return NextResponse.json({ error: "ids + lookId required." }, { status: 400 });
+      const clear = lookId === "none"; // lookId="none" → DETACH (restore an un-linked clip)
       let count = 0;
-      for (const g of state.generations ?? []) if (ids.includes(g.id)) { (g as any).lookId = lookId; (g as any).motion = motion; count++; }
+      for (const g of state.generations ?? []) if (ids.includes(g.id)) { (g as any).lookId = clear ? undefined : lookId; if (!clear) (g as any).motion = motion; count++; }
       if (!count) return NextResponse.json({ error: "Nothing matched." }, { status: 404 });
       await saveTryThisLookState(state);
       return NextResponse.json({ ok: true, updated: count });
