@@ -77,10 +77,11 @@ async function shoppingSearch(query: string): Promise<ShopItem[]> {
 // Empty query = not a product search (e.g. a greeting) → we skip the paid SerpApi call.
 const SYSTEM = `Ești asistentul LuxuryBandit „Găsește-l mai ieftin".
 
-FILOZOFIA (obligatoriu): „Bandit — the luxury look". Găsim mereu LOOK-ul de LUX mai ieftin — piese ELEGANTE, cu aspect de designer/lux, dar la preț mai mic. NU ne interesează produse ieftine și prost făcute („cheap-looking", fast-fashion de proastă calitate) — doar lucruri care ARATĂ scump/designer dar costă mai puțin. Reflectă asta în „query" (cuvinte ca 'elegant', 'designer style', 'premium', 'luxury look').
+FILOZOFIA (obligatoriu): „Bandit — the luxury look". Găsim mereu LOOK-ul de LUX mai ieftin — piese ELEGANTE, cu aspect de designer/lux, dar la preț mai mic. NU ne interesează produse ieftine și prost făcute — doar lucruri care ARATĂ scump/designer dar costă mai puțin. Reflectă asta în „query" (cuvinte ca 'elegant', 'designer style', 'premium', 'luxury look').
+Suntem CURATORI de modă: arătăm și SURSA de inspirație — piesa ORIGINALĂ a designerului (ca respect/credit pentru designerii mari) — și apoi variante asemănătoare mai ieftine.
 
 Scrie TOTUL în ROMÂNĂ (fără engleză în „reply", ex NU „Alright"). Răspunde DOAR cu JSON valid:
-{"reply": "<max 2 propoziții, 1 emoji max, fără markdown>", "query": "<cuvinte-cheie EN pentru Google Shopping, cu accent pe aspect elegant/designer — SAU șir GOL \\"\\" dacă întrebi>", "chips": ["opțiune scurtă", "..."]}
+{"reply": "<max 2 propoziții, 1 emoji max, fără markdown>", "query": "<cuvinte-cheie EN pentru Google Shopping, cu accent pe aspect elegant/designer — SAU șir GOL \\"\\" dacă întrebi>", "chips": ["opțiune scurtă", "..."], "brand": "<numele designerului/brandului dacă userul îl menționează sau e clar (ex 'Versace','Gucci') — altfel \\"\\">"}
 
 FLUX — pune întrebări cu „chips" (nu căuta încă), pas cu pas:
 1) PRIMA cerere de produs → întreabă ce contează cel mai mult pentru el (unele variante sunt ieftine dar din China, cu livrare lentă). query:"", chips: ["Prețul mic","Livrarea rapidă","Calitatea","Mi-e egal"].
@@ -143,17 +144,40 @@ async function ownProductsFor(query: string): Promise<ShopItem[]> {
   } catch { return []; }
 }
 
-function parseModelJson(text: string): { reply: string; query: string; chips: string[] } {
+function parseModelJson(text: string): { reply: string; query: string; chips: string[]; brand: string } {
   const t = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
   const a = t.indexOf("{"), b = t.lastIndexOf("}");
   if (a >= 0 && b > a) {
     try {
       const o = JSON.parse(t.slice(a, b + 1));
       const chips = Array.isArray(o?.chips) ? o.chips.map((c: unknown) => String(c).trim().slice(0, 30)).filter(Boolean).slice(0, 6) : [];
-      return { reply: String(o?.reply ?? "").trim(), query: String(o?.query ?? "").trim(), chips };
+      return { reply: String(o?.reply ?? "").trim(), query: String(o?.query ?? "").trim(), chips, brand: String(o?.brand ?? "").trim().slice(0, 40) };
     } catch { /**/ }
   }
-  return { reply: text.trim(), query: "", chips: [] }; // fall back to raw text as the reply
+  return { reply: text.trim(), query: "", chips: [], brand: "" }; // fall back to raw text as the reply
+}
+
+// A rough numeric value from a price string ("1.234,56 RON" / "$59.99") for sorting.
+function priceValue(p: ShopItem): number {
+  const s = (p.price ?? "").replace(/[^\d.,]/g, "");
+  if (!s) return Number.POSITIVE_INFINITY; // no price → treat as "unknown", sort last among cheap
+  const norm = s.includes(",") && s.lastIndexOf(",") > s.lastIndexOf(".")
+    ? s.replace(/\./g, "").replace(",", ".")   // European 1.234,56
+    : s.replace(/,/g, "");                       // US 1,234.56
+  const n = parseFloat(norm);
+  return isNaN(n) ? Number.POSITIVE_INFINITY : n;
+}
+
+// Split search results into the designer ORIGINAL (brand match, priciest first) — shown as
+// credit/inspiration — and the cheaper look-alikes (rest, cheapest first).
+function splitByBrand(items: ShopItem[], brand: string): { original: ShopItem[]; cheaper: ShopItem[] } {
+  const b = brand.trim().toLowerCase();
+  if (!b) return { original: [], cheaper: items };
+  const isBrand = (p: ShopItem) => `${p.title} ${p.source ?? ""}`.toLowerCase().includes(b);
+  const original = items.filter(isBrand).sort((x, y) => priceValue(y) - priceValue(x)).slice(0, 2);
+  const seen = new Set(original.map((o) => o.link));
+  const cheaper = items.filter((p) => !seen.has(p.link)).sort((x, y) => priceValue(x) - priceValue(y));
+  return { original, cheaper };
 }
 
 export async function POST(request: Request) {
@@ -207,12 +231,14 @@ export async function POST(request: Request) {
       .replace(/\s+/g, " ")
       .trim();
 
-    const [products, ownProducts] = cleanQuery
+    const [found, ownProducts] = cleanQuery
       ? await Promise.all([shoppingSearch(cleanQuery), ownProductsFor(cleanQuery)])
       : [[], []];
+    // Show the designer ORIGINAL (credit/inspiration) separately from the cheaper look-alikes.
+    const { original, cheaper } = splitByBrand(found, parsed.brand);
     const finalReply = reply
-      || (products.length ? "Uite ce am găsit pentru tine 🔎" : "Spune-mi ce cauți și îți găsesc variante mai ieftine.");
-    return NextResponse.json({ reply: finalReply, products, ownProducts, chips, query: cleanQuery });
+      || (cheaper.length ? "Uite ce am găsit pentru tine 🔎" : "Spune-mi ce cauți și îți găsesc variante mai ieftine.");
+    return NextResponse.json({ reply: finalReply, products: cheaper, original, brand: parsed.brand, ownProducts, chips, query: cleanQuery });
   } catch {
     return NextResponse.json({ error: "Chat failed." }, { status: 502 });
   }

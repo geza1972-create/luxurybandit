@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, Home, ShoppingBag, EyeOff, Eye, Trash2, UserPlus, Check, ImageOff, RefreshCw, BadgeCheck, Download, Maximize2, Minimize2 } from "lucide-react";
+import { Heart, MessageCircle, Bookmark, Send, Sparkles, X, Loader2, Volume2, VolumeX, CornerDownRight, Info, Play, MapPin, Home, ShoppingBag, EyeOff, Eye, Trash2, UserPlus, Check, ImageOff, RefreshCw, BadgeCheck, Download, Maximize2, Minimize2, Search } from "lucide-react";
 import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -1072,14 +1072,12 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             lives BELOW the video now, in the white caption bar.) */}
         {!immersive && ["video", "cvideo", "compare", "cphoto", "image"].includes(media[active]?.type as string) && (
           <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
-            {authorCuratorId && (
-              <button type="button"
-                onClick={(e) => { e.stopPropagation(); router.push(`/chat/${authorCuratorId}`); }}
-                onPointerDown={(e) => e.stopPropagation()}
-                className="flex items-center gap-2 whitespace-nowrap rounded-full border border-white/25 bg-black/45 px-6 py-2.5 text-sm font-black text-white backdrop-blur active:scale-95 transition">
-                <MessageCircle className="h-4 w-4" /> Chat with her AI Assistant
-              </button>
-            )}
+            <button type="button"
+              onClick={(e) => { e.stopPropagation(); router.push("/mai-ieftin"); }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className="flex items-center gap-2 whitespace-nowrap rounded-full border border-white/25 bg-black/45 px-6 py-2.5 text-sm font-black text-white backdrop-blur active:scale-95 transition">
+              <Search className="h-4 w-4" /> Unde găsesc mai ieftin
+            </button>
             <button type="button"
               onClick={(e) => { e.stopPropagation(); goTryOn(); }}
               onPointerDown={(e) => e.stopPropagation()}

@@ -68,7 +68,7 @@ function AmbientGeometry({ burst }: { burst: number }) {
 // find cheaper versions. Real product search isn't wired yet — the AI guides.
 // ────────────────────────────────────────────────────────────────────────────
 type ShopItem = { title: string; link: string; source?: string; thumbnail: string; price?: string };
-type Msg = { role: "user" | "assistant"; content: string; products?: ShopItem[]; ownProducts?: ShopItem[]; chips?: string[] };
+type Msg = { role: "user" | "assistant"; content: string; products?: ShopItem[]; ownProducts?: ShopItem[]; original?: ShopItem[]; brand?: string; chips?: string[] };
 
 const SUGGESTIONS = [
   "o geantă ca de la Versace, mai ieftin",
@@ -104,7 +104,7 @@ export default function MaiIeftinPage() {
         body: JSON.stringify({ messages: next }),
       });
       const d = await r.json().catch(() => ({}));
-      setMessages((m) => [...m, { role: "assistant", content: d.reply || "Momentan nu pot răspunde. Mai încearcă o dată.", products: Array.isArray(d.products) ? d.products : undefined, ownProducts: Array.isArray(d.ownProducts) ? d.ownProducts : undefined, chips: Array.isArray(d.chips) ? d.chips : undefined }]);
+      setMessages((m) => [...m, { role: "assistant", content: d.reply || "Momentan nu pot răspunde. Mai încearcă o dată.", products: Array.isArray(d.products) ? d.products : undefined, ownProducts: Array.isArray(d.ownProducts) ? d.ownProducts : undefined, original: Array.isArray(d.original) ? d.original : undefined, brand: typeof d.brand === "string" ? d.brand : undefined, chips: Array.isArray(d.chips) ? d.chips : undefined }]);
     } catch {
       setMessages((m) => [...m, { role: "assistant", content: "Ceva n-a mers. Mai încearcă o dată." }]);
     } finally { setLoading(false); }
@@ -199,24 +199,51 @@ export default function MaiIeftinPage() {
                       ))}
                     </div>
                   )}
-                  {/* Gemini-style product cards (image + price + link) */}
+                  {/* Designer original — the inspiration, credited (not cheaper). */}
+                  {m.original && m.original.length > 0 && (
+                    <>
+                      <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-white/45">
+                        Originalul{m.brand ? ` · ${m.brand}` : ""} <span className="font-semibold normal-case tracking-normal text-white/30">— sursa noastră de inspirație</span>
+                      </p>
+                      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
+                        {m.original.map((p, idx) => (
+                          <a key={idx} href={p.link} target="_blank" rel="noopener noreferrer"
+                            className="w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-white/20 active:scale-95 transition">
+                            <div className="aspect-square w-full bg-white">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-contain" />
+                            </div>
+                            <div className="p-2">
+                              {p.price && <p className="text-[14px] font-black text-white/90">{p.price}</p>}
+                              <p className="mt-0.5 line-clamp-2 text-[11px] font-semibold leading-tight text-white/60">{p.title}</p>
+                              <p className="mt-1 truncate text-[10px] font-bold text-white/35">Original{p.source ? ` · ${p.source}` : ""}</p>
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  {/* Cheaper look-alikes — Gemini-style cards */}
                   {m.products && m.products.length > 0 && (
-                    <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
-                      {m.products.map((p, idx) => (
-                        <a key={idx} href={p.link} target="_blank" rel="noopener noreferrer"
-                          className="w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-white/10 active:scale-95 transition">
-                          <div className="aspect-square w-full bg-white">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-contain" />
-                          </div>
-                          <div className="p-2">
-                            {p.price && <p className="text-[14px] font-black text-white">{p.price}</p>}
-                            <p className="mt-0.5 line-clamp-2 text-[11px] font-semibold leading-tight text-white/65">{p.title}</p>
-                            {p.source && <p className="mt-1 truncate text-[10px] font-bold text-white/35">{p.source}</p>}
-                          </div>
-                        </a>
-                      ))}
-                    </div>
+                    <>
+                      <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#b8912f]">Același look, mai ieftin</p>
+                      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
+                        {m.products.map((p, idx) => (
+                          <a key={idx} href={p.link} target="_blank" rel="noopener noreferrer"
+                            className="w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-white/10 active:scale-95 transition">
+                            <div className="aspect-square w-full bg-white">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-contain" />
+                            </div>
+                            <div className="p-2">
+                              {p.price && <p className="text-[14px] font-black text-white">{p.price}</p>}
+                              <p className="mt-0.5 line-clamp-2 text-[11px] font-semibold leading-tight text-white/65">{p.title}</p>
+                              {p.source && <p className="mt-1 truncate text-[10px] font-bold text-white/35">{p.source}</p>}
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    </>
                   )}
                   {/* Our own catalogue — "din colecția LuxuryBandit" */}
                   {m.ownProducts && m.ownProducts.length > 0 && (
