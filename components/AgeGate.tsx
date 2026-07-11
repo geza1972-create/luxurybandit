@@ -8,6 +8,10 @@ import { useEffect, useState } from "react";
 // per device. Admins (who carry the try-look PIN) are never gated.
 const OK_KEY = "lb_age_verified";
 const ADMIN_KEYS = ["luxurybandit-try-look-admin-pin", "x-try-look-admin-pin"];
+// Search/social/affiliate crawlers & reviewers must see the site open normally (e.g. the
+// AliExpress affiliate reviewer rejected us for "site does not open properly"). They don't
+// consume content — bypass the gate so the page renders for them. Real users still get it.
+const BOT_RE = /bot|crawl|spider|slurp|mediapartners|facebookexternalhit|whatsapp|telegram|twitterbot|linkedinbot|applebot|preview|headless|phantom|scan|monitor|ahrefs|semrush|screaming|aliexpress|alibaba|yandex|baidu|petalbot/i;
 
 export default function AgeGate() {
   // Render nothing until mounted so we never hydrate a mismatched overlay.
@@ -17,6 +21,9 @@ export default function AgeGate() {
 
   useEffect(() => {
     setReady(true);
+    try {
+      if (typeof navigator !== "undefined" && BOT_RE.test(navigator.userAgent)) return; // crawlers/reviewers bypass
+    } catch { /**/ }
     try {
       if (localStorage.getItem(OK_KEY) === "1") return;
       if (ADMIN_KEYS.some((k) => localStorage.getItem(k))) return; // admins bypass
