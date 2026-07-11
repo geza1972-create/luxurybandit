@@ -73,6 +73,71 @@ async function shoppingSearch(query: string): Promise<ShopItem[]> {
   }
 }
 
+// ── CJ (Commission Junction) GraphQL product search — real advertisers, AFFILIATE links
+//    (commission per sale). Cache 24h + daily cap. Returns null when not configured or on
+//    any error/unexpected shape → caller falls back to Google Shopping. ──
+const CJ_CACHE = new Map<string, { at: number; items: ShopItem[] }>();
+const CJ_TTL_MS = 24 * 60 * 60 * 1000;
+const CJ_DAILY_CAP = 800;
+let cjDay = "";
+let cjCalls = 0;
+function cjWithinCap(): boolean {
+  const today = new Date().toISOString().slice(0, 10);
+  if (today !== cjDay) { cjDay = today; cjCalls = 0; }
+  return cjCalls < CJ_DAILY_CAP;
+}
+
+async function cjSearch(query: string): Promise<ShopItem[] | null> {
+  const token = process.env.CJ_PERSONAL_ACCESS_TOKEN;
+  const cid = process.env.CJ_COMPANY_ID;
+  const pid = process.env.CJ_WEBSITE_ID || "";
+  if (!token || !cid) return null; // not configured → caller falls back to SerpApi
+  const q = query.trim().slice(0, 120);
+  if (q.length < 3) return [];
+  const cacheKey = q.toLowerCase();
+  const hit = CJ_CACHE.get(cacheKey);
+  if (hit && Date.now() - hit.at < CJ_TTL_MS) return hit.items;
+  if (!cjWithinCap()) return hit?.items ?? null;
+
+  const gql = `{ products(companyId: "${cid}", keywords: ${JSON.stringify(q)}, limit: 12) { resultList { title link imageLink advertiserName price { amount currency } salePrice { amount currency }${pid ? ` linkCode(pid: "${pid}") { clickUrl }` : ""} } } }`;
+  try {
+    cjCalls++;
+    const res = await fetch("https://ads.api.cj.com/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ query: gql }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const data = await res.json().catch(() => null);
+    const list = data?.data?.products?.resultList;
+    if (!Array.isArray(list)) return null; // unexpected/error → fall back
+    const seen = new Set<string>();
+    const items: ShopItem[] = [];
+    for (const r of list) {
+      const link = String(r?.linkCode?.clickUrl || r?.link || "").trim();
+      const thumbnail = String(r?.imageLink || "").trim();
+      if (!link || !thumbnail || seen.has(link)) continue;
+      seen.add(link);
+      const pr = r?.salePrice?.amount ? r.salePrice : r?.price;
+      const price = pr?.amount ? `${pr.amount}${pr.currency ? ` ${pr.currency}` : ""}` : undefined;
+      items.push({ title: String(r?.title ?? "").slice(0, 120), link, thumbnail, price, source: String(r?.advertiserName ?? "").slice(0, 50) || undefined });
+      if (items.length >= 8) break;
+    }
+    CJ_CACHE.set(cacheKey, { at: Date.now(), items });
+    return items;
+  } catch {
+    return null;
+  }
+}
+
+// Prefer CJ (affiliate commission); fall back to Google Shopping (SerpApi) when CJ has no
+// keys, no results, or errors.
+async function productSearch(query: string): Promise<ShopItem[]> {
+  const cj = await cjSearch(query);
+  if (cj && cj.length) return cj;
+  return shoppingSearch(query);
+}
+
 // The assistant returns strict JSON: a short Romanian reply + an English shopping query.
 // Empty query = not a product search (e.g. a greeting) → we skip the paid SerpApi call.
 const SYSTEM = `Ești asistentul LuxuryBandit „Găsește-l mai ieftin".
@@ -261,7 +326,7 @@ export async function POST(request: Request) {
       .trim();
 
     const [found, ownProducts] = cleanQuery
-      ? await Promise.all([shoppingSearch(cleanQuery), ownProductsFor(cleanQuery)])
+      ? await Promise.all([productSearch(cleanQuery), ownProductsFor(cleanQuery)])
       : [[], []];
     // Show the designer ORIGINAL (credit/inspiration) separately from the cheaper look-alikes.
     let { original, cheaper } = splitByBrand(found, parsed.brand);
