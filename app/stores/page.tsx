@@ -2786,8 +2786,9 @@ function StoresPage() {
                   // showcase exists. Paid members + admin see everything unlocked.
                   // AI models are free for EVERYONE (even signed-out). REAL models are
                   // protected: anonymous visitors see a blurred teaser + "Free sign in",
-                  // and only a (free) sign-in reveals them. Admins always see everything.
-                  const locked = !!m.realModel && !isSignedIn && !isAdmin;
+                  // and only a (free) sign-in reveals them. EXCEPTION: a FEATURED real model
+                  // is part of the free showcase → unlocked for everyone. Admins see everything.
+                  const locked = !!m.realModel && !m.featured && !isSignedIn && !isAdmin;
                   return (
                   <div key={m.id} className="relative">
                     {/* No light border — bright photo edges made it flash white on dark. */}
