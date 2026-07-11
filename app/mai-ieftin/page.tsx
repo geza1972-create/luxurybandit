@@ -120,7 +120,9 @@ export default function MaiIeftinPage() {
         // From a model's "Chat with her" — greet with her photo, ask (openly) what they want.
         refHintRef.current = "";
         const n = (ref.name || "").trim();
-        setMessages([{ role: "assistant", content: n ? `Bună, sunt ${n}! Ce ți-ar plăcea să găsești mai ieftin? 😊` : "Bună! Ce ți-ar plăcea să găsești mai ieftin? 😊", refImg: ref.img || "" }]);
+        setMessages([{ role: "assistant", content: n
+          ? `Merci că m-ai ales, eu sunt ${n}! Îți place stilul meu și vrei să-ți găsesc produse faine? Ce dorești mai ieftin! 💛`
+          : "Merci că m-ai ales! Îți place stilul meu și vrei să-ți găsesc produse faine? Ce dorești mai ieftin! 💛", refImg: ref.img || "" }]);
       } else {
         // From a feed look — ask "this one cheaper, or another?" with Yes/No.
         refHintRef.current = ref.hint || "";
