@@ -229,7 +229,7 @@ async function ownProductsFor(query: string): Promise<ShopItem[]> {
     });
     // Only genuinely relevant looks. Empty shelf is fine if nothing matches the type.
     const picked = scored.filter((s) => s.score > 0).sort((a, b) => b.score - a.score);
-    return picked.slice(0, 6).map(({ l }) => ({
+    return picked.slice(0, 10).map(({ l }) => ({
       title: publicLookLabel(l as { curatorNote?: string; productNote?: string }) || "Look LuxuryBandit",
       link: `/look/${l.id}`,
       thumbnail: (l as { imageUrl?: string }).imageUrl || l.frontImageUrl || "",

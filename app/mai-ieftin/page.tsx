@@ -481,6 +481,29 @@ function MaiIeftinInner() {
                       ))}
                     </div>
                   )}
+                  {/* Our own LOOKS & clothes FIRST — big portrait editorial images (people want
+                      to SEE the look, not just flat product shots). */}
+                  {m.ownProducts && m.ownProducts.length > 0 && (
+                    <>
+                      <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#b8912f]">{t.ours}</p>
+                      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
+                        {m.ownProducts.map((p, idx) => (
+                          <a key={idx} href={p.link}
+                            className="w-44 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#b8912f]/30 active:scale-95 transition">
+                            <div className="aspect-[3/4] w-full bg-white">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" />
+                            </div>
+                            <div className="p-2.5">
+                              {p.price && <p className="text-[14px] font-black text-white">{p.price}</p>}
+                              <p className="mt-0.5 line-clamp-2 text-[12px] font-semibold leading-tight text-white/70">{p.title}</p>
+                              <p className="mt-1 truncate text-[10px] font-bold text-[#b8912f]">LuxuryBandit</p>
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    </>
+                  )}
                   {/* Designer original — the inspiration, credited (not cheaper). */}
                   {m.original && m.original.length > 0 && (
                     <>
@@ -521,28 +544,6 @@ function MaiIeftinInner() {
                               {p.price && <p className="text-[14px] font-black text-white">{p.price}</p>}
                               <p className="mt-0.5 line-clamp-2 text-[11px] font-semibold leading-tight text-white/65">{p.title}</p>
                               {p.source && <p className="mt-1 truncate text-[10px] font-bold text-white/35">{p.source}</p>}
-                            </div>
-                          </a>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                  {/* Our own catalogue — "din colecția LuxuryBandit" */}
-                  {m.ownProducts && m.ownProducts.length > 0 && (
-                    <>
-                      <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#b8912f]">{t.ours}</p>
-                      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
-                        {m.ownProducts.map((p, idx) => (
-                          <a key={idx} href={p.link}
-                            className="w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#b8912f]/30 active:scale-95 transition">
-                            <div className="aspect-square w-full bg-white">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" />
-                            </div>
-                            <div className="p-2">
-                              {p.price && <p className="text-[14px] font-black text-white">{p.price}</p>}
-                              <p className="mt-0.5 line-clamp-2 text-[11px] font-semibold leading-tight text-white/65">{p.title}</p>
-                              <p className="mt-1 truncate text-[10px] font-bold text-[#b8912f]">LuxuryBandit</p>
                             </div>
                           </a>
                         ))}
