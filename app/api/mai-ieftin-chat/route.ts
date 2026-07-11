@@ -99,7 +99,9 @@ async function cjSearch(query: string): Promise<ShopItem[] | null> {
   if (hit && Date.now() - hit.at < CJ_TTL_MS) return hit.items;
   if (!cjWithinCap()) return hit?.items ?? null;
 
-  const gql = `{ products(companyId: "${cid}", keywords: ${JSON.stringify(q)}, limit: 12) { resultList { title link imageLink advertiserName price { amount currency } salePrice { amount currency }${pid ? ` linkCode(pid: "${pid}") { clickUrl }` : ""} } } }`;
+  // partnerStatus: JOINED → only advertisers you've joined (so linkCode returns a tracked,
+  // commission-earning click URL). limit high, we keep the first 8 with image + link.
+  const gql = `{ products(companyId: "${cid}", partnerStatus: JOINED, keywords: ${JSON.stringify(q)}, limit: 16) { resultList { title link imageLink advertiserName price { amount currency } salePrice { amount currency }${pid ? ` linkCode(pid: "${pid}") { clickUrl }` : ""} } } }`;
   try {
     cjCalls++;
     const res = await fetch("https://ads.api.cj.com/query", {
