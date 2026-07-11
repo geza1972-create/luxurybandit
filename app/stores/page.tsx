@@ -26,6 +26,28 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { PhotoCropper } from "../curators/taste-form";
 
+// Landing hero copy — Romanian by default, English via the switcher.
+const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub: string; b1t: string; b1x: string; b2t: string; b2x: string; cta: string; becomeModel: string }> = {
+  ro: {
+    eyebrow: "Modele AI și reale · Look-uri de lux",
+    h1a: "Modelul visurilor tale,", h1b: "în orice ținută.",
+    sub: "Alege un model, alege o ținută de designer și vezi cum o poartă într-un video de calitate runway — dans sau piruetă, tu decizi. Look-uri noi în fiecare zi.",
+    b1t: "Vezi-o în orice ținută", b1x: "Pune-ți modelul favorit în ținuta pe care O ALEGI TU — dă like, share, cumpără.",
+    b2t: "Găsește-l mai ieftin", b2x: "Îți place o ținută? Îți găsim același look — și originalul designerului — la un preț mai mic.",
+    cta: "Găsește mai ieftin",
+    becomeModel: "Devino Model — câștigă la fiecare look →",
+  },
+  en: {
+    eyebrow: "AI and real Fashion Models · Luxury Looks",
+    h1a: "Your dream model,", h1b: "in any look.",
+    sub: "Pick a model, choose a designer outfit, and watch her wear it in a runway-quality video — dancing or turning, your call. New looks drop every day.",
+    b1t: "See her in any look", b1x: "Put your favorite model in the outfit YOU choose — like it, share it, shop it.",
+    b2t: "Find it cheaper", b2x: "Like an outfit? We find you the same look — and the designer original — for less.",
+    cta: "Find it cheaper",
+    becomeModel: "Become a Model — earn with every look →",
+  },
+};
+
 // Serve Supabase images via Next.js' image optimizer (right-sized WebP) instead
 // of full-resolution PNGs. Non-Supabase/empty URLs pass through unchanged.
 function optImg(url: string | undefined, w = 1080, q = 70): string {
@@ -1749,6 +1771,7 @@ function StoresPage() {
   const [bulkAssignName, setBulkAssignName] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [heroLang, setHeroLang] = useState<"ro" | "en">("ro"); // landing hero language (RO default)
   // Home = the full-screen scrolling reels feed (DEFAULT landing). ?view=grid =
   // the 3-col grid overview. ?view=alist = The A List (HomeFeed of look posts).
   const view = searchParams.get("view");
@@ -2653,18 +2676,28 @@ function StoresPage() {
                 page JUMP on every All↔Community switch. Only search collapses it. */}
             {!searchOpen && (
               <section className="px-4 pt-4 pb-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">AI and real Fashion Models · Luxury Looks</p>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">{HERO[heroLang].eyebrow}</p>
+                  {/* Language switcher — Romanian default, toggle English. */}
+                  <div className="flex shrink-0 items-center rounded-full bg-white/[0.07] p-0.5 ring-1 ring-white/10">
+                    {(["ro", "en"] as const).map((l) => (
+                      <button key={l} type="button" onClick={() => setHeroLang(l)}
+                        className={`rounded-full px-2.5 py-1 text-[12px] font-black uppercase transition ${heroLang === l ? "bg-white text-black" : "text-white/55"}`}>
+                        {l}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <h1 className="mt-1.5 text-[1.8rem] font-black leading-[1.08] tracking-tight text-white">
-                  Your dream model, <span className="text-amber-400">in any look.</span>
+                  {HERO[heroLang].h1a} <span className="text-amber-400">{HERO[heroLang].h1b}</span>
                 </h1>
                 <p className="mt-2 max-w-md text-sm font-medium leading-6 text-white/60">
-                  Pick a model, choose a designer outfit, and watch her wear it in a runway-quality
-                  video — dancing or turning, your call. New looks drop every day.
+                  {HERO[heroLang].sub}
                 </p>
                 <div className="mt-3 grid gap-1.5">
                   {[
-                    [<Sparkles key="i" className="h-4 w-4 text-amber-400" />, "See her in any look", "Put your favorite model in the outfit YOU choose — like it, share it, shop it."],
-                    [<MessageCircle key="i" className="h-4 w-4 text-amber-400" />, "Chat with her AI", "Talk to your favorite model's AI Assistant in a live chat, follow her and get to know her — right from her profile."],
+                    [<Sparkles key="i" className="h-4 w-4 text-amber-400" />, HERO[heroLang].b1t, HERO[heroLang].b1x],
+                    [<Search key="i" className="h-4 w-4 text-amber-400" />, HERO[heroLang].b2t, HERO[heroLang].b2x],
                   ].map(([icon, title, text], i) => (
                     <div key={i} className="flex items-start gap-2.5">
                       <span className="mt-0.5 shrink-0">{icon as React.ReactNode}</span>
@@ -2675,18 +2708,16 @@ function StoresPage() {
                   ))}
                 </div>
                 <div className="mt-3.5 flex items-center gap-2">
-                  {/* Home already IS the grid — no reel CTA needed here. "How it works"
-                      stays as the primary explainer. */}
-                  <button type="button" onClick={() => router.push("/about")}
+                  {/* Primary CTA now drives the price-finder funnel. */}
+                  <button type="button" onClick={() => router.push("/mai-ieftin")}
                     className="lb-gold flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-black active:scale-95 transition-transform">
-                    <Sparkles className="h-4 w-4" /> Dress a model
+                    <Search className="h-4 w-4" /> {HERO[heroLang].cta}
                   </button>
                 </div>
-                {/* Model recruiting → its own landing page. Solid gold pill so
-                    would-be models can't miss it. */}
+                {/* Model recruiting → its own landing page. */}
                 <button type="button" onClick={() => router.push("/become-a-model")}
                   className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-black text-white/55 underline decoration-white/25 underline-offset-4 active:opacity-70 transition">
-                  <Heart className="h-3.5 w-3.5" fill="currentColor" /> Become a Model — earn with every look →
+                  <Heart className="h-3.5 w-3.5" fill="currentColor" /> {HERO[heroLang].becomeModel}
                 </button>
               </section>
             )}
