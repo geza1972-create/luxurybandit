@@ -98,6 +98,43 @@ const T: Record<Lang, { title: string; motto: string; ph: string; free: string; 
   },
 };
 
+// A self-playing example conversation ("▶ Demo") shown on the empty state so a visitor SEES
+// exactly how it works before typing. Fully scripted → zero API/SerpApi cost, always looks
+// perfect. Real Gianna Bellucci pieces (real images + RON prices + tracked affiliate links).
+const DEMO_PRODUCTS: ShopItem[] = [
+  { title: "Body Hera", price: "510 RON", thumbnail: "https://cdn.giannabellucci.com/G0172T-BLA/81af6a9aeb0d.jpg", link: "https://www.jdoqocy.com/click-101815363-17273998?url=https%3A%2F%2Fgiannabellucci.com%2Fro%2Fs%2Fproduct%2FVXpRTEIyWTBYU3ZGbkE9PQ_equal__equal_%3Futm_source%3Dgoogle%26utm_medium%3Dfeed%26fs_token%3D912ec803b2ce49e4a541068d495ab570%26sku%3DG0172T-BLA-M&cjsku=G0172T-BLA-M", source: "GiannaBellucci" },
+  { title: "Body Marcia", price: "400 RON", thumbnail: "https://cdn.giannabellucci.com/G0214B-BLA/20a8148d274c.jpg", link: "https://www.dpbolvw.net/click-101815363-17273998?url=https%3A%2F%2Fgiannabellucci.com%2Fro%2Fs%2Fproduct%2FVXpRSitaVmk2b3l6a0E9PQ_equal__equal_%3Futm_source%3Dgoogle%26utm_medium%3Dfeed%26fs_token%3D912ec803b2ce49e4a541068d495ab570&cjsku=G0214B-BLA", source: "GiannaBellucci" },
+  { title: "Body Luciana", price: "355 RON", thumbnail: "https://cdn.giannabellucci.com/G0192B-PNK/0a4864c2edb0.jpg", link: "https://www.jdoqocy.com/click-101815363-17273998?url=https%3A%2F%2Fgiannabellucci.com%2Fro%2Fs%2Fproduct%2FVXpRTERTQVVEUDFMWkE9PQ_equal__equal_%3Futm_source%3Dgoogle%26utm_medium%3Dfeed%26fs_token%3D912ec803b2ce49e4a541068d495ab570&cjsku=G0192B-PNK", source: "GiannaBellucci" },
+];
+const DEMO: Record<Lang, { btn: string; q: string; a1: string; chips1: string[]; pick: string; a2: string; chips2: string[]; show: string; a3: string; outro: string; tryCta: string }> = {
+  ro: {
+    btn: "Vezi un exemplu",
+    q: "caut un body negru elegant",
+    a1: "Perfect! Ce vibe cauți — pentru o seară specială, sexy sau casual chic? 💫",
+    chips1: ["Elegant de seară", "Sexy și sofisticat", "Casual chic"],
+    pick: "Elegant de seară",
+    a2: "Superb ✨ Îți arăt acum sau mai adaugi ceva (culoare, mărime)?",
+    chips2: ["Arată-mi", "Mai am ceva"],
+    show: "Arată-mi",
+    a3: "Am ales pentru tine piese de lux, negre și elegante de seară — le poți cumpăra direct 💛",
+    outro: "Așa de simplu! Acum spune-mi TU ce cauți 💛",
+    tryCta: "↺ Începe tu",
+  },
+  en: {
+    btn: "See an example",
+    q: "I'm looking for an elegant black bodysuit",
+    a1: "Perfect! What's the vibe — a special evening, sexy, or casual chic? 💫",
+    chips1: ["Evening elegant", "Sexy & sophisticated", "Casual chic"],
+    pick: "Evening elegant",
+    a2: "Lovely ✨ Show you now, or add something (colour, size)?",
+    chips2: ["Show me", "One more thing"],
+    show: "Show me",
+    a3: "I picked elegant black luxury pieces for you — shoppable right away 💛",
+    outro: "That simple! Now tell me what YOU want 💛",
+    tryCta: "↺ Start yourself",
+  },
+};
+
 function MaiIeftinInner() {
   const params = useSearchParams();
   const router = useRouter();
@@ -128,6 +165,7 @@ function MaiIeftinInner() {
   // Append the current language to internal links so clicks keep the user in that language.
   const withLang = (href: string) => `${href}${href.includes("?") ? "&" : "?"}lang=${lang}`;
   const [shared, setShared] = useState(false);
+  const [demoPlaying, setDemoPlaying] = useState(false); // "▶ Demo" self-playing example running
   const share = async () => {
     const url = typeof window !== "undefined" ? window.location.href : "";
     try {
@@ -193,11 +231,11 @@ function MaiIeftinInner() {
   const pickFile = (f?: File | null) => { if (f) { try { setPreview(URL.createObjectURL(f)); } catch { /**/ } } };
   const clearFile = () => { setPreview(""); if (fileRef.current) fileRef.current.value = ""; };
 
-  const canSend = (text.trim().length > 0 || !!preview) && !loading;
+  const canSend = (text.trim().length > 0 || !!preview) && !loading && !demoPlaying;
 
   const send = async (override?: string, apiText?: string) => {
     const raw = (override ?? text).trim();
-    if ((!raw && !preview) || loading) return;
+    if ((!raw && !preview) || loading || demoPlaying) return;
     const content = raw + (preview ? `${raw ? " " : ""}${lang === "en" ? "(attached a photo)" : "(am atașat o poză)"}` : "");
     const userMsg: Msg = { role: "user", content, ...(apiText ? { apiContent: apiText } : {}) };
     const next: Msg[] = [...messages, userMsg];
@@ -216,9 +254,38 @@ function MaiIeftinInner() {
     } finally { setLoading(false); }
   };
 
+  // "▶ Demo" — self-play a scripted example into the chat UI so a visitor SEES how it works.
+  // Zero API cost (all local); reuses the real message/product rendering. Ends with a reset chip.
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const playDemo = async () => {
+    if (demoPlaying) return;
+    const d = DEMO[lang];
+    const push = (msg: Msg) => setMessages((m) => [...m, msg]);
+    setDemoPlaying(true);
+    setMessages([]);
+    await sleep(350);
+    push({ role: "user", content: d.q });
+    await sleep(550); setLoading(true); await sleep(1100); setLoading(false);
+    push({ role: "assistant", content: d.a1, chips: d.chips1 });
+    await sleep(1500);
+    push({ role: "user", content: d.pick });
+    await sleep(450); setLoading(true); await sleep(1000); setLoading(false);
+    push({ role: "assistant", content: d.a2, chips: d.chips2 });
+    await sleep(1500);
+    push({ role: "user", content: d.show });
+    await sleep(450); setLoading(true); await sleep(1300); setLoading(false);
+    push({ role: "assistant", content: d.a3, products: DEMO_PRODUCTS });
+    await sleep(900);
+    push({ role: "assistant", content: d.outro, chips: [d.tryCta] });
+    setDemoPlaying(false);
+  };
+
   // Chip tap. On the reference intro (Yes/No), Yes searches for that product (carrying the
   // hidden hint to the AI); No starts a fresh request. Otherwise the chip text is sent.
   const onChip = (c: string) => {
+    if (demoPlaying) return;
+    // The demo's closing chip resets to a fresh empty state so the visitor starts for real.
+    if (c === DEMO.ro.tryCta || c === DEMO.en.tryCta) { setMessages([]); setText(""); return; }
     const atIntro = messages.length === 1 && !!messages[0]?.refImg;
     if (atIntro) {
       const isYes = c === T.ro.yes || c === T.en.yes;
@@ -335,6 +402,13 @@ function MaiIeftinInner() {
                 <button key={s} type="button" onClick={() => void send(s)}
                   className="rounded-full bg-white/[0.07] px-3 py-1.5 text-[13px] font-semibold text-white/70 ring-1 ring-white/10 active:scale-95 transition">{s}</button>
               ))}
+            </div>
+            <div className="mt-5 flex justify-center">
+              <button type="button" onClick={() => void playDemo()}
+                className="inline-flex items-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 px-4 py-2 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
+                <span className="grid h-5 w-5 place-items-center rounded-full bg-[#c9a23f] text-black"><Play className="h-3 w-3 fill-current" /></span>
+                {DEMO[lang].btn}
+              </button>
             </div>
             <p className="mt-4 text-center text-[13px] font-semibold text-white/40">{t.free}</p>
           </div>
