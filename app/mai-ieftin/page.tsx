@@ -108,7 +108,7 @@ const DEMO_PRODUCTS: ShopItem[] = [
 ];
 const DEMO: Record<Lang, { btn: string; q: string; a1: string; chips1: string[]; pick: string; a2: string; chips2: string[]; show: string; a3: string; wantDresses: string; a4: string; outro: string; tryCta: string }> = {
   ro: {
-    btn: "Vezi un exemplu",
+    btn: "Cum funcționează",
     q: "caut un body negru elegant",
     a1: "Perfect! Ce vibe cauți — pentru o seară specială, sexy sau casual chic? 💫",
     chips1: ["Elegant de seară", "Sexy și sofisticat", "Casual chic"],
@@ -123,7 +123,7 @@ const DEMO: Record<Lang, { btn: string; q: string; a1: string; chips1: string[];
     tryCta: "↺ Începe tu",
   },
   en: {
-    btn: "See an example",
+    btn: "How it works",
     q: "I'm looking for an elegant black bodysuit",
     a1: "Perfect! What's the vibe — a special evening, sexy, or casual chic? 💫",
     chips1: ["Evening elegant", "Sexy & sophisticated", "Casual chic"],
