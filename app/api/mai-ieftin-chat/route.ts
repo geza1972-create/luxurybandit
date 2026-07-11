@@ -499,7 +499,7 @@ export async function POST(request: Request) {
           const note = `New chat with ${who}: "${String(lastUser).slice(0, 140)}"`;
           const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").split(",")[0].trim();
           if (adminEmail) { import("@/lib/email-send").then(({ sendEmail }) => sendEmail({ to: adminEmail, subject: `💬 New chat with ${who}`, html: `<p>${note}</p>` })).catch(() => {}); }
-          import("@/lib/sms-send").then(({ sendSms }) => sendSms(note)).catch(() => {});
+          import("@/lib/whatsapp-send").then(({ sendWhatsApp }) => sendWhatsApp(note)).catch(() => {});
         }
         st.modelChats = chats;
         await saveTryThisLookState(st);
