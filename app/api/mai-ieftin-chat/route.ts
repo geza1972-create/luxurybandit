@@ -33,6 +33,10 @@ function shopWithinCap(): boolean {
   return shopCalls < SHOP_DAILY_CAP;
 }
 
+// Kill non-fashion Google-Shopping results (books, media, electronics, toys, home) — a luxury
+// fashion chat must never surface a novel or a phone. RO + EN keywords.
+const NON_FASHION = /\b(carte|c[ăa]r[țt]i|carti|roman|nuvel|editur|libris|c[ăa]rtur|book|books|kindle|audiobook|paperback|hardcover|dvd|blu-?ray|\bcd\b|vinyl|joc|jocuri|game|gaming|puzzle|juc[ăa]rii|toy|telefon|laptop|tablet|mobil|c[ăa]sti|electronic|poster|tablou|mug|can[ăa]|jurnal|agend[ăa]|papet[ăa]r)\b/i;
+
 async function shoppingSearch(query: string): Promise<ShopItem[]> {
   const q = query.trim().slice(0, 120);
   if (q.length < 3) return [];
@@ -49,7 +53,7 @@ async function shoppingSearch(query: string): Promise<ShopItem[]> {
   try {
     const u = new URL("https://serpapi.com/search.json");
     u.searchParams.set("engine", "google_shopping");
-    u.searchParams.set("q", q);
+    u.searchParams.set("q", `${q} haine femei`); // anchor to women's FASHION (else Google returns books/junk)
     u.searchParams.set("hl", "ro");   // Romanian audience
     u.searchParams.set("gl", "ro");
     u.searchParams.set("api_key", key);
@@ -63,11 +67,16 @@ async function shoppingSearch(query: string): Promise<ShopItem[]> {
       const link = String(r?.product_link ?? r?.link ?? "").trim();
       const thumbnail = String(r?.thumbnail ?? "").trim();
       if (!link || !thumbnail || seen.has(link)) continue;
+      const title = String(r?.title ?? "").slice(0, 120);
+      const source = String(r?.source ?? "").slice(0, 50);
+      // Google Shopping mixes in NON-fashion junk (books, media, electronics) for vague queries
+      // like "elegant" — a luxury-fashion chat must never show a book. Drop clear non-fashion.
+      if (NON_FASHION.test(`${title} ${source}`)) continue;
       seen.add(link);
       items.push({
-        title: String(r?.title ?? "").slice(0, 120),
+        title,
         link,
-        source: String(r?.source ?? "").slice(0, 50) || undefined,
+        source: source || undefined,
         thumbnail,
         price: typeof r?.price === "string" ? r.price : undefined,
       });
