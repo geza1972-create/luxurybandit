@@ -262,7 +262,7 @@ function MaiIeftinInner() {
       {/* Ambient gold geometry drifting up the background; a burst replays on each message. */}
       <AmbientGeometry burst={messages.length} />
       {/* Top bar */}
-      <header className="relative z-10 flex shrink-0 items-center justify-between px-5 py-4">
+      <header className="relative z-30 flex shrink-0 items-center justify-between px-5 py-4">
         <Link href="/home" aria-label="LuxuryBandit" className="inline-flex shrink-0 items-center active:scale-95 transition">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/lb-logo.png" alt="LuxuryBandit" className="h-9 w-9 rounded-full object-contain" />

@@ -89,7 +89,9 @@ FLUX — pune întrebări cu „chips" (nu căuta încă), pas cu pas:
    - Dacă alege „Mai am ceva" → „reply" scurt „Spune-mi 🙂", query:"", chips:[].
 3) Când zice „Arată-mi" / „da" / e gata → CAUTĂ: „query" cu cuvinte-cheie care descriu un produs cu aspect ELEGANT/designer, chips:[]. Dacă a zis „Calitatea" accentuează 'premium designer'; dacă „Prețul mic" caută cele mai ieftine variante cu aspect bun.
 4) Salut/mulțumire → query:"", chips:[], răspuns scurt.
+5) Dacă userul întreabă despre TINE sau stilul tău (ex „ce haine îți plac", „ce porți"), NU căuta. Răspunde cald, ca o prietenă cu stil: spune câteva vibe-uri/branduri de designer care-ți plac (ex piese elegante, satin, dantelă, gen Versace/Saint Laurent) și întreabă înapoi „Ție ce îți place? 💛". query:"", chips:[].
 
+REGULĂ DE AUR: NU arăta NICIODATĂ produse fără să întrebi întâi — ar fi prea insistent. „query" rămâne GOL până când userul spune clar CE produs vrea ȘI a trecut prin întrebări. La salut, small-talk sau întrebări despre tine → conversație, NU produse.
 NU inventa prețuri sau linkuri — de căutare mă ocup eu.`;
 
 // Product-TYPE groups (EN + RO). We only surface our looks whose garment type matches the
@@ -213,23 +215,30 @@ export async function POST(request: Request) {
 
     const lastUser = (history.filter((m) => m.role === "user").pop()?.content ?? "").toLowerCase();
     const saidShow = /arat[ăa]|hai|gata|^da\b|^da[ ,.!]|caută|cauta|show|search|^yes\b/.test(lastUser);
+    // Meta / style / small-talk about HER — must stay conversational, never products.
+    const metaQ = /\bce (haine|stil|porți|porti|culor)\b|ție ce|tie ce|ce[- ]?ți place|ce iti place|îți plac|iti plac|despre tine|cine ești|cine esti|salut|bună|buna|mulțum|multum|thank|hello|hi\b|who are you|your style|what do you (like|wear)/i.test(lastUser);
     const assistantTurns = history.filter((m) => m.role === "assistant").length;
+    const priorityChips = lang === "en" ? ["Affordable price", "Fast shipping", "Quality", "No preference"] : ["Prețul mic", "Livrarea rapidă", "Calitatea", "Mi-e indiferent"];
+    const priorityReply = lang === "en" ? "Nice! What matters most to you?" : "Super! Ce contează cel mai mult pentru tine? 💛";
+    const confirmChips = lang === "en" ? ["Show me", "One more thing"] : ["Arată-mi", "Mai am ceva"];
+    const confirmReply = lang === "en" ? "Got it 👍 Show you now, or add something (colour, size, brand)?" : "Am înțeles 👍 Îți arăt acum sau mai vrei să adaugi ceva (culoare, mărime, brand)?";
 
-    // Enforce the "show me?" confirmation step: after the FIRST question is answered, don't
-    // jump straight to results — confirm first, unless the user already said they're ready.
-    if (assistantTurns === 1 && !saidShow && query) {
-      query = "";
-      chips = lang === "en" ? ["Show me", "One more thing"] : ["Arată-mi", "Mai am ceva"];
-      reply = lang === "en"
-        ? "Got it 👍 Show you now, or add something (colour, size, brand)?"
-        : "Am înțeles 👍 Îți arăt acum sau mai vrei să adaugi ceva (culoare, mărime, brand)?";
-    }
-
-    // Safety net: force a search when the user says they're ready, or after a few turns, so
-    // it can never loop forever asking questions.
-    if (saidShow || assistantTurns >= 3) {
-      chips = [];
-      if (!query) query = (history.find((m) => m.role === "user")?.content ?? "").slice(0, 80);
+    if (metaQ) {
+      // Chat about her style — keep the model's conversational reply, show NO products.
+      query = ""; chips = [];
+    } else {
+      // GOLDEN RULE: never show products unprompted. If the AI wants to search but the user
+      // hasn't gone through the ask-flow yet, ask instead of showing products.
+      if (assistantTurns === 0 && !saidShow && query) {
+        query = ""; chips = priorityChips; reply = priorityReply;
+      } else if (assistantTurns === 1 && !saidShow && query) {
+        query = ""; chips = confirmChips; reply = confirmReply;
+      }
+      // Search only once the user is ready ("arată/da/gata") or after a few turns (safety).
+      if (saidShow || assistantTurns >= 3) {
+        chips = [];
+        if (!query) query = (history.find((m) => m.role === "user")?.content ?? "").slice(0, 80);
+      }
     }
     // Strip budget/price noise from the shopping query — "red panties 50-100 RON" returns
     // nothing on Google Shopping. Keep the product words only.
