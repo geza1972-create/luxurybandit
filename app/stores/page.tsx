@@ -1771,14 +1771,22 @@ function StoresPage() {
   const [bulkAssignName, setBulkAssignName] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
-  // Landing hero language lives in the URL (?lang=ro|en) so it can be shared per language.
+  // Landing hero language: URL ?lang (shareable) + localStorage (persists across navigation).
   const [heroLang, setHeroLang] = useState<"ro" | "en">(searchParams.get("lang") === "en" ? "en" : "ro");
   const setHeroLangUrl = (l: "ro" | "en") => {
     setHeroLang(l);
+    try { localStorage.setItem("lb_lang", l); } catch { /**/ }
     const p = new URLSearchParams(Array.from(searchParams.entries()));
     p.set("lang", l);
     router.replace(`${pathname}?${p.toString()}`, { scroll: false });
   };
+  useEffect(() => {
+    const q = searchParams.get("lang");
+    try {
+      if (q === "en" || q === "ro") localStorage.setItem("lb_lang", q);
+      else { const s = localStorage.getItem("lb_lang"); if (s === "en" || s === "ro") setHeroLang(s as "ro" | "en"); }
+    } catch { /**/ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Home = the full-screen scrolling reels feed (DEFAULT landing). ?view=grid =
   // the 3-col grid overview. ?view=alist = The A List (HomeFeed of look posts).
   const view = searchParams.get("view");
@@ -2715,8 +2723,8 @@ function StoresPage() {
                   ))}
                 </div>
                 <div className="mt-3.5 flex items-center gap-2">
-                  {/* Primary CTA now drives the price-finder funnel. */}
-                  <button type="button" onClick={() => router.push("/mai-ieftin")}
+                  {/* Primary CTA now drives the price-finder funnel (in the chosen language). */}
+                  <button type="button" onClick={() => router.push(`/mai-ieftin?lang=${heroLang}`)}
                     className="lb-gold flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-black active:scale-95 transition-transform">
                     <Search className="h-4 w-4" /> {HERO[heroLang].cta}
                   </button>

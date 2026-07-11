@@ -112,10 +112,21 @@ function MaiIeftinInner() {
   const t = T[lang];
   const setLangUrl = (l: Lang) => {
     setLang(l);
+    try { localStorage.setItem("lb_lang", l); } catch { /**/ }
     const p = new URLSearchParams(Array.from(params.entries()));
     p.set("lang", l);
     router.replace(`${pathname}?${p.toString()}`, { scroll: false });
   };
+  // Remember the language so navigating anywhere stays in it; a ?lang in the URL wins + is saved.
+  useEffect(() => {
+    const q = params.get("lang");
+    try {
+      if (q === "en" || q === "ro") localStorage.setItem("lb_lang", q);
+      else { const s = localStorage.getItem("lb_lang"); if (s === "en" || s === "ro") setLang(s as Lang); }
+    } catch { /**/ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Append the current language to internal links so clicks keep the user in that language.
+  const withLang = (href: string) => `${href}${href.includes("?") ? "&" : "?"}lang=${lang}`;
   const [shared, setShared] = useState(false);
   const share = async () => {
     const url = typeof window !== "undefined" ? window.location.href : "";
@@ -279,7 +290,7 @@ function MaiIeftinInner() {
                 <div className="fixed inset-0 z-[59]" onClick={() => setNavOpen(false)} />
                 <div className="absolute right-0 top-full z-[60] mt-2 w-44 overflow-hidden rounded-2xl bg-[#111] p-1.5 shadow-2xl ring-1 ring-white/10">
                   {[{ href: "/stores", label: "Looks", Icon: Play }, { href: "/stores?view=grid", label: t.gallery, Icon: LayoutGrid }, { href: "/stores?view=models", label: t.models, Icon: Users }].map((n) => (
-                    <Link key={n.href} href={n.href} onClick={() => setNavOpen(false)}
+                    <Link key={n.href} href={withLang(n.href)} onClick={() => setNavOpen(false)}
                       className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[14px] font-bold text-white/85 hover:bg-white/10 active:scale-[0.98] transition">
                       <n.Icon className="h-4 w-4 text-white/45" /> {n.label}
                     </Link>

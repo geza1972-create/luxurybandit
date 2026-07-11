@@ -821,7 +821,7 @@ export default function CuratorPublicPage() {
         {/* Two gold CTAs side by side — chat with her + jump to her other looks. */}
         <div className="mt-3 flex w-full max-w-sm items-stretch gap-2">
           <button type="button"
-            onClick={() => router.push(`/mai-ieftin?model=${encodeURIComponent(id)}`)}
+            onClick={() => { const lg = (() => { try { return localStorage.getItem("lb_lang") === "en" ? "en" : "ro"; } catch { return "ro"; } })(); router.push(`/mai-ieftin?model=${encodeURIComponent(id)}&lang=${lg}`); }}
             className="lb-gold flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-black leading-tight active:scale-95 transition">
             <MessageCircle className="h-4 w-4 shrink-0" /> Chat with her AI Assistant
           </button>
