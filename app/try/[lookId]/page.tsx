@@ -9,6 +9,7 @@ import ModelChat from "@/components/ModelChat";
 import { FeedGate } from "@/components/FeedGate";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { logFunnelEvent } from "@/lib/track-funnel";
+import { trackMetaPixel } from "@/lib/meta-pixel";
 
 type Outfit = { id: string; name: string; imageUrl: string; lookId?: string };
 type Look = { id: string; name: string; imageUrl?: string; frontImageUrl?: string; videoPosterUrl?: string; modelPhotoUrl?: string; curatorName?: string; featured?: boolean };
@@ -233,6 +234,7 @@ export default function TryFunnelPage() {
   useEffect(() => {
     if (!lookId) return;
     logFunnelEvent("tryon_open", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) });
+    trackMetaPixel("ViewContent", { content_category: "tryon", content_name: modelNameParam || lookId }); // Meta: funnel landed (A/B optimisation)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -335,7 +337,7 @@ export default function TryFunnelPage() {
     if (!look || step !== 2) return;
     let resume = false;
     try { resume = sessionStorage.getItem("lb_tryon_resume") === "1"; } catch { /**/ }
-    if (resume && isAuthed()) { try { sessionStorage.removeItem("lb_tryon_resume"); } catch { /**/ } void goStep3(); }
+    if (resume && isAuthed()) { try { sessionStorage.removeItem("lb_tryon_resume"); } catch { /**/ } trackMetaPixel("CompleteRegistration", { content_category: "tryon" }); void goStep3(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [look]);
 
@@ -403,6 +405,9 @@ export default function TryFunnelPage() {
   const generateReal = async (outfitOverride?: Outfit) => {
     if (genStartedRef.current) return;
     genStartedRef.current = true;
+    // Meta: the user committed to MAKING a video — the strongest intent signal in this funnel,
+    // fired once. This is what FB's A/B test should optimise toward (not cheap PageViews).
+    trackMetaPixel("Lead", { content_category: "tryon", content_name: lookId });
     setGenStatus("generating"); setGenError("");
     const H = { "Content-Type": "application/json", ...(adminPin ? { "x-try-look-admin-pin": adminPin } : {}) };
     try {
