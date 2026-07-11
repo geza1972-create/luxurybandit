@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { Plus, ArrowUp, X, Menu, Sparkles } from "lucide-react";
+import { Plus, ArrowUp, X, Menu, Sparkles, ChevronDown, LayoutGrid, Users } from "lucide-react";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -71,10 +71,10 @@ type ShopItem = { title: string; link: string; source?: string; thumbnail: strin
 // `apiContent` = what's sent to the AI (may differ from the displayed `content`, e.g. a
 // "Yes" chip that actually carries the product hint). `refImg` = a reference still shown
 // with the message (carried in from a feed "Bandit the look!" tap).
-type Msg = { role: "user" | "assistant"; content: string; apiContent?: string; refImg?: string; products?: ShopItem[]; ownProducts?: ShopItem[]; original?: ShopItem[]; brand?: string; chips?: string[] };
+type Msg = { role: "user" | "assistant"; content: string; apiContent?: string; refImg?: string; modelLooks?: { img: string; hint: string }[]; products?: ShopItem[]; ownProducts?: ShopItem[]; original?: ShopItem[]; brand?: string; chips?: string[] };
 
 type Lang = "ro" | "en";
-const T: Record<Lang, { title: string; ph: string; free: string; original: string; inspo: string; cheaper: string; ours: string; introQ: string; yes: string; no: string; askMore: string; inspo_btn: string; suggestions: string[] }> = {
+const T: Record<Lang, { title: string; ph: string; free: string; original: string; inspo: string; cheaper: string; ours: string; introQ: string; yes: string; no: string; askMore: string; inspo_btn: string; gallery: string; models: string; wantOthers: string; suggestions: string[] }> = {
   ro: {
     title: "Găsește-l mai ieftin",
     ph: "Scrie ce cauți, lipește un link sau o poză…",
@@ -82,7 +82,7 @@ const T: Record<Lang, { title: string; ph: string; free: string; original: strin
     original: "Originalul", inspo: "sursa noastră de inspirație",
     cheaper: "Același look, mai ieftin", ours: "Din colecția LuxuryBandit",
     introQ: "Vrei acest produs mai ieftin? Sau vrei altul?", yes: "Da", no: "Nu, altul",
-    askMore: "Ok! Spune-mi ce cauți 🙂", inspo_btn: "Inspirație",
+    askMore: "Ok! Spune-mi ce cauți 🙂", inspo_btn: "Inspirație", gallery: "Galerie", models: "Modele", wantOthers: "Vreau altele",
     suggestions: ["o geantă ca de la Versace, mai ieftin", "adidași ca Golden Goose", "o rochie de seară sub 200 lei"],
   },
   en: {
@@ -92,7 +92,7 @@ const T: Record<Lang, { title: string; ph: string; free: string; original: strin
     original: "The original", inspo: "our inspiration",
     cheaper: "Same look, cheaper", ours: "From the LuxuryBandit collection",
     introQ: "Do you want this product cheaper? Or a different one?", yes: "Yes", no: "No, another",
-    askMore: "Ok! Tell me what you're looking for 🙂", inspo_btn: "Inspiration",
+    askMore: "Ok! Tell me what you're looking for 🙂", inspo_btn: "Inspiration", gallery: "Gallery", models: "Models", wantOthers: "I want others",
     suggestions: ["a bag like Versace, cheaper", "sneakers like Golden Goose", "an evening dress under €50"],
   },
 };
@@ -103,6 +103,7 @@ export default function MaiIeftinPage() {
   const [preview, setPreview] = useState(""); // object URL of an attached photo
   const [loading, setLoading] = useState(false);
   const [lang, setLang] = useState<Lang>("ro");
+  const [navOpen, setNavOpen] = useState(false);
   const t = T[lang];
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -113,16 +114,19 @@ export default function MaiIeftinPage() {
   // A feed "Bandit the look!" tap stashes a reference (still + hint) in sessionStorage.
   // On open, show it and ask "want this cheaper, or another?" with Yes/No chips.
   useEffect(() => {
-    let ref: { img?: string; hint?: string; kind?: string; name?: string } | null = null;
+    let ref: { img?: string; hint?: string; kind?: string; name?: string; looks?: { img: string; hint: string }[] } | null = null;
     try { const s = sessionStorage.getItem("lb_bandit_ref"); if (s) { ref = JSON.parse(s); sessionStorage.removeItem("lb_bandit_ref"); } } catch { /**/ }
     if (ref && (ref.img || ref.hint)) {
       if (ref.kind === "model") {
-        // From a model's "Chat with her" — greet with her photo, ask (openly) what they want.
+        // From a model's "Chat with her" — greet with her photo + her video looks below, and
+        // ask if they like her clothes (tap a look → find it cheaper) or want other clothes.
         refHintRef.current = "";
         const n = (ref.name || "").trim();
+        const looks = Array.isArray(ref.looks) ? ref.looks.filter((l) => l && l.img).slice(0, 8) : [];
         setMessages([{ role: "assistant", content: n
-          ? `Merci că m-ai ales, eu sunt ${n}! Îți place stilul meu și vrei să-ți găsesc produse faine? Ce dorești mai ieftin! 💛`
-          : "Merci că m-ai ales! Îți place stilul meu și vrei să-ți găsesc produse faine? Ce dorești mai ieftin! 💛", refImg: ref.img || "" }]);
+          ? `Merci că m-ai ales, eu sunt ${n}! Îți plac hainele mele sau vrei să-ți găsesc alte haine? 💛`
+          : "Merci că m-ai ales! Îți plac hainele mele sau vrei să-ți găsesc alte haine? 💛",
+          refImg: ref.img || "", modelLooks: looks, chips: [T.ro.wantOthers] }]);
       } else {
         // From a feed look — ask "this one cheaper, or another?" with Yes/No.
         refHintRef.current = ref.hint || "";
@@ -168,11 +172,17 @@ export default function MaiIeftinPage() {
         void send(t.yes, `${lang === "en" ? "Find this product cheaper" : "Găsește-mi acest produs mai ieftin"}${hint ? `: ${hint}` : ""}`);
         return;
       }
+      // "Nu, altul" (feed) or "Vreau altele" (model) → open search.
       refHintRef.current = "";
-      void send(t.no, lang === "en" ? "No, I want something else" : "Nu, caut altceva");
+      void send(c, lang === "en" ? "No, I want something else" : "Nu, caut altceva");
       return;
     }
     void send(c);
+  };
+
+  // Tapping one of the model's video looks → find that exact look cheaper (hint hidden).
+  const onModelLook = (hint: string) => {
+    void send(lang === "en" ? "This one 💛" : "Asta îmi place 💛", `${lang === "en" ? "Find this product cheaper" : "Găsește-mi acest produs mai ieftin"}${hint ? `: ${hint}` : ""}`);
   };
 
   const empty = messages.length === 0 && !loading;
@@ -216,10 +226,26 @@ export default function MaiIeftinPage() {
           <img src="/lb-logo.png" alt="LuxuryBandit" className="h-9 w-9 rounded-full object-contain" />
         </Link>
         <div className="flex items-center gap-2">
-          {/* Inspiration → the try-on video feed (where "Bandit the look!" lives). */}
-          <Link href="/stores" className="flex items-center gap-1.5 rounded-full bg-white/[0.07] px-3 py-1.5 text-[13px] font-black text-white/85 ring-1 ring-white/10 active:scale-95 transition">
-            <Sparkles className="h-4 w-4 text-[#c9a23f]" /> {t.inspo_btn}
-          </Link>
+          {/* Explore dropdown — Inspiration (feed), Gallery, Models. */}
+          <div className="relative">
+            <button type="button" onClick={() => setNavOpen((v) => !v)}
+              className="flex items-center gap-1 rounded-full bg-white/[0.07] px-3 py-1.5 text-[13px] font-black text-white/85 ring-1 ring-white/10 active:scale-95 transition">
+              <Sparkles className="h-4 w-4 text-[#c9a23f]" /> {t.inspo_btn} <ChevronDown className="h-3.5 w-3.5 text-white/50" />
+            </button>
+            {navOpen && (
+              <>
+                <div className="fixed inset-0 z-[59]" onClick={() => setNavOpen(false)} />
+                <div className="absolute right-0 top-full z-[60] mt-2 w-44 overflow-hidden rounded-2xl bg-[#111] p-1.5 shadow-2xl ring-1 ring-white/10">
+                  {[{ href: "/stores", label: t.inspo_btn, Icon: Sparkles }, { href: "/stores?view=grid", label: t.gallery, Icon: LayoutGrid }, { href: "/stores?view=models", label: t.models, Icon: Users }].map((n) => (
+                    <Link key={n.href} href={n.href} onClick={() => setNavOpen(false)}
+                      className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[14px] font-bold text-white/85 hover:bg-white/10 active:scale-[0.98] transition">
+                      <n.Icon className="h-4 w-4 text-white/45" /> {n.label}
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
           {/* Language switcher — Romanian default, toggle to English. */}
           <div className="flex items-center rounded-full bg-white/[0.07] p-0.5 ring-1 ring-white/10">
             {(["ro", "en"] as Lang[]).map((l) => (
@@ -273,6 +299,18 @@ export default function MaiIeftinPage() {
                       {m.content}
                     </div>
                   </div>
+                  {/* The model's own video looks — tap one to find it cheaper. */}
+                  {m.modelLooks && m.modelLooks.length > 0 && (
+                    <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
+                      {m.modelLooks.map((l, idx) => (
+                        <button key={idx} type="button" onClick={() => onModelLook(l.hint)}
+                          className="w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#b8912f]/30 active:scale-95 transition">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={l.img} alt="" loading="lazy" className="h-36 w-28 object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {/* Quick-reply chips — tap to refine (only on the latest reply) */}
                   {m.role === "assistant" && i === messages.length - 1 && !loading && m.chips && m.chips.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-0.5">

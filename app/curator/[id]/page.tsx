@@ -824,7 +824,10 @@ export default function CuratorPublicPage() {
             onClick={() => {
               // Chat with her = help finding looks cheaper. Carry her photo + name into the
               // price-finder, which greets with her image and asks what they want cheaper.
-              try { sessionStorage.setItem("lb_bandit_ref", JSON.stringify({ img: profile.photoFullUrl || profile.photoUrl || "", kind: "model", name: profile.firstName || name })); } catch { /**/ }
+              try {
+                const looks = tryons.filter((t) => t.imageUrl).slice(0, 8).map((t) => ({ img: t.imageUrl, hint: t.lookName || "" }));
+                sessionStorage.setItem("lb_bandit_ref", JSON.stringify({ img: profile.photoFullUrl || profile.photoUrl || "", kind: "model", name: profile.firstName || name, looks }));
+              } catch { /**/ }
               router.push("/mai-ieftin");
             }}
             className="lb-gold flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-black leading-tight active:scale-95 transition">
