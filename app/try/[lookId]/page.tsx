@@ -270,7 +270,10 @@ export default function TryFunnelPage() {
   // The "woman from the video" reference — the look's own poster/front image, unless the
   // user replaced it with their own avatar.
   const modelImg = avatar || pickedModel || modelParam || modelPhotoResolved || look?.modelPhotoUrl || look?.videoPosterUrl || look?.frontImageUrl || look?.imageUrl || "";
-  const teaserImg = garmentParam || outfit?.imageUrl || modelImg;
+  // Teaser still behind the "Video ready" lock (only shown when there's NO cached video). Prefer
+  // a content-rich image (video poster → model/look photo) over the garment cut-out — a white
+  // product on white blurs to nothing and looks blank. Never empty.
+  const teaserImg = previewPoster || modelImg || outfit?.imageUrl || garmentParam || "";
   // The model the try-on is attributed to (final pick wins; empty for own-photo try-ons).
   const chosenModelId = !avatar ? (pickedModelId || modelIdParam) : "";
   const chosenModelName = !avatar ? (pickedModelName || modelNameParam) : "";
