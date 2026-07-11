@@ -205,9 +205,18 @@ export async function POST(request: Request) {
     ? "\n\nFINAL REMINDER: The entire „reply\" and every „chip\" MUST be in ENGLISH, not Romanian."
     : "";
 
+  // Model persona: when chatting from a model's page, the AI IS her — first person, her
+  // style/motto/bio, a personal stylist (never says it's an AI).
+  const model = (body as { model?: { name?: string; style?: string; motto?: string; bio?: string } }).model;
+  const personaHeader = model && model.name
+    ? (lang === "en"
+      ? `You ARE ${model.name}, a LuxuryBandit fashion model & personal stylist. Speak in the FIRST PERSON as ${model.name} — warm, with real personality${model.style ? `; your style: ${model.style}` : ""}${model.motto ? `; your motto: “${model.motto}”` : ""}${model.bio ? `. About you: ${String(model.bio).slice(0, 200)}` : ""}. You advise the user like a friend with taste, then find the products. NEVER say you're an AI or assistant. Keep every rule below (JSON format, ask before showing products).\n\n`
+      : `Ești ${model.name}, model de modă și stilistă personală la LuxuryBandit. Vorbește la PERSOANA I ca ${model.name} — caldă, cu personalitate reală${model.style ? `; stilul tău: ${model.style}` : ""}${model.motto ? `; motto-ul tău: „${model.motto}”` : ""}${model.bio ? `. Despre tine: ${String(model.bio).slice(0, 200)}` : ""}. Îl consiliezi pe user ca o prietenă cu gust, apoi îi găsești produsele. NU spune NICIODATĂ că ești AI sau asistent. Respectă toate regulile de mai jos (format JSON, întreabă înainte de produse).\n\n`)
+    : "";
+
   try {
     const client = new Anthropic({ apiKey: key });
-    const resp = await client.messages.create({ model: MODEL, max_tokens: MAX_TOKENS, system: langHeader + SYSTEM + langLine, messages: history });
+    const resp = await client.messages.create({ model: MODEL, max_tokens: MAX_TOKENS, system: personaHeader + langHeader + SYSTEM + langLine, messages: history });
     const text = resp.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join("");
     const parsed = parseModelJson(text);
     let { query, chips } = parsed;

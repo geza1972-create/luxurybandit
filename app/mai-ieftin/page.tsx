@@ -138,6 +138,7 @@ function MaiIeftinInner() {
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const refHintRef = useRef<string>(""); // hint from a feed "Bandit the look!" reference
+  const modelRef = useRef<{ name?: string; style?: string; motto?: string; bio?: string } | null>(null); // model persona for the AI
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
 
@@ -167,6 +168,7 @@ function MaiIeftinInner() {
           const gallery: { imageUrl?: string; lookName?: string }[] = Array.isArray(gr?.userGallery) ? gr.userGallery : [];
           const n = p.firstName || gr?.displayName || "";
           const looks = gallery.filter((x) => x.imageUrl).slice(0, 8).map((x) => ({ img: x.imageUrl as string, hint: x.lookName || "" }));
+          modelRef.current = { name: n, style: p.style, motto: p.motto, bio: p.bio }; // AI speaks as her
           refHintRef.current = "";
           setMessages([{ role: "assistant", content: modelGreeting(n), refImg: p.photoUrl || p.photoFullUrl || "", refRound: true, modelLooks: looks, chips: [t.wantOthers] }]);
         } catch { /**/ }
@@ -205,7 +207,7 @@ function MaiIeftinInner() {
       const apiMessages = next.map((m) => ({ role: m.role, content: m.apiContent ?? m.content }));
       const r = await fetch("/api/mai-ieftin-chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages, lang }),
+        body: JSON.stringify({ messages: apiMessages, lang, model: modelRef.current || undefined }),
       });
       const d = await r.json().catch(() => ({}));
       setMessages((m) => [...m, { role: "assistant", content: d.reply || (lang === "en" ? "Can't reply right now. Try again." : "Momentan nu pot răspunde. Mai încearcă o dată."), products: Array.isArray(d.products) ? d.products : undefined, ownProducts: Array.isArray(d.ownProducts) ? d.ownProducts : undefined, original: Array.isArray(d.original) ? d.original : undefined, brand: typeof d.brand === "string" ? d.brand : undefined, chips: Array.isArray(d.chips) ? d.chips : undefined }]);
