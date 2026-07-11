@@ -23,8 +23,9 @@ type ShopItem = { title: string; link: string; source?: string; thumbnail: strin
 const SHOP_CACHE = new Map<string, { at: number; items: ShopItem[] }>();
 const SHOP_TTL_MS = 24 * 60 * 60 * 1000;
 const SHOP_MAX_KEYS = 300;
-const SHOP_DAILY_CAP = 25;          // billable SerpApi calls/day for this chat (in-memory,
-                                    // per-instance — a soft burst limit, NOT a global cap)
+const SHOP_DAILY_CAP = 150;         // billable SerpApi calls/day for this chat (in-memory,
+                                    // per-instance soft burst limit). Real search stays ON for
+                                    // the test; stop it anytime via SERPAPI_PAUSED=1 in Vercel.
 let shopDay = "";
 let shopCalls = 0;
 function shopWithinCap(): boolean {
@@ -493,6 +494,12 @@ export async function POST(request: Request) {
         } else {
           const log: ModelChatLog = { id: cid, curatorId: chatCuratorId, curatorName: model?.name || "Model", visitorId: chatVisitorId, userName: "", createdAt: now, updatedAt: now, messages: [{ role: "user", content: lastUser, at: now }, { role: "assistant", content: finalReply, at: now }] };
           chats.unshift(log);
+          // NEW conversation → notify the admin: email now (SMTP), SMS if Twilio is configured.
+          const who = model?.name || "a model";
+          const note = `New chat with ${who}: "${String(lastUser).slice(0, 140)}"`;
+          const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").split(",")[0].trim();
+          if (adminEmail) { import("@/lib/email-send").then(({ sendEmail }) => sendEmail({ to: adminEmail, subject: `💬 New chat with ${who}`, html: `<p>${note}</p>` })).catch(() => {}); }
+          import("@/lib/sms-send").then(({ sendSms }) => sendSms(note)).catch(() => {});
         }
         st.modelChats = chats;
         await saveTryThisLookState(st);
