@@ -279,6 +279,13 @@ export async function POST(request: Request) {
   let body: { messages?: ChatMsg[] };
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Bad request." }, { status: 400 }); }
 
+  // Lightweight branch for the funnel's "▶ Demo": return only own-catalogue dresses (with fresh
+  // signed image URLs each call, so nothing goes black) — NO Anthropic/SerpApi cost.
+  if ((body as { demoProducts?: string }).demoProducts === "dresses") {
+    const ownProducts = await ownProductsFor("rochie eleganta de seara evening gown dress");
+    return NextResponse.json({ ownProducts: ownProducts.slice(0, 3) });
+  }
+
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return NextResponse.json({ error: "Not configured." }, { status: 400 });
 

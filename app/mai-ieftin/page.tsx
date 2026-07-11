@@ -106,7 +106,7 @@ const DEMO_PRODUCTS: ShopItem[] = [
   { title: "Body Marcia", price: "400 RON", thumbnail: "https://cdn.giannabellucci.com/G0214B-BLA/20a8148d274c.jpg", link: "https://www.dpbolvw.net/click-101815363-17273998?url=https%3A%2F%2Fgiannabellucci.com%2Fro%2Fs%2Fproduct%2FVXpRSitaVmk2b3l6a0E9PQ_equal__equal_%3Futm_source%3Dgoogle%26utm_medium%3Dfeed%26fs_token%3D912ec803b2ce49e4a541068d495ab570&cjsku=G0214B-BLA", source: "GiannaBellucci" },
   { title: "Body Luciana", price: "355 RON", thumbnail: "https://cdn.giannabellucci.com/G0192B-PNK/0a4864c2edb0.jpg", link: "https://www.jdoqocy.com/click-101815363-17273998?url=https%3A%2F%2Fgiannabellucci.com%2Fro%2Fs%2Fproduct%2FVXpRTERTQVVEUDFMWkE9PQ_equal__equal_%3Futm_source%3Dgoogle%26utm_medium%3Dfeed%26fs_token%3D912ec803b2ce49e4a541068d495ab570&cjsku=G0192B-PNK", source: "GiannaBellucci" },
 ];
-const DEMO: Record<Lang, { btn: string; q: string; a1: string; chips1: string[]; pick: string; a2: string; chips2: string[]; show: string; a3: string; outro: string; tryCta: string }> = {
+const DEMO: Record<Lang, { btn: string; q: string; a1: string; chips1: string[]; pick: string; a2: string; chips2: string[]; show: string; a3: string; wantDresses: string; a4: string; outro: string; tryCta: string }> = {
   ro: {
     btn: "Vezi un exemplu",
     q: "caut un body negru elegant",
@@ -117,6 +117,8 @@ const DEMO: Record<Lang, { btn: string; q: string; a1: string; chips1: string[];
     chips2: ["Arată-mi", "Mai am ceva"],
     show: "Arată-mi",
     a3: "Am ales pentru tine piese de lux, negre și elegante de seară — le poți cumpăra direct 💛",
+    wantDresses: "Îmi plac foarte mult, dar caut și rochii",
+    a4: "Avem și rochii superbe — uite din colecția noastră ✨",
     outro: "Așa de simplu! Acum spune-mi TU ce cauți 💛",
     tryCta: "↺ Începe tu",
   },
@@ -130,6 +132,8 @@ const DEMO: Record<Lang, { btn: string; q: string; a1: string; chips1: string[];
     chips2: ["Show me", "One more thing"],
     show: "Show me",
     a3: "I picked elegant black luxury pieces for you — shoppable right away 💛",
+    wantDresses: "I love them, but I'm also looking for dresses",
+    a4: "We have gorgeous dresses too — from our collection ✨",
     outro: "That simple! Now tell me what YOU want 💛",
     tryCta: "↺ Start yourself",
   },
@@ -275,6 +279,19 @@ function MaiIeftinInner() {
     push({ role: "user", content: d.show });
     await sleep(450); setLoading(true); await sleep(1300); setLoading(false);
     push({ role: "assistant", content: d.a3, products: DEMO_PRODUCTS });
+    await sleep(1600);
+    // "I love them, but I'm also looking for dresses" → show dresses from OUR catalogue.
+    push({ role: "user", content: d.wantDresses });
+    await sleep(450); setLoading(true);
+    // Fetch dresses fresh (fresh signed image URLs, no AI cost via the demoProducts branch).
+    let dresses: ShopItem[] = [];
+    try {
+      const r = await fetch("/api/mai-ieftin-chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ demoProducts: "dresses", lang }) });
+      const dd = await r.json().catch(() => ({}));
+      if (Array.isArray(dd.ownProducts)) dresses = dd.ownProducts;
+    } catch { /**/ }
+    await sleep(900); setLoading(false);
+    push({ role: "assistant", content: d.a4, ownProducts: dresses.length ? dresses : undefined });
     await sleep(900);
     push({ role: "assistant", content: d.outro, chips: [d.tryCta] });
     setDemoPlaying(false);
@@ -394,6 +411,13 @@ function MaiIeftinInner() {
         /* Empty / landing state — centered */
         <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-5 pb-24">
           <div className="w-full max-w-md">
+            <div className="mb-5 flex justify-center">
+              <button type="button" onClick={() => void playDemo()}
+                className="inline-flex items-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 px-4 py-2 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
+                <span className="grid h-5 w-5 place-items-center rounded-full bg-[#c9a23f] text-black"><Play className="h-3 w-3 fill-current" /></span>
+                {DEMO[lang].btn}
+              </button>
+            </div>
             <p className="mb-1.5 text-center text-[12px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">{t.motto}</p>
             <h1 className="mb-8 text-center text-[32px] font-black leading-tight tracking-tight text-white/75">{t.title}</h1>
             {inputBox}
@@ -402,13 +426,6 @@ function MaiIeftinInner() {
                 <button key={s} type="button" onClick={() => void send(s)}
                   className="rounded-full bg-white/[0.07] px-3 py-1.5 text-[13px] font-semibold text-white/70 ring-1 ring-white/10 active:scale-95 transition">{s}</button>
               ))}
-            </div>
-            <div className="mt-5 flex justify-center">
-              <button type="button" onClick={() => void playDemo()}
-                className="inline-flex items-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 px-4 py-2 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
-                <span className="grid h-5 w-5 place-items-center rounded-full bg-[#c9a23f] text-black"><Play className="h-3 w-3 fill-current" /></span>
-                {DEMO[lang].btn}
-              </button>
             </div>
             <p className="mt-4 text-center text-[13px] font-semibold text-white/40">{t.free}</p>
           </div>
