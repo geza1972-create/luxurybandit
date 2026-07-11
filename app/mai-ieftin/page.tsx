@@ -113,11 +113,19 @@ export default function MaiIeftinPage() {
   // A feed "Bandit the look!" tap stashes a reference (still + hint) in sessionStorage.
   // On open, show it and ask "want this cheaper, or another?" with Yes/No chips.
   useEffect(() => {
-    let ref: { img?: string; hint?: string } | null = null;
+    let ref: { img?: string; hint?: string; kind?: string; name?: string } | null = null;
     try { const s = sessionStorage.getItem("lb_bandit_ref"); if (s) { ref = JSON.parse(s); sessionStorage.removeItem("lb_bandit_ref"); } } catch { /**/ }
     if (ref && (ref.img || ref.hint)) {
-      refHintRef.current = ref.hint || "";
-      setMessages([{ role: "assistant", content: T.ro.introQ, chips: [T.ro.yes, T.ro.no], refImg: ref.img || "" }]);
+      if (ref.kind === "model") {
+        // From a model's "Chat with her" — greet with her photo, ask (openly) what they want.
+        refHintRef.current = "";
+        const n = (ref.name || "").trim();
+        setMessages([{ role: "assistant", content: n ? `Bună, sunt ${n}! Ce ți-ar plăcea să găsești mai ieftin? 😊` : "Bună! Ce ți-ar plăcea să găsești mai ieftin? 😊", refImg: ref.img || "" }]);
+      } else {
+        // From a feed look — ask "this one cheaper, or another?" with Yes/No.
+        refHintRef.current = ref.hint || "";
+        setMessages([{ role: "assistant", content: T.ro.introQ, chips: [T.ro.yes, T.ro.no], refImg: ref.img || "" }]);
+      }
     }
   }, []);
 
