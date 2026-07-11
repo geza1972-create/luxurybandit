@@ -1771,7 +1771,14 @@ function StoresPage() {
   const [bulkAssignName, setBulkAssignName] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
-  const [heroLang, setHeroLang] = useState<"ro" | "en">("ro"); // landing hero language (RO default)
+  // Landing hero language lives in the URL (?lang=ro|en) so it can be shared per language.
+  const [heroLang, setHeroLang] = useState<"ro" | "en">(searchParams.get("lang") === "en" ? "en" : "ro");
+  const setHeroLangUrl = (l: "ro" | "en") => {
+    setHeroLang(l);
+    const p = new URLSearchParams(Array.from(searchParams.entries()));
+    p.set("lang", l);
+    router.replace(`${pathname}?${p.toString()}`, { scroll: false });
+  };
   // Home = the full-screen scrolling reels feed (DEFAULT landing). ?view=grid =
   // the 3-col grid overview. ?view=alist = The A List (HomeFeed of look posts).
   const view = searchParams.get("view");
@@ -2681,7 +2688,7 @@ function StoresPage() {
                   {/* Language switcher — Romanian default, toggle English. */}
                   <div className="flex shrink-0 items-center rounded-full bg-white/[0.07] p-0.5 ring-1 ring-white/10">
                     {(["ro", "en"] as const).map((l) => (
-                      <button key={l} type="button" onClick={() => setHeroLang(l)}
+                      <button key={l} type="button" onClick={() => setHeroLangUrl(l)}
                         className={`rounded-full px-2.5 py-1 text-[12px] font-black uppercase transition ${heroLang === l ? "bg-white text-black" : "text-white/55"}`}>
                         {l}
                       </button>

@@ -2,10 +2,11 @@
 
 export const dynamic = "force-dynamic";
 
-import { Plus, ArrowUp, X, Menu, Sparkles, ChevronDown, LayoutGrid, Users } from "lucide-react";
+import { Plus, ArrowUp, X, Menu, ChevronDown, LayoutGrid, Users, Play } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 
 // ── Ambient background ornaments — thin gold geometry drifting up the dark page. A
 // faint set drifts forever; a brighter "burst" replays on every new message (re-keyed). ──
@@ -71,7 +72,7 @@ type ShopItem = { title: string; link: string; source?: string; thumbnail: strin
 // `apiContent` = what's sent to the AI (may differ from the displayed `content`, e.g. a
 // "Yes" chip that actually carries the product hint). `refImg` = a reference still shown
 // with the message (carried in from a feed "Bandit the look!" tap).
-type Msg = { role: "user" | "assistant"; content: string; apiContent?: string; refImg?: string; modelLooks?: { img: string; hint: string }[]; products?: ShopItem[]; ownProducts?: ShopItem[]; original?: ShopItem[]; brand?: string; chips?: string[] };
+type Msg = { role: "user" | "assistant"; content: string; apiContent?: string; refImg?: string; refRound?: boolean; modelLooks?: { img: string; hint: string }[]; products?: ShopItem[]; ownProducts?: ShopItem[]; original?: ShopItem[]; brand?: string; chips?: string[] };
 
 type Lang = "ro" | "en";
 const T: Record<Lang, { title: string; ph: string; free: string; original: string; inspo: string; cheaper: string; ours: string; introQ: string; yes: string; no: string; askMore: string; inspo_btn: string; gallery: string; models: string; wantOthers: string; suggestions: string[] }> = {
@@ -97,14 +98,24 @@ const T: Record<Lang, { title: string; ph: string; free: string; original: strin
   },
 };
 
-export default function MaiIeftinPage() {
+function MaiIeftinInner() {
+  const params = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [text, setText] = useState("");
   const [preview, setPreview] = useState(""); // object URL of an attached photo
   const [loading, setLoading] = useState(false);
-  const [lang, setLang] = useState<Lang>("ro");
+  // Language lives in the URL (?lang=ro|en) so a page can be shared in a given language.
+  const [lang, setLang] = useState<Lang>(params.get("lang") === "en" ? "en" : "ro");
   const [navOpen, setNavOpen] = useState(false);
   const t = T[lang];
+  const setLangUrl = (l: Lang) => {
+    setLang(l);
+    const p = new URLSearchParams(Array.from(params.entries()));
+    p.set("lang", l);
+    router.replace(`${pathname}?${p.toString()}`, { scroll: false });
+  };
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const refHintRef = useRef<string>(""); // hint from a feed "Bandit the look!" reference
@@ -126,7 +137,7 @@ export default function MaiIeftinPage() {
         setMessages([{ role: "assistant", content: n
           ? `Merci că m-ai ales, eu sunt ${n}! Îți plac hainele mele sau vrei să-ți găsesc alte haine? 💛`
           : "Merci că m-ai ales! Îți plac hainele mele sau vrei să-ți găsesc alte haine? 💛",
-          refImg: ref.img || "", modelLooks: looks, chips: [T.ro.wantOthers] }]);
+          refImg: ref.img || "", refRound: true, modelLooks: looks, chips: [T.ro.wantOthers] }]);
       } else {
         // From a feed look — ask "this one cheaper, or another?" with Yes/No.
         refHintRef.current = ref.hint || "";
@@ -229,14 +240,14 @@ export default function MaiIeftinPage() {
           {/* Explore dropdown — Inspiration (feed), Gallery, Models. */}
           <div className="relative">
             <button type="button" onClick={() => setNavOpen((v) => !v)}
-              className="flex items-center gap-1 rounded-full bg-white/[0.07] px-3 py-1.5 text-[13px] font-black text-white/85 ring-1 ring-white/10 active:scale-95 transition">
-              <Sparkles className="h-4 w-4 text-[#c9a23f]" /> {t.inspo_btn} <ChevronDown className="h-3.5 w-3.5 text-white/50" />
+              className="flex items-center gap-1.5 rounded-full bg-white/[0.07] px-3 py-1.5 text-[13px] font-black text-white/85 ring-1 ring-white/10 active:scale-95 transition">
+              <LayoutGrid className="h-4 w-4 text-white/60" /> {t.inspo_btn} <ChevronDown className="h-3.5 w-3.5 text-white/50" />
             </button>
             {navOpen && (
               <>
                 <div className="fixed inset-0 z-[59]" onClick={() => setNavOpen(false)} />
                 <div className="absolute right-0 top-full z-[60] mt-2 w-44 overflow-hidden rounded-2xl bg-[#111] p-1.5 shadow-2xl ring-1 ring-white/10">
-                  {[{ href: "/stores", label: t.inspo_btn, Icon: Sparkles }, { href: "/stores?view=grid", label: t.gallery, Icon: LayoutGrid }, { href: "/stores?view=models", label: t.models, Icon: Users }].map((n) => (
+                  {[{ href: "/stores", label: "Looks", Icon: Play }, { href: "/stores?view=grid", label: t.gallery, Icon: LayoutGrid }, { href: "/stores?view=models", label: t.models, Icon: Users }].map((n) => (
                     <Link key={n.href} href={n.href} onClick={() => setNavOpen(false)}
                       className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[14px] font-bold text-white/85 hover:bg-white/10 active:scale-[0.98] transition">
                       <n.Icon className="h-4 w-4 text-white/45" /> {n.label}
@@ -249,7 +260,7 @@ export default function MaiIeftinPage() {
           {/* Language switcher — Romanian default, toggle to English. */}
           <div className="flex items-center rounded-full bg-white/[0.07] p-0.5 ring-1 ring-white/10">
             {(["ro", "en"] as Lang[]).map((l) => (
-              <button key={l} type="button" onClick={() => setLang(l)}
+              <button key={l} type="button" onClick={() => setLangUrl(l)}
                 className={`rounded-full px-2.5 py-1 text-[12px] font-black uppercase transition ${lang === l ? "bg-white text-black" : "text-white/55"}`}>
                 {l}
               </button>
@@ -285,12 +296,19 @@ export default function MaiIeftinPage() {
             <div className="mx-auto flex max-w-md flex-col gap-3 py-2">
               {messages.map((m, i) => (
                 <div key={i} className="flex flex-col gap-2">
-                  {/* Reference still carried in from the feed "Bandit the look!" tap */}
+                  {/* Reference still — a round avatar for a model, a portrait card for a look. */}
                   {m.refImg && (
-                    <div className="self-start overflow-hidden rounded-2xl ring-1 ring-white/15">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={m.refImg} alt="" className="h-40 w-32 object-cover" />
-                    </div>
+                    m.refRound ? (
+                      <div className="h-20 w-20 self-start overflow-hidden rounded-full bg-white/10 ring-2 ring-[#c9a23f]/50">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={m.refImg} alt="" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                      </div>
+                    ) : (
+                      <div className="h-40 w-32 self-start overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/15">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={m.refImg} alt="" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                      </div>
+                    )
                   )}
                   <div className={m.role === "user" ? "self-end max-w-[85%]" : "self-start max-w-[85%]"}>
                     <div className={m.role === "user"
@@ -304,9 +322,9 @@ export default function MaiIeftinPage() {
                     <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
                       {m.modelLooks.map((l, idx) => (
                         <button key={idx} type="button" onClick={() => onModelLook(l.hint)}
-                          className="w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#b8912f]/30 active:scale-95 transition">
+                          className="h-36 w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#b8912f]/30 active:scale-95 transition">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={l.img} alt="" loading="lazy" className="h-36 w-28 object-cover" />
+                          <img src={l.img} alt="" loading="lazy" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                         </button>
                       ))}
                     </div>
@@ -410,5 +428,13 @@ export default function MaiIeftinPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function MaiIeftinPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black" />}>
+      <MaiIeftinInner />
+    </Suspense>
   );
 }
