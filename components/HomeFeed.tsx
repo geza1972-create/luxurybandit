@@ -1079,7 +1079,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 const L = look as { name?: string; frontImageUrl?: string; imageUrl?: string; videoPosterUrl?: string };
                 const m = media[active] as { poster?: string; url?: string; afterUrl?: string } | undefined;
                 const img = L.frontImageUrl || L.imageUrl || m?.poster || m?.afterUrl || m?.url || L.videoPosterUrl || "";
-                try { sessionStorage.setItem("lb_bandit_ref", JSON.stringify({ img, hint: L.name || "" })); } catch { /**/ }
+                try { sessionStorage.setItem("lb_bandit_ref", JSON.stringify({ img, hint: L.name || "", kind: "product" })); } catch { /**/ }
                 router.push("/mai-ieftin");
               }}
               onPointerDown={(e) => e.stopPropagation()}
