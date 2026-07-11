@@ -2585,7 +2585,7 @@ function StoresPage() {
             </div>
             <div className="text-left">
               <div className="text-sm font-black uppercase tracking-widest text-white leading-none">LuxuryBandit</div>
-              <div className="text-[10px] font-bold text-white/40 mt-0.5 leading-tight">Virtual Try-On</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.14em] text-[#c9a23f]/80 mt-0.5 leading-tight">Bandit the look</div>
             </div>
           </button>
 
