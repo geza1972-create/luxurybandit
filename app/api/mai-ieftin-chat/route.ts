@@ -193,25 +193,36 @@ export async function POST(request: Request) {
     .map((m) => ({ role: m.role, content: m.content.slice(0, 1000) }));
   if (!history.length) return NextResponse.json({ error: "No message." }, { status: 400 });
 
+  const lang = (body as { lang?: string }).lang === "en" ? "en" : "ro";
+  // Force English HARD (prompt below is Romanian-heavy): a strong header up top + a trailing
+  // reminder. Everything in „reply"/„chips" must be English when lang === "en".
+  const langHeader = lang === "en"
+    ? "OUTPUT LANGUAGE = ENGLISH. Write the JSON „reply\" and ALL „chips\" ONLY in English — translate every Romanian example below into English. This rule overrides any 'write in Romanian' instruction that follows.\n\n"
+    : "";
+  const langLine = lang === "en"
+    ? "\n\nFINAL REMINDER: The entire „reply\" and every „chip\" MUST be in ENGLISH, not Romanian."
+    : "";
+
   try {
     const client = new Anthropic({ apiKey: key });
-    const resp = await client.messages.create({ model: MODEL, max_tokens: MAX_TOKENS, system: SYSTEM, messages: history });
+    const resp = await client.messages.create({ model: MODEL, max_tokens: MAX_TOKENS, system: langHeader + SYSTEM + langLine, messages: history });
     const text = resp.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join("");
     const parsed = parseModelJson(text);
     let { query, chips } = parsed;
     let reply = parsed.reply;
 
     const lastUser = (history.filter((m) => m.role === "user").pop()?.content ?? "").toLowerCase();
-    const saidShow = /arat[ăa]|hai|gata|^da\b|^da[ ,.!]|caută|cauta|show|search/.test(lastUser);
+    const saidShow = /arat[ăa]|hai|gata|^da\b|^da[ ,.!]|caută|cauta|show|search|^yes\b/.test(lastUser);
     const assistantTurns = history.filter((m) => m.role === "assistant").length;
 
     // Enforce the "show me?" confirmation step: after the FIRST question is answered, don't
-    // jump straight to results — confirm first ("Arată-mi" / "Mai am ceva"), unless the user
-    // already said they're ready.
+    // jump straight to results — confirm first, unless the user already said they're ready.
     if (assistantTurns === 1 && !saidShow && query) {
       query = "";
-      chips = ["Arată-mi", "Mai am ceva"];
-      reply = "Am înțeles 👍 Îți arăt acum sau mai vrei să adaugi ceva (culoare, mărime, brand)?";
+      chips = lang === "en" ? ["Show me", "One more thing"] : ["Arată-mi", "Mai am ceva"];
+      reply = lang === "en"
+        ? "Got it 👍 Show you now, or add something (colour, size, brand)?"
+        : "Am înțeles 👍 Îți arăt acum sau mai vrei să adaugi ceva (culoare, mărime, brand)?";
     }
 
     // Safety net: force a search when the user says they're ready, or after a few turns, so

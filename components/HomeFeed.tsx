@@ -1073,10 +1073,18 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         {!immersive && ["video", "cvideo", "compare", "cphoto", "image"].includes(media[active]?.type as string) && (
           <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2">
             <button type="button"
-              onClick={(e) => { e.stopPropagation(); router.push("/mai-ieftin"); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                // Carry this look's still + a text hint into the price-finder as a reference.
+                const L = look as { name?: string; frontImageUrl?: string; imageUrl?: string; videoPosterUrl?: string };
+                const m = media[active] as { poster?: string; url?: string; afterUrl?: string } | undefined;
+                const img = L.frontImageUrl || L.imageUrl || m?.poster || m?.afterUrl || m?.url || L.videoPosterUrl || "";
+                try { sessionStorage.setItem("lb_bandit_ref", JSON.stringify({ img, hint: L.name || "" })); } catch { /**/ }
+                router.push("/mai-ieftin");
+              }}
               onPointerDown={(e) => e.stopPropagation()}
               className="flex items-center gap-2 whitespace-nowrap rounded-full border border-white/25 bg-black/45 px-6 py-2.5 text-sm font-black text-white backdrop-blur active:scale-95 transition">
-              <Search className="h-4 w-4" /> Unde găsesc mai ieftin
+              <Search className="h-4 w-4" /> Bandit the look!
             </button>
             <button type="button"
               onClick={(e) => { e.stopPropagation(); goTryOn(); }}
