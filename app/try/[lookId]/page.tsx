@@ -63,15 +63,15 @@ export default function TryFunnelPage() {
   // when the user switches models in the picker.
   const modelIdParam = searchParams?.get("modelId") ?? "";
   const modelNameParam = searchParams?.get("modelName") ?? "";
-  // Language: `?lang=ro|en` wins (so ad links can pin a language); otherwise auto-detect from the
-  // browser (Romanian browsers → RO, everyone else → EN). Detection runs post-mount to stay
-  // SSR-safe (no hydration mismatch). `L(ro, en)` picks the string.
+  // Language: DEFAULT EN. `?lang=ro|en` wins (ad links) and persists; otherwise a stored choice
+  // (lb_lang) applies, else EN. A visible RO/EN switcher lets the visitor toggle. SSR-safe.
   const langParam = (searchParams?.get("lang") ?? "").toLowerCase();
   const [lang, setLang] = useState<"ro" | "en">(langParam === "ro" ? "ro" : "en");
   useEffect(() => {
-    if (langParam === "ro" || langParam === "en") { setLang(langParam as "ro" | "en"); return; }
-    try { if (navigator.language?.toLowerCase().startsWith("ro")) setLang("ro"); } catch { /**/ }
+    if (langParam === "ro" || langParam === "en") { setLang(langParam as "ro" | "en"); try { localStorage.setItem("lb_lang", langParam); } catch { /**/ } return; }
+    try { setLang(localStorage.getItem("lb_lang") === "ro" ? "ro" : "en"); } catch { /**/ }
   }, [langParam]);
+  const pickLang = (l: "ro" | "en") => { setLang(l); try { localStorage.setItem("lb_lang", l); } catch { /**/ } };
   const L = (ro: string, en: string) => (lang === "ro" ? ro : en);
   // When opened from a model's wardrobe: the exact garment to put her in (its image URL).
   const garmentParam = searchParams?.get("garment") ?? "";
@@ -765,6 +765,15 @@ export default function TryFunnelPage() {
             className="grid h-9 w-9 place-items-center rounded-full bg-white/10 active:opacity-70">
             <ArrowLeft className="h-4 w-4" />
           </button>
+          {/* Language switcher — default EN, toggle RO. */}
+          <div className="ml-auto flex items-center rounded-full bg-white/[0.07] p-0.5 ring-1 ring-white/10">
+            {(["en", "ro"] as const).map((l) => (
+              <button key={l} type="button" onClick={() => pickLang(l)}
+                className={`rounded-full px-2.5 py-1 text-[12px] font-black uppercase transition ${lang === l ? "bg-white text-black" : "text-white/55"}`}>
+                {l}
+              </button>
+            ))}
+          </div>
           {/* Progress bar + admin-view toggle removed — it's all one window now. */}
         </div>
       </div>
