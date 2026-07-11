@@ -1144,12 +1144,14 @@ export default function TryFunnelPage() {
                     <div className="grid gap-2">
                       <button type="button" onClick={async () => goToResult(await claimCachedTryOn())}
                         className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                        <Sparkles className="h-5 w-5" /> View your video →
+                        <Sparkles className="h-5 w-5" /> {L("Vezi videoul tău →", "View your video →")}
                       </button>
-                      <button type="button" onClick={() => { forceFreshRef.current = true; genStartedRef.current = false; setGenStatus("idle"); void startPaidGenerate(); }}
-                        className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-white/20 bg-white/[0.06] text-[13px] font-black text-white active:scale-95 transition">
-                        <RefreshCw className="h-4 w-4" /> Generate a fresh one — see her differently
-                      </button>
+                      {chosenModelId && (
+                        <button type="button" onClick={() => router.push(`/chat/${chosenModelId}`)}
+                          className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
+                          <MessageCircle className="h-4 w-4" /> {L("Vorbește cu", "Chat with")} {chosenModelName ? chosenModelName.split(/\s+/)[0] : L("ea", "her")}
+                        </button>
+                      )}
                     </div>
                   )
                 ) : (
