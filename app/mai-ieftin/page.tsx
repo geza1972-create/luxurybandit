@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { Plus, ArrowUp, X, Menu, ChevronDown, LayoutGrid, Users, Play, Share2, Check } from "lucide-react";
+import { Plus, ArrowUp, ArrowUpRight, X, Menu, ChevronDown, LayoutGrid, Users, Play, Share2, Check } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
@@ -170,6 +170,7 @@ function MaiIeftinInner() {
   const withLang = (href: string) => `${href}${href.includes("?") ? "&" : "?"}lang=${lang}`;
   const [shared, setShared] = useState(false);
   const [demoPlaying, setDemoPlaying] = useState(false); // "▶ Demo" self-playing example running
+  const [openProduct, setOpenProduct] = useState<ShopItem | null>(null); // external link → preview dialog first (keep the customer in the funnel)
   const share = async () => {
     const url = typeof window !== "undefined" ? window.location.href : "";
     try {
@@ -533,8 +534,8 @@ function MaiIeftinInner() {
                       </p>
                       <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
                         {m.original.map((p, idx) => (
-                          <a key={idx} href={p.link} target="_blank" rel="noopener noreferrer"
-                            className="w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-white/20 active:scale-95 transition">
+                          <button key={idx} type="button" onClick={() => setOpenProduct(p)}
+                            className="w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] text-left ring-1 ring-white/20 active:scale-95 transition">
                             <div className="aspect-square w-full bg-white">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-contain" />
@@ -544,7 +545,7 @@ function MaiIeftinInner() {
                               <p className="mt-0.5 line-clamp-2 text-[11px] font-semibold leading-tight text-white/60">{p.title}</p>
                               <p className="mt-1 truncate text-[10px] font-bold text-white/35">Original{p.source ? ` · ${p.source}` : ""}</p>
                             </div>
-                          </a>
+                          </button>
                         ))}
                       </div>
                     </>
@@ -555,8 +556,8 @@ function MaiIeftinInner() {
                       <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#b8912f]">{t.cheaper}</p>
                       <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
                         {m.products.map((p, idx) => (
-                          <a key={idx} href={p.link} target="_blank" rel="noopener noreferrer"
-                            className="w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-white/10 active:scale-95 transition">
+                          <button key={idx} type="button" onClick={() => setOpenProduct(p)}
+                            className="w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] text-left ring-1 ring-white/10 active:scale-95 transition">
                             <div className="aspect-square w-full bg-white">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-contain" />
@@ -566,7 +567,7 @@ function MaiIeftinInner() {
                               <p className="mt-0.5 line-clamp-2 text-[11px] font-semibold leading-tight text-white/65">{p.title}</p>
                               {p.source && <p className="mt-1 truncate text-[10px] font-bold text-white/35">{p.source}</p>}
                             </div>
-                          </a>
+                          </button>
                         ))}
                       </div>
                     </>
@@ -589,6 +590,36 @@ function MaiIeftinInner() {
             <div className="mx-auto max-w-md">{inputBox}</div>
           </div>
         </>
+      )}
+      {/* Product preview dialog — an external link opens HERE first (image + price + a clear
+          "go to shop" CTA) so the customer chooses to leave instead of being yanked off-site. */}
+      {openProduct && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={() => setOpenProduct(null)}>
+          <div className="lb-phone-col w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto max-w-md rounded-t-3xl bg-[#111] p-5 ring-1 ring-white/10" style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}>
+              <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/15" />
+              <div className="flex gap-4">
+                <div className="h-40 w-32 shrink-0 overflow-hidden rounded-2xl bg-white">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={openProduct.thumbnail} alt="" className="h-full w-full object-contain" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  {openProduct.price && <p className="text-[22px] font-black text-white">{openProduct.price}</p>}
+                  <p className="mt-1 text-[14px] font-semibold leading-snug text-white/80">{openProduct.title}</p>
+                  {openProduct.source && <p className="mt-1.5 text-[12px] font-bold text-[#c9a23f]">{openProduct.source}</p>}
+                </div>
+              </div>
+              <a href={openProduct.link} target="_blank" rel="noopener noreferrer" onClick={() => setOpenProduct(null)}
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#c9a23f] py-4 text-[15px] font-black text-black active:scale-[0.98] transition">
+                {lang === "en" ? "View in shop" : "Vezi în magazin"} <ArrowUpRight className="h-4 w-4" />
+              </a>
+              <button type="button" onClick={() => setOpenProduct(null)}
+                className="mt-2 flex w-full items-center justify-center rounded-full py-3 text-[14px] font-bold text-white/50 active:scale-[0.98] transition">
+                {lang === "en" ? "Stay here" : "Rămân aici"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

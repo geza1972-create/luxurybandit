@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Menu } from "lucide-react";
+import { ChevronLeft, Menu, ArrowUpRight } from "lucide-react";
 
 type ShopItem = { title: string; link: string; source?: string; thumbnail: string; price?: string };
 
@@ -15,6 +15,7 @@ export default function HainePage() {
   const [own, setOwn] = useState<ShopItem[]>([]);
   const [bellucci, setBellucci] = useState<ShopItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openProduct, setOpenProduct] = useState<ShopItem | null>(null); // external link → preview dialog first
 
   useEffect(() => {
     let alive = true;
@@ -50,7 +51,7 @@ export default function HainePage() {
     const cls = "overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#b8912f]/25 active:scale-[0.98] transition";
     return internal
       ? <Link href={p.link} className={cls}>{inner}</Link>
-      : <a href={p.link} target="_blank" rel="noopener noreferrer" className={cls}>{inner}</a>;
+      : <button type="button" onClick={() => setOpenProduct(p)} className={`${cls} text-left`}>{inner}</button>;
   };
 
   return (
@@ -100,6 +101,36 @@ export default function HainePage() {
           </>
         )}
       </main>
+
+      {/* Preview dialog — external shop links open here first so the customer isn't yanked off-site. */}
+      {openProduct && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 backdrop-blur-sm" onClick={() => setOpenProduct(null)}>
+          <div className="lb-phone-col w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto max-w-md rounded-t-3xl bg-[#111] p-5 ring-1 ring-white/10" style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}>
+              <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/15" />
+              <div className="flex gap-4">
+                <div className="h-40 w-32 shrink-0 overflow-hidden rounded-2xl bg-white">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={openProduct.thumbnail} alt="" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  {openProduct.price && <p className="text-[22px] font-black text-white">{openProduct.price}</p>}
+                  <p className="mt-1 text-[14px] font-semibold leading-snug text-white/80">{openProduct.title}</p>
+                  {openProduct.source && <p className="mt-1.5 text-[12px] font-bold text-[#c9a23f]">{openProduct.source}</p>}
+                </div>
+              </div>
+              <a href={openProduct.link} target="_blank" rel="noopener noreferrer" onClick={() => setOpenProduct(null)}
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#c9a23f] py-4 text-[15px] font-black text-black active:scale-[0.98] transition">
+                Vezi în magazin <ArrowUpRight className="h-4 w-4" />
+              </a>
+              <button type="button" onClick={() => setOpenProduct(null)}
+                className="mt-2 flex w-full items-center justify-center rounded-full py-3 text-[14px] font-bold text-white/50 active:scale-[0.98] transition">
+                Rămân aici
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
