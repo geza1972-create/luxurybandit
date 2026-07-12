@@ -191,6 +191,17 @@ export default function TryFunnelPage() {
     setMusicMuted(nextMuted);
   };
   const toggleVideo = () => { const v = revealVideoRef.current; const a = musicRef.current; if (!v) return; if (v.paused) { v.play().catch(() => {}); a?.play().catch(() => {}); setVidPaused(false); } else { v.pause(); a?.pause(); setVidPaused(true); } };
+  // Fullscreen the reveal video (native — element fullscreen on desktop/Android, iOS Safari uses
+  // the video's own webkitEnterFullscreen).
+  const goFullscreen = () => {
+    const v = revealVideoRef.current as (HTMLVideoElement & { webkitEnterFullscreen?: () => void; webkitRequestFullscreen?: () => void }) | null;
+    if (!v) return;
+    try {
+      if (v.requestFullscreen) void v.requestFullscreen();
+      else if (v.webkitEnterFullscreen) v.webkitEnterFullscreen();
+      else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
+    } catch { /**/ }
+  };
   // Scanner "generation" reveal runs ~5s, then the pre-generated clip plays clear.
   const REVEAL_MS = 5000;
   // "Motion" pick: what she DOES in the video. The user only sees the two chips —
@@ -1093,6 +1104,11 @@ export default function TryFunnelPage() {
                     <button type="button" onClick={(e) => { e.stopPropagation(); toggleMusic(); }}
                       className="absolute right-3 top-3 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/60 text-white backdrop-blur active:scale-90 transition">
                       {musicMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                    </button>
+                    {/* Fullscreen */}
+                    <button type="button" onClick={(e) => { e.stopPropagation(); goFullscreen(); }} aria-label="Fullscreen"
+                      className="absolute right-3 top-16 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/60 text-white backdrop-blur active:scale-90 transition">
+                      <Maximize2 className="h-5 w-5" />
                     </button>
                     {/* Paused → big play button (tap the video to resume) */}
                     {vidPaused && (
