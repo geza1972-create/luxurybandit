@@ -317,6 +317,39 @@ async function inspoVideosFor(query: string): Promise<{ title: string; link: str
   } catch { return []; }
 }
 
+const slugify = (v: string) => v.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+
+// THIS model's OWN try-on VIDEOS (her public feed try-ons), garment-type matched — so a model
+// chat surfaces HER pieces first ("Bella wears these": poster still + play, tap → /look/[id]).
+// Her videos live in state.generations (feed===true), keyed by curatorId OR her name slug — the
+// SAME rule the public profile gallery uses. Type-matches rank first; we always return a few.
+async function modelVideosFor(query: string, curatorId: string): Promise<{ title: string; link: string; thumbnail: string }[]> {
+  if (!curatorId) return [];
+  try {
+    const state = await readTryThisLookState();
+    const cur = (state.curators || []).find((c) => c.id === curatorId);
+    const nameSlug = cur ? slugify([cur.firstName, cur.lastName].filter(Boolean).join(" ")) : "";
+    const gens = (state.generations || []).filter((g) => {
+      const gg = g as { visitorId?: string; hidden?: boolean; feed?: boolean; videoUrl?: string; imageUrl?: string; lookId?: string; curatorId?: string; customerName?: string };
+      if (gg.visitorId?.startsWith("admin-") || gg.hidden) return false;
+      if (gg.feed !== true || !gg.videoUrl || !gg.imageUrl || !gg.lookId) return false;
+      if (gg.curatorId === curatorId) return true;
+      return !!nameSlug && slugify(gg.customerName ?? "") === nameSlug;
+    });
+    const qTypes = typesIn(query);
+    const scored = gens.map((g) => {
+      const gg = g as { lookName?: string; storeName?: string };
+      const lTypes = typesIn(`${gg.lookName ?? ""} ${gg.storeName ?? ""}`.toLowerCase());
+      const typeMatch = qTypes.size > 0 && [...lTypes].some((t) => qTypes.has(t));
+      return { g, s: (typeMatch ? 3 : 0) + 1 };
+    }).sort((a, b) => b.s - a.s);
+    return scored.slice(0, 6).map(({ g }) => {
+      const gg = g as { lookName?: string; lookId?: string; imageUrl?: string };
+      return { title: gg.lookName || "Look", link: `/look/${gg.lookId}`, thumbnail: gg.imageUrl || "" };
+    }).filter((p) => p.thumbnail);
+  } catch { return []; }
+}
+
 function parseModelJson(text: string): { reply: string; query: string; chips: string[]; brand: string } {
   const t = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
   const a = t.indexOf("{"), b = t.lastIndexOf("}");
@@ -371,6 +404,24 @@ export async function POST(request: Request) {
       cjSearch("elegant black lace body lingerie designer"),
     ]);
     return NextResponse.json({ ownProducts, products: bellucci ?? [] });
+  }
+
+  // "Similar pieces" button in a model chat → deterministically show HER matching try-on VIDEOS
+  // (feed) + our pieces + similar online, grounded in her own looks. NO Anthropic cost (like the
+  // demo) so it always delivers instead of the persona asking another question.
+  if ((body as { similar?: boolean }).similar) {
+    const curatorId = String((body as { curatorId?: string }).curatorId ?? "").trim();
+    const hints = String((body as { hints?: string }).hints ?? "").trim();
+    const en = (body as { lang?: string }).lang === "en";
+    const q = (hints || (en ? "elegant lingerie body dress" : "lenjerie body rochie eleganta"))
+      .replace(/\s+/g, " ").slice(0, 120);
+    const [foundRaw, ownProducts, modelVideos] = await Promise.all([
+      productSearch(q), ownProductsFor(q), modelVideosFor(q, curatorId),
+    ]);
+    const products = typeGate(foundRaw, typesIn(q)).slice(0, 8);
+    const reply = en ? "Here's what I'm wearing — plus pieces I'd pick for you 💛"
+                     : "Uite ce port eu — și piese pe care ți le-aș alege 💛";
+    return NextResponse.json({ reply, modelVideos, ownProducts, products, inspo: [], chips: [] });
   }
 
   const key = process.env.ANTHROPIC_API_KEY;
@@ -474,6 +525,11 @@ export async function POST(request: Request) {
       const seen = new Set(original.map((o) => o.link));
       cheaper = cheaper.filter((p) => !seen.has(p.link));
     }
+    // In a MODEL chat, surface HER own matching video looks first ("Bella wears these"), and
+    // drop those from the generic inspiration row so they aren't shown twice.
+    const modelVideos = (chatCuratorId && cleanQuery) ? await modelVideosFor(cleanQuery, chatCuratorId) : [];
+    const mvLinks = new Set(modelVideos.map((v) => v.link));
+    const inspoOut = inspo.filter((v) => !mvLinks.has(v.link));
     const finalReply = reply
       || (cheaper.length ? "Uite ce am găsit pentru tine 🔎" : "Spune-mi ce cauți și îți găsesc variante mai ieftine.");
     // Log this exchange into modelChats so the model persona chat shows in the admin history
@@ -505,7 +561,7 @@ export async function POST(request: Request) {
         await saveTryThisLookState(st);
       } catch { /**/ }
     }
-    return NextResponse.json({ reply: finalReply, products: cheaper, original, brand: parsed.brand, ownProducts, inspo, chips, query: cleanQuery });
+    return NextResponse.json({ reply: finalReply, products: cheaper, original, brand: parsed.brand, ownProducts, inspo: inspoOut, modelVideos, chips, query: cleanQuery });
   } catch {
     return NextResponse.json({ error: "Chat failed." }, { status: 502 });
   }

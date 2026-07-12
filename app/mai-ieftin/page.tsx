@@ -73,10 +73,10 @@ type ShopItem = { title: string; link: string; source?: string; thumbnail: strin
 // `apiContent` = what's sent to the AI (may differ from the displayed `content`, e.g. a
 // "Yes" chip that actually carries the product hint). `refImg` = a reference still shown
 // with the message (carried in from a feed "Bandit the look!" tap).
-type Msg = { role: "user" | "assistant"; content: string; apiContent?: string; refImg?: string; refRound?: boolean; modelLooks?: { img: string; hint: string }[]; products?: ShopItem[]; ownProducts?: ShopItem[]; inspo?: ShopItem[]; original?: ShopItem[]; brand?: string; chips?: string[] };
+type Msg = { role: "user" | "assistant"; content: string; apiContent?: string; refImg?: string; refRound?: boolean; modelLooks?: { img: string; hint: string }[]; products?: ShopItem[]; ownProducts?: ShopItem[]; inspo?: ShopItem[]; modelVideos?: ShopItem[]; modelName?: string; original?: ShopItem[]; brand?: string; chips?: string[] };
 
 type Lang = "ro" | "en";
-const T: Record<Lang, { title: string; motto: string; ph: string; free: string; original: string; inspo: string; cheaper: string; ours: string; introQ: string; yes: string; no: string; askMore: string; inspo_btn: string; gallery: string; models: string; wantOthers: string; suggestions: string[] }> = {
+const T: Record<Lang, { title: string; motto: string; ph: string; free: string; original: string; inspo: string; cheaper: string; ours: string; introQ: string; yes: string; no: string; askMore: string; inspo_btn: string; gallery: string; models: string; wantOthers: string; similar: string; wears: string; suggestions: string[] }> = {
   ro: {
     title: "Produse Luxury", motto: "Bandit the look",
     ph: "Scrie ce cauți sau lipește un link…",
@@ -84,7 +84,7 @@ const T: Record<Lang, { title: string; motto: string; ph: string; free: string; 
     original: "Piesa de designer", inspo: "inspirația noastră",
     cheaper: "Piese de lux pentru tine", ours: "Din colecția LuxuryBandit",
     introQ: "Vrei să-ți arăt piese de lux ca aceasta? Sau altceva?", yes: "Da", no: "Nu, altceva",
-    askMore: "Perfect! Spune-mi ce cauți 🙂", inspo_btn: "Inspirație", gallery: "Galerie", models: "Modele", wantOthers: "Vreau altele",
+    askMore: "Perfect! Spune-mi ce cauți 🙂", inspo_btn: "Inspirație", gallery: "Galerie", models: "Modele", wantOthers: "Vreau altele", similar: "Piese similare", wears: "poartă",
     suggestions: ["un body negru elegant", "lenjerie de lux", "o piesă statement pentru diseară"],
   },
   en: {
@@ -94,7 +94,7 @@ const T: Record<Lang, { title: string; motto: string; ph: string; free: string; 
     original: "The designer piece", inspo: "our inspiration",
     cheaper: "Luxury picks for you", ours: "From the LuxuryBandit collection",
     introQ: "Want me to show you luxury pieces like this? Or something else?", yes: "Yes", no: "No, something else",
-    askMore: "Perfect! Tell me what you're looking for 🙂", inspo_btn: "Inspiration", gallery: "Gallery", models: "Models", wantOthers: "I want others",
+    askMore: "Perfect! Tell me what you're looking for 🙂", inspo_btn: "Inspiration", gallery: "Gallery", models: "Models", wantOthers: "I want others", similar: "Similar pieces", wears: "wears these",
     suggestions: ["a black elegant bodysuit", "luxury lingerie", "a statement piece for tonight"],
   },
 };
@@ -207,6 +207,7 @@ function MaiIeftinInner() {
   const endRef = useRef<HTMLDivElement>(null);
   const refHintRef = useRef<string>(""); // hint from a feed "Bandit the look!" reference
   const modelRef = useRef<{ id?: string; name?: string; style?: string; motto?: string; bio?: string } | null>(null); // model persona for the AI
+  const modelHintsRef = useRef<string[]>([]); // her looks' hints → power the "Similar pieces" button
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
 
@@ -238,7 +239,8 @@ function MaiIeftinInner() {
           const looks = gallery.filter((x) => x.imageUrl).slice(0, 8).map((x) => ({ img: x.imageUrl as string, hint: x.lookName || "" }));
           modelRef.current = { id: modelId, name: n, style: p.style, motto: p.motto, bio: p.bio }; // AI speaks as her
           refHintRef.current = "";
-          setMessages([{ role: "assistant", content: modelGreeting(n), refImg: p.photoUrl || p.photoFullUrl || "", refRound: true, modelLooks: looks, chips: [t.wantOthers] }]);
+          modelHintsRef.current = looks.map((l) => l.hint).filter(Boolean);
+          setMessages([{ role: "assistant", content: modelGreeting(n), refImg: p.photoUrl || p.photoFullUrl || "", refRound: true, modelLooks: looks, chips: [t.similar, t.wantOthers] }]);
         } catch { /**/ }
       })();
       return () => { alive = false; };
@@ -250,7 +252,9 @@ function MaiIeftinInner() {
       if (ref.kind === "model") {
         refHintRef.current = "";
         const looks = Array.isArray(ref.looks) ? ref.looks.filter((l) => l && l.img).slice(0, 8) : [];
-        setMessages([{ role: "assistant", content: modelGreeting(ref.name || ""), refImg: ref.img || "", refRound: true, modelLooks: looks, chips: [t.wantOthers] }]);
+        modelHintsRef.current = looks.map((l) => l.hint).filter(Boolean);
+        if (ref.name) modelRef.current = { ...(modelRef.current || {}), name: ref.name };
+        setMessages([{ role: "assistant", content: modelGreeting(ref.name || ""), refImg: ref.img || "", refRound: true, modelLooks: looks, chips: [t.similar, t.wantOthers] }]);
       } else {
         refHintRef.current = ref.hint || "";
         setMessages([{ role: "assistant", content: t.introQ, chips: [t.yes, t.no], refImg: ref.img || "" }]);
@@ -278,9 +282,30 @@ function MaiIeftinInner() {
         body: JSON.stringify({ messages: apiMessages, lang, model: modelRef.current || undefined, curatorId: modelRef.current?.id, visitorId: getChatVisitorId() }),
       });
       const d = await r.json().catch(() => ({}));
-      setMessages((m) => [...m, { role: "assistant", content: d.reply || (lang === "en" ? "Can't reply right now. Try again." : "Momentan nu pot răspunde. Mai încearcă o dată."), products: Array.isArray(d.products) ? d.products : undefined, ownProducts: Array.isArray(d.ownProducts) ? d.ownProducts : undefined, inspo: Array.isArray(d.inspo) ? d.inspo : undefined, original: Array.isArray(d.original) ? d.original : undefined, brand: typeof d.brand === "string" ? d.brand : undefined, chips: Array.isArray(d.chips) ? d.chips : undefined }]);
+      setMessages((m) => [...m, { role: "assistant", content: d.reply || (lang === "en" ? "Can't reply right now. Try again." : "Momentan nu pot răspunde. Mai încearcă o dată."), products: Array.isArray(d.products) ? d.products : undefined, ownProducts: Array.isArray(d.ownProducts) ? d.ownProducts : undefined, inspo: Array.isArray(d.inspo) ? d.inspo : undefined, modelVideos: Array.isArray(d.modelVideos) ? d.modelVideos : undefined, modelName: modelRef.current?.name || undefined, original: Array.isArray(d.original) ? d.original : undefined, brand: typeof d.brand === "string" ? d.brand : undefined, chips: Array.isArray(d.chips) ? d.chips : undefined }]);
     } catch {
       setMessages((m) => [...m, { role: "assistant", content: lang === "en" ? "Something went wrong. Try again." : "Ceva n-a mers. Mai încearcă o dată." }]);
+    } finally { setLoading(false); }
+  };
+
+  // "Similar pieces" — deterministic (no AI): show HER matching try-on videos + our pieces +
+  // similar online, grounded in her own looks. Always delivers instead of the persona re-asking.
+  const sendSimilar = async () => {
+    if (loading || demoPlaying) return;
+    const hints = modelHintsRef.current.slice(0, 6).join(", ");
+    setMessages((m) => [...m, { role: "user", content: t.similar }]);
+    setLoading(true);
+    try {
+      const r = await fetch("/api/mai-ieftin-chat", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ similar: true, curatorId: modelRef.current?.id, hints, lang, visitorId: getChatVisitorId() }),
+      });
+      const d = await r.json().catch(() => ({}));
+      setMessages((m) => [...m, { role: "assistant", content: d.reply || (lang === "en" ? "Here's what I love 💛" : "Uite ce-mi place 💛"),
+        modelVideos: Array.isArray(d.modelVideos) ? d.modelVideos : undefined, modelName: modelRef.current?.name || undefined,
+        ownProducts: Array.isArray(d.ownProducts) ? d.ownProducts : undefined, products: Array.isArray(d.products) ? d.products : undefined }]);
+    } catch {
+      setMessages((m) => [...m, { role: "assistant", content: lang === "en" ? "Something went wrong. Try again." : "Ceva n-a mers. Mai încearcă." }]);
     } finally { setLoading(false); }
   };
 
@@ -329,6 +354,9 @@ function MaiIeftinInner() {
     if (demoPlaying) return;
     // The demo's closing chip resets to a fresh empty state so the visitor starts for real.
     if (c === DEMO.ro.tryCta || c === DEMO.en.tryCta) { setMessages([]); setText(""); return; }
+    // "Similar pieces" → show HER matching looks (videos) + our pieces + similar online, built
+    // from her own looks so the search is grounded in her style.
+    if (c === T.ro.similar || c === T.en.similar) { void sendSimilar(); return; }
     const atIntro = messages.length === 1 && !!messages[0]?.refImg;
     if (atIntro) {
       const isYes = c === T.ro.yes || c === T.en.yes;
@@ -507,6 +535,27 @@ function MaiIeftinInner() {
                         </button>
                       ))}
                     </div>
+                  )}
+                  {/* 🎬 HER own matching looks first — the model's try-on videos (feed). Tap → the
+                      look page where the video plays. This is the "Bella wears these" row. */}
+                  {m.modelVideos && m.modelVideos.length > 0 && (
+                    <>
+                      <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#c9a23f]">🎬 {m.modelName || (lang === "en" ? "She" : "Ea")} {t.wears}</p>
+                      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
+                        {m.modelVideos.map((p, idx) => (
+                          <a key={idx} href={p.link}
+                            className="relative h-52 w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#c9a23f]/25 active:scale-95 transition">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                            <span className="absolute inset-0 grid place-items-center">
+                              <span className="grid h-10 w-10 place-items-center rounded-full bg-black/45 backdrop-blur">
+                                <Play className="h-4 w-4 fill-white text-white" />
+                              </span>
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                    </>
                   )}
                   {/* Our own LOOKS & clothes FIRST — big portrait editorial images (people want
                       to SEE the look, not just flat product shots). */}
