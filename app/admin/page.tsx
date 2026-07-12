@@ -26,6 +26,9 @@ type Curator = {
   // Server-computed engagement (curators=1): comments on her posts, total views
   // (boost + real), and "See her in other looks" taps.
   commentCount?: number; viewTotal?: number; tryonClicks?: number;
+  // Earnings + payouts (model keeps 30% of each paid video).
+  earningsCents?: number; payoutMethod?: string;
+  payouts?: { id: string; amountCents: number; method: string; status: string; requestedAt?: string; paidAt?: string }[];
 };
 
 type Look = {
@@ -605,6 +608,29 @@ export default function AdminPage() {
     } catch { setError("Network error."); }
     setBusy("");
   };
+
+  // Mark a model's payout request as paid (after you've transferred the money).
+  const markPayoutPaid = async (curatorId: string, requestId: string) => {
+    setBusy(requestId); setError("");
+    try {
+      const r = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "mark-payout-paid", id: curatorId, requestId }) });
+      if (r.ok) {
+        setCurators(cs => cs.map(c => c.id !== curatorId ? c : { ...c, payouts: (c.payouts ?? []).map(p => p.id === requestId ? { ...p, status: "paid", paidAt: new Date().toISOString() } : p) }));
+      } else await fail(r, "Could not mark paid");
+    } catch { setError("Network error."); }
+    setBusy("");
+  };
+
+  // All PENDING payout requests across every model, newest first (drives the admin payouts panel).
+  const pendingPayouts = useMemo(() => {
+    const out: { curatorId: string; name: string; method: string; reqId: string; amountCents: number; requestedAt?: string }[] = [];
+    for (const c of curators) {
+      for (const p of c.payouts ?? []) {
+        if (p.status === "pending") out.push({ curatorId: c.id, name: [c.firstName, c.lastName].filter(Boolean).join(" ") || c.email || "Model", method: p.method, reqId: p.id, amountCents: p.amountCents, requestedAt: p.requestedAt });
+      }
+    }
+    return out.sort((a, b) => (b.requestedAt ?? "").localeCompare(a.requestedAt ?? ""));
+  }, [curators]);
 
   const looksByCurator = useMemo(() => {
     const m = new Map<string, number>();
@@ -1362,6 +1388,28 @@ export default function AdminPage() {
         {/* "Try-on connections" panel removed from the Models tab (admin request — didn't
             belong here). The attach/detach handlers + AdminConnections component are kept for
             reuse elsewhere if needed. */}
+        {/* Payout requests — models withdraw their video earnings; you transfer the money
+            (IBAN/PayPal) then tap "Mark paid". */}
+        {tab === "curators" && pendingPayouts.length > 0 && (
+          <div className="mt-3 rounded-2xl border border-amber-400/40 bg-amber-50 p-3">
+            <p className="flex items-center gap-1.5 text-[12px] font-black text-amber-800">💸 Payout requests <span className="rounded-full bg-amber-500 px-1.5 text-[10px] text-white">{pendingPayouts.length}</span></p>
+            <div className="mt-2 space-y-1.5">
+              {pendingPayouts.map(p => (
+                <div key={p.reqId} className="flex items-center gap-2 rounded-xl border border-amber-400/30 bg-white px-3 py-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-black text-ink">{p.name} · <span className="text-emerald-600">€{(p.amountCents / 100).toFixed(2)}</span></p>
+                    <p className="truncate text-[11px] font-bold text-ink/50">to {p.method}{p.requestedAt ? ` · ${new Date(p.requestedAt).toLocaleDateString()}` : ""}</p>
+                  </div>
+                  <button type="button" onClick={() => void markPayoutPaid(p.curatorId, p.reqId)} disabled={busy === p.reqId}
+                    className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-black px-3 text-[11px] font-black text-white active:scale-95 transition disabled:opacity-50">
+                    {busy === p.reqId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Mark paid
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {tab === "curators" && (
           <div className="mt-3 flex items-center gap-1.5">
             <span className="text-[11px] font-black uppercase tracking-wider text-ink/35">Sort</span>
