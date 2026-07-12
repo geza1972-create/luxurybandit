@@ -3770,6 +3770,15 @@ function StoresPage() {
         <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[85] flex flex-wrap items-center gap-2 border-t border-white/10 bg-[#0d0b0a]/95 px-4 py-3 backdrop-blur"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}>
           <span className="shrink-0 text-[12px] font-black text-white/70">{tierSelected.size} ausgewählt</span>
+          {(() => {
+            const allSelected = visibleHistory.length > 0 && visibleHistory.every(it => tierSelected.has(it.id));
+            return (
+              <button type="button" onClick={() => setTierSelected(allSelected ? new Set() : new Set(visibleHistory.map(it => it.id)))}
+                className="shrink-0 rounded-full border border-white/20 px-3 py-1.5 text-[12px] font-black text-white active:scale-95 transition">
+                {allSelected ? "Keine" : `Alle (${visibleHistory.length})`}
+              </button>
+            );
+          })()}
           <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
             <button type="button" disabled={tierBusy || !tierSelected.size} onClick={() => void animateSelected(true)}
               className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white active:scale-95 transition disabled:opacity-40">▶ Animieren</button>
