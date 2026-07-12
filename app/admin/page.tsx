@@ -772,6 +772,20 @@ export default function AdminPage() {
   // Admin: upscale a post's 360p video to HD (1080p) and replace it in place. No
   // re-generation (the upscale endpoint takes no prompt) — same clip, sharper.
   const [hdBusy, setHdBusy] = useState<string>("");
+  // Publish a try-on video to Instagram as a Reel (needs IG_ACCESS_TOKEN + IG_USER_ID in Vercel).
+  const [igBusy, setIgBusy] = useState<string>("");
+  const publishToIg = async (p: AdminPost) => {
+    if (!p.videoUrl || igBusy) return;
+    setIgBusy(p.id);
+    const caption = `${p.lookName || "New luxury look"} ✨\n\nDiscover it on LuxuryBandit.\n#LuxuryBandit #luxuryfashion #ootd #reels`;
+    try {
+      const r = await fetch("/api/publish-instagram", { method: "POST", headers: headers(), body: JSON.stringify({ videoUrl: p.videoUrl, caption }) });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.ok) setError("✅ Published to Instagram!");
+      else setError(d.error || "Instagram publish failed.");
+    } catch { setError("Instagram publish failed."); }
+    finally { setIgBusy(""); }
+  };
   const upscalePost = async (p: AdminPost) => {
     if (!p.videoUrl || hdBusy) return;
     if (!confirm("Dieses Video in HD (1080p) umrechnen? Kostet Pixverse-Credits, ~1–2 Min.")) return;
@@ -1123,6 +1137,13 @@ export default function AdminPage() {
                             <button type="button" disabled={!!hdBusy} onClick={() => void upscalePost(p)}
                               className="grid h-7 min-w-7 place-items-center rounded bg-amber-400 px-1.5 text-[10px] font-black text-black transition active:scale-95 disabled:opacity-40" title="In HD umrechnen (1080p)">
                               {hdBusy === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "HD"}
+                            </button>
+                          )}
+                          {p.videoUrl && (
+                            <button type="button" disabled={igBusy === p.id}
+                              onClick={() => armOrRun(`ig-${p.id}`, () => void publishToIg(p))}
+                              className="grid h-7 min-w-7 place-items-center rounded bg-gradient-to-tr from-fuchsia-600 to-orange-400 px-1.5 text-[10px] font-black text-white transition active:scale-95 disabled:opacity-40" title="Auf Instagram veröffentlichen (Reel)">
+                              {igBusy === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : confirmId === `ig-${p.id}` ? "Sure?" : "IG"}
                             </button>
                           )}
                           <button type="button" onClick={() => void deletePost(p)} className="grid h-7 w-7 place-items-center rounded text-coral transition hover:bg-coral/10" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
