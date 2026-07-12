@@ -779,7 +779,7 @@ export default function AdminPage() {
     setIgBusy(p.id);
     const caption = `${p.lookName || "New luxury look"} ✨\n\nDiscover it on LuxuryBandit.\n#LuxuryBandit #luxuryfashion #ootd #reels`;
     try {
-      const r = await fetch("/api/publish-instagram", { method: "POST", headers: headers(), body: JSON.stringify({ videoUrl: p.videoUrl, caption }) });
+      const r = await fetch("/api/instagram-publish", { method: "POST", headers: headers(), body: JSON.stringify({ videoUrl: p.videoUrl, caption }) });
       const d = await r.json().catch(() => ({}));
       if (r.ok && d.ok) setError("✅ Published to Instagram!");
       else setError(d.error || "Instagram publish failed.");

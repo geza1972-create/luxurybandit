@@ -21,7 +21,7 @@ function viewerHeaders(): Record<string, string> {
   return h;
 }
 
-type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string; status?: string; profilePhotoUrls?: string[] };
+type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; brands?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string; status?: string; profilePhotoUrls?: string[] };
 type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; featured?: boolean; productType?: string; wardrobe?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
 type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string; feed?: boolean };
 
@@ -747,6 +747,24 @@ export default function CuratorPublicPage() {
         )}
         {profile.motto && <p className="text-sm font-black text-amber-400">{profile.motto}</p>}
         {profile.bio && <p className="max-w-sm text-sm font-medium leading-relaxed text-white/55">{profile.bio}</p>}
+        {/* Brands — her own (if set) PLUS our affiliate partner GiannaBellucci, ALWAYS appended
+            for every model (highlighted, since it's what she actually wears & the chat delivers).
+            Code-based so it can never be clobbered by concurrent saves. */}
+        {(() => {
+          const custom = (profile.brands?.trim() || "").split(",").map(b => b.trim()).filter(Boolean);
+          const hasGB = custom.some(b => b.toLowerCase().replace(/\s+/g, "") === "giannabellucci");
+          const list = hasGB ? custom.slice(0, 6) : [...custom.slice(0, 5), "GiannaBellucci"];
+          return (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              {list.map((b, i) => {
+                const isGB = b.toLowerCase().replace(/\s+/g, "") === "giannabellucci";
+                return <span key={i} className={isGB
+                  ? "rounded-full bg-amber-400 px-2.5 py-1 text-[11px] font-black text-black"
+                  : "rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-black text-amber-300 ring-1 ring-amber-400/25"}>{b}</span>;
+              })}
+            </div>
+          );
+        })()}
         <div className="mt-1 flex items-center gap-3 text-[11px] font-bold text-white/40">
           {profile.genderFocus && <span className="rounded-full bg-white/10 px-2.5 py-1">{profile.genderFocus}</span>}
           {profile.instagram && (
