@@ -225,6 +225,12 @@ export default function AdminPage() {
   const [tryonBusy, setTryonBusy] = useState(false);
   const [chatNotifyPaused, setChatNotifyPaused] = useState(false); // chat WhatsApp/email alerts
   const [chatNotifyBusy, setChatNotifyBusy] = useState(false);
+  // Manual newsletter blast to all email leads.
+  const [nlSubject, setNlSubject] = useState("");
+  const [nlMessage, setNlMessage] = useState("");
+  const [nlCount, setNlCount] = useState<number | null>(null);
+  const [nlBusy, setNlBusy] = useState(false);
+  const [nlMsg, setNlMsg] = useState("");
 
   const headers = (p = pin, t = token): Record<string, string> => ({
     "Content-Type": "application/json",
@@ -263,6 +269,23 @@ export default function AdminPage() {
       else setError("Could not toggle chat alerts (admin only).");
     } catch { setError("Could not toggle chat alerts."); }
     finally { setChatNotifyBusy(false); }
+  };
+  // Newsletter: load the subscriber count once the admin is authed; send on demand.
+  useEffect(() => {
+    if (!pin && !token) return;
+    fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "send-newsletter", count: "1" }) })
+      .then(r => r.json()).then(d => { if (typeof d?.count === "number") setNlCount(d.count); }).catch(() => {});
+  }, [pin, token]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sendNewsletter = async () => {
+    if (nlBusy) return;
+    setNlBusy(true); setNlMsg("");
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "send-newsletter", subject: nlSubject.trim(), message: nlMessage.trim() }) });
+      const d = await r.json();
+      if (r.ok && d.ok) { setNlMsg(`✅ An ${d.sent} Abonnenten gesendet.`); if (typeof d.recipients === "number") setNlCount(d.recipients); }
+      else setNlMsg(d.error || "Senden fehlgeschlagen.");
+    } catch { setNlMsg("Senden fehlgeschlagen."); }
+    finally { setNlBusy(false); }
   };
 
   const load = async (p = pin, t = token) => {
@@ -1000,6 +1023,28 @@ export default function AdminPage() {
             className={`shrink-0 rounded-full px-4 py-2 text-xs font-black text-white active:scale-95 transition-transform disabled:opacity-50 ${chatNotifyPaused ? "bg-emerald-600" : "bg-black"}`}>
             {chatNotifyBusy ? "…" : chatNotifyPaused ? "Turn on" : "Turn off"}
           </button>
+        </section>
+
+        {/* Manual newsletter: send the latest looks to every email lead, on demand. */}
+        <section className="mt-3 rounded-xl border border-black/10 bg-white p-3">
+          <div className="flex items-center gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/[0.06] text-base">📧</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black text-ink">Newsletter{nlCount != null ? ` · ${nlCount} subscribers` : ""}</p>
+              <p className="text-[11px] font-bold text-ink/45">Send an email with the latest looks to everyone who gave their email. You send it — nothing auto.</p>
+            </div>
+          </div>
+          <input value={nlSubject} onChange={e => setNlSubject(e.target.value)} placeholder="Subject (optional)"
+            className="mt-2 h-10 w-full rounded-lg border border-black/12 bg-black/[0.02] px-3 text-sm font-bold text-ink outline-none focus:border-black/40" />
+          <textarea value={nlMessage} onChange={e => setNlMessage(e.target.value)} rows={2} placeholder="Message (optional) — the newest looks are added automatically"
+            className="mt-2 w-full rounded-lg border border-black/12 bg-black/[0.02] p-3 text-sm font-bold text-ink outline-none focus:border-black/40" />
+          <div className="mt-2 flex items-center gap-3">
+            <button type="button" onClick={() => armOrRun("newsletter", () => void sendNewsletter())} disabled={nlBusy || !nlCount}
+              className="shrink-0 rounded-full bg-black px-4 py-2 text-xs font-black text-white active:scale-95 transition-transform disabled:opacity-40">
+              {nlBusy ? "Sending…" : confirmId === "newsletter" ? "Sure — send?" : `Send to ${nlCount ?? 0}`}
+            </button>
+            {nlMsg && <span className="text-[11px] font-black text-ink/60">{nlMsg}</span>}
+          </div>
         </section>
 
         {tab !== "inbox" && tab !== "insights" && (

@@ -1903,6 +1903,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, chatNotifyPaused: paused });
     }
 
+    // Admin: manually send a newsletter to all marketing-consent leads (BCC batches). The email
+    // shows the latest looks + a message. `count:"1"` just returns the subscriber count.
+    if (payload.action === "send-newsletter") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const st = await readTryThisLookState();
+      const emails = [...new Set((st.leads ?? [])
+        .filter(l => (l as { marketingConsent?: boolean }).marketingConsent && l.email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(l.email)))
+        .map(l => String(l.email).toLowerCase()))];
+      if (String((payload as any).count ?? "") === "1") return NextResponse.json({ ok: true, count: emails.length });
+      if (!emails.length) return NextResponse.json({ ok: true, sent: 0, recipients: 0 });
+      const subject = String((payload as any).subject ?? "").trim() || "New looks on LuxuryBandit 💛";
+      const message = String((payload as any).message ?? "").trim();
+      const looks = (st.looks ?? []).filter(l => ((l as { imageUrl?: string }).imageUrl || l.frontImageUrl) && (l as { published?: boolean }).published !== false).slice(0, 4);
+      const grid = looks.map(l => { const img = (l as { imageUrl?: string }).imageUrl || l.frontImageUrl || ""; return `<a href="https://luxurybandit.com/look/${l.id}" style="display:inline-block;width:48%;text-decoration:none;"><img src="${img}" alt="" width="220" style="width:100%;border-radius:12px;display:block;margin:0 0 6px;" /></a>`; }).join("");
+      const html = `<div style="margin:0;padding:0;background:#0d0b0a;font-family:Arial,Helvetica,sans-serif;"><div style="max-width:480px;margin:0 auto;background:#0d0b0a;color:#fff;">`
+        + `<div style="padding:22px 24px;text-align:center;"><span style="font-size:20px;font-weight:900;letter-spacing:2px;color:#e7c877;">LUXURYBANDIT</span></div>`
+        + (message ? `<div style="padding:0 24px 8px;text-align:center;"><p style="margin:0;font-size:16px;line-height:1.55;color:#fff;font-weight:700;">${message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n/g, "<br/>")}</p></div>` : "")
+        + `<div style="padding:14px 20px;text-align:center;">${grid}</div>`
+        + `<div style="padding:8px 24px 26px;text-align:center;"><a href="https://luxurybandit.com/home" style="display:inline-block;background:#e7c877;color:#000;text-decoration:none;font-weight:900;font-size:15px;padding:14px 32px;border-radius:999px;">See all looks &rarr;</a></div>`
+        + `<div style="padding:18px 24px;text-align:center;border-top:1px solid #26221c;"><p style="margin:0;font-size:11px;color:#7a746a;">You subscribed on LuxuryBandit. Reply "stop" to unsubscribe.</p></div>`
+        + `</div></div>`;
+      const fromAddr = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").split(",")[0].trim() || "support@luxurybandit.com";
+      const { sendEmail } = await import("@/lib/email-send");
+      let sent = 0;
+      for (let i = 0; i < emails.length; i += 40) {
+        const batch = emails.slice(i, i + 40);
+        try { await sendEmail({ to: fromAddr, bcc: batch.join(","), subject, html }); sent += batch.length; } catch { /**/ }
+      }
+      return NextResponse.json({ ok: true, sent, recipients: emails.length });
+    }
+
     if (payload.action === "upload-look") {
       const name = String(payload.name ?? "").trim() || "New LuxuryBandit Look";
       const campaignName = String(payload.campaignName ?? "").trim();
