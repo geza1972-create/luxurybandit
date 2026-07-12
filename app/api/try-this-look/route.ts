@@ -467,6 +467,7 @@ export async function GET(request: Request) {
             name,
             photoUrl: cc.photoUrl as string,
             style: typeof cc.style === "string" ? cc.style : "",
+            brands: typeof cc.brands === "string" ? cc.brands : "", // her favourite brands (chips/desc)
             hairColor: typeof cc.hairColor === "string" ? cc.hairColor : "",
             createdAt: typeof cc.createdAt === "string" ? cc.createdAt : "",
             pinned: cc.pinned === true, // admin-pinned → shown first in the Models grid

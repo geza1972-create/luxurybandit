@@ -1508,7 +1508,7 @@ function StoresPage() {
   }, []);
   // Home has two views: the Feeds thumbnail grid, and the Models gallery (a grid of the
   // model profiles). Toggled at the top of the home.
-  type GalleryModel = { id: string; name: string; photoUrl: string; style: string; lookCount: number; bio?: string; motto?: string; hidden?: boolean; hairColor?: string; createdAt?: string; pinned?: boolean; featured?: boolean; chatPersona?: string; chatEnabled?: boolean; realModel?: boolean };
+  type GalleryModel = { id: string; name: string; photoUrl: string; style: string; brands?: string; lookCount: number; bio?: string; motto?: string; hidden?: boolean; hairColor?: string; createdAt?: string; pinned?: boolean; featured?: boolean; chatPersona?: string; chatEnabled?: boolean; realModel?: boolean };
   const [models, setModels] = useState<GalleryModel[]>([]);
   // Models tab: sort (newest first by default, so a freshly added model is on top)
   // + optional hair-color filter (models are AI-tagged blond/brunette/black/red).
@@ -2828,6 +2828,12 @@ function StoresPage() {
                         <p className="truncate text-[13px] font-black text-white">{m.name}{m.realModel && <span className="ml-1 align-middle text-emerald-400">✓</span>}</p>
                         {m.realModel && <p className="truncate text-[11px] font-black text-emerald-400">✓ Real model</p>}
                         {locked ? <p className="truncate text-[11px] font-black text-amber-400">Premium · Members only</p> : m.style && <p className="truncate text-[11px] font-bold text-white/40">{m.style}</p>}
+                        {!locked && (() => {
+                          // Her favourite brands (+ our partner GiannaBellucci) as a tiny line.
+                          const custom = (m.brands || "").split(",").map(b => b.trim()).filter(Boolean);
+                          const list = custom.some(b => b.toLowerCase().replace(/\s+/g, "") === "giannabellucci") ? custom.slice(0, 3) : [...custom.slice(0, 2), "GiannaBellucci"];
+                          return <p className="mt-0.5 truncate text-[9px] font-black uppercase tracking-wide text-amber-400/70">♡ {list.join(" · ")}</p>;
+                        })()}
                       </div>
                     </a>
                     {m.hidden && <span className="absolute left-2 top-2 rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-black text-white">Ausgeblendet</span>}

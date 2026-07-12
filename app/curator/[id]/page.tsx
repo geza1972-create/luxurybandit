@@ -762,13 +762,18 @@ export default function CuratorPublicPage() {
           const hasGB = custom.some(b => b.toLowerCase().replace(/\s+/g, "") === "giannabellucci");
           const list = hasGB ? custom.slice(0, 6) : [...custom.slice(0, 5), "GiannaBellucci"];
           return (
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-              {list.map((b, i) => {
-                const isGB = b.toLowerCase().replace(/\s+/g, "") === "giannabellucci";
-                return <span key={i} className={isGB
-                  ? "rounded-full bg-amber-400 px-2.5 py-1 text-[11px] font-black text-black"
-                  : "rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-black text-amber-300 ring-1 ring-amber-400/25"}>{b}</span>;
-              })}
+            <div className="mt-2">
+              <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-white/35">
+                {profile.firstName ? `${profile.firstName}'s favorite brands` : "Favorite brands"}
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {list.map((b, i) => {
+                  const isGB = b.toLowerCase().replace(/\s+/g, "") === "giannabellucci";
+                  return <span key={i} className={isGB
+                    ? "rounded-full bg-amber-400 px-2.5 py-1 text-[11px] font-black text-black"
+                    : "rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-black text-amber-300 ring-1 ring-amber-400/25"}>{b}</span>;
+                })}
+              </div>
             </div>
           );
         })()}
