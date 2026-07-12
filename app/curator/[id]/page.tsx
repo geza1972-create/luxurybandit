@@ -561,6 +561,58 @@ export default function CuratorPublicPage() {
     finally { setPhotoVidBusy(""); }
   };
 
+  // ── Model self-service: turn her OWN photo into a video. First video is free (welcome
+  // credit), every additional one is $3.99 — the server (generate-tryon-video) enforces it
+  // and returns 402 when she's out of credits; we then open Stripe Checkout and retry.
+  const payForModelVideo = async (): Promise<boolean> => {
+    const r = await fetch("/api/model-video-checkout", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ curatorId: id }),
+    }).then(x => x.json()).catch(() => null);
+    if (!r?.url || !r?.sessionId) { alert(r?.error || "Zahlung konnte nicht gestartet werden."); return false; }
+    const popup = window.open(r.url, "lb-pay", "width=460,height=760");
+    for (let i = 0; i < 180; i++) { // poll ~6 min
+      await new Promise(res => setTimeout(res, 2000));
+      const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(r.sessionId)}`).then(x => x.json()).catch(() => ({}));
+      if (st?.paid) { try { popup?.close(); } catch { /**/ } return true; }
+      if (popup && popup.closed) {
+        const st2 = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(r.sessionId)}`).then(x => x.json()).catch(() => ({}));
+        return !!st2?.paid;
+      }
+    }
+    return false;
+  };
+
+  const makeVideoAsModel = async (t: TryOn, retried = false) => {
+    if (photoVidBusy) return;
+    if (!retried && !window.confirm("Dein erstes Video ist gratis, jedes weitere kostet $3.99. Weiter?")) return;
+    setPhotoVidBusy(t.id);
+    try {
+      const res = await fetch("/api/generate-tryon-video", {
+        method: "POST", headers: viewerHeaders(), body: JSON.stringify({ lookId: t.lookId || "", image: t.imageUrl }),
+      });
+      const start = await res.json().catch(() => ({}));
+      if (res.status === 402 || start?.paymentRequired) {
+        setPhotoVidBusy("");
+        const paid = await payForModelVideo();
+        if (paid) await makeVideoAsModel(t, true); // retry — the credit is now on her account
+        return;
+      }
+      if (!start.videoId) throw new Error(start.error || "Start fehlgeschlagen.");
+      let videoUrl = "";
+      for (let i = 0; i < 45; i++) {
+        await new Promise(r => setTimeout(r, 5000));
+        const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || id)}`).then(r => r.json());
+        if (p.status === "done" && p.videoUrl) { videoUrl = p.videoUrl; break; }
+        if (p.status === "failed") throw new Error(p.error || "Generierung fehlgeschlagen.");
+      }
+      if (!videoUrl) throw new Error("Zeitüberschreitung.");
+      await fetch("/api/try-this-look", { method: "POST", headers: viewerHeaders(), body: JSON.stringify({ action: "attach-generation-video", generationId: t.id, videoUrl }) });
+      await reloadTryons();
+      alert("Video erstellt ✓");
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehler bei der Video-Generierung"); }
+    finally { setPhotoVidBusy(""); }
+  };
+
   const readFile = (f: File) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f); });
   const addGenRefs = async (files: FileList | File[]) => {
     for (const f of Array.from(files)) { if (!f.type.startsWith("image/")) continue; try { const url = await readFile(f); setGenRefs(r => [...r, url].slice(0, 8)); } catch { /**/ } }
@@ -903,6 +955,12 @@ export default function CuratorPublicPage() {
                       className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-center gap-1 rounded-full bg-amber-400 py-1 text-[10px] font-black text-black active:scale-95 transition disabled:opacity-60">
                       {photoVidBusy === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" fill="currentColor" />}
                       {photoVidBusy === t.id ? "Generiert…" : "Video"}
+                    </button>
+                  ) : isOwn ? (
+                    /* Model self-service: 1st video free, then $3.99 (server-enforced). */
+                    <button type="button" onClick={() => void makeVideoAsModel(t)} disabled={!!photoVidBusy}
+                      className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-center gap-1 rounded-full bg-amber-400 py-1 text-[10px] font-black text-black active:scale-95 transition disabled:opacity-60">
+                      {photoVidBusy === t.id ? <><Loader2 className="h-3 w-3 animate-spin" /> Generiert…</> : <><Play className="h-3 w-3" fill="currentColor" /> Video</>}
                     </button>
                   ) : (
                     <span className="absolute inset-x-1.5 bottom-1.5 rounded-full bg-black/70 py-1 text-center text-[9px] font-black text-white/80 backdrop-blur">Team macht dein Video</span>

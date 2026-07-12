@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readTryThisLookState, uploadTryThisLookBytes, getSignedUrl, createSignedUploadUrl, bumpDailyGenLimit } from "@/lib/try-this-look-store";
+import { readTryThisLookState, uploadTryThisLookBytes, getSignedUrl, createSignedUploadUrl, bumpDailyGenLimit, ensureWelcomeCredits, spendVideoCredit } from "@/lib/try-this-look-store";
 import { chargeCredits, refundCredits, VIDEO_CREDITS } from "@/lib/curator-budget";
 import { authorizeStudio } from "@/lib/studio-auth";
 import { isAdminRequest } from "@/lib/admin-auth";
@@ -308,14 +308,28 @@ export async function POST(request: Request) {
     });
   }
 
-  // MODELS may not generate videos: they create PHOTOS of themselves in outfits,
-  // and the team turns the best ones into videos (admin one-click). Blocks the
-  // expensive Pixverse path for curator sessions — admin (PIN/session) passes.
-  if (request.headers.get("x-curator-id") && !(await isAdminRequest(request))) {
-    return NextResponse.json(
-      { error: "Models create photos — the LuxuryBandit team turns your best photos into videos.", modelsPhotoOnly: true },
-      { status: 403 }
-    );
+  // MODELS generate their OWN videos: the FIRST one is free (a welcome credit), every
+  // additional new video costs $3.99 (a paid credit). Cached/reused videos never reach
+  // here — this is only the expensive new-generation path. Admin (PIN/session) passes free.
+  const curatorHdr = request.headers.get("x-curator-id")?.trim();
+  if (curatorHdr && !(await isAdminRequest(request))) {
+    const st = await readTryThisLookState();
+    const model = (st.curators ?? []).find(c => c.id === curatorHdr) as { email?: string } | undefined;
+    const modelEmail = String(model?.email ?? "").trim().toLowerCase();
+    if (!modelEmail) {
+      return NextResponse.json(
+        { error: "We couldn't find your model account — please sign in again.", modelsPhotoOnly: true },
+        { status: 403 }
+      );
+    }
+    await ensureWelcomeCredits(modelEmail);       // first video free, exactly once
+    const balance = await spendVideoCredit(modelEmail); // spend the free or a paid credit
+    if (balance === null) {
+      return NextResponse.json(
+        { error: "Your first video was free — each new video is $3.99.", paymentRequired: true, priceCents: 399, priceLabel: "$3.99" },
+        { status: 402 }
+      );
+    }
   }
 
   // Staff (admin or an acting-as curator session, e.g. Szidonia) generate for FREE

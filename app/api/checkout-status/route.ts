@@ -28,6 +28,14 @@ export async function GET(request: Request) {
         credits = res.credits;
       }
     }
+    // Model paid $3.99 for one more video → grant 1 credit to her email (idempotent).
+    if (paid && s.metadata.kind === "model-video") {
+      const email = (s.metadata.email || s.clientReferenceId || s.customerEmail || "").trim().toLowerCase();
+      if (email) {
+        const res = await grantVideoCredits(email, sessionId, 1);
+        credits = res.credits;
+      }
+    }
 
     return NextResponse.json({
       paid,
