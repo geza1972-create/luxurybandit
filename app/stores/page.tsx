@@ -4,7 +4,6 @@ export const dynamic = "force-dynamic";
 
 import {
   getStoredAuthSession,
-  resetPassword,
   signInWithPassword,
   signInWithOAuth,
   signOut,
@@ -1253,8 +1252,21 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
         setMessage("Account created! Check your email to confirm, then sign in.");
         setTab("signin");
       } else {
-        await resetPassword(email.trim());
-        setMessage("If this email exists, you'll get a reset link shortly.");
+        // Supabase's own recovery mailer is dead ("Error sending recovery email"), so hit
+        // our SMTP endpoint — it mints the recovery link via the Admin API and delivers it,
+        // and auto-provisions a login for approved models who never created an account.
+        const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth/reset-password` : "";
+        const res = await fetch("/api/send-reset-link", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim(), redirectTo }),
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(d.error ?? "Could not send reset email.");
+        if (d.skipped === "no-mailer" || d.skipped === "no-supabase-admin") {
+          setError("Email isn't set up yet — please contact support to reset your password.");
+        } else {
+          setMessage("If this email exists, you'll get a reset link shortly.");
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");

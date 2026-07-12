@@ -37,9 +37,15 @@ function YouInVideoInner() {
   const [clips, setClips] = useState<Clip[]>([]);
   const [loadingClips, setLoadingClips] = useState(true);
   const [picked, setPicked] = useState<Clip | null>(null);
-  const [photo, setPhoto] = useState<string>(""); // data URL of the uploaded selfie
+  const [rawPhoto, setRawPhoto] = useState<string>(""); // uncropped upload
+  const [photo, setPhoto] = useState<string>(""); // cropped selfie fed to the render
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [progress, setProgress] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cropBoxRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const dragRef = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
 
   // ── Load the pickable looks (public feed videos) ────────────────────────────
   useEffect(() => {
@@ -101,9 +107,48 @@ function YouInVideoInner() {
     const f = e.target.files?.[0];
     if (!f) return;
     const reader = new FileReader();
-    reader.onload = () => { setPhoto(String(reader.result || "")); };
+    reader.onload = () => { setRawPhoto(String(reader.result || "")); setZoom(1); setOffset({ x: 0, y: 0 }); };
     reader.readAsDataURL(f);
   }, []);
+
+  // Drag to reposition the face inside the crop frame.
+  const onDragStart = (e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    dragRef.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
+  };
+  const onDragMove = (e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    setOffset({ x: dragRef.current.ox + (e.clientX - dragRef.current.x), y: dragRef.current.oy + (e.clientY - dragRef.current.y) });
+  };
+  const onDragEnd = () => { dragRef.current = null; };
+
+  // Bake the current pan/zoom crop (an object-cover frame + translate/scale) to a data URL.
+  const cropToDataUrl = (): string => {
+    const box = cropBoxRef.current, img = imgRef.current;
+    if (!box || !img || !img.naturalWidth) return rawPhoto;
+    const bw = box.clientWidth, bh = box.clientHeight;
+    const nw = img.naturalWidth, nh = img.naturalHeight;
+    const cover = Math.max(bw / nw, bh / nh);
+    const w0 = nw * cover, h0 = nh * cover;
+    const x0 = (bw - w0) / 2, y0 = (bh - h0) / 2; // object-cover, centered
+    const cx = bw / 2, cy = bh / 2;
+    // CSS applies translate(offset) scale(zoom) about the center → scale first, then offset.
+    const dx = cx + (x0 - cx) * zoom + offset.x;
+    const dy = cy + (y0 - cy) * zoom + offset.y;
+    const SS = 3; // supersample for a crisp result
+    const canvas = document.createElement("canvas");
+    canvas.width = bw * SS; canvas.height = bh * SS;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return rawPhoto;
+    ctx.drawImage(img, dx * SS, dy * SS, w0 * zoom * SS, h0 * zoom * SS);
+    return canvas.toDataURL("image/jpeg", 0.92);
+  };
+
+  const confirmCrop = () => {
+    setPhoto(cropToDataUrl());
+    setStep("generating");
+    logFunnelEvent("yiv_generate");
+  };
 
   const pay = () => {
     try { if (picked) localStorage.setItem(LS_PENDING, JSON.stringify(picked)); } catch { /* ignore */ }
@@ -159,30 +204,64 @@ function YouInVideoInner() {
           </>
         )}
 
-        {/* ── Step: upload your photo ───────────────────────────────────────── */}
+        {/* ── Step: upload + crop your photo ────────────────────────────────── */}
         {step === "upload" && picked && (
           <>
             <h1 className="text-center text-[22px] font-black leading-tight">{L("Adaugă poza ta", "Add your photo")}</h1>
-            <p className="mx-auto mt-2 max-w-xs text-center text-[13px] font-bold text-white/55">{L("O poză clară cu fața ta — o folosim doar pentru videoul tău.", "A clear photo of your face — used only for your video.")}</p>
-            <div className="mx-auto mt-6 max-w-xs">
-              <input ref={fileRef} type="file" accept="image/*" onChange={onFile} className="hidden" />
-              <button type="button" onClick={() => fileRef.current?.click()}
-                className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed border-[#c9a23f]/50 bg-[#c9a23f]/[0.06] active:scale-[0.98] transition">
-                {photo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={photo} alt="" className="h-full w-full object-cover" />
-                ) : (
+            <p className="mx-auto mt-2 max-w-xs text-center text-[13px] font-bold text-white/55">
+              {rawPhoto
+                ? L("Potrivește-ți fața în contur. Trage și mărește.", "Line your face up with the outline. Drag & zoom.")
+                : L("O poză clară cu fața ta — o folosim doar pentru videoul tău.", "A clear photo of your face — used only for your video.")}
+            </p>
+            <input ref={fileRef} type="file" accept="image/*" onChange={onFile} className="hidden" />
+
+            {!rawPhoto ? (
+              <div className="mx-auto mt-6 max-w-xs">
+                <button type="button" onClick={() => fileRef.current?.click()}
+                  className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed border-[#c9a23f]/50 bg-[#c9a23f]/[0.06] active:scale-[0.98] transition">
                   <span className="flex flex-col items-center gap-2 text-[#e7c877]">
                     <Upload className="h-8 w-8" />
                     <span className="text-[13px] font-black">{L("Alege o poză", "Choose a photo")}</span>
                   </span>
-                )}
-              </button>
-            </div>
-            <button type="button" disabled={!photo} onClick={() => { setStep("generating"); logFunnelEvent("yiv_generate"); }}
-              className="lb-gold mx-auto mt-6 flex h-14 w-full max-w-xs items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition disabled:opacity-40">
-              <Sparkles className="h-5 w-5" /> {L("Creează videoul meu", "Create my video")}
-            </button>
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Crop frame with a dashed face-contour guide */}
+                <div ref={cropBoxRef}
+                  className="relative mx-auto mt-5 aspect-[3/4] w-full max-w-[280px] touch-none select-none overflow-hidden rounded-3xl border border-[#c9a23f]/40 bg-black">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img ref={imgRef} src={rawPhoto} alt="" draggable={false}
+                    onPointerDown={onDragStart} onPointerMove={onDragMove} onPointerUp={onDragEnd} onPointerCancel={onDragEnd}
+                    className="absolute inset-0 h-full w-full cursor-grab object-cover active:cursor-grabbing"
+                    style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`, willChange: "transform" }} />
+                  {/* dashed face outline */}
+                  <svg viewBox="0 0 100 133" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full">
+                    <path d="M50 20 C66 20 74 34 74 50 C74 72 63 92 50 92 C37 92 26 72 26 50 C26 34 34 20 50 20 Z"
+                      fill="none" stroke="#ffffff" strokeWidth="0.9" strokeDasharray="3 2.5" opacity="0.85" />
+                  </svg>
+                  <span className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-[10px] font-black text-white/85 backdrop-blur">{L("Trage ca să potrivești", "Drag to fit your face")}</span>
+                </div>
+
+                {/* zoom */}
+                <div className="mx-auto mt-4 flex w-full max-w-[280px] items-center gap-3">
+                  <span className="text-[11px] font-black text-white/40">–</span>
+                  <input type="range" min={1} max={3} step={0.01} value={zoom}
+                    onChange={(e) => setZoom(parseFloat(e.target.value))}
+                    className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-white/15 accent-[#e7c877]" />
+                  <span className="text-[13px] font-black text-white/40">+</span>
+                </div>
+
+                <button type="button" onClick={confirmCrop}
+                  className="lb-gold mx-auto mt-5 flex h-14 w-full max-w-[280px] items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition">
+                  <Sparkles className="h-5 w-5" /> {L("Creează videoul meu", "Create my video")}
+                </button>
+                <button type="button" onClick={() => fileRef.current?.click()}
+                  className="mx-auto mt-3 block text-[12px] font-bold text-white/40 underline underline-offset-2">
+                  {L("Alege altă poză", "Choose another photo")}
+                </button>
+              </>
+            )}
           </>
         )}
 
