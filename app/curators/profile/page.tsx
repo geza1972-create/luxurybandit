@@ -401,12 +401,15 @@ export default function CuratorProfilePage() {
           <Sparkles className="h-4 w-4" /> Open my model page
         </a>
 
-        {/* Earnings — only for real models (they earn when users try them on). */}
-        {isRealModel && (
+        {/* Earnings — EVERY model earns a share of each paid video made with her. */}
+        {curatorId && (
           <div className="mt-5 rounded-2xl border border-amber-400/40 bg-amber-50 p-4">
-            <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">Your earnings</p>
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-black uppercase tracking-wider text-amber-700">Your earnings</p>
+              <a href="/earnings" className="text-[11px] font-black text-amber-700 underline underline-offset-2">How it works →</a>
+            </div>
             <p className="mt-1 text-3xl font-black text-black">€{(earningsCents / 100).toFixed(2)}</p>
-            <p className="mt-0.5 text-[12px] font-bold text-black/50">A small bonus each time a fan tries you on. Your main earnings will come from chatting with fans — coming soon. 💬</p>
+            <p className="mt-0.5 text-[12px] font-bold text-black/50">You earn <b className="text-black">30%</b> (~$1.20) every time a fan makes a paid video with you. Chat earnings are coming soon. 💬</p>
 
             <label className={`${label} mt-4`}>Payout details (IBAN or PayPal)</label>
             <input className={field} value={payoutMethod} onChange={e => setPayoutMethod(e.target.value)} placeholder="RO49 AAAA… or you@paypal.com" />

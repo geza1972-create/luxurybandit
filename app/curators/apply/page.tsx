@@ -288,7 +288,7 @@ export default function CuratorApplyPage() {
         <div className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/[0.07] px-4 py-3 text-center">
           <p className="text-[13px] font-black text-amber-300">⚠️ You get one shot — send your very best photos.</p>
           <p className="mt-1 text-[11px] font-bold leading-relaxed text-white/55">Photos that are blurry, hide your face (hat/sunglasses), fake, or don&apos;t fit our luxury concept are rejected — and a rejected application can&apos;t apply again. Sharp, well-lit, real photos only.</p>
-          <p className="mt-2 text-[11px] font-bold leading-relaxed text-emerald-300/80">💰 You earn credits when users create videos with you — that happens on paid Premium accounts. The more users pick you, the more you earn.</p>
+          <p className="mt-2 text-[11px] font-bold leading-relaxed text-emerald-300/80">💰 You earn <b className="text-emerald-200">30%</b> (~$1.20) every time a fan makes a paid video with you — it lands in your account automatically. The more fans pick you, the more you earn. <a href="/earnings" className="underline underline-offset-2">How earnings work →</a></p>
           <p className="mt-2 text-[11px] font-bold leading-relaxed text-amber-200/80">🎬 Your first video is free — turn a photo into a video once you&apos;re approved. Every extra video is just $3.99.</p>
         </div>
 
