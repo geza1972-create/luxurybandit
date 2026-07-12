@@ -516,7 +516,7 @@ function MaiIeftinInner() {
                       <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
                         {m.ownProducts.map((p, idx) => (
                           <a key={idx} href={p.link}
-                            className="w-44 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#b8912f]/30 active:scale-95 transition">
+                            className="w-32 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#b8912f]/30 active:scale-95 transition">
                             <div className="aspect-[3/4] w-full bg-white">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" />
