@@ -341,8 +341,9 @@ export default function TryFunnelPage() {
     const v = revealVideoRef.current;
     if (!v) return;
     if (revealing) { try { v.pause(); v.currentTime = 0; } catch { /**/ } }
-    else { try { void v.play().catch(() => {}); } catch { /**/ } }
-  }, [revealing, previewVideoUrl]);
+    // Don't play (or trigger a download) while the clip is still gated behind the email wall.
+    else if (!awaitingEmail) { try { void v.play().catch(() => {}); } catch { /**/ } }
+  }, [revealing, awaitingEmail, previewVideoUrl]);
 
   const goStep3 = async () => {
     // Preload the music MUTED — the visitor turns sound on with the 🔊 toggle (no jarring autoplay).
@@ -1119,7 +1120,10 @@ export default function TryFunnelPage() {
               // Free video already exists. Reveal it theatrically: it plays and slowly
               // sharpens from blurry over ~30s, THEN becomes fully watchable (controls).
               <div className="relative h-[52vh] w-full overflow-hidden bg-black">
-                <video ref={revealVideoRef} src={previewVideoUrl} poster={previewPoster || undefined} preload="auto"
+                {/* Bandwidth: while the video is still behind the email gate, DON'T preload or
+                    autoplay it — a gate-bouncer would otherwise download the whole clip for
+                    nothing. Show just the (blurred) poster; load the video once they pass. */}
+                <video ref={revealVideoRef} src={previewVideoUrl} poster={previewPoster || undefined} preload={awaitingEmail ? "none" : "auto"}
                   onClick={() => { if (revealing) return; if (awaitingEmail) { setGateOpen(true); return; } toggleVideo(); }}
                   className="h-full w-full cursor-pointer object-contain"
                   style={
@@ -1129,7 +1133,7 @@ export default function TryFunnelPage() {
                         ? { filter: "blur(26px)", transform: "scale(1.08)" } // teaser behind the email gate
                         : undefined
                   }
-                  autoPlay loop playsInline muted={revealing || awaitingEmail || musicMuted} />
+                  autoPlay={!awaitingEmail} loop playsInline muted={revealing || awaitingEmail || musicMuted} />
                 {!revealing && !awaitingEmail && (
                   <>
                     {/* Sound (music) toggle */}
