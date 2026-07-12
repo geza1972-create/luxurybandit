@@ -180,9 +180,16 @@ export default function TryFunnelPage() {
   const revealVideoRef = useRef<HTMLVideoElement>(null);
   // Background music (the clips have no audio) + a sound toggle; tap the video to pause it.
   const musicRef = useRef<HTMLAudioElement>(null);
-  const [musicMuted, setMusicMuted] = useState(false);
+  const [musicMuted, setMusicMuted] = useState(true); // start SILENT — no jarring autoplay-with-sound
   const [vidPaused, setVidPaused] = useState(false);
-  const toggleMusic = () => { const a = musicRef.current; if (!a) return; a.muted = !a.muted; if (!a.muted) { a.play().catch(() => {}); } setMusicMuted(a.muted); };
+  // The 🔊 toggle controls BOTH the background music AND the video's own audio.
+  const toggleMusic = () => {
+    const nextMuted = !musicMuted;
+    const a = musicRef.current; const v = revealVideoRef.current;
+    if (a) { a.muted = nextMuted; if (!nextMuted) a.play().catch(() => {}); }
+    if (v) v.muted = nextMuted;
+    setMusicMuted(nextMuted);
+  };
   const toggleVideo = () => { const v = revealVideoRef.current; const a = musicRef.current; if (!v) return; if (v.paused) { v.play().catch(() => {}); a?.play().catch(() => {}); setVidPaused(false); } else { v.pause(); a?.pause(); setVidPaused(true); } };
   // Scanner "generation" reveal runs ~5s, then the pre-generated clip plays clear.
   const REVEAL_MS = 5000;
@@ -322,8 +329,8 @@ export default function TryFunnelPage() {
   }, [revealing, previewVideoUrl]);
 
   const goStep3 = async () => {
-    // Start the music now — within the tap gesture, so autoplay-with-sound is allowed.
-    try { const a = musicRef.current; if (a) { a.muted = false; a.volume = 0.6; a.play().catch(() => {}); setMusicMuted(false); } } catch { /**/ }
+    // Preload the music MUTED — the visitor turns sound on with the 🔊 toggle (no jarring autoplay).
+    try { const a = musicRef.current; if (a) { a.muted = true; a.volume = 0.6; setMusicMuted(true); } } catch { /**/ }
     setStep(3);
     setRendering(true); setRevealing(false); setRevealSharp(false);
     const hit = await lookupCachedVideo();
@@ -1079,7 +1086,7 @@ export default function TryFunnelPage() {
                         ? { filter: "blur(26px)", transform: "scale(1.08)" } // teaser behind the email gate
                         : undefined
                   }
-                  autoPlay loop playsInline muted={revealing || awaitingEmail} />
+                  autoPlay loop playsInline muted={revealing || awaitingEmail || musicMuted} />
                 {!revealing && !awaitingEmail && (
                   <>
                     {/* Sound (music) toggle */}
