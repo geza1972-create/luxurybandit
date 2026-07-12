@@ -365,6 +365,7 @@ export default function TryFunnelPage() {
       // This reveal uses the one free email-lead pass (if not a real account) → mark it spent.
       if (!authed && !adminPin && leadEmail) { try { localStorage.setItem("lb_lead_used", "1"); } catch { /**/ } }
       // Theatrical ~30s "unsharp → sharp" reveal of the REAL clip.
+      logFunnelEvent("tryon_generated", { lookId, ...(chosenModelName ? { lookName: chosenModelName } : {}) }); // Insights "Generated a video"
       setAwaitingEmail(false);
       setRevealing(true);
       // next frame: flip to sharp so the CSS filter transition (REVEAL_MS) animates.
@@ -1528,10 +1529,13 @@ export default function TryFunnelPage() {
             : L("Creează un cont gratuit ca să continui", "Create a free account to keep watching")}
           lookId={lookId} lookName={look?.name}
           advanceOnSignup
-          onClose={() => setGateOpen(false)} onAuthed={() => {
+          onClose={() => setGateOpen(false)} onAuthed={async () => {
             setGateOpen(false);
             setAwaitingEmail(false); // email captured → run the reveal now
             setHasLead(true); // they're "in" now → don't nag them to register right after
+            // AWAIT the signup event before the reveal fires its own event — the event log is
+            // last-write-wins, so firing both at once would clobber "Signed up".
+            await logFunnelEvent("tryon_signin", { lookId, ...(chosenModelName ? { lookName: chosenModelName } : {}) }); // Insights "Signed up"
             try { sessionStorage.removeItem("lb_tryon_resume"); } catch { /**/ } // resumed in-place, don't re-fire on reload
             // Signed in to WATCH → play the video RIGHT HERE (it unblurs now) and save it to
             // their gallery in the background. Do NOT navigate away (that dropped users on the
