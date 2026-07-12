@@ -556,7 +556,7 @@ function MaiIeftinInner() {
                       <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
                         {m.modelVideos.map((p, idx) => (
                           <a key={idx} href={p.link} onClick={(e) => { e.preventDefault(); setOpenProduct(p); }}
-                            className="relative h-52 w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#c9a23f]/25 active:scale-95 transition">
+                            className="relative h-44 w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#c9a23f]/25 active:scale-95 transition">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                             <span className="absolute inset-0 grid place-items-center">
@@ -577,7 +577,7 @@ function MaiIeftinInner() {
                       <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
                         {m.ownProducts.map((p, idx) => (
                           <a key={idx} href={p.link} onClick={(e) => { e.preventDefault(); setOpenProduct(p); }}
-                            className="w-32 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#b8912f]/30 active:scale-95 transition">
+                            className="w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#b8912f]/30 active:scale-95 transition">
                             <div className="aspect-[3/4] w-full bg-white">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" />
@@ -600,7 +600,7 @@ function MaiIeftinInner() {
                       <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
                         {m.inspo.map((p, idx) => (
                           <a key={idx} href={p.link} onClick={(e) => { e.preventDefault(); setOpenProduct(p); }}
-                            className="relative h-52 w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#c9a23f]/25 active:scale-95 transition">
+                            className="relative h-44 w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#c9a23f]/25 active:scale-95 transition">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                             <span className="absolute inset-0 grid place-items-center">
@@ -622,7 +622,7 @@ function MaiIeftinInner() {
                       <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
                         {m.original.map((p, idx) => (
                           <button key={idx} type="button" onClick={() => openResult(p)}
-                            className="w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] text-left ring-1 ring-white/20 active:scale-95 transition">
+                            className="w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] text-left ring-1 ring-white/20 active:scale-95 transition">
                             <div className="aspect-square w-full bg-white">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-contain" />
@@ -644,7 +644,7 @@ function MaiIeftinInner() {
                       <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
                         {m.products.map((p, idx) => (
                           <button key={idx} type="button" onClick={() => openResult(p)}
-                            className="w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] text-left ring-1 ring-white/10 active:scale-95 transition">
+                            className="w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] text-left ring-1 ring-white/10 active:scale-95 transition">
                             <div className="aspect-square w-full bg-white">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-contain" />
@@ -725,9 +725,9 @@ function MaiIeftinInner() {
         .map(p => p.thumbnail).filter(Boolean).slice(0, 5);
       const en = lang === "en";
       return (
-        <div className="fixed inset-0 z-[80] overflow-y-auto bg-white text-neutral-900 dark:bg-[#0b0b0c] dark:text-white">
+        <div className="fixed inset-0 z-[80] overflow-y-auto bg-white text-neutral-900">
           <button type="button" onClick={() => { setGate(false); setGateSent(false); }} aria-label="Close"
-            className="absolute right-4 top-4 z-10 grid h-9 w-9 place-items-center rounded-full bg-neutral-100 text-neutral-500 active:scale-90 transition dark:bg-white/10 dark:text-white/60">
+            className="absolute right-4 top-4 z-10 grid h-9 w-9 place-items-center rounded-full bg-neutral-100 text-neutral-500 active:scale-90 transition">
             <X className="h-5 w-5" />
           </button>
           <div className="mx-auto flex min-h-full w-full max-w-md flex-col items-center justify-center px-6 py-14 text-center">
@@ -735,13 +735,13 @@ function MaiIeftinInner() {
             <h2 className="text-[26px] font-black leading-tight tracking-tight">
               {en ? "Log in to see your results" : "Autentifică-te ca să vezi rezultatele"}
             </h2>
-            <p className="mt-2.5 text-[15px] font-semibold leading-snug text-neutral-500 dark:text-white/55">
+            <p className="mt-2.5 text-[15px] font-semibold leading-snug text-neutral-500">
               {en ? "No account? Sign up for free — we'll save these results for you." : "N-ai cont? Înregistrează-te gratuit — îți salvăm rezultatele."}
             </p>
             {teaser.length > 0 && (
               <div className="mt-6 flex items-center justify-center gap-2">
                 {teaser.map((src, i) => (
-                  <div key={i} className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-neutral-100 ring-1 ring-neutral-200 dark:bg-white/10 dark:ring-white/10">
+                  <div key={i} className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-neutral-100 ring-1 ring-neutral-200">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                   </div>
@@ -749,13 +749,13 @@ function MaiIeftinInner() {
               </div>
             )}
             {gateSent ? (
-              <p className="mt-8 w-full rounded-2xl bg-[#c9a23f]/12 px-5 py-4 text-[15px] font-bold text-[#8a6d1f] ring-1 ring-[#c9a23f]/30 dark:text-[#e7c877]">
+              <p className="mt-8 w-full rounded-2xl bg-[#c9a23f]/12 px-5 py-4 text-[15px] font-bold text-[#8a6d1f] ring-1 ring-[#c9a23f]/30">
                 {en ? "Check your email for your sign-in link ✨" : "Verifică-ți emailul pentru linkul de conectare ✨"}
               </p>
             ) : (
               <>
                 <button type="button" onClick={gateGoogle}
-                  className="mt-8 flex w-full items-center justify-center gap-3 rounded-full border border-neutral-200 bg-white py-4 text-[15px] font-bold text-neutral-900 shadow-sm active:scale-[0.98] transition dark:border-white/15 dark:bg-white/5 dark:text-white">
+                  className="mt-8 flex w-full items-center justify-center gap-3 rounded-full border border-neutral-200 bg-white py-4 text-[15px] font-bold text-neutral-900 shadow-sm active:scale-[0.98] transition">
                   <svg className="h-5 w-5" viewBox="0 0 48 48" aria-hidden>
                     <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
                     <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
@@ -767,15 +767,15 @@ function MaiIeftinInner() {
                 <form onSubmit={gateSubmitEmail} className="mt-3 w-full">
                   <input type="email" required value={gateEmail} onChange={(e) => setGateEmail(e.target.value)}
                     placeholder={en ? "your@email.com" : "email@exemplu.com"}
-                    className="w-full rounded-full border border-neutral-200 bg-white px-5 py-4 text-center text-[15px] font-semibold text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-[#c9a23f] dark:border-white/15 dark:bg-white/5 dark:text-white dark:placeholder:text-white/35" />
+                    className="w-full rounded-full border border-neutral-200 bg-white px-5 py-4 text-center text-[15px] font-semibold text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-[#c9a23f]" />
                   <button type="submit"
-                    className="mt-3 w-full rounded-full bg-[#1a160f] py-4 text-[15px] font-black text-white active:scale-[0.98] transition dark:bg-white dark:text-black">
+                    className="mt-3 w-full rounded-full bg-[#1a160f] py-4 text-[15px] font-black text-white active:scale-[0.98] transition">
                     {en ? "Continue with email" : "Continuă cu email"}
                   </button>
                 </form>
               </>
             )}
-            <p className="mt-6 text-[11px] font-semibold leading-relaxed text-neutral-400 dark:text-white/35">
+            <p className="mt-6 text-[11px] font-semibold leading-relaxed text-neutral-400">
               {en ? "By continuing, you agree to our Terms and Privacy Policy." : "Continuând, ești de acord cu Termenii și Politica de confidențialitate."}
             </p>
           </div>

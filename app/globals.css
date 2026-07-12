@@ -182,10 +182,12 @@ svg {
    The page is authored dark. In LIGHT mode (daylight) we flip the white-based
    utilities to dark-on-light so it stays readable. Scoped to .lb-theme so the rest
    of the app is untouched. Gold accents (text-[#…]) are left as-is — they read on both. */
-@media (prefers-color-scheme: light) {
+/* Forced LIGHT (was gated to prefers-color-scheme: light) — the funnel is an ad landing page
+   and must read light on every device, even ones set to dark mode. @media all = always on. */
+@media all {
   .lb-theme.bg-black,
   .lb-theme .bg-black { background-color: #faf8f4 !important; }
-  .lb-theme { color: #1a160f; }
+  .lb-theme { color: #1a160f; color-scheme: light; }
 
   /* white text → near-black (Tailwind bakes the /opacity into the color, so we use fixed alphas) */
   .lb-theme [class*="text-white"] { color: rgb(26 22 15 / 0.9) !important; }
