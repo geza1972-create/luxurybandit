@@ -1517,6 +1517,12 @@ export default function AdminPage() {
                         className={`grid h-9 w-9 place-items-center rounded-lg border active:scale-95 transition ${(off || pending) ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-black/10 text-ink/60"}`}>
                         <Power className="h-4 w-4" />
                       </button>
+                      {/* Delete the model — two taps (arm → confirm) so it can't fire by accident. */}
+                      <button type="button" disabled={busy === c.id} onClick={() => armOrRun(`del-${c.id}`, () => void deleteCurator(c.id))}
+                        title={confirmId === `del-${c.id}` ? "Tap again to delete" : "Delete model"}
+                        className={`grid h-9 w-9 place-items-center rounded-lg border active:scale-95 transition ${confirmId === `del-${c.id}` ? "border-red-300 bg-red-500 text-white" : "border-black/10 text-red-500"}`}>
+                        {busy === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : confirmId === `del-${c.id}` ? <Check className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+                      </button>
                     </div>
                   )}
                 </div>
