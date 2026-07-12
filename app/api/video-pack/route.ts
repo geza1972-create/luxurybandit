@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createPackCheckout, stripeConfigured } from "@/lib/stripe";
-import { getVideoCredits, spendVideoCredit, grantVideoCredits, ensureWelcomeCredits, setVideoCreditsBalance } from "@/lib/try-this-look-store";
+import { getVideoCredits, spendVideoCredit, grantVideoCredits, setVideoCreditsBalance } from "@/lib/try-this-look-store";
 import { isAdminRequest } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
@@ -12,11 +12,12 @@ export const PACK_CREDITS = Number(process.env.VIDEO_PACK_CREDITS ?? 4);
 const CURRENCY = process.env.VIDEO_PACK_CURRENCY ?? "usd";
 
 // GET /api/video-pack?email=…  → { credits }
-// New users get WELCOME_VIDEO_CREDITS (3) FREE real generations, granted once. 1 video =
-// 1 credit; then $8 = 4 more. (Every generation is a fresh, unique video — never boring.)
+// A free account starts with ZERO credits — generating a video costs money (Premium, or the
+// per-video $3.99). The old auto-granted welcome credit is gone; the model's own first video
+// is free via a separate grant in the generate-tryon-video gate, not here.
 export async function GET(request: Request) {
   const email = (new URL(request.url).searchParams.get("email") ?? "").trim().toLowerCase();
-  const credits = email ? await ensureWelcomeCredits(email) : 0;
+  const credits = email ? await getVideoCredits(email) : 0;
   return NextResponse.json({ credits, packCredits: PACK_CREDITS, packCents: PACK_CENTS });
 }
 

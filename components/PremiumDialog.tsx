@@ -88,10 +88,15 @@ export default function PremiumDialog({ open, onClose, title = "Unlock the full 
         {signedIn ? (
           <button type="button" onClick={close} className="mt-2 w-full py-2 text-[13px] font-black text-white/45">Maybe later</button>
         ) : (
-          <button type="button" onClick={freeSignup} className="mt-3 flex w-full flex-col items-center justify-center rounded-full border-2 border-amber-400/60 px-5 py-2.5 active:scale-95 transition-transform">
-            <span className="text-sm font-black text-amber-300">Create free account · $0</span>
-            <span className="text-[11px] font-bold text-amber-300/70">1 free credit + free chat</span>
-          </button>
+          <>
+            <button type="button" onClick={freeSignup} className="mt-3 flex w-full flex-col items-center justify-center rounded-full border-2 border-amber-400/60 px-5 py-2.5 active:scale-95 transition-transform">
+              <span className="text-sm font-black text-amber-300">Create free account · $0</span>
+              <span className="text-[11px] font-bold text-amber-300/70">Watch &amp; chat — free</span>
+            </button>
+            <a href="/curators/apply" className="mt-2 block w-full py-1.5 text-center text-[12px] font-black text-white/45 underline underline-offset-2">
+              Register as a Model →
+            </a>
+          </>
         )}
       </div>
     </div>
