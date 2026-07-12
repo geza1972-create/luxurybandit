@@ -146,6 +146,8 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     dealEndsAt: look.dealEndsAt,
     inStock: look.inStock,
     published: look.published,
+    animated: (look as any).animated === true, // admin-picked → look-video tile PLAYS inline in the grid
+    pinned: (look as any).pinned === true,     // admin-pinned → first in grid
     availabilityNote: look.availabilityNote,
     deliveryTime: look.deliveryTime,
     productNote: look.productNote,
@@ -2673,7 +2675,9 @@ export async function POST(request: Request) {
       if (kind === "model") {
         for (const c of state.curators ?? []) if (ids.includes(c.id)) { (c as any).pinned = pinned || undefined; count++; }
       } else {
+        // tryon: an id is either a generation (try-on post) OR a look (look-video "MODEL" tile) — pin whichever matches.
         for (const g of state.generations) if (ids.includes(g.id)) { (g as any).pinned = pinned || undefined; count++; }
+        for (const l of state.looks ?? []) if (ids.includes(l.id)) { (l as any).pinned = pinned || undefined; count++; }
       }
       if (count === 0) return NextResponse.json({ error: "Nothing matched." }, { status: 404 });
       await saveTryThisLookState(state);
@@ -2709,6 +2713,8 @@ export async function POST(request: Request) {
       if (!ids.length) return NextResponse.json({ error: "ids required." }, { status: 400 });
       let count = 0;
       for (const g of state.generations) if (ids.includes(g.id)) { (g as any).animated = animated || undefined; count++; }
+      // A look-video "MODEL" tile can animate too — flag it on the look itself.
+      for (const l of state.looks ?? []) if (ids.includes(l.id)) { (l as any).animated = animated || undefined; count++; }
       if (count === 0) return NextResponse.json({ error: "Nothing matched." }, { status: 404 });
       await saveTryThisLookState(state);
       return NextResponse.json({ ok: true, updated: count, animated });

@@ -145,6 +145,9 @@ type Look = {
   commentsOff?: boolean;
   likeCount?: number;
   createdAt?: string;
+  published?: boolean; // false = removed from the public grid/feed
+  pinned?: boolean;    // admin-pinned → first in the grid
+  animated?: boolean;  // admin-picked → look-video "MODEL" tile plays inline in the grid
   alternatives?: { title: string; link: string; source?: string; thumbnail: string; price?: string; priceValue?: number; currency?: string }[];
 };
 
@@ -1840,11 +1843,21 @@ function StoresPage() {
     setTierBusy(true);
     try {
       const ids = [...tierSelected];
-      const res = await adminWrite({ action: "set-visibility", ids, visibility: vis });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehler");
-      // Reflect instantly: retag moved items locally (feed + grid + reel all derive
-      // from communityItems). Private items vanish for non-admin payloads anyway.
-      setCommunityItems(prev => prev.map(c => ids.includes(c.id) ? { ...c, visibility: vis, public: vis === "public" } : c));
+      const lookIdSet = new Set(looks.map(l => l.id));
+      const lookIds = ids.filter(id => lookIdSet.has(id));   // look-video "MODEL" tiles
+      const tryonIds = ids.filter(id => !lookIdSet.has(id)); // try-on generations
+      // Try-ons carry a visibility tier.
+      if (tryonIds.length) {
+        const res = await adminWrite({ action: "set-visibility", ids: tryonIds, visibility: vis });
+        if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehler");
+        setCommunityItems(prev => prev.map(c => tryonIds.includes(c.id) ? { ...c, visibility: vis, public: vis === "public" } : c));
+      }
+      // Looks have no tier — "→ Private" = remove from the grid (unpublish), otherwise re-show.
+      if (lookIds.length) {
+        const publish = vis !== "private";
+        await Promise.all(lookIds.map(id => adminWrite({ action: "update-look", id, published: publish })));
+        setLooks(prev => publish ? prev.map(l => lookIds.includes(l.id) ? { ...l, published: true } : l) : prev.filter(l => !lookIds.includes(l.id)));
+      }
       setTierSelected(new Set());
       setTierSelect(false);
     } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Verschieben"); }
@@ -1856,9 +1869,12 @@ function StoresPage() {
     setTierBusy(true);
     try {
       const ids = [...tierSelected];
+      // "tryon" branch pins whichever matches — a generation OR a look-video "MODEL" tile.
       const res = await adminWrite({ action: "set-pinned", kind: "tryon", ids, pinned });
       if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehler");
+      const lookIdSet = new Set(looks.map(l => l.id));
       setCommunityItems(prev => prev.map(c => ids.includes(c.id) ? { ...c, pinned } : c));
+      setLooks(prev => prev.map(l => (ids.includes(l.id) && lookIdSet.has(l.id)) ? { ...l, pinned } : l));
       setTierSelected(new Set());
       setTierSelect(false);
     } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Fixieren"); }
@@ -1870,9 +1886,12 @@ function StoresPage() {
     setTierBusy(true);
     try {
       const ids = [...tierSelected];
+      // set-animated handles both generations (try-ons) AND look-video "MODEL" tiles server-side.
       const res = await adminWrite({ action: "set-animated", ids, animated });
       if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehler");
+      const lookIdSet = new Set(looks.map(l => l.id));
       setCommunityItems(prev => prev.map(c => ids.includes(c.id) ? { ...c, animated } : c));
+      setLooks(prev => prev.map(l => (ids.includes(l.id) && lookIdSet.has(l.id)) ? { ...l, animated } : l));
       setTierSelected(new Set());
       setTierSelect(false);
     } catch (e) { alert(e instanceof Error ? e.message : "Fehler"); }
@@ -2322,7 +2341,7 @@ function StoresPage() {
       if ((l as { productType?: string }).productType === "ai" || (l as { wardrobe?: boolean }).wardrobe === true) continue;
       const videoTs = l.videoCreatedAt || tsFromVideoUrl(l.videoUrl) || "";
       const when = videoTs > (l.createdAt ?? "") ? videoTs : (l.createdAt ?? "");
-      items.push({ key: `look-${l.id}`, kind: "look", id: l.id, lookId: l.id, thumb: safeLookImage(l), videoUrl: l.videoUrl, videoPoster: l.videoPosterUrl || l.tryOnImageUrl || undefined, aiCreated: l.aiCreated, brand: l.brand, category: l.category, createdAt: when, name: publicLookLabel(l), price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl, visibility: "public" });
+      items.push({ key: `look-${l.id}`, kind: "look", id: l.id, lookId: l.id, thumb: safeLookImage(l), videoUrl: l.videoUrl, videoPoster: l.videoPosterUrl || l.tryOnImageUrl || undefined, aiCreated: l.aiCreated, brand: l.brand, category: l.category, createdAt: when, name: publicLookLabel(l), price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl, visibility: "public", pinned: (l as { pinned?: boolean }).pinned, animated: (l as { animated?: boolean }).animated });
     }
     return items.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [looks, communityItems]);
@@ -2980,18 +2999,16 @@ function StoresPage() {
                   <button type="button"
                     onClick={() => {
                       if (tierSelect && isAdmin) {
-                        if (it.kind !== "tryon") return; // only try-ons carry a tier
+                        // Both try-on posts AND look-video "MODEL" tiles are selectable now.
                         setTierSelected(prev => { const n = new Set(prev); if (n.has(it.id)) n.delete(it.id); else n.add(it.id); return n; });
                         return;
                       }
                       openFeedOverlay({ tryOnId: it.kind === "tryon" ? it.id : undefined, lookId: it.lookId });
                     }}
                     className={`relative aspect-[9/16] overflow-hidden lb-media-bg transition-opacity active:opacity-80 ${
-                      tierSelect && isAdmin
-                        ? (it.kind !== "tryon" ? "opacity-30" : tierSelected.has(it.id) ? "ring-2 ring-inset ring-amber-400" : "")
-                        : ""
+                      tierSelect && isAdmin && tierSelected.has(it.id) ? "ring-2 ring-inset ring-amber-400" : ""
                     }`}>
-                    {tierSelect && isAdmin && it.kind === "tryon" && (
+                    {tierSelect && isAdmin && (
                       <span className={`absolute right-1.5 top-1.5 z-10 grid h-6 w-6 place-items-center rounded-full text-[13px] font-black ${tierSelected.has(it.id) ? "bg-amber-400 text-black" : "bg-black/60 text-white/60"}`}>✓</span>
                     )}
                     {isAdmin && it.pinned && (
