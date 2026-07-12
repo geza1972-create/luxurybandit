@@ -1204,35 +1204,15 @@ export default function TryFunnelPage() {
               <div className="mx-auto mt-5 w-full max-w-sm">
                 {previewVideoUrl && previewGenId ? (
                   guest ? (
-                    hasLead ? (
-                      /* Already gave their email → they're "in". Don't push registration; keep them
-                         engaged (chat / more looks). Full account is a soft, optional secondary. */
-                      <div className="grid gap-2">
-                        {chosenModelId && (
-                          <button type="button" onClick={() => router.push(`/mai-ieftin?model=${encodeURIComponent(chosenModelId)}&lang=${lang}`)}
-                            className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                            <MessageCircle className="h-5 w-5" /> {L("Vorbește cu", "Chat with")} {chosenModelName ? chosenModelName.split(/\s+/)[0] : L("ea", "her")}
-                          </button>
-                        )}
-                        <button type="button" onClick={onUnlock}
-                          className="flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 text-[12px] font-black text-[#e7c877] active:scale-95 transition">
-                          {L("Salvează-ți look-urile — cont gratuit", "Save your looks — free account")}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="grid gap-2">
-                        <button type="button" onClick={onUnlock}
-                          className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                          <Sparkles className="h-5 w-5" /> {L("Vrei mai mult? Autentifică-te", "Want to see more? Sign in")}
-                        </button>
-                        {chosenModelId && (
-                          <button type="button" onClick={() => router.push(`/mai-ieftin?model=${encodeURIComponent(chosenModelId)}&lang=${lang}`)}
-                            className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
-                            <MessageCircle className="h-4 w-4" /> {L("Vorbește cu", "Chat with")} {chosenModelName ? chosenModelName.split(/\s+/)[0] : L("ea", "her")}
-                          </button>
-                        )}
-                      </div>
-                    )
+                    /* Post-reveal upsell: the money button is the self-insertion funnel —
+                       "You, in a video, in any look." (Chat / free-account were removed.) */
+                    <div className="grid gap-2">
+                      <p className="mb-1 text-center text-[13px] font-bold text-white/60">{L("Vrei să te vezi pe TINE într-un video?", "Want to see YOURSELF in a video?")}</p>
+                      <button type="button" onClick={() => router.push(`/you-in-video?lang=${lang}`)}
+                        className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
+                        <Sparkles className="h-5 w-5" /> {L("Tu, într-un video — orice look! 🎬", "You in a video — in any look! 🎬")}
+                      </button>
+                    </div>
                   ) : (
                     <div className="grid gap-2">
                       <button type="button" onClick={async () => goToResult(await claimCachedTryOn())}
