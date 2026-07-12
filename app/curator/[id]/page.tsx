@@ -330,7 +330,8 @@ export default function CuratorPublicPage() {
   // "In motion" video for this model. Direct-to-Supabase (signed URL, no 4.5MB limit),
   // first frame becomes the poster. Defaults to Fashionshow (members + her profile).
   const vidFileRef = useRef<HTMLInputElement>(null);
-  const [uploadLookId, setUploadLookId] = useState(""); // garment to attach to the next uploaded video
+  const uploadLookRef = useRef(""); // the garment picked in the gallery, read at upload time
+  const [videoPickerOpen, setVideoPickerOpen] = useState(false); // garment gallery before picking the file
   const [vidBusy, setVidBusy] = useState(false);
   const firstFrameDataUrl = (file: File): Promise<string> => new Promise((resolve) => {
     try {
@@ -365,12 +366,13 @@ export default function CuratorPublicPage() {
       if (!put.ok) throw new Error("Upload zu Supabase fehlgeschlagen");
       const att = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ importVideo: true, videoPath: sig.path }) }).then(r => r.json());
       if (!att.videoUrl) throw new Error(att.error || "Signieren fehlgeschlagen");
-      // If a garment was picked, attach it so this video IS her wearing that piece (reuse cache
-      // model×look×turn → served instantly on that garment's try-on, no regeneration).
-      const look = allLooks.find(l => l.id === uploadLookId);
-      const add = await fetch("/api/try-this-look", { method: "POST", headers: H, body: JSON.stringify({ action: "add-model-video", curatorId: id, videoUrl: att.videoUrl, ...(uploadLookId ? { lookId: uploadLookId, title: look?.name || "", motion: "turn" } : {}), ...(posterImage ? { posterImage } : {}) }) }).then(r => r.json());
+      // If a garment was picked (in the gallery dialog), attach it so this video IS her wearing
+      // that piece (reuse cache model×look×turn → served instantly on that try-on, no regen).
+      const pickedLookId = uploadLookRef.current;
+      const look = allLooks.find(l => l.id === pickedLookId);
+      const add = await fetch("/api/try-this-look", { method: "POST", headers: H, body: JSON.stringify({ action: "add-model-video", curatorId: id, videoUrl: att.videoUrl, ...(pickedLookId ? { lookId: pickedLookId, title: look?.name || "", motion: "turn" } : {}), ...(posterImage ? { posterImage } : {}) }) }).then(r => r.json());
       if (!add.ok) throw new Error(add.error || "Video konnte nicht gespeichert werden");
-      setUploadLookId("");
+      uploadLookRef.current = "";
       // Refresh her videos so it shows up immediately.
       await reloadTryons();
       alert(look ? `Video hochgeladen ✓ — verknüpft mit „${look.name}".` : "Video hochgeladen ✓ — es ist jetzt in ihrem Profil (Play-Button am Foto).");
@@ -922,16 +924,8 @@ export default function CuratorPublicPage() {
             and "view as her" — a true preview of what SHE sees after signing in. */}
         {isAdmin && (
           <>
-            {/* Pick which garment the uploaded video shows → the video attaches to that look. */}
-            <select value={uploadLookId} onChange={e => setUploadLookId(e.target.value)}
-              className="mt-2 w-full max-w-sm rounded-xl border border-white/15 bg-[#111] px-3 py-2 text-[12px] font-black text-white outline-none">
-              <option value="">Kleidungsstück fürs Video wählen (optional)…</option>
-              {allLooks.filter(l => (l.productType === "ai" || (l as any).wardrobe === true) && ((l as any).frontImageUrl || l.imageUrl)).map(l => (
-                <option key={l.id} value={l.id}>{l.name || "Look"}</option>
-              ))}
-            </select>
             <div className="mt-2 flex items-center gap-2">
-              <button type="button" onClick={() => vidFileRef.current?.click()} disabled={vidBusy}
+              <button type="button" onClick={() => !vidBusy && setVideoPickerOpen(true)} disabled={vidBusy}
                 className="flex items-center justify-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-[11px] font-black text-white active:scale-95 transition disabled:opacity-50">
                 {vidBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
                 {vidBusy ? "Lade hoch …" : "Video hochladen"}
@@ -951,6 +945,36 @@ export default function CuratorPublicPage() {
             </div>
             <input ref={vidFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) void uploadModelVideo(f); e.target.value = ""; }} />
+            {/* Step 1 of upload: pick the garment from the gallery, THEN the file picker opens. */}
+            {videoPickerOpen && (
+              <div className="fixed inset-0 z-[95] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setVideoPickerOpen(false)}>
+                <div className="w-full max-w-[440px] rounded-t-3xl bg-[#111] p-5 ring-1 ring-white/10" onClick={e => e.stopPropagation()} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)" }}>
+                  <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/15" />
+                  <p className="text-base font-black text-white">Welches Kleidungsstück zeigt das Video?</p>
+                  <p className="mb-3 text-[12px] font-bold text-white/45">Tippe das Teil an — danach wählst du die Videodatei. Es wird automatisch verknüpft.</p>
+                  <div className="grid max-h-[52vh] grid-cols-3 gap-2 overflow-y-auto">
+                    {allLooks.filter(l => (l.productType === "ai" || (l as any).wardrobe === true) && ((l as any).frontImageUrl || l.imageUrl)).map(l => {
+                      const img = (l as any).frontImageUrl || l.imageUrl;
+                      return (
+                        <button key={l.id} type="button"
+                          onClick={() => { uploadLookRef.current = l.id; setVideoPickerOpen(false); vidFileRef.current?.click(); }}
+                          className="overflow-hidden rounded-xl bg-white/[0.04] text-left ring-1 ring-white/10 active:scale-95 transition">
+                          <div className="aspect-[3/4] w-full bg-white">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={img} alt="" loading="lazy" className="h-full w-full object-cover" onError={e => { e.currentTarget.style.display = "none"; }} />
+                          </div>
+                          <p className="truncate px-1.5 py-1 text-[9px] font-black text-white/70">{l.name || "Look"}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button type="button" onClick={() => { uploadLookRef.current = ""; setVideoPickerOpen(false); vidFileRef.current?.click(); }}
+                    className="mt-3 w-full rounded-full border border-white/15 py-3 text-[13px] font-black text-white/60 active:scale-[0.98] transition">
+                    Ohne Kleidungsstück hochladen
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
 
