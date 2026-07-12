@@ -2724,7 +2724,7 @@ function StoresPage() {
                 </div>
                 <div className="mt-3.5 flex items-center gap-2">
                   {/* Primary CTA now drives the price-finder funnel (in the chosen language). */}
-                  <button type="button" onClick={() => router.push(`/mai-ieftin?lang=${heroLang}`)}
+                  <button type="button" onClick={() => router.push(`/mai-ieftin?lang=${heroLang}&demo=1`)}
                     className="lb-gold flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-black active:scale-95 transition-transform">
                     <Search className="h-4 w-4" /> {HERO[heroLang].cta}
                   </button>

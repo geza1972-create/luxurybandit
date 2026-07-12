@@ -311,6 +311,8 @@ export type TryThisLookState = {
   // Global kill-switch: when true, end-user try-on generation is paused ("coming soon").
   // Admin/staff bypass it. Toggled instantly from the admin panel (no redeploy).
   tryonPaused?: boolean;
+  // When true, a NEW model chat no longer fires the admin WhatsApp/email alert (chats still log).
+  chatNotifyPaused?: boolean;
   // Admin-managed wardrobe: outfit images shown in the Try-On funnel gallery, so a user
   // can pick an outfit to see the video's model (or their own avatar) wearing it.
   outfits?: TryThisLookOutfit[];
@@ -722,6 +724,7 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     fabrics: unionTags(DEFAULT_FABRICS, state.fabrics ?? []),
     occasions: unionTags(DEFAULT_OCCASIONS, state.occasions ?? []),
     tryonPaused: state.tryonPaused === true,
+    chatNotifyPaused: state.chatNotifyPaused === true,
     outfits: state.outfits ?? [],
     funnelVideoPrompt: state.funnelVideoPrompt,
     viewsByDay: state.viewsByDay ?? {},
@@ -868,6 +871,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     fabrics: (state.fabrics ?? []).slice(0, 5000),
     occasions: (state.occasions ?? []).slice(0, 5000),
     tryonPaused: state.tryonPaused === true,
+    chatNotifyPaused: state.chatNotifyPaused === true,
   };
 
   const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(STATE_PATH)}`, {

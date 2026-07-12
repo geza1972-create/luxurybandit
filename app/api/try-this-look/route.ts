@@ -303,6 +303,8 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
     looks: visibleLooks.map(sl),
     // Global try-on kill-switch (admin-toggleable). Clients show "coming soon" when true.
     tryonPaused: state.tryonPaused === true,
+    // When true, new model chats don't ping the admin (WhatsApp/email). Chats still log.
+    chatNotifyPaused: state.chatNotifyPaused === true,
     // Admin-managed outfit gallery shown in the Try-On funnel.
     outfits: (state.outfits ?? []).map(o => ({ id: o.id, name: o.name, imageUrl: o.imageUrl || "", lookId: o.lookId || "" })).filter(o => o.imageUrl),
     // Admin-editable video prompt template for the funnel (@Bild1 = model, @Bild2 = outfit).
@@ -1869,6 +1871,15 @@ export async function POST(request: Request) {
       const state = await readTryThisLookState();
       await saveTryThisLookState({ ...state, tryonPaused: paused });
       return NextResponse.json({ ok: true, tryonPaused: paused });
+    }
+
+    // Chat-notification kill-switch (admin-only). When paused, a new model chat no longer pings
+    // the admin via WhatsApp/email — chats still log to the admin history.
+    if (payload.action === "set-chat-notify-paused") {
+      const paused = (payload as any).paused === true;
+      const state = await readTryThisLookState();
+      await saveTryThisLookState({ ...state, chatNotifyPaused: paused });
+      return NextResponse.json({ ok: true, chatNotifyPaused: paused });
     }
 
     if (payload.action === "upload-look") {

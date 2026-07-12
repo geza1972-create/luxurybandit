@@ -348,6 +348,15 @@ function MaiIeftinInner() {
     setDemoPlaying(false);
   };
 
+  // Landing from the homepage "How it works" CTA (?demo=1) → auto-play the demo so a first-time
+  // visitor SEES exactly how it works. Only on the empty state (never a model chat).
+  useEffect(() => {
+    if (params.get("demo") === "1" && !params.get("model")) {
+      const id = setTimeout(() => { void playDemo(); }, 700);
+      return () => clearTimeout(id);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Chip tap. On the reference intro (Yes/No), Yes searches for that product (carrying the
   // hidden hint to the AI); No starts a fresh request. Otherwise the chip text is sent.
   const onChip = (c: string) => {

@@ -550,12 +550,15 @@ export async function POST(request: Request) {
         } else {
           const log: ModelChatLog = { id: cid, curatorId: chatCuratorId, curatorName: model?.name || "Model", visitorId: chatVisitorId, userName: "", createdAt: now, updatedAt: now, messages: [{ role: "user", content: lastUser, at: now }, { role: "assistant", content: finalReply, at: now }] };
           chats.unshift(log);
-          // NEW conversation → notify the admin: email now (SMTP), SMS if Twilio is configured.
-          const who = model?.name || "a model";
-          const note = `New chat with ${who}: "${String(lastUser).slice(0, 140)}"`;
-          const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").split(",")[0].trim();
-          if (adminEmail) { import("@/lib/email-send").then(({ sendEmail }) => sendEmail({ to: adminEmail, subject: `💬 New chat with ${who}`, html: `<p>${note}</p>` })).catch(() => {}); }
-          import("@/lib/whatsapp-send").then(({ sendWhatsApp }) => sendWhatsApp(note)).catch(() => {});
+          // NEW conversation → notify the admin (WhatsApp + email) — UNLESS chat alerts are paused
+          // from the admin panel (state.chatNotifyPaused). The chat still logs either way.
+          if (st.chatNotifyPaused !== true) {
+            const who = model?.name || "a model";
+            const note = `New chat with ${who}: "${String(lastUser).slice(0, 140)}"`;
+            const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").split(",")[0].trim();
+            if (adminEmail) { import("@/lib/email-send").then(({ sendEmail }) => sendEmail({ to: adminEmail, subject: `💬 New chat with ${who}`, html: `<p>${note}</p>` })).catch(() => {}); }
+            import("@/lib/whatsapp-send").then(({ sendWhatsApp }) => sendWhatsApp(note)).catch(() => {});
+          }
         }
         st.modelChats = chats;
         await saveTryThisLookState(st);
