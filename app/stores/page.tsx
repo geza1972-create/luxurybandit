@@ -3028,9 +3028,13 @@ function StoresPage() {
                           onError={(e) => { const im = e.currentTarget; if (poster && im.src !== poster) im.src = poster; }}
                           className="h-full w-full object-cover object-top" />
                       ) : it.videoUrl ? (
-                        // Posterless video → play it (IO-gated) so the tile shows real
-                        // frames instead of an unpainted black <video preload="metadata">.
-                        <GridClip videoUrl={it.videoUrl} poster="" alt={it.name} />
+                        // No still available and NOT admin-animated → show a PAUSED first frame
+                        // (#t seek nudges a paintable frame) instead of auto-playing. This makes
+                        // "Stopp" authoritative for posterless look-videos (Szidonia's clips had
+                        // no videoPoster, so they used to auto-play here and couldn't be stopped).
+                        // eslint-disable-next-line jsx-a11y/media-has-caption
+                        <video src={`${it.videoUrl}#t=0.1`} muted playsInline preload="metadata"
+                          className="h-full w-full object-cover object-top" />
                       ) : (
                         <div className="h-full w-full bg-black/[0.06]" />
                       ); })()
