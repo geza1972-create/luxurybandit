@@ -59,11 +59,18 @@ async function describeGarment(apiKey: string, dataUrl: string): Promise<{ title
   }
 }
 
-// Pull the main product image out of a product page URL (og:image, else first big <img>).
+// Pull the main product image out of a URL. Handles BOTH a direct image URL (e.g. a Shopify CDN
+// ".jpg") — used as-is — AND a product PAGE (og:image, else first big <img>).
 async function imageFromUrl(pageUrl: string): Promise<string | null> {
   try {
-    const res = await fetch(pageUrl, { headers: { "User-Agent": "Mozilla/5.0 (compatible; LuxuryBanditBot/1.0)", Accept: "text/html,*/*" }, redirect: "follow" });
+    const res = await fetch(pageUrl, { headers: { "User-Agent": "Mozilla/5.0 (compatible; LuxuryBanditBot/1.0)", Accept: "text/html,image/*,*/*" }, redirect: "follow" });
     if (!res.ok) return null;
+    // Direct image URL (the pasted link IS the image) → use it straight away, no HTML parsing.
+    const ct0 = res.headers.get("content-type") ?? "";
+    if ((ct0.startsWith("image/") && !ct0.includes("svg")) || (/\.(jpe?g|png|webp|avif)(\?|$)/i.test(pageUrl) && !ct0.includes("text/html"))) {
+      const buf = Buffer.from(await res.arrayBuffer());
+      return `data:${ct0.startsWith("image/") ? ct0 : "image/jpeg"};base64,${buf.toString("base64")}`;
+    }
     const html = await res.text();
     const og = html.match(/<meta[^>]+(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image)["'][^>]+content=["']([^"']+)["']/i)
       ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image)["']/i);

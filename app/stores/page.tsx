@@ -3497,10 +3497,12 @@ function StoresPage() {
       {/* ── Admin: add a real Luxury Bandi garment from a photo ── */}
       {addOpen && (
         <div className="fixed inset-0 z-[95] flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={() => !agBusy && setAddOpen(false)}>
-          <div className="w-full max-w-[440px] rounded-t-3xl bg-white p-5" onClick={e => e.stopPropagation()} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" }}>
+          <div className="w-full max-w-[440px] rounded-t-3xl bg-white p-5" onClick={e => e.stopPropagation()}
+            onPaste={(e) => { const it = Array.from(e.clipboardData?.items ?? []).find(i => i.type.startsWith("image/")); const f = it?.getAsFile(); if (f) { void onAgFile(f); setAgMsg("Screenshot eingefügt ✓"); } }}
+            style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" }}>
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-black/15" />
             <p className="text-base font-black text-black">Kleidungsstück hinzufügen</p>
-            <p className="mb-3 text-[12px] font-bold text-black/45">Foto hochladen — Name, Beschreibung &amp; Typ werden automatisch generiert. Optional das Stück freistellen (Person/Hintergrund weg).</p>
+            <p className="mb-3 text-[12px] font-bold text-black/45">Foto hochladen, <b>Screenshot einfügen (Cmd/Ctrl+V)</b> oder Produkt-URL — Name, Beschreibung &amp; Typ werden automatisch generiert. Optional freistellen.</p>
             <button type="button" onClick={() => agFileRef.current?.click()}
               className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-black/15 bg-black/[0.02]">
               {agImage
