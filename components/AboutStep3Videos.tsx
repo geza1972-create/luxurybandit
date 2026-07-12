@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, Play } from "lucide-react";
 
 type Clip = { poster: string; video: string };
 
@@ -17,9 +17,12 @@ export default function AboutStep3Videos({ videos }: { videos: Clip[] }) {
         {videos.map((v, i) => (
           <button key={i} type="button" onClick={() => setActive(v)}
             className="relative overflow-hidden rounded-xl lb-media-bg active:scale-95 transition-transform">
-            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-            <video src={v.video} poster={v.poster || undefined} muted loop playsInline autoPlay preload="metadata"
-              className="aspect-[9/16] w-full object-cover" />
+            {/* Bandwidth: show just the poster here; the clip only downloads when tapped open. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={v.poster} alt="" loading="lazy" decoding="async" className="aspect-[9/16] w-full object-cover" />
+            <span className="absolute inset-0 grid place-items-center">
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur"><Play className="h-4 w-4 translate-x-[1px]" fill="currentColor" /></span>
+            </span>
           </button>
         ))}
       </div>

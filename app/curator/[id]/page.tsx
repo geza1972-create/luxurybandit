@@ -28,30 +28,19 @@ type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: strin
 const toSlug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 function optImg(url?: string, w = 600) { if (!url) return ""; if (url.startsWith("data:") || url.startsWith("blob:")) return url; return `/_next/image?url=${encodeURIComponent(url)}&w=${w}&q=70`; }
 
-// Strip thumb that PLAYS her clip (muted loop). The <video> mounts only while the
-// thumb is on screen — mobile Safari/Chrome cap hardware decoders (~16), so an
-// off-screen strip must not hold any (see feed-video-decoder-limit).
+// Strip thumb: shows the clip's poster; tapping opens & plays it. (Previously it autoplayed
+// the muted clip while on-screen, but that downloaded every visible video — see the bandwidth
+// work; posters are far cheaper and the tap still plays the full clip.)
 function StripClip({ t, onOpen }: { t: TryOn; onOpen: () => void }) {
-  const ref = useRef<HTMLButtonElement>(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
-    const el = ref.current; if (!el) return;
-    const io = new IntersectionObserver(es => es.forEach(e => setInView(e.isIntersecting)), { rootMargin: "60px" });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
   return (
-    <button ref={ref} type="button" onClick={onOpen}
+    <button type="button" onClick={onOpen}
       className="relative aspect-[9/16] h-40 shrink-0 overflow-hidden rounded-xl lb-media-bg active:scale-95 transition">
-      {inView ? (
-        <video src={t.videoUrl} poster={t.imageUrl || undefined} muted loop playsInline autoPlay preload="metadata"
-          className="h-full w-full object-cover object-top" />
-      ) : (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img src={optImg(t.imageUrl, 300)} alt="" loading="lazy" decoding="async"
-          onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
-          className="h-full w-full object-cover object-top" />
-      )}
+      {/* Bandwidth: the reel used to autoplay every in-view clip (a full download each). Show
+          the optimized poster only; tapping the tile opens & plays the clip. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={optImg(t.imageUrl, 300)} alt="" loading="lazy" decoding="async"
+        onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
+        className="h-full w-full object-cover object-top" />
       <span className="absolute bottom-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur">
         <Play className="h-3 w-3 translate-x-[0.5px]" fill="currentColor" />
       </span>
