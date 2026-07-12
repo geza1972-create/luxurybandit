@@ -503,6 +503,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [modBusy, setModBusy] = useState<"" | "hide" | "delete" | "assign" | "approve" | "reject">("");
   const [assignOpen, setAssignOpen] = useState(false);
   const [curatorList, setCuratorList] = useState<{ id: string; name: string; photoUrl?: string }[]>([]);
+  const [feedLang, setFeedLang] = useState<"ro" | "en">("ro"); // for the funnel CTA label
+  useEffect(() => { try { setFeedLang(localStorage.getItem("lb_lang") === "en" ? "en" : "ro"); } catch { /**/ } }, []);
   const adminPinVal = () => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } };
   const modHeaders = () => ({ "Content-Type": "application/json", ...(adminPinVal() ? { "x-try-look-admin-pin": adminPinVal() } : {}) });
   // The generation id of the try-on on the CURRENT slide (if any). When set, the admin
@@ -1089,7 +1091,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               className="flex items-center gap-2 whitespace-nowrap rounded-full border border-white/25 bg-black/45 px-6 py-2.5 text-sm font-black text-white backdrop-blur active:scale-95 transition">
               {authorCuratorId
                 ? <><MessageCircle className="h-4 w-4" /> Chat with {publicAuthorName(authorName).split(/\s+/)[0]}</>
-                : <><Search className="h-4 w-4" /> Produse Luxury</>}
+                : <><Search className="h-4 w-4" /> {feedLang === "en" ? "Find your look" : "Găsește-ți ținuta"}</>}
             </button>
             <button type="button"
               onClick={(e) => { e.stopPropagation(); goTryOn(); }}

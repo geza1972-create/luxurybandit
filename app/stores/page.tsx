@@ -34,7 +34,7 @@ const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub
     sub: "Modelele noastre poartă piese de designer în videouri de calitate runway. Tu descoperi produsele de lux și le cumperi — cu ea ca stilistă. Look-uri noi în fiecare zi.",
     b1t: "Vezi-o în orice ținută", b1x: "Pune-ți modelul favorit în ținuta pe care O ALEGI TU — dă like, share, cumpără.",
     b2t: "Produse Luxury", b2x: "Îți place o ținută? Modelul îți recomandă piese de lux — și le poți cumpăra direct.",
-    cta: "Produse Luxury",
+    cta: "Găsește-ți ținuta",
     becomeModel: "Devino Model — câștigă la fiecare look →",
   },
   en: {
@@ -43,7 +43,7 @@ const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub
     sub: "Our models wear designer pieces in runway-quality videos. You discover the luxury products and shop them — with her as your stylist. New looks every day.",
     b1t: "See her in any look", b1x: "Put your favorite model in the outfit YOU choose — like it, share it, shop it.",
     b2t: "Luxury Products", b2x: "Like an outfit? Your model recommends luxury pieces you can shop right away.",
-    cta: "Luxury Products",
+    cta: "Find your look",
     becomeModel: "Become a Model — earn with every look →",
   },
 };
