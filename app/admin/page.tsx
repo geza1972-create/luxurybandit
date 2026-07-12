@@ -29,6 +29,8 @@ type Curator = {
   // Earnings + payouts (model keeps 30% of each paid video).
   earningsCents?: number; payoutMethod?: string;
   payouts?: { id: string; amountCents: number; method: string; status: string; requestedAt?: string; paidAt?: string }[];
+  // "✓ Real model" carousel badge (realModel) + profile banner (realBadge) — a real person, not an AI persona.
+  realModel?: boolean; realBadge?: boolean;
 };
 
 type Look = {
@@ -605,6 +607,21 @@ export default function AdminPage() {
       const r = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "set-credits", id: edit.id, credits: n }) });
       if (r.ok) { setCurators(cs => cs.map(c => c.id === edit.id ? { ...c, credits: n } : c)); setEdit(e => e && { ...e, credits: n }); }
       else await fail(r, "Could not set credits");
+    } catch { setError("Network error."); }
+    setBusy("");
+  };
+
+  // Toggle the "✓ Real model" badge (a real person vs our AI persona). Sets BOTH the carousel
+  // badge (realModel) and the profile banner (realBadge), same as the profile-page button.
+  const toggleRealModel = async (c: Curator) => {
+    const next = !(c.realModel === true || c.realBadge === true);
+    setBusy(`real-${c.id}`); setError("");
+    try {
+      const r = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "update", id: c.id, realModel: next, realBadge: next }) });
+      if (r.ok) {
+        setCurators(cs => cs.map(x => x.id === c.id ? { ...x, realModel: next, realBadge: next } : x));
+        setEdit(e => e && e.id === c.id ? { ...e, realModel: next, realBadge: next } : e);
+      } else await fail(r, "Could not update real-model badge");
     } catch { setError("Network error."); }
     setBusy("");
   };
@@ -1458,6 +1475,16 @@ export default function AdminPage() {
                       {!house && (pending
                         ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">Pending review</span>
                         : <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${off ? "bg-black/8 text-ink/50" : "bg-emerald-100 text-emerald-700"}`}>{off ? "Deactivated" : "Active"}</span>)}
+                      {/* Real-model toggle — tap to add/remove the "✓ Real model" badge. */}
+                      {!house && (
+                        <button type="button" disabled={busy === `real-${c.id}`}
+                          onClick={e => { e.stopPropagation(); void toggleRealModel(c); }}
+                          title={(c.realModel || c.realBadge) ? "Real Model — tap to remove the badge" : "Not a real model — tap to mark as Real Model"}
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black transition active:scale-95 disabled:opacity-50 ${(c.realModel || c.realBadge) ? "bg-emerald-500 text-white" : "bg-black/5 text-ink/40"}`}>
+                          {busy === `real-${c.id}` ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : (c.realModel || c.realBadge) ? <Check className="h-2.5 w-2.5" /> : null}
+                          {(c.realModel || c.realBadge) ? "Real ✓" : "Real: off"}
+                        </button>
+                      )}
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${sortC === "looks" ? "bg-cobalt/10 text-cobalt" : "bg-black/5 text-ink/50"}`}>{looksByCurator.get(c.id) ?? 0} looks</span>
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${sortC === "tryons" ? "bg-cobalt/10 text-cobalt" : "bg-black/5 text-ink/50"}`}>{tryonsByCurator.get(c.id) ?? 0} try-ons</span>
                       {!house && typeof c.credits === "number" && <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">{c.credits} cr</span>}
@@ -1799,6 +1826,18 @@ export default function AdminPage() {
                 <button type="button" disabled={busy === edit.id || creditsDraft === String(edit.credits ?? "")} onClick={() => void saveCredits()}
                   className="h-10 shrink-0 rounded-lg bg-black px-4 text-xs font-black text-white active:scale-95 transition disabled:opacity-40">
                   {busy === edit.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Set credits"}
+                </button>
+              </div>
+              {/* Real-model badge — clearly labelled toggle (the "✓ Real model" carousel badge). */}
+              <div className="flex items-center justify-between gap-2 rounded-xl bg-panel p-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-black uppercase tracking-wider text-ink/40">Real model badge</p>
+                  <p className="text-[11px] font-bold text-ink/45">Shows the green “✓ Real model” badge — a real person, not an AI model.</p>
+                </div>
+                <button type="button" disabled={busy === `real-${edit.id}`} onClick={() => void toggleRealModel(edit)}
+                  className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-black active:scale-95 transition disabled:opacity-50 ${(edit.realModel || edit.realBadge) ? "bg-emerald-500 text-white" : "border border-black/10 bg-white text-ink/60"}`}>
+                  {busy === `real-${edit.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                  {(edit.realModel || edit.realBadge) ? "Real ✓ — tap to remove" : "Mark as Real"}
                 </button>
                 <span className="pb-2.5 text-[11px] font-bold text-ink/40">spent {edit.creditsSpent ?? 0}</span>
               </div>
