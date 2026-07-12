@@ -1,7 +1,24 @@
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email-send";
+import { createAuthUser } from "@/lib/supabase-admin-users";
+import { readTryThisLookState } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
+
+// Mint a recovery (set-password) action link for `email` via the Admin API. Returns "" when
+// the email has no auth account yet.
+async function mintRecoveryLink(supabaseUrl: string, serviceKey: string, email: string, redirectTo: string): Promise<string> {
+  try {
+    const res = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
+      method: "POST",
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "recovery", email, redirect_to: redirectTo }),
+    });
+    if (!res.ok) return "";
+    const data = (await res.json().catch(() => ({}))) as { action_link?: string; properties?: { action_link?: string } };
+    return data.properties?.action_link ?? data.action_link ?? "";
+  } catch { return ""; }
+}
 
 // Password-reset email. Supabase's own /recover endpoint is broken on this project
 // ("Error sending recovery email", 500 — no working mailer configured in Supabase),
@@ -30,21 +47,23 @@ export async function POST(request: Request) {
   //    exist as a user is only created for signup/magiclink types — recovery for an
   //    unknown email returns an error we swallow into the generic response below.
   const redirectTo = String(body.redirectTo ?? "").trim() || "https://luxurybandit.com/auth/reset-password";
-  let actionLink = "";
-  try {
-    const res = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
-      method: "POST",
-      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "recovery", email, redirect_to: redirectTo }),
-    });
-    const data = (await res.json().catch(() => ({}))) as { action_link?: string; properties?: { action_link?: string }; msg?: string; message?: string };
-    if (!res.ok) {
-      // Don't leak whether the account exists — return a generic success-ish response.
-      return NextResponse.json({ ok: true, sent: false, skipped: "no-account" });
-    }
-    actionLink = data.properties?.action_link ?? data.action_link ?? "";
-  } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "generate_link failed." }, { status: 502 });
+  let actionLink = await mintRecoveryLink(supabaseUrl, serviceKey, email, redirectTo);
+
+  // No auth account for this email. If she's an approved MODEL (curator record) who applied
+  // but never created a login, auto-provision the account so this same "reset" delivers a
+  // working set-password link — models don't get a Supabase account at apply time. For any
+  // other unknown email we stay silent (don't reveal whether an account exists).
+  if (!actionLink) {
+    let isCurator = false;
+    let curatorName = "";
+    try {
+      const state = await readTryThisLookState();
+      const cur = (state.curators ?? []).find((c) => (c.email ?? "").trim().toLowerCase() === email);
+      if (cur) { isCurator = true; curatorName = [cur.firstName, cur.lastName].filter(Boolean).join(" "); }
+    } catch { /* ignore */ }
+    if (!isCurator) return NextResponse.json({ ok: true, sent: false, skipped: "no-account" });
+    const created = await createAuthUser(email, curatorName).catch(() => false);
+    if (created) actionLink = await mintRecoveryLink(supabaseUrl, serviceKey, email, redirectTo);
   }
   if (!actionLink) return NextResponse.json({ ok: true, sent: false, skipped: "no-link" });
 

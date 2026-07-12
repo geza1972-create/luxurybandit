@@ -1,6 +1,7 @@
 // Server-only helper to list/edit Supabase Auth users (Google / Facebook / password
 // sign-ins) via the Admin API, using the service-role key. Never import client-side.
 
+import { randomUUID } from "crypto";
 import { readTryThisLookState, saveTryThisLookState } from "./try-this-look-store";
 
 function cfg() {
@@ -29,6 +30,30 @@ function nameOf(u: any): string {
 }
 function providerOf(u: any): string {
   return String(u?.app_metadata?.provider || (u?.app_metadata?.providers ?? [])[0] || "email");
+}
+
+// Create a password auth user (email pre-confirmed). Used to auto-provision a login for an
+// approved model who applied but never created an account — so "Forgot password" can then
+// mint a set-password link for her. Returns true if the user now exists (created or already
+// there). A random password is set; she sets her own via the recovery link.
+export async function createAuthUser(email: string, name?: string): Promise<boolean> {
+  const { url, key } = cfg();
+  const password = `Lb-${randomUUID()}`; // throwaway — replaced by the recovery link
+  const res = await fetch(`${url}/auth/v1/admin/users`, {
+    method: "POST",
+    headers: adminHeaders(key),
+    body: JSON.stringify({
+      email: email.trim().toLowerCase(),
+      password,
+      email_confirm: true,
+      ...(name?.trim() ? { user_metadata: { name: name.trim() } } : {}),
+    }),
+  });
+  if (res.ok) return true;
+  // 422 "email exists" → already provisioned, treat as success.
+  const data = await res.json().catch(() => ({})) as { msg?: string; message?: string; error_code?: string };
+  const msg = `${data.msg ?? data.message ?? data.error_code ?? ""}`.toLowerCase();
+  return msg.includes("already") || msg.includes("exist") || res.status === 422;
 }
 
 // List ALL auth users (paginated). Newest first.
