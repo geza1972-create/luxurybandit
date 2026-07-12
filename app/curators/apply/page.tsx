@@ -287,7 +287,8 @@ export default function CuratorApplyPage() {
         {/* One-shot warning — sets expectations before she uploads. */}
         <div className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/[0.07] px-4 py-3 text-center">
           <p className="text-[13px] font-black text-amber-300">⚠️ You get one shot — send your very best photos.</p>
-          <p className="mt-1 text-[11px] font-bold leading-relaxed text-white/55">Blurry, low-quality or fake photos are rejected — and a rejected application can&apos;t apply again. Sharp, well-lit, real photos only.</p>
+          <p className="mt-1 text-[11px] font-bold leading-relaxed text-white/55">Photos that are blurry, hide your face (hat/sunglasses), fake, or don&apos;t fit our luxury concept are rejected — and a rejected application can&apos;t apply again. Sharp, well-lit, real photos only.</p>
+          <p className="mt-2 text-[11px] font-bold leading-relaxed text-emerald-300/80">💰 You earn credits when users create videos with you — that happens on paid Premium accounts. The more users pick you, the more you earn.</p>
         </div>
 
         {/* Profile photos — one main + up to 3 more; the team picks the best one. */}

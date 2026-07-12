@@ -28,9 +28,13 @@ function modelOnboardingEmail(email: string, firstName?: string) {
     <li>your <b>verification selfie</b> (holding a paper with “LuxuryBandit” + today’s date)</li>
     <li>your <b>WhatsApp number</b> (only for us — never shown publicly) and your details</li>
   </ul>
-  <p>Please also <b>read and accept our <a href="${rulesUrl}" style="color:#b8860b">model rules &amp; terms</a></b>. Every profile is <b>manually verified</b> — fake or stolen photos are rejected.</p>
+  <p>Please also <b>read and accept our <a href="${rulesUrl}" style="color:#b8860b">model rules &amp; terms</a></b>.</p>
+  <div style="background:#faf7f0;border:1px solid #eadfc6;border-radius:12px;padding:14px 16px;margin:16px 0">
+    <p style="margin:0 0 6px;font-size:14px"><b>💰 How you earn:</b> you get credits when users create videos with you — that happens on <b>paid Premium accounts</b>. The more users pick <b>you</b>, the more you earn.</p>
+    <p style="margin:0;font-size:14px"><b>⚠️ We review every profile.</b> Photos that are <b>blurry</b>, hide your face (hat/sunglasses), or don’t fit our <b>luxury concept</b> can be <b>rejected</b>. Please use clear, well-lit, high-quality photos.</p>
+  </div>
   <p style="text-align:center;margin:24px 0"><a href="${profileUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;font-weight:800;padding:14px 28px;border-radius:999px">Complete my profile →</a></p>
-  <p style="font-size:13px;color:#666">Once everything is complete and verified, we’ll approve you and you can start earning from chats and try-ons.</p>
+  <p style="font-size:13px;color:#666">Once everything is complete and verified, we’ll approve you and you can start earning.</p>
   <p>Talk soon,<br/>The LuxuryBandit Team</p>
 </div>`,
   };

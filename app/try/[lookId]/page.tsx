@@ -177,6 +177,7 @@ export default function TryFunnelPage() {
   const [revealSharp, setRevealSharp] = useState(false);
   const [awaitingEmail, setAwaitingEmail] = useState(false); // cached video shown BLURRED behind the email gate
   const [hasLead, setHasLead] = useState(false); // gave their email (newsletter) → treated as "in", don't nag to register
+  const [gateEmailOnly, setGateEmailOnly] = useState(true); // 1st gate = email only; 2nd+ = full account
   const [mounted, setMounted] = useState(false); // gate localStorage/session-reading UI to client-only (no hydration mismatch)
   useEffect(() => { setMounted(true); }, []);
   const [previewPoster, setPreviewPoster] = useState("");
@@ -351,10 +352,18 @@ export default function TryFunnelPage() {
     const hit = await lookupCachedVideo();
     if (hit) {
       setRendering(false);
-      // Gate the FREE video behind an email (newsletter opt-in) → capture the lead FIRST, then
-      // reveal. Signed-in users, prior email-leads and admins skip straight to the reveal.
-      const leadIn = isAuthed() || (() => { try { return !!localStorage.getItem("lb_lead_email"); } catch { return false; } })() || !!adminPin;
-      if (!leadIn) { setAwaitingEmail(true); setGateOpen(true); return; }
+      // The 1st video is free after just an email (newsletter). The 2nd+ needs a real (confirmed)
+      // account — a lone email-lead is spent once. Signed-in users & admin always pass.
+      const authed = isAuthed();
+      const leadEmail = (() => { try { return !!localStorage.getItem("lb_lead_email"); } catch { return false; } })();
+      const leadUsed = (() => { try { return !!localStorage.getItem("lb_lead_used"); } catch { return false; } })();
+      const canFree = authed || !!adminPin || (leadEmail && !leadUsed);
+      if (!canFree) {
+        setGateEmailOnly(!leadEmail); // no email yet → email-only gate; email spent → full account
+        setAwaitingEmail(true); setGateOpen(true); return;
+      }
+      // This reveal uses the one free email-lead pass (if not a real account) → mark it spent.
+      if (!authed && !adminPin && leadEmail) { try { localStorage.setItem("lb_lead_used", "1"); } catch { /**/ } }
       // Theatrical ~30s "unsharp → sharp" reveal of the REAL clip.
       setAwaitingEmail(false);
       setRevealing(true);
@@ -1512,9 +1521,11 @@ export default function TryFunnelPage() {
       )}
 
       {gateOpen && (
-        <FeedGate mode="auth" emailOnly
-          reason={L(chosenModelName ? `Vezi-o pe ${chosenModelName.split(/\s+/)[0]} — pune emailul` : "Pune emailul ca s-o vezi",
-                    chosenModelName ? `Enter your email to watch ${chosenModelName.split(/\s+/)[0]}` : "Enter your email to watch")}
+        <FeedGate mode="auth" emailOnly={gateEmailOnly}
+          reason={gateEmailOnly
+            ? L(chosenModelName ? `Vezi-o pe ${chosenModelName.split(/\s+/)[0]} — pune emailul` : "Pune emailul ca s-o vezi",
+                chosenModelName ? `Enter your email to watch ${chosenModelName.split(/\s+/)[0]}` : "Enter your email to watch")
+            : L("Creează un cont gratuit ca să continui", "Create a free account to keep watching")}
           lookId={lookId} lookName={look?.name}
           advanceOnSignup
           onClose={() => setGateOpen(false)} onAuthed={() => {
