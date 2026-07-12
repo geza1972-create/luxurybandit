@@ -65,6 +65,7 @@ export const FASHION_BRANDS: string[] = [
   "Dr. Martens", "Birkenstock", "UGG", "Hunter", "Sam Edelman", "Steve Madden", "Schutz", "Goyard",
   "Longchamp", "Mulberry", "Anya Hindmarch", "Aspinal of London", "Coach", "Kate Spade", "Furla",
   // ── Lingerie & intimates ──
+  "GiannaBellucci", "Frederick's of Hollywood",
   "La Perla", "Intimissimi", "Hunkemöller", "Hunkemoller", "Triumph", "Agent Provocateur", "Calvin Klein",
   "Skims", "Chantelle", "Wolford", "Eres", "Cosabella", "Aubade", "Wacoal", "Victoria's Secret",
   "Fleur du Mal", "Carine Gilson", "Kiki de Montparnasse", "Coco de Mer", "I.D. Sarrieri",
