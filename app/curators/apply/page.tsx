@@ -289,6 +289,7 @@ export default function CuratorApplyPage() {
           <p className="text-[13px] font-black text-amber-300">⚠️ You get one shot — send your very best photos.</p>
           <p className="mt-1 text-[11px] font-bold leading-relaxed text-white/55">Photos that are blurry, hide your face (hat/sunglasses), fake, or don&apos;t fit our luxury concept are rejected — and a rejected application can&apos;t apply again. Sharp, well-lit, real photos only.</p>
           <p className="mt-2 text-[11px] font-bold leading-relaxed text-emerald-300/80">💰 You earn credits when users create videos with you — that happens on paid Premium accounts. The more users pick you, the more you earn.</p>
+          <p className="mt-2 text-[11px] font-bold leading-relaxed text-amber-200/80">🎬 Your first video is free — turn a photo into a video once you&apos;re approved. Every extra video is just $3.99.</p>
         </div>
 
         {/* Profile photos — one main + up to 3 more; the team picks the best one. */}
