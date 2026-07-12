@@ -12,3 +12,8 @@ tsconfig.tsbuildinfo
 state-backup-*.json
 .claude/
 .vercel
+
+# Local video backups (large, never commit)
+video-backup/
+video-samples/
+state-backup-*.json
