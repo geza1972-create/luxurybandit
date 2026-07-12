@@ -5,8 +5,9 @@ export const dynamic = "force-dynamic";
 import { Plus, ArrowUp, ArrowUpRight, X, Menu, ChevronDown, LayoutGrid, Users, Play, Share2, Check } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, FormEvent, ReactNode } from "react";
 import { Suspense, useEffect, useRef, useState } from "react";
+import { signInWithOAuth, sendMagicLink, getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 // ── Ambient background ornaments — thin gold geometry drifting up the dark page. A
 // faint set drifts forever; a brighter "burst" replays on every new message (re-keyed). ──
@@ -180,6 +181,21 @@ function MaiIeftinInner() {
   const [shared, setShared] = useState(false);
   const [demoPlaying, setDemoPlaying] = useState(false); // "▶ Demo" self-playing example running
   const [openProduct, setOpenProduct] = useState<ShopItem | null>(null); // external link → preview dialog first (keep the customer in the funnel)
+  // dupe.com-style lead wall: the CHAT stays free, but opening a shopping RESULT asks a
+  // signed-out visitor to log in first ("Log in to see your results"). Google + email magic-link.
+  const [signedIn, setSignedIn] = useState(true); // assume signed-in until checked → no gate flash
+  const [gate, setGate] = useState(false);
+  const [gateEmail, setGateEmail] = useState("");
+  const [gateSent, setGateSent] = useState(false);
+  useEffect(() => { try { setSignedIn(!!getStoredAuthSession()); } catch { setSignedIn(false); } }, []);
+  const openResult = (p: ShopItem) => { if (!signedIn) { setGate(true); return; } setOpenProduct(p); };
+  const gateGoogle = () => { try { signInWithOAuth("google", `${window.location.origin}/auth/confirm`); } catch { /**/ } };
+  const gateSubmitEmail = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!/.+@.+\..+/.test(gateEmail.trim())) return;
+    try { await sendMagicLink(gateEmail.trim()); } catch { /**/ }
+    setGateSent(true);
+  };
   const share = async () => {
     const url = typeof window !== "undefined" ? window.location.href : "";
     try {
@@ -365,6 +381,7 @@ function MaiIeftinInner() {
   );
 
   return (
+    <>
     <div className="lb-theme relative flex h-screen flex-col overflow-hidden bg-black text-white/90">
       {/* Ambient gold geometry drifting up the background; a burst replays on each message. */}
       <AmbientGeometry burst={messages.length} />
@@ -543,7 +560,7 @@ function MaiIeftinInner() {
                       </p>
                       <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
                         {m.original.map((p, idx) => (
-                          <button key={idx} type="button" onClick={() => setOpenProduct(p)}
+                          <button key={idx} type="button" onClick={() => openResult(p)}
                             className="w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] text-left ring-1 ring-white/20 active:scale-95 transition">
                             <div className="aspect-square w-full bg-white">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -565,7 +582,7 @@ function MaiIeftinInner() {
                       <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#b8912f]">{t.cheaper}</p>
                       <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
                         {m.products.map((p, idx) => (
-                          <button key={idx} type="button" onClick={() => setOpenProduct(p)}
+                          <button key={idx} type="button" onClick={() => openResult(p)}
                             className="w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] text-left ring-1 ring-white/10 active:scale-95 transition">
                             <div className="aspect-square w-full bg-white">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -631,6 +648,72 @@ function MaiIeftinInner() {
         </div>
       )}
     </div>
+    {/* ── "Log in to see your results" wall (dupe.com-style) — only when a signed-out visitor
+        OPENS a shopping result. The chat itself stays free. Google + email magic-link. ── */}
+    {gate && (() => {
+      const teaser = messages
+        .flatMap(m => [...(m.products ?? []), ...(m.original ?? []), ...(m.ownProducts ?? [])])
+        .map(p => p.thumbnail).filter(Boolean).slice(0, 5);
+      const en = lang === "en";
+      return (
+        <div className="fixed inset-0 z-[80] overflow-y-auto bg-white text-neutral-900 dark:bg-[#0b0b0c] dark:text-white">
+          <button type="button" onClick={() => { setGate(false); setGateSent(false); }} aria-label="Close"
+            className="absolute right-4 top-4 z-10 grid h-9 w-9 place-items-center rounded-full bg-neutral-100 text-neutral-500 active:scale-90 transition dark:bg-white/10 dark:text-white/60">
+            <X className="h-5 w-5" />
+          </button>
+          <div className="mx-auto flex min-h-full w-full max-w-md flex-col items-center justify-center px-6 py-14 text-center">
+            <div className="mb-6 grid h-16 w-16 place-items-center rounded-2xl bg-[#c9a23f]/15 text-2xl font-black text-[#b8912f] ring-1 ring-[#c9a23f]/30">LB</div>
+            <h2 className="text-[26px] font-black leading-tight tracking-tight">
+              {en ? "Log in to see your results" : "Autentifică-te ca să vezi rezultatele"}
+            </h2>
+            <p className="mt-2.5 text-[15px] font-semibold leading-snug text-neutral-500 dark:text-white/55">
+              {en ? "No account? Sign up for free — we'll save these results for you." : "N-ai cont? Înregistrează-te gratuit — îți salvăm rezultatele."}
+            </p>
+            {teaser.length > 0 && (
+              <div className="mt-6 flex items-center justify-center gap-2">
+                {teaser.map((src, i) => (
+                  <div key={i} className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-neutral-100 ring-1 ring-neutral-200 dark:bg-white/10 dark:ring-white/10">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                  </div>
+                ))}
+              </div>
+            )}
+            {gateSent ? (
+              <p className="mt-8 w-full rounded-2xl bg-[#c9a23f]/12 px-5 py-4 text-[15px] font-bold text-[#8a6d1f] ring-1 ring-[#c9a23f]/30 dark:text-[#e7c877]">
+                {en ? "Check your email for your sign-in link ✨" : "Verifică-ți emailul pentru linkul de conectare ✨"}
+              </p>
+            ) : (
+              <>
+                <button type="button" onClick={gateGoogle}
+                  className="mt-8 flex w-full items-center justify-center gap-3 rounded-full border border-neutral-200 bg-white py-4 text-[15px] font-bold text-neutral-900 shadow-sm active:scale-[0.98] transition dark:border-white/15 dark:bg-white/5 dark:text-white">
+                  <svg className="h-5 w-5" viewBox="0 0 48 48" aria-hidden>
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.28-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                  </svg>
+                  {en ? "Continue with Google" : "Continuă cu Google"}
+                </button>
+                <form onSubmit={gateSubmitEmail} className="mt-3 w-full">
+                  <input type="email" required value={gateEmail} onChange={(e) => setGateEmail(e.target.value)}
+                    placeholder={en ? "your@email.com" : "email@exemplu.com"}
+                    className="w-full rounded-full border border-neutral-200 bg-white px-5 py-4 text-center text-[15px] font-semibold text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-[#c9a23f] dark:border-white/15 dark:bg-white/5 dark:text-white dark:placeholder:text-white/35" />
+                  <button type="submit"
+                    className="mt-3 w-full rounded-full bg-[#1a160f] py-4 text-[15px] font-black text-white active:scale-[0.98] transition dark:bg-white dark:text-black">
+                    {en ? "Continue with email" : "Continuă cu email"}
+                  </button>
+                </form>
+              </>
+            )}
+            <p className="mt-6 text-[11px] font-semibold leading-relaxed text-neutral-400 dark:text-white/35">
+              {en ? "By continuing, you agree to our Terms and Privacy Policy." : "Continuând, ești de acord cu Termenii și Politica de confidențialitate."}
+            </p>
+          </div>
+        </div>
+      );
+    })()}
+    </>
   );
 }
 
