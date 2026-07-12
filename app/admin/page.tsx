@@ -109,6 +109,9 @@ export default function AdminPage() {
   type AdminPost = { id: string; lookId: string; imageUrl: string; videoUrl?: string; customerName: string; ownerEmail?: string; curatorId: string; lookName: string; feed: boolean; public?: boolean; views?: number; createdAt: string };
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [postsLoaded, setPostsLoaded] = useState(false);
+  // Posters whose signed URL failed to load (e.g. expired on a long-open tab) → fall back to
+  // the video's own frame so the card never shows an empty grey box.
+  const [posterFailed, setPosterFailed] = useState<Set<string>>(new Set());
   const [postDateFrom, setPostDateFrom] = useState("");
   // Bulk selection: pick many posts, then set their visibility tier or delete them.
   const [selectMode, setSelectMode] = useState(false);
@@ -1212,11 +1215,13 @@ export default function AdminPage() {
                       </span>
                     )}
                     <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded bg-black/5">
-                      {p.imageUrl
+                      {p.imageUrl && !posterFailed.has(p.id)
                         // eslint-disable-next-line @next/next/no-img-element
-                        ? <img src={p.imageUrl} alt={p.lookName} loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
+                        ? <img src={p.imageUrl} alt={p.lookName} loading="lazy" decoding="async"
+                            onError={() => p.videoUrl && setPosterFailed(s => new Set(s).add(p.id))}
+                            className="h-full w-full object-cover object-top" />
                         : p.videoUrl
-                          ? <video src={p.videoUrl} muted playsInline preload="metadata" className="h-full w-full object-cover object-top" />
+                          ? <video src={`${p.videoUrl}#t=0.1`} muted playsInline preload="metadata" className="h-full w-full object-cover object-top" />
                           : null}
                       {p.videoUrl && <span className="absolute bottom-0.5 right-0.5 rounded bg-black/60 px-1 py-px text-[7px] font-black uppercase text-white">Vid</span>}
                     </div>
