@@ -231,6 +231,21 @@ export default function AdminPage() {
   const [nlCount, setNlCount] = useState<number | null>(null);
   const [nlBusy, setNlBusy] = useState(false);
   const [nlMsg, setNlMsg] = useState("");
+  // Resend the model onboarding-steps email to an applicant who missed it.
+  const [rsEmail, setRsEmail] = useState("");
+  const [rsBusy, setRsBusy] = useState(false);
+  const [rsMsg, setRsMsg] = useState("");
+  const resendOnboarding = async () => {
+    if (rsBusy || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(rsEmail.trim())) return;
+    setRsBusy(true); setRsMsg("");
+    try {
+      const r = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "resend-onboarding", email: rsEmail.trim() }) });
+      const d = await r.json();
+      if (r.ok && d.ok) { setRsMsg(`✅ Schritte-Mail an ${rsEmail.trim()} gesendet.`); setRsEmail(""); }
+      else setRsMsg(d.error || "Senden fehlgeschlagen.");
+    } catch { setRsMsg("Senden fehlgeschlagen."); }
+    finally { setRsBusy(false); }
+  };
 
   const headers = (p = pin, t = token): Record<string, string> => ({
     "Content-Type": "application/json",
@@ -1045,6 +1060,27 @@ export default function AdminPage() {
             </button>
             {nlMsg && <span className="text-[11px] font-black text-ink/60">{nlMsg}</span>}
           </div>
+        </section>
+
+        {/* Resend the model onboarding-steps email to an applicant who missed it (e.g. applied
+            before the self-service template). New applicants get it automatically on apply. */}
+        <section className="mt-3 rounded-xl border border-black/10 bg-white p-3">
+          <div className="flex items-center gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/[0.06] text-base">📩</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black text-ink">Resend model steps</p>
+              <p className="text-[11px] font-bold text-ink/45">Send the "complete your profile" steps email again to an applicant. (New applicants get it automatically.)</p>
+            </div>
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <input value={rsEmail} onChange={e => setRsEmail(e.target.value)} type="email" placeholder="applicant@email.com"
+              className="h-10 flex-1 rounded-lg border border-black/12 bg-black/[0.02] px-3 text-sm font-bold text-ink outline-none focus:border-black/40" />
+            <button type="button" onClick={() => void resendOnboarding()} disabled={rsBusy || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(rsEmail.trim())}
+              className="shrink-0 rounded-full bg-black px-4 py-2 text-xs font-black text-white active:scale-95 transition-transform disabled:opacity-40">
+              {rsBusy ? "Sending…" : "Send"}
+            </button>
+          </div>
+          {rsMsg && <p className="mt-1.5 text-[11px] font-black text-ink/60">{rsMsg}</p>}
         </section>
 
         {tab !== "inbox" && tab !== "insights" && (

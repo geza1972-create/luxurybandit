@@ -10,6 +10,32 @@ import { setCuratorCredits, grantCredits, awardEngagementCredits, getCuratorCred
 import { notifyAdminWhatsApp, ADMIN_URL } from "@/lib/notify-admin";
 import { isAdminRequest } from "@/lib/admin-auth";
 
+// The self-service onboarding email (steps to complete a model profile) — sent AUTOMATICALLY on
+// apply, and re-sendable from the admin for anyone who applied before this template / missed it.
+function modelOnboardingEmail(email: string, firstName?: string) {
+  const hi = firstName ? ` ${firstName}` : "";
+  const site = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://luxurybandit.com";
+  const profileUrl = `${site}/curators/profile`;
+  const rulesUrl = `${site}/model-rules`;
+  return {
+    subject: "Complete your LuxuryBandit Model profile 💛",
+    html: `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;color:#111">
+  <p style="font-size:16px">Hi${hi},</p>
+  <p>Thank you for applying to become a <b>LuxuryBandit Model</b>. 💛</p>
+  <p><b>Now complete your profile yourself</b> — open the link below, sign in with this email (<b>${email}</b>, "Continue with Google" is fastest) and fill in everything:</p>
+  <ul style="padding-left:18px;color:#333">
+    <li>your <b>face / portrait</b> photo and a <b>full-body, dressed</b> photo</li>
+    <li>your <b>verification selfie</b> (holding a paper with “LuxuryBandit” + today’s date)</li>
+    <li>your <b>WhatsApp number</b> (only for us — never shown publicly) and your details</li>
+  </ul>
+  <p>Please also <b>read and accept our <a href="${rulesUrl}" style="color:#b8860b">model rules &amp; terms</a></b>. Every profile is <b>manually verified</b> — fake or stolen photos are rejected.</p>
+  <p style="text-align:center;margin:24px 0"><a href="${profileUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;font-weight:800;padding:14px 28px;border-radius:999px">Complete my profile →</a></p>
+  <p style="font-size:13px;color:#666">Once everything is complete and verified, we’ll approve you and you can start earning from chats and try-ons.</p>
+  <p>Talk soon,<br/>The LuxuryBandit Team</p>
+</div>`,
+  };
+}
+
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
@@ -269,6 +295,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ replied });
   }
 
+  // Admin: (re)send the self-service onboarding-steps email to an applicant who missed it.
+  if (action === "resend-onboarding") {
+    if (!(await isAdminRequest(request))) return jsonError("Admin access required.", 401);
+    const email = String((payload as { email?: string }).email ?? "").trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return jsonError("Valid email required.");
+    const st = await readTryThisLookState();
+    const cur = (st.curators ?? []).find(c => (c.email ?? "").toLowerCase() === email.toLowerCase());
+    try {
+      const { sendEmail } = await import("@/lib/email-send");
+      const mail = modelOnboardingEmail(email, cur?.firstName);
+      await sendEmail({ to: email, subject: mail.subject, html: mail.html });
+      return NextResponse.json({ ok: true });
+    } catch { return jsonError("Could not send the email.", 502); }
+  }
+
   if (action === "apply") {
     const firstName = String(payload.firstName ?? "").trim();
     const lastName = String(payload.lastName ?? "").trim();
@@ -371,30 +412,12 @@ export async function POST(request: Request) {
     if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email))) {
       try {
         const { sendEmail } = await import("@/lib/email-send");
-        const hi = curator.firstName ? ` ${curator.firstName}` : "";
-        const site = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://luxurybandit.com";
-        const profileUrl = `${site}/curators/profile`;
-        const rulesUrl = `${site}/model-rules`;
+        const mail = modelOnboardingEmail(String(email), curator.firstName);
         await sendEmail({
           to: String(email),
           bcc: process.env.SUPPORT_EMAIL?.trim() || "support@luxurybandit.com", // copy to the team
-          subject: "Complete your LuxuryBandit Model profile 💛",
-          html: `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;color:#111">
-  <p style="font-size:16px">Hi${hi},</p>
-  <p>Thank you for applying to become a <b>LuxuryBandit Model</b>. 💛</p>
-  <p><b>Now complete your profile yourself</b> — open the link below, sign in with this email (<b>${String(email)}</b>) and fill in everything:</p>
-  <ul style="padding-left:18px;color:#333">
-    <li>your <b>face / portrait</b> photo and a <b>full-body, dressed</b> photo</li>
-    <li>your <b>verification selfie</b> (holding a paper with “LuxuryBandit” + today’s date)</li>
-    <li>your <b>WhatsApp number</b> (only for us — never shown publicly) and your details</li>
-  </ul>
-  <p>Please also <b>read and accept our <a href="${rulesUrl}" style="color:#b8860b">model rules &amp; terms</a></b>. Every profile is <b>manually verified</b> — fake or stolen photos are rejected.</p>
-  <p style="text-align:center;margin:24px 0">
-    <a href="${profileUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;font-weight:800;padding:14px 28px;border-radius:999px">Complete my profile →</a>
-  </p>
-  <p style="font-size:13px;color:#666">Once everything is complete and verified, we’ll approve you and you can start earning from chats and try-ons.</p>
-  <p>Talk soon,<br/>The LuxuryBandit Team</p>
-</div>`,
+          subject: mail.subject,
+          html: mail.html,
         });
       } catch { /* email is best-effort */ }
     }
