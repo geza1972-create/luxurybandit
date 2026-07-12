@@ -415,13 +415,34 @@ export async function POST(request: Request) {
     const en = (body as { lang?: string }).lang === "en";
     const q = (hints || (en ? "elegant lingerie body dress" : "lenjerie body rochie eleganta"))
       .replace(/\s+/g, " ").slice(0, 120);
-    const [foundRaw, ownProducts, modelVideos] = await Promise.all([
-      productSearch(q), ownProductsFor(q), modelVideosFor(q, curatorId),
+    const types = typesIn(q);
+    const intimate = [...types].some((t) => t === "lingerie" || t === "bikini");
+    // Affiliate partner (CJ / GiannaBellucci) — ALWAYS deliver it for an intimate/swim model. Her
+    // catalog is lingerie/swim, so a "bikini"-typed query must NOT type-gate her lingerie away →
+    // broaden the affiliate query to the whole intimate family. This is the commission partner.
+    const affiliateQ = intimate ? "elegant lace body lingerie bikini swimwear designer premium" : q;
+    const [cjRaw, ownProducts, modelVideos] = await Promise.all([
+      cjSearch(affiliateQ), ownProductsFor(q), modelVideosFor(q, curatorId),
     ]);
-    const products = typeGate(foundRaw, typesIn(q)).slice(0, 8);
+    const affiliate = (cjRaw ?? []).slice(0, 8);
+    const seen = new Set(affiliate.map((p) => p.link));
+    const external = typeGate(await shoppingSearch(q), types).filter((p) => !seen.has(p.link)).slice(0, 6);
+    const products = [...affiliate, ...external].slice(0, 12); // affiliate first, then look-alikes
     const reply = en ? "Here's what I'm wearing — plus pieces I'd pick for you 💛"
                      : "Uite ce port eu — și piese pe care ți le-aș alege 💛";
     return NextResponse.json({ reply, modelVideos, ownProducts, products, inspo: [], chips: [] });
+  }
+
+  // "▶ Demo" showcase — a RANDOM garment family each call so the demo shows DIFFERENT pieces
+  // every time, always including VIDEO looks (our try-ons). NO Anthropic/SerpApi cost.
+  if ((body as { demoProducts?: string }).demoProducts === "showcase") {
+    const CATS = [
+      "elegant lace body lingerie designer", "evening gown elegant dress", "elegant bikini swimwear",
+      "elegant black bodysuit satin", "silk slip dress elegant", "designer corset lingerie",
+    ];
+    const cat = CATS[Math.floor(Math.random() * CATS.length)];
+    const [ownProducts, inspo] = await Promise.all([ownProductsFor(cat), inspoVideosFor(cat)]);
+    return NextResponse.json({ ownProducts: ownProducts.slice(0, 6), inspo: inspo.slice(0, 6) });
   }
 
   const key = process.env.ANTHROPIC_API_KEY;

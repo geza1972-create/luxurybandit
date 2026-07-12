@@ -100,13 +100,8 @@ const T: Record<Lang, { title: string; motto: string; ph: string; free: string; 
 };
 
 // A self-playing example conversation ("▶ Demo") shown on the empty state so a visitor SEES
-// exactly how it works before typing. Fully scripted → zero API/SerpApi cost, always looks
-// perfect. Real Gianna Bellucci pieces (real images + RON prices + tracked affiliate links).
-const DEMO_PRODUCTS: ShopItem[] = [
-  { title: "Body Hera", price: "510 RON", thumbnail: "https://cdn.giannabellucci.com/G0172T-BLA/81af6a9aeb0d.jpg", link: "https://www.jdoqocy.com/click-101815363-17273998?url=https%3A%2F%2Fgiannabellucci.com%2Fro%2Fs%2Fproduct%2FVXpRTEIyWTBYU3ZGbkE9PQ_equal__equal_%3Futm_source%3Dgoogle%26utm_medium%3Dfeed%26fs_token%3D912ec803b2ce49e4a541068d495ab570%26sku%3DG0172T-BLA-M&cjsku=G0172T-BLA-M", source: "GiannaBellucci" },
-  { title: "Body Marcia", price: "400 RON", thumbnail: "https://cdn.giannabellucci.com/G0214B-BLA/20a8148d274c.jpg", link: "https://www.dpbolvw.net/click-101815363-17273998?url=https%3A%2F%2Fgiannabellucci.com%2Fro%2Fs%2Fproduct%2FVXpRSitaVmk2b3l6a0E9PQ_equal__equal_%3Futm_source%3Dgoogle%26utm_medium%3Dfeed%26fs_token%3D912ec803b2ce49e4a541068d495ab570&cjsku=G0214B-BLA", source: "GiannaBellucci" },
-  { title: "Body Luciana", price: "355 RON", thumbnail: "https://cdn.giannabellucci.com/G0192B-PNK/0a4864c2edb0.jpg", link: "https://www.jdoqocy.com/click-101815363-17273998?url=https%3A%2F%2Fgiannabellucci.com%2Fro%2Fs%2Fproduct%2FVXpRTERTQVVEUDFMWkE9PQ_equal__equal_%3Futm_source%3Dgoogle%26utm_medium%3Dfeed%26fs_token%3D912ec803b2ce49e4a541068d495ab570&cjsku=G0192B-PNK", source: "GiannaBellucci" },
-];
+// exactly how it works before typing. Products/videos are fetched fresh & RANDOM each run (via
+// the demoProducts:"showcase" branch) so it never shows the same pieces twice.
 const DEMO: Record<Lang, { btn: string; q: string; a1: string; chips1: string[]; pick: string; a2: string; chips2: string[]; show: string; a3: string; wantDresses: string; a4: string; outro: string; tryCta: string }> = {
   ro: {
     btn: "Cum funcționează",
@@ -117,9 +112,9 @@ const DEMO: Record<Lang, { btn: string; q: string; a1: string; chips1: string[];
     a2: "Superb ✨ Îți arăt acum sau mai adaugi ceva (culoare, mărime)?",
     chips2: ["Arată-mi", "Mai am ceva"],
     show: "Arată-mi",
-    a3: "Am ales pentru tine piese de lux, negre și elegante de seară — le poți cumpăra direct 💛",
-    wantDresses: "Îmi plac foarte mult, dar caut și rochii",
-    a4: "Avem și rochii superbe — uite din colecția noastră ✨",
+    a3: "Am ales piese de lux pentru tine — și look-uri în mișcare 💛",
+    wantDresses: "Superbe! Arată-mi mai multe ✨",
+    a4: "Mai multe piese pe care le vei adora — vezi-le în mișcare ✨",
     outro: "Așa de simplu! Acum spune-mi TU ce cauți 💛",
     tryCta: "↺ Începe tu",
   },
@@ -132,9 +127,9 @@ const DEMO: Record<Lang, { btn: string; q: string; a1: string; chips1: string[];
     a2: "Lovely ✨ Show you now, or add something (colour, size)?",
     chips2: ["Show me", "One more thing"],
     show: "Show me",
-    a3: "I picked elegant black luxury pieces for you — shoppable right away 💛",
-    wantDresses: "I love them, but I'm also looking for dresses",
-    a4: "We have gorgeous dresses too — from our collection ✨",
+    a3: "I picked luxury pieces for you — plus looks in motion 💛",
+    wantDresses: "Love them! Show me more ✨",
+    a4: "More pieces you'll love — see them in motion ✨",
     outro: "That simple! Now tell me what YOU want 💛",
     tryCta: "↺ Start yourself",
   },
@@ -312,6 +307,17 @@ function MaiIeftinInner() {
   // "▶ Demo" — self-play a scripted example into the chat UI so a visitor SEES how it works.
   // Zero API cost (all local); reuses the real message/product rendering. Ends with a reset chip.
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  // A random showcase (different garment family + VIDEO looks each call) for the demo.
+  const fetchShowcase = async (): Promise<{ ownProducts?: ShopItem[]; inspo?: ShopItem[] }> => {
+    try {
+      const r = await fetch("/api/mai-ieftin-chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ demoProducts: "showcase", lang }) });
+      const dd = await r.json().catch(() => ({}));
+      return {
+        ownProducts: Array.isArray(dd.ownProducts) && dd.ownProducts.length ? dd.ownProducts : undefined,
+        inspo: Array.isArray(dd.inspo) && dd.inspo.length ? dd.inspo : undefined,
+      };
+    } catch { return {}; }
+  };
   const playDemo = async () => {
     if (demoPlaying) return;
     const d = DEMO[lang];
@@ -328,21 +334,18 @@ function MaiIeftinInner() {
     push({ role: "assistant", content: d.a2, chips: d.chips2 });
     await sleep(1500);
     push({ role: "user", content: d.show });
-    await sleep(450); setLoading(true); await sleep(1300); setLoading(false);
-    push({ role: "assistant", content: d.a3, products: DEMO_PRODUCTS });
+    await sleep(450); setLoading(true); await sleep(1300);
+    // Showcase 1 — a RANDOM garment family + VIDEO looks, so the demo shows DIFFERENT pieces
+    // (and looks in motion) every single run instead of the same dresses.
+    const sc1 = await fetchShowcase();
+    setLoading(false);
+    push({ role: "assistant", content: d.a3, inspo: sc1.inspo, ownProducts: sc1.ownProducts });
     await sleep(1600);
-    // "I love them, but I'm also looking for dresses" → show dresses from OUR catalogue.
     push({ role: "user", content: d.wantDresses });
     await sleep(450); setLoading(true);
-    // Fetch dresses fresh (fresh signed image URLs, no AI cost via the demoProducts branch).
-    let dresses: ShopItem[] = [];
-    try {
-      const r = await fetch("/api/mai-ieftin-chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ demoProducts: "dresses", lang }) });
-      const dd = await r.json().catch(() => ({}));
-      if (Array.isArray(dd.ownProducts)) dresses = dd.ownProducts;
-    } catch { /**/ }
-    await sleep(900); setLoading(false);
-    push({ role: "assistant", content: d.a4, ownProducts: dresses.length ? dresses : undefined });
+    const sc2 = await fetchShowcase(); // a second, different random showcase
+    await sleep(700); setLoading(false);
+    push({ role: "assistant", content: d.a4, inspo: sc2.inspo, ownProducts: sc2.ownProducts });
     await sleep(900);
     push({ role: "assistant", content: d.outro, chips: [d.tryCta] });
     setDemoPlaying(false);
@@ -552,7 +555,7 @@ function MaiIeftinInner() {
                       <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#c9a23f]">🎬 {m.modelName || (lang === "en" ? "She" : "Ea")} {t.wears}</p>
                       <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
                         {m.modelVideos.map((p, idx) => (
-                          <a key={idx} href={p.link}
+                          <a key={idx} href={p.link} onClick={(e) => { e.preventDefault(); setOpenProduct(p); }}
                             className="relative h-52 w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#c9a23f]/25 active:scale-95 transition">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
@@ -573,7 +576,7 @@ function MaiIeftinInner() {
                       <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#b8912f]">{t.ours}</p>
                       <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
                         {m.ownProducts.map((p, idx) => (
-                          <a key={idx} href={p.link}
+                          <a key={idx} href={p.link} onClick={(e) => { e.preventDefault(); setOpenProduct(p); }}
                             className="w-32 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#b8912f]/30 active:scale-95 transition">
                             <div className="aspect-[3/4] w-full bg-white">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -596,7 +599,7 @@ function MaiIeftinInner() {
                       <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#c9a23f]">{lang === "en" ? "Inspiration · our videos" : "Inspirație · videourile noastre"}</p>
                       <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
                         {m.inspo.map((p, idx) => (
-                          <a key={idx} href={p.link}
+                          <a key={idx} href={p.link} onClick={(e) => { e.preventDefault(); setOpenProduct(p); }}
                             className="relative h-52 w-36 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#c9a23f]/25 active:scale-95 transition">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
@@ -693,10 +696,18 @@ function MaiIeftinInner() {
                   {openProduct.source && <p className="mt-1.5 text-[12px] font-bold text-[#c9a23f]">{openProduct.source}</p>}
                 </div>
               </div>
-              <a href={openProduct.link} target="_blank" rel="noopener noreferrer" onClick={() => setOpenProduct(null)}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#c9a23f] py-4 text-[15px] font-black text-black active:scale-[0.98] transition">
-                {lang === "en" ? "View in shop" : "Vezi în magazin"} <ArrowUpRight className="h-4 w-4" />
-              </a>
+              {openProduct.link?.startsWith("/") ? (
+                /* Our own look/video → open it in-app (keep the customer in the funnel). */
+                <button type="button" onClick={() => { const l = openProduct.link!; setOpenProduct(null); router.push(l); }}
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#c9a23f] py-4 text-[15px] font-black text-black active:scale-[0.98] transition">
+                  {lang === "en" ? "View look" : "Vezi look-ul"} <ArrowUpRight className="h-4 w-4" />
+                </button>
+              ) : (
+                <a href={openProduct.link} target="_blank" rel="noopener noreferrer" onClick={() => setOpenProduct(null)}
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#c9a23f] py-4 text-[15px] font-black text-black active:scale-[0.98] transition">
+                  {lang === "en" ? "View in shop" : "Vezi în magazin"} <ArrowUpRight className="h-4 w-4" />
+                </a>
+              )}
               <button type="button" onClick={() => setOpenProduct(null)}
                 className="mt-2 flex w-full items-center justify-center rounded-full py-3 text-[14px] font-bold text-white/50 active:scale-[0.98] transition">
                 {lang === "en" ? "Stay here" : "Rămân aici"}
