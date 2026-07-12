@@ -16,12 +16,15 @@
  *   node scripts/compress-videos.mjs --apply --limit 10   # nur die ersten 10 (Testlauf)
  */
 
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, mkdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { tmpdir } from "node:os";
 import { execFileSync } from "node:child_process";
 
 const APPLY = process.argv.includes("--apply");
+// --samples : im Probelauf die komprimierten Clips lokal nach ./video-samples/ schreiben,
+// damit du die Qualität in QuickTime prüfen kannst, BEVOR du --apply ausführst.
+const SAMPLES = process.argv.includes("--samples");
 const LIMIT = (() => { const i = process.argv.indexOf("--limit"); return i >= 0 ? Number(process.argv[i + 1]) : Infinity; })();
 
 function loadEnv() {
@@ -91,9 +94,11 @@ async function main() {
   if (!stateRes.ok) { console.error(`❌ state.json laden fehlgeschlagen: ${stateRes.status}`); process.exit(1); }
   let stateText = await stateRes.text();
 
-  const backupFile = `state-backup-${Date.now()}.json`;
-  writeFileSync(backupFile, stateText);
-  console.log(`💾 Backup der state.json: ${backupFile}`);
+  if (APPLY) {
+    const backupFile = `state-backup-${Date.now()}.json`;
+    writeFileSync(backupFile, stateText);
+    console.log(`💾 Backup der state.json: ${backupFile}`);
+  }
 
   const allPaths = collectVideoPaths(stateText);
   const todo = allPaths.filter((p) => !/-c\.(mp4|webm|mov)$/i.test(p)).slice(0, LIMIT);
@@ -110,6 +115,7 @@ async function main() {
       before += input.length; after += output.length;
       const mb = (n) => (n / 1048576).toFixed(1);
       console.log(`  ${oldPath.split("/").pop()}  ${mb(input.length)}MB → ${mb(output.length)}MB  (-${Math.round((1 - output.length / input.length) * 100)}%)`);
+      if (SAMPLES) { mkdirSync("video-samples", { recursive: true }); writeFileSync(join("video-samples", oldPath.split("/").pop().replace(/\.\w+$/, "-c.mp4")), output); }
       if (APPLY) { await uploadObject(newPath, output, "video/mp4"); map.set(oldPath, newPath); }
       ok++;
     } catch (e) { console.warn(`  ⚠️  übersprungen: ${oldPath} (${e.message})`); failed++; }
