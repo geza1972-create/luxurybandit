@@ -175,6 +175,7 @@ export default function TryFunnelPage() {
   // blurry over ~30s (instead of a boring spinner). `revealSharp` drives the CSS deblur.
   const [revealing, setRevealing] = useState(false);
   const [revealSharp, setRevealSharp] = useState(false);
+  const [awaitingEmail, setAwaitingEmail] = useState(false); // cached video shown BLURRED behind the email gate
   const [previewPoster, setPreviewPoster] = useState("");
   const revealVideoRef = useRef<HTMLVideoElement>(null);
   // Background music (the clips have no audio) + a sound toggle; tap the video to pause it.
@@ -327,8 +328,13 @@ export default function TryFunnelPage() {
     setRendering(true); setRevealing(false); setRevealSharp(false);
     const hit = await lookupCachedVideo();
     if (hit) {
-      // Free video exists → theatrical ~30s "unsharp → sharp" reveal of the REAL clip.
       setRendering(false);
+      // Gate the FREE video behind an email (newsletter opt-in) → capture the lead FIRST, then
+      // reveal. Signed-in users, prior email-leads and admins skip straight to the reveal.
+      const leadIn = isAuthed() || (() => { try { return !!localStorage.getItem("lb_lead_email"); } catch { return false; } })() || !!adminPin;
+      if (!leadIn) { setAwaitingEmail(true); setGateOpen(true); return; }
+      // Theatrical ~30s "unsharp → sharp" reveal of the REAL clip.
+      setAwaitingEmail(false);
       setRevealing(true);
       // next frame: flip to sharp so the CSS filter transition (REVEAL_MS) animates.
       requestAnimationFrame(() => requestAnimationFrame(() => setRevealSharp(true)));
@@ -1064,15 +1070,17 @@ export default function TryFunnelPage() {
               // sharpens from blurry over ~30s, THEN becomes fully watchable (controls).
               <div className="relative h-[52vh] w-full overflow-hidden bg-black">
                 <video ref={revealVideoRef} src={previewVideoUrl} poster={previewPoster || undefined} preload="auto"
-                  onClick={() => { if (!revealing) toggleVideo(); }}
+                  onClick={() => { if (revealing) return; if (awaitingEmail) { setGateOpen(true); return; } toggleVideo(); }}
                   className="h-full w-full cursor-pointer object-contain"
                   style={
                     revealing
                       ? { filter: `blur(${revealSharp ? 0 : 26}px)`, transform: `scale(${revealSharp ? 1 : 1.08})`, transition: `filter ${REVEAL_MS}ms linear, transform ${REVEAL_MS}ms ease-out` }
-                      : undefined
+                      : awaitingEmail
+                        ? { filter: "blur(26px)", transform: "scale(1.08)" } // teaser behind the email gate
+                        : undefined
                   }
-                  autoPlay loop playsInline muted={revealing} />
-                {!revealing && (
+                  autoPlay loop playsInline muted={revealing || awaitingEmail} />
+                {!revealing && !awaitingEmail && (
                   <>
                     {/* Sound (music) toggle */}
                     <button type="button" onClick={(e) => { e.stopPropagation(); toggleMusic(); }}
@@ -1102,6 +1110,10 @@ export default function TryFunnelPage() {
                       <span className="text-sm font-black">{L("Îți dezvăluim ținuta…", "Revealing your look…")}</span>
                     </div>
                   </>
+                ) : awaitingEmail ? (
+                  <button type="button" onClick={() => setGateOpen(true)} className="absolute inset-0 z-20 grid place-items-center bg-black/25">
+                    <span className="flex items-center gap-2 rounded-full bg-white/90 px-4 py-2.5 text-[13px] font-black text-black shadow-lg"><Play className="h-4 w-4 fill-black text-black" /> {L("Apasă ca s-o vezi", "Tap to watch")}</span>
+                  </button>
                 ) : (
                   <span className="pointer-events-none absolute left-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black"><Check className="h-3.5 w-3.5" /> Free</span>
                 )}
@@ -1438,10 +1450,14 @@ export default function TryFunnelPage() {
       )}
 
       {gateOpen && (
-        <FeedGate mode="auth" reason="Register or sign in to watch your video" lookId={lookId} lookName={look?.name}
+        <FeedGate mode="auth" emailOnly
+          reason={L(chosenModelName ? `Vezi-o pe ${chosenModelName.split(/\s+/)[0]} — pune emailul` : "Pune emailul ca s-o vezi",
+                    chosenModelName ? `Enter your email to watch ${chosenModelName.split(/\s+/)[0]}` : "Enter your email to watch")}
+          lookId={lookId} lookName={look?.name}
           advanceOnSignup
           onClose={() => setGateOpen(false)} onAuthed={() => {
             setGateOpen(false);
+            setAwaitingEmail(false); // email captured → run the reveal now
             try { sessionStorage.removeItem("lb_tryon_resume"); } catch { /**/ } // resumed in-place, don't re-fire on reload
             // Signed in to WATCH → play the video RIGHT HERE (it unblurs now) and save it to
             // their gallery in the background. Do NOT navigate away (that dropped users on the

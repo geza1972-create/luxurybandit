@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Loader2, Heart, MessageSquare } from "lucide-react";
+import { X, Loader2, Heart, MessageSquare, Play } from "lucide-react";
 import { signInWithPassword, signUpWithPassword, signInWithOAuth } from "@/lib/supabase-auth-client";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 
@@ -18,6 +18,7 @@ export function FeedGate({
   onClose,
   onAuthed,
   advanceOnSignup,
+  emailOnly,
 }: {
   mode: "auth" | "feedback";
   reason?: string;
@@ -25,6 +26,9 @@ export function FeedGate({
   lookName?: string;
   onClose: () => void;
   onAuthed?: () => void;
+  // Lowest-friction gate: JUST an email (newsletter opt-in) reveals the video — no name/password.
+  // Google stays as a 1-tap full account. Used by the try-on funnel to lift conversion.
+  emailOnly?: boolean;
   // When true, a fresh signup that still needs email confirmation ALSO proceeds
   // (calls onAuthed) instead of stopping at a "check your email" message. Used by the
   // Try-On funnel so the flow continues to the plans step after registering.
@@ -84,6 +88,25 @@ export function FeedGate({
     setBusy(false);
   };
 
+  // Lowest-friction: JUST an email → newsletter lead + reveal the video. No password, no account.
+  const submitEmailOnly = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (busy) return;
+    const mail = email.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { setErr("Bitte eine gültige E-Mail angeben."); return; }
+    setBusy(true); setErr("");
+    // Capture the newsletter lead (marketingConsent) → funnel + admin Users list.
+    void fetch("/api/try-this-look", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "lead", email: mail, customerName: mail.split("@")[0], lookId: lookId || "", lookName: lookName || "", leadSource: "tryon-newsletter", marketingConsent: true, visitorId: "anon" }),
+    }).catch(() => {});
+    try { localStorage.setItem("lb_lead_email", mail); } catch { /**/ } // remember → don't re-gate every video
+    window.dispatchEvent(new Event("luxurybandit-auth-updated"));
+    trackMetaPixel("Lead", { content_category: "tryon" });
+    onAuthed?.();
+    onClose();
+  };
+
   const submitFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
     const mail = email.trim();
@@ -139,6 +162,33 @@ export function FeedGate({
               </button>
             </form>
           )
+        ) : emailOnly ? (
+          /* Lowest-friction gate: email = newsletter opt-in → the blurred video unblurs. */
+          <form onSubmit={submitEmailOnly} className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-black text-white"><Play className="h-5 w-5" fill="currentColor" /></div>
+              <div>
+                <p className="text-lg font-black leading-tight text-black">{reason || "Enter your email to watch"}</p>
+                <p className="text-[13px] font-bold leading-tight text-black/45">The video plays right away — you'll join our newsletter (unsubscribe anytime).</p>
+              </div>
+            </div>
+            <button type="button" onClick={() => { try { sessionStorage.setItem("lb_oauth_return", window.location.pathname + window.location.search); } catch { /**/ } signInWithOAuth("google", `${window.location.origin}/auth/confirm`); }}
+              className="flex h-12 items-center justify-center gap-2.5 rounded-xl border border-black/12 bg-white text-sm font-black text-black active:scale-95 transition-transform">
+              <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+              Continue with Google
+            </button>
+            <div className="my-1 flex items-center gap-3">
+              <span className="h-px flex-1 bg-black/10" />
+              <span className="text-[11px] font-black uppercase tracking-wider text-black/30">or</span>
+              <span className="h-px flex-1 bg-black/10" />
+            </div>
+            <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" className={field} />
+            {err && <p className="rounded-lg bg-red-50 px-3 py-2 text-[12px] font-black text-red-600">{err}</p>}
+            <button type="submit" disabled={busy} className="flex h-12 items-center justify-center gap-2 rounded-full bg-black text-sm font-black text-white active:scale-95 transition-transform disabled:opacity-40">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Watch now <Play className="h-4 w-4" fill="currentColor" /></>}
+            </button>
+            <p className="text-center text-[11px] font-bold text-black/35">No password needed. We'll email you a link if you want a full account.</p>
+          </form>
         ) : (
           <form onSubmit={submitAuth} className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
