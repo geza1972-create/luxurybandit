@@ -26,6 +26,8 @@ const APPLY = process.argv.includes("--apply");
 // damit du die Qualität in QuickTime prüfen kannst, BEVOR du --apply ausführst.
 const SAMPLES = process.argv.includes("--samples");
 const LIMIT = (() => { const i = process.argv.indexOf("--limit"); return i >= 0 ? Number(process.argv[i + 1]) : Infinity; })();
+// --only <text> : nur Videos, deren Pfad diesen Text enthält (z.B. --only gina zum Einzel-Test).
+const ONLY = (() => { const i = process.argv.indexOf("--only"); return i >= 0 ? String(process.argv[i + 1] || "").toLowerCase() : ""; })();
 
 function loadEnv() {
   const text = readFileSync(resolve(process.cwd(), ".env.local"), "utf8");
@@ -101,7 +103,10 @@ async function main() {
   }
 
   const allPaths = collectVideoPaths(stateText);
-  const todo = allPaths.filter((p) => !/-c\.(mp4|webm|mov)$/i.test(p)).slice(0, LIMIT);
+  const todo = allPaths
+    .filter((p) => !/-c\.(mp4|webm|mov)$/i.test(p))
+    .filter((p) => !ONLY || p.toLowerCase().includes(ONLY))
+    .slice(0, LIMIT);
   console.log(`📦 Videos im State: ${allPaths.length}, davon noch nicht komprimiert: ${todo.length}${LIMIT !== Infinity ? ` (auf ${LIMIT} begrenzt)` : ""}\n`);
 
   let ok = 0, failed = 0, before = 0, after = 0;
