@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Sparkles, ArrowLeft, ArrowRight, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2, Crown, Volume2, VolumeX } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, ArrowRight, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2, Crown, Volume2, VolumeX, BadgeCheck, AlertTriangle } from "lucide-react";
 import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
@@ -177,6 +177,8 @@ export default function TryFunnelPage() {
   const [revealSharp, setRevealSharp] = useState(false);
   const [awaitingEmail, setAwaitingEmail] = useState(false); // cached video shown BLURRED behind the email gate
   const [hasLead, setHasLead] = useState(false); // gave their email (newsletter) → treated as "in", don't nag to register
+  const [mounted, setMounted] = useState(false); // gate localStorage/session-reading UI to client-only (no hydration mismatch)
+  useEffect(() => { setMounted(true); }, []);
   const [previewPoster, setPreviewPoster] = useState("");
   const revealVideoRef = useRef<HTMLVideoElement>(null);
   // Background music (the clips have no audio) + a sound toggle; tap the video to pause it.
@@ -791,6 +793,24 @@ export default function TryFunnelPage() {
             className="grid h-9 w-9 place-items-center rounded-full bg-white/10 active:opacity-70">
             <ArrowLeft className="h-4 w-4" />
           </button>
+          {/* Account chip — shows the email you're "in" with + whether it's a verified account
+              (Google/full login = ✓) or just a newsletter email (⚠️ tap to create a full account). */}
+          {mounted && (() => {
+            const s = (() => { try { return getStoredAuthSession(); } catch { return null; } })();
+            const sessEmail = s?.user?.email as string | undefined;
+            const sessVerified = !!(s?.user as { email_confirmed_at?: string; confirmed_at?: string } | undefined)?.email_confirmed_at || !!(s?.user as { confirmed_at?: string } | undefined)?.confirmed_at;
+            const leadEmail = (() => { try { return localStorage.getItem("lb_lead_email") || ""; } catch { return ""; } })();
+            const email = sessEmail || leadEmail;
+            if (!email) return null;
+            const isVerified = !!sessEmail && sessVerified;
+            return (
+              <button type="button" onClick={() => { if (!isVerified) onUnlock(); }} title={isVerified ? "Verified account" : "Not verified — tap to create a full account"}
+                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black ring-1 active:scale-95 transition ${isVerified ? "bg-emerald-500/15 text-emerald-300 ring-emerald-400/25" : "bg-amber-400/15 text-amber-300 ring-amber-400/30"}`}>
+                {isVerified ? <BadgeCheck className="h-3.5 w-3.5 shrink-0" /> : <AlertTriangle className="h-3.5 w-3.5 shrink-0" />}
+                <span className="max-w-[110px] truncate">{email}</span>
+              </button>
+            );
+          })()}
           {/* Language switcher — default EN, toggle RO. */}
           <div className="ml-auto flex items-center rounded-full bg-white/[0.07] p-0.5 ring-1 ring-white/10">
             {(["en", "ro"] as const).map((l) => (
