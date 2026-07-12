@@ -1193,6 +1193,25 @@ export async function POST(request: Request) {
         createdAt: now
       });
 
+      // Welcome / newsletter email (design + the look) — ONCE per email, fire-and-forget so it
+      // never blocks the reveal. Sends only for a marketing opt-in with a valid address.
+      const alreadyWelcomed = !!email && state.leads.slice(1).some(l => (l.email ?? "").toLowerCase() === email.toLowerCase() && (l as { welcomeSent?: boolean }).welcomeSent);
+      if (email && Boolean(payload.marketingConsent) && !alreadyWelcomed && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        (state.leads[0] as { welcomeSent?: boolean }).welcomeSent = true;
+        const watched = (state.looks ?? []).find(l => l.id === lookId) || activeLook;
+        const hero = String((watched as { videoPosterUrl?: string }).videoPosterUrl || (watched as { frontImageUrl?: string }).frontImageUrl || (watched as { imageUrl?: string }).imageUrl || "");
+        const firstName = (customerName || email.split("@")[0]).split(/\s+/)[0];
+        const html = `<div style="margin:0;padding:0;background:#0d0b0a;font-family:Arial,Helvetica,sans-serif;"><div style="max-width:480px;margin:0 auto;background:#0d0b0a;color:#fff;overflow:hidden;">`
+          + `<div style="padding:22px 24px;text-align:center;"><span style="font-size:20px;font-weight:900;letter-spacing:2px;color:#e7c877;">LUXURYBANDIT</span></div>`
+          + (hero ? `<img src="${hero}" alt="" width="480" style="width:100%;max-width:480px;display:block;" />` : "")
+          + `<div style="padding:26px 24px;text-align:center;"><h1 style="margin:0 0 8px;font-size:24px;font-weight:900;color:#fff;">${firstName ? `Welcome, ${firstName}` : "Welcome"} 💛</h1>`
+          + `<p style="margin:0 0 18px;font-size:15px;line-height:1.55;color:#cdc7be;">You're in. Every day we drop <b style="color:#e7c877;">new luxury looks</b> — worn by your models in runway-quality videos. Try them on, watch them, shop them.</p>`
+          + `<a href="https://luxurybandit.com/home" style="display:inline-block;background:#e7c877;color:#000;text-decoration:none;font-weight:900;font-size:15px;padding:14px 32px;border-radius:999px;">See today's looks &rarr;</a></div>`
+          + `<div style="padding:18px 24px;text-align:center;border-top:1px solid #26221c;"><p style="margin:0;font-size:11px;color:#7a746a;">You get this because you watched a look on LuxuryBandit. Reply "stop" to unsubscribe.</p></div>`
+          + `</div></div>`;
+        import("@/lib/email-send").then(({ sendEmail }) => sendEmail({ to: email, subject: "Welcome to LuxuryBandit 💛 New looks every day", html })).catch(() => {});
+      }
+
       state.events.unshift({
         id: `${Date.now()}-${crypto.randomUUID()}`,
         name: "lead_submitted",

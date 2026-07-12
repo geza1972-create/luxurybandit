@@ -176,6 +176,7 @@ export default function TryFunnelPage() {
   const [revealing, setRevealing] = useState(false);
   const [revealSharp, setRevealSharp] = useState(false);
   const [awaitingEmail, setAwaitingEmail] = useState(false); // cached video shown BLURRED behind the email gate
+  const [hasLead, setHasLead] = useState(false); // gave their email (newsletter) → treated as "in", don't nag to register
   const [previewPoster, setPreviewPoster] = useState("");
   const revealVideoRef = useRef<HTMLVideoElement>(null);
   // Background music (the clips have no audio) + a sound toggle; tap the video to pause it.
@@ -256,6 +257,7 @@ export default function TryFunnelPage() {
     // Admin "view as her" preview: PIN ignored so the funnel behaves exactly like
     // for the model herself (photo path, no admin panels).
     try { setAdminPin(localStorage.getItem("lb_preview_model") ? "" : (localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "")); } catch { /**/ }
+    try { if (localStorage.getItem("lb_lead_email")) setHasLead(true); } catch { /**/ } // already gave email
   }, []);
 
   // Landing event for the ad funnel — fires once when someone opens /try (e.g. from the
@@ -1164,26 +1166,43 @@ export default function TryFunnelPage() {
           </div>
           {!rendering && !revealing && (
             <>
-              <h1 className="mt-6 text-center text-[22px] font-black leading-tight">{guest ? L("Vrei să vezi mai mult? 🔥", "Want to see more? 🔥") : L("Videoul tău e gata 🎉", "Your video is ready 🎉")}</h1>
-              <p className="mt-2 text-center text-[13px] font-bold text-white/50">{guest ? L("Autentifică-te gratis pentru sunet, salvare și mai multe ținute.", "Sign in free to unlock sound, save it, and watch more looks.") : previewVideoUrl ? L("E gratis — apasă 🔊 pentru sunet. Salvat în contul tău.", "It's free — tap 🔊 for sound. Saved to your account.") : L("Vezi-l și descarcă-l la calitate maximă.", "Watch and download it in full quality.")}</p>
+              <h1 className="mt-6 text-center text-[22px] font-black leading-tight">{!guest ? L("Videoul tău e gata 🎉", "Your video is ready 🎉") : hasLead ? L("Ești înăuntru! 💛", "You're in! 💛") : L("Vrei să vezi mai mult? 🔥", "Want to see more? 🔥")}</h1>
+              <p className="mt-2 text-center text-[13px] font-bold text-white/50">{!guest ? (previewVideoUrl ? L("E gratis — apasă 🔊 pentru sunet.", "It's free — tap 🔊 for sound.") : L("Vezi-l și descarcă-l la calitate maximă.", "Watch and download it in full quality.")) : hasLead ? L("Îți trimitem look-uri noi în fiecare zi pe email. Apasă 🔊 pentru sunet.", "New looks land in your inbox every day. Tap 🔊 for sound.") : L("Autentifică-te gratis pentru sunet, salvare și mai multe ținute.", "Sign in free to unlock sound, save it, and watch more looks.")}</p>
               {/* Motion was chosen before generating — no picker on the ready step. */}
               {adminPromptPanel}
               {/* CTA — inline right under the video (NOT sticky). */}
               <div className="mx-auto mt-5 w-full max-w-sm">
                 {previewVideoUrl && previewGenId ? (
                   guest ? (
-                    <div className="grid gap-2">
-                      <button type="button" onClick={onUnlock}
-                        className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                        <Sparkles className="h-5 w-5" /> {L("Vrei mai mult? Autentifică-te", "Want to see more? Sign in")}
-                      </button>
-                      {chosenModelId && (
-                        <button type="button" onClick={() => router.push(`/mai-ieftin?model=${encodeURIComponent(chosenModelId)}&lang=${lang}`)}
-                          className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
-                          <MessageCircle className="h-4 w-4" /> {L("Vorbește cu", "Chat with")} {chosenModelName ? chosenModelName.split(/\s+/)[0] : L("ea", "her")}
+                    hasLead ? (
+                      /* Already gave their email → they're "in". Don't push registration; keep them
+                         engaged (chat / more looks). Full account is a soft, optional secondary. */
+                      <div className="grid gap-2">
+                        {chosenModelId && (
+                          <button type="button" onClick={() => router.push(`/mai-ieftin?model=${encodeURIComponent(chosenModelId)}&lang=${lang}`)}
+                            className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
+                            <MessageCircle className="h-5 w-5" /> {L("Vorbește cu", "Chat with")} {chosenModelName ? chosenModelName.split(/\s+/)[0] : L("ea", "her")}
+                          </button>
+                        )}
+                        <button type="button" onClick={onUnlock}
+                          className="flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 text-[12px] font-black text-[#e7c877] active:scale-95 transition">
+                          {L("Salvează-ți look-urile — cont gratuit", "Save your looks — free account")}
                         </button>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="grid gap-2">
+                        <button type="button" onClick={onUnlock}
+                          className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
+                          <Sparkles className="h-5 w-5" /> {L("Vrei mai mult? Autentifică-te", "Want to see more? Sign in")}
+                        </button>
+                        {chosenModelId && (
+                          <button type="button" onClick={() => router.push(`/mai-ieftin?model=${encodeURIComponent(chosenModelId)}&lang=${lang}`)}
+                            className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
+                            <MessageCircle className="h-4 w-4" /> {L("Vorbește cu", "Chat with")} {chosenModelName ? chosenModelName.split(/\s+/)[0] : L("ea", "her")}
+                          </button>
+                        )}
+                      </div>
+                    )
                   ) : (
                     <div className="grid gap-2">
                       <button type="button" onClick={async () => goToResult(await claimCachedTryOn())}
@@ -1481,6 +1500,7 @@ export default function TryFunnelPage() {
           onClose={() => setGateOpen(false)} onAuthed={() => {
             setGateOpen(false);
             setAwaitingEmail(false); // email captured → run the reveal now
+            setHasLead(true); // they're "in" now → don't nag them to register right after
             try { sessionStorage.removeItem("lb_tryon_resume"); } catch { /**/ } // resumed in-place, don't re-fire on reload
             // Signed in to WATCH → play the video RIGHT HERE (it unblurs now) and save it to
             // their gallery in the background. Do NOT navigate away (that dropped users on the
