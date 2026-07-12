@@ -9,6 +9,13 @@ import {
 import { setCuratorCredits, grantCredits, awardEngagementCredits, getCuratorCredits, STARTER_CREDITS, TRYON_CREDITS, SEARCH_CREDITS, VIDEO_CREDITS } from "@/lib/curator-budget";
 import { notifyAdminWhatsApp, ADMIN_URL } from "@/lib/notify-admin";
 import { isAdminRequest } from "@/lib/admin-auth";
+import crypto from "crypto";
+
+// One-click consent token (matches /api/curator-confirm) — only the person who got the email can confirm.
+function consentToken(email: string): string {
+  const secret = process.env.TRY_THIS_LOOK_ADMIN_PIN || "luxurybandit";
+  return crypto.createHmac("sha256", secret).update(email.trim().toLowerCase()).digest("hex").slice(0, 24);
+}
 
 // The self-service onboarding email (steps to complete a model profile) — sent AUTOMATICALLY on
 // apply, and re-sendable from the admin for anyone who applied before this template / missed it.
@@ -17,6 +24,7 @@ function modelOnboardingEmail(email: string, firstName?: string) {
   const site = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://luxurybandit.com";
   const profileUrl = `${site}/curators/profile`;
   const rulesUrl = `${site}/model-rules`;
+  const confirmUrl = `${site}/api/curator-confirm?e=${encodeURIComponent(email)}&t=${consentToken(email)}`;
   return {
     subject: "Complete your LuxuryBandit Model profile 💛",
     html: `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;color:#111">
@@ -33,8 +41,13 @@ function modelOnboardingEmail(email: string, firstName?: string) {
     <p style="margin:0 0 6px;font-size:14px"><b>💰 How you earn:</b> you get credits when users create videos with you — that happens on <b>paid Premium accounts</b>. The more users pick <b>you</b>, the more you earn.</p>
     <p style="margin:0;font-size:14px"><b>⚠️ We review every profile.</b> Photos that are <b>blurry</b>, hide your face (hat/sunglasses), or don’t fit our <b>luxury concept</b> can be <b>rejected</b>. Please use clear, well-lit, high-quality photos.</p>
   </div>
-  <p style="text-align:center;margin:24px 0"><a href="${profileUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;font-weight:800;padding:14px 28px;border-radius:999px">Complete my profile →</a></p>
-  <p style="font-size:13px;color:#666">Once everything is complete and verified, we’ll approve you and you can start earning.</p>
+  <div style="background:#2a2320;border:1px solid #4a3f33;border-radius:12px;padding:16px;margin:18px 0;color:#f0e9dc">
+    <p style="margin:0 0 8px;font-size:14px;font-weight:800;color:#e7c877">Please confirm — required to activate your profile:</p>
+    <p style="margin:0 0 12px;font-size:14px;line-height:1.55">LuxuryBandit is an <b>18+ platform</b>. By joining, you agree that users can view you wearing <b>lingerie</b> in AI try-on videos. Your profile stays <b>paused</b> until you confirm below <b>and</b> your photos are approved.</p>
+    <p style="text-align:center;margin:0"><a href="${confirmUrl}" style="display:inline-block;background:#e7c877;color:#000;text-decoration:none;font-weight:800;padding:13px 26px;border-radius:999px">I’m 18+ &amp; I agree — confirm ✓</a></p>
+  </div>
+  <p style="text-align:center;margin:18px 0"><a href="${profileUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;font-weight:800;padding:13px 26px;border-radius:999px">Complete my profile →</a></p>
+  <p style="font-size:13px;color:#666">Once you’ve confirmed and your photos are approved, we activate your profile and you can start earning.</p>
   <p>Talk soon,<br/>The LuxuryBandit Team</p>
 </div>`,
   };
