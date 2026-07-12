@@ -1422,6 +1422,7 @@ export async function POST(request: Request) {
         id: `${Date.now()}-${crypto.randomUUID().slice(0, 6)}`,
         lookId: String((payload as any).lookId ?? ""),
         lookName: String((payload as any).title ?? "").trim() || "In motion",
+        motion: (payload as any).motion === "dance" ? "dance" : "turn", // reuse-cache key (model×look×motion)
         curatorId,
         customerName: [cur.firstName, cur.lastName].filter(Boolean).join(" "),
         videoUrl,

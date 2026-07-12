@@ -330,6 +330,7 @@ export default function CuratorPublicPage() {
   // "In motion" video for this model. Direct-to-Supabase (signed URL, no 4.5MB limit),
   // first frame becomes the poster. Defaults to Fashionshow (members + her profile).
   const vidFileRef = useRef<HTMLInputElement>(null);
+  const [uploadLookId, setUploadLookId] = useState(""); // garment to attach to the next uploaded video
   const [vidBusy, setVidBusy] = useState(false);
   const firstFrameDataUrl = (file: File): Promise<string> => new Promise((resolve) => {
     try {
@@ -364,11 +365,15 @@ export default function CuratorPublicPage() {
       if (!put.ok) throw new Error("Upload zu Supabase fehlgeschlagen");
       const att = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ importVideo: true, videoPath: sig.path }) }).then(r => r.json());
       if (!att.videoUrl) throw new Error(att.error || "Signieren fehlgeschlagen");
-      const add = await fetch("/api/try-this-look", { method: "POST", headers: H, body: JSON.stringify({ action: "add-model-video", curatorId: id, videoUrl: att.videoUrl, ...(posterImage ? { posterImage } : {}) }) }).then(r => r.json());
+      // If a garment was picked, attach it so this video IS her wearing that piece (reuse cache
+      // model×look×turn → served instantly on that garment's try-on, no regeneration).
+      const look = allLooks.find(l => l.id === uploadLookId);
+      const add = await fetch("/api/try-this-look", { method: "POST", headers: H, body: JSON.stringify({ action: "add-model-video", curatorId: id, videoUrl: att.videoUrl, ...(uploadLookId ? { lookId: uploadLookId, title: look?.name || "", motion: "turn" } : {}), ...(posterImage ? { posterImage } : {}) }) }).then(r => r.json());
       if (!add.ok) throw new Error(add.error || "Video konnte nicht gespeichert werden");
+      setUploadLookId("");
       // Refresh her videos so it shows up immediately.
       await reloadTryons();
-      alert("Video hochgeladen ✓ — es ist jetzt in ihrem Profil (Play-Button am Foto).");
+      alert(look ? `Video hochgeladen ✓ — verknüpft mit „${look.name}".` : "Video hochgeladen ✓ — es ist jetzt in ihrem Profil (Play-Button am Foto).");
     } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Hochladen"); }
     finally { setVidBusy(false); }
   };
@@ -917,6 +922,14 @@ export default function CuratorPublicPage() {
             and "view as her" — a true preview of what SHE sees after signing in. */}
         {isAdmin && (
           <>
+            {/* Pick which garment the uploaded video shows → the video attaches to that look. */}
+            <select value={uploadLookId} onChange={e => setUploadLookId(e.target.value)}
+              className="mt-2 w-full max-w-sm rounded-xl border border-white/15 bg-[#111] px-3 py-2 text-[12px] font-black text-white outline-none">
+              <option value="">Kleidungsstück fürs Video wählen (optional)…</option>
+              {allLooks.filter(l => (l.productType === "ai" || (l as any).wardrobe === true) && ((l as any).frontImageUrl || l.imageUrl)).map(l => (
+                <option key={l.id} value={l.id}>{l.name || "Look"}</option>
+              ))}
+            </select>
             <div className="mt-2 flex items-center gap-2">
               <button type="button" onClick={() => vidFileRef.current?.click()} disabled={vidBusy}
                 className="flex items-center justify-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-[11px] font-black text-white active:scale-95 transition disabled:opacity-50">
