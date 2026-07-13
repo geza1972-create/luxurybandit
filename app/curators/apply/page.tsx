@@ -461,7 +461,7 @@ export default function CuratorApplyPage() {
                   </div>
                 ) : imageSource === "ours" ? (
                   <div className="grid h-48 w-36 place-items-center rounded-2xl border-2 border-dashed border-slate-400 bg-black/[0.03] px-3 text-center text-[12px] font-bold text-slate-600">Pick a face above ↑</div>
-                ) : slot(combined[0], "h-36 w-36", true)}
+                ) : slot(combined[0], "h-48 w-36", true)}
               </div>
             );
           })()}
@@ -568,7 +568,7 @@ export default function CuratorApplyPage() {
       </div>
 
       {cropSrc && (
-        <PhotoCropper src={cropSrc} onCancel={() => setCropSrc("")}
+        <PhotoCropper src={cropSrc} aspect="portrait" onCancel={() => setCropSrc("")}
           onDone={(dataUrl) => { setPhoto(dataUrl); setPhotoFull(cropSrc); setCropSrc(""); }} />
       )}
       {bodyCropSrc && (
@@ -576,7 +576,7 @@ export default function CuratorApplyPage() {
           onDone={(dataUrl) => { setBodyPhotos([dataUrl]); setBodyCropSrc(""); }} />
       )}
       {profileCropSrc && (
-        <PhotoCropper src={profileCropSrc} onCancel={() => setProfileCropSrc("")}
+        <PhotoCropper src={profileCropSrc} aspect="portrait" onCancel={() => setProfileCropSrc("")}
           onDone={(dataUrl) => { setProfilePhotos(prev => [...prev, dataUrl].slice(0, 4)); setProfileCropSrc(""); }} />
       )}
 
