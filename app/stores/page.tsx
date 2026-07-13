@@ -20,6 +20,7 @@ import { publicLookLabel } from "@/lib/look-title";
 import { publicAuthorName } from "@/lib/display-name";
 import { safeLookImage } from "@/lib/look-image";
 import { Bookmark, Crop, Crown, Download, Eye, EyeOff, Heart, Home, Image as ImageIcon, ImageUp, Info, Instagram, LayoutGrid, Loader2, Lock, LogOut, Menu, MessageCircle, Play, Search, Send, ShoppingBag, SlidersHorizontal, Sparkles, Trash2, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
+import TopNav from "@/components/TopNav";
 import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -2617,93 +2618,59 @@ function StoresPage() {
   return (
     <div className="min-h-dvh bg-[#0d0b0a] text-white" style={{ maxWidth: "100vw" }}>
 
-      {/* ── Header ── */}
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0d0b0a]/95 backdrop-blur">
-
-        {/* Brand row */}
-        <div className="flex items-center justify-between px-4 pt-2.5 pb-1.5">
-          {/* Logo → the homepage (root = the "Own an AI Influencer" landing). */}
-          <button type="button" onClick={() => router.push("/")} aria-label="Home"
-            className="flex items-center gap-2 active:opacity-70 transition-opacity">
-            <div className="relative h-9 w-9 shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/lb-logo.png" alt="LuxuryBandit" className="h-9 w-9 rounded-full object-contain"
-                onError={(e) => { e.currentTarget.style.display = "none"; const f = e.currentTarget.nextElementSibling as HTMLElement | null; if (f) f.style.display = "flex"; }} />
-              {/* Fallback until /lb-logo.png is added */}
-              <div style={{ display: "none" }} className="absolute inset-0 items-center justify-center rounded-full bg-black text-white text-xs font-black tracking-tight select-none">LB</div>
-            </div>
-            <div className="text-left">
-              <div className="text-sm font-black uppercase tracking-widest text-white leading-none">LuxuryBandit</div>
-              <div className="text-[10px] font-black uppercase tracking-[0.14em] text-[#c9a23f]/80 mt-0.5 leading-tight">Bandit the look</div>
-            </div>
+      {/* ── Shared top bar + page-specific search row ── */}
+      <TopNav actions={
+        <>
+          {/* Search toggle */}
+          <button type="button"
+            onClick={() => { setSearchOpen(v => !v); if (!searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50); else setQuery(""); }}
+            className={`flex h-9 w-9 items-center justify-center rounded-full border transition ${
+              searchOpen ? "border-white bg-white text-black" : "border-white/15 bg-white/5 text-white/60 hover:text-white"
+            }`}
+            aria-label="Suche">
+            <Search className="h-4 w-4" />
           </button>
+          {/* Share the current view (URL already reflects ?view=models etc.) */}
+          <button type="button"
+            onClick={() => {
+              const url = window.location.href;
+              if (typeof navigator !== "undefined" && navigator.share) { navigator.share({ title: "LuxuryBandit", url }).catch(() => {}); }
+              else { navigator.clipboard?.writeText(url).then(() => { setShareCopied(true); setTimeout(() => setShareCopied(false), 1600); }).catch(() => {}); }
+            }}
+            className={`flex h-9 w-9 items-center justify-center rounded-full border transition ${shareCopied ? "border-emerald-400 bg-emerald-400 text-black" : "border-white/15 bg-white/5 text-white/60 hover:text-white"}`}
+            aria-label="Share">
+            <Send className="h-4 w-4" />
+          </button>
+          <a href={`https://instagram.com/${process.env.NEXT_PUBLIC_INSTAGRAM_HANDLE ?? "luxurybandit"}`} target="_blank" rel="noopener noreferrer"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/60 hover:text-white transition"
+            aria-label="Instagram">
+            <Instagram className="h-4 w-4" />
+          </a>
+        </>
+      } />
 
-          {/* Right icons */}
-          <div className="flex items-center gap-2">
-            {/* Search toggle */}
-            <button type="button"
-              onClick={() => { setSearchOpen(v => !v); if (!searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50); else setQuery(""); }}
-              className={`flex h-9 w-9 items-center justify-center rounded-full border transition ${
-                searchOpen ? "border-white bg-white text-black" : "border-white/15 bg-white/5 text-white/60 hover:text-white"
-              }`}
-              aria-label="Suche">
-              <Search className="h-4 w-4" />
-            </button>
-
-            {/* Share the current view (URL already reflects ?view=models etc.) */}
-            <button type="button"
-              onClick={() => {
-                const url = window.location.href;
-                if (typeof navigator !== "undefined" && navigator.share) { navigator.share({ title: "LuxuryBandit", url }).catch(() => {}); }
-                else { navigator.clipboard?.writeText(url).then(() => { setShareCopied(true); setTimeout(() => setShareCopied(false), 1600); }).catch(() => {}); }
-              }}
-              className={`flex h-9 w-9 items-center justify-center rounded-full border transition ${shareCopied ? "border-emerald-400 bg-emerald-400 text-black" : "border-white/15 bg-white/5 text-white/60 hover:text-white"}`}
-              aria-label="Share">
-              <Send className="h-4 w-4" />
-            </button>
-
-            <a href={`https://instagram.com/${process.env.NEXT_PUBLIC_INSTAGRAM_HANDLE ?? "luxurybandit"}`} target="_blank" rel="noopener noreferrer"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/60 hover:text-white transition"
-              aria-label="Instagram">
-              <Instagram className="h-4 w-4" />
-            </a>
-
-            {/* Menu — opens the app menu sheet (Home, account, saved, Găsește-l mai
-                ieftin, admin, sign out) via the shared event the bottom nav listens for. */}
-            <button type="button" onClick={() => { try { window.dispatchEvent(new Event("lb-open-account")); } catch { /**/ } }}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/60 hover:text-white transition"
-              aria-label="Menu">
-              <Menu className="h-4 w-4" />
-            </button>
+      {/* Collapsible search row (page-specific, sits under the shared bar) */}
+      {searchOpen && (
+        <div className="sticky top-14 z-20 flex items-center gap-2 border-b border-white/10 bg-[#0d0b0a]/95 px-3 py-3 backdrop-blur">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/30 pointer-events-none" />
+            <input
+              ref={searchInputRef}
+              type="search"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder={typeFilter === "community" ? "User, Look oder Store…" : "Look, Store oder Preis…"}
+              className="h-9 w-full rounded-full border border-white/15 bg-white/5 pl-8 pr-8 text-sm font-bold text-white outline-none focus:border-white/40 placeholder:text-white/25"
+            />
+            {query && (
+              <button type="button" onClick={() => setQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 grid h-5 w-5 place-items-center rounded-full bg-white/15 text-white/60 active:opacity-70">
+                <X className="h-3 w-3" />
+              </button>
+            )}
           </div>
         </div>
-
-        {/* Collapsible search row */}
-        {searchOpen && (
-          <div className="flex items-center gap-2 px-3 pb-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/30 pointer-events-none" />
-              <input
-                ref={searchInputRef}
-                type="search"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder={typeFilter === "community" ? "User, Look oder Store…" : "Look, Store oder Preis…"}
-                className="h-9 w-full rounded-full border border-white/15 bg-white/5 pl-8 pr-8 text-sm font-bold text-white outline-none focus:border-white/40 placeholder:text-white/25"
-              />
-              {query && (
-                <button type="button" onClick={() => setQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 grid h-5 w-5 place-items-center rounded-full bg-white/15 text-white/60 active:opacity-70">
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Stats row */}
-        {/* Stats bar (Models/Looks/Try-ons) removed — no need to expose our counts. */}
-      </header>
+      )}
 
       <main className="pb-24">
 
