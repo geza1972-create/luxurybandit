@@ -97,7 +97,7 @@ export default function InsightsPro({
       { label: "Applied", n: countOf("apply_submit") },
     ];
 
-    // Chat funnel (/mai-ieftin) — the target of the "…Chat" ads.
+    // Chat funnel (/luxury-products) — the target of the "…Chat" ads.
     const chatFunnel = [
       { label: "Opened the chat", n: countOf("miai_open") },
       { label: "Started chatting", n: countOf("miai_chat") },
@@ -271,7 +271,7 @@ export default function InsightsPro({
         </div>
       </div>
 
-      {/* Chat funnel (/mai-ieftin) — where the "…Chat" ads land */}
+      {/* Chat funnel (/luxury-products) — where the "…Chat" ads land */}
       <div className={card}>
         <p className="flex items-center gap-1.5 text-sm font-black text-ink"><Users className="h-4 w-4 text-ink/40" /> Chat funnel (mai-ieftin)</p>
         <p className="mt-0.5 text-[11px] font-bold text-ink/40">Where the “…Chat” ads land: opened the chat → chatted → saw products → tapped one.</p>

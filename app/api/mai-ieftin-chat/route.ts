@@ -396,7 +396,7 @@ export async function POST(request: Request) {
     const ownProducts = await ownProductsFor("rochie eleganta de seara evening gown dress");
     return NextResponse.json({ ownProducts: ownProducts.slice(0, 3) });
   }
-  // Data for the /haine clothes-&-products gallery: our garment looks (fresh URLs) + Bellucci
+  // Data for the /clothes clothes-&-products gallery: our garment looks (fresh URLs) + Bellucci
   // (CJ affiliate). NO Anthropic/SerpApi cost — cjSearch is cached & CJ-only.
   if ((body as { demoProducts?: string }).demoProducts === "haine") {
     const [ownProducts, bellucci] = await Promise.all([

@@ -2779,7 +2779,7 @@ function StoresPage() {
                   </button>
                 </div>
                 {/* Secondary — fans who just want to shop go to the price-finder. */}
-                <button type="button" onClick={() => router.push(`/mai-ieftin?lang=${heroLang}&demo=1`)}
+                <button type="button" onClick={() => router.push(`/luxury-products?lang=${heroLang}&demo=1`)}
                   className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-black text-white/55 underline decoration-white/25 underline-offset-4 active:opacity-70 transition">
                   <Search className="h-3.5 w-3.5" /> {HERO[heroLang].becomeModel}
                 </button>

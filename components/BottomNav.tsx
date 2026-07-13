@@ -160,7 +160,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
     pathname.includes("/tryon") || // focused try-on funnel — no bottom nav (it cut off content)
     pathname.includes("/try/") ||  // new Try-On funnel (also /admin/try/*) — full-screen, no bottom nav
     pathname.includes("/chat/") || // dedicated chat page — full-screen, no bottom nav
-    pathname.includes("/mai-ieftin") // Dupe-style funnel — its own top hamburger menu
+    pathname.includes("/luxury-products") // Dupe-style funnel — its own top hamburger menu
   );
 
   const go = (tab: Tab, href: string) => {
@@ -297,21 +297,21 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <ImageIcon className="h-5 w-5 shrink-0 text-white/50" />
                 <span className="text-sm font-black text-white">Looks - Gallery</span>
               </button>
-              <button type="button" onClick={() => navigate("/haine")}
+              <button type="button" onClick={() => navigate("/clothes")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <Shirt className="h-5 w-5 shrink-0 text-[#b8912f]" />
-                <span className="text-sm font-black text-white">Haine</span>
+                <span className="text-sm font-black text-white">Clothes</span>
               </button>
               <button type="button" onClick={() => navigate("/stores?view=models")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <User className="h-5 w-5 shrink-0 text-white/50" />
-                <span className="text-sm font-black text-white">Modele</span>
+                <span className="text-sm font-black text-white">Models</span>
               </button>
               {/* Găsește-l mai ieftin — the Dupe-style price-finder funnel (everyone). */}
-              <button type="button" onClick={() => navigate("/mai-ieftin")}
+              <button type="button" onClick={() => navigate("/luxury-products")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <Search className="h-5 w-5 shrink-0 text-[#b8912f]" />
-                <span className="text-sm font-black text-white">Produse Luxury</span>
+                <span className="text-sm font-black text-white">Luxury Products</span>
               </button>
               {/* Admin: jump straight to the admin dashboard (no need to type /admin). */}
               {(!!adminPin || isAdminEmail(displayEmail)) && (

@@ -186,7 +186,7 @@ function MaiIeftinInner() {
   const [gateSent, setGateSent] = useState(false);
   useEffect(() => { try { setSignedIn(!!getStoredAuthSession()); } catch { setSignedIn(false); } }, []);
   // ── Funnel tracking (this chat is the target of the "…Chat" ads) ──────────────
-  // Distinct miai_* events so Insights can finally measure chat-ad conversion — /mai-ieftin
+  // Distinct miai_* events so Insights can finally measure chat-ad conversion — /luxury-products
   // was previously untracked. Fired once per session via refs.
   const firedChat = useRef(false);
   const firedProducts = useRef(false);

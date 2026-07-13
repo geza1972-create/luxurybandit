@@ -1080,12 +1080,12 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 // Open HER price-finder chat (her photo + her looks), same as her profile.
                 // Falls back to a look reference if this video has no model attached.
                 const lg = (() => { try { return localStorage.getItem("lb_lang") === "en" ? "en" : "ro"; } catch { return "ro"; } })();
-                if (authorCuratorId) { router.push(`/mai-ieftin?model=${encodeURIComponent(authorCuratorId)}&lang=${lg}`); return; }
+                if (authorCuratorId) { router.push(`/luxury-products?model=${encodeURIComponent(authorCuratorId)}&lang=${lg}`); return; }
                 const L = look as { name?: string; frontImageUrl?: string; imageUrl?: string; videoPosterUrl?: string };
                 const m = media[active] as { poster?: string; url?: string; afterUrl?: string } | undefined;
                 const img = L.frontImageUrl || L.imageUrl || m?.poster || m?.afterUrl || m?.url || L.videoPosterUrl || "";
                 try { sessionStorage.setItem("lb_bandit_ref", JSON.stringify({ img, hint: L.name || "", kind: "product" })); } catch { /**/ }
-                router.push("/mai-ieftin");
+                router.push("/luxury-products");
               }}
               onPointerDown={(e) => e.stopPropagation()}
               className="flex items-center gap-2 whitespace-nowrap rounded-full border border-white/25 bg-black/45 px-6 py-2.5 text-sm font-black text-white backdrop-blur active:scale-95 transition">

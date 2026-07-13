@@ -14,6 +14,12 @@ const nextConfig = {
     // /admin/curators, …) keep priority; only /admin paths with no page of their own
     // fall through here and render the matching public page (URL stays /admin/…).
     return {
+      beforeFiles: [
+        // luxurybandit.com serves the "Own an AI Influencer" marketing landing at the
+        // root — URL stays clean (no /own-influencer in the address bar). The app itself
+        // still lives at /home, /stores, /clothes, /luxury-products, …
+        { source: "/", destination: "/own-influencer" },
+      ],
       afterFiles: [
         { source: "/admin/:path*", destination: "/:path*" },
       ],
@@ -22,17 +28,21 @@ const nextConfig = {
   async redirects() {
     return [
       {
-        // Home = the Fashionshow GRID overview (hero + tabs + 3-col grid), not the
-        // immersive reel. Tapping any tile still opens the full-screen reel.
-        source: "/",
-        destination: "/home",
-        permanent: false
-      },
-      {
         // Repositioned "become a model" → "own an AI influencer". Old ad links / shares
         // / OG all still resolve to the new landing.
         source: "/become-a-model",
         destination: "/own-influencer",
+        permanent: false
+      },
+      {
+        // Romanian route names retired → English. Old bookmarks/shares keep working.
+        source: "/haine",
+        destination: "/clothes",
+        permanent: false
+      },
+      {
+        source: "/mai-ieftin",
+        destination: "/luxury-products",
         permanent: false
       },
       {
