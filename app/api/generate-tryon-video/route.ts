@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readTryThisLookState, uploadTryThisLookBytes, getSignedUrl, createSignedUploadUrl, bumpDailyGenLimit, ensureWelcomeCredits, spendVideoCredit } from "@/lib/try-this-look-store";
+import { readTryThisLookState, uploadTryThisLookBytes, getSignedUrl, createSignedUploadUrl, bumpDailyGenLimit, spendVideoCredit } from "@/lib/try-this-look-store";
 import { chargeCredits, refundCredits, VIDEO_CREDITS } from "@/lib/curator-budget";
 import { authorizeStudio } from "@/lib/studio-auth";
 import { isAdminRequest } from "@/lib/admin-auth";
@@ -308,9 +308,9 @@ export async function POST(request: Request) {
     });
   }
 
-  // MODELS generate their OWN videos: the FIRST one is free (a welcome credit), every
-  // additional new video costs $3.99 (a paid credit). Cached/reused videos never reach
-  // here — this is only the expensive new-generation path. Admin (PIN/session) passes free.
+  // MODELS/influencers pay for EVERY video they generate — $3.99 each, no free first one
+  // (we don't want freeloaders; a paying creator is a committed creator). Cached/reused videos
+  // never reach here — this is only the expensive new-generation path. Admin (PIN/session) free.
   const curatorHdr = request.headers.get("x-curator-id")?.trim();
   if (curatorHdr && !(await isAdminRequest(request))) {
     const st = await readTryThisLookState();
@@ -322,11 +322,10 @@ export async function POST(request: Request) {
         { status: 403 }
       );
     }
-    await ensureWelcomeCredits(modelEmail);       // first video free, exactly once
-    const balance = await spendVideoCredit(modelEmail); // spend the free or a paid credit
+    const balance = await spendVideoCredit(modelEmail); // spend a PAID credit (no free grant)
     if (balance === null) {
       return NextResponse.json(
-        { error: "Your first video was free — each new video is $3.99.", paymentRequired: true, priceCents: 399, priceLabel: "$3.99" },
+        { error: "Each video is $3.99.", paymentRequired: true, priceCents: 399, priceLabel: "$3.99" },
         { status: 402 }
       );
     }

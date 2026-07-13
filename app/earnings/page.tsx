@@ -68,7 +68,7 @@ export default function EarningsPage() {
           <ul className="mt-2 space-y-1.5">
             {[
               "The more fans pick you, the more you earn — there's no cap.",
-              "Your first video is free to make; each extra one costs you just $3.99.",
+              "Each video you make costs just $3.99 — serious creators pay their way, and it pays off.",
               "Earnings land in your account automatically — check them any time on your profile.",
             ].map((t, i) => (
               <li key={i} className="flex gap-2 text-[13px] font-bold leading-relaxed text-white/60">

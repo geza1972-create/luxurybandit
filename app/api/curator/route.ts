@@ -39,7 +39,7 @@ function modelOnboardingEmail(email: string, firstName?: string) {
   <p>Please also <b>read and accept our <a href="${rulesUrl}" style="color:#b8860b">model rules &amp; terms</a></b>.</p>
   <div style="background:#faf7f0;border:1px solid #eadfc6;border-radius:12px;padding:14px 16px;margin:16px 0">
     <p style="margin:0 0 6px;font-size:14px"><b>💰 How you earn:</b> you keep <b>30%</b> (~$1.20) every time a fan makes a paid video with you — it lands in your account automatically. The more fans pick <b>you</b>, the more you earn. <a href="${site}/earnings" style="color:#b8860b">See how earnings work →</a></p>
-    <p style="margin:0 0 6px;font-size:14px"><b>🎬 Your first video is free:</b> once you're approved you can turn one of your photos into a video for <b>free</b>. Every extra video after that is just <b>$3.99</b>.</p>
+    <p style="margin:0 0 6px;font-size:14px"><b>🎬 Turn your photos into videos:</b> once you're approved, each video you create is just <b>$3.99</b> — serious creators only, no freeloading.</p>
     <p style="margin:0;font-size:14px"><b>⚠️ We review every profile.</b> Photos that are <b>blurry</b>, hide your face (hat/sunglasses), or don’t fit our <b>luxury concept</b> can be <b>rejected</b>. Please use clear, well-lit, high-quality photos.</p>
   </div>
   <div style="background:#2a2320;border:1px solid #4a3f33;border-radius:12px;padding:16px;margin:18px 0;color:#f0e9dc">
