@@ -1208,14 +1208,21 @@ export default function TryFunnelPage() {
               <div className="mx-auto mt-5 w-full max-w-sm">
                 {previewVideoUrl && previewGenId ? (
                   guest ? (
-                    /* Post-reveal upsell: the money button is the self-insertion funnel —
-                       "You, in a video, in any look." (Chat / free-account were removed.) */
+                    /* CONCEPT 2.0 landing: the ad promises "chat with her" and the hook is
+                       "see yourself in the look". Deliver BOTH — face-swap ($3.99) as the money
+                       button + chat with her — under one value line ("a new model every day"). */
                     <div className="grid gap-2">
-                      <p className="mb-1 text-center text-[13px] font-bold text-white/60">{L("Vrei să te vezi pe TINE într-un video?", "Want to see YOURSELF in a video?")}</p>
+                      <p className="mb-1 text-center text-[12px] font-black text-[#e7c877]/90">{L("Un model nou în fiecare zi · Vezi-te pe tine · Vorbește cu ea", "A new model every day · See yourself in any look · Chat with her")}</p>
                       <button type="button" onClick={() => router.push(`/you-in-video?lang=${lang}`)}
                         className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                        <Sparkles className="h-5 w-5" /> {L("Tu, într-un video — orice look! 🎬", "You in a video — in any look! 🎬")}
+                        <Sparkles className="h-5 w-5" /> {L("Vezi-te pe TINE în video — $3.99 🎬", "See yourself in this video — $3.99 🎬")}
                       </button>
+                      {chosenModelId && (
+                        <button type="button" onClick={() => router.push(`/mai-ieftin?model=${encodeURIComponent(chosenModelId)}&lang=${lang}`)}
+                          className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
+                          <MessageCircle className="h-4 w-4" /> {L("Vorbește cu", "Chat with")} {chosenModelName ? chosenModelName.split(/\s+/)[0] : L("ea", "her")}
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <div className="grid gap-2">
