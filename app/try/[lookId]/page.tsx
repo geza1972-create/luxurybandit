@@ -273,7 +273,18 @@ export default function TryFunnelPage() {
   }, []);
 
   useEffect(() => {
-    fetch(`/api/try-this-look?previewId=${encodeURIComponent(lookId)}`).then(r => r.json()).then(d => setLook(d.look ?? null)).catch(() => {});
+    fetch(`/api/try-this-look?previewId=${encodeURIComponent(lookId)}`).then(r => r.json()).then(d => {
+      // NEVER dead-end the funnel: if this look has no try-on video to reveal, send real
+      // visitors to a look that DOES (admins stay — they produce the content). Keeps utm/lang.
+      try {
+        const staff = !!localStorage.getItem("luxurybandit-try-look-admin-pin") && !localStorage.getItem("lb_preview_model");
+        if (d?.look && d.hasVideo === false && !staff && d.fallbackLookId && d.fallbackLookId !== lookId) {
+          router.replace(`/try/${d.fallbackLookId}${window.location.search}`);
+          return;
+        }
+      } catch { /**/ }
+      setLook(d.look ?? null);
+    }).catch(() => {});
     fetch(`/api/try-this-look`).then(r => r.json()).then(d => {
       setPrompt(d.funnelVideoPrompt ?? "");
     }).catch(() => {});

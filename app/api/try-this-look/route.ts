@@ -620,7 +620,13 @@ export async function GET(request: Request) {
       // product still. Independent of feed/public flags (reads every generation).
       const modelPhotoUrl = (looksGens.find(g => (g as any).userPhotoUrl) as any)?.userPhotoUrl
         || (looksGens[0] as any)?.imageUrl || "";
-      return NextResponse.json({ look: { ...serializeLook(look, looksGens.length, state.partnerStores ?? [], state.curators ?? []), modelPhotoUrl }, isDraft: look.published === false, tryonPaused: state.tryonPaused === true });
+      // Can this look actually DELIVER a free reveal? (does any try-on video exist for it?)
+      // If not, the funnel must NOT strand the visitor — it redirects to a look that can.
+      const hasVideo = state.generations.some(g => g.lookId === previewLookId && !(g as any).hidden && (g as any).videoUrl);
+      const looksWithVideo = new Set(state.generations.filter(g => (g as any).videoUrl && !(g as any).hidden).map(g => g.lookId));
+      const fallback = state.looks.find(l => l.published !== false && !(l as any).hidden && (l as any).featured && looksWithVideo.has(l.id))
+        || state.looks.find(l => l.published !== false && !(l as any).hidden && looksWithVideo.has(l.id));
+      return NextResponse.json({ look: { ...serializeLook(look, looksGens.length, state.partnerStores ?? [], state.curators ?? []), modelPhotoUrl }, isDraft: look.published === false, tryonPaused: state.tryonPaused === true, hasVideo, fallbackLookId: fallback?.id ?? "" });
     }
 
     // Admin: ALL comments across every look (for the admin inbox).
