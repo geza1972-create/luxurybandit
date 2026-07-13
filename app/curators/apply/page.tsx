@@ -433,57 +433,17 @@ export default function CuratorApplyPage() {
             );
             return (
               <div className="flex flex-col items-center gap-2.5">
-                {slot(combined[0], "h-28 w-28", true)}
-                <span className="text-[10px] font-black uppercase tracking-wider text-ink/35">+ up to 3 more</span>
-                <div className="flex gap-2">
-                  {slot(combined[1], "h-[70px] w-[70px]", false)}
-                  {slot(combined[2], "h-[70px] w-[70px]", false)}
-                  {slot(combined[3], "h-[70px] w-[70px]", false)}
-                </div>
+                {slot(combined[0], "h-36 w-36", true)}
               </div>
             );
           })()}
-          <p className="max-w-xs text-center text-[11px] font-bold text-ink/40">Add a few good face photos — we&apos;ll pick the one that looks best on your profile.</p>
+          <p className="max-w-xs text-center text-[11px] font-bold text-ink/40">One clear, well-lit face photo — this is you.</p>
           <input ref={profileFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
             onChange={e => { void onPickProfile(e.target.files?.[0]); e.target.value = ""; }} />
           {photoError && <p className="max-w-xs text-center text-xs font-bold text-red-400">{photoError}</p>}
           <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
             onChange={e => { void onPickPhoto(e.target.files?.[0]); e.target.value = ""; }} />
-
-          {/* ONE full-body dressed photo (3:4 crop) — it powers her try-ons. */}
-          <span className={`${label} mt-4 text-center`}>Full-body photo · dressed</span>
-          <div className="flex justify-center">
-            {(() => {
-              const src = bodyPhotos[0] ?? bodyExisting[0];
-              const isNew = !!bodyPhotos[0];
-              return (
-                <div className="relative">
-                  <button type="button" onClick={() => bodyFileRef.current?.click()}
-                    className="relative grid h-44 w-[132px] place-items-center overflow-hidden rounded-2xl border-2 border-dashed border-amber-400/50 bg-black/[0.04] active:scale-95 transition-transform">
-                    {src ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={src} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <>
-                        {/* Example placeholder — head-to-toe, dressed. */}
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/apply-example-body.jpg" alt="" className="h-full w-full object-cover opacity-45" />
-                        <span className="absolute inset-0 grid place-items-center"><Camera className="h-6 w-6 text-ink drop-shadow" /></span>
-                        <span className="absolute bottom-1.5 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-ink">Example</span>
-                      </>
-                    )}
-                  </button>
-                  {isNew && (
-                    <button type="button" onClick={() => setBodyPhotos([])}
-                      className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black text-ink ring-1 ring-white/25">×</button>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
-          <p className="max-w-xs text-center text-[11px] font-bold text-ink/40">Head to toe, dressed — this is what the AI styles. One good photo is enough.</p>
-          <input ref={bodyFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
-            onChange={e => { void onPickBody(e.target.files?.[0]); e.target.value = ""; }} />
+          {/* One photo only at signup. The full-body / face-crop step lives at TRY-ON time. */}
         </div>
 
         {/* Identity */}
