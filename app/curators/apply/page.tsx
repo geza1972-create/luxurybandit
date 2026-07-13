@@ -331,6 +331,12 @@ export default function CuratorApplyPage() {
           <p className="mt-1.5 text-[10px] font-bold text-white/30">To protect everyone, an influencer can only use YOUR verified photos or our images — never someone else&apos;s face.</p>
         </div>
 
+        {imageSource === "ours" && (
+          <p className="mt-5 rounded-2xl border border-[#c9a23f]/30 bg-[#c9a23f]/[0.06] px-4 py-3 text-center text-[12px] font-bold text-[#e7c877]">
+            ✨ You picked LuxuryBandit images — uploading your own photos is <b>optional</b>. After approval we set you up with your AI look, styled like your role model.
+          </p>
+        )}
+
         {/* Profile photos — one main + up to 3 more; the team picks the best one. */}
         <div className="mt-5 flex flex-col items-center gap-2">
           <span className={`${label} text-center`}>Profile photo{` `}· main</span>

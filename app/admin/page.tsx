@@ -31,6 +31,8 @@ type Curator = {
   payouts?: { id: string; amountCents: number; method: string; status: string; requestedAt?: string; paidAt?: string }[];
   // "✓ Real model" carousel badge (realModel) + profile banner (realBadge) — a real person, not an AI persona.
   realModel?: boolean; realBadge?: boolean;
+  // CONCEPT 2.0 creation tool: role model she emulates + where her face comes from.
+  styleModelId?: string; imageSource?: "own" | "ours";
 };
 
 type Look = {
@@ -1489,6 +1491,13 @@ export default function AdminPage() {
                           {busy === `real-${c.id}` ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : (c.realModel || c.realBadge) ? <Check className="h-2.5 w-2.5" /> : null}
                           {(c.realModel || c.realBadge) ? "Real ✓" : "Real: off"}
                         </button>
+                      )}
+                      {/* CONCEPT 2.0: which role model she emulates + whose face — so you know how to set her up. */}
+                      {!house && (c.styleModelId || c.imageSource) && (
+                        <span className="rounded-full bg-fuchsia-100 px-2 py-0.5 text-[10px] font-black text-fuchsia-700" title="Role model she emulates + face source (own photos / our images)">
+                          {c.styleModelId && curatorById.get(c.styleModelId) ? `🎭 like ${fullName(curatorById.get(c.styleModelId)!).split(" ")[0]}` : "🎭 own style"}
+                          {c.imageSource === "ours" ? " · ✨ our face" : " · 📸 own face"}
+                        </span>
                       )}
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${sortC === "looks" ? "bg-cobalt/10 text-cobalt" : "bg-black/5 text-ink/50"}`}>{looksByCurator.get(c.id) ?? 0} looks</span>
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${sortC === "tryons" ? "bg-cobalt/10 text-cobalt" : "bg-black/5 text-ink/50"}`}>{tryonsByCurator.get(c.id) ?? 0} try-ons</span>
