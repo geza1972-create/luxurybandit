@@ -379,6 +379,7 @@ export async function POST(request: Request) {
       id: `curator-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       firstName,
       lastName,
+      modelName: String((payload as any).modelName ?? "").trim() || undefined,
       email,
       phone: String(payload.phone ?? "").trim() || undefined,
       address: String(payload.address ?? "").trim() || undefined,

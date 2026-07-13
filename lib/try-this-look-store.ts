@@ -175,6 +175,7 @@ export type CuratorProfile = {
   id: string;
   firstName: string;
   lastName: string;
+  modelName?: string;         // public stage / influencer name (distinct from real name)
   email: string;
   phone?: string;
   address?: string;

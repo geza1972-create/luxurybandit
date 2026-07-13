@@ -24,6 +24,7 @@ export default function CuratorApplyPage() {
   const [bodyExisting, setBodyExisting] = useState<string[]>([]); // edit mode: already stored
   const [bodyCropSrc, setBodyCropSrc] = useState("");
   const bodyFileRef = useRef<HTMLInputElement>(null);
+  const [modelName, setModelName] = useState(""); // public stage / influencer name
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -117,6 +118,21 @@ export default function CuratorApplyPage() {
     try { sessionStorage.setItem("lb_oauth_return", "/curators/apply"); } catch { /**/ }
     signInWithOAuth(provider, `${window.location.origin}/auth/confirm?returnTo=/curators/apply`);
   };
+  const doForgot = async () => {
+    if (!email.trim()) { setAuthErr("Enter your email above first, then tap “Forgot password”."); return; }
+    setAuthErr(""); setAuthMsg(""); setAuthLoading(true);
+    try {
+      const res = await fetch("/api/send-reset-link", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), redirectTo: `${window.location.origin}/auth/reset-password` }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error ?? "Could not send reset email.");
+      if (d.skipped) setAuthErr("Email isn’t set up yet — please contact support to reset your password.");
+      else setAuthMsg("If this email exists, you’ll get a reset link shortly.");
+    } catch (e) { setAuthErr(e instanceof Error ? e.message : "Something went wrong."); }
+    finally { setAuthLoading(false); }
+  };
 
   // Insights: recruiting funnel steps 2+3 (form opened / application sent).
   const trackRecruit = (event: string) => {
@@ -153,6 +169,7 @@ export default function CuratorApplyPage() {
         const c = (d.curators ?? []).find((x: any) => x.id === id);
         if (!c) { setError("Model not found."); return; }
         const split = (s?: string) => String(s ?? "").split(",").map(t => t.trim()).filter(Boolean);
+        setModelName(c.modelName ?? "");
         setFirstName(c.firstName ?? ""); setLastName(c.lastName ?? "");
         setEmail(c.email ?? ""); setPhone(c.phone ?? ""); setAddress(c.address ?? "");
         setInstagram(c.instagram ?? "");
@@ -228,7 +245,7 @@ export default function CuratorApplyPage() {
     setError(""); setSubmitting(true);
     try {
       const shared = {
-        firstName, lastName, email, phone, address, instagram, brands, style, motto, bio,
+        modelName, firstName, lastName, email, phone, address, instagram, brands, style, motto, bio,
         genderFocus, styleModelId, imageSource, ...(imageSource === "ours" && avatarFaceId ? { avatarFaceId } : {}), consent: agreed, consentText: "18+, photos are really me, accept model rules & terms",
         colors: colorChips.join(", "),
         fabrics: fabricChips.join(", "),
@@ -351,6 +368,12 @@ export default function CuratorApplyPage() {
               className={`bg-slate-800 text-white flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-black disabled:opacity-50 ${btn3d}`}>
               {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (authTab === "register" ? "Sign up & continue" : "Log in & continue")}
             </button>
+            {authTab === "signin" && (
+              <button type="button" onClick={() => void doForgot()} disabled={authLoading}
+                className="mx-auto text-[13px] font-black text-slate-600 underline underline-offset-2 active:opacity-70 disabled:opacity-50">
+                Forgot password?
+              </button>
+            )}
           </div>
 
           <div className="mt-4 flex items-center gap-3 text-[12px] font-bold text-slate-500">
@@ -571,6 +594,11 @@ export default function CuratorApplyPage() {
 
         {/* Identity */}
         <div className="mt-5 grid gap-3">
+          <div>
+            <span className={label}>Your model name</span>
+            <input className={field} value={modelName} onChange={e => setModelName(e.target.value)} placeholder="e.g. Bella Rose — your public influencer name" />
+            <p className="mt-1 text-[12px] font-bold text-slate-600">This is the name fans see. Your real name below stays private.</p>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div><span className={label}>First name</span><input className={field} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Maria" /></div>
             <div><span className={label}>Last name</span><input className={field} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Popescu" /></div>
