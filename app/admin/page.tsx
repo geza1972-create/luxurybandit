@@ -461,6 +461,21 @@ export default function AdminPage() {
       if (r.ok) setFaces(fs => fs.filter(f => f.id !== id));
     } catch { /**/ }
   };
+  // Generate AI faces via fal FLUX → straight into the pool.
+  const [faceGenOpen, setFaceGenOpen] = useState(false);
+  const [facePrompt, setFacePrompt] = useState("");
+  const [faceCount, setFaceCount] = useState(2);
+  const [faceGenBusy, setFaceGenBusy] = useState(false);
+  const generateFaces = async () => {
+    setFaceGenBusy(true); setFaceErr("");
+    try {
+      const r = await fetch("/api/generate-avatar-face", { method: "POST", headers: headers(), body: JSON.stringify({ prompt: facePrompt.trim() || undefined, count: faceCount }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) setFaceErr(d.error || "Generation failed.");
+      else { await loadFaces(); setFaceGenOpen(false); }
+    } catch { setFaceErr("Generation failed."); }
+    finally { setFaceGenBusy(false); }
+  };
   // Big view + crop for a single face.
   const [bigFace, setBigFace] = useState<{ id: string; imageUrl: string; claimed: boolean } | null>(null);
   const [faceCropSrc, setFaceCropSrc] = useState(""); // data URL fed to PhotoCropper
@@ -1524,11 +1539,39 @@ export default function AdminPage() {
                 <p className="text-sm font-black text-ink">AI-face library <span className="text-ink/40">{faces.length}</span></p>
                 <p className="text-[12px] font-bold text-ink/45">Faces creators can book for $3.99. Free = claimable, Booked = taken.</p>
               </div>
-              <button type="button" onClick={() => faceFileRef.current?.click()} disabled={faceBusy > 0}
-                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-black px-3.5 text-xs font-black text-white active:scale-95 transition disabled:opacity-50">
-                {faceBusy > 0 ? <><Loader2 className="h-4 w-4 animate-spin" /> {faceBusy} left…</> : <><ImagePlus className="h-4 w-4" /> Add faces</>}
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <button type="button" onClick={() => { setFaceGenOpen(o => !o); setFaceErr(""); }}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-black/15 px-3 text-xs font-black text-ink active:scale-95 transition">
+                  <Sparkles className="h-4 w-4" /> Generate
+                </button>
+                <button type="button" onClick={() => faceFileRef.current?.click()} disabled={faceBusy > 0}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-black px-3.5 text-xs font-black text-white active:scale-95 transition disabled:opacity-50">
+                  {faceBusy > 0 ? <><Loader2 className="h-4 w-4 animate-spin" /> {faceBusy} left…</> : <><ImagePlus className="h-4 w-4" /> Add faces</>}
+                </button>
+              </div>
             </div>
+            {faceGenOpen && (
+              <div className="mt-3 rounded-xl border border-black/12 bg-black/[0.02] p-3">
+                <p className="text-[12px] font-black uppercase tracking-wider text-ink/50">Generate AI faces · fal FLUX</p>
+                <textarea value={facePrompt} onChange={e => setFacePrompt(e.target.value)} rows={3}
+                  placeholder="Describe the face (blank = luxury fashion influencer, full-body 3:4). e.g. 'brunette Mediterranean woman, red evening gown, rooftop at dusk'"
+                  className="mt-2 w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-[13px] font-semibold text-ink outline-none focus:border-black/40" />
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <label className="flex items-center gap-1.5 text-[12px] font-bold text-ink/60">
+                    How many
+                    <select value={faceCount} onChange={e => setFaceCount(Number(e.target.value))}
+                      className="rounded-md border border-black/15 bg-white px-2 py-1 text-[12px] font-black text-ink">
+                      {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </label>
+                  <button type="button" onClick={() => void generateFaces()} disabled={faceGenBusy}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-black px-4 text-xs font-black text-white active:scale-95 transition disabled:opacity-50">
+                    {faceGenBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating…</> : <><Sparkles className="h-4 w-4" /> Generate {faceCount}</>}
+                  </button>
+                </div>
+                <p className="mt-1.5 text-[11px] font-bold text-ink/40">A few cents per image · portrait 3:4 · added straight to the pool (free/unclaimed).</p>
+              </div>
+            )}
             <input ref={faceFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" multiple className="hidden"
               onChange={e => { void uploadFaces(e.target.files); e.target.value = ""; }} />
             {faceErr && <p className="mt-2 text-[12px] font-bold text-red-500">{faceErr}</p>}

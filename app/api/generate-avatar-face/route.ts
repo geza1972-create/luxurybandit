@@ -1,0 +1,82 @@
+import { NextResponse } from "next/server";
+import {
+  readTryThisLookState,
+  saveTryThisLookState,
+  uploadTryThisLookImage,
+  getSignedUrl,
+} from "@/lib/try-this-look-store";
+import { isAdminRequest } from "@/lib/admin-auth";
+
+export const runtime = "nodejs";
+export const maxDuration = 300;
+
+// Admin: GENERATE new AI faces for the "Pick your face" library via fal.ai FLUX,
+// persist them to our Supabase, and add them to state.avatarFaces (free, unclaimed).
+// 3:4 portraits to match the portal's full-body / no-round-photo standard.
+// Requires FAL_KEY. Per-image cost — keep counts small.
+
+const DEFAULT_PROMPT =
+  "Full-body editorial fashion photograph of a beautiful young woman as a luxury fashion influencer, " +
+  "elegant designer outfit, confident natural pose, photorealistic, natural realistic skin texture, " +
+  "sharp focus, soft professional studio lighting, clean minimal background, 4k, high detail";
+
+const NEGATIVE =
+  "deformed, distorted face, extra fingers, extra limbs, bad anatomy, blurry, low quality, " +
+  "watermark, text, logo, cartoon, illustration, painting, nsfw, nude";
+
+export async function POST(request: Request) {
+  if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin only." }, { status: 401 });
+  const key = process.env.FAL_KEY?.trim();
+  if (!key) return NextResponse.json({ error: "FAL_KEY fehlt — trag ihn in den Vercel-Env ein, um AI-Gesichter zu generieren." }, { status: 400 });
+
+  const body = (await request.json().catch(() => ({}))) as { prompt?: string; count?: number };
+  const prompt = String(body.prompt ?? "").trim() || DEFAULT_PROMPT;
+  const count = Math.max(1, Math.min(4, Number(body.count) || 1));
+  // FLUX dev is a good quality/cost balance; override via env if desired.
+  const model = process.env.FAL_IMAGE_MODEL?.trim() || "fal-ai/flux/dev";
+
+  // fal.ai sync endpoint — waits for the result.
+  const falRes = await fetch(`https://fal.run/${model}`, {
+    method: "POST",
+    headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      prompt,
+      negative_prompt: NEGATIVE,
+      image_size: "portrait_4_3", // 3:4 portrait
+      num_images: count,
+      num_inference_steps: 28,
+      guidance_scale: 3.5,
+      enable_safety_checker: true,
+    }),
+  });
+  const falData = (await falRes.json().catch(() => null)) as
+    | { images?: { url?: string }[]; detail?: unknown; error?: unknown }
+    | null;
+  const urls = (falData?.images ?? []).map((i) => i?.url).filter((u): u is string => !!u);
+  if (!falRes.ok || urls.length === 0) {
+    const msg = (falData?.detail ?? falData?.error ?? `HTTP ${falRes.status}`) as unknown;
+    return NextResponse.json({ error: `Generation failed: ${typeof msg === "string" ? msg : JSON.stringify(msg)}` }, { status: 502 });
+  }
+
+  // Download each generated image → data URL → persist to our own storage (fal URLs expire).
+  const st = await readTryThisLookState();
+  const added: { id: string; imagePath: string }[] = [];
+  for (const url of urls) {
+    try {
+      const imgResp = await fetch(url);
+      if (!imgResp.ok) continue;
+      const mime = imgResp.headers.get("content-type") || "image/jpeg";
+      const dataUrl = `data:${mime};base64,${Buffer.from(await imgResp.arrayBuffer()).toString("base64")}`;
+      const imagePath = await uploadTryThisLookImage("uploads", dataUrl);
+      added.push({ id: `face-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`, imagePath });
+    } catch { /* skip a failed download */ }
+  }
+  if (added.length === 0) return NextResponse.json({ error: "Could not save the generated images." }, { status: 502 });
+
+  const faces = added.map((f) => ({ ...f, createdAt: new Date().toISOString() }));
+  st.avatarFaces = [...faces, ...(st.avatarFaces ?? [])];
+  await saveTryThisLookState(st);
+
+  const out = await Promise.all(faces.map(async (f) => ({ id: f.id, imageUrl: await getSignedUrl(f.imagePath).catch(() => ""), claimed: false })));
+  return NextResponse.json({ ok: true, faces: out });
+}
