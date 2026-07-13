@@ -281,7 +281,7 @@ export default function CuratorApplyPage() {
           </p>
           {appliedFaceId && (
             faceReserved ? (
-              <p className="mt-4 rounded-2xl border border-emerald-400/30 bg-emerald-400/[0.08] px-4 py-3 text-[13px] font-black text-emerald-300">✓ Your face is reserved — it&apos;s yours alone. 💛</p>
+              <p className="mt-4 rounded-2xl border border-emerald-400/30 bg-emerald-400/[0.08] px-4 py-3 text-[13px] font-black text-emerald-700">✓ Your face is reserved — it&apos;s yours alone. 💛</p>
             ) : (
               <div className="mt-4">
                 <p className="text-[12px] font-bold text-ink/50">Lock your unique face before someone else picks it:</p>
@@ -337,11 +337,12 @@ export default function CuratorApplyPage() {
 
         {/* One-shot warning — sets expectations before she uploads. */}
         <div className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/[0.07] px-4 py-3 text-center">
-          <p className="text-[13px] font-black text-amber-300">⚠️ You get one shot — send your very best photos.</p>
+          <p className="text-[13px] font-black text-amber-700">⚠️ You get one shot — send your very best photos.</p>
           <p className="mt-1 text-[11px] font-bold leading-relaxed text-ink/55">Photos that are blurry, hide your face (hat/sunglasses), fake, or don&apos;t fit our luxury concept are rejected — and a rejected application can&apos;t apply again. Sharp, well-lit, real photos only.</p>
-          <p className="mt-2 text-[11px] font-bold leading-relaxed text-emerald-300/80">💰 You earn <b className="text-emerald-200">30%</b> (~$1.20) every time a fan makes a paid video with you — it lands in your account automatically. The more fans pick you, the more you earn. <a href="/earnings" className="underline underline-offset-2">How earnings work →</a></p>
-          <p className="mt-2 text-[11px] font-bold leading-relaxed text-amber-200/80">🎬 Your first video is free — turn a photo into a video once you&apos;re approved. Every extra video is just $3.99.</p>
+          <p className="mt-2 text-[11px] font-bold leading-relaxed text-emerald-700">💰 You earn <b className="text-emerald-700">30%</b> (~$1.20) every time a fan makes a paid video with you — it lands in your account automatically. The more fans pick you, the more you earn. <a href="/earnings" className="underline underline-offset-2">How earnings work →</a></p>
+          <p className="mt-2 text-[11px] font-bold leading-relaxed text-amber-700">🎬 Your first video is free — turn a photo into a video once you&apos;re approved. Every extra video is just $3.99.</p>
           <p className="mt-2 text-[11px] font-bold leading-relaxed text-ink/70">💡 <b className="text-ink">You&apos;re never on your own.</b> Every single day we hand you fresh <b className="text-ink">outfits and video ideas</b> — you just post. No ideas needed, we do the creative work.</p>
+          <p className="mt-2 text-[11px] font-bold leading-relaxed text-ink/70">🤖 <b className="text-ink">A free AI chat assistant for your fans</b> — it chats with them for you, day and night. You have <b className="text-ink">zero work</b> with it.</p>
         </div>
 
         {/* CONCEPT 2.0 creation tool — role model (style template) + face source (anti-deepfake). */}
@@ -364,11 +365,11 @@ export default function CuratorApplyPage() {
           <span className={`${label} mt-4`}>Whose face?</span>
           <div className="mt-1 grid grid-cols-2 gap-2">
             <button type="button" onClick={() => setImageSource("own")}
-              className={`rounded-xl border px-3 py-2.5 text-center text-[12px] font-black transition ${imageSource === "own" ? "border-amber-400 bg-amber-400/10 text-amber-300" : "border-black/12 text-ink/60"}`}>
+              className={`rounded-xl border px-3 py-2.5 text-center text-[12px] font-black transition ${imageSource === "own" ? "border-amber-400 bg-amber-400/10 text-amber-700" : "border-black/12 text-ink/60"}`}>
               📸 My own photos<br /><span className="text-[10px] font-bold opacity-70">You become the influencer</span>
             </button>
             <button type="button" onClick={() => setImageSource("ours")}
-              className={`rounded-xl border px-3 py-2.5 text-center text-[12px] font-black transition ${imageSource === "ours" ? "border-amber-400 bg-amber-400/10 text-amber-300" : "border-black/12 text-ink/60"}`}>
+              className={`rounded-xl border px-3 py-2.5 text-center text-[12px] font-black transition ${imageSource === "ours" ? "border-amber-400 bg-amber-400/10 text-amber-700" : "border-black/12 text-ink/60"}`}>
               ✨ LuxuryBandit images<br /><span className="text-[10px] font-bold opacity-70">Use our AI faces</span>
             </button>
           </div>
