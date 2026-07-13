@@ -350,18 +350,17 @@ export default function CuratorApplyPage() {
   if (!authSession && !isAdminEdit) {
     return (
       <div className="min-h-screen bg-[#faf7f0] text-slate-900">
-        <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/10 bg-[#faf7f0]/90 px-3 py-3 backdrop-blur">
-          <button type="button" onClick={() => router.back()}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/15 text-slate-900 active:scale-90 transition-transform">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <p className="flex-1 text-sm font-black text-slate-900">Become a LuxuryBandit Model</p>
-        </div>
-        <div className="mx-auto w-full max-w-md px-5 pb-20">
-          {/* The campaign banner stays on the sign-up wall too. */}
+        {/* The VISUAL comes first — full-bleed banner at the very top, back button floats over it. */}
+        <div className="relative">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/become-a-model-banner.jpg?v=2" alt="Become or create your own LuxuryBandit Influencer and make money daily"
-            className="mt-4 w-full rounded-2xl" />
+            className="block w-full" />
+          <button type="button" onClick={() => router.back()}
+            className="absolute left-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="mx-auto w-full max-w-md px-5 pb-20">
           <h1 className="mt-5 text-center text-2xl font-black leading-tight">Create your account to apply</h1>
           <p className="mx-auto mt-2 max-w-sm text-center text-[14px] font-bold text-slate-600">
             A real account — this is where your <b className="text-slate-900">earnings, videos and fan chats</b> live. It only takes a moment.
@@ -444,32 +443,42 @@ export default function CuratorApplyPage() {
 
   return (
     <div className="min-h-[100dvh] bg-[#faf7f0] text-slate-900" style={{ paddingBottom: "calc(130px + env(safe-area-inset-bottom))" }}>
-      {/* Header */}
-      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/22 bg-[#faf7f0]/95 px-4 py-3 backdrop-blur">
-        <button type="button" onClick={cancel}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/15 text-slate-900 active:scale-90 transition-transform">
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-        <p className="flex-1 text-sm font-black text-slate-900">{editId ? `Edit model${firstName ? ` — ${firstName}` : ""}` : "Become a LuxuryBandit Model"}</p>
-        <button type="button" onClick={cancel}
-          className="shrink-0 rounded-full border border-black/15 px-4 py-2 text-sm font-black text-slate-800 active:scale-95 transition-transform">
-          Cancel
-        </button>
-      </div>
-
-      <div className="px-5 pt-6">
-        {/* Hero — signup pitch only; skipped when editing an existing model.
-            The campaign banner stays visible until she completes the signup. */}
-        {!editId && <div className="text-center">
+      {editId ? (
+        /* Edit mode (admin) — plain sticky nav header. */
+        <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/22 bg-[#faf7f0]/95 px-4 py-3 backdrop-blur">
+          <button type="button" onClick={cancel}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/15 text-slate-900 active:scale-90 transition-transform">
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <p className="flex-1 text-sm font-black text-slate-900">Edit model{firstName ? ` — ${firstName}` : ""}</p>
+          <button type="button" onClick={cancel}
+            className="shrink-0 rounded-full border border-black/15 px-4 py-2 text-sm font-black text-slate-800 active:scale-95 transition-transform">
+            Cancel
+          </button>
+        </div>
+      ) : (
+        /* Applicant — the VISUAL comes first: full-bleed banner at the very top, nav floats over it. */
+        <div className="relative">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/become-a-model-banner.jpg?v=2" alt="Become or create your own LuxuryBandit Influencer and make money daily"
-            className="mb-4 w-full rounded-2xl border border-black/15" />
-          <p className="mt-1 text-[13px] font-black uppercase tracking-[0.2em] text-slate-900">Welcome to LuxuryBandit</p>
-          <h1 className="mt-2 text-[26px] font-black leading-tight text-slate-900">
-            Let&apos;s build your influencer profile{firstName ? `, ${firstName}` : ""}.
-          </h1>
+            className="block w-full" />
+          <button type="button" onClick={cancel}
+            className="absolute left-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform">
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <button type="button" onClick={cancel}
+            className="absolute right-3 top-3 rounded-full bg-black/45 px-4 py-1.5 text-sm font-black text-white backdrop-blur active:scale-95 transition-transform">
+            Cancel
+          </button>
+        </div>
+      )}
+
+      <div className="px-5 pt-6">
+        {/* Header for the applicant flow (replaces the old welcome copy). */}
+        {!editId && <div className="text-center">
+          <h1 className="text-[26px] font-black leading-tight text-slate-900">Create your influencer profile</h1>
           <p className="mx-auto mt-2 max-w-sm text-sm font-semibold leading-6 text-slate-700">
-            Three quick steps below — <b className="text-slate-900">1.</b> choose whose face &amp; add your photo, <b className="text-slate-900">2.</b> pick your style, <b className="text-slate-900">3.</b> add your details. It takes about two minutes.
+            Three quick steps — <b className="text-slate-900">1.</b> your face &amp; photo, <b className="text-slate-900">2.</b> your style, <b className="text-slate-900">3.</b> your details. About two minutes.
           </p>
         </div>}
 
