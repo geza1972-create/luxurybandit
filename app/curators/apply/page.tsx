@@ -96,7 +96,11 @@ export default function CuratorApplyPage() {
   const [authErr, setAuthErr] = useState("");
   const [authMsg, setAuthMsg] = useState("");
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("edit")) { setIsAdminEdit(true); setAuthReady(true); return; }
+    // Admins skip the sign-up wall: edit mode, or an admin PIN / the /admin-mirrored
+    // path means it's staff (a password-admin already has a Supabase session anyway).
+    const adminPin = (() => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin"); } catch { return null; } })();
+    const isAdminCtx = !!adminPin || window.location.pathname.startsWith("/admin");
+    if (new URLSearchParams(window.location.search).get("edit") || isAdminCtx) { setIsAdminEdit(true); setAuthReady(true); return; }
     const s = getStoredAuthSession();
     if (s) { setAuthSession(s); if (s.user?.email) setEmail(prev => prev || s.user?.email || ""); }
     setAuthReady(true);
