@@ -97,6 +97,14 @@ export default function InsightsPro({
       { label: "Applied", n: countOf("apply_submit") },
     ];
 
+    // Chat funnel (/mai-ieftin) — the target of the "…Chat" ads.
+    const chatFunnel = [
+      { label: "Opened the chat", n: countOf("miai_open") },
+      { label: "Started chatting", n: countOf("miai_chat") },
+      { label: "Saw products", n: countOf("miai_products") },
+      { label: "Tapped a product", n: countOf("miai_shop_click") },
+    ];
+
     // Payment (Premium subscription) funnel — paywall → click → checkout → subscribed.
     const payment = [
       { label: "Saw the paywall", n: countOf("paywall_view") },
@@ -105,7 +113,7 @@ export default function InsightsPro({
       { label: "Subscribed", n: countOf("subscribe_success") },
     ];
 
-    return { visits, views, funnel, sources, countries, topLooks, trend, recruit, payment,
+    return { visits, views, funnel, sources, countries, topLooks, trend, recruit, chatFunnel, payment,
       tryons: countOf("tryon_click"), generated: countOf("tryon_generated"), likes: countOf("like_click"),
       subscribed: countOf("subscribe_success") };
   }, [feedEvents, viewsByDay, visitsByDay, looks, range]);
@@ -258,6 +266,23 @@ export default function InsightsPro({
                 <span className="font-black text-ink">{fmt(s.n)} <span className="text-ink/40">· {pct(s.n, data.recruit[0].n)}%</span></span>
               </div>
               <div className="mt-1 h-3 overflow-hidden rounded-full bg-black/[0.06]"><div className="h-full rounded-full bg-amber-400" style={{ width: `${Math.max(pct(s.n, data.recruit[0].n), s.n > 0 ? 3 : 0)}%` }} /></div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Chat funnel (/mai-ieftin) — where the "…Chat" ads land */}
+      <div className={card}>
+        <p className="flex items-center gap-1.5 text-sm font-black text-ink"><Users className="h-4 w-4 text-ink/40" /> Chat funnel (mai-ieftin)</p>
+        <p className="mt-0.5 text-[11px] font-bold text-ink/40">Where the “…Chat” ads land: opened the chat → chatted → saw products → tapped one.</p>
+        <div className="mt-3 space-y-2">
+          {data.chatFunnel.map((s) => (
+            <div key={s.label}>
+              <div className="flex items-baseline justify-between text-[12px]">
+                <span className="font-black text-ink">{s.label}</span>
+                <span className="font-black text-ink">{fmt(s.n)} <span className="text-ink/40">· {pct(s.n, data.chatFunnel[0].n)}%</span></span>
+              </div>
+              <div className="mt-1 h-3 overflow-hidden rounded-full bg-black/[0.06]"><div className="h-full rounded-full bg-amber-400" style={{ width: `${Math.max(pct(s.n, data.chatFunnel[0].n), s.n > 0 ? 3 : 0)}%` }} /></div>
             </div>
           ))}
         </div>

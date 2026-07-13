@@ -8,6 +8,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { CSSProperties, FormEvent, ReactNode } from "react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { signInWithOAuth, sendMagicLink, getStoredAuthSession } from "@/lib/supabase-auth-client";
+import { logFunnelEvent } from "@/lib/track-funnel";
+import { trackMetaPixel } from "@/lib/meta-pixel";
 
 // ── Ambient background ornaments — thin gold geometry drifting up the dark page. A
 // faint set drifts forever; a brighter "burst" replays on every new message (re-keyed). ──
@@ -183,7 +185,17 @@ function MaiIeftinInner() {
   const [gateEmail, setGateEmail] = useState("");
   const [gateSent, setGateSent] = useState(false);
   useEffect(() => { try { setSignedIn(!!getStoredAuthSession()); } catch { setSignedIn(false); } }, []);
-  const openResult = (p: ShopItem) => { if (!signedIn) { setGate(true); return; } setOpenProduct(p); };
+  // ── Funnel tracking (this chat is the target of the "…Chat" ads) ──────────────
+  // Distinct miai_* events so Insights can finally measure chat-ad conversion — /mai-ieftin
+  // was previously untracked. Fired once per session via refs.
+  const firedChat = useRef(false);
+  const firedProducts = useRef(false);
+  useEffect(() => { logFunnelEvent("miai_open"); trackMetaPixel("ViewContent", { content_category: "chat" }); }, []);
+  const openResult = (p: ShopItem) => {
+    logFunnelEvent("miai_shop_click");
+    if (!signedIn) { logFunnelEvent("miai_gate"); setGate(true); return; }
+    setOpenProduct(p);
+  };
   const gateGoogle = () => { try { signInWithOAuth("google", `${window.location.origin}/auth/confirm`); } catch { /**/ } };
   const gateSubmitEmail = async (e: FormEvent) => {
     e.preventDefault();
@@ -269,6 +281,7 @@ function MaiIeftinInner() {
     const userMsg: Msg = { role: "user", content, ...(apiText ? { apiContent: apiText } : {}) };
     const next: Msg[] = [...messages, userMsg];
     setMessages(next);
+    if (!firedChat.current) { firedChat.current = true; logFunnelEvent("miai_chat"); trackMetaPixel("Lead", { content_category: "chat" }); }
     setText(""); clearFile(); setLoading(true);
     try {
       const apiMessages = next.map((m) => ({ role: m.role, content: m.apiContent ?? m.content }));
@@ -277,6 +290,7 @@ function MaiIeftinInner() {
         body: JSON.stringify({ messages: apiMessages, lang, model: modelRef.current || undefined, curatorId: modelRef.current?.id, visitorId: getChatVisitorId() }),
       });
       const d = await r.json().catch(() => ({}));
+      if (!firedProducts.current && (Array.isArray(d.products) || Array.isArray(d.ownProducts) || Array.isArray(d.modelVideos))) { firedProducts.current = true; logFunnelEvent("miai_products"); }
       setMessages((m) => [...m, { role: "assistant", content: d.reply || (lang === "en" ? "Can't reply right now. Try again." : "Momentan nu pot răspunde. Mai încearcă o dată."), products: Array.isArray(d.products) ? d.products : undefined, ownProducts: Array.isArray(d.ownProducts) ? d.ownProducts : undefined, inspo: Array.isArray(d.inspo) ? d.inspo : undefined, modelVideos: Array.isArray(d.modelVideos) ? d.modelVideos : undefined, modelName: modelRef.current?.name || undefined, original: Array.isArray(d.original) ? d.original : undefined, brand: typeof d.brand === "string" ? d.brand : undefined, chips: Array.isArray(d.chips) ? d.chips : undefined }]);
     } catch {
       setMessages((m) => [...m, { role: "assistant", content: lang === "en" ? "Something went wrong. Try again." : "Ceva n-a mers. Mai încearcă o dată." }]);
