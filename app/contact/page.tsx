@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, Loader2, Mail, CheckCircle2, ChevronDown } from "lucide-react";
+import { Loader2, Mail, CheckCircle2, ChevronDown } from "lucide-react";
+import TopNav from "@/components/TopNav";
 
 const REASONS = [
   { value: "support", label: "Support" },
@@ -62,13 +63,7 @@ export default function ContactPage() {
 
   return (
     <main className="min-h-[100dvh] bg-white pb-24">
-      <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/8 bg-white/95 px-4 py-3 backdrop-blur">
-        <Link href="/stores" aria-label="Back"
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 text-black active:scale-90 transition-transform">
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
-        <p className="text-sm font-black text-black">Contact</p>
-      </header>
+      <TopNav subtitle="Contact" />
 
       <div className="mx-auto max-w-xl px-5 py-6">
         {status === "sent" ? (

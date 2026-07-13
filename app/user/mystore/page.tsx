@@ -4,10 +4,11 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ChevronLeft, Plus, Loader2, Pencil, Trash2,
+  Plus, Loader2, Pencil, Trash2,
   ExternalLink, CheckCircle2, Store,
 } from "lucide-react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
+import TopNav from "@/components/TopNav";
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 type Look = {
@@ -91,19 +92,12 @@ export default function MyStorePage() {
   return (
     <div className="min-h-screen bg-[#fafaf8]" style={{ paddingBottom: "max(5rem, env(safe-area-inset-bottom))" }}>
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-black/8 bg-white/95 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-lg items-center justify-between">
-          <button type="button" onClick={() => router.push("/stores")}
-            className="grid h-9 w-9 place-items-center rounded-full border border-black/10 text-black/50 active:bg-black/5">
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <span className="text-sm font-black text-black">My Store</span>
-          <button type="button" onClick={() => router.push("/user/mystore/new")}
-            className="grid h-9 w-9 place-items-center rounded-full bg-[#f4725a] text-white shadow active:opacity-80">
-            <Plus className="h-5 w-5" />
-          </button>
-        </div>
-      </header>
+      <TopNav subtitle="My Store" actions={
+        <button type="button" onClick={() => router.push("/user/mystore/new")}
+          className="grid h-9 w-9 place-items-center rounded-full bg-[#f4725a] text-white shadow active:opacity-80">
+          <Plus className="h-5 w-5" />
+        </button>
+      } />
 
       <div className="mx-auto max-w-lg px-4 pt-5 grid gap-4">
         {/* Store info strip */}

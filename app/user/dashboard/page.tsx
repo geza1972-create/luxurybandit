@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Trash2, Eye, EyeOff, Sparkles, Settings, Home, LogOut } from "lucide-react";
 import { getStoredAuthSession, getAuthUser, signOut } from "@/lib/supabase-auth-client";
+import TopNav from "@/components/TopNav";
 
 type TryOnItem = { id: string; imageUrl: string; lookName: string; createdAt: string; published?: boolean };
 
@@ -92,13 +93,12 @@ export default function UserDashboardPage() {
 
   return (
     <main className="min-h-[100dvh] bg-[#fafaf8] pb-24">
-      <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/8 bg-white/95 px-4 py-3 backdrop-blur">
-        <p className="flex-1 text-sm font-black text-black">Dashboard</p>
+      <TopNav subtitle="Dashboard" actions={
         <button type="button" onClick={() => { signOut(); router.replace("/stores"); }}
-          className="flex items-center gap-1.5 text-xs font-black text-black/45 active:opacity-70">
+          className="flex items-center gap-1.5 text-xs font-black text-white/60 active:opacity-70">
           <LogOut className="h-4 w-4" /> Sign out
         </button>
-      </header>
+      } />
 
       <div className="mx-auto max-w-md px-4 pt-4">
         {/* Identity */}

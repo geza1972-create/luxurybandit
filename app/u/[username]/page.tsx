@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChevronLeft, Heart, Image as ImageIcon, Send, MessageCircle, Globe, Instagram, Store, X, Loader2, UserPlus, UserCheck, Plus } from "lucide-react";
+import TopNav from "@/components/TopNav";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 type GalleryItem = {
@@ -254,42 +255,16 @@ export default function UserGalleryPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-black/8 bg-white/95 backdrop-blur">
-        <div className="flex items-center gap-2 px-3 py-2">
-          <button type="button" onClick={() => router.back()}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-black/50 active:bg-black/5">
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <div className="flex flex-1 items-center gap-2.5 min-w-0">
-            {/* Avatar */}
-            <div className="w-9 aspect-[3/4] shrink-0 overflow-hidden rounded-lg bg-black border border-black/8">
-              {avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(displayName)}&backgroundColor=000000&fontColor=ffffff&fontSize=40`}
-                  alt={displayName}
-                  className="h-full w-full object-cover"
-                />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-black text-black">{displayName}</p>
-              <p className="text-[10px] font-bold text-black/40 truncate">
-                {profile?.bio ? profile.bio.slice(0, 40) + (profile.bio.length > 40 ? "…" : "") : "AI Fashion Curator"}
-              </p>
-            </div>
-          </div>
+      <TopNav subtitle={displayName} actions={
+        <>
           {/* Follow + Message buttons (only if not own profile) */}
           {!isOwn && (
             <>
               <button type="button" onClick={() => void handleFollow()} disabled={followLoading}
                 className={`flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-black transition active:scale-95 disabled:opacity-50 ${
                   following
-                    ? "border border-black/20 bg-white text-black/60"
-                    : "bg-black text-white"
+                    ? "border border-white/25 bg-white/10 text-white/80"
+                    : "bg-white text-black"
                 }`}>
                 {followLoading
                   ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -299,7 +274,7 @@ export default function UserGalleryPage() {
                 }
               </button>
               <button type="button" onClick={() => setShowMsg(true)}
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10 text-black/60 active:bg-black/5 transition">
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/20 text-white/80 active:bg-white/10 transition">
                 <MessageCircle className="h-4 w-4" />
               </button>
             </>
@@ -309,21 +284,23 @@ export default function UserGalleryPage() {
             <button
               type="button"
               onClick={() => setShowQuickSell(true)}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black text-white active:opacity-75 transition-opacity"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-black active:opacity-75 transition-opacity"
               title="Produkt verkaufen"
             >
               <Plus className="h-5 w-5" />
             </button>
           )}
           <button type="button" onClick={() => void shareProfile()}
-            className="flex h-9 items-center gap-1.5 rounded-full bg-black px-3 text-xs font-black text-white active:opacity-80 transition-opacity">
+            className="flex h-9 items-center gap-1.5 rounded-full bg-white px-3 text-xs font-black text-black active:opacity-80 transition-opacity">
             <Send className="h-3.5 w-3.5" />
             {copied ? "Copied!" : "Share"}
           </button>
-        </div>
+        </>
+      } />
 
-        {/* Stats bar */}
-        <div className="flex items-center gap-0 border-t border-black/5 divide-x divide-black/5">
+      {/* Stats bar */}
+      <div className="sticky top-[57px] z-10 border-b border-black/8 bg-white/95 backdrop-blur">
+        <div className="flex items-center gap-0 divide-x divide-black/5">
           <div className="flex flex-1 flex-col items-center py-2">
             <p className="text-sm font-black text-black">{items.length}</p>
             <p className="text-[9px] font-bold uppercase tracking-wide text-black/40">Looks</p>
@@ -341,7 +318,7 @@ export default function UserGalleryPage() {
             <p className="text-[9px] font-bold uppercase tracking-wide text-black/40">Views</p>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Profile info strip (bio full, links, store) */}
       {(profile?.bio || profile?.website || profile?.instagram || profile?.storeSlug) && (

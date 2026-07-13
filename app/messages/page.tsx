@@ -2,10 +2,11 @@
 
 export const dynamic = "force-dynamic";
 
-import { Loader2, MessageCircle, ArrowLeft } from "lucide-react";
+import { Loader2, MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
+import TopNav from "@/components/TopNav";
 
 // Each stored chat lives in localStorage under lb_modelchat_<curatorId>.
 type Convo = { curatorId: string; name: string; photoUrl: string; last: string; unread?: boolean };
@@ -67,13 +68,7 @@ export default function MessagesPage() {
 
   return (
     <div className="min-h-[100dvh] bg-[#0d0b0a] text-white">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0d0b0a]/95 px-4 py-3.5 backdrop-blur">
-        <div className="mx-auto flex max-w-[440px] items-center gap-3">
-          <button type="button" onClick={() => router.push("/home")}
-            className="grid h-8 w-8 place-items-center rounded-full border border-white/15 text-white/70"><ArrowLeft className="h-4 w-4" /></button>
-          <span className="flex-1 text-sm font-black">Messages</span>
-        </div>
-      </header>
+      <TopNav subtitle="Messages" />
 
       <main className="mx-auto max-w-[440px] px-4 py-4 pb-28">
         {loading ? (

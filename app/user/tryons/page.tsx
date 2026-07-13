@@ -4,8 +4,9 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Trash2, X, Play, Globe, Lock, Users } from "lucide-react";
+import { Loader2, Trash2, X, Play, Globe, Lock, Users } from "lucide-react";
 import { getStoredAuthSession, getAuthUser } from "@/lib/supabase-auth-client";
+import TopNav from "@/components/TopNav";
 
 type TryOnItem = { id: string; imageUrl: string; videoUrl?: string; genKind?: string; lookName: string; createdAt: string; published?: boolean; public?: boolean; feedRequested?: boolean; publicRequested?: boolean };
 
@@ -161,11 +162,9 @@ export default function MyTryOnsPage() {
 
   return (
     <main className="min-h-[100dvh] bg-[#fafaf8] pb-24">
-      <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/8 bg-white/95 px-4 py-3 backdrop-blur">
-        <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10"><ArrowLeft className="h-4 w-4" /></button>
-        <p className="flex-1 text-sm font-black text-black">My try-ons</p>
-        {tryOns.length > 0 && <span className="text-xs font-black text-black/40">{tryOns.length}</span>}
-      </header>
+      <TopNav subtitle="My try-ons" actions={
+        tryOns.length > 0 ? <span className="text-xs font-black text-white/50">{tryOns.length}</span> : undefined
+      } />
 
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-black/20" /></div>

@@ -3,6 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { Heart, Loader2, MessageCircle, Image as ImageIcon, Sparkles } from "lucide-react";
+import TopNav from "@/components/TopNav";
 import { lookPath } from "@/lib/look-slug";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -93,21 +94,23 @@ export default function EntdeckenPage() {
   return (
     <div className="min-h-screen bg-white pb-24" style={{ maxWidth: "100vw" }}>
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-black/8 bg-white/95 backdrop-blur-md">
-        <div className="mx-auto max-w-lg px-4 pt-safe-top">
-          <div className="flex items-center justify-between py-3">
-            <span className="text-lg font-black tracking-tight text-black">Discover</span>
-            <button
-              type="button"
-              onClick={() => router.push("/try-this-look")}
-              className="flex items-center gap-1.5 rounded-full bg-cobalt px-3 py-1.5 text-[11px] font-black text-white active:opacity-70"
-            >
-              <Sparkles className="h-3 w-3" /> Try-on
-            </button>
-          </div>
+      <TopNav
+        subtitle="Discover"
+        actions={
+          <button
+            type="button"
+            onClick={() => router.push("/try-this-look")}
+            className="flex items-center gap-1.5 rounded-full bg-cobalt px-3 py-1.5 text-[11px] font-black text-white active:opacity-70"
+          >
+            <Sparkles className="h-3 w-3" /> Try-on
+          </button>
+        }
+      />
 
-          {/* Category tabs */}
-          <div className="flex gap-2 pb-3 overflow-x-auto scrollbar-none">
+      {/* Category tabs */}
+      <div className="border-b border-black/8 bg-white/95 backdrop-blur-md">
+        <div className="mx-auto max-w-lg px-4">
+          <div className="flex gap-2 py-3 overflow-x-auto scrollbar-none">
             {FIXED_CATEGORIES.map(({ key, label, emoji }) => (
               <button key={key} type="button" onClick={() => setCategory(key)}
                 className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-black transition ${
@@ -126,7 +129,7 @@ export default function EntdeckenPage() {
             ))}
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Feed */}
       <main className="mx-auto max-w-lg">

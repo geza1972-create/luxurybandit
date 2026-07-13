@@ -1,6 +1,7 @@
 "use client";
 
 import { Globe, Instagram, MessageCircle, Loader2, X, Send, Store } from "lucide-react";
+import TopNav from "@/components/TopNav";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
@@ -107,14 +108,7 @@ export default function PublicProfilePage() {
   return (
     <div className="min-h-screen bg-[#fafaf8]">
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-black/8 bg-white/95 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-lg items-center">
-          <a href="/" className="grid h-8 w-8 place-items-center rounded-full border border-black/10 text-black/40 mr-3">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="m15 18-6-6 6-6"/></svg>
-          </a>
-          <span className="text-sm font-black text-black">@{profile.username}</span>
-        </div>
-      </header>
+      <TopNav subtitle={`@${profile.username}`} />
 
       <main className="mx-auto max-w-lg px-4 py-8 grid gap-6">
         {/* Profile card */}

@@ -4,7 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { lookPath } from "@/lib/look-slug";
-import { ChevronLeft, Heart, Image as ImageIcon, MessageCircle, UserCheck, UserPlus, Loader2 } from "lucide-react";
+import { Heart, Image as ImageIcon, MessageCircle, UserCheck, UserPlus, Loader2 } from "lucide-react";
+import TopNav from "@/components/TopNav";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 type Look = {
@@ -149,12 +150,11 @@ export default function StoreGalleryPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-black/8 bg-white/95 backdrop-blur">
+      <TopNav />
+
+      {/* Store profile bar */}
+      <div className="border-b border-black/8 bg-white">
         <div className="flex items-center gap-2 px-2 py-2">
-          <button type="button" onClick={() => router.back()}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-black/60 active:bg-black/5">
-            <ChevronLeft className="h-5 w-5" />
-          </button>
           <div className="w-9 aspect-[3/4] shrink-0 overflow-hidden rounded-lg bg-black/5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(slug)}&backgroundColor=ffffff&color=000000`}
@@ -176,7 +176,7 @@ export default function StoreGalleryPage() {
           </div>
           <FollowBtn storeSlug={slug} storeName={storeName} />
         </div>
-      </header>
+      </div>
 
       {/* Grid */}
       <main className="pb-16">

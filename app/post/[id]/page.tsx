@@ -2,7 +2,8 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { ChevronLeft, Heart, Send, MessageCircle, UserPlus, UserCheck, Loader2, X, Store, Sparkles, EyeOff, Trash2, Info } from "lucide-react";
+import { Heart, Send, MessageCircle, UserPlus, UserCheck, Loader2, X, Store, Sparkles, EyeOff, Trash2, Info } from "lucide-react";
+import TopNav from "@/components/TopNav";
 import { lookPath } from "@/lib/look-slug";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -311,60 +312,43 @@ export default function PostPage() {
   return (
     <div className="mx-auto min-h-screen w-full max-w-[480px] overflow-x-hidden bg-white pb-20 shadow-sm">
       {/* Header */}
-      <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/8 bg-white/95 px-3 py-2 backdrop-blur">
-        <button type="button" onClick={() => { if (typeof window !== "undefined" && window.history.length > 1) router.back(); else router.push("/stores"); }}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-black/40 active:bg-black/5">
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        {/* Avatar + name → profile */}
-        <a href={`/${username}`} className="flex flex-1 items-center gap-2.5 min-w-0">
-          <div className="w-9 aspect-[3/4] shrink-0 overflow-hidden rounded-lg bg-black border border-black/8">
-            {avatarUrl
-              ? <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
-              // eslint-disable-next-line @next/next/no-img-element
-              : <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(displayName)}&backgroundColor=000000&fontColor=ffffff&fontSize=40`}
-                  alt={displayName} className="h-full w-full object-cover" />
-            }
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-black text-black">{displayName}</p>
-            <p className="text-[10px] font-bold text-black/40">{timeAgo(post.createdAt)} · {followerCount} followers</p>
-          </div>
-        </a>
-        {/* Staff moderation: hide (owner/admin) · delete + assign (admin) */}
-        {isStaff && (
-          <div className="flex items-center gap-1.5">
-            <button type="button" onClick={() => void doHide()} title="Hide"
-              className="grid h-9 w-9 place-items-center rounded-full bg-amber-400/90 text-white active:opacity-70"><EyeOff className="h-4 w-4" /></button>
-            {isAdminUser && (
-              <>
-                {post?.videoUrl && (
-                  <button type="button" onClick={() => void doUpscaleHd()} disabled={hdBusy} title="In HD umrechnen (1080p)"
-                    className="grid h-9 min-w-9 place-items-center rounded-full bg-amber-400 px-2.5 text-[11px] font-black text-black active:opacity-70 disabled:opacity-50">
-                    {hdBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "HD"}
-                  </button>
-                )}
-                <button type="button" onClick={() => void doDelete()} title="Delete"
-                  className="grid h-9 w-9 place-items-center rounded-full bg-red-500/90 text-white active:opacity-70"><Trash2 className="h-4 w-4" /></button>
-                <button type="button" onClick={() => setAssignOpen(true)} title="Assign"
-                  className="grid h-9 w-9 place-items-center rounded-full bg-black/70 text-white active:opacity-70"><UserPlus className="h-4 w-4" /></button>
-              </>
-            )}
-          </div>
-        )}
-        {/* Follow */}
-        {!isOwn && !isStaff && (
-          <button type="button" onClick={() => void handleFollow()} disabled={followLoading}
-            className={`flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-black transition active:scale-95 disabled:opacity-50 ${
-              following ? "border border-black/20 bg-white text-black/60" : "bg-black text-white"
-            }`}>
-            {followLoading
-              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              : following ? <><UserCheck className="h-3.5 w-3.5" />Following</> : <><UserPlus className="h-3.5 w-3.5" />Follow</>
-            }
-          </button>
-        )}
-      </header>
+      <TopNav actions={
+        <>
+          {/* Staff moderation: hide (owner/admin) · delete + assign (admin) */}
+          {isStaff && (
+            <div className="flex items-center gap-1.5">
+              <button type="button" onClick={() => void doHide()} title="Hide"
+                className="grid h-9 w-9 place-items-center rounded-full bg-amber-400/90 text-white active:opacity-70"><EyeOff className="h-4 w-4" /></button>
+              {isAdminUser && (
+                <>
+                  {post?.videoUrl && (
+                    <button type="button" onClick={() => void doUpscaleHd()} disabled={hdBusy} title="In HD umrechnen (1080p)"
+                      className="grid h-9 min-w-9 place-items-center rounded-full bg-amber-400 px-2.5 text-[11px] font-black text-black active:opacity-70 disabled:opacity-50">
+                      {hdBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "HD"}
+                    </button>
+                  )}
+                  <button type="button" onClick={() => void doDelete()} title="Delete"
+                    className="grid h-9 w-9 place-items-center rounded-full bg-red-500/90 text-white active:opacity-70"><Trash2 className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => setAssignOpen(true)} title="Assign"
+                    className="grid h-9 w-9 place-items-center rounded-full bg-black/70 text-white active:opacity-70"><UserPlus className="h-4 w-4" /></button>
+                </>
+              )}
+            </div>
+          )}
+          {/* Follow */}
+          {!isOwn && !isStaff && (
+            <button type="button" onClick={() => void handleFollow()} disabled={followLoading}
+              className={`flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-black transition active:scale-95 disabled:opacity-50 ${
+                following ? "border border-white/25 bg-white/10 text-white/80" : "bg-white text-black"
+              }`}>
+              {followLoading
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : following ? <><UserCheck className="h-3.5 w-3.5" />Following</> : <><UserPlus className="h-3.5 w-3.5" />Follow</>
+              }
+            </button>
+          )}
+        </>
+      } />
       {/* HD upscale status toast (admin) */}
       {hdMsg && (
         <div className="fixed inset-x-0 bottom-4 z-[120] flex justify-center px-4">

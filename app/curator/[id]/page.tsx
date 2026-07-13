@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, BadgeCheck, Instagram, Loader2, Lock, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play, Sparkles, SlidersHorizontal, Trash2, EyeOff, Eye, ImageUp, Video, Download } from "lucide-react";
+import TopNav from "@/components/TopNav";
 import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
@@ -722,7 +723,9 @@ export default function CuratorPublicPage() {
 
   return (
     <main className="min-h-[100dvh] bg-[#0d0b0a] text-white pb-16">
-      <div className="sticky top-0 z-20 bg-[#0d0b0a]/90 px-4 py-3 backdrop-blur">
+      <TopNav />
+      {/* Profile-context bar sits just under the shared TopNav (name/photo/follow stay in view). */}
+      <div className="sticky top-14 z-20 bg-[#0d0b0a]/90 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 active:opacity-70"><ArrowLeft className="h-4 w-4" /></button>
           <div className="w-9 aspect-[3/4] shrink-0 overflow-hidden rounded-lg bg-white/10">
