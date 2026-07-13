@@ -25,43 +25,10 @@
 .lb-frame {
   width: 100%;
 }
-@media (min-width: 900px) {
-  body {
-    background: #2a2a2e; /* desktop backdrop around the phone frame */
-  }
-  /* Normal-flow content (grid, account, try-on…) lives in a centered phone column.
-     NO transform here — transform would make descendant position:fixed resolve against
-     the column instead of the viewport, which mis-places overlays once the page scrolls. */
-  .lb-frame {
-    width: 440px;
-    max-width: 100vw;
-    min-height: 100dvh;
-    margin: 0 auto;
-    background: #fbfaf7;
-    box-shadow: 0 0 60px rgba(0, 0, 0, 0.45);
-  }
-  /* The marketing landing at the root is a REAL desktop page, not the mobile app.
-     When the frame contains it, drop the 440px phone column so the landing renders
-     full-width and its lg: two-column layout kicks in. The rest of the app stays framed. */
-  .lb-frame:has(.lb-landing) {
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    background: transparent;
-    box-shadow: none;
-  }
-  /* Full-bleed FIXED overlays (the reels feed, the bottom nav) are viewport-fixed, so
-     they'd span the whole desktop. Center them into the same 440px column instead. */
-  .lb-phone-col {
-    left: 50% !important;
-    right: auto !important;
-    width: 440px !important;
-    max-width: 100vw;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    transform: translateX(-50%) !important;
-  }
-}
+/* Desktop: the app renders FULL-WIDTH (no phone frame) per product decision 2026-07-13.
+   Every page flows to the full viewport width; fixed overlays (reels feed, bottom nav)
+   keep their authored `inset-x-0` full width. `.lb-frame` stays width:100% (base rule
+   above), and `.lb-phone-col` gets no override so it too spans the viewport. */
 
 ::view-transition-group(*),
 ::view-transition-old(*),
