@@ -468,6 +468,17 @@ export default function AdminPage() {
   const [faceGenBusy, setFaceGenBusy] = useState(false);
   const [faceRef, setFaceRef] = useState(""); // optional reference image (data URL) → generate similar
   const faceRefFileRef = useRef<HTMLInputElement>(null);
+  // Garment from our gallery → dress the reference model (try-on) instead of a plain variation.
+  const [garmentList, setGarmentList] = useState<{ id: string; name: string; img: string; category?: string }[]>([]);
+  const [garmentImg, setGarmentImg] = useState(""); // selected garment image URL
+  const [garmentPickerOpen, setGarmentPickerOpen] = useState(false);
+  const loadGarments = async () => {
+    try {
+      const r = await fetch("/api/try-this-look?garments=1", { headers: headers() });
+      const d = await r.json();
+      setGarmentList(Array.isArray(d.garments) ? d.garments : []);
+    } catch { /**/ }
+  };
   const pickFaceRef = async (file?: File) => {
     if (!file) return;
     const { src, error } = await readPhotoFile(file);
@@ -500,7 +511,7 @@ export default function AdminPage() {
   const generateFaces = async () => {
     setFaceGenBusy(true); setFaceErr("");
     try {
-      const r = await fetch("/api/generate-avatar-face", { method: "POST", headers: headers(), body: JSON.stringify({ prompt: facePrompt.trim() || undefined, count: faceCount, ...(faceRef ? { referenceImage: faceRef } : {}) }) });
+      const r = await fetch("/api/generate-avatar-face", { method: "POST", headers: headers(), body: JSON.stringify({ prompt: facePrompt.trim() || undefined, count: faceCount, ...(faceRef ? { referenceImage: faceRef } : {}), ...(faceRef && garmentImg ? { garmentImage: garmentImg } : {}) }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) setFaceErr(d.error || "Generation failed.");
       else { await loadFaces(); setFaceGenOpen(false); }
@@ -1626,6 +1637,38 @@ export default function AdminPage() {
                 </div>
                 <input ref={faceRefFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
                   onChange={e => { void pickFaceRef(e.target.files?.[0]); e.target.value = ""; }} />
+                {/* Garment from our gallery → dress the reference model (try-on). Only with a reference. */}
+                {faceRef && (
+                  <div className="mt-2">
+                    <div className="flex items-center gap-2">
+                      {garmentImg ? (
+                        <div className="relative shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={garmentImg} alt="" className="h-14 w-[42px] rounded-lg object-cover" />
+                          <button type="button" onClick={() => setGarmentImg("")} className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-black text-[11px] text-white ring-1 ring-white/30">×</button>
+                        </div>
+                      ) : (
+                        <button type="button" onClick={() => { setGarmentPickerOpen(o => !o); if (!garmentList.length) void loadGarments(); }}
+                          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-black/15 px-3 text-xs font-black text-ink active:scale-95 transition">
+                          <LayoutGrid className="h-4 w-4" /> Pick garment
+                        </button>
+                      )}
+                      <p className="text-[11px] font-bold text-ink/45">{garmentImg ? "This garment gets put on your reference model (try-on)." : "Optional: dress the model in a garment from our gallery."}</p>
+                    </div>
+                    {garmentPickerOpen && !garmentImg && (
+                      <div className="mt-2 grid max-h-56 grid-cols-4 gap-1.5 overflow-y-auto rounded-lg border border-black/10 p-1.5 sm:grid-cols-6">
+                        {garmentList.map(g => (
+                          <button key={g.id} type="button" onClick={() => { setGarmentImg(g.img); setGarmentPickerOpen(false); }}
+                            className="relative aspect-[3/4] overflow-hidden rounded-md border border-black/10 active:scale-95 transition">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={g.img} alt={g.name} loading="lazy" className="h-full w-full object-cover" />
+                          </button>
+                        ))}
+                        {garmentList.length === 0 && <p className="col-span-full py-4 text-center text-[11px] font-bold text-ink/40">No garments found.</p>}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <textarea value={facePrompt} onChange={e => setFacePrompt(e.target.value)} rows={3}
                   placeholder={faceRef ? "Not needed in reference mode — the image sets the look." : "Describe the face (blank = luxury fashion influencer, full-body 3:4). e.g. 'brunette Mediterranean woman, red evening gown, rooftop at dusk'"}
                   className="mt-2 w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-[13px] font-semibold text-ink outline-none focus:border-black/40" />
@@ -1639,7 +1682,7 @@ export default function AdminPage() {
                   </label>
                   <button type="button" onClick={() => void generateFaces()} disabled={faceGenBusy}
                     className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-black px-4 text-xs font-black text-white active:scale-95 transition disabled:opacity-50">
-                    {faceGenBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating…</> : <><Sparkles className="h-4 w-4" /> {faceRef ? "Generate similar" : "Generate"} {faceCount}</>}
+                    {faceGenBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating…</> : <><Sparkles className="h-4 w-4" /> {garmentImg ? "Dress the model" : (faceRef ? "Generate similar" : "Generate")}{garmentImg ? "" : ` ${faceCount}`}</>}
                   </button>
                 </div>
                 <p className="mt-1.5 text-[11px] font-bold text-ink/40">A few cents per image · portrait 3:4 · added straight to the pool (free/unclaimed).</p>

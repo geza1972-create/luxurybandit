@@ -6,6 +6,7 @@ import {
   getSignedUrl,
 } from "@/lib/try-this-look-store";
 import { isAdminRequest } from "@/lib/admin-auth";
+import { tryOnGarment } from "@/lib/tryon";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -33,10 +34,32 @@ export async function POST(request: Request) {
   const prompt = String(body.prompt ?? "").trim() || DEFAULT_PROMPT;
   const count = Math.max(1, Math.min(4, Number(body.count) || 1));
   const referenceImage = String(body.referenceImage ?? "");
+  const garmentImage = String((body as any).garmentImage ?? "");
+  const intimate = (body as any).intimate === true;
   // fal's safety checker is very prudish — it blocks legit lingerie/swim fashion on this
   // 18+ platform. Default OFF; set FAL_SAFETY_CHECKER=on to re-enable. (Nudity is still
   // discouraged by the negative prompt in text mode.)
   const safety = process.env.FAL_SAFETY_CHECKER === "on";
+
+  // GARMENT MODE: a reference model + a garment picked from our gallery → dress the model
+  // via our proven try-on engine (OpenAI/FASHN), then add the dressed result to the pool.
+  if (referenceImage.startsWith("data:image/") && garmentImage) {
+    const dressed = await tryOnGarment(garmentImage, referenceImage, { intimate }).catch(() => null);
+    if (!dressed) return NextResponse.json({ error: "Try-on failed — that model/garment combo was rejected. Try another photo or garment." }, { status: 502 });
+    let dataUrl = dressed;
+    if (!dressed.startsWith("data:")) {
+      const r = await fetch(dressed);
+      if (!r.ok) return NextResponse.json({ error: "Could not fetch the dressed image." }, { status: 502 });
+      dataUrl = `data:${r.headers.get("content-type") || "image/png"};base64,${Buffer.from(await r.arrayBuffer()).toString("base64")}`;
+    }
+    const imagePath = await uploadTryThisLookImage("uploads", dataUrl);
+    const face = { id: `face-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`, imagePath, createdAt: new Date().toISOString() };
+    const st = await readTryThisLookState();
+    st.avatarFaces = [face, ...(st.avatarFaces ?? [])];
+    await saveTryThisLookState(st);
+    const signed = await getSignedUrl(imagePath).catch(() => "");
+    return NextResponse.json({ ok: true, faces: [{ id: face.id, imageUrl: signed, claimed: false }] });
+  }
 
   let falRes: Response;
   if (referenceImage.startsWith("data:image/")) {
