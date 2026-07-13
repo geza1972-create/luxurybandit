@@ -33,6 +33,10 @@ export async function POST(request: Request) {
   const prompt = String(body.prompt ?? "").trim() || DEFAULT_PROMPT;
   const count = Math.max(1, Math.min(4, Number(body.count) || 1));
   const referenceImage = String(body.referenceImage ?? "");
+  // fal's safety checker is very prudish — it blocks legit lingerie/swim fashion on this
+  // 18+ platform. Default OFF; set FAL_SAFETY_CHECKER=on to re-enable. (Nudity is still
+  // discouraged by the negative prompt in text mode.)
+  const safety = process.env.FAL_SAFETY_CHECKER === "on";
 
   let falRes: Response;
   if (referenceImage.startsWith("data:image/")) {
@@ -52,7 +56,7 @@ export async function POST(request: Request) {
         num_images: count,
         num_inference_steps: 28,
         guidance_scale: 3.5,
-        enable_safety_checker: true,
+        enable_safety_checker: safety,
       }),
     });
   } else {
@@ -68,7 +72,7 @@ export async function POST(request: Request) {
         num_images: count,
         num_inference_steps: 28,
         guidance_scale: 3.5,
-        enable_safety_checker: true,
+        enable_safety_checker: safety,
       }),
     });
   }

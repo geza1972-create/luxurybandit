@@ -1999,7 +1999,7 @@ export default function AdminPage() {
       )}
 
       {/* ── AI-face big view: enlarge, crop (in-place, keeps booking), or delete ── */}
-      {bigFace && (
+      {bigFace && !faceCropSrc && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-4" onClick={e => { if (e.target === e.currentTarget) setBigFace(null); }}>
           <div className="flex w-full max-w-sm flex-col items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
