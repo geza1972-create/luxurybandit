@@ -181,6 +181,8 @@ export type CuratorProfile = {
   brands?: string;            // free-text brands they love
   style?: string;             // free-text style description
   genderFocus?: string;       // "women" | "men" | "unisex"
+  styleModelId?: string;      // CONCEPT 2.0: the role model whose STYLE this influencer emulates
+  imageSource?: "own" | "ours"; // her face = her own verified photos, or platform images (anti-deepfake)
   colors?: string;            // comma-joined colour tags
   fabrics?: string;           // comma-joined fabric tags
   occasions?: string;         // comma-joined occasion tags

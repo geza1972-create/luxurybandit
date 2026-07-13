@@ -403,6 +403,10 @@ export async function POST(request: Request) {
       // "Werde Model" ad traffic — no self-service accounts go live unchecked.
       status: "pending",
       createdAt: new Date().toISOString(),
+      // CONCEPT 2.0: which role model's style she emulates + where her face comes from
+      // ("own" verified photos vs "ours" = platform images — never a third person's face).
+      ...(String((payload as any).styleModelId ?? "").trim() ? { styleModelId: String((payload as any).styleModelId).trim() } : {}),
+      imageSource: (payload as any).imageSource === "ours" ? "ours" : "own",
       // Audit trail: record that (and when) she accepted the model rules & terms.
       ...(payload.consent === true ? {
         consentAt: new Date().toISOString(),

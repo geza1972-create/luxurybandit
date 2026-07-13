@@ -39,6 +39,10 @@ export default function CuratorApplyPage() {
   const [genderFocus, setGenderFocus] = useState("");
   const [priceTiers, setPriceTiers] = useState<string[]>([]);
   const [fitFocus, setFitFocus] = useState<string[]>([]);
+  // CONCEPT 2.0 creation tool: which role model's STYLE you emulate + where your face comes from.
+  const [styleModelId, setStyleModelId] = useState("");
+  const [imageSource, setImageSource] = useState<"own" | "ours">("own"); // own photos (you) vs our images (anti-deepfake: never someone else's face)
+  const [roleModels, setRoleModels] = useState<{ id: string; name: string; photoUrl?: string }[]>([]);
 
   const [db, setDb] = useState<{ brands: string[]; styles: string[]; colors: string[]; fabrics: string[]; occasions: string[] }>(
     { brands: [], styles: [], colors: [], fabrics: [], occasions: [] }
@@ -46,6 +50,10 @@ export default function CuratorApplyPage() {
   useEffect(() => {
     fetch("/api/curator").then(r => r.json()).then((d: any) => {
       setDb({ brands: d.brands ?? [], styles: d.styles ?? [], colors: d.colors ?? [], fabrics: d.fabrics ?? [], occasions: d.occasions ?? [] });
+    }).catch(() => {});
+    // Role models to emulate (style templates).
+    fetch("/api/try-this-look?models=1").then(r => r.json()).then((d: any) => {
+      setRoleModels((d.models ?? []).filter((m: any) => m.photoUrl).slice(0, 40));
     }).catch(() => {});
   }, []);
 
@@ -174,7 +182,7 @@ export default function CuratorApplyPage() {
     try {
       const shared = {
         firstName, lastName, email, phone, address, instagram, brands, style, motto, bio,
-        genderFocus, consent: agreed, consentText: "18+, photos are really me, accept model rules & terms",
+        genderFocus, styleModelId, imageSource, consent: agreed, consentText: "18+, photos are really me, accept model rules & terms",
         colors: colorChips.join(", "),
         fabrics: fabricChips.join(", "),
         occasions: occasionChips.join(", "),
@@ -290,6 +298,37 @@ export default function CuratorApplyPage() {
           <p className="mt-1 text-[11px] font-bold leading-relaxed text-white/55">Photos that are blurry, hide your face (hat/sunglasses), fake, or don&apos;t fit our luxury concept are rejected — and a rejected application can&apos;t apply again. Sharp, well-lit, real photos only.</p>
           <p className="mt-2 text-[11px] font-bold leading-relaxed text-emerald-300/80">💰 You earn <b className="text-emerald-200">30%</b> (~$1.20) every time a fan makes a paid video with you — it lands in your account automatically. The more fans pick you, the more you earn. <a href="/earnings" className="underline underline-offset-2">How earnings work →</a></p>
           <p className="mt-2 text-[11px] font-bold leading-relaxed text-amber-200/80">🎬 Your first video is free — turn a photo into a video once you&apos;re approved. Every extra video is just $3.99.</p>
+        </div>
+
+        {/* CONCEPT 2.0 creation tool — role model (style template) + face source (anti-deepfake). */}
+        <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <span className={label}>Your role model · style template</span>
+          <p className="mt-0.5 text-[11px] font-bold text-white/40">Pick who you want to be like. We give you a similar style — with YOUR own look, never a copy.</p>
+          <div className="mt-2 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+            {roleModels.map(m => (
+              <button key={m.id} type="button" onClick={() => setStyleModelId(id => id === m.id ? "" : m.id)}
+                className={`shrink-0 text-center transition ${styleModelId === m.id ? "" : "opacity-70 hover:opacity-100"}`}>
+                <span className={`block h-16 w-16 overflow-hidden rounded-full border-2 ${styleModelId === m.id ? "border-amber-400" : "border-white/10"}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={m.photoUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+                </span>
+                <span className="mt-1 block w-16 truncate text-[10px] font-bold text-white/60">{m.name.split(" ")[0]}</span>
+              </button>
+            ))}
+          </div>
+
+          <span className={`${label} mt-4`}>Whose face?</span>
+          <div className="mt-1 grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => setImageSource("own")}
+              className={`rounded-xl border px-3 py-2.5 text-center text-[12px] font-black transition ${imageSource === "own" ? "border-amber-400 bg-amber-400/10 text-amber-300" : "border-white/12 text-white/60"}`}>
+              📸 My own photos<br /><span className="text-[10px] font-bold opacity-70">You become the influencer</span>
+            </button>
+            <button type="button" onClick={() => setImageSource("ours")}
+              className={`rounded-xl border px-3 py-2.5 text-center text-[12px] font-black transition ${imageSource === "ours" ? "border-amber-400 bg-amber-400/10 text-amber-300" : "border-white/12 text-white/60"}`}>
+              ✨ LuxuryBandit images<br /><span className="text-[10px] font-bold opacity-70">Use our AI faces</span>
+            </button>
+          </div>
+          <p className="mt-1.5 text-[10px] font-bold text-white/30">To protect everyone, an influencer can only use YOUR verified photos or our images — never someone else&apos;s face.</p>
         </div>
 
         {/* Profile photos — one main + up to 3 more; the team picks the best one. */}
