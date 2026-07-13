@@ -1760,8 +1760,19 @@ export default function AdminPage() {
                     <div className="truncate text-xs font-bold text-ink/45">{house ? "Looks & try-ons with no curator" : (c.email ?? "—")}</div>
                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
                       {!house && (pending
-                        ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">Pending review</span>
-                        : <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${off ? "bg-black/8 text-ink/50" : "bg-emerald-100 text-emerald-700"}`}>{off ? "Deactivated" : "Active"}</span>)}
+                        ? <button type="button" disabled={busy === c.id}
+                            onClick={e => { e.stopPropagation(); void setCuratorStatus(c.id, "active"); }}
+                            title="Pending — tap to approve & activate"
+                            className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700 transition active:scale-95 disabled:opacity-50">
+                            {busy === c.id ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : null} Pending — approve
+                          </button>
+                        : <button type="button" disabled={busy === c.id}
+                            onClick={e => { e.stopPropagation(); void setCuratorStatus(c.id, off ? "active" : "deactivated"); }}
+                            title={off ? "Deactivated — tap to activate" : "Active — tap to deactivate"}
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black transition active:scale-95 disabled:opacity-50 ${off ? "bg-black/8 text-ink/50" : "bg-emerald-500 text-white"}`}>
+                            {busy === c.id ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : (off ? null : <Check className="h-2.5 w-2.5" />)}
+                            {off ? "Deactivated" : "Active"}
+                          </button>)}
                       {/* Real-model toggle — tap to add/remove the "✓ Real model" badge. */}
                       {!house && (
                         <button type="button" disabled={busy === `real-${c.id}`}
