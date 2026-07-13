@@ -25,8 +25,13 @@
 ## 3. Fan-Seite — der Hook
 1. Sehenswertes Model-Video (täglich neu) →
 2. **„Sieh dich selbst drin"** = **echter Face-Swap** (User-Gesicht ins Video) — **kostenpflichtig ($3.99), der User zahlt die Rechenzeit** →
-3. **Chat** mit der Influencerin — **persönlicher Persona-Chat** (wie das alte AI-Model-Chat: sie fragt deinen Namen, plaudert, ist nahbar), **NICHT der werbliche Produkt-Finder.** „Chat mit Gina" fühlt sich an wie mit einem echten Vorbild reden. Produkte/Looks kommen erst auf Nachfrage. →
+3. **Chat** mit der Influencerin — **persönlicher Persona-Chat** (wie das alte AI-Model-Chat: sie fragt deinen Namen, plaudert, ist nahbar), **NICHT der werbliche Produkt-Finder.** „Chat mit Gina" fühlt sich an wie mit einem echten Vorbild reden. **Produkte/Looks nur auf Nachfrage** — erst wenn der Fan fragt „was trägst du gern?", zeigt sie ihre Marken/Teile (Affiliate). →
 4. **Shop the Look** (Affiliate, sekundär).
+
+### 3b. Affiliate-Mechanik (so verdient die Shop-Schicht)
+- **Auf dem Profil** der Influencerin sind ihre **Lieblingsmarken** eingetragen (Funktion existiert schon). Daraus werden **shoppbare Produkte** gezeigt → Klick = Affiliate-Provision.
+- **Im Chat** proaktiv **nichts** verkaufen — Produkte erscheinen **erst auf Nachfrage** („was trägst du gern?"). So bleibt der Chat persönlich (§3.3) und die Ergebnisse relevant.
+- Speist sich aus den v1-Affiliate-Netzwerken (Anhang §13). Bleibt **sekundär** — der Kern ist Face-Swap + Chat.
 - Mehrwert: jeden Tag neues Model, sie in immer neuen Looks/Lingerie sehen.
 
 ## 4. Creator-Seite — das Avon-Modell
