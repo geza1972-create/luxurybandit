@@ -1880,6 +1880,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    // Admin: replace a face's image in-place (e.g. after cropping). Keeps the same id and
+    // any existing booking (claimedBy), so a booked face just gets a cleaner picture.
+    if (payload.action === "replace-avatar-face") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const faceId = String((payload as any).faceId ?? "").trim();
+      const img = String((payload as any).image ?? "");
+      if (!faceId) return NextResponse.json({ error: "faceId required." }, { status: 400 });
+      if (!img.startsWith("data:image/")) return NextResponse.json({ error: "image required." }, { status: 400 });
+      const st = await readTryThisLookState();
+      const face = (st.avatarFaces ?? []).find(f => f.id === faceId);
+      if (!face) return NextResponse.json({ error: "Face not found." }, { status: 404 });
+      face.imagePath = await uploadTryThisLookImage("uploads", img);
+      face.imageUrl = undefined;
+      await saveTryThisLookState(st);
+      return NextResponse.json({ ok: true, id: faceId });
+    }
+
     // Claim an AI face for a creator — ONCE only. A face belongs to exactly one influencer,
     // so once booked it can never be picked again. ($3.99 is gated via Stripe on the client;
     // the server enforces the uniqueness.)

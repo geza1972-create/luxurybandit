@@ -3,8 +3,8 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus, Video, BarChart3, Eye, MousePointerClick, Check, ImagePlus } from "lucide-react";
-import { readPhotoFile } from "../curators/taste-form";
+import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus, Video, BarChart3, Eye, MousePointerClick, Check, ImagePlus, Crop } from "lucide-react";
+import { readPhotoFile, PhotoCropper } from "../curators/taste-form";
 import { signInWithPassword, getStoredAuthSession, saveAuthSession, signOut, resetPassword } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { LOOK_CATEGORIES, categorizeLook, type LookCategory } from "@/lib/look-category";
@@ -460,6 +460,29 @@ export default function AdminPage() {
       const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-avatar-face", faceId: id, ...(claimed ? { force: true } : {}) }) });
       if (r.ok) setFaces(fs => fs.filter(f => f.id !== id));
     } catch { /**/ }
+  };
+  // Big view + crop for a single face.
+  const [bigFace, setBigFace] = useState<{ id: string; imageUrl: string; claimed: boolean } | null>(null);
+  const [faceCropSrc, setFaceCropSrc] = useState(""); // data URL fed to PhotoCropper
+  const [faceCropBusy, setFaceCropBusy] = useState(false);
+  const startFaceCrop = async () => {
+    if (!bigFace) return;
+    setFaceErr("");
+    try {
+      const res = await fetch(bigFace.imageUrl);
+      const blob = await res.blob();
+      const dataUrl = await new Promise<string>((resolve, reject) => { const fr = new FileReader(); fr.onload = () => resolve(String(fr.result)); fr.onerror = reject; fr.readAsDataURL(blob); });
+      setFaceCropSrc(dataUrl);
+    } catch { setFaceErr("Couldn't load this image for cropping."); }
+  };
+  const saveFaceCrop = async (dataUrl: string) => {
+    if (!bigFace) return;
+    setFaceCropBusy(true);
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "replace-avatar-face", faceId: bigFace.id, image: dataUrl }) });
+      if (!r.ok) { setFaceErr((await r.json().catch(() => ({}))).error || "Crop failed."); }
+      else { setFaceCropSrc(""); setBigFace(null); await loadFaces(); }
+    } catch { setFaceErr("Crop failed."); } finally { setFaceCropBusy(false); }
   };
   useEffect(() => { if (tab === "curators" && !facesLoaded) void loadFaces(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [tab, facesLoaded]);
   const vidTargetRef = useRef<string>("");
@@ -1513,8 +1536,10 @@ export default function AdminPage() {
               <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6">
                 {faces.map(f => (
                   <div key={f.id} className="relative aspect-[3/4] overflow-hidden rounded-xl border border-black/10 bg-black/[0.04]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
+                    <button type="button" onClick={() => setBigFace(f)} title="Tap to enlarge / crop" className="block h-full w-full">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
+                    </button>
                     <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[9px] font-black ${f.claimed ? "bg-black/70 text-white/70" : "bg-emerald-600 text-white"}`}>{f.claimed ? "Booked" : "Free"}</span>
                     <button type="button" title={f.claimed ? "Booked — delete anyway" : "Delete face"}
                       onClick={() => armOrRun(`face-${f.id}`, () => void deleteFace(f.id, f.claimed))}
@@ -1873,6 +1898,30 @@ export default function AdminPage() {
           onReset={() => void resetAnalytics(false)}
           resetting={resetting}
         />
+      )}
+
+      {/* ── AI-face big view: enlarge, crop (in-place, keeps booking), or delete ── */}
+      {bigFace && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-4" onClick={e => { if (e.target === e.currentTarget) setBigFace(null); }}>
+          <div className="flex w-full max-w-sm flex-col items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={bigFace.imageUrl} alt="" className="max-h-[68vh] w-auto rounded-2xl object-contain" />
+            <p className="mt-2 text-[12px] font-bold text-white/60">{bigFace.claimed ? "Booked by an influencer" : "Free — claimable for $3.99"}</p>
+            {faceErr && <p className="mt-1 text-[12px] font-bold text-red-400">{faceErr}</p>}
+            <div className="mt-3 grid w-full grid-cols-3 gap-2">
+              <button type="button" onClick={() => void startFaceCrop()}
+                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-white text-sm font-black text-black active:scale-95 transition"><Crop className="h-4 w-4" /> Crop</button>
+              <button type="button" onClick={() => armOrRun(`bigdel-${bigFace.id}`, () => { const id = bigFace.id, cl = bigFace.claimed; setBigFace(null); void deleteFace(id, cl); })}
+                className={`inline-flex h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-black text-white active:scale-95 transition ${confirmId === `bigdel-${bigFace.id}` ? "bg-red-600" : "bg-red-500/85"}`}>
+                {confirmId === `bigdel-${bigFace.id}` ? <><Check className="h-4 w-4" /> Sure?</> : <><Trash2 className="h-4 w-4" /> Delete</>}</button>
+              <button type="button" onClick={() => setBigFace(null)}
+                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border border-white/25 text-sm font-black text-white active:scale-95 transition"><X className="h-4 w-4" /> Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {faceCropSrc && (
+        <PhotoCropper src={faceCropSrc} aspect="portrait" onCancel={() => setFaceCropSrc("")} onDone={d => void saveFaceCrop(d)} />
       )}
 
       {/* ── Curator edit sheet ── */}
