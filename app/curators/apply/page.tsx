@@ -341,7 +341,7 @@ export default function CuratorApplyPage() {
         <div className="mx-auto w-full max-w-md px-5 pb-20">
           {/* The campaign banner stays on the sign-up wall too. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/become-a-model-banner.jpg" alt="Become a LuxuryBandit Influencer and make money daily"
+          <img src="/become-a-model-banner.jpg?v=2" alt="Become or create your own LuxuryBandit Influencer and make money daily"
             className="mt-4 w-full rounded-2xl" />
           <h1 className="mt-5 text-center text-2xl font-black leading-tight">Create your account to apply</h1>
           <p className="mx-auto mt-2 max-w-sm text-center text-[14px] font-bold text-slate-600">
@@ -443,7 +443,7 @@ export default function CuratorApplyPage() {
             The campaign banner stays visible until she completes the signup. */}
         {!editId && <div className="text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/become-a-model-banner.jpg" alt="Become a LuxuryBandit Influencer and make money daily"
+          <img src="/become-a-model-banner.jpg?v=2" alt="Become or create your own LuxuryBandit Influencer and make money daily"
             className="mb-4 w-full rounded-2xl border border-black/15" />
           <p className="mt-1 text-[13px] font-black uppercase tracking-[0.2em] text-slate-900">AI Virtual Try-On · Luxury Fashion</p>
           <h1 className="mt-2 text-[28px] font-black leading-tight text-slate-900">

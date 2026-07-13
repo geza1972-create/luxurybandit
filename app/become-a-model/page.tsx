@@ -10,7 +10,7 @@ export const metadata = {
   openGraph: {
     title: "Make money daily — become a LuxuryBandit Model",
     description: "Upload one photo. We generate your videos. You earn with every look.",
-    images: [{ url: "/become-a-model-banner.jpg", width: 1280, height: 720 }],
+    images: [{ url: "/become-a-model-banner.jpg?v=2", width: 1280, height: 720 }],
     // og:url + og:type — the Facebook Sharing Debugger flags both when missing.
     url: "/become-a-model",
     type: "website",
@@ -66,7 +66,7 @@ export default async function BecomeAModelPage() {
         <div className="text-center">
           {/* Campaign banner — also the OG/share image for the ads. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/become-a-model-banner.jpg" alt="Make money daily — become a LuxuryBandit model"
+          <img src="/become-a-model-banner.jpg?v=2" alt="Become or create your own LuxuryBandit Influencer and make money daily"
             className="mb-4 w-full rounded-2xl border border-amber-400/30" />
           {/* CTA right under the banner — ad traffic converts above the fold. */}
           <Link href="/curators/apply"
