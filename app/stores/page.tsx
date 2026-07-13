@@ -19,7 +19,7 @@ import { LOOK_CATEGORIES, isHiddenFromAll, isLookCategory, type LookCategory } f
 import { publicLookLabel } from "@/lib/look-title";
 import { publicAuthorName } from "@/lib/display-name";
 import { safeLookImage } from "@/lib/look-image";
-import { Bookmark, Crop, Download, Eye, EyeOff, Heart, Home, Image as ImageIcon, ImageUp, Info, Instagram, LayoutGrid, Loader2, Lock, LogOut, Menu, MessageCircle, Play, Search, Send, ShoppingBag, SlidersHorizontal, Sparkles, Trash2, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
+import { Bookmark, Crop, Crown, Download, Eye, EyeOff, Heart, Home, Image as ImageIcon, ImageUp, Info, Instagram, LayoutGrid, Loader2, Lock, LogOut, Menu, MessageCircle, Play, Search, Send, ShoppingBag, SlidersHorizontal, Sparkles, Trash2, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -28,22 +28,22 @@ import { PhotoCropper } from "../curators/taste-form";
 // Landing hero copy — Romanian by default, English via the switcher.
 const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub: string; b1t: string; b1x: string; b2t: string; b2x: string; cta: string; becomeModel: string }> = {
   ro: {
-    eyebrow: "Portalul de influenceri AI · Creează-l pe al tău",
-    h1a: "Nu mai posta gratis.", h1b: "Devino un influencer AI și câștigă.",
-    sub: "Transformă-ți pozele (sau folosește-le pe ale noastre) în videouri de modă zilnice. Alegi un stil, noi îți facem conținutul, tu îl distribui — și câștigi de la fiecare fan care vorbește cu tine sau te probează. Fără să ai nevoie de followeri.",
-    b1t: "Propriul tău influencer AI", b1x: "Cu pozele tale sau ale noastre — stilul unui model, mereu fața TA. Videouri zilnice, făcute pentru tine.",
-    b2t: "Câștigi în fiecare zi", b2x: "Fanii vorbesc cu tine și te probează. Primești un procent din fiecare video plătit — automat.",
-    cta: "Devino Influencer",
-    becomeModel: "Vrei doar să cumperi? Găsește-ți ținuta →",
+    eyebrow: "Marketplace-ul de influenceri AI",
+    h1a: "Descoperă influenceri AI.", h1b: "Urmărește, vorbește, probează-le ținutele.",
+    sub: "Explorează un marketplace de influenceri AI — vezi ținutele lor de lux zilnice, vorbește cu ei și probează-le hainele pe tine. Fețe noi și ținute noi în fiecare zi.",
+    b1t: "Urmărește & vorbește", b1x: "Trimite mesaj oricărui influencer, lasă-te stilizat de el și probează-i ținutele pe poza ta.",
+    b2t: "Ținute noi zilnic", b2x: "Videouri de modă de lux de la fiecare influencer, în fiecare zi.",
+    cta: "Vezi influencerii",
+    becomeModel: "Vrei propriul tău influencer AI? →",
   },
   en: {
-    eyebrow: "The AI-influencer portal · Create your own",
-    h1a: "Stop posting for free.", h1b: "Become an AI influencer & earn.",
-    sub: "Turn your photos (or use ours) into daily fashion videos. Pick a style, we make your content, you share it — and earn from every fan who chats with you or tries you on. No follower count needed to start.",
-    b1t: "Your own AI influencer", b1x: "With your photos or ours — a role model's style, always YOUR face. Daily videos, made for you.",
-    b2t: "Earn every day", b2x: "Fans chat with you and try you on. You keep a cut of every paid video — automatically.",
-    cta: "Become an Influencer",
-    becomeModel: "Just want to shop? Find your look →",
+    eyebrow: "The AI Influencer Marketplace",
+    h1a: "Discover AI influencers.", h1b: "Follow, chat & try their looks.",
+    sub: "Browse a marketplace of AI influencers — watch their daily luxury looks, chat with them, and try their outfits on your own photo. New faces and new looks every day.",
+    b1t: "Follow & chat", b1x: "Message any influencer, get styled by her, and try her looks on your own photo.",
+    b2t: "New looks daily", b2x: "Fresh luxury fashion videos from every influencer, every single day.",
+    cta: "Browse influencers",
+    becomeModel: "Own your own AI influencer →",
   },
 };
 
@@ -2772,16 +2772,16 @@ function StoresPage() {
                   ))}
                 </div>
                 <div className="mt-3.5 flex items-center gap-2">
-                  {/* Primary CTA — creator-first: become an influencer. */}
-                  <button type="button" onClick={() => router.push("/own-influencer")}
+                  {/* Primary CTA — marketplace-first: browse the AI influencers below. */}
+                  <button type="button" onClick={() => setHomeTab("models")}
                     className="lb-gold flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-black active:scale-95 transition-transform">
                     <Sparkles className="h-4 w-4" /> {HERO[heroLang].cta}
                   </button>
                 </div>
-                {/* Secondary — fans who just want to shop go to the price-finder. */}
-                <button type="button" onClick={() => router.push(`/luxury-products?lang=${heroLang}&demo=1`)}
+                {/* Secondary — creators who want to OWN an AI influencer go to the landing. */}
+                <button type="button" onClick={() => router.push("/own-influencer")}
                   className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-black text-white/55 underline decoration-white/25 underline-offset-4 active:opacity-70 transition">
-                  <Search className="h-3.5 w-3.5" /> {HERO[heroLang].becomeModel}
+                  <Crown className="h-3.5 w-3.5" /> {HERO[heroLang].becomeModel}
                 </button>
               </section>
             )}
