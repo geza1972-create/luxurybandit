@@ -1,261 +1,264 @@
 import Link from "next/link";
-import { ArrowLeft, Camera, ChevronDown, Coins, Heart, Sparkles, BadgeCheck, Play, Eye, Building2 } from "lucide-react";
+import { Sparkles, Video, MessageCircle, TrendingUp, Check, Crown, Camera, BarChart3, Users, Gem, Wand2 } from "lucide-react";
 import { readTryThisLookState } from "@/lib/try-this-look-store";
 import TrackView from "@/components/TrackView";
 import LazyVideo from "@/components/LazyVideo";
 import OwnInfluencerCTA from "@/components/OwnInfluencerCTA";
 
 export const metadata = {
-  title: "Become a LuxuryBandit Influencer — earn with every look",
-  description: "Being a LuxuryBandit Influencer is different: use your own photos or ours, get styled in luxury looks by AI, get discovered by fashion brands — and earn every day. Stop posting for free.",
+  title: "LuxuryBandit — Own an AI Influencer. We'll help her grow.",
+  description: "Launch your AI influencer business on LuxuryBandit — the marketplace where fans discover, follow and support AI influencers. We create the content daily, you build the audience. From €9.99/month.",
   openGraph: {
-    title: "Make money daily — become or create a LuxuryBandit Influencer",
-    description: "Upload one photo. We generate your videos. You earn with every look.",
+    title: "Own an AI Influencer — We'll help her grow | LuxuryBandit",
+    description: "Launch your AI influencer business. We create the content, you build the audience, you earn from premium fan experiences. From €9.99/month.",
     images: [{ url: "/become-a-model-banner.jpg?v=2", width: 1280, height: 720 }],
-    // og:url + og:type — the Facebook Sharing Debugger flags both when missing.
     url: "/own-influencer",
     type: "website",
   },
-  // fb:app_id comes from the ROOT layout (single source) — every page carries it.
 };
 
-// Signed media URLs expire — render fresh per request (same as /about).
+// Signed media URLs expire — render fresh per request.
 export const dynamic = "force-dynamic";
 
-// Gina is the living example on this page: her real photo → her real generated
-// videos → fans trying looks on her. Public clips only (never members-only).
-async function ginaExample() {
+// Real content for the landing: Gina's clips (the "we create the content" proof) +
+// a few real models for the "for fans" marketplace preview. Public clips only.
+async function landingData() {
   try {
     const state = await readTryThisLookState();
-    const gina = (state.curators ?? []).find(c => c.firstName === "Gina" && c.lastName === "Popescu");
-    if (!gina) return { photo: "", clips: [] as { poster: string; video: string }[] };
-    const clips = (state.generations ?? [])
-      .filter(g => (g as { curatorId?: string }).curatorId === gina.id && (g as { videoUrl?: string }).videoUrl && (g as { public?: boolean }).public === true && !(g as { hidden?: boolean }).hidden)
-      .slice(0, 3)
-      .map(g => ({ poster: ((g as { imageUrl?: string }).imageUrl ?? "") as string, video: (g as { videoUrl?: string }).videoUrl as string }));
-    return { photo: ((gina as { photoUrl?: string }).photoUrl ?? "") as string, clips };
-  } catch { return { photo: "", clips: [] as { poster: string; video: string }[] }; }
+    const curators = state.curators ?? [];
+    const gina = curators.find(c => c.firstName === "Gina" && c.lastName === "Popescu") as { id?: string; photoUrl?: string } | undefined;
+    const clips = gina
+      ? (state.generations ?? [])
+          .filter(g => (g as { curatorId?: string }).curatorId === gina.id && (g as { videoUrl?: string }).videoUrl && (g as { public?: boolean }).public === true && !(g as { hidden?: boolean }).hidden)
+          .slice(0, 4)
+          .map(g => ({ poster: ((g as { imageUrl?: string }).imageUrl ?? "") as string, video: (g as { videoUrl?: string }).videoUrl as string }))
+      : [];
+    const models = curators
+      .filter(c => (c as { photoUrl?: string }).photoUrl && String((c as { status?: string }).status ?? "active") === "active" && !(c as { hidden?: boolean }).hidden)
+      .slice(0, 6)
+      .map(c => ({ name: [(c as { firstName?: string }).firstName, (c as { lastName?: string }).lastName].filter(Boolean).join(" "), photo: (c as { photoUrl?: string }).photoUrl as string }));
+    return { heroPhoto: (gina?.photoUrl ?? models[0]?.photo ?? "") as string, clips, models };
+  } catch { return { heroPhoto: "", clips: [] as { poster: string; video: string }[], models: [] as { name: string; photo: string }[] }; }
 }
 
-// Model recruiting landing page — the "Werde Model" ad traffic lands HERE.
-// Pitch: you post on Instagram/TikTok for free — here the portal generates your
-// videos from ONE photo, you collect likes, get discovered, and EARN.
-export default async function BecomeAModelPage() {
-  const { photo, clips } = await ginaExample();
-  const card = "flex items-start gap-3.5 rounded-2xl border border-white/10 bg-white/[0.04] p-4";
-  const icon = "grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-amber-400";
+export default async function OwnInfluencerLanding() {
+  const { heroPhoto, clips, models } = await landingData();
+
+  const NAV = [
+    { label: "For Creators", href: "#creators" },
+    { label: "For Fans", href: "#fans" },
+    { label: "Marketplace", href: "/stores?view=grid" },
+    { label: "Pricing", href: "#pricing" },
+    { label: "How It Works", href: "#how" },
+    { label: "Login", href: "/login" },
+  ];
+  const HERO_FEATURES = [
+    { icon: Sparkles, label: "Daily luxury content" },
+    { icon: Video, label: "AI fashion videos" },
+    { icon: MessageCircle, label: "Premium fan interactions" },
+    { icon: TrendingUp, label: "You earn revenue" },
+  ];
+  const CREATOR_POINTS = ["We create fresh content every day", "No AI skills required", "No editing or posting", "Grow your audience", "Earn from premium experiences"];
+  const FAN_POINTS = ["Discover amazing AI influencers", "Chat with your favorites", "Unlock exclusive content", "Watch premium videos", "Try on her looks"];
+  const STEPS = [
+    { icon: Users, t: "Create your influencer", d: "Choose a style or create your own AI influencer." },
+    { icon: Camera, t: "Choose a monthly plan", d: "Pick the plan that fits your goals." },
+    { icon: Sparkles, t: "We create content every day", d: "Luxury photos, videos, looks and more." },
+    { icon: MessageCircle, t: "Fans discover your influencer", d: "They follow, chat and unlock premium content." },
+    { icon: TrendingUp, t: "You earn from premium experiences", d: "Grow your audience and your revenue." },
+  ];
+  const WHY = [
+    { icon: Crown, t: "Own your influencer", d: "You own your AI influencer and your brand." },
+    { icon: Users, t: "Fan connections", d: "Chat, engage and build real relationships with fans." },
+    { icon: Camera, t: "Daily luxury content", d: "We create high-quality content every single day." },
+    { icon: Gem, t: "Premium experiences", d: "Offer exclusive content, try-ons, videos and more." },
+    { icon: BarChart3, t: "Build your business", d: "Grow your audience and increase your income." },
+    { icon: Wand2, t: "We do the work", d: "No prompts. No editing. No daily posting." },
+  ];
 
   return (
-    <main className="min-h-[100dvh] bg-[#0d0b0a] pb-24 text-white">
-      {/* Insights: recruiting funnel step 1 (landing view). */}
+    <main className="min-h-[100dvh] bg-[#0d0b0a] text-white">
       <TrackView event="recruit_view" />
-      <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-white/10 bg-[#0d0b0a]/95 px-4 py-3 backdrop-blur">
-        <Link href="/stores?view=grid" aria-label="Back"
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 text-white active:scale-90 transition-transform">
-          <ArrowLeft className="h-4 w-4" />
-        </Link>
-        <p className="min-w-0 flex-1 truncate text-sm font-black text-white">Become a LuxuryBandit Influencer</p>
-        {/* Straight into the show — visitors see what the fuss is about. */}
-        <Link href="/stores?tab=community"
-          className="lb-gold flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-black active:scale-95 transition-transform">
-          <Play className="h-3.5 w-3.5" fill="currentColor" /> Let&apos;s Play Big
-        </Link>
-      </header>
 
-      <article className="mx-auto max-w-2xl px-5 py-8">
-        {/* Hero */}
-        <div className="text-center">
-          {/* Campaign banner — also the OG/share image for the ads. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/become-a-model-banner.jpg?v=2" alt="Become or create your own LuxuryBandit Influencer and make money daily"
-            className="mb-4 w-full rounded-2xl border border-amber-400/30" />
-          {/* Primary CTA — the $9.99/mo "own an AI influencer" subscription (ad test). */}
-          <div className="mb-6"><OwnInfluencerCTA /></div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Become a LuxuryBandit Influencer</p>
-          <h1 className="mt-2 text-[30px] font-black leading-tight">
-            Stop posting for free.<br /><span className="text-amber-400">Become an AI influencer &amp; earn.</span>
-          </h1>
-          <p className="mx-auto mt-3 max-w-md text-[15px] font-semibold leading-7 text-white/60">
-            Become your own <strong className="text-white">AI fashion influencer</strong> — with <strong className="text-white">your own photos or ours</strong>. Pick a role model, we make your <strong className="text-white">daily videos</strong>, you share them, and you earn from every fan who <strong className="text-white">chats with you or tries you on</strong>. No follower count needed to start.
-          </p>
-        </div>
-
-        {/* The flow IN PICTURES — Gina as the living example: one photo in,
-            videos out, fans try looks, money lands. (Public clips only.) */}
-        {photo && clips.length >= 2 && (
-          <section className="mt-10">
-            <h2 className="flex items-center gap-2 text-lg font-black"><Play className="h-5 w-5 text-amber-400" fill="currentColor" /> Watch it happen</h2>
-            <p className="mt-1 text-[13px] font-semibold text-white/50">This is Gina — a real LuxuryBandit example, from one photo to money.</p>
-
-            {/* 1 · She uploads ONE photo */}
-            <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-sm font-black"><span className="mr-2 inline-grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[12px] text-black">1</span>She uploads one photo</p>
-              <div className="mt-3 flex items-center gap-4">
-                <div className="relative h-44 w-[132px] shrink-0 overflow-hidden rounded-xl border-2 border-dashed border-amber-400/50 lb-media-bg">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={photo} alt="Uploaded photo" className="h-full w-full object-cover object-top" />
-                  <span className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur"><Camera className="h-3 w-3" /> Phone photo</span>
-                </div>
-                <p className="text-[13px] font-semibold leading-6 text-white/55">A simple phone picture is enough — <strong className="text-white">our AI polishes it</strong>. No shoot, no studio.</p>
-              </div>
-            </div>
-            <div className="my-1.5 grid place-items-center text-amber-400"><ChevronDown className="h-5 w-5" /></div>
-
-            {/* 2 · The portal animates her */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-sm font-black"><span className="mr-2 inline-grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[12px] text-black">2</span>We turn it into videos</p>
-              <div className="mt-3 flex items-center gap-4">
-                <LazyVideo src={clips[0].video} poster={clips[0].poster || undefined}
-                  className="aspect-[9/16] h-44 shrink-0 rounded-xl lb-media-bg" />
-                <p className="text-[13px] font-semibold leading-6 text-white/55">Runway-quality videos, generated by the portal — <strong className="text-white">she does nothing</strong>. They appear on her own page.</p>
-              </div>
-            </div>
-            <div className="my-1.5 grid place-items-center text-amber-400"><ChevronDown className="h-5 w-5" /></div>
-
-            {/* 3 · Fans try looks on her */}
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-sm font-black"><span className="mr-2 inline-grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[12px] text-black">3</span>Fans put her in new looks</p>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {clips.slice(1, 3).map((c, i) => (
-                  <LazyVideo key={i} src={c.video} poster={c.poster || undefined}
-                    className="aspect-[9/16] w-full rounded-xl lb-media-bg" />
-                ))}
-              </div>
-              <p className="mt-2.5 text-[13px] font-semibold leading-6 text-white/55">Fans pick outfits and <strong className="text-white">try them on her</strong> — same model, endless looks, new videos every day.</p>
-            </div>
-            <div className="my-1.5 grid place-items-center text-amber-400"><ChevronDown className="h-5 w-5" /></div>
-
-            {/* 4 · Money lands */}
-            <div className="rounded-2xl border border-amber-400/40 bg-amber-400/[0.08] p-4">
-              <p className="text-sm font-black text-amber-400"><span className="mr-2 inline-grid h-6 w-6 place-items-center rounded-full bg-amber-400 text-[12px] text-black">4</span>You earn from chat &amp; try-ons</p>
-              {/* NO concrete amounts — only the mechanism: she earns when fans chat with her
-                  and when fans do premium try-ons with her photo. */}
-              <div className="mt-3 grid gap-1.5">
-                {["Chat with a fan", "Fan try-on · your look", "Video try-on · premium"].map(label => (
-                  <div key={label} className="flex items-center justify-between rounded-xl bg-black/30 px-3.5 py-2.5">
-                    <span className="flex items-center gap-2 text-[13px] font-bold text-white/70"><Coins className="h-4 w-4 text-amber-400" /> {label}</span>
-                    <span className="text-[13px] font-black text-amber-400">→ her share</span>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-2.5 text-[12px] font-semibold leading-5 text-white/50">Fans pay for premium try-ons — she gets her share of every single one, automatically, day and night.</p>
-            </div>
-          </section>
-        )}
-
-        {/* How it works for her */}
-        <h2 className="mt-10 flex items-center gap-2 text-lg font-black"><Sparkles className="h-5 w-5 text-amber-400" /> How it works</h2>
-        <div className="mt-3 grid gap-2.5">
-          <div className={card}>
-            <span className={icon}><Camera className="h-5 w-5" /></span>
-            <div>
-              <p className="text-sm font-black">Your photos — or ours</p>
-              <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/55">
-                No shoots, no editing, no daily posting. Upload <strong className="text-white">your
-                own photos</strong> — a simple phone picture is enough, <strong className="text-white">our
-                AI polishes it</strong> — or pick one of <strong className="text-white">our exclusive AI
-                faces</strong>. Either way, <strong className="text-white">the videos are generated for you</strong>.
-              </p>
-            </div>
-          </div>
-          <div className={card}>
-            <span className={icon}><Play className="h-5 w-5" /></span>
-            <div>
-              <p className="text-sm font-black">Get styled in luxury looks</p>
-              <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/55">
-                See yourself in designer outfits you&apos;d never have to buy — runway-quality
-                videos on your own page, produced by our team.
-              </p>
-            </div>
-          </div>
-          <div className={card}>
-            <span className={icon}><Heart className="h-5 w-5" /></span>
-            <div>
-              <p className="text-sm font-black">Collect likes &amp; followers</p>
-              <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/55">
-                Your looks appear in the Let&apos;s Play Big feed — fans follow you, like your videos and
-                message you, just like on social. But here it counts for something.
-              </p>
-            </div>
-          </div>
-          <div className={card}>
-            <span className={icon}><Eye className="h-5 w-5" /></span>
-            <div>
-              <p className="text-sm font-black">Get discovered</p>
-              <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/55">
-                Fashion brands browse LuxuryBandit for faces. A strong profile here is a portfolio
-                that works for you around the clock.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3.5 rounded-2xl border border-amber-400/40 bg-amber-400/[0.08] p-4">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-black"><Coins className="h-5 w-5" /></span>
-            <div>
-              <p className="text-sm font-black text-amber-400">Earn from chat &amp; try-ons</p>
-              <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/60">
-                You earn when fans <strong className="text-white">chat with you</strong> and when they
-                <strong className="text-white"> try you on</strong> in a look. The more fans, the more you earn.
-              </p>
-            </div>
-          </div>
-
-          {/* Verification — real people only. */}
-          <div className="flex items-start gap-3.5 rounded-2xl border border-white/12 bg-white/[0.03] p-4">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10"><BadgeCheck className="h-5 w-5 text-emerald-400" /></span>
-            <div>
-              <p className="text-sm font-black text-white">Real people only — you get verified</p>
-              <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/60">
-                Every application is <strong className="text-white">manually checked</strong> by our team
-                (a selfie + your WhatsApp). Fake or stolen photos don&apos;t get in. Your WhatsApp is
-                <strong className="text-white"> only for us</strong> to reach you — never shown publicly.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Trust */}
-        <div className="mt-8 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-          <BadgeCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
-          <p className="text-[13px] font-semibold leading-6 text-white/55">
-            <strong className="text-white">Every profile is reviewed personally.</strong> We approve
-            each creator by hand — you&apos;ll get an email as soon as you&apos;re in. You stay in
-            control of your profile, and intimate categories are never public.
-          </p>
-        </div>
-
-        {/* Brands note */}
-        <div className="mt-3 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-          <Building2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
-          <p className="text-[13px] font-semibold leading-6 text-white/55">
-            <strong className="text-white">You&apos;re a brand or agency?</strong>{" "}
-            <Link href="/contact" className="font-black text-amber-400 underline underline-offset-2">Contact us here</Link> to
-            work with our influencers.
-          </p>
-        </div>
-
-        {/* CTA */}
-        <div className="mt-10 grid gap-2.5">
-          <OwnInfluencerCTA />
-          {/* Share — plain sharer links, no JS: Facebook builds its card from our
-              OG banner (1280x720), WhatsApp from the same preview. */}
-          <div className="flex items-center justify-center gap-2">
-            <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent("https://luxurybandit.com/own-influencer")}`}
-              target="_blank" rel="noopener noreferrer"
-              className="flex flex-1 items-center justify-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/[0.08] px-4 py-3 text-[13px] font-black text-amber-400 active:scale-95 transition-transform">
-              Share on Facebook
-            </a>
-            <a href={`https://wa.me/?text=${encodeURIComponent("Become a LuxuryBandit Influencer — make money daily 💛 https://luxurybandit.com/own-influencer")}`}
-              target="_blank" rel="noopener noreferrer"
-              className="flex flex-1 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/[0.04] px-4 py-3 text-[13px] font-black text-white active:scale-95 transition-transform">
-              Share on WhatsApp
-            </a>
-          </div>
-          <Link href="/stores"
-            className="flex items-center justify-center rounded-full px-6 py-3 text-sm font-black text-white/50 active:scale-95 transition-transform">
-            Back to LuxuryBandit
+      {/* ── Top nav ── */}
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0d0b0a]/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
+          <Link href="/own-influencer" className="flex shrink-0 items-center gap-2.5">
+            <span className="grid h-9 w-9 place-items-center rounded-lg border border-amber-400/40 text-[13px] font-black text-amber-400">LB</span>
+            <span className="leading-none">
+              <span className="block text-[15px] font-black tracking-wide">LUXURYBANDIT</span>
+              <span className="block text-[9px] font-bold uppercase tracking-[0.2em] text-amber-400/80">AI Influencer Marketplace</span>
+            </span>
+          </Link>
+          <nav className="ml-auto hidden items-center gap-6 lg:flex">
+            {NAV.map(n => (
+              <Link key={n.label} href={n.href} className="text-[13px] font-bold text-white/70 transition hover:text-white">{n.label}</Link>
+            ))}
+          </nav>
+          <Link href="#launch" className="ml-auto shrink-0 rounded-full border border-amber-400 px-4 py-2 text-[13px] font-black text-amber-400 transition hover:bg-amber-400 hover:text-black lg:ml-4">
+            Get Started
           </Link>
         </div>
-      </article>
+      </header>
+
+      {/* ── Hero ── */}
+      <section className="relative overflow-hidden border-b border-white/10">
+        <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-10 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:py-16">
+          {/* Image */}
+          <div className="relative order-1 mx-auto w-full max-w-md overflow-hidden rounded-3xl lg:max-w-none">
+            {heroPhoto ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={heroPhoto} alt="Your AI influencer" className="aspect-[4/5] w-full rounded-3xl object-cover" />
+            ) : (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src="/become-a-model-banner.jpg?v=2" alt="Own an AI Influencer on LuxuryBandit" className="w-full rounded-3xl" />
+            )}
+          </div>
+          {/* Copy */}
+          <div className="order-2 text-center lg:text-left">
+            <h1 className="text-[30px] font-black leading-[0.98] tracking-tight sm:text-[44px] lg:text-[60px]">
+              OWN AN<br /><span className="text-amber-400">AI INFLUENCER.</span>
+            </h1>
+            <p className="mt-3 text-[20px] font-black leading-tight sm:text-[24px]">We&apos;ll help her grow.</p>
+            <p className="mx-auto mt-4 max-w-md text-[15px] font-semibold leading-7 text-white/65 lg:mx-0">
+              Launch your <strong className="text-white">AI influencer business</strong> on LuxuryBandit. We create the content, you build the audience and earn from premium fan experiences.
+            </p>
+            <div className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-4 sm:grid-cols-4 lg:mx-0">
+              {HERO_FEATURES.map(f => (
+                <div key={f.label} className="flex flex-col items-center gap-1.5 text-center lg:items-start lg:text-left">
+                  <f.icon className="h-6 w-6 text-amber-400" />
+                  <span className="text-[12px] font-bold leading-tight text-white/70">{f.label}</span>
+                </div>
+              ))}
+            </div>
+            <div id="launch" className="mt-7 scroll-mt-24"><OwnInfluencerCTA /></div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── For Creators / For Fans ── */}
+      <section className="border-b border-white/10">
+        <div className="mx-auto grid max-w-6xl gap-6 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:gap-8 lg:py-16">
+          {/* Creators */}
+          <div id="creators" className="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">For Creators</p>
+            <h2 className="mt-2 text-[26px] font-black leading-tight">Launch your<br />AI influencer business.</h2>
+            <ul className="mt-5 space-y-2.5">
+              {CREATOR_POINTS.map(p => (
+                <li key={p} className="flex items-start gap-2.5 text-[14px] font-semibold text-white/80">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> {p}
+                </li>
+              ))}
+            </ul>
+            {clips.length >= 2 && (
+              <div className="mt-6 grid grid-cols-3 gap-2">
+                {clips.slice(0, 3).map((c, i) => (
+                  <LazyVideo key={i} src={c.video} poster={c.poster || undefined} className="aspect-[9/16] w-full rounded-xl lb-media-bg" />
+                ))}
+              </div>
+            )}
+            <Link href="#launch" className="mt-6 inline-flex rounded-full border border-white/20 px-5 py-2.5 text-[13px] font-black text-white transition hover:border-amber-400 hover:text-amber-400">
+              Learn more for creators
+            </Link>
+          </div>
+          {/* Fans */}
+          <div id="fans" className="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">For Fans</p>
+            <h2 className="mt-2 text-[26px] font-black leading-tight">Discover. Follow.<br />Connect.</h2>
+            <ul className="mt-5 space-y-2.5">
+              {FAN_POINTS.map(p => (
+                <li key={p} className="flex items-start gap-2.5 text-[14px] font-semibold text-white/80">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> {p}
+                </li>
+              ))}
+            </ul>
+            {models.length >= 4 && (
+              <div className="mt-6 grid grid-cols-3 gap-2">
+                {models.slice(0, 6).map((m, i) => (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img key={i} src={m.photo} alt={m.name} className="aspect-[3/4] w-full rounded-xl object-cover" />
+                ))}
+              </div>
+            )}
+            <Link href="/stores?view=grid" className="mt-6 inline-flex rounded-full border border-white/20 px-5 py-2.5 text-[13px] font-black text-white transition hover:border-amber-400 hover:text-amber-400">
+              Explore the marketplace
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── How it works ── */}
+      <section id="how" className="scroll-mt-24 border-b border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:py-16">
+          <h2 className="text-center text-[28px] font-black">How it works</h2>
+          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+            {STEPS.map((s, i) => (
+              <div key={i} className="text-center">
+                <span className="mx-auto grid h-8 w-8 place-items-center rounded-full bg-amber-400 text-[14px] font-black text-black">{i + 1}</span>
+                <s.icon className="mx-auto mt-3 h-7 w-7 text-amber-400" />
+                <p className="mt-2 text-[13px] font-black uppercase tracking-wide">{s.t}</p>
+                <p className="mx-auto mt-1 max-w-[180px] text-[12px] font-semibold leading-5 text-white/50">{s.d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Why + Start card ── */}
+      <section id="pricing" className="scroll-mt-24 border-b border-white/10">
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:py-16">
+          {/* Why */}
+          <div>
+            <h2 className="text-[26px] font-black uppercase tracking-tight text-amber-400">Why LuxuryBandit?</h2>
+            <div className="mt-6 grid gap-5 sm:grid-cols-2">
+              {WHY.map(w => (
+                <div key={w.t} className="flex gap-3">
+                  <w.icon className="mt-0.5 h-6 w-6 shrink-0 text-amber-400" />
+                  <div>
+                    <p className="text-[14px] font-black">{w.t}</p>
+                    <p className="mt-0.5 text-[13px] font-semibold leading-5 text-white/55">{w.d}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Start card */}
+          <div className="relative overflow-hidden rounded-3xl border border-amber-400/30 bg-gradient-to-b from-amber-400/[0.10] to-transparent p-6 sm:p-8">
+            <p className="text-[12px] font-black uppercase tracking-[0.15em] text-amber-400">Start your journey today</p>
+            <p className="mt-2 max-w-sm text-[14px] font-semibold leading-6 text-white/65">Join the first creators building their AI influencer business on LuxuryBandit.</p>
+            <div className="mt-5 flex items-end gap-1">
+              <span className="text-[12px] font-bold text-white/50">From only</span>
+            </div>
+            <p className="-mt-1"><span className="text-[48px] font-black leading-none text-amber-400">€9.99</span><span className="text-[14px] font-bold text-white/60"> / month</span></p>
+            <div className="mt-5"><OwnInfluencerCTA /></div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer CTA ── */}
+      <section className="border-b border-white/10 bg-white/[0.02]">
+        <div className="mx-auto max-w-3xl px-4 py-14 text-center sm:px-6">
+          <h2 className="text-[30px] font-black leading-tight">Own an AI Influencer.<br /><span className="text-amber-400">We&apos;ll help her grow.</span></h2>
+          <div className="mx-auto mt-6 max-w-md"><OwnInfluencerCTA /></div>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span className="text-[15px] font-black tracking-wide">LUXURYBANDIT</span>
+          <p className="text-[12px] font-bold text-white/45">The AI Influencer Marketplace. Own. Grow. Earn.</p>
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] font-bold text-white/55">
+            <Link href="/stores?view=grid" className="hover:text-white">Marketplace</Link>
+            <Link href="#pricing" className="hover:text-white">Pricing</Link>
+            <Link href="#how" className="hover:text-white">How It Works</Link>
+            <Link href="/about" className="hover:text-white">About</Link>
+            <Link href="/contact" className="hover:text-white">Contact</Link>
+            <Link href="/privacy" className="hover:text-white">Privacy</Link>
+          </div>
+          <p className="mt-3 text-[11px] font-bold text-white/30">© 2026 LuxuryBandit. All rights reserved.</p>
+        </div>
+      </footer>
     </main>
   );
 }
