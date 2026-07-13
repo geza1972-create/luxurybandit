@@ -44,7 +44,11 @@ export default function CuratorApplyPage() {
   const [imageSource, setImageSource] = useState<"own" | "ours">("own"); // own photos (you) vs our images (anti-deepfake: never someone else's face)
   const [roleModels, setRoleModels] = useState<{ id: string; name: string; photoUrl?: string }[]>([]);
   const [avatarFaces, setAvatarFaces] = useState<{ id: string; imageUrl: string; claimed: boolean }[]>([]);
-  const [avatarFaceId, setAvatarFaceId] = useState(""); // the FREE face this creator picks (booked on apply, $3.99)
+  const [avatarFaceId, setAvatarFaceId] = useState(""); // the FREE face this creator picks (booked on $3.99 payment)
+  const [appliedCuratorId, setAppliedCuratorId] = useState(""); // returned by apply → needed to buy the face
+  const [appliedFaceId, setAppliedFaceId] = useState("");
+  const [reserving, setReserving] = useState(false);
+  const [faceReserved, setFaceReserved] = useState(false);
 
   const [db, setDb] = useState<{ brands: string[]; styles: string[]; colors: string[]; fabrics: string[]; occasions: string[] }>(
     { brands: [], styles: [], colors: [], fabrics: [], occasions: [] }
@@ -233,12 +237,32 @@ export default function CuratorApplyPage() {
         try { window.dispatchEvent(new Event("luxurybandit-auth-updated")); } catch { /**/ }
       }
       trackRecruit("apply_submit");
+      setAppliedCuratorId(data.curatorId || "");
+      setAppliedFaceId(data.avatarFaceId || "");
       setApplied(true);
     } catch {
       setError("Could not submit.");
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // $3.99 to lock the chosen unique AI face — Stripe popup + poll, then it's booked to her.
+  const reserveFace = async () => {
+    if (reserving || !appliedFaceId || !appliedCuratorId) return;
+    setReserving(true);
+    try {
+      const r = await fetch("/api/avatar-face-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ faceId: appliedFaceId, curatorId: appliedCuratorId }) }).then(x => x.json()).catch(() => null);
+      if (!r?.url || !r?.sessionId) { alert(r?.error || "Payment isn't available yet."); setReserving(false); return; }
+      const popup = window.open(r.url, "lb-pay", "width=460,height=760");
+      for (let i = 0; i < 180; i++) {
+        await new Promise(res => setTimeout(res, 2000));
+        const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(r.sessionId)}`).then(x => x.json()).catch(() => ({}));
+        if (st?.paid) { try { popup?.close(); } catch { /**/ } setFaceReserved(true); break; }
+        if (popup && popup.closed) { const st2 = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(r.sessionId)}`).then(x => x.json()).catch(() => ({})); if (st2?.paid) setFaceReserved(true); break; }
+      }
+    } catch { alert("Payment failed."); }
+    finally { setReserving(false); }
   };
 
   // Neutral field styling — matches the profile form (no gold-everywhere).
@@ -252,9 +276,22 @@ export default function CuratorApplyPage() {
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-amber-400 text-2xl text-black">✓</div>
           <h1 className="mt-4 text-xl font-black text-white">Application received{firstName ? `, ${firstName}` : ""}!</h1>
           <p className="mt-2 text-sm font-semibold leading-6 text-white/55">
-            Our team reviews every LuxuryBandit Model personally. You&apos;ll get an email as soon
+            Our team reviews every LuxuryBandit Influencer personally. You&apos;ll get an email as soon
             as you&apos;re approved — then just sign in and start earning.
           </p>
+          {appliedFaceId && (
+            faceReserved ? (
+              <p className="mt-4 rounded-2xl border border-emerald-400/30 bg-emerald-400/[0.08] px-4 py-3 text-[13px] font-black text-emerald-300">✓ Your face is reserved — it&apos;s yours alone. 💛</p>
+            ) : (
+              <div className="mt-4">
+                <p className="text-[12px] font-bold text-white/50">Lock your unique face before someone else picks it:</p>
+                <button type="button" disabled={reserving} onClick={() => void reserveFace()}
+                  className="lb-gold mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-6 text-sm font-black active:scale-95 transition disabled:opacity-50">
+                  {reserving ? "…" : "🔒 Reserve my face — $3.99"}
+                </button>
+              </div>
+            )
+          )}
           <button type="button" onClick={() => router.push("/stores")}
             className="lb-gold mt-5 inline-flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-black active:scale-95 transition-transform">
             Back to LuxuryBandit

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCheckoutSession, stripeConfigured } from "@/lib/stripe";
-import { grantVideoCredits } from "@/lib/try-this-look-store";
+import { grantVideoCredits, readTryThisLookState, saveTryThisLookState } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,6 +28,22 @@ export async function GET(request: Request) {
         credits = res.credits;
       }
     }
+    // Creator paid $3.99 to CLAIM a unique AI face → book it to her (once-only, idempotent).
+    if (paid && s.metadata.kind === "avatar-face") {
+      const faceId = String(s.metadata.faceId ?? "").trim();
+      const curatorId = String(s.metadata.curatorId ?? s.clientReferenceId ?? "").trim();
+      if (faceId && curatorId) {
+        const st = await readTryThisLookState();
+        const face = (st.avatarFaces ?? []).find(f => f.id === faceId);
+        if (face && (!face.claimedBy || face.claimedBy === curatorId)) {
+          face.claimedBy = curatorId; face.claimedAt = face.claimedAt || new Date().toISOString();
+          const cur = (st.curators ?? []).find(c => c.id === curatorId);
+          if (cur) (cur as any).avatarFaceId = faceId;
+          await saveTryThisLookState(st);
+        }
+      }
+    }
+
     // Model paid $3.99 for one more video → grant 1 credit to her email (idempotent).
     if (paid && s.metadata.kind === "model-video") {
       const email = (s.metadata.email || s.clientReferenceId || s.customerEmail || "").trim().toLowerCase();

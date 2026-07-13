@@ -420,13 +420,13 @@ export async function POST(request: Request) {
     const state = await readTryThisLookState();
     const curators = [...(state.curators ?? []), curator];
 
-    // Book the chosen AI face to this new influencer — ONCE only. If it was grabbed in the
-    // meantime, drop the reference (she'll pick another) instead of double-booking.
+    // Record the DESIRED AI face — but DON'T book it yet. Booking happens only when she pays
+    // the $3.99 (avatar-face-checkout → checkout-status). If it's already taken, drop it so
+    // she picks another. This keeps the face free until it's actually bought.
     const wantFace = String((payload as any).avatarFaceId ?? "").trim();
     if (wantFace && (curator as any).imageSource === "ours") {
       const face = (state.avatarFaces ?? []).find(f => f.id === wantFace);
-      if (face && !face.claimedBy) { face.claimedBy = curator.id; face.claimedAt = new Date().toISOString(); }
-      else if (face && face.claimedBy) { delete (curator as any).avatarFaceId; } // already booked → don't claim
+      if (!face || face.claimedBy) delete (curator as any).avatarFaceId; // gone or already booked → she'll pick + pay for another
     }
 
     // Grow the taste databases from what the curator entered.
@@ -456,7 +456,7 @@ export async function POST(request: Request) {
 
     // Pending review → NO session is returned (she cannot act until the admin
     // approves her via the Models list; signin blocks "pending" too).
-    return NextResponse.json({ approved: false, pending: true, firstName: curator.firstName });
+    return NextResponse.json({ approved: false, pending: true, firstName: curator.firstName, curatorId: curator.id, avatarFaceId: (curator as any).avatarFaceId ?? "" });
   }
 
   // Email-only sign in (fallback while Supabase email/magic-link isn't set up).
