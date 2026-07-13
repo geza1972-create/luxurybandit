@@ -5,10 +5,9 @@ import { Loader2, Sparkles, Check } from "lucide-react";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 
 // The ad-test CTA: "Own an AI Influencer — €9.99/mo". Captures an email (lead + Meta),
-// then sends the visitor to the Stripe Payment Link for the €9.99/mo subscription
-// (email prefilled). Content is fulfilled manually at first — this validates demand.
-// Override the link via NEXT_PUBLIC_STARTER_PAYMENT_LINK.
-const PAYMENT_LINK = process.env.NEXT_PUBLIC_STARTER_PAYMENT_LINK || "https://buy.stripe.com/aFafZ95dqfgaemucrOcIE05";
+// opens our integrated €9.99/mo Stripe subscription checkout (plan:"starter") which
+// returns to ?premium=success (fires the Meta Subscribe event). Content is fulfilled
+// manually at first — this validates demand.
 export default function OwnInfluencerCTA() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,14 +24,20 @@ export default function OwnInfluencerCTA() {
     } catch { /**/ }
   }, []);
 
-  const start = () => {
+  const start = async () => {
     const e = email.trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { setErr("Enter a valid email so we can link your influencer."); return; }
     setErr(""); setLoading(true);
-    try { trackMetaPixel("InitiateCheckout", { content_category: "influencer_subscription", value: 9.99, currency: "EUR" }); } catch { /**/ }
-    // Off to Stripe's hosted subscription page, with the email prefilled + kept as a lead.
-    const sep = PAYMENT_LINK.includes("?") ? "&" : "?";
-    window.location.href = `${PAYMENT_LINK}${sep}prefilled_email=${encodeURIComponent(e)}`;
+    try {
+      trackMetaPixel("InitiateCheckout", { content_category: "influencer_subscription", value: 9.99, currency: "EUR" });
+      const r = await fetch("/api/premium", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: "starter", email: e, returnPath: "/become-a-model" }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.url) { setErr(d.error || "Could not start checkout — please try again."); setLoading(false); return; }
+      window.location.href = d.url as string; // Stripe subscription checkout; returns to ?premium=success
+    } catch { setErr("Something went wrong — please try again."); setLoading(false); }
   };
 
   if (success) {
