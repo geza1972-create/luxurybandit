@@ -424,7 +424,7 @@ export default function AdminPage() {
   // AI-face library (creation-tool pool). Admin uploads faces (single or many at once);
   // creators book a free one for $3.99. GET is public; add/delete are admin-gated.
   const faceFileRef = useRef<HTMLInputElement>(null);
-  const [faces, setFaces] = useState<{ id: string; imageUrl: string; claimed: boolean }[]>([]);
+  const [faces, setFaces] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean }[]>([]);
   const [facesLoaded, setFacesLoaded] = useState(false);
   const [faceBusy, setFaceBusy] = useState(0); // remaining uploads in flight
   const [faceErr, setFaceErr] = useState("");
@@ -507,8 +507,20 @@ export default function AdminPage() {
     } catch { setFaceErr("Generation failed."); }
     finally { setFaceGenBusy(false); }
   };
+  // Turn a face still into a short video (fal Kling) — attached to the face.
+  const [faceVidBusy, setFaceVidBusy] = useState(""); // faceId currently generating
+  const makeFaceVideo = async (id: string) => {
+    setFaceVidBusy(id); setFaceErr("");
+    try {
+      const r = await fetch("/api/generate-face-video", { method: "POST", headers: headers(), body: JSON.stringify({ faceId: id }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) setFaceErr(d.error || "Video failed.");
+      else { await loadFaces(); setBigFace(b => (b && b.id === id ? { ...b, videoUrl: d.videoUrl } : b)); }
+    } catch { setFaceErr("Video failed."); }
+    finally { setFaceVidBusy(""); }
+  };
   // Big view + crop for a single face.
-  const [bigFace, setBigFace] = useState<{ id: string; imageUrl: string; claimed: boolean } | null>(null);
+  const [bigFace, setBigFace] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean } | null>(null);
   const [faceCropSrc, setFaceCropSrc] = useState(""); // data URL fed to PhotoCropper
   const [faceCropBusy, setFaceCropBusy] = useState(false);
   const startFaceCrop = async () => {
@@ -1639,6 +1651,7 @@ export default function AdminPage() {
                       <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
                     </button>
                     <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[9px] font-black ${f.claimed ? "bg-black/70 text-white/70" : "bg-emerald-600 text-white"}`}>{f.claimed ? "Booked" : "Free"}</span>
+                    {f.videoUrl && <span className="pointer-events-none absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/70 text-white"><Video className="h-3 w-3" /></span>}
                     <button type="button" title={f.claimed ? "Booked — delete anyway" : "Delete face"}
                       onClick={() => armOrRun(`face-${f.id}`, () => void deleteFace(f.id, f.claimed))}
                       className={`absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full text-white ring-1 ring-white/30 transition ${confirmId === `face-${f.id}` ? "bg-red-600" : "bg-black/60"}`}>
@@ -2006,6 +2019,14 @@ export default function AdminPage() {
             <img src={bigFace.imageUrl} alt="" className="max-h-[68vh] w-auto rounded-2xl object-contain" />
             <p className="mt-2 text-[12px] font-bold text-white/60">{bigFace.claimed ? "Booked by an influencer" : "Free — claimable for $3.99"}</p>
             {faceErr && <p className="mt-1 text-[12px] font-bold text-red-400">{faceErr}</p>}
+            {bigFace.videoUrl && (
+              /* eslint-disable-next-line jsx-a11y/media-has-caption */
+              <video src={bigFace.videoUrl} controls playsInline className="mt-3 w-full max-w-[220px] rounded-xl" />
+            )}
+            <button type="button" onClick={() => void makeFaceVideo(bigFace.id)} disabled={faceVidBusy === bigFace.id}
+              className="mt-3 inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-white/10 text-sm font-black text-white ring-1 ring-white/20 active:scale-95 transition disabled:opacity-50">
+              {faceVidBusy === bigFace.id ? <><Loader2 className="h-4 w-4 animate-spin" /> Making video… (1–3 min)</> : <><Video className="h-4 w-4" /> {bigFace.videoUrl ? "Regenerate video" : "Make video"}</>}
+            </button>
             <div className="mt-3 grid w-full grid-cols-3 gap-2">
               <button type="button" onClick={() => void startFaceCrop()}
                 className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-white text-sm font-black text-black active:scale-95 transition"><Crop className="h-4 w-4" /> Crop</button>

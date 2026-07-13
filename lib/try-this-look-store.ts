@@ -322,7 +322,7 @@ export type TryThisLookState = {
   outfits?: TryThisLookOutfit[];
   // CONCEPT 2.0 — AI-face library for the creation tool. Each face is UNIQUE: once a creator
   // claims it (pays $3.99) it's "booked" and can't be picked again. Admin adds new ones.
-  avatarFaces?: { id: string; imagePath?: string; imageUrl?: string; claimedBy?: string; claimedAt?: string; createdAt?: string }[];
+  avatarFaces?: { id: string; imagePath?: string; imageUrl?: string; videoPath?: string; videoUrl?: string; claimedBy?: string; claimedAt?: string; createdAt?: string }[];
   // Admin-editable prompt template for the Try-On funnel video generation. Uses the
   // tokens @Bild1 (the model/avatar) and @Bild2 (the chosen outfit).
   funnelVideoPrompt?: string;
@@ -867,7 +867,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     messages: (state.messages ?? []).slice(0, 2000),
     curators: (state.curators ?? []).map(({ photoUrl, photoFullUrl, photoBodyUrls, profilePhotoUrls, verificationSelfieUrl, ...curator }) => curator).slice(0, 2000),
     outfits: (state.outfits ?? []).map(({ imageUrl, ...outfit }) => outfit).slice(0, 500),
-    avatarFaces: (state.avatarFaces ?? []).map(({ imageUrl, ...f }) => f).slice(0, 2000),
+    avatarFaces: (state.avatarFaces ?? []).map(({ imageUrl, videoUrl, ...f }) => f).slice(0, 2000),
     funnelVideoPrompt: state.funnelVideoPrompt,
     viewsByDay: state.viewsByDay ?? {},
     visitsByDay: state.visitsByDay ?? {},

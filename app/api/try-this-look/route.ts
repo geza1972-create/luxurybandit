@@ -453,6 +453,7 @@ export async function GET(request: Request) {
       const out = await Promise.all(faces.map(async f => ({
         id: f.id,
         imageUrl: f.imagePath ? await getSignedUrl(f.imagePath).catch(() => "") : (f.imageUrl ?? ""),
+        videoUrl: f.videoPath ? await getSignedUrl(f.videoPath).catch(() => "") : "",
         claimed: !!f.claimedBy,
       })));
       return NextResponse.json({ faces: out });
