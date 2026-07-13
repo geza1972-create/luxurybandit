@@ -64,7 +64,7 @@ async function stepMedia(): Promise<StepMedia> {
 
 // Dark "How it works" — written for USERS: see your dream model in any look,
 // message her, shop the look. Model recruiting lives on its own landing page
-// (/become-a-model) and only gets a teaser here.
+// (/own-influencer) and only gets a teaser here.
 export default async function AboutPage() {
   const { models, garments, videos } = await stepMedia();
   const step = "grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-400 text-sm font-black text-black";
@@ -199,7 +199,7 @@ export default async function AboutPage() {
         </p>
 
         {/* Model teaser → own landing page */}
-        <Link href="/become-a-model"
+        <Link href="/own-influencer"
           className="mt-9 flex items-center gap-3.5 rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] p-4 active:scale-[0.99] transition-transform">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-black"><Heart className="h-5 w-5" /></span>
           <span className="min-w-0">
@@ -223,7 +223,7 @@ export default async function AboutPage() {
             className="lb-gold flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-black active:scale-95 transition-transform">
             <Sparkles className="h-4 w-4" /> Pick your model
           </Link>
-          <Link href="/become-a-model"
+          <Link href="/own-influencer"
             className="flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/[0.04] px-6 py-3.5 text-sm font-black text-white active:scale-95 transition-transform">
             <Coins className="h-4 w-4 text-amber-400" /> Become a LuxuryBandit Model
           </Link>

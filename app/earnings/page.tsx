@@ -25,7 +25,7 @@ export default function EarningsPage() {
     <div className="min-h-screen bg-[#0d0b0a] text-white">
       {/* Header */}
       <div className="sticky top-0 z-20 flex items-center justify-between border-b border-white/10 bg-[#0d0b0a]/90 px-3 py-3 backdrop-blur">
-        <Link href="/become-a-model" className="grid h-9 w-9 place-items-center rounded-full bg-white/10 active:scale-90">
+        <Link href="/own-influencer" className="grid h-9 w-9 place-items-center rounded-full bg-white/10 active:scale-90">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <span className="text-[13px] font-black tracking-widest text-[#e7c877]">LUXURYBANDIT</span>

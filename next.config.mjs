@@ -29,6 +29,13 @@ const nextConfig = {
         permanent: false
       },
       {
+        // Repositioned "become a model" → "own an AI influencer". Old ad links / shares
+        // / OG all still resolve to the new landing.
+        source: "/become-a-model",
+        destination: "/own-influencer",
+        permanent: false
+      },
+      {
         source: "/tools/fashion-creator",
         destination: "/tools/luxbanditcut",
         permanent: false

@@ -13,7 +13,7 @@ export const metadata = {
     description: "Upload one photo. We generate your videos. You earn with every look.",
     images: [{ url: "/become-a-model-banner.jpg?v=2", width: 1280, height: 720 }],
     // og:url + og:type — the Facebook Sharing Debugger flags both when missing.
-    url: "/become-a-model",
+    url: "/own-influencer",
     type: "website",
   },
   // fb:app_id comes from the ROOT layout (single source) — every page carries it.
@@ -239,12 +239,12 @@ export default async function BecomeAModelPage() {
           {/* Share — plain sharer links, no JS: Facebook builds its card from our
               OG banner (1280x720), WhatsApp from the same preview. */}
           <div className="flex items-center justify-center gap-2">
-            <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent("https://luxurybandit.com/become-a-model")}`}
+            <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent("https://luxurybandit.com/own-influencer")}`}
               target="_blank" rel="noopener noreferrer"
               className="flex flex-1 items-center justify-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/[0.08] px-4 py-3 text-[13px] font-black text-amber-400 active:scale-95 transition-transform">
               Share on Facebook
             </a>
-            <a href={`https://wa.me/?text=${encodeURIComponent("Become a LuxuryBandit Influencer — make money daily 💛 https://luxurybandit.com/become-a-model")}`}
+            <a href={`https://wa.me/?text=${encodeURIComponent("Become a LuxuryBandit Influencer — make money daily 💛 https://luxurybandit.com/own-influencer")}`}
               target="_blank" rel="noopener noreferrer"
               className="flex flex-1 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/[0.04] px-4 py-3 text-[13px] font-black text-white active:scale-95 transition-transform">
               Share on WhatsApp

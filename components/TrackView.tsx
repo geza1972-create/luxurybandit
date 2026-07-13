@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 
 // Fire-and-forget page-view event for the admin Insights funnel (e.g. the
-// recruiting flow: become-a-model → apply form → application submitted).
+// recruiting flow: own-influencer → apply form → application submitted).
 // Admin/preview sessions are flagged internal so they never count.
 export default function TrackView({ event }: { event: string }) {
   const fired = useRef(false); // StrictMode double-invokes effects in dev

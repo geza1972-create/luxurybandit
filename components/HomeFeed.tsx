@@ -1180,7 +1180,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         {/* Slim recruiting ad — a GOLD BUTTON on every ~4th post (parent decides),
             scrolls with the caption so the snap feed stays untouched. */}
         {recruitAd && (
-          <a href="/become-a-model"
+          <a href="/own-influencer"
             className="lb-gold mt-3 flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[12px] font-black active:scale-95 transition">
             <BadgeCheck className="h-4 w-4 shrink-0" /> Become a LuxuryBandit Model — every look pays →
           </a>

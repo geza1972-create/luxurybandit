@@ -32,7 +32,7 @@ export default function OwnInfluencerCTA() {
       trackMetaPixel("InitiateCheckout", { content_category: "influencer_subscription", value: 9.99, currency: "EUR" });
       const r = await fetch("/api/premium", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: "starter", email: e, returnPath: "/become-a-model" }),
+        body: JSON.stringify({ plan: "starter", email: e, returnPath: "/own-influencer" }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok || !d.url) { setErr(d.error || "Could not start checkout — please try again."); setLoading(false); return; }

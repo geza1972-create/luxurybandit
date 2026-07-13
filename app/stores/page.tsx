@@ -1464,7 +1464,7 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
             </div>
             <div className="flex flex-col items-center gap-2">
               {/* New models apply here (recruiting funnel); existing models log in below. */}
-              <a href="/become-a-model" onClick={onClose}
+              <a href="/own-influencer" onClick={onClose}
                 className="flex h-10 w-full items-center justify-center rounded-xl border border-ink/20 bg-white text-[13px] font-black text-ink active:scale-95 transition-transform">
                 Apply to become a model →
               </a>
@@ -2773,7 +2773,7 @@ function StoresPage() {
                 </div>
                 <div className="mt-3.5 flex items-center gap-2">
                   {/* Primary CTA — creator-first: become an influencer. */}
-                  <button type="button" onClick={() => router.push("/become-a-model")}
+                  <button type="button" onClick={() => router.push("/own-influencer")}
                     className="lb-gold flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-black active:scale-95 transition-transform">
                     <Sparkles className="h-4 w-4" /> {HERO[heroLang].cta}
                   </button>
