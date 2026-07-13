@@ -5,10 +5,10 @@ import { readTryThisLookState } from "@/lib/try-this-look-store";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// $3.99 to CLAIM a unique AI face from the library. Opens in a popup; the page polls
+// $9.99 to CLAIM a unique AI face from the library. Opens in a popup; the page polls
 // /api/checkout-status, which books the face to her (kind:"avatar-face") on success.
 // Price is fixed server-side; the face must still be FREE at checkout time.
-const PRICE_CENTS = 399;
+const PRICE_CENTS = 999;
 
 export async function POST(request: Request) {
   if (!stripeConfigured()) {

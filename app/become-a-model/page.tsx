@@ -74,7 +74,7 @@ export default async function BecomeAModelPage() {
             Become or create your own Influencer — free to start
           </Link>
           <p className="mb-6 text-center text-[12px] font-bold text-white/45">
-            Free with <strong className="text-white/70">your own photos</strong>. Want one of our exclusive <strong className="text-white/70">AI faces</strong>? $3.99 — and your <strong className="text-white/70">first video is included</strong>.
+            Free with <strong className="text-white/70">your own photos</strong>. Want one of our exclusive <strong className="text-white/70">AI faces</strong>? $9.99 — and your <strong className="text-white/70">first video is included</strong>.
           </p>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Become a LuxuryBandit Influencer</p>
           <h1 className="mt-2 text-[30px] font-black leading-tight">

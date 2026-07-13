@@ -48,7 +48,7 @@ export default function CuratorApplyPage() {
   const [roleModels, setRoleModels] = useState<{ id: string; name: string; photoUrl?: string; style?: string }[]>([]);
   const [avatarFaces, setAvatarFaces] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean }[]>([]);
   const [faceDialog, setFaceDialog] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean } | null>(null); // preview + take a face
-  const [avatarFaceId, setAvatarFaceId] = useState(""); // the FREE face this creator picks (booked on $3.99 payment)
+  const [avatarFaceId, setAvatarFaceId] = useState(""); // the FREE face this creator picks (booked on $9.99 payment)
   const [appliedCuratorId, setAppliedCuratorId] = useState(""); // returned by apply → needed to buy the face
   const [appliedFaceId, setAppliedFaceId] = useState("");
   const [reserving, setReserving] = useState(false);
@@ -325,7 +325,7 @@ export default function CuratorApplyPage() {
     }
   };
 
-  // $3.99 to lock the chosen unique AI face — Stripe popup + poll, then it's booked to her.
+  // $9.99 to lock the chosen unique AI face — Stripe popup + poll, then it's booked to her.
   const reserveFace = async () => {
     if (reserving || !appliedFaceId || !appliedCuratorId) return;
     setReserving(true);
@@ -432,7 +432,7 @@ export default function CuratorApplyPage() {
                 <p className="text-[14px] font-bold text-slate-700">Lock your unique face before someone else picks it:</p>
                 <button type="button" disabled={reserving} onClick={() => void reserveFace()}
                   className={`bg-slate-800 text-white mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-6 text-sm font-black disabled:opacity-50 ${btn3d}`}>
-                  {reserving ? "…" : "🔒 Reserve my face — $3.99"}
+                  {reserving ? "…" : "🔒 Reserve my face — $9.99"}
                 </button>
               </div>
             )
@@ -504,12 +504,12 @@ export default function CuratorApplyPage() {
           <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
             <button type="button" onClick={() => setImageSource("own")}
               className={`rounded-2xl px-3 py-3 text-center text-[14px] font-black ${imageSource === "own" ? `bg-slate-800 text-white ${btn3d}` : `border-[1.5px] border-slate-400 bg-white text-slate-800 ${raise}`}`}>
-              📸 My own photos<br /><span className={`text-[12px] font-bold ${imageSource === "own" ? "text-white/75" : "text-slate-500"}`}>You become the influencer</span>
+              📸 My own photos<br /><span className={`text-[12px] font-bold ${imageSource === "own" ? "text-white/75" : "text-slate-500"}`}>You become the influencer · <b>Free</b></span>
             </button>
             <span className="self-center text-[12px] font-black text-slate-500">OR</span>
             <button type="button" onClick={() => setImageSource("ours")}
               className={`rounded-2xl px-3 py-3 text-center text-[14px] font-black ${imageSource === "ours" ? `bg-slate-800 text-white ${btn3d}` : `border-[1.5px] border-slate-400 bg-white text-slate-800 ${raise}`}`}>
-              ✨ LuxuryBandit face<br /><span className={`text-[12px] font-bold ${imageSource === "ours" ? "text-white/75" : "text-slate-500"}`}>Use our AI faces</span>
+              ✨ LuxuryBandit face<br /><span className={`text-[12px] font-bold ${imageSource === "ours" ? "text-white/75" : "text-slate-500"}`}>Use our AI faces · <b>$9.99</b></span>
             </button>
           </div>
           <p className="mt-2 text-[12px] font-bold text-slate-600">To protect everyone, an influencer can only use YOUR verified photos or our images — never someone else&apos;s face.</p>
@@ -518,7 +518,7 @@ export default function CuratorApplyPage() {
         {imageSource === "ours" && (
           <div className="mt-5 rounded-2xl border border-black/15 bg-black/[0.04] p-4">
             <span className={label}>Pick your face</span>
-            <p className="mt-0.5 text-[13px] font-bold text-slate-600">Each face is <b>unique</b> — once booked it&apos;s gone. Free faces are <b>$3.99</b> to claim, and your <b>first video is included</b>. We add new ones all the time.</p>
+            <p className="mt-0.5 text-[13px] font-bold text-slate-600">Each face is <b>unique</b> — once booked it&apos;s gone. Free faces are <b>$9.99</b> to claim, and your <b>first video is included</b>. We add new ones all the time.</p>
             {avatarFaces.length === 0 ? (
               <p className="mt-2 text-[14px] font-bold text-[#e7c877]">No free faces right now — new ones drop regularly. Pick “My own photos” above, or check back soon.</p>
             ) : (
@@ -529,7 +529,7 @@ export default function CuratorApplyPage() {
                     className={`relative aspect-[3/4] overflow-hidden rounded-xl border-2 bg-black/[0.04] transition ${f.claimed ? "cursor-not-allowed border-black/22 opacity-40" : avatarFaceId === f.id ? "border-slate-800" : "border-black/22"}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
-                    <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[11px] font-black ${f.claimed ? "bg-black/70 text-white/70" : "bg-slate-800 text-white"}`}>{f.claimed ? "Booked" : "$3.99"}</span>
+                    <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[11px] font-black ${f.claimed ? "bg-black/70 text-white/70" : "bg-slate-800 text-white"}`}>{f.claimed ? "Booked" : "$9.99"}</span>
                     {f.videoUrl && !f.claimed && <span className="pointer-events-none absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-[11px] text-white">▶</span>}
                     {avatarFaceId === f.id && <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-slate-800 text-[13px] font-black text-white">✓</span>}
                   </button>
@@ -756,7 +756,7 @@ export default function CuratorApplyPage() {
           onDone={(dataUrl) => { setProfilePhotos(prev => [...prev, dataUrl].slice(0, 4)); setProfileCropSrc(""); }} />
       )}
 
-      {/* Face preview + take-it dialog — click a face → see her (video) → use her for $3.99. */}
+      {/* Face preview + take-it dialog — click a face → see her (video) → use her for $9.99. */}
       {faceDialog && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-5" onClick={e => { if (e.target === e.currentTarget) setFaceDialog(null); }}>
           <div className="w-full max-w-sm overflow-hidden rounded-3xl bg-[#faf7f0]">
@@ -768,11 +768,11 @@ export default function CuratorApplyPage() {
               <img src={faceDialog.imageUrl} alt="" className="aspect-[3/4] w-full bg-black object-contain" />
             )}
             <div className="p-4">
-              <p className="text-[13px] font-bold text-slate-700">This becomes <b className="text-slate-900">your face</b> — we dress her in your style, always the same face. <b className="text-slate-900">$3.99</b>, and your <b className="text-slate-900">first video is included</b>.</p>
+              <p className="text-[13px] font-bold text-slate-700">This becomes <b className="text-slate-900">your face</b> — we dress her in your style, always the same face. <b className="text-slate-900">$9.99</b>, and your <b className="text-slate-900">first video is included</b>.</p>
               <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
                 <button type="button" onClick={() => { setAvatarFaceId(faceDialog.id); setFaceDialog(null); }}
                   className={`bg-slate-800 text-white flex h-12 items-center justify-center gap-2 rounded-2xl text-sm font-black ${btn3d}`}>
-                  {avatarFaceId === faceDialog.id ? "✓ This is my face" : "Use this face — $3.99"}
+                  {avatarFaceId === faceDialog.id ? "✓ This is my face" : "Use this face — $9.99"}
                 </button>
                 <button type="button" onClick={() => setFaceDialog(null)}
                   className="flex h-12 items-center justify-center rounded-2xl border-[1.5px] border-slate-400 px-4 text-sm font-black text-slate-800">Close</button>

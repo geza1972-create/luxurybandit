@@ -28,7 +28,7 @@ export async function GET(request: Request) {
         credits = res.credits;
       }
     }
-    // Creator paid $3.99 to CLAIM a unique AI face → book it to her (once-only, idempotent).
+    // Creator paid $9.99 to CLAIM a unique AI face → book it to her (once-only, idempotent).
     if (paid && s.metadata.kind === "avatar-face") {
       const faceId = String(s.metadata.faceId ?? "").trim();
       const curatorId = String(s.metadata.curatorId ?? s.clientReferenceId ?? "").trim();
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
           let creatorEmail = "";
           if (cur) { (cur as any).avatarFaceId = faceId; creatorEmail = String((cur as any).email ?? "").trim().toLowerCase(); }
           await saveTryThisLookState(st);
-          // Buying an AI face ($3.99) INCLUDES one free video generation (idempotent per session).
+          // Buying an AI face ($9.99) INCLUDES one free video generation (idempotent per session).
           if (creatorEmail) { const res = await grantVideoCredits(creatorEmail, sessionId, 1); credits = res.credits; }
         }
       }
