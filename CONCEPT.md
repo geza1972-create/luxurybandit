@@ -1,3 +1,69 @@
+# LuxuryBandit — Konzept 2.0
+
+> Stand: 2026-07-13 · Lebendes Dokument. **Nordstern-Pivot: LuxuryBandit = das AI-Influencer-Portal.**
+> Der Affiliate/Dupe-Marktplatz aus v1 (Juni 2026) bleibt als **sekundäre Shop-Schicht** erhalten — Details + Try-on-Technik + Rechts-Leitplanken im **Anhang** unten.
+
+## 0. Nordstern (ein Satz)
+**LuxuryBandit ist das Portal, wo AI-Fashion-Influencerinnen entstehen, Fans gewinnen und Geld verdienen.** Fans schauen sie, **sehen sich selbst im Look** (Face-Swap) und **chatten** mit ihnen. Creator bauen ihre eigene Influencerin und **vermarkten sie selbst**. **Qualität ist das Siegel — eine LuxuryBandit-Influencerin zu sein ist ein Status.**
+
+## 1. Zwei Zielgruppen
+- **Fans** — konsumieren: schauen Models, swappen sich selbst in den Look, chatten, shoppen.
+- **Creator** — bauen & vermarkten ihre eigene AI-Influencerin, um zu verdienen (Avon-Modell).
+
+## 2. Content-Motor — täglich frisch, immer einzigartig
+- Du (und später Creator) veröffentlichen **täglich neue Influencerinnen + Looks** = Inspiration.
+- **Influencer haben selbst keine Ideen — die Plattform liefert sie:** kuratierte **Prompts + Klamotten/Lingerie**.
+- **Eiserne Regel: keine zwei Influencerinnen haben dieselben Klamotten/Videos.** Einzigartigkeit ist Pflicht — sonst kein Status, keine eigenen Fans.
+
+## 3. Fan-Seite — der Hook
+1. Sehenswertes Model-Video (täglich neu) →
+2. **„Sieh dich selbst drin"** = **echter Face-Swap** (User-Gesicht ins Video) — **kostenpflichtig ($3.99), der User zahlt die Rechenzeit** →
+3. **Chat** mit der Influencerin (AI-Persona) →
+4. **Shop the Look** (Affiliate, sekundär).
+- Mehrwert: jeden Tag neues Model, sie in immer neuen Looks/Lingerie sehen.
+
+## 4. Creator-Seite — das Avon-Modell
+- **Jeder** kann seine eigene AI-Influencerin bauen.
+- **Der Creator vermarktet sie SELBST extern** (IG/TikTok, sein Netzwerk). LuxuryBandit macht **keine** Werbung für einzelne Creator — wie Instagram: die Plattform liefert Tools + Monetarisierung, das Publikum bringt der Creator selbst.
+- **Referral-Zuordnung:** jeder Fan/Kauf über ihren Link zählt in **ihr** Konto → sie behält **30%**.
+- **Warum 30% reicht:** Fans wollen sie in **immer neuen Klamotten** sehen → sie bekommt **echte zahlende Fans, nicht nur Follower** → wiederkehrender Umsatz.
+- Plattform liefert: Tools (Generierung, Chat, Profil), **Prompts + Klamotten**, Monetarisierung, Attribution, Auszahlung.
+
+## 5. Qualität = Status (der Burggraben)
+- **Ziel: LuxuryBandit-Influencerinnen werden weltweit für QUALITÄT bekannt. Eine zu sein = Status.**
+- Konsequenz: **offenes Mitmachen, aber ein Qualitäts-Gate.** Qualität kommt aus (a) kuratierten Prompts/Klamotten (jeder Output premium) + (b) einem Freigabe-/Standard-Gate (unscharf/off-Konzept → abgelehnt, wie beim Model-Onboarding schon).
+- So bleibt das Siegel echt, obwohl viele mitmachen. **Kuration/Qualität IST die Marke** (aus v1 übernommen).
+
+## 6. Monetarisierung
+- **Face-Swap-Video: $3.99** (echt, User zahlt) — Kern.
+- **Premium: $49/Mo** (1. Monat $8) — entsperrt alles + Monatsvolumen.
+- **Chat:** Gratis-Nachrichten → Paywall.
+- **Creator/Model-Earnings: 30%** von zahlenden Fans (Referral-getrackt).
+- **Affiliate/Shop:** sekundäre Einnahme über „Shop the Look" (v1-Schicht, siehe Anhang).
+
+## 7. Moderation & Recht (nicht verhandelbar)
+- **AI-Gesichter für Influencerinnen** — KEINE echten hochgeladenen Gesichter als Influencer-Basis.
+- **Face-Swap:** nur das eigene Foto des zahlenden Users, mit Consent (18+ Age-Gate gilt portalweit).
+- **Lingerie erlaubt** (auch für Creator-Influencerinnen) — genug Vielfalt an Klamotten/Lingerie zur Unterscheidung. 18+ + Consent Pflicht.
+- Logo-frei, keine Counterfeits (aus v1 §9).
+
+## 8. Reihenfolge / Roadmap
+- **Phase A — Fan-Seite ZUERST:** Face-Swap ($3.99, echt) + Chat sauber, Umsatz beweisen. Ad-Landing (`/try`): Video → Face-Swap + Chat + „täglich neues Model".
+- **Phase B — Creator-Portal (Avon) öffnen:** Model-Erstellung für User, **Referral-Link + Fan-/Kauf-Attribution**, Content-Export (generieren → extern posten), Earnings-Dashboard/Payout, Prompt-/Klamotten-Lieferung ans Creator-Tool.
+- **Marketing:** eigene Ads (die alten wurden 2026-07-13 gestoppt — brachten nichts) auf den neuen Hook + der **Avon-Effekt** (Creator vermarkten selbst).
+
+## 9. Offene Punkte
+- Wie wird „Status" sichtbar? (Verifiziert-Badge / Ranking / Top-Earner-Leaderboard?)
+- Face-Swap-Engine + Kosten pro Video (damit $3.99 profitabel bleibt).
+- Qualitäts-Gate: automatischer AI-Check oder manuelle Freigabe pro Creator-Influencerin?
+- Referral-Attribution: Link `/m/<name>` + wie lange die Zuordnung hält (Cookie/Account).
+
+---
+
+# Anhang — Konzept v1 (Juni 2026 · historisch)
+
+> Die Kern-Story ist jetzt das **Influencer-Portal** (oben). Der **Affiliate/Shop-Teil**, die **Try-on-Technik** und die **Rechts-Leitplanken** hier unten bleiben gültig — als sekundäre Shop-Schicht und technische Referenz. Das „Dupe-Marktplatz als Kern"-Framing ist überholt.
+
 # LuxuryBandit — Konzept
 
 > Stand: 2026-06-22 · Lebendes Dokument.
