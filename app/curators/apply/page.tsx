@@ -405,9 +405,9 @@ export default function CuratorApplyPage() {
                 {avatarFaces.map(f => (
                   <button key={f.id} type="button" disabled={f.claimed}
                     onClick={() => setAvatarFaceId(id => id === f.id ? "" : f.id)}
-                    className={`relative aspect-square overflow-hidden rounded-xl border-2 transition ${f.claimed ? "cursor-not-allowed border-black/22 opacity-40" : avatarFaceId === f.id ? "border-slate-800" : "border-black/22"}`}>
+                    className={`relative aspect-[3/4] overflow-hidden rounded-xl border-2 bg-black/[0.04] transition ${f.claimed ? "cursor-not-allowed border-black/22 opacity-40" : avatarFaceId === f.id ? "border-slate-800" : "border-black/22"}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+                    <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
                     <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[11px] font-black ${f.claimed ? "bg-black/70 text-white/70" : "bg-slate-800 text-white"}`}>{f.claimed ? "Booked" : "Free · $3.99"}</span>
                     {avatarFaceId === f.id && <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-slate-800 text-[13px] font-black text-white">✓</span>}
                   </button>
@@ -456,11 +456,11 @@ export default function CuratorApplyPage() {
                 {chosenFace ? (
                   <div className="relative">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={chosenFace.imageUrl} alt="" className="h-36 w-36 rounded-2xl object-cover object-top ring-2 ring-slate-800" />
+                    <img src={chosenFace.imageUrl} alt="" className="h-48 w-36 rounded-2xl object-contain bg-black/[0.04] ring-2 ring-slate-800" />
                     <span className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-slate-800 px-2 py-px text-[10px] font-black uppercase tracking-wide text-white">Main</span>
                   </div>
                 ) : imageSource === "ours" ? (
-                  <div className="grid h-36 w-36 place-items-center rounded-2xl border-2 border-dashed border-slate-400 bg-black/[0.03] px-3 text-center text-[12px] font-bold text-slate-600">Pick a face above ↑</div>
+                  <div className="grid h-48 w-36 place-items-center rounded-2xl border-2 border-dashed border-slate-400 bg-black/[0.03] px-3 text-center text-[12px] font-bold text-slate-600">Pick a face above ↑</div>
                 ) : slot(combined[0], "h-36 w-36", true)}
               </div>
             );

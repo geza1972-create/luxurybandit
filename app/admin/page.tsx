@@ -1512,9 +1512,9 @@ export default function AdminPage() {
             {faces.length > 0 && (
               <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6">
                 {faces.map(f => (
-                  <div key={f.id} className="relative aspect-square overflow-hidden rounded-xl border border-black/10">
+                  <div key={f.id} className="relative aspect-[3/4] overflow-hidden rounded-xl border border-black/10 bg-black/[0.04]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+                    <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
                     <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[9px] font-black ${f.claimed ? "bg-black/70 text-white/70" : "bg-emerald-600 text-white"}`}>{f.claimed ? "Booked" : "Free"}</span>
                     <button type="button" title={f.claimed ? "Booked — delete anyway" : "Delete face"}
                       onClick={() => armOrRun(`face-${f.id}`, () => void deleteFace(f.id, f.claimed))}
