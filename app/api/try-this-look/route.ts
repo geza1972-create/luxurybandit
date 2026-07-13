@@ -1839,6 +1839,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, curators });
     }
 
+    // Bulk-delete models (admin) — remove many curators in one save (used by the models
+    // gallery multi-select). curators aren't in the save read-merge, so this persists.
+    if (payload.action === "delete-curators") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const ids = new Set((Array.isArray((payload as any).ids) ? (payload as any).ids : []).map((x: unknown) => String(x)));
+      if (!ids.size) return NextResponse.json({ error: "ids required." }, { status: 400 });
+      const state = await readTryThisLookState();
+      const before = (state.curators ?? []).length;
+      const curators = (state.curators ?? []).filter(c => !ids.has(c.id));
+      await saveTryThisLookState({ ...state, curators });
+      return NextResponse.json({ ok: true, deleted: before - curators.length });
+    }
+
     // Admin: edit a model (curator) — name, bio, motto, style, hidden flag, and/or photo.
     if (payload.action === "update-curator") {
       const id = String((payload as any).id ?? "").trim();

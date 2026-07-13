@@ -1928,6 +1928,24 @@ function StoresPage() {
     } catch (e) { alert(e instanceof Error ? e.message : "Fehler"); }
     finally { setModelPinBusy(false); }
   };
+  // Bulk-DELETE the selected models. Two-tap (arm → confirm) so 40 models can't vanish by accident.
+  const [modelDelArm, setModelDelArm] = useState(false);
+  const deleteSelectedModels = async () => {
+    if (modelPinBusy || !modelSelected.size) return;
+    if (!modelDelArm) { setModelDelArm(true); return; }
+    setModelPinBusy(true);
+    try {
+      const ids = [...modelSelected];
+      const res = await adminWrite({ action: "delete-curators", ids });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehler");
+      setModels(prev => prev.filter(m => !modelSelected.has(m.id)));
+      setModelSelected(new Set());
+      setModelSelect(false);
+      setModelDelArm(false);
+    } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Löschen"); }
+    finally { setModelPinBusy(false); }
+  };
+
   // Admin: feature a LOOK (garment) → it shows in the About "3 steps" showcase.
   const [lookFeatBusy, setLookFeatBusy] = useState("");
   const toggleLookFeatured = async (id: string, featured: boolean) => {
@@ -3748,7 +3766,20 @@ function StoresPage() {
         <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[85] flex flex-wrap items-center gap-2 border-t border-white/10 bg-[#0d0b0a]/95 px-4 py-3 backdrop-blur"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}>
           <span className="shrink-0 text-[12px] font-black text-white/70">{modelSelected.size} ausgewählt</span>
+          {(() => {
+            const allSel = shownModels.length > 0 && shownModels.every(m => modelSelected.has(m.id));
+            return (
+              <button type="button" onClick={() => { setModelDelArm(false); setModelSelected(allSel ? new Set() : new Set(shownModels.map(m => m.id))); }}
+                className="shrink-0 rounded-full border border-white/20 px-3 py-1.5 text-[12px] font-black text-white active:scale-95 transition">
+                {allSel ? "Keine" : `Alle (${shownModels.length})`}
+              </button>
+            );
+          })()}
           <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
+            <button type="button" disabled={modelPinBusy || !modelSelected.size} onClick={() => void deleteSelectedModels()}
+              className={`flex items-center gap-1 rounded-full px-3.5 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-40 ${modelDelArm ? "bg-red-500 text-white" : "border border-red-400/40 bg-red-500/10 text-red-300"}`}>
+              {modelPinBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />} {modelDelArm ? `Wirklich löschen? (${modelSelected.size})` : `Löschen (${modelSelected.size})`}
+            </button>
             <button type="button" disabled={modelPinBusy || !modelSelected.size} onClick={() => void featureSelectedModels(true)}
               className="lb-gold flex items-center gap-1 rounded-full px-3.5 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-40">
               {modelPinBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} ★ Featured
