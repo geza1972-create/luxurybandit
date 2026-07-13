@@ -46,7 +46,8 @@ export default function CuratorApplyPage() {
   const [styleModelId, setStyleModelId] = useState("");
   const [imageSource, setImageSource] = useState<"own" | "ours">("own"); // own photos (you) vs our images (anti-deepfake: never someone else's face)
   const [roleModels, setRoleModels] = useState<{ id: string; name: string; photoUrl?: string; style?: string }[]>([]);
-  const [avatarFaces, setAvatarFaces] = useState<{ id: string; imageUrl: string; claimed: boolean }[]>([]);
+  const [avatarFaces, setAvatarFaces] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean }[]>([]);
+  const [faceDialog, setFaceDialog] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean } | null>(null); // preview + take a face
   const [avatarFaceId, setAvatarFaceId] = useState(""); // the FREE face this creator picks (booked on $3.99 payment)
   const [appliedCuratorId, setAppliedCuratorId] = useState(""); // returned by apply → needed to buy the face
   const [appliedFaceId, setAppliedFaceId] = useState("");
@@ -524,11 +525,12 @@ export default function CuratorApplyPage() {
               <div className="mt-2 grid grid-cols-3 gap-2">
                 {avatarFaces.map(f => (
                   <button key={f.id} type="button" disabled={f.claimed}
-                    onClick={() => setAvatarFaceId(id => id === f.id ? "" : f.id)}
+                    onClick={() => setFaceDialog(f)}
                     className={`relative aspect-[3/4] overflow-hidden rounded-xl border-2 bg-black/[0.04] transition ${f.claimed ? "cursor-not-allowed border-black/22 opacity-40" : avatarFaceId === f.id ? "border-slate-800" : "border-black/22"}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
-                    <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[11px] font-black ${f.claimed ? "bg-black/70 text-white/70" : "bg-slate-800 text-white"}`}>{f.claimed ? "Booked" : "Free · $3.99"}</span>
+                    <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[11px] font-black ${f.claimed ? "bg-black/70 text-white/70" : "bg-slate-800 text-white"}`}>{f.claimed ? "Booked" : "$3.99"}</span>
+                    {f.videoUrl && !f.claimed && <span className="pointer-events-none absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-[11px] text-white">▶</span>}
                     {avatarFaceId === f.id && <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-slate-800 text-[13px] font-black text-white">✓</span>}
                   </button>
                 ))}
@@ -752,6 +754,32 @@ export default function CuratorApplyPage() {
       {profileCropSrc && (
         <PhotoCropper src={profileCropSrc} aspect="portrait" onCancel={() => setProfileCropSrc("")}
           onDone={(dataUrl) => { setProfilePhotos(prev => [...prev, dataUrl].slice(0, 4)); setProfileCropSrc(""); }} />
+      )}
+
+      {/* Face preview + take-it dialog — click a face → see her (video) → use her for $3.99. */}
+      {faceDialog && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-5" onClick={e => { if (e.target === e.currentTarget) setFaceDialog(null); }}>
+          <div className="w-full max-w-sm overflow-hidden rounded-3xl bg-[#faf7f0]">
+            {faceDialog.videoUrl ? (
+              /* eslint-disable-next-line jsx-a11y/media-has-caption */
+              <video src={faceDialog.videoUrl} poster={faceDialog.imageUrl} controls autoPlay muted playsInline className="aspect-[3/4] w-full bg-black object-cover" />
+            ) : (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={faceDialog.imageUrl} alt="" className="aspect-[3/4] w-full bg-black object-contain" />
+            )}
+            <div className="p-4">
+              <p className="text-[13px] font-bold text-slate-700">This becomes <b className="text-slate-900">your face</b> — we dress her in your style, always the same face. <b className="text-slate-900">$3.99</b>, and your <b className="text-slate-900">first video is included</b>.</p>
+              <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+                <button type="button" onClick={() => { setAvatarFaceId(faceDialog.id); setFaceDialog(null); }}
+                  className={`bg-slate-800 text-white flex h-12 items-center justify-center gap-2 rounded-2xl text-sm font-black ${btn3d}`}>
+                  {avatarFaceId === faceDialog.id ? "✓ This is my face" : "Use this face — $3.99"}
+                </button>
+                <button type="button" onClick={() => setFaceDialog(null)}
+                  className="flex h-12 items-center justify-center rounded-2xl border-[1.5px] border-slate-400 px-4 text-sm font-black text-slate-800">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Save confirmation — proves what was saved (shows the new photo) before leaving. */}
