@@ -786,7 +786,7 @@ function mergeNewerById<T extends { id: string; createdAt?: string }>(ours: T[] 
   return [...missedNewer, ...ours];
 }
 
-type SaveOptions = { deletedGenerationIds?: string[]; deletedLeadIds?: string[]; deletedOutfitIds?: string[]; deletedChatIds?: string[] };
+type SaveOptions = { deletedGenerationIds?: string[]; deletedLeadIds?: string[]; deletedOutfitIds?: string[]; deletedChatIds?: string[]; deletedFaceIds?: string[] };
 
 async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions = {}) {
   await ensureBucket();
@@ -798,6 +798,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     const delLead = opts.deletedLeadIds?.length ? new Set(opts.deletedLeadIds) : undefined;
     const delOutfit = opts.deletedOutfitIds?.length ? new Set(opts.deletedOutfitIds) : undefined;
     const delChat = opts.deletedChatIds?.length ? new Set(opts.deletedChatIds) : undefined;
+    const delFace = opts.deletedFaceIds?.length ? new Set(opts.deletedFaceIds) : undefined;
     state = {
       ...state,
       // AI-face library: union by id; a CLAIMED face always wins so a concurrent booking
@@ -805,6 +806,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
       avatarFaces: (() => {
         const byId = new Map(((latest.avatarFaces ?? []) as any[]).map(f => [f.id, f]));
         for (const f of ((state.avatarFaces ?? []) as any[])) { const prev = byId.get(f.id); byId.set(f.id, f.claimedBy ? f : (prev?.claimedBy ? prev : f)); }
+        if (delFace) for (const id of delFace) byId.delete(id);
         return [...byId.values()] as any;
       })(),
       generations: mergeNewerById(state.generations as any, latest.generations as any, delGen) as any,

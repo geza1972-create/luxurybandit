@@ -1864,6 +1864,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, id: face.id });
     }
 
+    // Admin: remove a face from the library. Passes deletedFaceIds so the save read-merge
+    // can't resurrect it (the union-by-id merge would otherwise re-add it from the DB copy).
+    if (payload.action === "delete-avatar-face") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const faceId = String((payload as any).faceId ?? "").trim();
+      if (!faceId) return NextResponse.json({ error: "faceId required." }, { status: 400 });
+      const st = await readTryThisLookState();
+      const face = (st.avatarFaces ?? []).find(f => f.id === faceId);
+      if (face?.claimedBy && !(payload as any).force) {
+        return NextResponse.json({ error: "This face is booked by an influencer. Pass force to delete anyway.", claimed: true }, { status: 409 });
+      }
+      st.avatarFaces = (st.avatarFaces ?? []).filter(f => f.id !== faceId);
+      await saveTryThisLookState(st, { deletedFaceIds: [faceId] });
+      return NextResponse.json({ ok: true });
+    }
+
     // Claim an AI face for a creator — ONCE only. A face belongs to exactly one influencer,
     // so once booked it can never be picked again. ($3.99 is gated via Stripe on the client;
     // the server enforces the uniqueness.)

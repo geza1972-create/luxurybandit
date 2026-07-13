@@ -3,7 +3,8 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus, Video, BarChart3, Eye, MousePointerClick, Check } from "lucide-react";
+import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus, Video, BarChart3, Eye, MousePointerClick, Check, ImagePlus } from "lucide-react";
+import { readPhotoFile } from "../curators/taste-form";
 import { signInWithPassword, getStoredAuthSession, saveAuthSession, signOut, resetPassword } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { LOOK_CATEGORIES, categorizeLook, type LookCategory } from "@/lib/look-category";
@@ -419,6 +420,48 @@ export default function AdminPage() {
   // from this list. Direct-to-Supabase; first frame becomes the poster; lands in
   // her "In motion" reel as Fashionshow (members + profile, not public).
   const vidFileRef = useRef<HTMLInputElement>(null);
+
+  // AI-face library (creation-tool pool). Admin uploads faces (single or many at once);
+  // creators book a free one for $3.99. GET is public; add/delete are admin-gated.
+  const faceFileRef = useRef<HTMLInputElement>(null);
+  const [faces, setFaces] = useState<{ id: string; imageUrl: string; claimed: boolean }[]>([]);
+  const [facesLoaded, setFacesLoaded] = useState(false);
+  const [faceBusy, setFaceBusy] = useState(0); // remaining uploads in flight
+  const [faceErr, setFaceErr] = useState("");
+  const loadFaces = async () => {
+    try {
+      const r = await fetch("/api/try-this-look?avatarFaces=1", { cache: "no-store" });
+      const d = await r.json();
+      setFaces(Array.isArray(d.faces) ? d.faces : []);
+    } catch { /**/ } finally { setFacesLoaded(true); }
+  };
+  const uploadFaces = async (files: FileList | null) => {
+    if (!files || !files.length) return;
+    setFaceErr("");
+    const list = Array.from(files);
+    setFaceBusy(list.length);
+    let failed = 0;
+    for (const f of list) {
+      try {
+        const { src, error } = await readPhotoFile(f);
+        if (!src) { failed++; if (error) setFaceErr(error); }
+        else {
+          const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "add-avatar-face", image: src }) });
+          if (!r.ok) { failed++; setFaceErr((await r.json().catch(() => ({}))).error || "Upload failed."); }
+        }
+      } catch { failed++; }
+      setFaceBusy(n => Math.max(0, n - 1));
+    }
+    if (failed) setFaceErr(prev => prev || `${failed} face${failed > 1 ? "s" : ""} failed to upload.`);
+    await loadFaces();
+  };
+  const deleteFace = async (id: string, claimed: boolean) => {
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-avatar-face", faceId: id, ...(claimed ? { force: true } : {}) }) });
+      if (r.ok) setFaces(fs => fs.filter(f => f.id !== id));
+    } catch { /**/ }
+  };
+  useEffect(() => { if (tab === "curators" && !facesLoaded) void loadFaces(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [tab, facesLoaded]);
   const vidTargetRef = useRef<string>("");
   const [vidBusyId, setVidBusyId] = useState("");
   const pickModelVideo = (curatorId: string) => { vidTargetRef.current = curatorId; vidFileRef.current?.click(); };
@@ -1448,6 +1491,41 @@ export default function AdminPage() {
               className="ml-auto inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-black px-3.5 text-xs font-black text-white active:scale-95 transition">
               <UserPlus className="h-4 w-4" /> New model
             </a>
+          </div>
+        )}
+
+        {tab === "curators" && (
+          <div className="mt-3 rounded-2xl border border-black/10 bg-white p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-black text-ink">AI-face library <span className="text-ink/40">{faces.length}</span></p>
+                <p className="text-[12px] font-bold text-ink/45">Faces creators can book for $3.99. Free = claimable, Booked = taken.</p>
+              </div>
+              <button type="button" onClick={() => faceFileRef.current?.click()} disabled={faceBusy > 0}
+                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-black px-3.5 text-xs font-black text-white active:scale-95 transition disabled:opacity-50">
+                {faceBusy > 0 ? <><Loader2 className="h-4 w-4 animate-spin" /> {faceBusy} left…</> : <><ImagePlus className="h-4 w-4" /> Add faces</>}
+              </button>
+            </div>
+            <input ref={faceFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" multiple className="hidden"
+              onChange={e => { void uploadFaces(e.target.files); e.target.value = ""; }} />
+            {faceErr && <p className="mt-2 text-[12px] font-bold text-red-500">{faceErr}</p>}
+            {faces.length > 0 && (
+              <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6">
+                {faces.map(f => (
+                  <div key={f.id} className="relative aspect-square overflow-hidden rounded-xl border border-black/10">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+                    <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[9px] font-black ${f.claimed ? "bg-black/70 text-white/70" : "bg-emerald-600 text-white"}`}>{f.claimed ? "Booked" : "Free"}</span>
+                    <button type="button" title={f.claimed ? "Booked — delete anyway" : "Delete face"}
+                      onClick={() => armOrRun(`face-${f.id}`, () => void deleteFace(f.id, f.claimed))}
+                      className={`absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full text-white ring-1 ring-white/30 transition ${confirmId === `face-${f.id}` ? "bg-red-600" : "bg-black/60"}`}>
+                      {confirmId === `face-${f.id}` ? <Check className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {facesLoaded && faces.length === 0 && <p className="mt-3 text-center text-[12px] font-bold text-ink/40">No faces yet — tap “Add faces” to upload one or several.</p>}
           </div>
         )}
 
