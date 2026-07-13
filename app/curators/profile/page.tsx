@@ -511,7 +511,7 @@ export default function CuratorProfilePage() {
         </div>
       )}
       {cropSrc && (
-        <PhotoCropper src={cropSrc} onCancel={() => setCropSrc("")}
+        <PhotoCropper src={cropSrc} aspect="portrait" onCancel={() => setCropSrc("")}
           onDone={(dataUrl) => { setPhoto(dataUrl); setPhotoData(dataUrl); setCropSrc(""); }} />
       )}
       {bodyCropSrc && (
@@ -519,7 +519,7 @@ export default function CuratorProfilePage() {
           onDone={(dataUrl) => { setBodyPhotos([dataUrl]); setBodyCropSrc(""); }} />
       )}
       {profileCropSrc && (
-        <PhotoCropper src={profileCropSrc} onCancel={() => setProfileCropSrc("")}
+        <PhotoCropper src={profileCropSrc} aspect="portrait" onCancel={() => setProfileCropSrc("")}
           onDone={(dataUrl) => { setProfilePhotos(prev => [...prev, dataUrl].slice(0, 4)); setProfileCropSrc(""); }} />
       )}
     </main>
