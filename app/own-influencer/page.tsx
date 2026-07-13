@@ -77,7 +77,7 @@ export default async function OwnInfluencerLanding() {
   ];
 
   return (
-    <main className="min-h-[100dvh] bg-[#0d0b0a] text-white">
+    <main className="lb-landing min-h-[100dvh] bg-[#0d0b0a] text-white">
       <TrackView event="recruit_view" />
 
       {/* ── Top nav ── */}

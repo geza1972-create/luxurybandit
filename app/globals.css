@@ -40,6 +40,16 @@
     background: #fbfaf7;
     box-shadow: 0 0 60px rgba(0, 0, 0, 0.45);
   }
+  /* The marketing landing at the root is a REAL desktop page, not the mobile app.
+     When the frame contains it, drop the 440px phone column so the landing renders
+     full-width and its lg: two-column layout kicks in. The rest of the app stays framed. */
+  .lb-frame:has(.lb-landing) {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    background: transparent;
+    box-shadow: none;
+  }
   /* Full-bleed FIXED overlays (the reels feed, the bottom nav) are viewport-fixed, so
      they'd span the whole desktop. Center them into the same 440px column instead. */
   .lb-phone-col {
