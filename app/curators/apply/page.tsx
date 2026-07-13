@@ -323,12 +323,9 @@ export default function CuratorApplyPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/become-a-model-banner.jpg" alt="Become a LuxuryBandit Influencer and make money daily"
             className="mb-4 w-full rounded-2xl border border-amber-400/30" />
-          <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 shadow-[0_0_30px_rgba(251,191,36,0.35)]">
-            <Coins className="h-7 w-7 text-black" />
-          </div>
-          <p className="text-[13px] font-black uppercase tracking-[0.2em] text-amber-400">AI Virtual Try-On · Luxury Fashion</p>
+          <p className="mt-1 text-[13px] font-black uppercase tracking-[0.2em] text-amber-600">AI Virtual Try-On · Luxury Fashion</p>
           <h1 className="mt-2 text-[28px] font-black leading-tight text-ink">
-            Sign up &amp; earn money <span className="text-amber-400">with every look.</span>
+            Sign up &amp; earn money <span className="text-amber-600">with every look.</span>
           </h1>
           <p className="mx-auto mt-2 max-w-xs text-sm font-semibold leading-6 text-ink/65">
             Get styled in high-end outfits by AI — and get paid every time someone tries on your look.
@@ -428,7 +425,7 @@ export default function CuratorApplyPage() {
                     <span className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-ink">Example</span>
                   </>
                 ) : (
-                  <span className="grid place-items-center gap-0.5 text-amber-400"><Camera className={isMain ? "h-7 w-7" : "h-5 w-5"} /><span className="text-[10px] font-black">Add</span></span>
+                  <span className="grid place-items-center gap-0.5 text-amber-600"><Camera className={isMain ? "h-7 w-7" : "h-5 w-5"} /><span className="text-[10px] font-black">Add</span></span>
                 )}
               </button>
             );
@@ -460,7 +457,7 @@ export default function CuratorApplyPage() {
             <p className="mt-1.5 text-[13px] font-bold leading-relaxed text-ink/60">
               Never shown publicly — only our team sees it. We use it to notify you about fan
               chats &amp; try-ons and to verify you&rsquo;re a real person.{" "}
-              <a href="/model-rules" target="_blank" rel="noopener noreferrer" className="text-amber-400 underline underline-offset-2">See the rules</a>.
+              <a href="/model-rules" target="_blank" rel="noopener noreferrer" className="text-amber-600 underline underline-offset-2">See the rules</a>.
             </p>
           </div>
           <div><span className={label}>Instagram</span><input className={field} value={instagram} onChange={e => setInstagram(e.target.value)} placeholder="@handle" /></div>
@@ -485,7 +482,7 @@ export default function CuratorApplyPage() {
           </div>
 
           <button type="button" onClick={() => void suggest()} disabled={suggesting}
-            className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/[0.08] text-sm font-black text-amber-400 disabled:opacity-50 active:scale-95 transition-transform">
+            className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/[0.08] text-sm font-black text-amber-600 disabled:opacity-50 active:scale-95 transition-transform">
             {suggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {suggesting ? "Thinking…" : "Write my motto & bio with AI"}
           </button>
@@ -519,7 +516,7 @@ export default function CuratorApplyPage() {
             className="mt-0.5 h-5 w-5 shrink-0 accent-amber-400" />
           <span className="text-[14px] font-bold leading-relaxed text-ink/80">
             I&apos;m <b className="text-ink">18 or older</b>, the photos are <b className="text-ink">really me</b>, and I accept the{" "}
-            <a href="/model-rules" target="_blank" rel="noopener noreferrer" className="text-amber-400 underline underline-offset-2">model rules &amp; terms</a>.
+            <a href="/model-rules" target="_blank" rel="noopener noreferrer" className="text-amber-600 underline underline-offset-2">model rules &amp; terms</a>.
             I understand every application is <b className="text-ink">manually verified</b> — fake or stolen photos are rejected.
           </span>
         </label>
