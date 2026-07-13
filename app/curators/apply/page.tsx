@@ -42,7 +42,7 @@ export default function CuratorApplyPage() {
   // CONCEPT 2.0 creation tool: which role model's STYLE you emulate + where your face comes from.
   const [styleModelId, setStyleModelId] = useState("");
   const [imageSource, setImageSource] = useState<"own" | "ours">("own"); // own photos (you) vs our images (anti-deepfake: never someone else's face)
-  const [roleModels, setRoleModels] = useState<{ id: string; name: string; photoUrl?: string }[]>([]);
+  const [roleModels, setRoleModels] = useState<{ id: string; name: string; photoUrl?: string; style?: string }[]>([]);
   const [avatarFaces, setAvatarFaces] = useState<{ id: string; imageUrl: string; claimed: boolean }[]>([]);
   const [avatarFaceId, setAvatarFaceId] = useState(""); // the FREE face this creator picks (booked on $3.99 payment)
   const [appliedCuratorId, setAppliedCuratorId] = useState(""); // returned by apply → needed to buy the face
@@ -59,7 +59,8 @@ export default function CuratorApplyPage() {
     }).catch(() => {});
     // Role models to emulate (style templates).
     fetch("/api/try-this-look?models=1").then(r => r.json()).then((d: any) => {
-      setRoleModels((d.models ?? []).filter((m: any) => m.photoUrl).slice(0, 40));
+      setRoleModels((d.models ?? []).filter((m: any) => m.photoUrl).slice(0, 40)
+        .map((m: any) => ({ id: m.id, name: m.name, photoUrl: m.photoUrl, style: typeof m.style === "string" ? m.style : "" })));
     }).catch(() => {});
     // AI-face library (for the "our images" path).
     fetch("/api/try-this-look?avatarFaces=1").then(r => r.json()).then((d: any) => {
@@ -266,8 +267,11 @@ export default function CuratorApplyPage() {
   };
 
   // Neutral field styling — matches the profile form (no gold-everywhere).
-  const field = "h-12 w-full rounded-xl border border-black/25 bg-black/[0.03] px-4 text-sm font-bold text-slate-900 outline-none focus:border-black/40 placeholder:text-slate-600";
-  const label = "mb-1 block text-[13px] font-black uppercase tracking-wider text-slate-600";
+  const field = "h-12 w-full rounded-xl border-[1.5px] border-slate-400 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-slate-700 placeholder:text-slate-500";
+  const label = "mb-1 block text-[13px] font-black uppercase tracking-wider text-slate-900";
+  // 3D press-able button shadows (dark primary + light raised) — reused across the form.
+  const btn3d = "shadow-[0_3px_0_#0f172a,0_6px_14px_rgba(15,23,42,0.28)] transition-all active:translate-y-[3px] active:shadow-[0_1px_0_#0f172a]";
+  const raise = "shadow-[0_2px_0_rgba(15,23,42,0.22),0_5px_12px_rgba(15,23,42,0.10)] transition-all active:translate-y-[2px] active:shadow-[0_0_0_rgba(0,0,0,0)]";
 
   if (applied) {
     return (
@@ -286,14 +290,14 @@ export default function CuratorApplyPage() {
               <div className="mt-4">
                 <p className="text-[14px] font-bold text-slate-700">Lock your unique face before someone else picks it:</p>
                 <button type="button" disabled={reserving} onClick={() => void reserveFace()}
-                  className="bg-slate-800 text-white mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-6 text-sm font-black active:scale-95 transition disabled:opacity-50">
+                  className={`bg-slate-800 text-white mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-6 text-sm font-black disabled:opacity-50 ${btn3d}`}>
                   {reserving ? "…" : "🔒 Reserve my face — $3.99"}
                 </button>
               </div>
             )
           )}
           <button type="button" onClick={() => router.push("/stores")}
-            className="bg-slate-800 text-white mt-5 inline-flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-black active:scale-95 transition-transform">
+            className={`bg-slate-800 text-white mt-5 inline-flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-black ${btn3d}`}>
             Back to LuxuryBandit
           </button>
         </div>
@@ -344,33 +348,50 @@ export default function CuratorApplyPage() {
 
         {/* CONCEPT 2.0 creation tool — role model (style template) + face source (anti-deepfake). */}
         <div className="mt-5 rounded-2xl border border-black/22 bg-black/[0.03] p-4">
-          <span className={label}>Your role model · style template</span>
-          <p className="mt-0.5 text-[13px] font-bold text-slate-600">Pick who you want to be like. We give you a similar style — with YOUR own look, never a copy.</p>
-          <div className="mt-2 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-            {roleModels.map(m => (
-              <button key={m.id} type="button" onClick={() => setStyleModelId(id => id === m.id ? "" : m.id)}
-                className={`shrink-0 text-center transition ${styleModelId === m.id ? "" : "opacity-70 hover:opacity-100"}`}>
-                <span className={`block h-16 w-16 overflow-hidden rounded-full border-2 ${styleModelId === m.id ? "border-slate-800" : "border-black/22"}`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={m.photoUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
-                </span>
-                <span className="mt-1 block w-16 truncate text-[12px] font-bold text-slate-700">{m.name.split(" ")[0]}</span>
-              </button>
-            ))}
+          <span className={label}>Copy a style you love</span>
+          <p className="mt-0.5 text-[13px] font-bold text-slate-600">Tap the LuxuryBandit model whose vibe fits you. We&apos;ll dress you in a <b className="text-slate-900">similar style</b> — always on <b className="text-slate-900">your own face</b>, never a copy of hers.</p>
+          <div className="mt-2 -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
+            {roleModels.map(m => {
+              const sel = styleModelId === m.id;
+              const styleShort = (m.style || "").split(",")[0].trim();
+              return (
+                <button key={m.id} type="button" onClick={() => setStyleModelId(id => id === m.id ? "" : m.id)}
+                  className={`shrink-0 text-center transition ${sel ? "" : "opacity-70 hover:opacity-100"}`}>
+                  <span className={`block h-16 w-16 overflow-hidden rounded-full border-2 ${sel ? "border-slate-800 ring-2 ring-slate-800/30" : "border-slate-400"}`}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={m.photoUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  </span>
+                  <span className="mt-1 block w-16 truncate text-[12px] font-black text-slate-900">{m.name.split(" ")[0]}</span>
+                  <span className="block w-16 truncate text-[10px] font-bold text-slate-500">{styleShort || "signature"}</span>
+                </button>
+              );
+            })}
           </div>
+          {styleModelId && (() => {
+            const m = roleModels.find(x => x.id === styleModelId);
+            if (!m) return null;
+            const s = (m.style || "").split(",")[0].trim().toLowerCase();
+            return (
+              <p className="mt-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-[12px] font-bold text-slate-700">
+                ✓ You&apos;ll get a <b className="text-slate-900">{s ? `${s} ` : ""}look inspired by {m.name.split(" ")[0]}</b> — styled on your own photos. Your face always stays yours.
+              </p>
+            );
+          })()}
 
           <span className={`${label} mt-4`}>Whose face?</span>
-          <div className="mt-1 grid grid-cols-2 gap-2">
+          <p className="mb-2 text-[12px] font-bold text-slate-600">Choose one — it&apos;s either/or, you can&apos;t pick both.</p>
+          <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
             <button type="button" onClick={() => setImageSource("own")}
-              className={`rounded-xl border px-3 py-2.5 text-center text-[14px] font-black transition ${imageSource === "own" ? "border-slate-800 bg-black/[0.06] text-slate-900" : "border-black/25 text-slate-700"}`}>
-              📸 My own photos<br /><span className="text-[12px] font-bold opacity-70">You become the influencer</span>
+              className={`rounded-2xl px-3 py-3 text-center text-[14px] font-black ${imageSource === "own" ? `bg-slate-800 text-white ${btn3d}` : `border-[1.5px] border-slate-400 bg-white text-slate-800 ${raise}`}`}>
+              📸 My own photos<br /><span className={`text-[12px] font-bold ${imageSource === "own" ? "text-white/75" : "text-slate-500"}`}>You become the influencer</span>
             </button>
+            <span className="self-center text-[12px] font-black text-slate-500">OR</span>
             <button type="button" onClick={() => setImageSource("ours")}
-              className={`rounded-xl border px-3 py-2.5 text-center text-[14px] font-black transition ${imageSource === "ours" ? "border-slate-800 bg-black/[0.06] text-slate-900" : "border-black/25 text-slate-700"}`}>
-              ✨ LuxuryBandit images<br /><span className="text-[12px] font-bold opacity-70">Use our AI faces</span>
+              className={`rounded-2xl px-3 py-3 text-center text-[14px] font-black ${imageSource === "ours" ? `bg-slate-800 text-white ${btn3d}` : `border-[1.5px] border-slate-400 bg-white text-slate-800 ${raise}`}`}>
+              ✨ LuxuryBandit face<br /><span className={`text-[12px] font-bold ${imageSource === "ours" ? "text-white/75" : "text-slate-500"}`}>Use our AI faces</span>
             </button>
           </div>
-          <p className="mt-1.5 text-[12px] font-bold text-slate-600">To protect everyone, an influencer can only use YOUR verified photos or our images — never someone else&apos;s face.</p>
+          <p className="mt-2 text-[12px] font-bold text-slate-600">To protect everyone, an influencer can only use YOUR verified photos or our images — never someone else&apos;s face.</p>
         </div>
 
         {imageSource === "ours" && (
@@ -429,13 +450,22 @@ export default function CuratorApplyPage() {
                 )}
               </button>
             );
+            const chosenFace = imageSource === "ours" && avatarFaceId ? avatarFaces.find(f => f.id === avatarFaceId) : null;
             return (
               <div className="flex flex-col items-center gap-2.5">
-                {slot(combined[0], "h-36 w-36", true)}
+                {chosenFace ? (
+                  <div className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={chosenFace.imageUrl} alt="" className="h-36 w-36 rounded-2xl object-cover object-top ring-2 ring-slate-800" />
+                    <span className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-slate-800 px-2 py-px text-[10px] font-black uppercase tracking-wide text-white">Main</span>
+                  </div>
+                ) : imageSource === "ours" ? (
+                  <div className="grid h-36 w-36 place-items-center rounded-2xl border-2 border-dashed border-slate-400 bg-black/[0.03] px-3 text-center text-[12px] font-bold text-slate-600">Pick a face above ↑</div>
+                ) : slot(combined[0], "h-36 w-36", true)}
               </div>
             );
           })()}
-          <p className="max-w-xs text-center text-[13px] font-bold text-slate-600">One clear, well-lit face photo — this is you.</p>
+          <p className="max-w-xs text-center text-[13px] font-bold text-slate-600">{imageSource === "ours" ? "Your chosen LuxuryBandit face becomes your public profile photo." : "One clear, well-lit face photo — this is you."}</p>
           <input ref={profileFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
             onChange={e => { void onPickProfile(e.target.files?.[0]); e.target.value = ""; }} />
           {photoError && <p className="max-w-xs text-center text-sm font-bold text-red-400">{photoError}</p>}
@@ -482,7 +512,7 @@ export default function CuratorApplyPage() {
           </div>
 
           <button type="button" onClick={() => void suggest()} disabled={suggesting}
-            className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-black/15 bg-black/[0.04] text-sm font-black text-slate-900 disabled:opacity-50 active:scale-95 transition-transform">
+            className={`mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border-[1.5px] border-slate-400 bg-white text-sm font-black text-slate-900 disabled:opacity-50 ${raise}`}>
             {suggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {suggesting ? "Thinking…" : "Write my motto & bio with AI"}
           </button>
@@ -528,7 +558,7 @@ export default function CuratorApplyPage() {
       <div className="lb-phone-col fixed inset-x-0 bottom-0 z-20 border-t border-black/22 bg-[#faf7f0]/95 px-5 pt-3 backdrop-blur"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
         <button type="button" onClick={() => void submit()} disabled={submitting || (!editId && !agreed)}
-          className="bg-slate-800 text-white flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black disabled:opacity-50 active:scale-95 transition-transform">
+          className={`bg-slate-800 text-white flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black disabled:opacity-50 ${btn3d}`}>
           {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Coins className="h-5 w-5" />}
           {submitting ? (editId ? "Saving…" : "Setting up…") : (editId ? "Save changes" : "Sign up & start earning")}
         </button>
@@ -562,7 +592,7 @@ export default function CuratorApplyPage() {
               <img src={savedDone.photo} alt="" className="mx-auto mt-4 h-40 w-32 rounded-2xl object-cover object-top ring-2 ring-emerald-400/40" />
             )}
             <button type="button" onClick={() => router.push("/admin?tab=curators")}
-              className="bg-slate-800 text-white mt-5 w-full rounded-full px-5 py-3 text-sm font-black active:scale-95 transition">Back to models</button>
+              className={`bg-slate-800 text-white mt-5 w-full rounded-full px-5 py-3 text-sm font-black ${btn3d}`}>Back to models</button>
           </div>
         </div>
       )}
