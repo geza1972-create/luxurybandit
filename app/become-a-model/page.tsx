@@ -5,7 +5,7 @@ import TrackView from "@/components/TrackView";
 import LazyVideo from "@/components/LazyVideo";
 
 export const metadata = {
-  title: "Become a LuxuryBandit Model — earn with every look",
+  title: "Become a LuxuryBandit Influencer — earn with every look",
   description: "Being a LuxuryBandit Model is different: upload one photo, get styled in luxury looks by AI, collect likes, get discovered by fashion brands — and earn with every look. Stop posting for free.",
   openGraph: {
     title: "Make money daily — become a LuxuryBandit Model",
@@ -53,7 +53,7 @@ export default async function BecomeAModelPage() {
           className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15 text-white active:scale-90 transition-transform">
           <ArrowLeft className="h-4 w-4" />
         </Link>
-        <p className="min-w-0 flex-1 truncate text-sm font-black text-white">Become a LuxuryBandit Model</p>
+        <p className="min-w-0 flex-1 truncate text-sm font-black text-white">Become a LuxuryBandit Influencer</p>
         {/* Straight into the show — visitors see what the fuss is about. */}
         <Link href="/stores?tab=community"
           className="lb-gold flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-black active:scale-95 transition-transform">
@@ -71,16 +71,14 @@ export default async function BecomeAModelPage() {
           {/* CTA right under the banner — ad traffic converts above the fold. */}
           <Link href="/curators/apply"
             className="lb-gold mb-6 flex items-center justify-center gap-2 rounded-full px-6 py-4 text-base font-black active:scale-95 transition-transform">
-            <Coins className="h-5 w-5" /> Become a LuxuryBandit Model — it&apos;s free
+            <Coins className="h-5 w-5" /> Become a LuxuryBandit Influencer — it&apos;s free
           </Link>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Become a LuxuryBandit Model</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Become a LuxuryBandit Influencer</p>
           <h1 className="mt-2 text-[30px] font-black leading-tight">
-            Stop posting for free.<br /><span className="text-amber-400">Start earning with every look.</span>
+            Stop posting for free.<br /><span className="text-amber-400">Become an AI influencer &amp; earn.</span>
           </h1>
           <p className="mx-auto mt-3 max-w-md text-[15px] font-semibold leading-7 text-white/60">
-            A <strong className="text-white">LuxuryBandit Model</strong> is not a normal model.
-            On Instagram, Facebook and TikTok your photos earn likes — for the platform.
-            Here you earn <strong className="text-white">from chatting with your fans and from try-ons</strong>.
+            Become your own <strong className="text-white">AI fashion influencer</strong> — with <strong className="text-white">your own photos or ours</strong>. Pick a role model, we make your <strong className="text-white">daily videos</strong>, you share them, and you earn from every fan who <strong className="text-white">chats with you or tries you on</strong>. No follower count needed to start.
           </p>
         </div>
 
@@ -242,7 +240,7 @@ export default async function BecomeAModelPage() {
         <div className="mt-10 grid gap-2.5">
           <Link href="/curators/apply"
             className="lb-gold flex items-center justify-center gap-2 rounded-full px-6 py-4 text-base font-black active:scale-95 transition-transform">
-            <Coins className="h-5 w-5" /> Become a LuxuryBandit Model — it&apos;s free
+            <Coins className="h-5 w-5" /> Become a LuxuryBandit Influencer — it&apos;s free
           </Link>
           {/* Share — plain sharer links, no JS: Facebook builds its card from our
               OG banner (1280x720), WhatsApp from the same preview. */}
@@ -252,7 +250,7 @@ export default async function BecomeAModelPage() {
               className="flex flex-1 items-center justify-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/[0.08] px-4 py-3 text-[13px] font-black text-amber-400 active:scale-95 transition-transform">
               Share on Facebook
             </a>
-            <a href={`https://wa.me/?text=${encodeURIComponent("Become a LuxuryBandit Model — make money daily 💛 https://luxurybandit.com/become-a-model")}`}
+            <a href={`https://wa.me/?text=${encodeURIComponent("Become a LuxuryBandit Influencer — make money daily 💛 https://luxurybandit.com/become-a-model")}`}
               target="_blank" rel="noopener noreferrer"
               className="flex flex-1 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/[0.04] px-4 py-3 text-[13px] font-black text-white active:scale-95 transition-transform">
               Share on WhatsApp
