@@ -521,7 +521,7 @@ function MaiIeftinInner() {
                   {/* Reference still — a round avatar for a model, a portrait card for a look. */}
                   {m.refImg && (
                     m.refRound ? (
-                      <div className="h-20 w-20 self-start overflow-hidden rounded-full bg-white/10 ring-2 ring-[#c9a23f]/50">
+                      <div className="w-20 aspect-[3/4] self-start overflow-hidden rounded-2xl bg-white/10 ring-2 ring-[#c9a23f]/50">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={m.refImg} alt="" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                       </div>

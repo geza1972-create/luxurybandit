@@ -249,7 +249,7 @@ export default function CreatorProfilePage({ creatorSlug }: { creatorSlug: strin
             <div className="flex items-start gap-4">
               {profile.avatarUrl ? (
                 <img src={profile.avatarUrl} alt={displayName}
-                  className="w-20 h-20 rounded-full object-cover shrink-0 bg-black/5" />
+                  className="w-20 aspect-[3/4] rounded-xl object-cover shrink-0 bg-black/5" />
               ) : (
                 <Initials name={displayName} size={80} />
               )}

@@ -202,7 +202,7 @@ export default function LookDetailsPage() {
         <button type="button"
           onClick={() => { if (look.curatorId) router.push(`/curator/${look.curatorId}`); }}
           className="mb-3 flex items-center gap-2 text-left active:opacity-70">
-          <span className="flex h-7 w-7 shrink-0 overflow-hidden rounded-full bg-black/5">
+          <span className="flex w-7 aspect-[3/4] shrink-0 overflow-hidden rounded-lg bg-black/5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={look.curatorPhotoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(look.curatorName || look.storeSlug || "LB")}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
           </span>

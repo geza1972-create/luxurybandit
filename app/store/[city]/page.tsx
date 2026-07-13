@@ -155,7 +155,7 @@ export default function StoreGalleryPage() {
             className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-black/60 active:bg-black/5">
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-black/5">
+          <div className="w-9 aspect-[3/4] shrink-0 overflow-hidden rounded-lg bg-black/5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(slug)}&backgroundColor=ffffff&color=000000`}
               alt={storeName} className="h-full w-full object-cover" />

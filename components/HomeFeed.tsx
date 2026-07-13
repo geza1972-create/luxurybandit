@@ -728,7 +728,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => authorCuratorId && router.push(`/curator/${authorCuratorId}`)}
           className="flex min-w-0 items-center gap-2 active:opacity-80">
-          <span className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-white/15 bg-white/10">
+          <span className="w-9 aspect-[3/4] shrink-0 overflow-hidden rounded-lg border border-white/15 bg-white/10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={authorPhotoUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(publicAuthorName(authorName))}&backgroundColor=000000&fontColor=ffffff`} alt="" className="h-full w-full object-cover" />
           </span>
@@ -1153,7 +1153,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   const slug = (c.name ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
                   const row = (
                     <>
-                      <span className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-black/5">
+                      <span className="w-9 aspect-[3/4] shrink-0 overflow-hidden rounded-lg bg-black/5">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={c.imageUrl} alt={c.name ? publicAuthorName(c.name) : "Member"} className="h-full w-full object-cover object-top" />
                       </span>
@@ -1252,7 +1252,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               {curatorList.map(c => (
                 <button key={c.id} type="button" disabled={!!modBusy} onClick={() => void assignLook(c.id)}
                   className={`flex items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-black active:bg-black/[0.04] ${authorCuratorId === c.id ? "bg-black/[0.05]" : ""}`}>
-                  <span className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-black/5">
+                  <span className="w-10 aspect-[3/4] shrink-0 overflow-hidden rounded-xl bg-black/5">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     {c.photoUrl
                       ? <img src={c.photoUrl} alt="" loading="lazy" className="h-full w-full object-cover object-top" />

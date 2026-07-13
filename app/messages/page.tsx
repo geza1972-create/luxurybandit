@@ -93,7 +93,7 @@ export default function MessagesPage() {
             {convos.map(c => (
               <button key={c.curatorId} type="button" onClick={() => router.push(`/chat/${c.curatorId}`)}
                 className="flex w-full items-center gap-3 px-4 py-3.5 text-left active:bg-white/[0.04] transition">
-                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/10">
+                <div className="relative w-12 aspect-[3/4] shrink-0 overflow-hidden rounded-xl bg-white/10">
                   {c.photoUrl
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={c.photoUrl} alt={c.name} className="h-full w-full object-cover" />

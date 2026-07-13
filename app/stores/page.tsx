@@ -470,10 +470,10 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
               <a href={creatorSlug ? `/u/${creatorSlug}` : "#"} className="flex items-center gap-2 min-w-0 flex-1">
                 {it.curatorPhotoUrl
                   // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={it.curatorPhotoUrl} alt={creatorName} className="h-9 w-9 shrink-0 rounded-full bg-white/10 object-cover" />
+                  ? <img src={it.curatorPhotoUrl} alt={creatorName} className="w-9 aspect-[3/4] shrink-0 rounded-lg bg-white/10 object-cover" />
                   // eslint-disable-next-line @next/next/no-img-element
                   : <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(publicAuthorName(creatorName))}&backgroundColor=ffffff&fontColor=000000&fontSize=40`}
-                      alt={publicAuthorName(creatorName)} className="h-9 w-9 shrink-0 rounded-full bg-white/10 object-cover" />}
+                      alt={publicAuthorName(creatorName)} className="w-9 aspect-[3/4] shrink-0 rounded-lg bg-white/10 object-cover" />}
                 <div className="min-w-0">
                   <p className="truncate text-sm font-black text-white">{publicAuthorName(creatorName)}</p>
                   {it.lookTitle && <p className="truncate text-[11px] font-bold text-white/50">{it.lookTitle}</p>}
@@ -931,9 +931,9 @@ function CommunityDetailView({
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition active:bg-black/5 disabled:opacity-50">
                     {c.photoUrl
                       // eslint-disable-next-line @next/next/no-img-element
-                      ? <img src={c.photoUrl} alt={name} className="h-10 w-10 shrink-0 rounded-full object-cover bg-black/5" />
+                      ? <img src={c.photoUrl} alt={name} className="w-10 aspect-[3/4] shrink-0 rounded-xl object-cover bg-black/5" />
                       // eslint-disable-next-line @next/next/no-img-element
-                      : <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=000000&fontColor=ffffff&fontSize=40`} alt={name} className="h-10 w-10 shrink-0 rounded-full bg-black/5" />}
+                      : <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=000000&fontColor=ffffff&fontSize=40`} alt={name} className="w-10 aspect-[3/4] shrink-0 rounded-xl bg-black/5" />}
                     <span className="min-w-0 flex-1 truncate text-sm font-black text-black">{name}</span>
                     {(item.kind === "look" ? item.curatorId === c.id : item.customerName === name) && <span className="text-[11px] font-black text-emerald-600">current</span>}
                   </button>

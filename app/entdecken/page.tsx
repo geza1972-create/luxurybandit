@@ -184,7 +184,7 @@ export default function EntdeckenPage() {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); if (look.storeSlug) router.push(`/store/${look.storeSlug}`); }}
-                      className="flex h-4 w-4 shrink-0 overflow-hidden rounded-full bg-black/5"
+                      className="flex w-4 aspect-[3/4] shrink-0 overflow-hidden rounded-md bg-black/5"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img

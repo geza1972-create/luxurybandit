@@ -357,7 +357,7 @@ export default function CuratorApplyPage() {
               return (
                 <button key={m.id} type="button" onClick={() => setStyleModelId(id => id === m.id ? "" : m.id)}
                   className={`shrink-0 text-center transition ${sel ? "" : "opacity-70 hover:opacity-100"}`}>
-                  <span className={`block h-16 w-16 overflow-hidden rounded-full border-2 ${sel ? "border-slate-800 ring-2 ring-slate-800/30" : "border-slate-400"}`}>
+                  <span className={`block w-16 aspect-[3/4] overflow-hidden rounded-xl border-2 ${sel ? "border-slate-800 ring-2 ring-slate-800/30" : "border-slate-400"}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={m.photoUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
                   </span>

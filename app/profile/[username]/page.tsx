@@ -120,7 +120,7 @@ export default function PublicProfilePage() {
         {/* Profile card */}
         <div className="flex flex-col items-center text-center gap-3">
           {/* Avatar */}
-          <div className="h-24 w-24 rounded-full overflow-hidden bg-black">
+          <div className="w-24 aspect-[3/4] rounded-2xl overflow-hidden bg-black">
             {profile.avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={profile.avatarUrl} alt={profile.displayName} className="h-full w-full object-cover" />

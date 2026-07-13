@@ -1881,7 +1881,7 @@ export default function TryonPage() {
             className="flex h-12 w-full max-w-sm items-center justify-center gap-3 rounded-2xl border-2 border-black/10 bg-white text-sm font-black text-black active:scale-95 transition-transform disabled:opacity-50">
             {loadingProfilePhoto ? <Loader2 className="h-5 w-5 animate-spin" /> : (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={curatorPhotoUrl} alt="" className="h-7 w-7 rounded-full object-cover border border-black/15" />
+              <img src={curatorPhotoUrl} alt="" className="w-7 aspect-[3/4] rounded-lg object-cover border border-black/15" />
             )}
             Use my profile photo instead
           </button>
@@ -1906,7 +1906,7 @@ export default function TryonPage() {
             style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
             <div className="mb-3 flex items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              {curatorPhotoUrl && <img src={curatorPhotoUrl} alt="" className="h-12 w-12 rounded-full object-cover border border-black/10" />}
+              {curatorPhotoUrl && <img src={curatorPhotoUrl} alt="" className="w-12 aspect-[3/4] rounded-xl object-cover border border-black/10" />}
               <p className="text-base font-black">Use your profile photo?</p>
             </div>
             <p className="mb-1 text-sm leading-relaxed text-black/55">

@@ -262,7 +262,7 @@ export default function UserGalleryPage() {
           </button>
           <div className="flex flex-1 items-center gap-2.5 min-w-0">
             {/* Avatar */}
-            <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-black border border-black/8">
+            <div className="w-9 aspect-[3/4] shrink-0 overflow-hidden rounded-lg bg-black border border-black/8">
               {avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
@@ -440,7 +440,7 @@ export default function UserGalleryPage() {
           <div className="flex-1 overflow-y-auto overscroll-contain p-4">
             {/* Creator row */}
             <a href={`/u/${username}`} className="flex items-center gap-2.5 mb-4 active:opacity-70">
-              <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-black/5 border border-black/8">
+              <div className="w-9 aspect-[3/4] shrink-0 overflow-hidden rounded-lg bg-black/5 border border-black/8">
                 {avatarUrl
                   // eslint-disable-next-line @next/next/no-img-element
                   ? <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />

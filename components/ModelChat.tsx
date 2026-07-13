@@ -245,7 +245,7 @@ export default function ModelChat({
         onClick={page ? undefined : (e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
-          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white/10">
+          <div className="relative w-10 aspect-[3/4] shrink-0 overflow-hidden rounded-xl bg-white/10">
             {avatarUrl
               // eslint-disable-next-line @next/next/no-img-element
               ? <img src={avatarUrl} alt={first} className="h-full w-full object-cover" />

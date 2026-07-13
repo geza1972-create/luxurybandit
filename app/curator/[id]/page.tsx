@@ -725,7 +725,7 @@ export default function CuratorPublicPage() {
       <div className="sticky top-0 z-20 bg-[#0d0b0a]/90 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 active:opacity-70"><ArrowLeft className="h-4 w-4" /></button>
-          <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-white/10">
+          <div className="w-9 aspect-[3/4] shrink-0 overflow-hidden rounded-lg bg-white/10">
             {profile.photoUrl
               // eslint-disable-next-line @next/next/no-img-element
               ? <img src={profile.photoUrl} alt={name} className="h-full w-full object-cover" />
@@ -780,8 +780,8 @@ export default function CuratorPublicPage() {
         {/* Profile photo — tap opens it LARGE (lightbox). Her videos live in the
             gallery strip below, so no play badge here anymore. */}
         <button type="button" disabled={!profile.photoUrl} onClick={() => setPhotoOpen(true)}
-          className="relative h-24 w-24 shrink-0 rounded-full disabled:cursor-default active:scale-95 transition">
-          <span className="block h-full w-full overflow-hidden rounded-full bg-white/10 ring-2 ring-amber-400/80 ring-offset-2 ring-offset-[#0d0b0a]">
+          className="relative w-24 aspect-[3/4] shrink-0 rounded-2xl disabled:cursor-default active:scale-95 transition">
+          <span className="block h-full w-full overflow-hidden rounded-2xl bg-white/10 ring-2 ring-amber-400/80 ring-offset-2 ring-offset-[#0d0b0a]">
             {profile.photoUrl
               // eslint-disable-next-line @next/next/no-img-element
               ? <img src={profile.photoUrl} alt={name} className="h-full w-full object-cover" />
