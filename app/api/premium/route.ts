@@ -9,6 +9,8 @@ export const dynamic = "force-dynamic";
 // The Premium monthly price. Override with STRIPE_PREMIUM_PRICE_ID on Vercel to
 // swap the plan/price without a code change.
 const PRICE_ID = process.env.STRIPE_PREMIUM_PRICE_ID?.trim() || "price_1TqvRE1jPNCWoiztVkIaOg7x";
+// The $9.99/mo "own an AI influencer" Starter plan. Set STRIPE_STARTER_PRICE_ID on Vercel.
+const STARTER_PRICE_ID = process.env.STRIPE_STARTER_PRICE_ID?.trim() || "";
 // First-month discount coupon ("Erster Monat Rabatt" — $41 off once → $8 first month).
 // Auto-applied at checkout. Override via env to swap the promo without a code change.
 const FIRST_MONTH_COUPON = process.env.STRIPE_PREMIUM_FIRST_MONTH_COUPON?.trim() || "CjOJYKVV";
@@ -43,7 +45,7 @@ export async function POST(request: Request) {
   if (!stripeConfigured()) {
     return NextResponse.json({ error: "Payments aren't set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { email?: string; returnPath?: string; allowPromo?: boolean; action?: string };
+  const body = (await request.json().catch(() => ({}))) as { email?: string; returnPath?: string; allowPromo?: boolean; action?: string; plan?: string };
   const email = String(body.email ?? "").trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return NextResponse.json({ error: "Sign in first so we can link your subscription." }, { status: 401 });
@@ -65,10 +67,16 @@ export async function POST(request: Request) {
   }
   // allowPromo → skip the auto first-month coupon so Stripe shows a promo-code field instead
   // (Stripe forbids a coupon + a promo box together). Used to redeem a 100%-off test code.
-  const coupon = body.allowPromo ? undefined : (FIRST_MONTH_COUPON || undefined);
+  // "starter" = the $9.99/mo "own an AI influencer" plan; anything else = Premium.
+  const isStarter = body.plan === "starter";
+  if (isStarter && !STARTER_PRICE_ID) {
+    return NextResponse.json({ error: "Starter plan not set up yet (STRIPE_STARTER_PRICE_ID missing on Vercel)." }, { status: 503 });
+  }
+  const priceId = isStarter ? STARTER_PRICE_ID : PRICE_ID;
+  const coupon = isStarter ? undefined : (body.allowPromo ? undefined : (FIRST_MONTH_COUPON || undefined));
   try {
     const { url } = await createSubscriptionCheckout({
-      priceId: PRICE_ID,
+      priceId,
       email,
       coupon,
       successUrl: `${origin}${safeRp}${sep}premium=success`,

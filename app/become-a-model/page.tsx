@@ -3,6 +3,7 @@ import { ArrowLeft, Camera, ChevronDown, Coins, Heart, Sparkles, BadgeCheck, Pla
 import { readTryThisLookState } from "@/lib/try-this-look-store";
 import TrackView from "@/components/TrackView";
 import LazyVideo from "@/components/LazyVideo";
+import OwnInfluencerCTA from "@/components/OwnInfluencerCTA";
 
 export const metadata = {
   title: "Become a LuxuryBandit Influencer — earn with every look",
@@ -68,14 +69,8 @@ export default async function BecomeAModelPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/become-a-model-banner.jpg?v=2" alt="Become or create your own LuxuryBandit Influencer and make money daily"
             className="mb-4 w-full rounded-2xl border border-amber-400/30" />
-          {/* CTA right under the banner — ad traffic converts above the fold. */}
-          <Link href="/curators/apply"
-            className="lb-gold mb-2 flex items-center justify-center gap-2 rounded-full px-6 py-4 text-base font-black active:scale-95 transition-transform">
-            Become or create your own Influencer — free to start
-          </Link>
-          <p className="mb-6 text-center text-[12px] font-bold text-white/45">
-            Free with <strong className="text-white/70">your own photos</strong>. Want one of our exclusive <strong className="text-white/70">AI faces</strong>? $9.99 — and your <strong className="text-white/70">first video is included</strong>.
-          </p>
+          {/* Primary CTA — the $9.99/mo "own an AI influencer" subscription (ad test). */}
+          <div className="mb-6"><OwnInfluencerCTA /></div>
           <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Become a LuxuryBandit Influencer</p>
           <h1 className="mt-2 text-[30px] font-black leading-tight">
             Stop posting for free.<br /><span className="text-amber-400">Become an AI influencer &amp; earn.</span>
@@ -240,10 +235,7 @@ export default async function BecomeAModelPage() {
 
         {/* CTA */}
         <div className="mt-10 grid gap-2.5">
-          <Link href="/curators/apply"
-            className="lb-gold flex items-center justify-center gap-2 rounded-full px-6 py-4 text-base font-black active:scale-95 transition-transform">
-            Become or create your own Influencer — free to start
-          </Link>
+          <OwnInfluencerCTA />
           {/* Share — plain sharer links, no JS: Facebook builds its card from our
               OG banner (1280x720), WhatsApp from the same preview. */}
           <div className="flex items-center justify-center gap-2">
