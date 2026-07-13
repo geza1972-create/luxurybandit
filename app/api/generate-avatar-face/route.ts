@@ -29,26 +29,49 @@ export async function POST(request: Request) {
   const key = process.env.FAL_KEY?.trim();
   if (!key) return NextResponse.json({ error: "FAL_KEY fehlt — trag ihn in den Vercel-Env ein, um AI-Gesichter zu generieren." }, { status: 400 });
 
-  const body = (await request.json().catch(() => ({}))) as { prompt?: string; count?: number };
+  const body = (await request.json().catch(() => ({}))) as { prompt?: string; count?: number; referenceImage?: string };
   const prompt = String(body.prompt ?? "").trim() || DEFAULT_PROMPT;
   const count = Math.max(1, Math.min(4, Number(body.count) || 1));
-  // FLUX dev is a good quality/cost balance; override via env if desired.
-  const model = process.env.FAL_IMAGE_MODEL?.trim() || "fal-ai/flux/dev";
+  const referenceImage = String(body.referenceImage ?? "");
 
-  // fal.ai sync endpoint — waits for the result.
-  const falRes = await fetch(`https://fal.run/${model}`, {
-    method: "POST",
-    headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      prompt,
-      negative_prompt: NEGATIVE,
-      image_size: "portrait_4_3", // 3:4 portrait
-      num_images: count,
-      num_inference_steps: 28,
-      guidance_scale: 3.5,
-      enable_safety_checker: true,
-    }),
-  });
+  let falRes: Response;
+  if (referenceImage.startsWith("data:image/")) {
+    // REFERENCE MODE: "make something similar to this image" — no description needed.
+    // fal FLUX Redux takes an image and generates variations. We persist the reference
+    // to our storage first so fal can fetch it by URL.
+    const reduxModel = process.env.FAL_REDUX_MODEL?.trim() || "fal-ai/flux/dev/redux";
+    const refPath = await uploadTryThisLookImage("uploads", referenceImage);
+    const refUrl = await getSignedUrl(refPath).catch(() => "");
+    if (!refUrl) return NextResponse.json({ error: "Could not read the reference image." }, { status: 502 });
+    falRes = await fetch(`https://fal.run/${reduxModel}`, {
+      method: "POST",
+      headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        image_url: refUrl,
+        image_size: "portrait_4_3",
+        num_images: count,
+        num_inference_steps: 28,
+        guidance_scale: 3.5,
+        enable_safety_checker: true,
+      }),
+    });
+  } else {
+    // TEXT MODE: FLUX dev is a good quality/cost balance; override via env if desired.
+    const model = process.env.FAL_IMAGE_MODEL?.trim() || "fal-ai/flux/dev";
+    falRes = await fetch(`https://fal.run/${model}`, {
+      method: "POST",
+      headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt,
+        negative_prompt: NEGATIVE,
+        image_size: "portrait_4_3", // 3:4 portrait
+        num_images: count,
+        num_inference_steps: 28,
+        guidance_scale: 3.5,
+        enable_safety_checker: true,
+      }),
+    });
+  }
   const falData = (await falRes.json().catch(() => null)) as
     | { images?: { url?: string }[]; detail?: unknown; error?: unknown }
     | null;

@@ -466,10 +466,17 @@ export default function AdminPage() {
   const [facePrompt, setFacePrompt] = useState("");
   const [faceCount, setFaceCount] = useState(2);
   const [faceGenBusy, setFaceGenBusy] = useState(false);
+  const [faceRef, setFaceRef] = useState(""); // optional reference image (data URL) → generate similar
+  const faceRefFileRef = useRef<HTMLInputElement>(null);
+  const pickFaceRef = async (file?: File) => {
+    if (!file) return;
+    const { src, error } = await readPhotoFile(file);
+    if (src) setFaceRef(src); else if (error) setFaceErr(error);
+  };
   const generateFaces = async () => {
     setFaceGenBusy(true); setFaceErr("");
     try {
-      const r = await fetch("/api/generate-avatar-face", { method: "POST", headers: headers(), body: JSON.stringify({ prompt: facePrompt.trim() || undefined, count: faceCount }) });
+      const r = await fetch("/api/generate-avatar-face", { method: "POST", headers: headers(), body: JSON.stringify({ prompt: facePrompt.trim() || undefined, count: faceCount, ...(faceRef ? { referenceImage: faceRef } : {}) }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) setFaceErr(d.error || "Generation failed.");
       else { await loadFaces(); setFaceGenOpen(false); }
@@ -1553,8 +1560,26 @@ export default function AdminPage() {
             {faceGenOpen && (
               <div className="mt-3 rounded-xl border border-black/12 bg-black/[0.02] p-3">
                 <p className="text-[12px] font-black uppercase tracking-wider text-ink/50">Generate AI faces · fal FLUX</p>
+                {/* Reference image → generate a SIMILAR face (no words needed). */}
+                <div className="mt-2 flex items-center gap-2">
+                  {faceRef ? (
+                    <div className="relative shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={faceRef} alt="" className="h-14 w-[42px] rounded-lg object-cover" />
+                      <button type="button" onClick={() => setFaceRef("")} className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-black text-[11px] text-white ring-1 ring-white/30">×</button>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => faceRefFileRef.current?.click()}
+                      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-black/15 px-3 text-xs font-black text-ink active:scale-95 transition">
+                      <ImagePlus className="h-4 w-4" /> Reference image
+                    </button>
+                  )}
+                  <p className="text-[11px] font-bold text-ink/45">{faceRef ? "Will generate a SIMILAR face — description below is optional." : "Optional: upload a reference to make a similar face (no words needed)."}</p>
+                </div>
+                <input ref={faceRefFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
+                  onChange={e => { void pickFaceRef(e.target.files?.[0]); e.target.value = ""; }} />
                 <textarea value={facePrompt} onChange={e => setFacePrompt(e.target.value)} rows={3}
-                  placeholder="Describe the face (blank = luxury fashion influencer, full-body 3:4). e.g. 'brunette Mediterranean woman, red evening gown, rooftop at dusk'"
+                  placeholder={faceRef ? "Not needed in reference mode — the image sets the look." : "Describe the face (blank = luxury fashion influencer, full-body 3:4). e.g. 'brunette Mediterranean woman, red evening gown, rooftop at dusk'"}
                   className="mt-2 w-full rounded-lg border border-black/15 bg-white px-3 py-2 text-[13px] font-semibold text-ink outline-none focus:border-black/40" />
                 <div className="mt-2 flex items-center justify-between gap-2">
                   <label className="flex items-center gap-1.5 text-[12px] font-bold text-ink/60">
@@ -1566,7 +1591,7 @@ export default function AdminPage() {
                   </label>
                   <button type="button" onClick={() => void generateFaces()} disabled={faceGenBusy}
                     className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-black px-4 text-xs font-black text-white active:scale-95 transition disabled:opacity-50">
-                    {faceGenBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating…</> : <><Sparkles className="h-4 w-4" /> Generate {faceCount}</>}
+                    {faceGenBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating…</> : <><Sparkles className="h-4 w-4" /> {faceRef ? "Generate similar" : "Generate"} {faceCount}</>}
                   </button>
                 </div>
                 <p className="mt-1.5 text-[11px] font-bold text-ink/40">A few cents per image · portrait 3:4 · added straight to the pool (free/unclaimed).</p>
