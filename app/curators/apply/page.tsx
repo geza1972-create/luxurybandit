@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Camera, Sparkles, Loader2, Check, Coins } from "lucide-react";
 import { TagField, PhotoCropper, readPhotoFile } from "../taste-form";
+import { getStoredAuthSession, signInWithPassword, signUpWithPassword, signInWithOAuth, type SupabaseAuthSession } from "@/lib/supabase-auth-client";
 
 export default function CuratorApplyPage() {
   const router = useRouter();
@@ -81,6 +82,41 @@ export default function CuratorApplyPage() {
   const [agreed, setAgreed] = useState(false); // 18+, real me, accepts the model rules
   const [applied, setApplied] = useState(false);
   const [error, setError] = useState("");
+
+  // ── Gate: you must have a REAL account before you can reach the application form.
+  // Admin edit-mode (?edit=) skips the gate. Reuses the site's Supabase auth.
+  const [authSession, setAuthSession] = useState<SupabaseAuthSession | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [isAdminEdit, setIsAdminEdit] = useState(false);
+  const [authTab, setAuthTab] = useState<"register" | "signin">("register");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authErr, setAuthErr] = useState("");
+  const [authMsg, setAuthMsg] = useState("");
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("edit")) { setIsAdminEdit(true); setAuthReady(true); return; }
+    const s = getStoredAuthSession();
+    if (s) { setAuthSession(s); if (s.user?.email) setEmail(prev => prev || s.user?.email || ""); }
+    setAuthReady(true);
+  }, []);
+  const doAuth = async () => {
+    if (!email.trim() || authPassword.length < 6) { setAuthErr("Enter your email and a password (6+ characters)."); return; }
+    setAuthErr(""); setAuthMsg(""); setAuthLoading(true);
+    try {
+      if (authTab === "signin") {
+        setAuthSession(await signInWithPassword(email.trim(), authPassword));
+      } else {
+        const { session: s, confirmationRequired } = await signUpWithPassword(email.trim(), authPassword, firstName.trim() || undefined);
+        if (s && !confirmationRequired) setAuthSession(s);
+        else { setAuthMsg("Account created — check your email to confirm, then log in."); setAuthTab("signin"); }
+      }
+    } catch (e) { setAuthErr(e instanceof Error ? e.message : "Something went wrong."); }
+    finally { setAuthLoading(false); }
+  };
+  const oauth = (provider: "google") => {
+    try { sessionStorage.setItem("lb_oauth_return", "/curators/apply"); } catch { /**/ }
+    signInWithOAuth(provider, `${window.location.origin}/auth/confirm?returnTo=/curators/apply`);
+  };
 
   // Insights: recruiting funnel steps 2+3 (form opened / application sent).
   const trackRecruit = (event: string) => {
@@ -272,6 +308,65 @@ export default function CuratorApplyPage() {
   // 3D press-able button shadows (dark primary + light raised) — reused across the form.
   const btn3d = "shadow-[0_3px_0_#0f172a,0_6px_14px_rgba(15,23,42,0.28)] transition-all active:translate-y-[3px] active:shadow-[0_1px_0_#0f172a]";
   const raise = "shadow-[0_2px_0_rgba(15,23,42,0.22),0_5px_12px_rgba(15,23,42,0.10)] transition-all active:translate-y-[2px] active:shadow-[0_0_0_rgba(0,0,0,0)]";
+
+  // Wait for the auth check, then gate: no real account → sign-up wall (banner stays).
+  if (!authReady) return <div className="min-h-screen bg-[#faf7f0]" />;
+  if (!authSession && !isAdminEdit) {
+    return (
+      <div className="min-h-screen bg-[#faf7f0] text-slate-900">
+        <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/10 bg-[#faf7f0]/90 px-3 py-3 backdrop-blur">
+          <button type="button" onClick={() => router.back()}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/15 text-slate-900 active:scale-90 transition-transform">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <p className="flex-1 text-sm font-black text-slate-900">Become a LuxuryBandit Model</p>
+        </div>
+        <div className="mx-auto w-full max-w-md px-5 pb-20">
+          {/* The campaign banner stays on the sign-up wall too. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/become-a-model-banner.jpg" alt="Become a LuxuryBandit Influencer and make money daily"
+            className="mt-4 w-full rounded-2xl" />
+          <h1 className="mt-5 text-center text-2xl font-black leading-tight">Create your account to apply</h1>
+          <p className="mx-auto mt-2 max-w-sm text-center text-[14px] font-bold text-slate-600">
+            A real account — this is where your <b className="text-slate-900">earnings, videos and fan chats</b> live. It only takes a moment.
+          </p>
+
+          <div className="mt-5 grid grid-cols-2 gap-1 rounded-xl bg-black/[0.04] p-1">
+            {(["register", "signin"] as const).map(t => (
+              <button key={t} type="button" onClick={() => { setAuthTab(t); setAuthErr(""); setAuthMsg(""); }}
+                className={`h-10 rounded-lg text-sm font-black transition ${authTab === t ? "bg-slate-800 text-white" : "text-slate-600"}`}>
+                {t === "register" ? "Sign up" : "Log in"}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-3 grid gap-2.5">
+            <input type="email" autoComplete="email" className={field} value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" />
+            <input type="password" autoComplete={authTab === "register" ? "new-password" : "current-password"} className={field}
+              value={authPassword} onChange={e => setAuthPassword(e.target.value)} placeholder="Password (6+ characters)"
+              onKeyDown={e => { if (e.key === "Enter") void doAuth(); }} />
+            {authErr && <p className="text-[13px] font-bold text-red-500">{authErr}</p>}
+            {authMsg && <p className="text-[13px] font-bold text-emerald-600">{authMsg}</p>}
+            <button type="button" onClick={() => void doAuth()} disabled={authLoading}
+              className={`bg-slate-800 text-white flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-black disabled:opacity-50 ${btn3d}`}>
+              {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (authTab === "register" ? "Sign up & continue" : "Log in & continue")}
+            </button>
+          </div>
+
+          <div className="mt-4 flex items-center gap-3 text-[12px] font-bold text-slate-500">
+            <span className="h-px flex-1 bg-black/10" /> or <span className="h-px flex-1 bg-black/10" />
+          </div>
+          <button type="button" onClick={() => oauth("google")}
+            className={`mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl border-[1.5px] border-slate-400 bg-white text-sm font-black text-slate-900 ${raise}`}>
+            Continue with Google
+          </button>
+          <p className="mx-auto mt-4 max-w-xs text-center text-[12px] font-bold text-slate-500">
+            Your details stay private — we only use them to run your influencer account.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (applied) {
     return (
