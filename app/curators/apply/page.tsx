@@ -469,7 +469,7 @@ export default function CuratorApplyPage() {
             Let&apos;s build your influencer profile{firstName ? `, ${firstName}` : ""}.
           </h1>
           <p className="mx-auto mt-2 max-w-sm text-sm font-semibold leading-6 text-slate-700">
-            Three quick steps below — <b className="text-slate-900">1.</b> choose whose face you use, <b className="text-slate-900">2.</b> pick your style, <b className="text-slate-900">3.</b> add your details &amp; photo. It takes about two minutes.
+            Three quick steps below — <b className="text-slate-900">1.</b> choose whose face &amp; add your photo, <b className="text-slate-900">2.</b> pick your style, <b className="text-slate-900">3.</b> add your details. It takes about two minutes.
           </p>
         </div>}
 
@@ -525,46 +525,6 @@ export default function CuratorApplyPage() {
           </div>
         )}
 
-        {/* Step 2 — Copy a style. STYLE TITLES only (no model faces — those confused people
-            into thinking they were picking a person). Each style maps to a template model. */}
-        <div className="mt-5 rounded-2xl border border-black/22 bg-black/[0.03] p-4">
-          <span className={label}>Copy a style you love</span>
-          <p className="mt-0.5 text-[13px] font-bold text-slate-600">Pick the <b className="text-slate-900">style</b> you want us to dress you in — always on your own face, never a copy of a person.</p>
-          {(() => {
-            const seen = new Set<string>();
-            const styleOptions: { style: string; modelId: string }[] = [];
-            for (const m of roleModels) {
-              const s = (m.style || "").split(",")[0].trim();
-              if (!s) continue;
-              const k = s.toLowerCase();
-              if (seen.has(k)) continue;
-              seen.add(k); styleOptions.push({ style: s, modelId: m.id });
-            }
-            const selM = roleModels.find(x => x.id === styleModelId);
-            const selStyle = (selM?.style || "").split(",")[0].trim().toLowerCase();
-            return (
-              <>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {styleOptions.map(opt => {
-                    const sel = !!selStyle && opt.style.toLowerCase() === selStyle;
-                    return (
-                      <button key={opt.modelId} type="button" onClick={() => setStyleModelId(id => id === opt.modelId ? "" : opt.modelId)}
-                        className={`rounded-full border px-3.5 py-2 text-sm font-black transition ${sel ? "border-slate-800 bg-slate-800 text-white" : "border-slate-400 bg-white text-slate-800"}`}>
-                        {opt.style}
-                      </button>
-                    );
-                  })}
-                </div>
-                {selStyle && (
-                  <p className="mt-3 rounded-xl border border-slate-300 bg-white px-3 py-2 text-[12px] font-bold text-slate-700">
-                    ✓ We&apos;ll dress you in a <b className="text-slate-900">{selStyle} style</b> — always on your own face. Your look stays yours.
-                  </p>
-                )}
-              </>
-            );
-          })()}
-        </div>
-
         {/* Profile photos — one main + up to 3 more; the team picks the best one. */}
         <div className="mt-5 flex flex-col items-center gap-2">
           <span className={`${label} text-center`}>Profile photo{` `}· main</span>
@@ -619,6 +579,46 @@ export default function CuratorApplyPage() {
           <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
             onChange={e => { void onPickPhoto(e.target.files?.[0]); e.target.value = ""; }} />
           {/* One photo only at signup. The full-body / face-crop step lives at TRY-ON time. */}
+        </div>
+
+        {/* Copy a style — STYLE TITLES only (no model faces — those confused people into
+            thinking they were picking a person). Each style maps to a template model. */}
+        <div className="mt-5 rounded-2xl border border-black/22 bg-black/[0.03] p-4">
+          <span className={label}>Copy a style you love</span>
+          <p className="mt-0.5 text-[13px] font-bold text-slate-600">Pick the <b className="text-slate-900">style</b> you want us to dress you in — always on your own face, never a copy of a person.</p>
+          {(() => {
+            const seen = new Set<string>();
+            const styleOptions: { style: string; modelId: string }[] = [];
+            for (const m of roleModels) {
+              const s = (m.style || "").split(",")[0].trim();
+              if (!s) continue;
+              const k = s.toLowerCase();
+              if (seen.has(k)) continue;
+              seen.add(k); styleOptions.push({ style: s, modelId: m.id });
+            }
+            const selM = roleModels.find(x => x.id === styleModelId);
+            const selStyle = (selM?.style || "").split(",")[0].trim().toLowerCase();
+            return (
+              <>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {styleOptions.map(opt => {
+                    const sel = !!selStyle && opt.style.toLowerCase() === selStyle;
+                    return (
+                      <button key={opt.modelId} type="button" onClick={() => setStyleModelId(id => id === opt.modelId ? "" : opt.modelId)}
+                        className={`rounded-full border px-3.5 py-2 text-sm font-black transition ${sel ? "border-slate-800 bg-slate-800 text-white" : "border-slate-400 bg-white text-slate-800"}`}>
+                        {opt.style}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selStyle && (
+                  <p className="mt-3 rounded-xl border border-slate-300 bg-white px-3 py-2 text-[12px] font-bold text-slate-700">
+                    ✓ We&apos;ll dress you in a <b className="text-slate-900">{selStyle} style</b> — always on your own face. Your look stays yours.
+                  </p>
+                )}
+              </>
+            );
+          })()}
         </div>
 
         {/* Identity */}
