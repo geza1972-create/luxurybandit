@@ -48,6 +48,7 @@ export default function CuratorApplyPage() {
   const [roleModels, setRoleModels] = useState<{ id: string; name: string; photoUrl?: string; style?: string }[]>([]);
   const [avatarFaces, setAvatarFaces] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean }[]>([]);
   const [faceDialog, setFaceDialog] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean } | null>(null); // preview + take a face
+  const [rulesOpen, setRulesOpen] = useState(false); // "You get one shot" rules → link under the photo opens this dialog
   const [avatarFaceId, setAvatarFaceId] = useState(""); // the FREE face this creator picks (booked on $9.99 payment)
   const [appliedCuratorId, setAppliedCuratorId] = useState(""); // returned by apply → needed to buy the face
   const [appliedFaceId, setAppliedFaceId] = useState("");
@@ -487,15 +488,6 @@ export default function CuratorApplyPage() {
           </p>
         </div>}
 
-        {/* One-shot warning — sets expectations before she uploads. */}
-        <div className="mt-6 rounded-2xl border border-black/15 bg-black/[0.04] px-4 py-3 text-center">
-          <p className="text-[15px] font-black text-slate-900">⚠️ You get one shot — send your very best photos.</p>
-          <p className="mt-1 text-[13px] font-bold leading-relaxed text-slate-700">Photos that are blurry, hide your face (hat/sunglasses), fake, or don&apos;t fit our luxury concept are rejected — and a rejected application can&apos;t apply again. Sharp, well-lit, real photos only.</p>
-          <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-900">💰 You earn <b className="text-slate-900">30%</b> (~$1.20) every time a fan makes a paid video with you — it lands in your account automatically. The more fans pick you, the more you earn. <a href="/earnings" className="underline underline-offset-2">How earnings work →</a></p>
-          <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-900">🎬 Turn your photos into stunning videos once you&apos;re approved — just $3.99 per video. Serious creators only.</p>
-          <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-800">💡 <b className="text-slate-900">You&apos;re never on your own.</b> Every single day we hand you fresh <b className="text-slate-900">outfits and video ideas</b> — you just post. No ideas needed, we do the creative work.</p>
-          <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-800">🤖 <b className="text-slate-900">A free AI chat assistant for your fans</b> — it chats with them for you, day and night. You have <b className="text-slate-900">zero work</b> with it.</p>
-        </div>
 
         {/* Step 1 — Whose face? (anti-deepfake: your own verified photos OR our AI faces). */}
         <div className="mt-5 rounded-2xl border border-black/22 bg-black/[0.03] p-4">
@@ -588,6 +580,10 @@ export default function CuratorApplyPage() {
             );
           })()}
           <p className="max-w-xs text-center text-[13px] font-bold text-slate-600">{imageSource === "ours" ? "Your chosen LuxuryBandit face becomes your public profile photo." : "One clear, well-lit face photo — this is you."}</p>
+          <button type="button" onClick={() => setRulesOpen(true)}
+            className="mt-1 text-[13px] font-black text-slate-700 underline underline-offset-2 active:opacity-70">
+            ⚠️ You get one shot — read the rules &amp; how it works
+          </button>
           <input ref={profileFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
             onChange={e => { void onPickProfile(e.target.files?.[0]); e.target.value = ""; }} />
           {photoError && <p className="max-w-xs text-center text-sm font-bold text-red-400">{photoError}</p>}
@@ -754,6 +750,21 @@ export default function CuratorApplyPage() {
       {profileCropSrc && (
         <PhotoCropper src={profileCropSrc} aspect="portrait" onCancel={() => setProfileCropSrc("")}
           onDone={(dataUrl) => { setProfilePhotos(prev => [...prev, dataUrl].slice(0, 4)); setProfileCropSrc(""); }} />
+      )}
+
+      {/* "You get one shot" rules — opened from the link under the photo. */}
+      {rulesOpen && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={e => { if (e.target === e.currentTarget) setRulesOpen(false); }}>
+          <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl bg-[#faf7f0] p-5 text-center">
+            <p className="text-[16px] font-black text-slate-900">⚠️ You get one shot — send your very best photos.</p>
+            <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-700">Photos that are blurry, hide your face (hat/sunglasses), fake, or don&apos;t fit our luxury concept are rejected — and a rejected application can&apos;t apply again. Sharp, well-lit, real photos only.</p>
+            <p className="mt-3 text-[13px] font-bold leading-relaxed text-slate-900">💰 You earn <b>30%</b> (~$1.20) every time a fan makes a paid video with you — it lands in your account automatically. The more fans pick you, the more you earn. <a href="/earnings" className="underline underline-offset-2">How earnings work →</a></p>
+            <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-900">🎬 Turn your photos into stunning videos once you&apos;re approved — just $3.99 per video. Serious creators only.</p>
+            <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-800">💡 <b className="text-slate-900">You&apos;re never on your own.</b> Every single day we hand you fresh <b className="text-slate-900">outfits and video ideas</b> — you just post. No ideas needed, we do the creative work.</p>
+            <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-800">🤖 <b className="text-slate-900">A free AI chat assistant for your fans</b> — it chats with them for you, day and night. You have <b className="text-slate-900">zero work</b> with it.</p>
+            <button type="button" onClick={() => setRulesOpen(false)} className="mt-4 h-11 w-full rounded-2xl bg-slate-800 text-sm font-black text-white active:scale-95 transition">Got it</button>
+          </div>
+        </div>
       )}
 
       {/* Face preview + take-it dialog — click a face → see her (video) → use her for $9.99. */}
