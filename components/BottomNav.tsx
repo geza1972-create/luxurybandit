@@ -146,6 +146,16 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
     return () => window.removeEventListener("lb-open-account", open);
   }, []);
 
+  // Suppress THIS component's floating hamburger while a shared <TopNav> is mounted
+  // on the page — that bar already carries the menu button, so we'd otherwise show two.
+  const [hasTopNav, setHasTopNav] = useState(false);
+  useEffect(() => {
+    const upd = () => setHasTopNav((((window as unknown as { __lbTopNav?: number }).__lbTopNav) ?? 0) > 0);
+    window.addEventListener("lb-topnav-change", upd);
+    upd();
+    return () => window.removeEventListener("lb-topnav-change", upd);
+  }, [pathname]);
+
   // Hide the NAV BAR on admin, auth, and standalone pages (unless a page explicitly
   // forces it, e.g. the Try-On funnel's unlocked/done screen). NOTE: we no longer
   // `return null` here — the Account sheet (opened via the "lb-open-account" event from
@@ -207,8 +217,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
     )}
     {/* Floating hamburger — replaces the old white bottom bar everywhere. All the bar's
         destinations (Home, Try-Ons, Mai ieftin) now live inside the menu sheet. Hidden on
-        the feed (its top header has its own hamburger) and on full-screen/funnel pages. */}
-    {!hideChrome && !hideBar && !onFeed && (
+        the feed (its top header has its own hamburger), on full-screen/funnel pages,
+        and wherever a shared TopNav already provides the menu button. */}
+    {!hideChrome && !hideBar && !onFeed && !hasTopNav && (
       <div className="lb-phone-col pointer-events-none fixed inset-x-0 bottom-0 z-50"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="flex justify-end px-4 pb-4">

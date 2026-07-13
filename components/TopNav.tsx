@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Menu } from "lucide-react";
 
@@ -22,8 +23,20 @@ export default function TopNav({
   const openMenu = () => {
     try { window.dispatchEvent(new Event("lb-open-account")); } catch { /**/ }
   };
+  // Announce presence so BottomNav hides its redundant floating hamburger while a
+  // TopNav is on screen (the menu lives in this bar now). Counted so overlapping
+  // mount/unmount during client nav never leaves it stuck hidden or doubled.
+  useEffect(() => {
+    const w = window as unknown as { __lbTopNav?: number };
+    w.__lbTopNav = (w.__lbTopNav ?? 0) + 1;
+    window.dispatchEvent(new Event("lb-topnav-change"));
+    return () => {
+      w.__lbTopNav = Math.max(0, (w.__lbTopNav ?? 1) - 1);
+      window.dispatchEvent(new Event("lb-topnav-change"));
+    };
+  }, []);
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0d0b0a]/95 backdrop-blur">
+    <header data-topnav="1" className="sticky top-0 z-30 border-b border-white/10 bg-[#0d0b0a]/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5">
         {/* Brand → home (root = the "Own an AI Influencer" landing) */}
         <button type="button" onClick={() => router.push("/")} aria-label="Home"

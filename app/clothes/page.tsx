@@ -4,7 +4,8 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Menu, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
+import TopNav from "@/components/TopNav";
 
 type ShopItem = { title: string; link: string; source?: string; thumbnail: string; price?: string };
 
@@ -56,19 +57,10 @@ export default function HainePage() {
 
   return (
     <div className="min-h-screen bg-black text-white/90">
-      <header className="sticky top-0 z-30 flex items-center justify-between bg-black/80 px-4 py-3.5 backdrop-blur">
-        <Link href="/home" aria-label="Înapoi" className="grid h-9 w-9 place-items-center rounded-full text-white/80 active:scale-90 transition">
-          <ChevronLeft className="h-5 w-5" />
-        </Link>
-        <h1 className="text-[15px] font-black uppercase tracking-[0.15em] text-white/85">Haine</h1>
-        <button type="button" onClick={() => { try { window.dispatchEvent(new Event("lb-open-account")); } catch { /**/ } }} aria-label="Meniu"
-          className="grid h-9 w-9 place-items-center rounded-full text-white/80 active:scale-90 transition">
-          <Menu className="h-6 w-6" />
-        </button>
-      </header>
+      <TopNav />
 
       <main className="mx-auto max-w-md px-4 pb-24 pt-2">
-        <p className="mb-1 text-center text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Bandit the look</p>
+        <p className="mb-1 mt-3 text-center text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Clothes</p>
         <p className="mb-5 text-center text-[13px] font-semibold text-white/45">Haine & piese de lux — colecția noastră și Bellucci</p>
 
         {loading ? (
