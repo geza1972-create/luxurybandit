@@ -473,6 +473,30 @@ export default function AdminPage() {
     const { src, error } = await readPhotoFile(file);
     if (src) setFaceRef(src); else if (error) setFaceErr(error);
   };
+  const blobToDataUrl = (blob: Blob) => new Promise<string>((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(blob); });
+  // Paste a screenshot straight in as the reference (button uses the async clipboard API).
+  const pasteFaceRef = async () => {
+    setFaceErr("");
+    try {
+      const items = await navigator.clipboard.read();
+      for (const it of items) {
+        const type = it.types.find(t => t.startsWith("image/"));
+        if (type) { setFaceRef(await blobToDataUrl(await it.getType(type))); return; }
+      }
+      setFaceErr("No image in the clipboard — take or copy a screenshot first.");
+    } catch { setFaceErr("Couldn't read the clipboard — press ⌘V instead, or use “Reference image”."); }
+  };
+  // ⌘V while the Generate panel is open pastes a screenshot as the reference.
+  useEffect(() => {
+    if (!faceGenOpen) return;
+    const onPaste = (e: ClipboardEvent) => {
+      const item = Array.from(e.clipboardData?.items ?? []).find(i => i.type.startsWith("image/"));
+      const blob = item?.getAsFile();
+      if (blob) { e.preventDefault(); void blobToDataUrl(blob).then(setFaceRef); }
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [faceGenOpen]);
   const generateFaces = async () => {
     setFaceGenBusy(true); setFaceErr("");
     try {
@@ -1569,12 +1593,18 @@ export default function AdminPage() {
                       <button type="button" onClick={() => setFaceRef("")} className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-black text-[11px] text-white ring-1 ring-white/30">×</button>
                     </div>
                   ) : (
-                    <button type="button" onClick={() => faceRefFileRef.current?.click()}
-                      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-black/15 px-3 text-xs font-black text-ink active:scale-95 transition">
-                      <ImagePlus className="h-4 w-4" /> Reference image
-                    </button>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <button type="button" onClick={() => faceRefFileRef.current?.click()}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-black/15 px-3 text-xs font-black text-ink active:scale-95 transition">
+                        <ImagePlus className="h-4 w-4" /> Reference
+                      </button>
+                      <button type="button" onClick={() => void pasteFaceRef()}
+                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-black/15 px-3 text-xs font-black text-ink active:scale-95 transition">
+                        📋 Paste
+                      </button>
+                    </div>
                   )}
-                  <p className="text-[11px] font-bold text-ink/45">{faceRef ? "Will generate a SIMILAR face — description below is optional." : "Optional: upload a reference to make a similar face (no words needed)."}</p>
+                  <p className="text-[11px] font-bold text-ink/45">{faceRef ? "Will generate a SIMILAR face — description below is optional." : "Upload, or paste a screenshot (⌘V), to make a similar face — no words needed."}</p>
                 </div>
                 <input ref={faceRefFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
                   onChange={e => { void pickFaceRef(e.target.files?.[0]); e.target.value = ""; }} />
