@@ -266,34 +266,34 @@ export default function CuratorApplyPage() {
   };
 
   // Neutral field styling — matches the profile form (no gold-everywhere).
-  const field = "h-12 w-full rounded-xl border border-black/25 bg-black/[0.03] px-4 text-sm font-bold text-ink outline-none focus:border-black/40 placeholder:text-ink/55";
-  const label = "mb-1 block text-[13px] font-black uppercase tracking-wider text-ink/60";
+  const field = "h-12 w-full rounded-xl border border-black/25 bg-black/[0.03] px-4 text-sm font-bold text-slate-900 outline-none focus:border-black/40 placeholder:text-slate-600";
+  const label = "mb-1 block text-[13px] font-black uppercase tracking-wider text-slate-600";
 
   if (applied) {
     return (
-      <div className="grid min-h-[100dvh] place-items-center bg-[#faf7f0] px-6 text-center text-ink">
+      <div className="grid min-h-[100dvh] place-items-center bg-[#faf7f0] px-6 text-center text-slate-900">
         <div className="max-w-sm">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-ink text-2xl text-white">✓</div>
-          <h1 className="mt-4 text-xl font-black text-ink">Application received{firstName ? `, ${firstName}` : ""}!</h1>
-          <p className="mt-2 text-sm font-semibold leading-6 text-ink/65">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-slate-800 text-2xl text-white">✓</div>
+          <h1 className="mt-4 text-xl font-black text-slate-900">Application received{firstName ? `, ${firstName}` : ""}!</h1>
+          <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">
             Our team reviews every LuxuryBandit Influencer personally. You&apos;ll get an email as soon
             as you&apos;re approved — then just sign in and start earning.
           </p>
           {appliedFaceId && (
             faceReserved ? (
-              <p className="mt-4 rounded-2xl border border-black/15 bg-black/[0.04] px-4 py-3 text-[15px] font-black text-ink">✓ Your face is reserved — it&apos;s yours alone. 💛</p>
+              <p className="mt-4 rounded-2xl border border-black/15 bg-black/[0.04] px-4 py-3 text-[15px] font-black text-slate-900">✓ Your face is reserved — it&apos;s yours alone. 💛</p>
             ) : (
               <div className="mt-4">
-                <p className="text-[14px] font-bold text-ink/65">Lock your unique face before someone else picks it:</p>
+                <p className="text-[14px] font-bold text-slate-700">Lock your unique face before someone else picks it:</p>
                 <button type="button" disabled={reserving} onClick={() => void reserveFace()}
-                  className="bg-ink text-white mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-6 text-sm font-black active:scale-95 transition disabled:opacity-50">
+                  className="bg-slate-800 text-white mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-6 text-sm font-black active:scale-95 transition disabled:opacity-50">
                   {reserving ? "…" : "🔒 Reserve my face — $3.99"}
                 </button>
               </div>
             )
           )}
           <button type="button" onClick={() => router.push("/stores")}
-            className="bg-ink text-white mt-5 inline-flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-black active:scale-95 transition-transform">
+            className="bg-slate-800 text-white mt-5 inline-flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-black active:scale-95 transition-transform">
             Back to LuxuryBandit
           </button>
         </div>
@@ -302,16 +302,16 @@ export default function CuratorApplyPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#faf7f0] text-ink" style={{ paddingBottom: "calc(130px + env(safe-area-inset-bottom))" }}>
+    <div className="min-h-[100dvh] bg-[#faf7f0] text-slate-900" style={{ paddingBottom: "calc(130px + env(safe-area-inset-bottom))" }}>
       {/* Header */}
       <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/22 bg-[#faf7f0]/95 px-4 py-3 backdrop-blur">
         <button type="button" onClick={cancel}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/15 text-ink active:scale-90 transition-transform">
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/15 text-slate-900 active:scale-90 transition-transform">
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <p className="flex-1 text-sm font-black text-ink">{editId ? `Edit model${firstName ? ` — ${firstName}` : ""}` : "Become a LuxuryBandit Model"}</p>
+        <p className="flex-1 text-sm font-black text-slate-900">{editId ? `Edit model${firstName ? ` — ${firstName}` : ""}` : "Become a LuxuryBandit Model"}</p>
         <button type="button" onClick={cancel}
-          className="shrink-0 rounded-full border border-black/15 px-4 py-2 text-sm font-black text-ink/80 active:scale-95 transition-transform">
+          className="shrink-0 rounded-full border border-black/15 px-4 py-2 text-sm font-black text-slate-800 active:scale-95 transition-transform">
           Cancel
         </button>
       </div>
@@ -323,38 +323,38 @@ export default function CuratorApplyPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/become-a-model-banner.jpg" alt="Become a LuxuryBandit Influencer and make money daily"
             className="mb-4 w-full rounded-2xl border border-black/15" />
-          <p className="mt-1 text-[13px] font-black uppercase tracking-[0.2em] text-ink">AI Virtual Try-On · Luxury Fashion</p>
-          <h1 className="mt-2 text-[28px] font-black leading-tight text-ink">
-            Sign up &amp; earn money <span className="text-ink">with every look.</span>
+          <p className="mt-1 text-[13px] font-black uppercase tracking-[0.2em] text-slate-900">AI Virtual Try-On · Luxury Fashion</p>
+          <h1 className="mt-2 text-[28px] font-black leading-tight text-slate-900">
+            Sign up &amp; earn money <span className="text-slate-900">with every look.</span>
           </h1>
-          <p className="mx-auto mt-2 max-w-xs text-sm font-semibold leading-6 text-ink/65">
+          <p className="mx-auto mt-2 max-w-xs text-sm font-semibold leading-6 text-slate-700">
             Get styled in high-end outfits by AI — and get paid every time someone tries on your look.
           </p>
         </div>}
 
         {/* One-shot warning — sets expectations before she uploads. */}
         <div className="mt-6 rounded-2xl border border-black/15 bg-black/[0.04] px-4 py-3 text-center">
-          <p className="text-[15px] font-black text-ink">⚠️ You get one shot — send your very best photos.</p>
-          <p className="mt-1 text-[13px] font-bold leading-relaxed text-ink/65">Photos that are blurry, hide your face (hat/sunglasses), fake, or don&apos;t fit our luxury concept are rejected — and a rejected application can&apos;t apply again. Sharp, well-lit, real photos only.</p>
-          <p className="mt-2 text-[13px] font-bold leading-relaxed text-ink">💰 You earn <b className="text-ink">30%</b> (~$1.20) every time a fan makes a paid video with you — it lands in your account automatically. The more fans pick you, the more you earn. <a href="/earnings" className="underline underline-offset-2">How earnings work →</a></p>
-          <p className="mt-2 text-[13px] font-bold leading-relaxed text-ink">🎬 Turn your photos into stunning videos once you&apos;re approved — just $3.99 per video. Serious creators only.</p>
-          <p className="mt-2 text-[13px] font-bold leading-relaxed text-ink/80">💡 <b className="text-ink">You&apos;re never on your own.</b> Every single day we hand you fresh <b className="text-ink">outfits and video ideas</b> — you just post. No ideas needed, we do the creative work.</p>
-          <p className="mt-2 text-[13px] font-bold leading-relaxed text-ink/80">🤖 <b className="text-ink">A free AI chat assistant for your fans</b> — it chats with them for you, day and night. You have <b className="text-ink">zero work</b> with it.</p>
+          <p className="text-[15px] font-black text-slate-900">⚠️ You get one shot — send your very best photos.</p>
+          <p className="mt-1 text-[13px] font-bold leading-relaxed text-slate-700">Photos that are blurry, hide your face (hat/sunglasses), fake, or don&apos;t fit our luxury concept are rejected — and a rejected application can&apos;t apply again. Sharp, well-lit, real photos only.</p>
+          <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-900">💰 You earn <b className="text-slate-900">30%</b> (~$1.20) every time a fan makes a paid video with you — it lands in your account automatically. The more fans pick you, the more you earn. <a href="/earnings" className="underline underline-offset-2">How earnings work →</a></p>
+          <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-900">🎬 Turn your photos into stunning videos once you&apos;re approved — just $3.99 per video. Serious creators only.</p>
+          <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-800">💡 <b className="text-slate-900">You&apos;re never on your own.</b> Every single day we hand you fresh <b className="text-slate-900">outfits and video ideas</b> — you just post. No ideas needed, we do the creative work.</p>
+          <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-800">🤖 <b className="text-slate-900">A free AI chat assistant for your fans</b> — it chats with them for you, day and night. You have <b className="text-slate-900">zero work</b> with it.</p>
         </div>
 
         {/* CONCEPT 2.0 creation tool — role model (style template) + face source (anti-deepfake). */}
         <div className="mt-5 rounded-2xl border border-black/22 bg-black/[0.03] p-4">
           <span className={label}>Your role model · style template</span>
-          <p className="mt-0.5 text-[13px] font-bold text-ink/60">Pick who you want to be like. We give you a similar style — with YOUR own look, never a copy.</p>
+          <p className="mt-0.5 text-[13px] font-bold text-slate-600">Pick who you want to be like. We give you a similar style — with YOUR own look, never a copy.</p>
           <div className="mt-2 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
             {roleModels.map(m => (
               <button key={m.id} type="button" onClick={() => setStyleModelId(id => id === m.id ? "" : m.id)}
                 className={`shrink-0 text-center transition ${styleModelId === m.id ? "" : "opacity-70 hover:opacity-100"}`}>
-                <span className={`block h-16 w-16 overflow-hidden rounded-full border-2 ${styleModelId === m.id ? "border-ink" : "border-black/22"}`}>
+                <span className={`block h-16 w-16 overflow-hidden rounded-full border-2 ${styleModelId === m.id ? "border-slate-800" : "border-black/22"}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={m.photoUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
                 </span>
-                <span className="mt-1 block w-16 truncate text-[12px] font-bold text-ink/72">{m.name.split(" ")[0]}</span>
+                <span className="mt-1 block w-16 truncate text-[12px] font-bold text-slate-700">{m.name.split(" ")[0]}</span>
               </button>
             ))}
           </div>
@@ -362,21 +362,21 @@ export default function CuratorApplyPage() {
           <span className={`${label} mt-4`}>Whose face?</span>
           <div className="mt-1 grid grid-cols-2 gap-2">
             <button type="button" onClick={() => setImageSource("own")}
-              className={`rounded-xl border px-3 py-2.5 text-center text-[14px] font-black transition ${imageSource === "own" ? "border-ink bg-black/[0.06] text-ink" : "border-black/25 text-ink/72"}`}>
+              className={`rounded-xl border px-3 py-2.5 text-center text-[14px] font-black transition ${imageSource === "own" ? "border-slate-800 bg-black/[0.06] text-slate-900" : "border-black/25 text-slate-700"}`}>
               📸 My own photos<br /><span className="text-[12px] font-bold opacity-70">You become the influencer</span>
             </button>
             <button type="button" onClick={() => setImageSource("ours")}
-              className={`rounded-xl border px-3 py-2.5 text-center text-[14px] font-black transition ${imageSource === "ours" ? "border-ink bg-black/[0.06] text-ink" : "border-black/25 text-ink/72"}`}>
+              className={`rounded-xl border px-3 py-2.5 text-center text-[14px] font-black transition ${imageSource === "ours" ? "border-slate-800 bg-black/[0.06] text-slate-900" : "border-black/25 text-slate-700"}`}>
               ✨ LuxuryBandit images<br /><span className="text-[12px] font-bold opacity-70">Use our AI faces</span>
             </button>
           </div>
-          <p className="mt-1.5 text-[12px] font-bold text-ink/55">To protect everyone, an influencer can only use YOUR verified photos or our images — never someone else&apos;s face.</p>
+          <p className="mt-1.5 text-[12px] font-bold text-slate-600">To protect everyone, an influencer can only use YOUR verified photos or our images — never someone else&apos;s face.</p>
         </div>
 
         {imageSource === "ours" && (
           <div className="mt-5 rounded-2xl border border-black/15 bg-black/[0.04] p-4">
             <span className={label}>Pick your face</span>
-            <p className="mt-0.5 text-[13px] font-bold text-ink/60">Each face is <b>unique</b> — once booked it&apos;s gone. Free faces are <b>$3.99</b> to claim. We add new ones all the time.</p>
+            <p className="mt-0.5 text-[13px] font-bold text-slate-600">Each face is <b>unique</b> — once booked it&apos;s gone. Free faces are <b>$3.99</b> to claim. We add new ones all the time.</p>
             {avatarFaces.length === 0 ? (
               <p className="mt-2 text-[14px] font-bold text-[#e7c877]">No free faces right now — new ones drop regularly. Pick “My own photos” above, or check back soon.</p>
             ) : (
@@ -384,16 +384,16 @@ export default function CuratorApplyPage() {
                 {avatarFaces.map(f => (
                   <button key={f.id} type="button" disabled={f.claimed}
                     onClick={() => setAvatarFaceId(id => id === f.id ? "" : f.id)}
-                    className={`relative aspect-square overflow-hidden rounded-xl border-2 transition ${f.claimed ? "cursor-not-allowed border-black/22 opacity-40" : avatarFaceId === f.id ? "border-ink" : "border-black/22"}`}>
+                    className={`relative aspect-square overflow-hidden rounded-xl border-2 transition ${f.claimed ? "cursor-not-allowed border-black/22 opacity-40" : avatarFaceId === f.id ? "border-slate-800" : "border-black/22"}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
-                    <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[11px] font-black ${f.claimed ? "bg-black/70 text-white/70" : "bg-ink text-white"}`}>{f.claimed ? "Booked" : "Free · $3.99"}</span>
-                    {avatarFaceId === f.id && <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-ink text-[13px] font-black text-white">✓</span>}
+                    <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[11px] font-black ${f.claimed ? "bg-black/70 text-white/70" : "bg-slate-800 text-white"}`}>{f.claimed ? "Booked" : "Free · $3.99"}</span>
+                    {avatarFaceId === f.id && <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-slate-800 text-[13px] font-black text-white">✓</span>}
                   </button>
                 ))}
               </div>
             )}
-            <p className="mt-2 text-[12px] font-bold text-ink/55">Uploading your own photos below is optional when you use our face.</p>
+            <p className="mt-2 text-[12px] font-bold text-slate-600">Uploading your own photos below is optional when you use our face.</p>
           </div>
         )}
 
@@ -412,7 +412,7 @@ export default function CuratorApplyPage() {
                 </button>
                 <button type="button" onClick={(e) => { e.stopPropagation(); remove(item); }}
                   className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black text-white ring-1 ring-white/25">×</button>
-                {isMain && <span className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-ink px-2 py-px text-[10px] font-black uppercase tracking-wide text-white">Main</span>}
+                {isMain && <span className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-slate-800 px-2 py-px text-[10px] font-black uppercase tracking-wide text-white">Main</span>}
               </div>
             ) : (
               <button type="button" onClick={() => profileFileRef.current?.click()}
@@ -421,11 +421,11 @@ export default function CuratorApplyPage() {
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/apply-example-face.jpg" alt="" className="h-full w-full object-cover object-top opacity-40" />
-                    <span className="absolute inset-0 grid place-items-center"><Camera className="h-6 w-6 text-ink drop-shadow" /></span>
+                    <span className="absolute inset-0 grid place-items-center"><Camera className="h-6 w-6 text-slate-900 drop-shadow" /></span>
                     <span className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white">Example</span>
                   </>
                 ) : (
-                  <span className="grid place-items-center gap-0.5 text-ink"><Camera className={isMain ? "h-7 w-7" : "h-5 w-5"} /><span className="text-[10px] font-black">Add</span></span>
+                  <span className="grid place-items-center gap-0.5 text-slate-900"><Camera className={isMain ? "h-7 w-7" : "h-5 w-5"} /><span className="text-[10px] font-black">Add</span></span>
                 )}
               </button>
             );
@@ -435,7 +435,7 @@ export default function CuratorApplyPage() {
               </div>
             );
           })()}
-          <p className="max-w-xs text-center text-[13px] font-bold text-ink/60">One clear, well-lit face photo — this is you.</p>
+          <p className="max-w-xs text-center text-[13px] font-bold text-slate-600">One clear, well-lit face photo — this is you.</p>
           <input ref={profileFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
             onChange={e => { void onPickProfile(e.target.files?.[0]); e.target.value = ""; }} />
           {photoError && <p className="max-w-xs text-center text-sm font-bold text-red-400">{photoError}</p>}
@@ -454,10 +454,10 @@ export default function CuratorApplyPage() {
           <div>
             <span className={label}>WhatsApp 🔒</span>
             <input type="tel" className={field} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+40 7xx… (WhatsApp)" />
-            <p className="mt-1.5 text-[13px] font-bold leading-relaxed text-ink/60">
+            <p className="mt-1.5 text-[13px] font-bold leading-relaxed text-slate-600">
               Never shown publicly — only our team sees it. We use it to notify you about fan
               chats &amp; try-ons and to verify you&rsquo;re a real person.{" "}
-              <a href="/model-rules" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2">See the rules</a>.
+              <a href="/model-rules" target="_blank" rel="noopener noreferrer" className="text-slate-900 underline underline-offset-2">See the rules</a>.
             </p>
           </div>
           <div><span className={label}>Instagram</span><input className={field} value={instagram} onChange={e => setInstagram(e.target.value)} placeholder="@handle" /></div>
@@ -466,13 +466,13 @@ export default function CuratorApplyPage() {
 
         {/* Taste */}
         <div className="mt-6">
-          <p className="text-sm font-black text-ink">Your taste</p>
-          <p className="mt-0.5 text-sm font-medium text-ink/65">AI uses this to suggest your motto & bio.</p>
+          <p className="text-sm font-black text-slate-900">Your taste</p>
+          <p className="mt-0.5 text-sm font-medium text-slate-700">AI uses this to suggest your motto & bio.</p>
           {/* Kept SHORT on purpose: just brands + a rough free-text — the AI hint
               replaces the old style/colors/fabrics/occasions/price/fit battery.
               (States remain so edit-mode preserves existing models' data.) */}
           <div className="mt-3 grid gap-4">
-            <TagField dark label="Brands you love" list={db.brands} value={brandChips} onChange={setBrandChips} placeholder="Start typing… Zimmermann, Gucci…" />
+            <TagField label="Brands you love" list={db.brands} value={brandChips} onChange={setBrandChips} placeholder="Start typing… Zimmermann, Gucci…" />
           </div>
 
           <div className="mt-4">
@@ -482,7 +482,7 @@ export default function CuratorApplyPage() {
           </div>
 
           <button type="button" onClick={() => void suggest()} disabled={suggesting}
-            className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-black/15 bg-black/[0.04] text-sm font-black text-ink disabled:opacity-50 active:scale-95 transition-transform">
+            className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-black/15 bg-black/[0.04] text-sm font-black text-slate-900 disabled:opacity-50 active:scale-95 transition-transform">
             {suggesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {suggesting ? "Thinking…" : "Write my motto & bio with AI"}
           </button>
@@ -497,7 +497,7 @@ export default function CuratorApplyPage() {
               <div className="mt-2 flex flex-wrap gap-2">
                 {mottoIdeas.map((m, i) => (
                   <button key={i} type="button" onClick={() => setMotto(m)}
-                    className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-black transition ${motto === m ? "border-ink bg-ink text-white" : "border-black/15 bg-black/[0.04] text-ink/80"}`}>
+                    className={`flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-black transition ${motto === m ? "border-slate-800 bg-slate-800 text-white" : "border-black/15 bg-black/[0.04] text-slate-800"}`}>
                     {motto === m && <Check className="h-3 w-3" />}{m}
                   </button>
                 ))}
@@ -514,10 +514,10 @@ export default function CuratorApplyPage() {
         <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-black/25 bg-black/[0.03] p-4">
           <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
             className="mt-0.5 h-5 w-5 shrink-0 accent-amber-400" />
-          <span className="text-[14px] font-bold leading-relaxed text-ink/80">
-            I&apos;m <b className="text-ink">18 or older</b>, the photos are <b className="text-ink">really me</b>, and I accept the{" "}
-            <a href="/model-rules" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2">model rules &amp; terms</a>.
-            I understand every application is <b className="text-ink">manually verified</b> — fake or stolen photos are rejected.
+          <span className="text-[14px] font-bold leading-relaxed text-slate-800">
+            I&apos;m <b className="text-slate-900">18 or older</b>, the photos are <b className="text-slate-900">really me</b>, and I accept the{" "}
+            <a href="/model-rules" target="_blank" rel="noopener noreferrer" className="text-slate-900 underline underline-offset-2">model rules &amp; terms</a>.
+            I understand every application is <b className="text-slate-900">manually verified</b> — fake or stolen photos are rejected.
           </span>
         </label>
 
@@ -528,11 +528,11 @@ export default function CuratorApplyPage() {
       <div className="lb-phone-col fixed inset-x-0 bottom-0 z-20 border-t border-black/22 bg-[#faf7f0]/95 px-5 pt-3 backdrop-blur"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
         <button type="button" onClick={() => void submit()} disabled={submitting || (!editId && !agreed)}
-          className="bg-ink text-white flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black disabled:opacity-50 active:scale-95 transition-transform">
+          className="bg-slate-800 text-white flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black disabled:opacity-50 active:scale-95 transition-transform">
           {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Coins className="h-5 w-5" />}
           {submitting ? (editId ? "Saving…" : "Setting up…") : (editId ? "Save changes" : "Sign up & start earning")}
         </button>
-        <p className="mt-1.5 text-center text-[12px] font-bold text-ink/55">
+        <p className="mt-1.5 text-center text-[12px] font-bold text-slate-600">
           {editId ? "Changes go live immediately" : <>Start with free credits · earn more from likes &amp; try-ons</>}
         </p>
       </div>
@@ -554,15 +554,15 @@ export default function CuratorApplyPage() {
       {savedDone && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 p-6 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-3xl border border-black/15 bg-[#141210] p-6 text-center">
-            <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-ink text-white text-2xl font-black">✓</span>
-            <h3 className="mt-3 text-lg font-black text-ink">Saved!</h3>
-            <p className="mt-1 text-[15px] font-bold text-ink/65">{savedDone.photo ? "The profile photo has been updated." : "Changes saved."}</p>
+            <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-slate-800 text-white text-2xl font-black">✓</span>
+            <h3 className="mt-3 text-lg font-black text-slate-900">Saved!</h3>
+            <p className="mt-1 text-[15px] font-bold text-slate-700">{savedDone.photo ? "The profile photo has been updated." : "Changes saved."}</p>
             {savedDone.photo && (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={savedDone.photo} alt="" className="mx-auto mt-4 h-40 w-32 rounded-2xl object-cover object-top ring-2 ring-emerald-400/40" />
             )}
             <button type="button" onClick={() => router.push("/admin?tab=curators")}
-              className="bg-ink text-white mt-5 w-full rounded-full px-5 py-3 text-sm font-black active:scale-95 transition">Back to models</button>
+              className="bg-slate-800 text-white mt-5 w-full rounded-full px-5 py-3 text-sm font-black active:scale-95 transition">Back to models</button>
           </div>
         </div>
       )}

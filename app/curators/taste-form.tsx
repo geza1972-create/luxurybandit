@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Check, Plus, LayoutGrid, X } from "lucide-react";
 
-export const LBL = "mb-1 block text-[11px] font-black uppercase tracking-wider text-black/45";
+export const LBL = "mb-1 block text-[11px] font-black uppercase tracking-wider text-slate-600";
 export const LBL_DARK = "mb-1 block text-[11px] font-black uppercase tracking-wider text-amber-400";
 
 // Downscale a picked image to keep the payload small.
@@ -95,7 +95,7 @@ export function TagField({ label, list, value, onChange, placeholder, dark }: {
     <div>
       <div className="mb-1 flex items-center justify-between">
         <span className={(dark ? LBL_DARK : LBL).replace("mb-1 ", "")}>{label}</span>
-        <button type="button" onClick={() => setBrowse(true)} className={`inline-flex items-center gap-1 text-[11px] font-black active:opacity-70 ${dark ? "text-amber-400" : "text-cobalt"}`}>
+        <button type="button" onClick={() => setBrowse(true)} className={`inline-flex items-center gap-1 text-[11px] font-black active:opacity-70 ${dark ? "text-amber-400" : "text-slate-600"}`}>
           <LayoutGrid className="h-3.5 w-3.5" /> Browse all ({list.length})
         </button>
       </div>
@@ -124,7 +124,7 @@ export function TagField({ label, list, value, onChange, placeholder, dark }: {
             ))}
             {query.trim() && !list.some(b => b.toLowerCase() === query.trim().toLowerCase()) && (
               <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => add(query)}
-                className={`flex w-full items-center gap-1.5 px-3.5 py-2.5 text-left text-sm font-bold ${dark ? "text-amber-400 hover:bg-amber-400/[0.08]" : "text-cobalt hover:bg-cobalt/[0.05]"}`}>
+                className={`flex w-full items-center gap-1.5 px-3.5 py-2.5 text-left text-sm font-bold ${dark ? "text-amber-400 hover:bg-amber-400/[0.08]" : "text-slate-600 hover:bg-slate-500/[0.08]"}`}>
                 <Plus className="h-3.5 w-3.5" /> Add &ldquo;{query.trim()}&rdquo;
               </button>
             )}
