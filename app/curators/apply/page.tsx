@@ -513,7 +513,7 @@ export default function CuratorApplyPage() {
         {imageSource === "ours" && (
           <div className="mt-5 rounded-2xl border border-black/15 bg-black/[0.04] p-4">
             <span className={label}>Pick your face</span>
-            <p className="mt-0.5 text-[13px] font-bold text-slate-600">Each face is <b>unique</b> — once booked it&apos;s gone. Free faces are <b>$3.99</b> to claim. We add new ones all the time.</p>
+            <p className="mt-0.5 text-[13px] font-bold text-slate-600">Each face is <b>unique</b> — once booked it&apos;s gone. Free faces are <b>$3.99</b> to claim, and your <b>first video is included</b>. We add new ones all the time.</p>
             {avatarFaces.length === 0 ? (
               <p className="mt-2 text-[14px] font-bold text-[#e7c877]">No free faces right now — new ones drop regularly. Pick “My own photos” above, or check back soon.</p>
             ) : (

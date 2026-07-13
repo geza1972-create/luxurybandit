@@ -38,8 +38,11 @@ export async function GET(request: Request) {
         if (face && (!face.claimedBy || face.claimedBy === curatorId)) {
           face.claimedBy = curatorId; face.claimedAt = face.claimedAt || new Date().toISOString();
           const cur = (st.curators ?? []).find(c => c.id === curatorId);
-          if (cur) (cur as any).avatarFaceId = faceId;
+          let creatorEmail = "";
+          if (cur) { (cur as any).avatarFaceId = faceId; creatorEmail = String((cur as any).email ?? "").trim().toLowerCase(); }
           await saveTryThisLookState(st);
+          // Buying an AI face ($3.99) INCLUDES one free video generation (idempotent per session).
+          if (creatorEmail) { const res = await grantVideoCredits(creatorEmail, sessionId, 1); credits = res.credits; }
         }
       }
     }
