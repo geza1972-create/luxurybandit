@@ -1881,6 +1881,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    // Admin: remove ONLY the video from a face (keep the face + its image).
+    if (payload.action === "remove-avatar-face-video") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const faceId = String((payload as any).faceId ?? "").trim();
+      if (!faceId) return NextResponse.json({ error: "faceId required." }, { status: 400 });
+      const st = await readTryThisLookState();
+      const face = (st.avatarFaces ?? []).find(f => f.id === faceId);
+      if (face) { delete (face as any).videoPath; delete (face as any).videoUrl; await saveTryThisLookState(st); }
+      return NextResponse.json({ ok: true });
+    }
+
     // Admin: replace a face's image in-place (e.g. after cropping). Keeps the same id and
     // any existing booking (claimedBy), so a booked face just gets a cleaner picture.
     if (payload.action === "replace-avatar-face") {

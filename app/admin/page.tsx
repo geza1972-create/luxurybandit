@@ -519,6 +519,12 @@ export default function AdminPage() {
     } catch { setFaceErr("Video failed."); }
     finally { setFaceVidBusy(""); }
   };
+  const deleteFaceVideo = async (id: string) => {
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "remove-avatar-face-video", faceId: id }) });
+      if (r.ok) { setFaces(fs => fs.map(f => f.id === id ? { ...f, videoUrl: "" } : f)); setBigFace(b => (b && b.id === id ? { ...b, videoUrl: "" } : b)); }
+    } catch { /**/ }
+  };
   // Big view + crop for a single face.
   const [bigFace, setBigFace] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean } | null>(null);
   const [faceCropSrc, setFaceCropSrc] = useState(""); // data URL fed to PhotoCropper
@@ -1643,20 +1649,37 @@ export default function AdminPage() {
               onChange={e => { void uploadFaces(e.target.files); e.target.value = ""; }} />
             {faceErr && <p className="mt-2 text-[12px] font-bold text-red-500">{faceErr}</p>}
             {faces.length > 0 && (
-              <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-6">
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {faces.map(f => (
-                  <div key={f.id} className="relative aspect-[3/4] overflow-hidden rounded-xl border border-black/10 bg-black/[0.04]">
-                    <button type="button" onClick={() => setBigFace(f)} title="Tap to enlarge / crop" className="block h-full w-full">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
-                    </button>
-                    <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[9px] font-black ${f.claimed ? "bg-black/70 text-white/70" : "bg-emerald-600 text-white"}`}>{f.claimed ? "Booked" : "Free"}</span>
-                    {f.videoUrl && <span className="pointer-events-none absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/70 text-white"><Video className="h-3 w-3" /></span>}
-                    <button type="button" title={f.claimed ? "Booked — delete anyway" : "Delete face"}
-                      onClick={() => armOrRun(`face-${f.id}`, () => void deleteFace(f.id, f.claimed))}
-                      className={`absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full text-white ring-1 ring-white/30 transition ${confirmId === `face-${f.id}` ? "bg-red-600" : "bg-black/60"}`}>
-                      {confirmId === `face-${f.id}` ? <Check className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
-                    </button>
+                  <div key={f.id} className="rounded-xl border border-black/10 bg-black/[0.02] p-1.5">
+                    <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-black/[0.04]">
+                      <button type="button" onClick={() => setBigFace(f)} title="Tap to enlarge / crop" className="block h-full w-full">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
+                      </button>
+                      <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[9px] font-black ${f.claimed ? "bg-black/70 text-white/70" : "bg-emerald-600 text-white"}`}>{f.claimed ? "Booked" : "Free"}</span>
+                      <button type="button" title={f.claimed ? "Booked — delete anyway" : "Delete face"}
+                        onClick={() => armOrRun(`face-${f.id}`, () => void deleteFace(f.id, f.claimed))}
+                        className={`absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full text-white ring-1 ring-white/30 transition ${confirmId === `face-${f.id}` ? "bg-red-600" : "bg-black/60"}`}>
+                        {confirmId === `face-${f.id}` ? <Check className="h-3.5 w-3.5" /> : <Trash2 className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                    {/* Video: preview + delete, or generate one (afterwards). */}
+                    {f.videoUrl ? (
+                      <div className="mt-1.5">
+                        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                        <video src={f.videoUrl} poster={f.imageUrl} controls playsInline preload="none" className="w-full rounded-lg bg-black" />
+                        <button type="button" onClick={() => armOrRun(`vdel-${f.id}`, () => void deleteFaceVideo(f.id))}
+                          className={`mt-1 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg text-[11px] font-black transition ${confirmId === `vdel-${f.id}` ? "bg-red-600 text-white" : "border border-black/15 text-ink"}`}>
+                          {confirmId === `vdel-${f.id}` ? <><Check className="h-3.5 w-3.5" /> Sure?</> : <><Trash2 className="h-3.5 w-3.5" /> Delete video</>}
+                        </button>
+                      </div>
+                    ) : (
+                      <button type="button" onClick={() => void makeFaceVideo(f.id)} disabled={faceVidBusy === f.id}
+                        className="mt-1.5 inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border border-black/15 text-[11px] font-black text-ink active:scale-95 transition disabled:opacity-50">
+                        {faceVidBusy === f.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Making… 1–3 min</> : <><Video className="h-3.5 w-3.5" /> Make video</>}
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
