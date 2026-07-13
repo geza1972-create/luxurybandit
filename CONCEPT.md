@@ -15,10 +15,17 @@
 - **Influencer haben selbst keine Ideen — die Plattform liefert sie:** kuratierte **Prompts + Klamotten/Lingerie**.
 - **Eiserne Regel: keine zwei Influencerinnen haben dieselben Klamotten/Videos.** Einzigartigkeit ist Pflicht — sonst kein Status, keine eigenen Fans.
 
+### 2b. Vorbild-Mechanik (Role Models) — das Herz
+- **Die Plattform-Influencerinnen sind VORBILDER (Role Models).** Zwei Wege für den Besucher:
+  1. **Fan werden / folgen** — man mag sie, folgt ihr, wird zahlender Fan (Fan-Seite).
+  2. **Sie nachahmen** — man wird selbst Influencer:in **im Stil eines Vorbilds, aber NICHT 100%:** mit dem **eigenen Bild** + **ähnlichen (nicht identischen) Videos**.
+- So greifen beide Regeln automatisch: **Einzigartigkeit** (§2 — jeder ist seine eigene Version, keine Kopie) **und Anti-Deepfake** (§7 — eigenes Bild oder unsere Bilder).
+- Jedes Vorbild = eine **Stil-Vorlage** (Look, Vibe, Video-Art), aus der der Creator seine eigene, einzigartige Variante ableitet.
+
 ## 3. Fan-Seite — der Hook
 1. Sehenswertes Model-Video (täglich neu) →
 2. **„Sieh dich selbst drin"** = **echter Face-Swap** (User-Gesicht ins Video) — **kostenpflichtig ($3.99), der User zahlt die Rechenzeit** →
-3. **Chat** mit der Influencerin (AI-Persona) →
+3. **Chat** mit der Influencerin — **persönlicher Persona-Chat** (wie das alte AI-Model-Chat: sie fragt deinen Namen, plaudert, ist nahbar), **NICHT der werbliche Produkt-Finder.** „Chat mit Gina" fühlt sich an wie mit einem echten Vorbild reden. Produkte/Looks kommen erst auf Nachfrage. →
 4. **Shop the Look** (Affiliate, sekundär).
 - Mehrwert: jeden Tag neues Model, sie in immer neuen Looks/Lingerie sehen.
 
@@ -41,16 +48,19 @@
 - **Creator/Model-Earnings: 30%** von zahlenden Fans (Referral-getrackt).
 - **Affiliate/Shop:** sekundäre Einnahme über „Shop the Look" (v1-Schicht, siehe Anhang).
 
-## 7. Moderation & Recht (nicht verhandelbar)
-- **AI-Gesichter für Influencerinnen** — KEINE echten hochgeladenen Gesichter als Influencer-Basis.
-- **Face-Swap:** nur das eigene Foto des zahlenden Users, mit Consent (18+ Age-Gate gilt portalweit).
-- **Lingerie erlaubt** (auch für Creator-Influencerinnen) — genug Vielfalt an Klamotten/Lingerie zur Unterscheidung. 18+ + Consent Pflicht.
+## 7. Moderation & Recht — die Anti-Deepfake-Regel (nicht verhandelbar)
+- **Eine Influencerin darf NUR aus zwei Quellen entstehen:**
+  1. **Eigene echte Fotos des Creators** — er/sie wird SELBST zur Influencerin (Mann oder Frau). Muss **verifiziert** sein, dass es wirklich die Person ist (Selfie-Verifizierung wie im bestehenden Model-Onboarding).
+  2. **Von uns bereitgestellte Bilder** (AI/lizenziert), wenn der Creator sein eigenes Gesicht nicht nutzen will.
+- **NIEMALS ein fremdes hochgeladenes Gesicht** (kein Promi, keine dritte Person) → das ist die **Anti-Deepfake-Leitplanke**.
+- **Face-Swap (Fan-Seite):** nur das eigene Foto des zahlenden Users, mit Consent (18+ portalweit).
+- **Lingerie erlaubt** — genug Vielfalt zur Unterscheidung. 18+ + Consent Pflicht.
 - Logo-frei, keine Counterfeits (aus v1 §9).
 
-## 8. Reihenfolge / Roadmap
-- **Phase A — Fan-Seite ZUERST:** Face-Swap ($3.99, echt) + Chat sauber, Umsatz beweisen. Ad-Landing (`/try`): Video → Face-Swap + Chat + „täglich neues Model".
-- **Phase B — Creator-Portal (Avon) öffnen:** Model-Erstellung für User, **Referral-Link + Fan-/Kauf-Attribution**, Content-Export (generieren → extern posten), Earnings-Dashboard/Payout, Prompt-/Klamotten-Lieferung ans Creator-Tool.
-- **Marketing:** eigene Ads (die alten wurden 2026-07-13 gestoppt — brachten nichts) auf den neuen Hook + der **Avon-Effekt** (Creator vermarkten selbst).
+## 8. Reihenfolge / Roadmap  (korrigiert 2026-07-13: CREATOR zuerst)
+- **Phase A — CREATOR-Seite ZUERST:** Ziel = **Leute ziehen, die Influencer werden wollen** (Männer & Frauen). Flow: anmelden → **Vorbild wählen** (eine Plattform-Influencerin als Stil-Vorlage) → **eigene Fotos hochladen (+ Selfie-Verifizierung) ODER unsere Bilder wählen** → ihre einzigartige Variante wird erstellt (eigenes Bild, ähnliche Videos, nicht 100% Kopie) → Plattform liefert täglich Prompts + Klamotten → sie vermarktet sich selbst (Avon) → Referral + Earnings. **Ads zielen auf „werde Influencer:in & verdiene".**
+- **Phase B — Fan-Seite:** schauen → Face-Swap ($3.99) → Chat → Shop. Die Fans kommen vor allem **über die Creator**, die sich selbst vermarkten (Avon-Effekt) — plus die Vorbilder direkt.
+- **Marketing:** eigene Ads (die alten wurden 2026-07-13 gestoppt — brachten nichts) auf den Creator-Hook; Wachstum dann v.a. über den **Avon-Effekt** (Creator vermarkten selbst).
 
 ## 9. Offene Punkte
 - Wie wird „Status" sichtbar? (Verifiziert-Badge / Ranking / Top-Earner-Leaderboard?)
