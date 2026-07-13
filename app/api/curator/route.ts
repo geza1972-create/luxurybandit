@@ -407,6 +407,7 @@ export async function POST(request: Request) {
       // ("own" verified photos vs "ours" = platform images — never a third person's face).
       ...(String((payload as any).styleModelId ?? "").trim() ? { styleModelId: String((payload as any).styleModelId).trim() } : {}),
       imageSource: (payload as any).imageSource === "ours" ? "ours" : "own",
+      ...(String((payload as any).avatarFaceId ?? "").trim() ? { avatarFaceId: String((payload as any).avatarFaceId).trim() } : {}),
       // Audit trail: record that (and when) she accepted the model rules & terms.
       ...(payload.consent === true ? {
         consentAt: new Date().toISOString(),
@@ -418,6 +419,15 @@ export async function POST(request: Request) {
 
     const state = await readTryThisLookState();
     const curators = [...(state.curators ?? []), curator];
+
+    // Book the chosen AI face to this new influencer — ONCE only. If it was grabbed in the
+    // meantime, drop the reference (she'll pick another) instead of double-booking.
+    const wantFace = String((payload as any).avatarFaceId ?? "").trim();
+    if (wantFace && (curator as any).imageSource === "ours") {
+      const face = (state.avatarFaces ?? []).find(f => f.id === wantFace);
+      if (face && !face.claimedBy) { face.claimedBy = curator.id; face.claimedAt = new Date().toISOString(); }
+      else if (face && face.claimedBy) { delete (curator as any).avatarFaceId; } // already booked → don't claim
+    }
 
     // Grow the taste databases from what the curator entered.
     const brands = mergeTags(state.brands ?? [], curator.brands ?? "");

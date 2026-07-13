@@ -446,6 +446,18 @@ export async function GET(request: Request) {
       return NextResponse.json({ garments });
     }
 
+    // AI-face library (creation tool). Anyone building an influencer sees which faces are
+    // FREE (claimable for $3.99) vs already BOOKED. Each face belongs to exactly one influencer.
+    if (url.searchParams.get("avatarFaces") === "1") {
+      const faces = state.avatarFaces ?? [];
+      const out = await Promise.all(faces.map(async f => ({
+        id: f.id,
+        imageUrl: f.imagePath ? await getSignedUrl(f.imagePath).catch(() => "") : (f.imageUrl ?? ""),
+        claimed: !!f.claimedBy,
+      })));
+      return NextResponse.json({ faces: out });
+    }
+
     // model appears in, matched by name.
     if (url.searchParams.get("models") === "1") {
       // Admins get hidden models too (to un-hide/manage) + editable fields (name parts, bio).
@@ -1837,6 +1849,35 @@ export async function POST(request: Request) {
       const curators = all ? [] : (state.curators ?? []).filter(c => c.id !== id);
       await saveTryThisLookState({ ...state, curators });
       return NextResponse.json({ ok: true, curators });
+    }
+
+    // Admin: add an AI face to the library pool (for the "our images" creation path).
+    if (payload.action === "add-avatar-face") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const img = String((payload as any).image ?? "");
+      if (!img.startsWith("data:image/")) return NextResponse.json({ error: "image required." }, { status: 400 });
+      const imagePath = await uploadTryThisLookImage("uploads", img);
+      const face = { id: `face-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`, imagePath, createdAt: new Date().toISOString() };
+      const st = await readTryThisLookState();
+      st.avatarFaces = [face, ...(st.avatarFaces ?? [])];
+      await saveTryThisLookState(st);
+      return NextResponse.json({ ok: true, id: face.id });
+    }
+
+    // Claim an AI face for a creator — ONCE only. A face belongs to exactly one influencer,
+    // so once booked it can never be picked again. ($3.99 is gated via Stripe on the client;
+    // the server enforces the uniqueness.)
+    if (payload.action === "claim-avatar-face") {
+      const faceId = String((payload as any).faceId ?? "").trim();
+      const curatorId = String((payload as any).curatorId ?? "").trim();
+      if (!faceId || !curatorId) return NextResponse.json({ error: "faceId + curatorId required." }, { status: 400 });
+      const st = await readTryThisLookState();
+      const face = (st.avatarFaces ?? []).find(f => f.id === faceId);
+      if (!face) return NextResponse.json({ error: "Face not found." }, { status: 404 });
+      if (face.claimedBy && face.claimedBy !== curatorId) return NextResponse.json({ error: "This face is already booked.", alreadyClaimed: true }, { status: 409 });
+      face.claimedBy = curatorId; face.claimedAt = new Date().toISOString();
+      await saveTryThisLookState(st);
+      return NextResponse.json({ ok: true });
     }
 
     // Bulk-delete models (admin) — remove many curators in one save (used by the models

@@ -183,6 +183,7 @@ export type CuratorProfile = {
   genderFocus?: string;       // "women" | "men" | "unisex"
   styleModelId?: string;      // CONCEPT 2.0: the role model whose STYLE this influencer emulates
   imageSource?: "own" | "ours"; // her face = her own verified photos, or platform images (anti-deepfake)
+  avatarFaceId?: string;      // if imageSource "ours": the claimed AI face from the library (booked once, $3.99)
   colors?: string;            // comma-joined colour tags
   fabrics?: string;           // comma-joined fabric tags
   occasions?: string;         // comma-joined occasion tags
@@ -318,6 +319,9 @@ export type TryThisLookState = {
   // Admin-managed wardrobe: outfit images shown in the Try-On funnel gallery, so a user
   // can pick an outfit to see the video's model (or their own avatar) wearing it.
   outfits?: TryThisLookOutfit[];
+  // CONCEPT 2.0 — AI-face library for the creation tool. Each face is UNIQUE: once a creator
+  // claims it (pays $3.99) it's "booked" and can't be picked again. Admin adds new ones.
+  avatarFaces?: { id: string; imagePath?: string; imageUrl?: string; claimedBy?: string; claimedAt?: string; createdAt?: string }[];
   // Admin-editable prompt template for the Try-On funnel video generation. Uses the
   // tokens @Bild1 (the model/avatar) and @Bild2 (the chosen outfit).
   funnelVideoPrompt?: string;
@@ -728,6 +732,7 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     tryonPaused: state.tryonPaused === true,
     chatNotifyPaused: state.chatNotifyPaused === true,
     outfits: state.outfits ?? [],
+    avatarFaces: state.avatarFaces ?? [],
     funnelVideoPrompt: state.funnelVideoPrompt,
     viewsByDay: state.viewsByDay ?? {},
     visitsByDay: state.visitsByDay ?? {},
@@ -795,6 +800,13 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     const delChat = opts.deletedChatIds?.length ? new Set(opts.deletedChatIds) : undefined;
     state = {
       ...state,
+      // AI-face library: union by id; a CLAIMED face always wins so a concurrent booking
+      // is never clobbered (a face can only be claimed once).
+      avatarFaces: (() => {
+        const byId = new Map(((latest.avatarFaces ?? []) as any[]).map(f => [f.id, f]));
+        for (const f of ((state.avatarFaces ?? []) as any[])) { const prev = byId.get(f.id); byId.set(f.id, f.claimedBy ? f : (prev?.claimedBy ? prev : f)); }
+        return [...byId.values()] as any;
+      })(),
       generations: mergeNewerById(state.generations as any, latest.generations as any, delGen) as any,
       // Admin-uploaded outfits CAN be deleted → mergeNewerById (like generations) so a
       // concurrent/stale save can never DROP them, while a real delete isn't resurrected.
@@ -852,6 +864,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     messages: (state.messages ?? []).slice(0, 2000),
     curators: (state.curators ?? []).map(({ photoUrl, photoFullUrl, photoBodyUrls, profilePhotoUrls, verificationSelfieUrl, ...curator }) => curator).slice(0, 2000),
     outfits: (state.outfits ?? []).map(({ imageUrl, ...outfit }) => outfit).slice(0, 500),
+    avatarFaces: (state.avatarFaces ?? []).map(({ imageUrl, ...f }) => f).slice(0, 2000),
     funnelVideoPrompt: state.funnelVideoPrompt,
     viewsByDay: state.viewsByDay ?? {},
     visitsByDay: state.visitsByDay ?? {},

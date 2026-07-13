@@ -43,6 +43,8 @@ export default function CuratorApplyPage() {
   const [styleModelId, setStyleModelId] = useState("");
   const [imageSource, setImageSource] = useState<"own" | "ours">("own"); // own photos (you) vs our images (anti-deepfake: never someone else's face)
   const [roleModels, setRoleModels] = useState<{ id: string; name: string; photoUrl?: string }[]>([]);
+  const [avatarFaces, setAvatarFaces] = useState<{ id: string; imageUrl: string; claimed: boolean }[]>([]);
+  const [avatarFaceId, setAvatarFaceId] = useState(""); // the FREE face this creator picks (booked on apply, $3.99)
 
   const [db, setDb] = useState<{ brands: string[]; styles: string[]; colors: string[]; fabrics: string[]; occasions: string[] }>(
     { brands: [], styles: [], colors: [], fabrics: [], occasions: [] }
@@ -54,6 +56,10 @@ export default function CuratorApplyPage() {
     // Role models to emulate (style templates).
     fetch("/api/try-this-look?models=1").then(r => r.json()).then((d: any) => {
       setRoleModels((d.models ?? []).filter((m: any) => m.photoUrl).slice(0, 40));
+    }).catch(() => {});
+    // AI-face library (for the "our images" path).
+    fetch("/api/try-this-look?avatarFaces=1").then(r => r.json()).then((d: any) => {
+      setAvatarFaces(Array.isArray(d.faces) ? d.faces : []);
     }).catch(() => {});
   }, []);
 
@@ -182,7 +188,7 @@ export default function CuratorApplyPage() {
     try {
       const shared = {
         firstName, lastName, email, phone, address, instagram, brands, style, motto, bio,
-        genderFocus, styleModelId, imageSource, consent: agreed, consentText: "18+, photos are really me, accept model rules & terms",
+        genderFocus, styleModelId, imageSource, ...(imageSource === "ours" && avatarFaceId ? { avatarFaceId } : {}), consent: agreed, consentText: "18+, photos are really me, accept model rules & terms",
         colors: colorChips.join(", "),
         fabrics: fabricChips.join(", "),
         occasions: occasionChips.join(", "),
@@ -332,9 +338,27 @@ export default function CuratorApplyPage() {
         </div>
 
         {imageSource === "ours" && (
-          <p className="mt-5 rounded-2xl border border-[#c9a23f]/30 bg-[#c9a23f]/[0.06] px-4 py-3 text-center text-[12px] font-bold text-[#e7c877]">
-            ✨ You picked LuxuryBandit images — uploading your own photos is <b>optional</b>. After approval we set you up with your AI look, styled like your role model.
-          </p>
+          <div className="mt-5 rounded-2xl border border-[#c9a23f]/30 bg-[#c9a23f]/[0.06] p-4">
+            <span className={label}>Pick your face</span>
+            <p className="mt-0.5 text-[11px] font-bold text-white/45">Each face is <b>unique</b> — once booked it&apos;s gone. Free faces are <b>$3.99</b> to claim. We add new ones all the time.</p>
+            {avatarFaces.length === 0 ? (
+              <p className="mt-2 text-[12px] font-bold text-[#e7c877]">No free faces right now — new ones drop regularly. Pick “My own photos” above, or check back soon.</p>
+            ) : (
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {avatarFaces.map(f => (
+                  <button key={f.id} type="button" disabled={f.claimed}
+                    onClick={() => setAvatarFaceId(id => id === f.id ? "" : f.id)}
+                    className={`relative aspect-square overflow-hidden rounded-xl border-2 transition ${f.claimed ? "cursor-not-allowed border-white/10 opacity-40" : avatarFaceId === f.id ? "border-amber-400" : "border-white/10"}`}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+                    <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[9px] font-black ${f.claimed ? "bg-black/70 text-white/60" : "bg-emerald-500 text-white"}`}>{f.claimed ? "Booked" : "Free · $3.99"}</span>
+                    {avatarFaceId === f.id && <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-amber-400 text-[11px] font-black text-black">✓</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+            <p className="mt-2 text-[10px] font-bold text-white/30">Uploading your own photos below is optional when you use our face.</p>
+          </div>
         )}
 
         {/* Profile photos — one main + up to 3 more; the team picks the best one. */}
