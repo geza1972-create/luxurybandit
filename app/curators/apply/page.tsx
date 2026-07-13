@@ -464,12 +464,12 @@ export default function CuratorApplyPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/become-a-model-banner.jpg?v=2" alt="Become or create your own LuxuryBandit Influencer and make money daily"
             className="mb-4 w-full rounded-2xl border border-black/15" />
-          <p className="mt-1 text-[13px] font-black uppercase tracking-[0.2em] text-slate-900">AI Virtual Try-On · Luxury Fashion</p>
-          <h1 className="mt-2 text-[28px] font-black leading-tight text-slate-900">
-            Sign up &amp; earn money <span className="text-slate-900">with every look.</span>
+          <p className="mt-1 text-[13px] font-black uppercase tracking-[0.2em] text-slate-900">Welcome to LuxuryBandit</p>
+          <h1 className="mt-2 text-[26px] font-black leading-tight text-slate-900">
+            Let&apos;s build your influencer profile{firstName ? `, ${firstName}` : ""}.
           </h1>
-          <p className="mx-auto mt-2 max-w-xs text-sm font-semibold leading-6 text-slate-700">
-            Get styled in high-end outfits by AI — and get paid every time someone tries on your look.
+          <p className="mx-auto mt-2 max-w-sm text-sm font-semibold leading-6 text-slate-700">
+            Three quick steps below — <b className="text-slate-900">1.</b> choose whose face you use, <b className="text-slate-900">2.</b> pick your style, <b className="text-slate-900">3.</b> add your details &amp; photo. It takes about two minutes.
           </p>
         </div>}
 
@@ -483,39 +483,9 @@ export default function CuratorApplyPage() {
           <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-800">🤖 <b className="text-slate-900">A free AI chat assistant for your fans</b> — it chats with them for you, day and night. You have <b className="text-slate-900">zero work</b> with it.</p>
         </div>
 
-        {/* CONCEPT 2.0 creation tool — role model (style template) + face source (anti-deepfake). */}
+        {/* Step 1 — Whose face? (anti-deepfake: your own verified photos OR our AI faces). */}
         <div className="mt-5 rounded-2xl border border-black/22 bg-black/[0.03] p-4">
-          <span className={label}>Copy a style you love</span>
-          <p className="mt-0.5 text-[13px] font-bold text-slate-600">Tap the LuxuryBandit model whose vibe fits you. We&apos;ll dress you in a <b className="text-slate-900">similar style</b> — always on <b className="text-slate-900">your own face</b>, never a copy of hers.</p>
-          <div className="mt-2 -mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
-            {roleModels.map(m => {
-              const sel = styleModelId === m.id;
-              const styleShort = (m.style || "").split(",")[0].trim();
-              return (
-                <button key={m.id} type="button" onClick={() => setStyleModelId(id => id === m.id ? "" : m.id)}
-                  className={`shrink-0 text-center transition ${sel ? "" : "opacity-70 hover:opacity-100"}`}>
-                  <span className={`block w-16 aspect-[3/4] overflow-hidden rounded-xl border-2 ${sel ? "border-slate-800 ring-2 ring-slate-800/30" : "border-slate-400"}`}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={m.photoUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
-                  </span>
-                  <span className="mt-1 block w-16 truncate text-[12px] font-black text-slate-900">{m.name.split(" ")[0]}</span>
-                  <span className="block w-16 truncate text-[10px] font-bold text-slate-500">{styleShort || "signature"}</span>
-                </button>
-              );
-            })}
-          </div>
-          {styleModelId && (() => {
-            const m = roleModels.find(x => x.id === styleModelId);
-            if (!m) return null;
-            const s = (m.style || "").split(",")[0].trim().toLowerCase();
-            return (
-              <p className="mt-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-[12px] font-bold text-slate-700">
-                ✓ You&apos;ll get a <b className="text-slate-900">{s ? `${s} ` : ""}look inspired by {m.name.split(" ")[0]}</b> — styled on your own photos. Your face always stays yours.
-              </p>
-            );
-          })()}
-
-          <span className={`${label} mt-4`}>Whose face?</span>
+          <span className={label}>Whose face?</span>
           <p className="mb-2 text-[12px] font-bold text-slate-600">Choose one — it&apos;s either/or, you can&apos;t pick both.</p>
           <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
             <button type="button" onClick={() => setImageSource("own")}
@@ -554,6 +524,46 @@ export default function CuratorApplyPage() {
             <p className="mt-2 text-[12px] font-bold text-slate-600">Uploading your own photos below is optional when you use our face.</p>
           </div>
         )}
+
+        {/* Step 2 — Copy a style. STYLE TITLES only (no model faces — those confused people
+            into thinking they were picking a person). Each style maps to a template model. */}
+        <div className="mt-5 rounded-2xl border border-black/22 bg-black/[0.03] p-4">
+          <span className={label}>Copy a style you love</span>
+          <p className="mt-0.5 text-[13px] font-bold text-slate-600">Pick the <b className="text-slate-900">style</b> you want us to dress you in — always on your own face, never a copy of a person.</p>
+          {(() => {
+            const seen = new Set<string>();
+            const styleOptions: { style: string; modelId: string }[] = [];
+            for (const m of roleModels) {
+              const s = (m.style || "").split(",")[0].trim();
+              if (!s) continue;
+              const k = s.toLowerCase();
+              if (seen.has(k)) continue;
+              seen.add(k); styleOptions.push({ style: s, modelId: m.id });
+            }
+            const selM = roleModels.find(x => x.id === styleModelId);
+            const selStyle = (selM?.style || "").split(",")[0].trim().toLowerCase();
+            return (
+              <>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {styleOptions.map(opt => {
+                    const sel = !!selStyle && opt.style.toLowerCase() === selStyle;
+                    return (
+                      <button key={opt.modelId} type="button" onClick={() => setStyleModelId(id => id === opt.modelId ? "" : opt.modelId)}
+                        className={`rounded-full border px-3.5 py-2 text-sm font-black transition ${sel ? "border-slate-800 bg-slate-800 text-white" : "border-slate-400 bg-white text-slate-800"}`}>
+                        {opt.style}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selStyle && (
+                  <p className="mt-3 rounded-xl border border-slate-300 bg-white px-3 py-2 text-[12px] font-bold text-slate-700">
+                    ✓ We&apos;ll dress you in a <b className="text-slate-900">{selStyle} style</b> — always on your own face. Your look stays yours.
+                  </p>
+                )}
+              </>
+            );
+          })()}
+        </div>
 
         {/* Profile photos — one main + up to 3 more; the team picks the best one. */}
         <div className="mt-5 flex flex-col items-center gap-2">
