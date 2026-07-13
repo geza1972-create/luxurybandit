@@ -2622,8 +2622,8 @@ function StoresPage() {
 
         {/* Brand row */}
         <div className="flex items-center justify-between px-4 pt-2.5 pb-1.5">
-          {/* Logo → the grid overview (?view=grid), not the immersive reel. */}
-          <button type="button" onClick={() => router.push("/stores?view=grid")} aria-label="Home"
+          {/* Logo → the homepage (root = the "Own an AI Influencer" landing). */}
+          <button type="button" onClick={() => router.push("/")} aria-label="Home"
             className="flex items-center gap-2 active:opacity-70 transition-opacity">
             <div className="relative h-9 w-9 shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
