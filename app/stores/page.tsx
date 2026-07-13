@@ -28,22 +28,22 @@ import { PhotoCropper } from "../curators/taste-form";
 // Landing hero copy — Romanian by default, English via the switcher.
 const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub: string; b1t: string; b1x: string; b2t: string; b2x: string; cta: string; becomeModel: string }> = {
   ro: {
-    eyebrow: "Modele AI și reale · Modă de lux",
-    h1a: "Descoperă luxul,", h1b: "purtat de modelul tău.",
-    sub: "Modelele noastre poartă piese de designer în videouri de calitate runway. Tu descoperi produsele de lux și le cumperi — cu ea ca stilistă. Look-uri noi în fiecare zi.",
-    b1t: "Vezi-o în orice ținută", b1x: "Pune-ți modelul favorit în ținuta pe care O ALEGI TU — dă like, share, cumpără.",
-    b2t: "Produse Luxury", b2x: "Îți place o ținută? Modelul îți recomandă piese de lux — și le poți cumpăra direct.",
-    cta: "Găsește-ți ținuta",
-    becomeModel: "Devino Model — câștigă la fiecare look →",
+    eyebrow: "Portalul de influenceri AI · Creează-l pe al tău",
+    h1a: "Nu mai posta gratis.", h1b: "Devino un influencer AI și câștigă.",
+    sub: "Transformă-ți pozele (sau folosește-le pe ale noastre) în videouri de modă zilnice. Alegi un stil, noi îți facem conținutul, tu îl distribui — și câștigi de la fiecare fan care vorbește cu tine sau te probează. Fără să ai nevoie de followeri.",
+    b1t: "Propriul tău influencer AI", b1x: "Cu pozele tale sau ale noastre — stilul unui model, mereu fața TA. Videouri zilnice, făcute pentru tine.",
+    b2t: "Câștigi în fiecare zi", b2x: "Fanii vorbesc cu tine și te probează. Primești un procent din fiecare video plătit — automat.",
+    cta: "Devino Influencer",
+    becomeModel: "Vrei doar să cumperi? Găsește-ți ținuta →",
   },
   en: {
-    eyebrow: "AI & real fashion models · Luxury fashion",
-    h1a: "Discover luxury,", h1b: "worn by your model.",
-    sub: "Our models wear designer pieces in runway-quality videos. You discover the luxury products and shop them — with her as your stylist. New looks every day.",
-    b1t: "See her in any look", b1x: "Put your favorite model in the outfit YOU choose — like it, share it, shop it.",
-    b2t: "Luxury Products", b2x: "Like an outfit? Your model recommends luxury pieces you can shop right away.",
-    cta: "Find your look",
-    becomeModel: "Become a Model — earn with every look →",
+    eyebrow: "The AI-influencer portal · Create your own",
+    h1a: "Stop posting for free.", h1b: "Become an AI influencer & earn.",
+    sub: "Turn your photos (or use ours) into daily fashion videos. Pick a style, we make your content, you share it — and earn from every fan who chats with you or tries you on. No follower count needed to start.",
+    b1t: "Your own AI influencer", b1x: "With your photos or ours — a role model's style, always YOUR face. Daily videos, made for you.",
+    b2t: "Earn every day", b2x: "Fans chat with you and try you on. You keep a cut of every paid video — automatically.",
+    cta: "Become an Influencer",
+    becomeModel: "Just want to shop? Find your look →",
   },
 };
 
@@ -2772,16 +2772,16 @@ function StoresPage() {
                   ))}
                 </div>
                 <div className="mt-3.5 flex items-center gap-2">
-                  {/* Primary CTA now drives the price-finder funnel (in the chosen language). */}
-                  <button type="button" onClick={() => router.push(`/mai-ieftin?lang=${heroLang}&demo=1`)}
+                  {/* Primary CTA — creator-first: become an influencer. */}
+                  <button type="button" onClick={() => router.push("/become-a-model")}
                     className="lb-gold flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-black active:scale-95 transition-transform">
-                    <Search className="h-4 w-4" /> {HERO[heroLang].cta}
+                    <Sparkles className="h-4 w-4" /> {HERO[heroLang].cta}
                   </button>
                 </div>
-                {/* Model recruiting → its own landing page. */}
-                <button type="button" onClick={() => router.push("/become-a-model")}
+                {/* Secondary — fans who just want to shop go to the price-finder. */}
+                <button type="button" onClick={() => router.push(`/mai-ieftin?lang=${heroLang}&demo=1`)}
                   className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-black text-white/55 underline decoration-white/25 underline-offset-4 active:opacity-70 transition">
-                  <Heart className="h-3.5 w-3.5" fill="currentColor" /> {HERO[heroLang].becomeModel}
+                  <Search className="h-3.5 w-3.5" /> {HERO[heroLang].becomeModel}
                 </button>
               </section>
             )}
