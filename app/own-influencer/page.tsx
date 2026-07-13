@@ -84,7 +84,7 @@ export default async function OwnInfluencerLanding() {
       <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0d0b0a]/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
           <Link href="/own-influencer" className="flex shrink-0 items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-lg border border-amber-400/40 text-[13px] font-black text-amber-400">LB</span>
+            <img src="/lb-logo.png" alt="LuxuryBandit" className="h-9 w-9 shrink-0 rounded-full object-contain" />
             <span className="leading-none">
               <span className="block text-[15px] font-black tracking-wide">LUXURYBANDIT</span>
               <span className="block text-[9px] font-bold uppercase tracking-[0.2em] text-amber-400/80">AI Influencer Marketplace</span>
@@ -246,6 +246,7 @@ export default async function OwnInfluencerLanding() {
       {/* ── Footer ── */}
       <footer className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         <div className="flex flex-col items-center gap-3 text-center">
+          <img src="/lb-logo.png" alt="LuxuryBandit" className="h-11 w-11 rounded-full object-contain" />
           <span className="text-[15px] font-black tracking-wide">LUXURYBANDIT</span>
           <p className="text-[12px] font-bold text-white/45">The AI Influencer Marketplace. Own. Grow. Earn.</p>
           <div className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] font-bold text-white/55">
