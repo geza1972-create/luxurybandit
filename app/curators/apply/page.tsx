@@ -25,6 +25,7 @@ export default function CuratorApplyPage() {
   const [bodyCropSrc, setBodyCropSrc] = useState("");
   const bodyFileRef = useRef<HTMLInputElement>(null);
   const [modelName, setModelName] = useState(""); // public stage / influencer name
+  const [nameStatus, setNameStatus] = useState<"" | "checking" | "available" | "taken">("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -133,6 +134,23 @@ export default function CuratorApplyPage() {
     } catch (e) { setAuthErr(e instanceof Error ? e.message : "Something went wrong."); }
     finally { setAuthLoading(false); }
   };
+  // Live "is this model name free?" check (debounced). Server enforces it too on submit.
+  useEffect(() => {
+    const n = modelName.trim();
+    if (n.length < 2) { setNameStatus(""); return; }
+    setNameStatus("checking");
+    const t = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ checkName: n });
+        const editParam = new URLSearchParams(window.location.search).get("edit") || "";
+        if (editParam) params.set("excludeId", editParam);
+        const r = await fetch(`/api/curator?${params.toString()}`);
+        const d = await r.json();
+        setNameStatus(d.available ? "available" : "taken");
+      } catch { setNameStatus(""); }
+    }, 450);
+    return () => clearTimeout(t);
+  }, [modelName]);
 
   // Insights: recruiting funnel steps 2+3 (form opened / application sent).
   const trackRecruit = (event: string) => {
@@ -238,9 +256,10 @@ export default function CuratorApplyPage() {
   };
 
   const submit = async () => {
-    if (!firstName.trim() || !lastName.trim() || !email.trim()) {
-      setError("First name, last name and email are required."); return;
+    if (!modelName.trim() || !firstName.trim() || !lastName.trim() || !email.trim()) {
+      setError("Model name, first name, last name and email are required."); return;
     }
+    if (nameStatus === "taken") { setError("That model name is taken — please choose another."); return; }
     if (!agreed) { setError("Please confirm you're 18+, the photos are really you, and you accept the model rules."); return; }
     setError(""); setSubmitting(true);
     try {
@@ -596,8 +615,17 @@ export default function CuratorApplyPage() {
         <div className="mt-5 grid gap-3">
           <div>
             <span className={label}>Your model name</span>
-            <input className={field} value={modelName} onChange={e => setModelName(e.target.value)} placeholder="e.g. Bella Rose — your public influencer name" />
-            <p className="mt-1 text-[12px] font-bold text-slate-600">This is the name fans see. Your real name below stays private.</p>
+            <div className="relative">
+              <input className={`${field} ${nameStatus === "taken" ? "ring-2 ring-red-400" : nameStatus === "available" ? "ring-2 ring-emerald-500" : ""}`}
+                value={modelName} onChange={e => setModelName(e.target.value)} placeholder="e.g. Bella Rose — your public influencer name" />
+              {nameStatus === "checking" && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400" />}
+              {nameStatus === "available" && <Check className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-600" />}
+            </div>
+            {nameStatus === "taken"
+              ? <p className="mt-1 text-[12px] font-bold text-red-500">That name is taken — please choose another.</p>
+              : nameStatus === "available"
+                ? <p className="mt-1 text-[12px] font-bold text-emerald-600">✓ Available — this name is yours.</p>
+                : <p className="mt-1 text-[12px] font-bold text-slate-600">This is the name fans see. Your real name below stays private.</p>}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><span className={label}>First name</span><input className={field} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Maria" /></div>

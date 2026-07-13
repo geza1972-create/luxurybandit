@@ -79,6 +79,17 @@ export async function GET(request: Request) {
   const state = await readTryThisLookState();
   const url = new URL(request.url);
 
+  // Live availability check for a model name (unique public identity). Case/space-insensitive.
+  const checkName = url.searchParams.get("checkName");
+  if (checkName !== null) {
+    const nrm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+    const q = nrm(checkName);
+    const excludeId = url.searchParams.get("excludeId") || "";
+    if (!q) return NextResponse.json({ available: false, empty: true });
+    const taken = (state.curators ?? []).some(c => c.id !== excludeId && (c as any).modelName && nrm(String((c as any).modelName)) === q);
+    return NextResponse.json({ available: !taken });
+  }
+
   // Resolve a display-name slug → curator id (for redirecting the old slug page).
   const bySlug = url.searchParams.get("bySlug");
   if (bySlug) {
@@ -332,9 +343,11 @@ export async function POST(request: Request) {
     const firstName = String(payload.firstName ?? "").trim();
     const lastName = String(payload.lastName ?? "").trim();
     const email = String(payload.email ?? "").trim();
+    const modelName = String((payload as any).modelName ?? "").trim();
     if (!firstName || !lastName || !email) {
       return jsonError("Name and email are required.");
     }
+    if (!modelName) return jsonError("Please choose your model name.");
 
     let photoPath: string | undefined;
     let photoFullPath: string | undefined;
@@ -379,7 +392,7 @@ export async function POST(request: Request) {
       id: `curator-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       firstName,
       lastName,
-      modelName: String((payload as any).modelName ?? "").trim() || undefined,
+      modelName,
       email,
       phone: String(payload.phone ?? "").trim() || undefined,
       address: String(payload.address ?? "").trim() || undefined,
@@ -419,6 +432,11 @@ export async function POST(request: Request) {
     };
 
     const state = await readTryThisLookState();
+    // Model names must be UNIQUE (public identity). If it's taken, she picks another.
+    const nrmName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+    if ((state.curators ?? []).some(c => (c as any).modelName && nrmName(String((c as any).modelName)) === nrmName(modelName))) {
+      return jsonError("That model name is already taken — please choose another.", 409);
+    }
     const curators = [...(state.curators ?? []), curator];
 
     // Record the DESIRED AI face — but DON'T book it yet. Booking happens only when she pays
