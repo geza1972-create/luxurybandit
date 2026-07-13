@@ -72,6 +72,8 @@
 - Face-Swap-Engine + Kosten pro Video (damit $3.99 profitabel bleibt).
 - Qualitäts-Gate: automatischer AI-Check oder manuelle Freigabe pro Creator-Influencerin?
 - Referral-Attribution: Link `/m/<name>` + wie lange die Zuordnung hält (Cookie/Account).
+- **Eigene URLs pro Influencerin:** jede bekommt `luxurybandit.com/m/<name>` (Vanity + Referral) zum externen Teilen (Avon). = derselbe Baustein wie die Referral-Attribution.
+- **i18n Rumänisch:** NICHT jede Änderung jetzt zweisprachig (Copy ändert sich laufend = doppelte Arbeit). Stattdessen **eine finale Runde**, wenn die Flows/Texte stehen — alle Strings in den bestehenden `L(ro, en)`-Helfer + EN/RO-Umschalter (läuft schon im Funnel `/try`; die Bewerbungsseite ist noch hardcoded Englisch und kriegt dieselbe Behandlung).
 
 ---
 
