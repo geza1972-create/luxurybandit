@@ -528,6 +528,10 @@ export default function CuratorApplyPage() {
 
         {imageSource === "ours" && (
           <div className="mt-5 rounded-2xl border border-black/15 bg-black/[0.04] p-4">
+            <div className="mb-3 flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5">
+              <span className="text-lg">⚡</span>
+              <p className="text-[13px] font-black leading-tight text-amber-900">Unique models — <span className="text-red-600">make her yours before she&apos;s gone!</span> Each face can be owned by only one person.</p>
+            </div>
             <span className={label}>Pick your face</span>
             <p className="mt-0.5 text-[13px] font-bold text-slate-600">Each face is <b>one-of-a-kind</b> — pick the one that fits your influencer. We add new ones all the time.</p>
             {avatarFaces.length === 0 ? (
@@ -550,6 +554,47 @@ export default function CuratorApplyPage() {
             <p className="mt-2 text-[12px] font-bold text-slate-600">Uploading your own photos below is optional when you use our face.</p>
           </div>
         )}
+
+        {/* What you get after you sign up — with an example profile (Gina). */}
+        <div className="mt-5 rounded-2xl border border-black/12 bg-white p-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">After you sign up</p>
+          <h3 className="mt-0.5 text-[16px] font-black text-slate-900">What you get</h3>
+          <ul className="mt-2.5 space-y-1.5 text-[13px] font-bold text-slate-700">
+            <li className="flex gap-2"><span>💎</span> We create her luxury content — fresh photos &amp; videos, every day.</li>
+            <li className="flex gap-2"><span>📱</span> She gets her own public profile — like the example below.</li>
+            <li className="flex gap-2"><span>💬</span> Fans discover, follow &amp; chat with her.</li>
+            <li className="flex gap-2"><span>💰</span> You earn from premium fans &amp; try-ons.</li>
+          </ul>
+          {(() => {
+            const g = roleModels.find(m => /gina/i.test(m.name || "") && m.photoUrl);
+            if (!g?.photoUrl) return null;
+            return (
+              <div className="mt-4">
+                <p className="mb-2 text-center text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Her profile · example</p>
+                <div className="mx-auto max-w-[260px] overflow-hidden rounded-3xl bg-[#0d0b0a] text-white shadow-[0_10px_40px_rgba(0,0,0,0.25)]">
+                  <div className="relative aspect-[4/5] w-full">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={g.photoUrl} alt={g.name} className="h-full w-full object-cover" />
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-3 pt-8">
+                      <p className="text-[15px] font-black">{g.name}</p>
+                      <p className="text-[11px] font-bold text-amber-400">Elegance, every day 💛</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1 px-2 py-2.5 text-center">
+                    {[["Looks", "24"], ["Followers", "345k"], ["Likes", "1.2M"], ["Views", "4.8M"]].map(([l, v]) => (
+                      <div key={l}><p className="text-[13px] font-black">{v}</p><p className="text-[8px] font-bold uppercase tracking-wide text-white/45">{l}</p></div>
+                    ))}
+                  </div>
+                  <div className="flex gap-1.5 px-2 pb-3">
+                    <span className="flex-1 rounded-full bg-white py-1.5 text-center text-[11px] font-black text-black">Follow</span>
+                    <span className="flex-1 rounded-full bg-white/12 py-1.5 text-center text-[11px] font-black">Message</span>
+                  </div>
+                </div>
+                <p className="mt-2 text-center text-[11px] font-bold text-slate-400">This is what your influencer&apos;s profile looks like.</p>
+              </div>
+            );
+          })()}
+        </div>
 
         {/* Profile photos — one main + up to 3 more; the team picks the best one. */}
         <div className="mt-5 flex flex-col items-center gap-2">
