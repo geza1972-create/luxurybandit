@@ -25,8 +25,8 @@ export default function LazyVideo({
           ? <img src={poster} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
           : <span className="block h-full w-full bg-black" />}
         <span className="absolute inset-0 grid place-items-center">
-          <span className="grid h-14 w-14 place-items-center rounded-full bg-black/45 text-white backdrop-blur transition group-active:scale-90">
-            <Play className="h-6 w-6 translate-x-[1px]" fill="currentColor" />
+          <span className="grid h-9 w-9 place-items-center rounded-full bg-black/25 text-white/90 transition group-active:scale-90">
+            <Play className="h-[15px] w-[15px] translate-x-[1px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]" fill="currentColor" />
           </span>
         </span>
       </button>
