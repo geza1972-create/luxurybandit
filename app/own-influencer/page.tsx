@@ -7,10 +7,10 @@ import OwnInfluencerCTA from "@/components/OwnInfluencerCTA";
 
 export const metadata = {
   title: "LuxuryBandit — Own an AI Influencer. We'll help her grow.",
-  description: "Launch your AI influencer business on LuxuryBandit — the marketplace where fans discover, follow and support AI influencers. We create the content daily, you build the audience. From $9.99/month.",
+  description: "Launch your AI influencer business on LuxuryBandit — the marketplace where fans discover, follow and support AI influencers. We create the content daily, you build the audience. Start from $8 (first month, then $49/month).",
   openGraph: {
     title: "Own an AI Influencer — We'll help her grow | LuxuryBandit",
-    description: "Launch your AI influencer business. We create the content, you build the audience, you earn from premium fan experiences. From $9.99/month.",
+    description: "Launch your AI influencer business. We create the content, you build the audience, you earn from premium fan experiences. Start from $8 (first month, then $49/month).",
     images: [{ url: "/become-a-model-banner.jpg?v=2", width: 1280, height: 720 }],
     url: "/own-influencer",
     type: "website",
@@ -227,9 +227,10 @@ export default async function OwnInfluencerLanding() {
             <p className="text-[12px] font-black uppercase tracking-[0.15em] text-amber-400">Start your journey today</p>
             <p className="mt-2 max-w-sm text-[14px] font-semibold leading-6 text-white/65">Join the first creators building their AI influencer business on LuxuryBandit.</p>
             <div className="mt-5 flex items-end gap-1">
-              <span className="text-[12px] font-bold text-white/50">From only</span>
+              <span className="text-[12px] font-bold text-white/50">Start for only</span>
             </div>
-            <p className="-mt-1"><span className="text-[48px] font-black leading-none text-amber-400">$9.99</span><span className="text-[14px] font-bold text-white/60"> / month</span></p>
+            <p className="-mt-1"><span className="text-[48px] font-black leading-none text-amber-400">$8</span><span className="text-[14px] font-bold text-white/60"> first month</span></p>
+            <p className="mt-1 text-[12px] font-bold text-white/45">then $49/month · cancel anytime</p>
             <div className="mt-5"><OwnInfluencerCTA /></div>
           </div>
         </div>
