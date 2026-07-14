@@ -117,7 +117,7 @@ export async function GET(request: Request) {
       likeBoost: (c as any).likeBoost ?? 0, viewBoost: (c as any).viewBoost ?? 0,
       realBadge: (c as any).realBadge === true,
       realModel: (c as any).realModel === true,
-      ...(adminView ? { verificationSelfieUrl: (c as any).verificationSelfieUrl ?? "", phone: c.phone ?? "", status: (c as any).status ?? "active", hidden: (c as any).hidden === true, profilePhotoUrls: (c as any).profilePhotoUrls ?? [] } : {}),
+      ...(adminView ? { verificationSelfieUrl: (c as any).verificationSelfieUrl ?? "", phone: c.phone ?? "", status: (c as any).status ?? "active", hidden: (c as any).hidden === true, priceCents: (c as any).priceCents ?? 0, profilePhotoUrls: (c as any).profilePhotoUrls ?? [] } : {}),
     } });
   }
 
@@ -362,6 +362,25 @@ export async function POST(request: Request) {
       for (const c of matches) { sends.push(await sendOnboardingEmail(c, origin).catch(e => ({ ok: false, error: String(e) }))); }
     } catch (e) { sends.push({ ok: false, error: String(e) }); }
     return NextResponse.json({ ok: true, paid: true, active: true, curators: matches.length, emailed: matches.length, sends });
+  }
+
+  // Admin: set base prices for the existing models in one shot — everyone $9.99 unless a base
+  // is already set; flagship names (Gina/Bella/Isabella) → $500. Idempotent (won't overwrite
+  // a price already set). The admin can still adjust individual prices afterwards via `update`.
+  if (action === "seed-base-prices") {
+    if (!(await isAdminRequest(request))) return jsonError("Not allowed.", 403);
+    const force = (payload as any).force === true;
+    const state = await readTryThisLookState();
+    const flagship = /\b(gina|bella|isabella)\b/i;
+    let set = 0;
+    for (const c of state.curators ?? []) {
+      if (!force && typeof (c as any).priceCents === "number" && (c as any).priceCents > 0) continue;
+      const nm = `${(c as any).modelName ?? ""} ${c.firstName ?? ""} ${c.lastName ?? ""}`;
+      (c as any).priceCents = flagship.test(nm) ? 50000 : 999;
+      set++;
+    }
+    if (set) await saveTryThisLookState(state);
+    return NextResponse.json({ ok: true, priced: set, total: (state.curators ?? []).length });
   }
 
   if (action === "apply") {
@@ -807,6 +826,11 @@ export async function POST(request: Request) {
       hidden: isAdmin && (payload as any).hidden !== undefined
         ? (payload as any).hidden === true
         : (cur as any).hidden,
+      // Admin base price (cents) for buying her — quality/beauty based. Grow-pricing adds
+      // videos/looks/days on top (see lib/influencer-price). Admin only.
+      priceCents: isAdmin && (payload as any).priceCents !== undefined
+        ? Math.max(0, Math.round(Number((payload as any).priceCents) || 0))
+        : (cur as any).priceCents,
     } as any;
     // Optional new photo
     const photo = String(payload.photo ?? "");

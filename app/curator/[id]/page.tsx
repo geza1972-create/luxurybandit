@@ -22,7 +22,7 @@ function viewerHeaders(): Record<string, string> {
   return h;
 }
 
-type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; brands?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string; status?: string; hidden?: boolean; profilePhotoUrls?: string[] };
+type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; brands?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string; status?: string; hidden?: boolean; priceCents?: number; profilePhotoUrls?: string[] };
 type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; featured?: boolean; productType?: string; wardrobe?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
 type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string; feed?: boolean };
 
@@ -514,6 +514,20 @@ export default function CuratorPublicPage() {
     } catch (e) { alert(e instanceof Error ? e.message : "Fehlgeschlagen"); }
     finally { setBadgeBusy(false); }
   };
+  // Admin: set her base price (dollars). Grow-pricing adds videos/looks/days on top.
+  const [priceInput, setPriceInput] = useState("");
+  const [priceBusy, setPriceBusy] = useState(false);
+  useEffect(() => { if (typeof profile?.priceCents === "number") setPriceInput(((profile.priceCents || 0) / 100).toString()); }, [profile?.priceCents]);
+  const savePrice = async () => {
+    if (priceBusy) return;
+    const cents = Math.max(0, Math.round(parseFloat(priceInput.replace(",", ".")) * 100) || 0);
+    setPriceBusy(true);
+    try {
+      await fetch("/api/curator", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ action: "update", id, priceCents: cents }) });
+      setProfile(p => (p ? { ...p, priceCents: cents } : p));
+    } catch (e) { alert(e instanceof Error ? e.message : "Failed"); }
+    finally { setPriceBusy(false); }
+  };
   // Flip her public (hidden:false) or private (hidden:true) — no approval step anymore.
   const setPublic = async (makePublic: boolean) => {
     if (badgeBusy) return;
@@ -914,6 +928,14 @@ export default function CuratorPublicPage() {
               </div>
             )}
             <div className="mt-3 border-t border-white/10 pt-3">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-[12px] font-black text-white/60">Base price $</span>
+                <input type="number" inputMode="decimal" min="0" step="0.01" value={priceInput} onChange={e => setPriceInput(e.target.value)}
+                  className="w-24 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm font-black text-white outline-none focus:border-amber-400" placeholder="9.99" />
+                <button type="button" onClick={() => void savePrice()} disabled={priceBusy}
+                  className="ml-auto rounded-full bg-white/10 px-4 py-2 text-[12px] font-black text-white active:scale-95 transition disabled:opacity-50">{priceBusy ? "…" : "Save price"}</button>
+              </div>
+              <p className="mb-2 text-[11px] font-bold text-white/40">Buyers pay this + $3.99/video + $3/look + $1/day owned (grows daily).</p>
               <div className="mb-2 flex items-center gap-2">
                 <span className={`flex-1 rounded-full px-3 py-2 text-center text-[12px] font-black ${profile.hidden === false ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30" : "bg-white/5 text-white/50"}`}>
                   {profile.hidden === false ? "🌍 Public" : "🔒 Private"}
