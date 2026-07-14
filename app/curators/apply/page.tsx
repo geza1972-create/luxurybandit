@@ -47,6 +47,7 @@ export default function CuratorApplyPage() {
   const [imageSource, setImageSource] = useState<"own" | "ours">("ours"); // default to our AI faces (the "own an AI influencer" funnel); "own" = your own photos
   const [roleModels, setRoleModels] = useState<{ id: string; name: string; photoUrl?: string; style?: string }[]>([]);
   const [avatarFaces, setAvatarFaces] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean; sold?: boolean; createdAt?: string }[]>([]);
+  const [outfitThumbs, setOutfitThumbs] = useState<string[]>([]); // small wardrobe preview on her card: 1 dress + 4 lingerie
   const [faceDialog, setFaceDialog] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean; sold?: boolean; createdAt?: string } | null>(null); // preview + take a face
   const [rulesOpen, setRulesOpen] = useState(false); // "You get one shot" rules → link under the photo opens this dialog
   const [avatarFaceId, setAvatarFaceId] = useState(""); // the FREE face this creator picks (booked on $9.99 payment)
@@ -70,6 +71,18 @@ export default function CuratorApplyPage() {
     // AI-face library (for the "our images" path).
     fetch("/api/try-this-look?avatarFaces=1").then(r => r.json()).then((d: any) => {
       setAvatarFaces(Array.isArray(d.faces) ? d.faces.filter((f: any) => !f.sold) : []); // sold faces are hidden
+    }).catch(() => {});
+    // Wardrobe preview for her card — 1 dress + 4 lingerie from our garment gallery.
+    fetch("/api/try-this-look").then(r => r.json()).then((d: any) => {
+      const looks = Array.isArray(d.looks) ? d.looks : [];
+      const gar = looks.filter((l: any) => (l.productType === "ai" || l.wardrobe) && (l.frontImageUrl || l.imageUrl) && l.published !== false);
+      const img = (l: any) => l.frontImageUrl || l.imageUrl || "";
+      const lingerie = gar.filter((l: any) => l.category === "boudoir").map(img).filter(Boolean);
+      const dresses = gar.filter((l: any) => l.category !== "boudoir").map(img).filter(Boolean);
+      const picks = [...dresses.slice(0, 1), ...lingerie.slice(0, 4)];
+      const rest = [...dresses.slice(1), ...lingerie.slice(4)];
+      while (picks.length < 5 && rest.length) { const n = rest.shift(); if (n && !picks.includes(n)) picks.push(n); }
+      setOutfitThumbs([...new Set(picks)].slice(0, 5));
     }).catch(() => {});
   }, []);
 
@@ -588,6 +601,16 @@ export default function CuratorApplyPage() {
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-4 pt-10">
                     <p className="text-[20px] font-black leading-none">{nm}</p>
                     <p className="mt-1 text-[13px] font-bold text-amber-400">{tag}</p>
+                    {outfitThumbs.length > 0 && (
+                      <div className="mt-2.5 flex gap-1.5">
+                        {outfitThumbs.map((src, i) => (
+                          <div key={i} className="h-11 w-9 shrink-0 overflow-hidden rounded-md bg-white/10 ring-1 ring-white/40">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="grid grid-cols-4 gap-1 px-3 py-3 text-center">
@@ -597,7 +620,7 @@ export default function CuratorApplyPage() {
                 </div>
                 <div className="flex gap-2 px-3 pb-4">
                   <span className="flex-1 rounded-full bg-white py-2 text-center text-[13px] font-black text-black">Follow</span>
-                  <span className="flex-1 rounded-full bg-white/12 py-2 text-center text-[13px] font-black">Message</span>
+                  <span className="flex-1 rounded-full bg-white/12 py-2 text-center text-[13px] font-black">Chat with me!</span>
                 </div>
               </div>
             </div>
