@@ -189,11 +189,12 @@ export default function CuratorApplyPage() {
   const [faceCropBusy, setFaceCropBusy] = useState(false);
   const reloadFaces = () => fetch("/api/try-this-look?avatarFaces=1").then(r => r.json()).then((d: any) => setAvatarFaces(Array.isArray(d.faces) ? d.faces : [])).catch(() => {});
   const startFaceCrop = async (imageUrl: string, id: string) => {
+    setFaceDialog(null); setFaceCropId(id); // close the dialog FIRST — no overlap with the cropper
     try {
       const blob = await (await fetch(imageUrl)).blob();
       const dataUrl = await new Promise<string>((resolve) => { const r = new FileReader(); r.onloadend = () => resolve(String(r.result)); r.readAsDataURL(blob); });
-      setFaceCropId(id); setFaceCropSrc(dataUrl); setFaceDialog(null);
-    } catch { /**/ }
+      setFaceCropSrc(dataUrl);
+    } catch { setFaceCropId(""); }
   };
   const saveFaceCrop = async (dataUrl: string) => {
     if (!faceCropId) return;
@@ -763,7 +764,7 @@ export default function CuratorApplyPage() {
       )}
       {/* Admin: re-crop a pool face → replace it (3:4). */}
       {faceCropSrc && (
-        <PhotoCropper src={faceCropSrc} aspect="portrait" onCancel={() => { if (!faceCropBusy) { setFaceCropSrc(""); setFaceCropId(""); } }}
+        <PhotoCropper src={faceCropSrc} aspect="portrait" onCancel={() => { setFaceCropSrc(""); setFaceCropId(""); }}
           onDone={(dataUrl) => void saveFaceCrop(dataUrl)} />
       )}
       {bodyCropSrc && (

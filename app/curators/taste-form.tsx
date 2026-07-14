@@ -200,7 +200,7 @@ export function PhotoCropper({ src, onCancel, onDone, aspect = "square" }: { src
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center bg-black/80 px-6" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+    <div className="fixed inset-0 z-[130] flex flex-col items-center justify-center bg-black/80 px-6" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
       <p className="mb-4 text-sm font-black text-white">Position your photo</p>
       <div className="relative overflow-hidden rounded-2xl bg-black touch-none" style={{ width: VW, height: VH }}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp}>
