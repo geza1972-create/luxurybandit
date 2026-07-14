@@ -9,7 +9,7 @@ import { useEffect } from "react";
 //
 // Never mirrored: auth callbacks, payment returns, the studio PIN entry, API routes,
 // and anything already under /admin.
-const NO_MIRROR = ["/admin", "/auth", "/pay-done", "/payment", "/studio", "/api", "/luxury-products", "/clothes"];
+const NO_MIRROR = ["/admin", "/auth", "/pay-done", "/payment", "/studio", "/api", "/luxury-products", "/clothes", "/wardrobe"];
 
 // Exact paths that must not be mirrored because /admin/<same> is already a real,
 // different admin dashboard (e.g. the public /curators recruiting page vs the admin
