@@ -318,7 +318,15 @@ export default function CuratorApplyPage() {
       trackRecruit("apply_submit");
       setAppliedCuratorId(data.curatorId || "");
       setAppliedFaceId(data.avatarFaceId || "");
-      setApplied(true);
+      // One package purchase at the end: start the $8-first-month subscription now.
+      try {
+        const pr = await fetch("/api/premium", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim(), returnPath: "/stores?welcome=1" }),
+        }).then(x => x.json()).catch(() => null);
+        if (pr?.url) { window.location.href = pr.url as string; return; }
+      } catch { /**/ }
+      setApplied(true); // Stripe not available → show the application-received screen instead
     } catch {
       setError("Could not submit.");
     } finally {
@@ -425,19 +433,6 @@ export default function CuratorApplyPage() {
             Our team reviews every LuxuryBandit Influencer personally. You&apos;ll get an email as soon
             as you&apos;re approved — then just sign in and start earning.
           </p>
-          {appliedFaceId && (
-            faceReserved ? (
-              <p className="mt-4 rounded-2xl border border-black/15 bg-black/[0.04] px-4 py-3 text-[15px] font-black text-slate-900">✓ Your face is reserved — it&apos;s yours alone. 💛</p>
-            ) : (
-              <div className="mt-4">
-                <p className="text-[14px] font-bold text-slate-700">Lock your unique face before someone else picks it:</p>
-                <button type="button" disabled={reserving} onClick={() => void reserveFace()}
-                  className={`bg-slate-800 text-white mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-6 text-sm font-black disabled:opacity-50 ${btn3d}`}>
-                  {reserving ? "…" : "🔒 Reserve my face — $9.99"}
-                </button>
-              </div>
-            )
-          )}
           <button type="button" onClick={() => router.push("/stores")}
             className={`bg-slate-800 text-white mt-5 inline-flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-black ${btn3d}`}>
             Back to LuxuryBandit
@@ -496,12 +491,12 @@ export default function CuratorApplyPage() {
           <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
             <button type="button" onClick={() => setImageSource("own")}
               className={`rounded-2xl px-3 py-3 text-center text-[14px] font-black ${imageSource === "own" ? `bg-slate-800 text-white ${btn3d}` : `border-[1.5px] border-slate-400 bg-white text-slate-800 ${raise}`}`}>
-              📸 My own photos<br /><span className={`text-[12px] font-bold ${imageSource === "own" ? "text-white/75" : "text-slate-500"}`}>You become the influencer · <b>Free</b></span>
+              📸 My own photos<br /><span className={`text-[12px] font-bold ${imageSource === "own" ? "text-white/75" : "text-slate-500"}`}>You become the influencer</span>
             </button>
             <span className="self-center text-[12px] font-black text-slate-500">OR</span>
             <button type="button" onClick={() => setImageSource("ours")}
               className={`rounded-2xl px-3 py-3 text-center text-[14px] font-black ${imageSource === "ours" ? `bg-slate-800 text-white ${btn3d}` : `border-[1.5px] border-slate-400 bg-white text-slate-800 ${raise}`}`}>
-              ✨ LuxuryBandit face<br /><span className={`text-[12px] font-bold ${imageSource === "ours" ? "text-white/75" : "text-slate-500"}`}>Use our AI faces · <b>$9.99</b></span>
+              ✨ LuxuryBandit face<br /><span className={`text-[12px] font-bold ${imageSource === "ours" ? "text-white/75" : "text-slate-500"}`}>Use our AI faces</span>
             </button>
           </div>
           <p className="mt-2 text-[12px] font-bold text-slate-600">To protect everyone, an influencer can only use YOUR verified photos or our images — never someone else&apos;s face.</p>
@@ -510,7 +505,7 @@ export default function CuratorApplyPage() {
         {imageSource === "ours" && (
           <div className="mt-5 rounded-2xl border border-black/15 bg-black/[0.04] p-4">
             <span className={label}>Pick your face</span>
-            <p className="mt-0.5 text-[13px] font-bold text-slate-600">Each face is <b>unique</b> — once booked it&apos;s gone. Free faces are <b>$9.99</b> to claim, and your <b>first video is included</b>. We add new ones all the time.</p>
+            <p className="mt-0.5 text-[13px] font-bold text-slate-600">Each face is <b>one-of-a-kind</b> — pick the one that fits your influencer. We add new ones all the time.</p>
             {avatarFaces.length === 0 ? (
               <p className="mt-2 text-[14px] font-bold text-[#e7c877]">No free faces right now — new ones drop regularly. Pick “My own photos” above, or check back soon.</p>
             ) : (
@@ -521,7 +516,7 @@ export default function CuratorApplyPage() {
                     className={`relative aspect-[3/4] overflow-hidden rounded-xl border-2 bg-black/[0.04] transition ${f.claimed ? "cursor-not-allowed border-black/22 opacity-40" : avatarFaceId === f.id ? "border-slate-800" : "border-black/22"}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
-                    <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[11px] font-black ${f.claimed ? "bg-black/70 text-white/70" : "bg-slate-800 text-white"}`}>{f.claimed ? "Booked" : "$9.99"}</span>
+                    {f.claimed && <span className="absolute bottom-1 left-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[11px] font-black text-white/70">Booked</span>}
                     {f.videoUrl && !f.claimed && <span className="pointer-events-none absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-[11px] text-white">▶</span>}
                     {avatarFaceId === f.id && <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-slate-800 text-[13px] font-black text-white">✓</span>}
                   </button>
@@ -735,7 +730,7 @@ export default function CuratorApplyPage() {
           {submitting ? (editId ? "Saving…" : "Setting up…") : (editId ? "Save changes" : "Sign up & start earning")}
         </button>
         <p className="mt-1.5 text-center text-[12px] font-bold text-slate-600">
-          {editId ? "Changes go live immediately" : <>Start with free credits · earn more from likes &amp; try-ons</>}
+          {editId ? "Changes go live immediately" : <>First month <b className="text-slate-900">$8</b>, then $49/mo · cancel anytime · 🔒 secure Stripe checkout</>}
         </p>
       </div>
 
@@ -779,11 +774,11 @@ export default function CuratorApplyPage() {
               <img src={faceDialog.imageUrl} alt="" className="aspect-[3/4] w-full bg-black object-contain" />
             )}
             <div className="p-4">
-              <p className="text-[13px] font-bold text-slate-700">This becomes <b className="text-slate-900">your face</b> — we dress her in your style, always the same face. <b className="text-slate-900">$9.99</b>, and your <b className="text-slate-900">first video is included</b>.</p>
+              <p className="text-[13px] font-bold text-slate-700">This becomes <b className="text-slate-900">your face</b> — we dress her in your style, always the same face.</p>
               <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
                 <button type="button" onClick={() => { setAvatarFaceId(faceDialog.id); setFaceDialog(null); }}
                   className={`bg-slate-800 text-white flex h-12 items-center justify-center gap-2 rounded-2xl text-sm font-black ${btn3d}`}>
-                  {avatarFaceId === faceDialog.id ? "✓ This is my face" : "Use this face — $9.99"}
+                  {avatarFaceId === faceDialog.id ? "✓ This is my face" : "Use this face"}
                 </button>
                 <button type="button" onClick={() => setFaceDialog(null)}
                   className="flex h-12 items-center justify-center rounded-2xl border-[1.5px] border-slate-400 px-4 text-sm font-black text-slate-800">Close</button>
