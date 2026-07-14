@@ -15,7 +15,7 @@ export const metadata = {
   openGraph: {
     title: "Own an AI Influencer — We'll help her grow | LuxuryBandit",
     description: "Launch your AI influencer business. We create the content, you build the audience, you earn from premium fan experiences. Start from $8 (first month, then $49/month).",
-    images: [{ url: "/become-a-model-banner.jpg?v=2", width: 1280, height: 720 }],
+    images: [{ url: "/become-a-model-banner.jpg?v=3", width: 1280, height: 720 }],
     url: "/own-influencer",
     type: "website",
   },
@@ -121,7 +121,7 @@ export default async function OwnInfluencerLanding() {
               <img src={heroPhoto} alt="Your AI influencer" className="aspect-[4/5] w-full rounded-3xl object-cover" />
             ) : (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img src="/become-a-model-banner.jpg?v=2" alt="Own an AI Influencer on LuxuryBandit" className="w-full rounded-3xl" />
+              <img src="/become-a-model-banner.jpg?v=3" alt="Own an AI Influencer on LuxuryBandit" className="w-full rounded-3xl" />
             )}
           </div>
           {/* Copy */}

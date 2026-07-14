@@ -449,7 +449,7 @@ export default function CuratorApplyPage() {
         {/* The VISUAL comes first — full-bleed banner at the very top, back button floats over it. */}
         <div className="relative">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/become-a-model-banner.jpg?v=2" alt="Become or create your own LuxuryBandit Influencer and make money daily"
+          <img src="/become-a-model-banner.jpg?v=3" alt="Become or create your own LuxuryBandit Influencer and make money daily"
             className="block w-full" />
           <button type="button" onClick={() => router.back()}
             className="absolute left-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform">
@@ -543,7 +543,7 @@ export default function CuratorApplyPage() {
         /* Applicant — the VISUAL comes first: full-bleed banner at the very top, nav floats over it. */
         <div className="relative">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/become-a-model-banner.jpg?v=2" alt="Become or create your own LuxuryBandit Influencer and make money daily"
+          <img src="/become-a-model-banner.jpg?v=3" alt="Become or create your own LuxuryBandit Influencer and make money daily"
             className="block w-full" />
           <button type="button" onClick={cancel}
             className="absolute left-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur active:scale-90 transition-transform">
