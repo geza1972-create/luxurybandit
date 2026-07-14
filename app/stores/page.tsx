@@ -1247,7 +1247,28 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
         // session right away — log the user straight in instead of telling them to
         // check a (never-sent) confirmation email. The check-email copy only shows
         // if the project is ever switched back to requiring confirmation.
-        const { session: s, confirmationRequired } = await signUpWithPassword(email.trim(), password);
+        let s, confirmationRequired;
+        try {
+          ({ session: s, confirmationRequired } = await signUpWithPassword(email.trim(), password));
+        } catch (e) {
+          // Email already has an account → don't dead-end on "already registered". Try to sign
+          // them straight in with the password they just typed; if it's wrong, switch to sign-in.
+          const msg = e instanceof Error ? e.message : "";
+          if (/already|registered|exists/i.test(msg)) {
+            try {
+              const signed = await signInWithPassword(email.trim(), password);
+              setSession(signed);
+              window.location.href = "/user/dashboard";
+              return;
+            } catch {
+              setTab("signin");
+              setError("You already have an account — sign in below (or reset your password).");
+              setLoading(false);
+              return;
+            }
+          }
+          throw e;
+        }
         if (s && !confirmationRequired) {
           setSession(s);
           window.location.href = "/user/dashboard";
