@@ -38,8 +38,10 @@ export default function TopNav({
   return (
     <header data-topnav="1" className="sticky top-0 z-30 border-b border-white/10 bg-[#0d0b0a]/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5">
-        {/* Brand → home (root = the "Own an AI Influencer" landing) */}
-        <button type="button" onClick={() => router.push("/")} aria-label="Home"
+        {/* Brand → the "Own an AI Influencer" landing. Target its real route (not "/")
+            so client-side nav lands there directly, instead of falling through the old
+            root→/stores redirect chain (which, for admins, ends on /admin/stores). */}
+        <button type="button" onClick={() => router.push("/own-influencer")} aria-label="Home"
           className="flex min-w-0 items-center gap-2 active:opacity-70 transition-opacity">
           <span className="relative h-9 w-9 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}

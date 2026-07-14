@@ -83,7 +83,7 @@ export default async function OwnInfluencerLanding() {
       {/* ── Top nav ── */}
       <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0d0b0a]/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
-          <Link href="/" className="flex shrink-0 items-center gap-2.5">
+          <Link href="/own-influencer" className="flex shrink-0 items-center gap-2.5">
             <img src="/lb-logo.png" alt="LuxuryBandit" className="h-9 w-9 shrink-0 rounded-full object-contain" />
             <span className="leading-none">
               <span className="block text-[15px] font-black tracking-wide">LUXURYBANDIT</span>
