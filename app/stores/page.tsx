@@ -34,8 +34,8 @@ const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub
     sub: "Explorează un marketplace de influenceri AI — vezi ținutele lor de lux zilnice, vorbește cu ei și probează-le hainele pe tine. Fețe noi și ținute noi în fiecare zi.",
     b1t: "Urmărește & vorbește", b1x: "Trimite mesaj oricărui influencer, lasă-te stilizat de el și probează-i ținutele pe poza ta.",
     b2t: "Ținute noi zilnic", b2x: "Videouri de modă de lux de la fiecare influencer, în fiecare zi.",
-    cta: "Vezi influencerii",
-    becomeModel: "Vrei propriul tău influencer AI? →",
+    cta: "Începe acum",
+    becomeModel: "Explorează marketplace-ul",
   },
   en: {
     eyebrow: "The AI Influencer Marketplace",
@@ -43,8 +43,8 @@ const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub
     sub: "Browse a marketplace of AI influencers — watch their daily luxury looks, chat with them, and try their outfits on your own photo. New faces and new looks every day.",
     b1t: "Follow & chat", b1x: "Message any influencer, get styled by her, and try her looks on your own photo.",
     b2t: "New looks daily", b2x: "Fresh luxury fashion videos from every influencer, every single day.",
-    cta: "Browse influencers",
-    becomeModel: "Own your own AI influencer →",
+    cta: "Start now",
+    becomeModel: "Browse the marketplace",
   },
 };
 
@@ -2739,16 +2739,16 @@ function StoresPage() {
                   ))}
                 </div>
                 <div className="mt-3.5 flex items-center gap-2">
-                  {/* Primary CTA — marketplace-first: browse the AI influencers below. */}
-                  <button type="button" onClick={() => setHomeTab("models")}
+                  {/* Primary CTA — keep users IN the funnel: straight to the landing (subscribe). */}
+                  <button type="button" onClick={() => router.push("/own-influencer")}
                     className="lb-gold flex h-10 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-black active:scale-95 transition-transform">
                     <Sparkles className="h-4 w-4" /> {HERO[heroLang].cta}
                   </button>
                 </div>
-                {/* Secondary — creators who want to OWN an AI influencer go to the landing. */}
-                <button type="button" onClick={() => router.push("/own-influencer")}
+                {/* Secondary — browsing the marketplace stays on-page (reveals the grid below). */}
+                <button type="button" onClick={() => setHomeTab("models")}
                   className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-black text-white/55 underline decoration-white/25 underline-offset-4 active:opacity-70 transition">
-                  <Crown className="h-3.5 w-3.5" /> {HERO[heroLang].becomeModel}
+                  <Search className="h-3.5 w-3.5" /> {HERO[heroLang].becomeModel}
                 </button>
               </section>
             )}
