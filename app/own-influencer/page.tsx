@@ -6,7 +6,6 @@ import LazyVideo from "@/components/LazyVideo";
 import OwnInfluencerCTA from "@/components/OwnInfluencerCTA";
 import AboutVideoPicker from "@/components/AboutVideoPicker";
 import BuyModelGrid from "@/components/BuyModelGrid";
-import InfluencerFormDialog from "@/components/InfluencerFormDialog";
 import BuyFormLink from "@/components/BuyFormLink";
 
 export const metadata = {
@@ -89,8 +88,6 @@ export default async function OwnInfluencerLanding() {
   return (
     <main className="lb-landing min-h-[100dvh] bg-[#0d0b0a] text-white">
       <TrackView event="recruit_view" />
-      {/* The ONE shared buy form — every "Start"/model-card button opens this via an event. */}
-      <InfluencerFormDialog />
 
       {/* ── Top nav ── */}
       <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0d0b0a]/90 backdrop-blur">

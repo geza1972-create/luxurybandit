@@ -1,21 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { Play } from "lucide-react";
 
 type Model = { name: string; photo: string; video?: string; poster?: string };
 
 // "Own a unique influencer" grid: each model is one-of-a-kind and STILL FREE. Tapping a
-// card opens the ONE shared form dialog (InfluencerFormDialog) via a window event —
-// no per-card form. Scarcity: "claim her before someone else does."
+// card leads to the existing application form (/curators/apply) to claim/set her up.
 export default function BuyModelGrid({ models }: { models: Model[] }) {
-  const claim = (m: Model) => {
-    try { window.dispatchEvent(new CustomEvent("lb-buy-influencer", { detail: { model: m.name || "" } })); } catch { /**/ }
-  };
-
   return (
     <div className="mt-4 grid grid-cols-3 gap-2">
       {models.map((m, i) => (
-        <button key={i} type="button" onClick={() => claim(m)}
+        <Link key={i} href="/curators/apply"
           className="group relative block aspect-[3/4] overflow-hidden rounded-xl lb-media-bg active:scale-95 transition">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={m.poster || m.photo} alt={m.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
@@ -26,7 +22,7 @@ export default function BuyModelGrid({ models }: { models: Model[] }) {
           <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-1.5 pb-1.5 pt-5 text-center">
             <span className="text-[10px] font-black text-amber-300">Buy now →</span>
           </span>
-        </button>
+        </Link>
       ))}
     </div>
   );
