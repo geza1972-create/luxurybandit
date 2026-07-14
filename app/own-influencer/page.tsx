@@ -46,12 +46,18 @@ async function landingData() {
       const video = face.videoPath ? await getSignedUrl(face.videoPath).catch(() => "") : (face.videoUrl || "");
       return { name: "", photo, video, poster: photo, createdAt: face.createdAt || "" };
     }));
-    return { heroPhoto: (gina?.photoUrl ?? "") as string, clips, models };
-  } catch { return { heroPhoto: "", clips: [] as { poster: string; video: string }[], models: [] as { name: string; photo: string }[] }; }
+    // Wardrobe excerpt = the admin-managed outfit gallery (the clothes we dress her in).
+    // Proof of "we add new clothes every day". Sign the storage paths, drop any that fail.
+    const outfits = (state.outfits ?? []).filter(o => o.imagePath || o.imageUrl).slice(0, 12);
+    const wardrobe = (await Promise.all(outfits.map(async o =>
+      o.imagePath ? await getSignedUrl(o.imagePath).catch(() => o.imageUrl || "") : (o.imageUrl || "")
+    ))).filter(Boolean);
+    return { heroPhoto: (gina?.photoUrl ?? "") as string, clips, models, wardrobe };
+  } catch { return { heroPhoto: "", clips: [] as { poster: string; video: string }[], models: [] as { name: string; photo: string }[], wardrobe: [] as string[] }; }
 }
 
 export default async function OwnInfluencerLanding() {
-  const { heroPhoto, clips, models } = await landingData();
+  const { heroPhoto, clips, models, wardrobe } = await landingData();
 
   const NAV = [
     { label: "For Creators", href: "#creators" },
@@ -180,6 +186,48 @@ export default async function OwnInfluencerLanding() {
               Every AI influencer is one-of-a-kind — and only <span className="font-black text-white">one person</span> can own her: her daily content, her chats, her whole audience. These are <span className="font-black text-emerald-400">still free</span>. Claim one before someone else does — or <BuyFormLink className="font-black text-amber-400 underline decoration-amber-400/40 underline-offset-2">create your own</BuyFormLink>.
             </p>
             {models.length >= 1 && <BuyModelGrid models={models.slice(0, 12)} />}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Her wardrobe / content engine ── */}
+      <section className="border-b border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-12">
+          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Her Wardrobe · Your Content Engine</p>
+            <h2 className="mt-2 text-[26px] font-black leading-tight">New looks every day —<br />zero work for you.</h2>
+            <p className="mt-3 text-[14px] font-semibold leading-relaxed text-white/70">
+              We add <span className="font-black text-white">new clothes to her wardrobe every single day</span> — and keep generating <span className="font-black text-white">fresh videos of your influencer</span> on autopilot. You don&apos;t have to lift a finger.
+            </p>
+            <ul className="mt-5 space-y-2.5">
+              {[
+                "We add new outfits to her wardrobe daily",
+                "Want a specific piece? Add your own clothes for her to wear",
+                "We generate fresh videos of your influencer regularly — automatically",
+                "Use those videos for your own shop, Facebook or Instagram",
+                "You do nothing — the content just keeps coming",
+              ].map(p => (
+                <li key={p} className="flex items-start gap-2.5 text-[14px] font-semibold text-white/80">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> {p}
+                </li>
+              ))}
+            </ul>
+            {wardrobe.length >= 3 && (
+              <>
+                <p className="mt-6 text-[11px] font-black uppercase tracking-[0.18em] text-white/45">A peek at the wardrobe</p>
+                <div className="mt-2 flex snap-x gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {wardrobe.map((src, i) => (
+                    <div key={i} className="relative aspect-[3/4] w-[30%] shrink-0 snap-start overflow-hidden rounded-xl lb-media-bg">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt="Wardrobe piece" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            <Link href="/clothes" className="mt-6 inline-flex rounded-full border border-white/20 px-5 py-2.5 text-[13px] font-black text-white transition hover:border-amber-400 hover:text-amber-400">
+              Browse the wardrobe
+            </Link>
           </div>
         </div>
       </section>

@@ -762,7 +762,7 @@ export default function CuratorApplyPage() {
         {/* Motto + bio */}
         <div className="mt-5 grid gap-3">
           <div>
-            <span className={label}>Motto</span>
+            <span className={label}>Motto <span className="font-bold normal-case text-slate-400">· optional</span></span>
             <input className={field} value={motto} onChange={e => setMotto(e.target.value)} placeholder="Bandit the look!" />
             {mottoIdeas.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
@@ -776,7 +776,7 @@ export default function CuratorApplyPage() {
             )}
           </div>
           <div>
-            <span className={label}>Short bio</span>
+            <span className={label}>Short bio <span className="font-bold normal-case text-slate-400">· optional</span></span>
             <textarea className={`${field} h-auto py-3 leading-5`} rows={3} value={bio} onChange={e => setBio(e.target.value)} placeholder="One line about your eye for fashion…" />
           </div>
         </div>
