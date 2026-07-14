@@ -325,7 +325,7 @@ export default function CuratorApplyPage() {
         const adminTest = (() => { try { return !!localStorage.getItem("luxurybandit-try-look-admin-pin"); } catch { return false; } })();
         const pr = await fetch("/api/premium", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim(), returnPath: "/stores?welcome=1", ...(adminTest ? { allowPromo: true } : {}) }),
+          body: JSON.stringify({ email: email.trim(), returnPath: "/own-influencer", ...(adminTest ? { allowPromo: true } : {}) }),
         }).then(x => x.json()).catch(() => null);
         if (pr?.url) { window.location.href = pr.url as string; return; }
       } catch { /**/ }
