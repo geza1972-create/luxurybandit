@@ -39,12 +39,12 @@ async function landingData() {
     const clips = showcaseClips.length ? showcaseClips : ginaClips;
     // Buyable AI influencers = the UNCLAIMED avatar-face pool (admin-generated for sale) —
     // NOT the real curators (those are live models, not for sale). Sign the storage paths.
-    const faces = (state.avatarFaces ?? []).filter(f => !(f as { claimedBy?: string }).claimedBy && ((f as { imagePath?: string }).imagePath || (f as { imageUrl?: string }).imageUrl)).slice(0, 6);
+    const faces = (state.avatarFaces ?? []).filter(f => !(f as { claimedBy?: string }).claimedBy && !(f as { sold?: boolean }).sold && ((f as { imagePath?: string }).imagePath || (f as { imageUrl?: string }).imageUrl)).slice(0, 6);
     const models = await Promise.all(faces.map(async f => {
-      const face = f as { imagePath?: string; imageUrl?: string; videoPath?: string; videoUrl?: string };
+      const face = f as { imagePath?: string; imageUrl?: string; videoPath?: string; videoUrl?: string; createdAt?: string };
       const photo = face.imagePath ? await getSignedUrl(face.imagePath).catch(() => face.imageUrl || "") : (face.imageUrl || "");
       const video = face.videoPath ? await getSignedUrl(face.videoPath).catch(() => "") : (face.videoUrl || "");
-      return { name: "", photo, video, poster: photo };
+      return { name: "", photo, video, poster: photo, createdAt: face.createdAt || "" };
     }));
     return { heroPhoto: (gina?.photoUrl ?? "") as string, clips, models };
   } catch { return { heroPhoto: "", clips: [] as { poster: string; video: string }[], models: [] as { name: string; photo: string }[] }; }
