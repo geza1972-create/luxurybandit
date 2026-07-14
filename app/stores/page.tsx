@@ -1820,7 +1820,13 @@ function StoresPage() {
   // Only manage it inside the grid overview, where the tab toggle is visible.
   useEffect(() => {
     if (!showGrid) return;
-    if (onWardrobe) return; // /wardrobe is its own clean URL — don't mirror ?view onto it
+    if (onWardrobe) {
+      // /wardrobe is a clean alias for the Wardrobe tab: stay put while on it, but the
+      // moment the user switches tabs, leave the alias for the canonical /stores URL.
+      if (homeTab === "garderobe") return;
+      router.replace(homeTab === "models" ? "/stores?view=models" : "/stores?view=grid", { scroll: false });
+      return;
+    }
     const cur = searchParams.get("view");
     let want: string | null = null;
     if (homeTab === "models") want = "models";
