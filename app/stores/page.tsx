@@ -1234,13 +1234,30 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
       .catch(() => {});
   }, [session]);
 
+  // After auth: an influencer OWNER lands on HER profile (their dashboard); everyone else
+  // on the buyer dashboard. The signin action returns the curator this email owns (if any).
+  const landAfterAuth = async (em: string) => {
+    try {
+      const d = await fetch("/api/curator", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "signin", email: em }),
+      }).then(r => r.json()).catch(() => null);
+      if (d?.curator?.id) {
+        try { localStorage.setItem("lb_curator", JSON.stringify(d.curator)); } catch { /**/ }
+        window.location.href = `/curator/${d.curator.id}`;
+        return;
+      }
+    } catch { /**/ }
+    window.location.href = "/user/dashboard";
+  };
+
   const handle = async (action: "signin" | "register" | "forgot") => {
     setError(""); setMessage(""); setLoading(true);
     try {
       if (action === "signin") {
         const s = await signInWithPassword(email.trim(), password);
         setSession(s);
-        window.location.href = "/user/dashboard"; // land on the dashboard, not the feed
+        await landAfterAuth(email.trim());
         return;
       } else if (action === "register") {
         // Supabase auto-confirms emails (mailer_autoconfirm), so sign-up returns a
@@ -1258,7 +1275,7 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
             try {
               const signed = await signInWithPassword(email.trim(), password);
               setSession(signed);
-              window.location.href = "/user/dashboard";
+              await landAfterAuth(email.trim());
               return;
             } catch {
               setTab("signin");
@@ -1271,7 +1288,7 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
         }
         if (s && !confirmationRequired) {
           setSession(s);
-          window.location.href = "/user/dashboard";
+          await landAfterAuth(email.trim());
           return;
         }
         setMessage("Account created! Check your email to confirm, then sign in.");
