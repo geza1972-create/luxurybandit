@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-type Item = { thumbnail?: string };
+type Outfit = { id: string; imageUrl?: string; lookId?: string };
 
-// A peek at the REAL wardrobe gallery — pulls the exact same data as /clothes
-// (POST /api/mai-ieftin-chat { demoProducts: "haine" } → our collection + Bellucci),
-// so the landing shows the genuine catalogue, not a reconstruction. Cached/zero-AI.
+// A peek at OUR wardrobe — the admin-managed outfit gallery (state.outfits, the
+// garments you upload at /admin/outfits and dress the influencer in). NOT the
+// /clothes catalogue (that mixes Bellucci + model look-photos). GET is signed & cheap.
 export default function WardrobePeek() {
   const [imgs, setImgs] = useState<string[]>([]);
 
@@ -14,16 +14,11 @@ export default function WardrobePeek() {
     let alive = true;
     (async () => {
       try {
-        const r = await fetch("/api/mai-ieftin-chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ demoProducts: "haine" }),
-        });
+        const r = await fetch("/api/try-this-look", { cache: "no-store" });
         const d = await r.json().catch(() => ({}));
         if (!alive) return;
-        const own: Item[] = Array.isArray(d.ownProducts) ? d.ownProducts : [];
-        const bell: Item[] = Array.isArray(d.products) ? d.products : [];
-        const urls = [...own, ...bell].map(p => p?.thumbnail || "").filter(Boolean);
+        const outfits: Outfit[] = Array.isArray(d.outfits) ? d.outfits : [];
+        const urls = outfits.map(o => o.imageUrl || "").filter(Boolean);
         setImgs([...new Set(urls)].slice(0, 12));
       } catch { /* silent — box just hides its image row */ }
     })();
