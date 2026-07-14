@@ -530,7 +530,7 @@ export default function CuratorApplyPage() {
 
         {imageSource === "ours" && (
           <div className="mt-5 rounded-2xl border border-black/15 bg-black/[0.04] p-4">
-            <span className={label}>Pick your face</span>
+            <span className={label}>New influencer available today</span>
             <p className="mt-0.5 text-[13px] font-bold text-slate-600">Each face is <b>one-of-a-kind</b> — pick the one that fits your influencer. We add new ones all the time.</p>
             {avatarFaces.length === 0 ? (
               <p className="mt-2 text-[14px] font-bold text-[#e7c877]">No free faces right now — new ones drop regularly. Pick “My own photos” above, or check back soon.</p>
