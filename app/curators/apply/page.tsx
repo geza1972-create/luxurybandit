@@ -48,6 +48,7 @@ export default function CuratorApplyPage() {
   const [roleModels, setRoleModels] = useState<{ id: string; name: string; photoUrl?: string; style?: string }[]>([]);
   const [avatarFaces, setAvatarFaces] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean; sold?: boolean; createdAt?: string }[]>([]);
   const [outfitThumbs, setOutfitThumbs] = useState<string[]>([]); // small wardrobe preview on her card: 1 dress + 4 lingerie
+  const [heroVideoOn, setHeroVideoOn] = useState(false); // play the selected face's video on the big card
   const [faceDialog, setFaceDialog] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean; sold?: boolean; createdAt?: string } | null>(null); // preview + take a face
   const [rulesOpen, setRulesOpen] = useState(false); // "You get one shot" rules → link under the photo opens this dialog
   const [avatarFaceId, setAvatarFaceId] = useState(""); // the FREE face this creator picks (booked on $9.99 payment)
@@ -590,14 +591,31 @@ export default function CuratorApplyPage() {
             ? (photo || profileExisting[0] || gina?.photoUrl || firstFree?.imageUrl || "")
             : (sel?.imageUrl || firstFree?.imageUrl || gina?.photoUrl || "");
           if (!heroSrc) return null;
+          const heroVideo = imageSource === "own" ? "" : (sel?.videoUrl || firstFree?.videoUrl || "");
           const nm = modelName.trim() || "Your influencer";
           const tag = motto.trim() || "Your vibe, every day 💛";
           return (
             <div className="mt-5">
               <div className="mx-auto max-w-[340px] overflow-hidden rounded-3xl bg-[#0d0b0a] text-white shadow-[0_16px_50px_rgba(0,0,0,0.3)]">
                 <div className="relative aspect-[4/5] w-full">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={heroSrc} alt={nm} className="h-full w-full object-cover" />
+                  {heroVideoOn && heroVideo ? (
+                    /* eslint-disable-next-line jsx-a11y/media-has-caption */
+                    <video src={heroVideo} autoPlay muted playsInline controls className="h-full w-full bg-black object-cover" />
+                  ) : (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={heroSrc} alt={nm} className="h-full w-full object-cover" />
+                      {heroVideo && (
+                        <button type="button" onClick={() => setHeroVideoOn(true)} aria-label="Play video"
+                          className="absolute inset-0 grid place-items-center">
+                          <span className="grid h-16 w-16 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/50 backdrop-blur transition active:scale-95">
+                            <svg viewBox="0 0 24 24" className="h-7 w-7 translate-x-0.5 fill-current"><path d="M8 5v14l11-7z" /></svg>
+                          </span>
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {!heroVideoOn && (
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-4 pt-10">
                     <p className="text-[20px] font-black leading-none">{nm}</p>
                     <p className="mt-1 text-[13px] font-bold text-amber-400">{tag}</p>
@@ -612,6 +630,7 @@ export default function CuratorApplyPage() {
                       </div>
                     )}
                   </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-4 gap-1 px-3 py-3 text-center">
                   {[["Looks", "24"], ["Followers", "345k"], ["Likes", "1.2M"], ["Views", "4.8M"]].map(([l, v]) => (
