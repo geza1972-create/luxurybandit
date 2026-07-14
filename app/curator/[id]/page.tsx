@@ -810,9 +810,9 @@ export default function CuratorPublicPage() {
               <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-white/35">
                 {profile.firstName ? `${profile.firstName}'s favorite brands` : "Favorite brands"}
               </p>
-              <div className="flex flex-wrap items-center gap-1.5">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {list.map((b, i) => (
-                  <span key={i} className="rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-black text-amber-300 ring-1 ring-amber-400/25">{b}</span>
+                  <span key={i} className="shrink-0 whitespace-nowrap rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-black text-amber-300 ring-1 ring-amber-400/25">{b}</span>
                 ))}
               </div>
             </div>
