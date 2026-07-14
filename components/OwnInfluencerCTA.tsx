@@ -28,8 +28,12 @@ export default function OwnInfluencerCTA() {
         <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-emerald-500 text-white"><Check className="h-6 w-6" /></span>
         <p className="mt-3 text-lg font-black text-white">You&apos;re in! 🎉</p>
         <p className="mt-1 text-[14px] font-semibold leading-relaxed text-white/70">
-          Your AI influencer is being set up. We&apos;ll email you as soon as her first content is ready.
+          Your AI influencer is ready. Open your dashboard to meet her — and check your email for your login &amp; setup instructions.
         </p>
+        <Link href="/login"
+          className="lb-gold mx-auto mt-4 flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full px-6 text-[15px] font-black active:scale-95 transition">
+          Open my dashboard →
+        </Link>
       </div>
     );
   }

@@ -51,8 +51,13 @@ export default function ResetPasswordPage() {
     try {
       await updatePasswordWithToken(accessToken, password);
       setDone(true);
-      // Redirect to home after 3 seconds
-      setTimeout(() => router.push("/stores?panel=account"), 3000);
+      // Land on the OWNER's dashboard (her own influencer profile) if we know it — the login
+      // now bridges the session to lb_curator. Fall back to the account panel otherwise.
+      setTimeout(() => {
+        let dest = "/stores?panel=account";
+        try { const cid = JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id; if (cid) dest = `/curator/${cid}?welcome=1`; } catch { /**/ }
+        router.push(dest);
+      }, 2500);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not change your password.");
     } finally {

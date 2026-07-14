@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, BadgeCheck, Instagram, Loader2, Lock, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play, Sparkles, SlidersHorizontal, Trash2, EyeOff, Eye, ImageUp, Video, Download } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Instagram, Loader2, Lock, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play, Sparkles, SlidersHorizontal, Trash2, EyeOff, Eye, ImageUp, Video, Download, Mail } from "lucide-react";
 import TopNav from "@/components/TopNav";
 import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
@@ -407,6 +407,8 @@ export default function CuratorPublicPage() {
   // ── Admin: toggle the gold "real LuxuryBandit Model" banner for THIS model.
   // Off by default (AI models must never claim to be real).
   const [badgeBusy, setBadgeBusy] = useState(false);
+  const [onbBusy, setOnbBusy] = useState(false);
+  const [onbMsg, setOnbMsg] = useState("");
   // Admin: upscale her (often low-res) profile photo to HD via fal clarity-upscaler.
   const [hdBusy, setHdBusy] = useState(false);
   const upscalePhoto = async () => {
@@ -499,6 +501,19 @@ export default function CuratorPublicPage() {
       setProfile(p => (p ? { ...p, realBadge: false, realModel: false, status: "deactivated" } : p));
     } catch (e) { alert(e instanceof Error ? e.message : "Fehlgeschlagen"); }
     finally { setBadgeBusy(false); }
+  };
+  // Send the "your influencer is ready — set your password & open your dashboard" email.
+  const sendOnboarding = async () => {
+    if (onbBusy) return;
+    setOnbBusy(true); setOnbMsg("");
+    try {
+      const r = await fetch("/api/onboarding-email", {
+        method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() },
+        body: JSON.stringify({ curatorId: id }),
+      }).then(x => x.json()).catch(() => null);
+      setOnbMsg(r?.ok ? "✓ Onboarding email sent" : (r?.error || "Could not send"));
+    } catch { setOnbMsg("Could not send"); }
+    finally { setOnbBusy(false); }
   };
 
   // Anyone can report a profile → the admin is notified to review it.
@@ -863,6 +878,14 @@ export default function CuratorPublicPage() {
                   className="rounded-full border border-red-400/40 px-3 py-2.5 text-[12px] font-black text-red-400 active:scale-95 transition disabled:opacity-50">Reject</button>
               </div>
             )}
+            <div className="mt-3 border-t border-white/10 pt-3">
+              <button type="button" onClick={() => void sendOnboarding()} disabled={onbBusy}
+                className="flex w-full items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-2.5 text-[13px] font-black text-white active:scale-95 transition disabled:opacity-50">
+                {onbBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} Send onboarding email
+              </button>
+              <p className="mt-1.5 text-center text-[11px] font-bold text-white/40">Emails her a set-password / login link that lands on her dashboard.</p>
+              {onbMsg && <p className={`mt-1 text-center text-[12px] font-black ${onbMsg.startsWith("✓") ? "text-emerald-400" : "text-red-400"}`}>{onbMsg}</p>}
+            </div>
             <a href="/model-rules" target="_blank" rel="noopener noreferrer"
               className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-white/40 underline underline-offset-2 hover:text-white/70">See the model rules ↗</a>
           </div>
