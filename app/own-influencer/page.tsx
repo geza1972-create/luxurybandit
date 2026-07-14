@@ -79,7 +79,7 @@ export default async function OwnInfluencerLanding() {
   ];
   const WHY = [
     { icon: Crown, t: "Own your influencer", d: "You own your AI influencer and your brand." },
-    { icon: Users, t: "Fan connections", d: "Chat, engage and build real relationships with fans." },
+    { icon: Users, t: "A loyal fanbase", d: "Build an audience that follows her every single day." },
     { icon: Camera, t: "Daily luxury content", d: "We create high-quality content every single day." },
     { icon: Gem, t: "Premium experiences", d: "Offer exclusive content, try-ons, videos and more." },
     { icon: BarChart3, t: "Build your business", d: "Grow your audience and increase your income." },
@@ -215,6 +215,39 @@ export default async function OwnInfluencerLanding() {
             <Link href="/wardrobe" className="mt-6 inline-flex rounded-full border border-white/20 px-5 py-2.5 text-[13px] font-black text-white transition hover:border-amber-400 hover:text-amber-400">
               Browse the wardrobe
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Influencer chat (two-way) ── */}
+      <section id="chat" className="scroll-mt-24 border-b border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-12">
+          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Influencer Chat · Two-Way</p>
+            <h2 className="mt-2 text-[26px] font-black leading-tight">Talk to her.<br />She talks to your fans.</h2>
+            <p className="mt-3 text-[14px] font-semibold leading-relaxed text-white/70">
+              Your influencer is a real chat personality — for you and for her fans.
+            </p>
+            <div className="mt-5 grid gap-3">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-400/15"><MessageCircle className="h-5 w-5 text-amber-400" /></span>
+                  <span className="text-[15px] font-black text-white">You → your influencer</span>
+                </div>
+                <p className="mt-2.5 text-[13px] font-semibold leading-relaxed text-white/65">
+                  Message her anytime and tell her your wishes — a new outfit, a campaign, the mood you want. She takes your direction and it shapes her content.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-400/15"><Users className="h-5 w-5 text-amber-400" /></span>
+                  <span className="text-[15px] font-black text-white">Your influencer → fans</span>
+                </div>
+                <p className="mt-2.5 text-[13px] font-semibold leading-relaxed text-white/65">
+                  She chats with her fans around the clock — answering, styling, keeping them close — turning attention into premium fan experiences you earn from.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
