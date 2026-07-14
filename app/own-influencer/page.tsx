@@ -7,6 +7,7 @@ import OwnInfluencerCTA from "@/components/OwnInfluencerCTA";
 import AboutVideoPicker from "@/components/AboutVideoPicker";
 import BuyModelGrid from "@/components/BuyModelGrid";
 import BuyFormLink from "@/components/BuyFormLink";
+import WardrobePeek from "@/components/WardrobePeek";
 
 export const metadata = {
   title: "LuxuryBandit — Own an AI Influencer. We'll help her grow.",
@@ -46,27 +47,12 @@ async function landingData() {
       const video = face.videoPath ? await getSignedUrl(face.videoPath).catch(() => "") : (face.videoUrl || "");
       return { name: "", photo, video, poster: photo, createdAt: face.createdAt || "" };
     }));
-    // Wardrobe excerpt = real garment imagery, so the box always shows clothes.
-    // Priority: admin wardrobe outfits → look garment shots → look gallery → the
-    // model wearing the look → video posters. Everything from `looks` is already
-    // signed by hydrateState; only the outfit storage paths need signing here.
-    const outfitImgs = await Promise.all(
-      (state.outfits ?? []).filter(o => o.imagePath || o.imageUrl).slice(0, 12)
-        .map(async o => (o.imagePath ? await getSignedUrl(o.imagePath).catch(() => o.imageUrl || "") : (o.imageUrl || "")))
-    );
-    const lookImgs = (state.looks ?? []).flatMap(l => {
-      const L = l as { garmentFrontImageUrl?: string; frontImageUrl?: string; imageUrl?: string; galleryImageUrls?: string[] };
-      return [L.garmentFrontImageUrl, ...(L.galleryImageUrls ?? []), L.frontImageUrl, L.imageUrl];
-    });
-    const clipPosters = clips.map(c => c.poster);
-    const wardrobe = [...new Set([...outfitImgs, ...lookImgs, ...clipPosters].filter(Boolean))]
-      .filter(u => !/\.svg($|\?)|test-look/.test(u)).slice(0, 9);
-    return { heroPhoto: (gina?.photoUrl ?? "") as string, clips, models, wardrobe };
-  } catch { return { heroPhoto: "", clips: [] as { poster: string; video: string }[], models: [] as { name: string; photo: string }[], wardrobe: [] as string[] }; }
+    return { heroPhoto: (gina?.photoUrl ?? "") as string, clips, models };
+  } catch { return { heroPhoto: "", clips: [] as { poster: string; video: string }[], models: [] as { name: string; photo: string }[] }; }
 }
 
 export default async function OwnInfluencerLanding() {
-  const { heroPhoto, clips, models, wardrobe } = await landingData();
+  const { heroPhoto, clips, models } = await landingData();
 
   const NAV = [
     { label: "For Creators", href: "#creators" },
@@ -221,19 +207,7 @@ export default async function OwnInfluencerLanding() {
                 </li>
               ))}
             </ul>
-            {wardrobe.length >= 1 && (
-              <>
-                <p className="mt-6 text-[11px] font-black uppercase tracking-[0.18em] text-white/45">A peek at the wardrobe</p>
-                <div className="mt-2 flex snap-x gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {wardrobe.map((src, i) => (
-                    <div key={i} className="relative aspect-[3/4] w-[30%] shrink-0 snap-start overflow-hidden rounded-xl lb-media-bg">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={src} alt="Wardrobe piece" loading="lazy" decoding="async" className="h-full w-full object-cover" />
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
+            <WardrobePeek />
             <Link href="/clothes" className="mt-6 inline-flex rounded-full border border-white/20 px-5 py-2.5 text-[13px] font-black text-white transition hover:border-amber-400 hover:text-amber-400">
               Browse the wardrobe
             </Link>
