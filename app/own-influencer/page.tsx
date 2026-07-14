@@ -192,18 +192,22 @@ export default async function OwnInfluencerLanding() {
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Her Wardrobe · Your Content Engine</p>
             <h2 className="mt-2 text-[26px] font-black leading-tight">New looks every day —<br />zero work for you.</h2>
             <p className="mt-3 text-[14px] font-semibold leading-relaxed text-white/70">
-              We add <span className="font-black text-white">new clothes to her wardrobe every single day</span> — and keep generating <span className="font-black text-white">fresh videos of your influencer</span> on autopilot. You don&apos;t have to lift a finger.
+              Here&apos;s how her content keeps flowing — completely hands-off for you:
             </p>
-            <ul className="mt-5 space-y-2.5">
+            <ul className="mt-5 space-y-3">
               {[
-                "We add new outfits to her wardrobe daily",
-                "Want a specific piece? Add your own clothes for her to wear",
-                "We generate fresh videos of your influencer regularly — automatically",
-                "Use those videos for your own shop, Facebook or Instagram",
-                "You do nothing — the content just keeps coming",
+                { t: "New clothes every single day", d: "We add fresh outfits to her wardrobe daily." },
+                { t: "Add your own clothes too", d: "Want a specific piece? Upload it and she'll wear it." },
+                { t: "We generate her videos regularly", d: "Fresh videos of your influencer, created automatically." },
+                { t: "The videos are yours to use", d: "Post them on your own shop, your Facebook or your Instagram." },
+                { t: "You do nothing", d: "We create all the content — you just grow your business." },
               ].map(p => (
-                <li key={p} className="flex items-start gap-2.5 text-[14px] font-semibold text-white/80">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> {p}
+                <li key={p.t} className="flex items-start gap-2.5">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                  <span>
+                    <span className="block text-[14px] font-black text-white">{p.t}</span>
+                    <span className="block text-[13px] font-semibold leading-snug text-white/60">{p.d}</span>
+                  </span>
                 </li>
               ))}
             </ul>
