@@ -171,6 +171,18 @@ export default function CuratorPublicPage() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const isOwn = (() => { try { return JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id === id; } catch { return false; } })();
+  // Owner's video credits (from her subscription) — shown on her own dashboard.
+  const [ownerCredits, setOwnerCredits] = useState<number | null>(null);
+  useEffect(() => {
+    if (!isOwn) return;
+    let em = ""; try { em = JSON.parse(localStorage.getItem("lb_curator") ?? "{}").email || ""; } catch { /**/ }
+    if (!em) return;
+    // Hitting /api/premium also tops up the monthly subscriber credits server-side, then we read them.
+    fetch(`/api/premium?email=${encodeURIComponent(em)}`).catch(() => {})
+      .then(() => fetch(`/api/video-pack?email=${encodeURIComponent(em)}`).then(r => r.json()))
+      .then(d => setOwnerCredits(Number(d?.credits ?? 0)))
+      .catch(() => setOwnerCredits(0));
+  }, [isOwn]);
 
   useEffect(() => {
     if (!id) return;
@@ -773,6 +785,19 @@ export default function CuratorPublicPage() {
             <button type="button" onClick={() => { const url = window.location.href; if (navigator.share) navigator.share({ title: name, url }).catch(() => {}); else navigator.clipboard?.writeText(url); }}
               className="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full bg-white/10 px-4 text-xs font-black text-white active:scale-95 transition">
               <Send className="h-3.5 w-3.5" /> Share
+            </button>
+          </div>
+        )}
+        {/* Owner strip: her video credits (from the subscription) + quick account access. */}
+        {isOwn && (
+          <div className="mt-2 flex items-center gap-2">
+            <div className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-amber-400/10 px-4 py-2 ring-1 ring-amber-400/25">
+              <span className="text-sm font-black text-amber-400">{ownerCredits === null ? "…" : ownerCredits}</span>
+              <span className="text-[11px] font-bold uppercase tracking-wide text-white/55">video credits</span>
+            </div>
+            <button type="button" onClick={() => router.push("/user/dashboard")}
+              className="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full bg-white/10 px-4 text-xs font-black text-white active:scale-95 transition">
+              Account
             </button>
           </div>
         )}
