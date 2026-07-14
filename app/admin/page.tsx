@@ -1164,8 +1164,8 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="lb-admin min-h-screen w-full overflow-x-hidden bg-[#fbfaf7] px-4 py-5 text-ink lg:px-8">
-      <div className="mx-auto w-full max-w-3xl lg:max-w-6xl">
+    <main className="lb-admin min-h-screen w-full overflow-x-hidden bg-[#fbfaf7] px-4 py-5 text-ink lg:px-10">
+      <div className="mx-auto w-full max-w-3xl lg:max-w-6xl xl:max-w-[1600px]">
         <header className="flex items-center justify-between gap-3">
           <div>
             <div className="text-[11px] font-black uppercase tracking-[0.18em] text-cobalt">LuxuryBandit</div>
@@ -1492,7 +1492,7 @@ export default function AdminPage() {
               </div>
             );
           })()}
-          <div className="mt-3 grid grid-cols-1 gap-2 pb-16 lg:grid-cols-2">
+          <div className="mt-3 grid grid-cols-1 gap-2 pb-16 lg:grid-cols-2 xl:grid-cols-3">
             {shownLooks.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No listings.</p>}
             {shownLooks.map(l => {
               const live = l.published !== false;
@@ -1714,7 +1714,7 @@ export default function AdminPage() {
               onChange={e => { void uploadFaces(e.target.files); e.target.value = ""; }} />
             {faceErr && <p className="mt-2 text-[12px] font-bold text-red-500">{faceErr}</p>}
             {faces.length > 0 && (
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
                 {faces.map(f => (
                   <div key={f.id} className="rounded-xl border border-black/10 bg-black/[0.02] p-1.5">
                     <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-black/[0.04]">
@@ -1755,7 +1755,7 @@ export default function AdminPage() {
         )}
 
         {tab === "curators" && (
-          <div className="mt-2 grid grid-cols-1 gap-2 pb-16 lg:grid-cols-2">
+          <div className="mt-2 grid grid-cols-1 gap-2 pb-16 lg:grid-cols-2 xl:grid-cols-3">
             {/* One shared file input — pickModelVideo() sets the target model, then opens it. */}
             <input ref={vidFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) void uploadModelVideo(f); e.target.value = ""; }} />
