@@ -528,16 +528,17 @@ export default function CuratorApplyPage() {
 
         {imageSource === "ours" && (
           <div className="mt-5 rounded-2xl border border-black/15 bg-black/[0.04] p-4">
-            <div className="mb-3 flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5">
-              <span className="text-lg">⚡</span>
-              <p className="text-[13px] font-black leading-tight text-amber-900">Unique models — <span className="text-red-600">make her yours before she&apos;s gone!</span> Each face can be owned by only one person.</p>
-            </div>
             <span className={label}>Pick your face</span>
             <p className="mt-0.5 text-[13px] font-bold text-slate-600">Each face is <b>one-of-a-kind</b> — pick the one that fits your influencer. We add new ones all the time.</p>
             {avatarFaces.length === 0 ? (
               <p className="mt-2 text-[14px] font-bold text-[#e7c877]">No free faces right now — new ones drop regularly. Pick “My own photos” above, or check back soon.</p>
             ) : (
-              <div className="mt-2 grid grid-cols-3 gap-2">
+              <>
+              <div className="mt-3 rounded-2xl bg-gradient-to-r from-red-600 to-rose-500 px-4 py-2.5 text-center shadow-[0_6px_20px_rgba(220,38,38,0.45)]">
+                <p className="text-[15px] font-black uppercase leading-none tracking-tight text-white drop-shadow">🔥 Grab yours before she&apos;s gone!</p>
+                <p className="mt-1 text-[11px] font-black uppercase tracking-wide text-white/90">Each face = only ONE owner, ever</p>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2">
                 {avatarFaces.map(f => (
                   <button key={f.id} type="button" disabled={f.claimed}
                     onClick={() => setFaceDialog(f)}
@@ -550,6 +551,7 @@ export default function CuratorApplyPage() {
                   </button>
                 ))}
               </div>
+              </>
             )}
             <p className="mt-2 text-[12px] font-bold text-slate-600">Uploading your own photos below is optional when you use our face.</p>
           </div>
