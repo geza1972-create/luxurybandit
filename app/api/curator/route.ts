@@ -351,21 +351,17 @@ export async function POST(request: Request) {
     if (!active) return NextResponse.json({ ok: true, paid: false, active: false });
     const state = await readTryThisLookState();
     const matches = (state.curators ?? []).filter(c => (c.email ?? "").trim().toLowerCase() === email);
-    const toOnboard: any[] = [];
-    let changed = false;
-    for (const c of matches) {
-      if ((c as any).paid !== true) { (c as any).paid = true; changed = true; }        // reserve the name
-      if (!(c as any).onboardedAt) { (c as any).onboardedAt = new Date().toISOString(); changed = true; toOnboard.push(c); } // email once
-    }
-    if (changed) await saveTryThisLookState(state);
-    // Auto-send the onboarding email (set-password link → dashboard) — once per curator.
+    for (const c of matches) { (c as any).paid = true; (c as any).onboardedAt = new Date().toISOString(); } // reserve the name
+    if (matches.length) await saveTryThisLookState(state);
+    // Send the onboarding email (set-password link → dashboard) to EVERY matching curator, every
+    // time it's confirmed. /welcome stops polling on the first paid:true, so it's normally one send.
     const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://luxurybandit.com";
     const sends: any[] = [];
     try {
       const { sendOnboardingEmail } = await import("@/lib/onboarding-email");
-      for (const c of toOnboard) { sends.push(await sendOnboardingEmail(c, origin).catch(e => ({ ok: false, error: String(e) }))); }
+      for (const c of matches) { sends.push(await sendOnboardingEmail(c, origin).catch(e => ({ ok: false, error: String(e) }))); }
     } catch (e) { sends.push({ ok: false, error: String(e) }); }
-    return NextResponse.json({ ok: true, paid: true, active: true, curators: matches.length, emailed: toOnboard.length, sends });
+    return NextResponse.json({ ok: true, paid: true, active: true, curators: matches.length, emailed: matches.length, sends });
   }
 
   if (action === "apply") {
