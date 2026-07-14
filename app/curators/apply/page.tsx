@@ -266,12 +266,12 @@ export default function CuratorApplyPage() {
       setError("Model name, first name, last name and email are required."); return;
     }
     if (nameStatus === "taken") { setError("That model name is taken — please choose another."); return; }
-    if (!agreed) { setError("Please confirm you're 18+, the photos are really you, and you accept the model rules."); return; }
+    if (!agreed) { setError("Please confirm you're 18+, the photos are really you, and you accept the Terms & Conditions."); return; }
     setError(""); setSubmitting(true);
     try {
       const shared = {
         modelName, firstName, lastName, email, phone, address, instagram, brands, style, motto, bio,
-        genderFocus, styleModelId, imageSource, ...(imageSource === "ours" && avatarFaceId ? { avatarFaceId } : {}), consent: agreed, consentText: "18+, photos are really me, accept model rules & terms",
+        genderFocus, styleModelId, imageSource, ...(imageSource === "ours" && avatarFaceId ? { avatarFaceId } : {}), consent: agreed, consentText: "18+, photos are really me, accept the Terms & Conditions",
         colors: colorChips.join(", "),
         fabrics: fabricChips.join(", "),
         occasions: occasionChips.join(", "),
@@ -659,7 +659,7 @@ export default function CuratorApplyPage() {
             <p className="mt-1.5 text-[13px] font-bold leading-relaxed text-slate-600">
               Never shown publicly — only our team sees it. We use it to notify you about fan
               chats &amp; try-ons and to verify you&rsquo;re a real person.{" "}
-              <a href="/model-rules" target="_blank" rel="noopener noreferrer" className="text-slate-900 underline underline-offset-2">See the rules</a>.
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-slate-900 underline underline-offset-2">See our terms</a>.
             </p>
           </div>
           <div><span className={label}>Instagram</span><input className={field} value={instagram} onChange={e => setInstagram(e.target.value)} placeholder="@handle" /></div>
@@ -718,7 +718,7 @@ export default function CuratorApplyPage() {
             className="mt-0.5 h-5 w-5 shrink-0 accent-amber-400" />
           <span className="text-[14px] font-bold leading-relaxed text-slate-800">
             I&apos;m <b className="text-slate-900">18 or older</b>, the photos are <b className="text-slate-900">really me</b>, and I accept the{" "}
-            <a href="/model-rules" target="_blank" rel="noopener noreferrer" className="text-slate-900 underline underline-offset-2">model rules &amp; terms</a>.
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-slate-900 underline underline-offset-2">Terms &amp; Conditions</a>.
             I understand every application is <b className="text-slate-900">manually verified</b> — fake or stolen photos are rejected.
           </span>
         </label>
