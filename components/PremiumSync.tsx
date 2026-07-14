@@ -70,6 +70,8 @@ export default function PremiumSync() {
           changed = true;
           // Funnel: a subscription just went active on this device → the completed conversion.
           try { const { logFunnelEvent } = await import("@/lib/track-funnel"); logFunnelEvent("subscribe_success", { lookName: "Premium" }); } catch { /**/ }
+          // Now that it's actually paid, reserve the applicant's influencer name (paid:false → true).
+          try { void fetch("/api/curator", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "confirm-paid", email }) }); } catch { /**/ }
           // Meta Pixel Purchase — the conversion ad campaigns optimize + measure ROAS against.
           // Fired once per device when the sub is first detected (guarded by lb_purchase_pixel).
           try {

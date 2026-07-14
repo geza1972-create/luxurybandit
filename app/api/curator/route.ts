@@ -86,7 +86,9 @@ export async function GET(request: Request) {
     const q = nrm(checkName);
     const excludeId = url.searchParams.get("excludeId") || "";
     if (!q) return NextResponse.json({ available: false, empty: true });
-    const taken = (state.curators ?? []).some(c => c.id !== excludeId && (c as any).modelName && nrm(String((c as any).modelName)) === q);
+    // A name is only "taken" by a curator that is NOT an unpaid application (paid !== false).
+    // Legacy/approved curators have no `paid` flag → they still reserve their name.
+    const taken = (state.curators ?? []).some(c => c.id !== excludeId && (c as any).paid !== false && (c as any).modelName && nrm(String((c as any).modelName)) === q);
     return NextResponse.json({ available: !taken });
   }
 
@@ -339,6 +341,23 @@ export async function POST(request: Request) {
     } catch { return jsonError("Could not send the email.", 502); }
   }
 
+  // Confirm a paid subscription → reserve the applicant's name (flip paid:false → true).
+  // Verified server-side against Stripe (never trust the client). Called after checkout.
+  if (action === "confirm-paid") {
+    const email = String((payload as any).email ?? "").trim().toLowerCase();
+    if (!email) return jsonError("email required.");
+    let active = false;
+    try { const { hasActiveSubscription } = await import("@/lib/stripe"); active = await hasActiveSubscription(email); } catch { /**/ }
+    if (!active) return NextResponse.json({ ok: true, paid: false });
+    const state = await readTryThisLookState();
+    let changed = false;
+    for (const c of state.curators ?? []) {
+      if ((c.email ?? "").trim().toLowerCase() === email && (c as any).paid === false) { (c as any).paid = true; changed = true; }
+    }
+    if (changed) await saveTryThisLookState(state);
+    return NextResponse.json({ ok: true, paid: true, confirmed: changed });
+  }
+
   if (action === "apply") {
     const firstName = String(payload.firstName ?? "").trim();
     const lastName = String(payload.lastName ?? "").trim();
@@ -416,6 +435,9 @@ export async function POST(request: Request) {
       // (Power button in the Models list) before they can sign in. This gates the
       // "Werde Model" ad traffic — no self-service accounts go live unchecked.
       status: "pending",
+      // Not paid yet — the name is NOT reserved until the subscription is confirmed
+      // (see `confirm-paid`). Unpaid applications never block a name for someone else.
+      paid: false,
       createdAt: new Date().toISOString(),
       // CONCEPT 2.0: which role model's style she emulates + where her face comes from
       // ("own" verified photos vs "ours" = platform images — never a third person's face).
@@ -434,7 +456,9 @@ export async function POST(request: Request) {
     const state = await readTryThisLookState();
     // Model names must be UNIQUE (public identity). If it's taken, she picks another.
     const nrmName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
-    if ((state.curators ?? []).some(c => (c as any).modelName && nrmName(String((c as any).modelName)) === nrmName(modelName))) {
+    // Only a PAID (or legacy/approved) curator reserves a name — not another pending, unpaid
+    // application. So filling the form never books the name before the subscription is paid.
+    if ((state.curators ?? []).some(c => (c as any).paid !== false && (c as any).modelName && nrmName(String((c as any).modelName)) === nrmName(modelName))) {
       return jsonError("That model name is already taken — please choose another.", 409);
     }
     const curators = [...(state.curators ?? []), curator];
