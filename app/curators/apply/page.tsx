@@ -183,6 +183,26 @@ export default function CuratorApplyPage() {
   const [editId, setEditId] = useState("");
   const [savedDone, setSavedDone] = useState<{ photo: string } | null>(null); // success confirmation
   const getPin = () => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } };
+  // Admin: re-crop a pool face to 3:4 and replace it (uses the existing replace-avatar-face action).
+  const [faceCropSrc, setFaceCropSrc] = useState("");
+  const [faceCropId, setFaceCropId] = useState("");
+  const [faceCropBusy, setFaceCropBusy] = useState(false);
+  const reloadFaces = () => fetch("/api/try-this-look?avatarFaces=1").then(r => r.json()).then((d: any) => setAvatarFaces(Array.isArray(d.faces) ? d.faces : [])).catch(() => {});
+  const startFaceCrop = async (imageUrl: string, id: string) => {
+    try {
+      const blob = await (await fetch(imageUrl)).blob();
+      const dataUrl = await new Promise<string>((resolve) => { const r = new FileReader(); r.onloadend = () => resolve(String(r.result)); r.readAsDataURL(blob); });
+      setFaceCropId(id); setFaceCropSrc(dataUrl); setFaceDialog(null);
+    } catch { /**/ }
+  };
+  const saveFaceCrop = async (dataUrl: string) => {
+    if (!faceCropId) return;
+    setFaceCropBusy(true);
+    try {
+      await fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json", "x-try-look-admin-pin": getPin() }, body: JSON.stringify({ action: "replace-avatar-face", faceId: faceCropId, image: dataUrl }) });
+    } catch { /**/ }
+    setFaceCropSrc(""); setFaceCropId(""); await reloadFaces(); setFaceCropBusy(false);
+  };
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("edit") || "";
     if (!id) return;
@@ -741,6 +761,11 @@ export default function CuratorApplyPage() {
         <PhotoCropper src={cropSrc} aspect="portrait" onCancel={() => setCropSrc("")}
           onDone={(dataUrl) => { setPhoto(dataUrl); setPhotoFull(cropSrc); setCropSrc(""); }} />
       )}
+      {/* Admin: re-crop a pool face → replace it (3:4). */}
+      {faceCropSrc && (
+        <PhotoCropper src={faceCropSrc} aspect="portrait" onCancel={() => { if (!faceCropBusy) { setFaceCropSrc(""); setFaceCropId(""); } }}
+          onDone={(dataUrl) => void saveFaceCrop(dataUrl)} />
+      )}
       {bodyCropSrc && (
         <PhotoCropper src={bodyCropSrc} aspect="portrait" onCancel={() => setBodyCropSrc("")}
           onDone={(dataUrl) => { setBodyPhotos([dataUrl]); setBodyCropSrc(""); }} />
@@ -778,11 +803,15 @@ export default function CuratorApplyPage() {
             )}
             <div className="p-4">
               <p className="text-[13px] font-bold text-slate-700">This becomes <b className="text-slate-900">your face</b> — we dress her in your style, always the same face.</p>
-              <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+              <div className="mt-3 flex gap-2">
                 <button type="button" onClick={() => { setAvatarFaceId(faceDialog.id); setFaceDialog(null); }}
-                  className={`bg-slate-800 text-white flex h-12 items-center justify-center gap-2 rounded-2xl text-sm font-black ${btn3d}`}>
+                  className={`bg-slate-800 text-white flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl text-sm font-black ${btn3d}`}>
                   {avatarFaceId === faceDialog.id ? "✓ This is my face" : "Use this face"}
                 </button>
+                {getPin() && (
+                  <button type="button" onClick={() => void startFaceCrop(faceDialog.imageUrl, faceDialog.id)}
+                    className="flex h-12 items-center justify-center rounded-2xl border-[1.5px] border-slate-400 px-3 text-sm font-black text-slate-800">✂️ Crop</button>
+                )}
                 <button type="button" onClick={() => setFaceDialog(null)}
                   className="flex h-12 items-center justify-center rounded-2xl border-[1.5px] border-slate-400 px-4 text-sm font-black text-slate-800">Close</button>
               </div>
