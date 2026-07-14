@@ -422,7 +422,7 @@ export default function AdminPage() {
   const vidFileRef = useRef<HTMLInputElement>(null);
 
   // AI-face library (creation-tool pool). Admin uploads faces (single or many at once);
-  // creators book a free one for $9.99. GET is public; add/delete are admin-gated.
+  // creators claim a free one with their subscription. GET is public; add/delete are admin-gated.
   const faceFileRef = useRef<HTMLInputElement>(null);
   const [faces, setFaces] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean }[]>([]);
   const [facesLoaded, setFacesLoaded] = useState(false);
@@ -1597,7 +1597,7 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-black text-ink">AI-face library <span className="text-ink/40">{faces.length}</span></p>
-                <p className="text-[12px] font-bold text-ink/45">Creators book a face for $9.99 — the video is included free. Green = available, Booked = taken.</p>
+                <p className="text-[12px] font-bold text-ink/45">Creators claim a face with their subscription. Green = available, Booked = taken.</p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <button type="button" onClick={() => { setFaceGenOpen(o => !o); setFaceErr(""); }}
@@ -1700,7 +1700,7 @@ export default function AdminPage() {
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
                       </button>
-                      <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[9px] font-black ${f.claimed ? "bg-black/70 text-white/70" : "bg-emerald-600 text-white"}`}>{f.claimed ? "Booked" : "$9.99"}</span>
+                      <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[9px] font-black ${f.claimed ? "bg-black/70 text-white/70" : "bg-emerald-600 text-white"}`}>{f.claimed ? "Booked" : "Free"}</span>
                       <button type="button" title={f.claimed ? "Booked — delete anyway" : "Delete face"}
                         onClick={() => armOrRun(`face-${f.id}`, () => void deleteFace(f.id, f.claimed))}
                         className={`absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full text-white ring-1 ring-white/30 transition ${confirmId === `face-${f.id}` ? "bg-red-600" : "bg-black/60"}`}>
@@ -2094,7 +2094,7 @@ export default function AdminPage() {
           <div className="flex w-full max-w-sm flex-col items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={bigFace.imageUrl} alt="" className="max-h-[68vh] w-auto rounded-2xl object-contain" />
-            <p className="mt-2 text-[12px] font-bold text-white/60">{bigFace.claimed ? "Booked by an influencer" : "Free — claimable for $9.99"}</p>
+            <p className="mt-2 text-[12px] font-bold text-white/60">{bigFace.claimed ? "Booked by an influencer" : "Free — available to claim"}</p>
             {faceErr && <p className="mt-1 text-[12px] font-bold text-red-400">{faceErr}</p>}
             {bigFace.videoUrl && (
               /* eslint-disable-next-line jsx-a11y/media-has-caption */
