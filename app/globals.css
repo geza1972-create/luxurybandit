@@ -25,10 +25,42 @@
 .lb-frame {
   width: 100%;
 }
-/* Desktop: the app renders FULL-WIDTH (no phone frame) per product decision 2026-07-13.
-   Every page flows to the full viewport width; fixed overlays (reels feed, bottom nav)
-   keep their authored `inset-x-0` full width. `.lb-frame` stays width:100% (base rule
-   above), and `.lb-phone-col` gets no override so it too spans the viewport. */
+@media (min-width: 900px) {
+  body {
+    background: #2a2a2e; /* desktop backdrop around the phone frame */
+  }
+  /* The app is mobile-only: on desktop it renders inside a centered phone-width column
+     (not stretched full-width — the pages are built for a narrow column). Most traffic
+     is mobile and a native app is planned, so this is the intended shape. */
+  .lb-frame {
+    width: 440px;
+    max-width: 100vw;
+    min-height: 100dvh;
+    margin: 0 auto;
+    background: #fbfaf7;
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.45);
+  }
+  /* EXCEPTION: the marketing landing is a real desktop page. When the frame contains
+     it, drop the phone column so it renders full-width and its lg: layout kicks in. */
+  .lb-frame:has(.lb-landing) {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  /* Full-bleed FIXED overlays (reels feed, bottom nav) are viewport-fixed, so they'd
+     span the whole desktop — center them into the same phone column instead. */
+  .lb-phone-col {
+    left: 50% !important;
+    right: auto !important;
+    width: 440px !important;
+    max-width: 100vw;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    transform: translateX(-50%) !important;
+  }
+}
 
 ::view-transition-group(*),
 ::view-transition-old(*),
