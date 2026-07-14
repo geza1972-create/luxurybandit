@@ -348,24 +348,24 @@ export async function POST(request: Request) {
     if (!email) return jsonError("email required.");
     let active = false;
     try { const { hasActiveSubscription } = await import("@/lib/stripe"); active = await hasActiveSubscription(email); } catch { /**/ }
-    if (!active) return NextResponse.json({ ok: true, paid: false });
+    if (!active) return NextResponse.json({ ok: true, paid: false, active: false });
     const state = await readTryThisLookState();
-    const nowPaid: any[] = [];
-    for (const c of state.curators ?? []) {
-      if ((c.email ?? "").trim().toLowerCase() === email && (c as any).paid === false) {
-        (c as any).paid = true; (c as any).onboardedAt = new Date().toISOString(); nowPaid.push(c);
-      }
+    const matches = (state.curators ?? []).filter(c => (c.email ?? "").trim().toLowerCase() === email);
+    const toOnboard: any[] = [];
+    let changed = false;
+    for (const c of matches) {
+      if ((c as any).paid !== true) { (c as any).paid = true; changed = true; }        // reserve the name
+      if (!(c as any).onboardedAt) { (c as any).onboardedAt = new Date().toISOString(); changed = true; toOnboard.push(c); } // email once
     }
-    if (nowPaid.length) {
-      await saveTryThisLookState(state);
-      // Auto-send the onboarding email (set-password link → dashboard) — once, on first payment.
-      const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://luxurybandit.com";
-      try {
-        const { sendOnboardingEmail } = await import("@/lib/onboarding-email");
-        for (const c of nowPaid) { await sendOnboardingEmail(c, origin).catch(() => {}); }
-      } catch { /**/ }
-    }
-    return NextResponse.json({ ok: true, paid: true, confirmed: nowPaid.length > 0 });
+    if (changed) await saveTryThisLookState(state);
+    // Auto-send the onboarding email (set-password link → dashboard) — once per curator.
+    const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://luxurybandit.com";
+    const sends: any[] = [];
+    try {
+      const { sendOnboardingEmail } = await import("@/lib/onboarding-email");
+      for (const c of toOnboard) { sends.push(await sendOnboardingEmail(c, origin).catch(e => ({ ok: false, error: String(e) }))); }
+    } catch (e) { sends.push({ ok: false, error: String(e) }); }
+    return NextResponse.json({ ok: true, paid: true, active: true, curators: matches.length, emailed: toOnboard.length, sends });
   }
 
   if (action === "apply") {
