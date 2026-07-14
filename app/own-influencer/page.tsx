@@ -59,7 +59,7 @@ export default async function OwnInfluencerLanding() {
 
   const NAV = [
     { label: "For Creators", href: "#creators" },
-    { label: "For Fans", href: "#fans" },
+    { label: "Who Owns Her", href: "#fans" },
     { label: "Marketplace", href: "/stores?view=grid" },
     { label: "Pricing", href: "#pricing" },
     { label: "How It Works", href: "#how" },
@@ -176,26 +176,14 @@ export default async function OwnInfluencerLanding() {
               Learn more for creators
             </Link>
           </div>
-          {/* Fans */}
+          {/* Who owns her? — one-of-a-kind influencers, claim before taken */}
           <div id="fans" className="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">For Fans</p>
-            <h2 className="mt-2 text-[26px] font-black leading-tight">Discover. Follow.<br />Connect.</h2>
-            <ul className="mt-5 space-y-2.5">
-              {FAN_POINTS.map(p => (
-                <li key={p} className="flex items-start gap-2.5 text-[14px] font-semibold text-white/80">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> {p}
-                </li>
-              ))}
-            </ul>
-            {models.length >= 4 && (
-              <div className="mt-6 border-t border-white/10 pt-5">
-                <p className="text-[14px] font-black text-white">Own a unique AI influencer</p>
-                <p className="mt-1 text-[12px] font-semibold leading-relaxed text-white/60">
-                  Every one is one-of-a-kind. These are <span className="font-black text-emerald-400">still free</span> — buy now and claim her before someone else does.
-                </p>
-                <BuyModelGrid models={models.slice(0, 6)} />
-              </div>
-            )}
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">The AI Influencer Marketplace</p>
+            <h2 className="mt-2 text-[30px] font-black uppercase leading-none tracking-tight">Who owns her?</h2>
+            <p className="mt-3 text-[14px] font-semibold leading-relaxed text-white/70">
+              Every AI influencer is one-of-a-kind — and only <span className="font-black text-white">one person</span> can own her: her daily content, her chats, her whole audience. These are <span className="font-black text-emerald-400">still free</span>. Claim one before someone else does.
+            </p>
+            {models.length >= 4 && <BuyModelGrid models={models.slice(0, 6)} />}
           </div>
         </div>
       </section>

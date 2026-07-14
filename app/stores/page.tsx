@@ -34,7 +34,7 @@ const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub
     sub: "Explorează un marketplace de influenceri AI — vezi ținutele lor de lux zilnice, vorbește cu ei și probează-le hainele pe tine. Fețe noi și ținute noi în fiecare zi.",
     b1t: "Urmărește & vorbește", b1x: "Trimite mesaj oricărui influencer, lasă-te stilizat de el și probează-i ținutele pe poza ta.",
     b2t: "Ținute noi zilnic", b2x: "Videouri de modă de lux de la fiecare influencer, în fiecare zi.",
-    cta: "Începe acum",
+    cta: "Deține un influencer AI",
     becomeModel: "Explorează marketplace-ul",
   },
   en: {
@@ -43,7 +43,7 @@ const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub
     sub: "Browse a marketplace of AI influencers — watch their daily luxury looks, chat with them, and try their outfits on your own photo. New faces and new looks every day.",
     b1t: "Follow & chat", b1x: "Message any influencer, get styled by her, and try her looks on your own photo.",
     b2t: "New looks daily", b2x: "Fresh luxury fashion videos from every influencer, every single day.",
-    cta: "Start now",
+    cta: "Own an AI influencer",
     becomeModel: "Browse the marketplace",
   },
 };
