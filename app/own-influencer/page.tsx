@@ -301,14 +301,6 @@ export default async function OwnInfluencerLanding() {
         </div>
       </section>
 
-      {/* ── Footer CTA ── */}
-      <section className="border-b border-white/10 bg-white/[0.02]">
-        <div className="mx-auto max-w-3xl px-4 py-14 text-center">
-          <h2 className="text-[30px] font-black leading-tight">Own an AI Influencer.<br /><span className="text-amber-400">We&apos;ll help her grow.</span></h2>
-          <div className="mx-auto mt-6 max-w-md"><OwnInfluencerCTA /></div>
-        </div>
-      </section>
-
       {/* ── Footer ── */}
       <footer className="mx-auto max-w-6xl px-4 py-10">
         <div className="flex flex-col items-center gap-3 text-center">
