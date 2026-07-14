@@ -4,6 +4,7 @@ import { readTryThisLookState } from "@/lib/try-this-look-store";
 import TrackView from "@/components/TrackView";
 import LazyVideo from "@/components/LazyVideo";
 import OwnInfluencerCTA from "@/components/OwnInfluencerCTA";
+import AboutVideoPicker from "@/components/AboutVideoPicker";
 
 export const metadata = {
   title: "LuxuryBandit — Own an AI Influencer. We'll help her grow.",
@@ -27,12 +28,13 @@ async function landingData() {
     const state = await readTryThisLookState();
     const curators = state.curators ?? [];
     const gina = curators.find(c => c.firstName === "Gina" && c.lastName === "Popescu") as { id?: string; photoUrl?: string } | undefined;
-    const clips = gina
-      ? (state.generations ?? [])
-          .filter(g => (g as { curatorId?: string }).curatorId === gina.id && (g as { videoUrl?: string }).videoUrl && (g as { public?: boolean }).public === true && !(g as { hidden?: boolean }).hidden)
-          .slice(0, 4)
-          .map(g => ({ poster: ((g as { imageUrl?: string }).imageUrl ?? "") as string, video: (g as { videoUrl?: string }).videoUrl as string }))
-      : [];
+    const vids = (state.generations ?? []).filter(g => (g as { videoUrl?: string }).videoUrl && !(g as { hidden?: boolean }).hidden);
+    const pick = (g: unknown) => ({ poster: ((g as { imageUrl?: string }).imageUrl ?? "") as string, video: (g as { videoUrl?: string }).videoUrl as string });
+    // Admin-picked showcase clips lead (chosen via the on-page picker → `showcase` flag);
+    // fall back to Gina's public clips so the section is never empty.
+    const showcaseClips = vids.filter(g => (g as { showcase?: boolean }).showcase === true).slice(0, 6).map(pick);
+    const ginaClips = gina ? vids.filter(g => (g as { curatorId?: string }).curatorId === gina.id && (g as { public?: boolean }).public === true).slice(0, 4).map(pick) : [];
+    const clips = showcaseClips.length ? showcaseClips : ginaClips;
     const models = curators
       .filter(c => (c as { photoUrl?: string }).photoUrl && String((c as { status?: string }).status ?? "active") === "active" && !(c as { hidden?: boolean }).hidden)
       .slice(0, 6)
@@ -157,6 +159,8 @@ export default async function OwnInfluencerLanding() {
                 ))}
               </div>
             )}
+            {/* Admin: pick which videos show here (shared `showcase` flag). Self-hides for everyone else. */}
+            <AboutVideoPicker />
             <Link href="#launch" className="mt-6 inline-flex rounded-full border border-white/20 px-5 py-2.5 text-[13px] font-black text-white transition hover:border-amber-400 hover:text-amber-400">
               Learn more for creators
             </Link>
