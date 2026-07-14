@@ -20,14 +20,16 @@
   animation: lb-loadbar 1.1s ease-in-out infinite;
 }
 
-/* Mobile-only app shown on desktop: center it in a phone-width frame.
-   On phones (<900px) the frame is a no-op (full width, no transform). */
+/* Mobile-only app: it renders in a centered phone-width column at ANY non-phone
+   width. Below 480px (real phones) the frame is a no-op (full width). Above it —
+   tablets, split windows, desktop — it stays a 440px mobile column so pages are
+   never stretched wider than mobile. */
 .lb-frame {
   width: 100%;
 }
-@media (min-width: 900px) {
+@media (min-width: 480px) {
   body {
-    background: #2a2a2e; /* desktop backdrop around the phone frame */
+    background: #2a2a2e; /* backdrop around the phone frame */
   }
   /* The app is mobile-only: on desktop it renders inside a centered phone-width column
      (not stretched full-width — the pages are built for a narrow column). Most traffic
