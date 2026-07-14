@@ -416,11 +416,14 @@ export default function CuratorApplyPage() {
       // TESTING: /curators/apply?promo=1 skips the auto-coupon so the Stripe promo-code field
       // shows → enter a 100% code to test the subscription free. Normal flow is unchanged.
       const allowPromo = (() => { try { return new URLSearchParams(window.location.search).get("promo") === "1"; } catch { return false; } })();
+      // The buyer isn't logged in yet — stash the email so the /welcome page can confirm the
+      // payment (confirm-paid → reserve name + auto-send the onboarding/login email).
+      try { localStorage.setItem("lb_signup_email", email.trim().toLowerCase()); } catch { /**/ }
       try {
         const pr = await fetch("/api/premium", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          // Success → landing (confirmation). Back/cancel → THIS form, so the session isn't lost.
-          body: JSON.stringify({ email: email.trim(), returnPath: "/own-influencer", cancelPath: window.location.pathname, ...(allowPromo ? { allowPromo: true } : {}) }),
+          // Success → dedicated welcome page (NOT the landing). Back/cancel → THIS form, session kept.
+          body: JSON.stringify({ email: email.trim(), returnPath: "/welcome", cancelPath: window.location.pathname, ...(allowPromo ? { allowPromo: true } : {}) }),
         }).then(x => x.json()).catch(() => null);
         // Keep the draft through the Stripe round-trip: if the user hits "back"/cancel
         // they return to this form and the draft repopulates it. Cleared only on success.
