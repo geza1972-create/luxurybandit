@@ -411,11 +411,14 @@ export default function CuratorApplyPage() {
       // One package purchase at the end: start the $8-first-month subscription now.
       // The auto first-month coupon is applied for EVERYONE (incl. admins) so the checkout
       // always shows "$8 first month" — that's the buy trigger. (No promo-code field then.)
+      // TESTING: /curators/apply?promo=1 skips the auto-coupon so the Stripe promo-code field
+      // shows → enter a 100% code to test the subscription free. Normal flow is unchanged.
+      const allowPromo = (() => { try { return new URLSearchParams(window.location.search).get("promo") === "1"; } catch { return false; } })();
       try {
         const pr = await fetch("/api/premium", {
           method: "POST", headers: { "Content-Type": "application/json" },
           // Success → landing (confirmation). Back/cancel → THIS form, so the session isn't lost.
-          body: JSON.stringify({ email: email.trim(), returnPath: "/own-influencer", cancelPath: window.location.pathname }),
+          body: JSON.stringify({ email: email.trim(), returnPath: "/own-influencer", cancelPath: window.location.pathname, ...(allowPromo ? { allowPromo: true } : {}) }),
         }).then(x => x.json()).catch(() => null);
         // Keep the draft through the Stripe round-trip: if the user hits "back"/cancel
         // they return to this form and the draft repopulates it. Cleared only on success.
