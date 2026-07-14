@@ -1788,7 +1788,7 @@ function StoresPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   // Landing hero language: URL ?lang (shareable) + localStorage (persists across navigation).
-  const [heroLang, setHeroLang] = useState<"ro" | "en">(searchParams.get("lang") === "en" ? "en" : "ro");
+  const [heroLang, setHeroLang] = useState<"ro" | "en">(searchParams.get("lang") === "ro" ? "ro" : "en");
   const setHeroLangUrl = (l: "ro" | "en") => {
     setHeroLang(l);
     try { localStorage.setItem("lb_lang", l); } catch { /**/ }
@@ -2627,7 +2627,7 @@ function StoresPage() {
             className={`flex h-9 w-9 items-center justify-center rounded-full border transition ${
               searchOpen ? "border-white bg-white text-black" : "border-white/15 bg-white/5 text-white/60 hover:text-white"
             }`}
-            aria-label="Suche">
+            aria-label="Search">
             <Search className="h-4 w-4" />
           </button>
           {/* Share the current view (URL already reflects ?view=models etc.) */}
@@ -2659,7 +2659,7 @@ function StoresPage() {
               type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder={typeFilter === "community" ? "User, Look oder Store…" : "Look, Store oder Preis…"}
+              placeholder={typeFilter === "community" ? "User, look or store…" : "Look, store or price…"}
               className="h-9 w-full rounded-full border border-white/15 bg-white/5 pl-8 pr-8 text-sm font-bold text-white outline-none focus:border-white/40 placeholder:text-white/25"
             />
             {query && (
@@ -2792,7 +2792,7 @@ function StoresPage() {
                   {isAdmin && (
                     <button type="button" onClick={() => { setModelSelect(v => !v); setModelSelected(new Set()); }}
                       className={`ml-auto shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-black transition ${modelSelect ? "border-amber-400 bg-amber-400 text-black" : "border-white/20 bg-white/5 text-white/70"}`}>
-                      {modelSelect ? "Fertig" : "Auswählen"}
+                      {modelSelect ? "Done" : "Select"}
                     </button>
                   )}
                 </div>
@@ -2972,7 +2972,7 @@ function StoresPage() {
                 <button type="button"
                   onClick={() => { setTierSelect(v => !v); setTierSelected(new Set()); }}
                   className={`ml-auto shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-black transition ${tierSelect ? "border-amber-400 bg-amber-400 text-black" : "border-white/20 bg-white/5 text-white/70"}`}>
-                  {tierSelect ? "Fertig" : "Auswählen"}
+                  {tierSelect ? "Done" : "Select"}
                 </button>
               )}
             </div>

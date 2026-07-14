@@ -206,12 +206,12 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
         Exit restores the admin (clears her session + the preview flag). */}
     {previewModel && (
       <div className="lb-phone-col fixed inset-x-0 top-0 z-[200] flex items-center justify-center gap-2 bg-amber-400 px-3 py-2 text-[12px] font-black text-black">
-        <Eye className="h-4 w-4" /> Ansicht als Model{previewName ? `: ${previewName}` : ""}
+        <Eye className="h-4 w-4" /> Viewing as model{previewName ? `: ${previewName}` : ""}
         <button type="button" onClick={() => {
           try { localStorage.removeItem("lb_curator"); localStorage.removeItem("lb_preview_model"); } catch { /**/ }
           window.location.reload();
         }} className="ml-2 rounded-full bg-black px-3 py-1 text-[11px] font-black text-amber-400 active:scale-95 transition">
-          Beenden
+          Exit
         </button>
       </div>
     )}

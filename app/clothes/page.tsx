@@ -61,7 +61,7 @@ export default function HainePage() {
 
       <main className="mx-auto max-w-md px-4 pb-24 pt-2">
         <p className="mb-1 mt-3 text-center text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Clothes</p>
-        <p className="mb-5 text-center text-[13px] font-semibold text-white/45">Haine & piese de lux — colecția noastră și Bellucci</p>
+        <p className="mb-5 text-center text-[13px] font-semibold text-white/45">Clothes & luxury pieces — our collection and Bellucci</p>
 
         {loading ? (
           <div className="flex justify-center py-20">
@@ -73,7 +73,7 @@ export default function HainePage() {
           <>
             {bellucci.length > 0 && (
               <section className="mb-7">
-                <p className="mb-2.5 px-0.5 text-[12px] font-black uppercase tracking-wide text-[#b8912f]">Bellucci · lenjerie de lux</p>
+                <p className="mb-2.5 px-0.5 text-[12px] font-black uppercase tracking-wide text-[#b8912f]">Bellucci · luxury lingerie</p>
                 <div className="grid grid-cols-2 gap-3">
                   {bellucci.map((p, i) => <Card key={`b${i}`} p={p} />)}
                 </div>
@@ -81,7 +81,7 @@ export default function HainePage() {
             )}
             {own.length > 0 && (
               <section className="mb-7">
-                <p className="mb-2.5 px-0.5 text-[12px] font-black uppercase tracking-wide text-[#b8912f]">Din colecția LuxuryBandit</p>
+                <p className="mb-2.5 px-0.5 text-[12px] font-black uppercase tracking-wide text-[#b8912f]">From the LuxuryBandit collection</p>
                 <div className="grid grid-cols-2 gap-3">
                   {own.map((p, i) => <Card key={`o${i}`} p={p} internal />)}
                 </div>

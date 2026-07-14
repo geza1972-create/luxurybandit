@@ -503,8 +503,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [modBusy, setModBusy] = useState<"" | "hide" | "delete" | "assign" | "approve" | "reject">("");
   const [assignOpen, setAssignOpen] = useState(false);
   const [curatorList, setCuratorList] = useState<{ id: string; name: string; photoUrl?: string }[]>([]);
-  const [feedLang, setFeedLang] = useState<"ro" | "en">("ro"); // for the funnel CTA label
-  useEffect(() => { try { setFeedLang(localStorage.getItem("lb_lang") === "en" ? "en" : "ro"); } catch { /**/ } }, []);
+  const [feedLang, setFeedLang] = useState<"ro" | "en">("en"); // for the funnel CTA label
+  useEffect(() => { try { setFeedLang(localStorage.getItem("lb_lang") === "ro" ? "ro" : "en"); } catch { /**/ } }, []);
   const adminPinVal = () => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } };
   const modHeaders = () => ({ "Content-Type": "application/json", ...(adminPinVal() ? { "x-try-look-admin-pin": adminPinVal() } : {}) });
   // The generation id of the try-on on the CURRENT slide (if any). When set, the admin
@@ -1079,7 +1079,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 e.stopPropagation();
                 // Open HER price-finder chat (her photo + her looks), same as her profile.
                 // Falls back to a look reference if this video has no model attached.
-                const lg = (() => { try { return localStorage.getItem("lb_lang") === "en" ? "en" : "ro"; } catch { return "ro"; } })();
+                const lg = (() => { try { return localStorage.getItem("lb_lang") === "ro" ? "ro" : "en"; } catch { return "en"; } })();
                 if (authorCuratorId) { router.push(`/luxury-products?model=${encodeURIComponent(authorCuratorId)}&lang=${lg}`); return; }
                 const L = look as { name?: string; frontImageUrl?: string; imageUrl?: string; videoPosterUrl?: string };
                 const m = media[active] as { poster?: string; url?: string; afterUrl?: string } | undefined;
