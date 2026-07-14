@@ -46,12 +46,21 @@ async function landingData() {
       const video = face.videoPath ? await getSignedUrl(face.videoPath).catch(() => "") : (face.videoUrl || "");
       return { name: "", photo, video, poster: photo, createdAt: face.createdAt || "" };
     }));
-    // Wardrobe excerpt = the admin-managed outfit gallery (the clothes we dress her in).
-    // Proof of "we add new clothes every day". Sign the storage paths, drop any that fail.
-    const outfits = (state.outfits ?? []).filter(o => o.imagePath || o.imageUrl).slice(0, 12);
-    const wardrobe = (await Promise.all(outfits.map(async o =>
-      o.imagePath ? await getSignedUrl(o.imagePath).catch(() => o.imageUrl || "") : (o.imageUrl || "")
-    ))).filter(Boolean);
+    // Wardrobe excerpt = real garment imagery, so the box always shows clothes.
+    // Priority: admin wardrobe outfits → look garment shots → look gallery → the
+    // model wearing the look → video posters. Everything from `looks` is already
+    // signed by hydrateState; only the outfit storage paths need signing here.
+    const outfitImgs = await Promise.all(
+      (state.outfits ?? []).filter(o => o.imagePath || o.imageUrl).slice(0, 12)
+        .map(async o => (o.imagePath ? await getSignedUrl(o.imagePath).catch(() => o.imageUrl || "") : (o.imageUrl || "")))
+    );
+    const lookImgs = (state.looks ?? []).flatMap(l => {
+      const L = l as { garmentFrontImageUrl?: string; frontImageUrl?: string; imageUrl?: string; galleryImageUrls?: string[] };
+      return [L.garmentFrontImageUrl, ...(L.galleryImageUrls ?? []), L.frontImageUrl, L.imageUrl];
+    });
+    const clipPosters = clips.map(c => c.poster);
+    const wardrobe = [...new Set([...outfitImgs, ...lookImgs, ...clipPosters].filter(Boolean))]
+      .filter(u => !/\.svg($|\?)|test-look/.test(u)).slice(0, 9);
     return { heroPhoto: (gina?.photoUrl ?? "") as string, clips, models, wardrobe };
   } catch { return { heroPhoto: "", clips: [] as { poster: string; video: string }[], models: [] as { name: string; photo: string }[], wardrobe: [] as string[] }; }
 }
@@ -212,7 +221,7 @@ export default async function OwnInfluencerLanding() {
                 </li>
               ))}
             </ul>
-            {wardrobe.length >= 3 && (
+            {wardrobe.length >= 1 && (
               <>
                 <p className="mt-6 text-[11px] font-black uppercase tracking-[0.18em] text-white/45">A peek at the wardrobe</p>
                 <div className="mt-2 flex snap-x gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
