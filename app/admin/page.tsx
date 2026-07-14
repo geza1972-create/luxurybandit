@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus, Video, BarChart3, Eye, MousePointerClick, Check, ImagePlus, Crop } from "lucide-react";
+import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus, Video, BarChart3, Eye, MousePointerClick, Check, ImagePlus, Crop, Moon, Sun } from "lucide-react";
 import { readPhotoFile, PhotoCropper } from "../curators/taste-form";
 import { signInWithPassword, getStoredAuthSession, saveAuthSession, signOut, resetPassword } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -86,6 +86,13 @@ export default function AdminPage() {
   const [gateMode, setGateMode] = useState<"login" | "pin">("login");
   const [note, setNote] = useState("");
   const [authed, setAuthed] = useState(false);
+  // Dark view for the admin dashboard (persisted). Defaults ON — the bright white
+  // panels are hard on the eyes for a tool you stare at all day.
+  const [dark, setDark] = useState(true);
+  useEffect(() => {
+    try { setDark(localStorage.getItem("lb-admin-dark") !== "0"); } catch { /**/ }
+  }, []);
+  const toggleDark = () => setDark(d => { const next = !d; try { localStorage.setItem("lb-admin-dark", next ? "1" : "0"); } catch { /**/ } return next; });
   // Deep-linkable tab: /admin?tab=curators opens the Models list directly.
   const [tab, setTab] = useState<"looks" | "curators" | "users" | "inbox" | "posts" | "insights" | "chats">(() => {
     if (typeof window !== "undefined") {
@@ -1144,7 +1151,7 @@ export default function AdminPage() {
 
   if (!authed) {
     return (
-      <main className="min-h-screen grid place-items-center bg-[#fbfaf7] px-4 text-ink">
+      <main className={`lb-admin ${dark ? "lb-dark" : ""} min-h-screen grid place-items-center bg-[#fbfaf7] px-4 text-ink`}>
         <div className="w-full max-w-sm rounded-2xl border border-black/10 bg-white p-6 shadow-soft">
           <div className="text-xs font-black uppercase tracking-[0.18em] text-cobalt">LuxuryBandit</div>
           <h1 className="mt-1 text-2xl font-black">Admin</h1>
@@ -1188,7 +1195,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="lb-admin min-h-screen w-full overflow-x-hidden bg-[#fbfaf7] px-4 py-5 text-ink lg:px-10">
+    <main className={`lb-admin ${dark ? "lb-dark" : ""} min-h-screen w-full overflow-x-hidden bg-[#fbfaf7] px-4 py-5 text-ink lg:px-10`}>
       <div className="mx-auto w-full max-w-3xl lg:max-w-6xl xl:max-w-[1600px]">
         <header className="flex items-center justify-between gap-3">
           <div>
@@ -1196,6 +1203,9 @@ export default function AdminPage() {
             <h1 className="text-3xl font-black leading-none">Admin</h1>
           </div>
           <div className="flex items-center gap-2">
+            <button type="button" onClick={toggleDark} title={dark ? "Switch to light" : "Switch to dark"} className="grid h-10 w-10 place-items-center rounded-xl border border-black/10 bg-white active:scale-95 transition">
+              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
             <a href="/admin/trends" className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-black/10 bg-white px-3 text-xs font-black text-ink active:scale-95 transition">
               Studio <ExternalLink className="h-3.5 w-3.5" />
             </a>

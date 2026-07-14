@@ -223,3 +223,46 @@ svg {
   /* the user's own chat bubble is bg-white / text-black — invert it for contrast on a light page */
   .lb-theme .lb-userbubble { background-color: #1a160f !important; color: #ffffff !important; }
 }
+
+/* ── Admin DARK view ─────────────────────────────────────────────────────────
+   The admin dashboard is authored in bright light utilities (bg-white cards,
+   text-ink). Staring at that all day hurts. `.lb-dark` (toggled in the header,
+   persisted) remaps the common utilities to a dark palette WITHOUT rewriting
+   every element. Scoped to `.lb-admin.lb-dark` so nothing else is affected.
+   Filled black buttons/tabs are LEFT black (white text stays readable on dark),
+   and colour accents (emerald/amber/red/violet) are kept — only their bright
+   -50/-100 tint backgrounds are dimmed so they don't glare. */
+.lb-admin.lb-dark { background: #131316 !important; color: #e7e7ea; color-scheme: dark; }
+
+/* Card / panel / input surfaces (bg-white) → dark card */
+.lb-dark [class~="bg-white"],
+.lb-dark [class*="bg-white/9"] { background-color: #1d1d21 !important; }
+
+/* Subtle light overlays (bg-black/5, /8, /10 and arbitrary bg-black/[0.0x]) → faint light */
+.lb-dark [class~="bg-black/5"],
+.lb-dark [class~="bg-black/8"],
+.lb-dark [class~="bg-black/10"],
+.lb-dark [class*="bg-black/[0.0"] { background-color: rgba(255, 255, 255, 0.055) !important; }
+
+/* Text: exact text-ink → bright; muted text-ink/xx → dimmer light (keeps hierarchy) */
+.lb-dark [class~="text-ink"] { color: #e7e7ea !important; }
+.lb-dark [class*="text-ink/"] { color: rgba(231, 231, 235, 0.56) !important; }
+
+/* Borders & rings from black → faint light */
+.lb-dark [class*="border-black/"] { border-color: rgba(255, 255, 255, 0.12) !important; }
+.lb-dark [class*="ring-black/"] { --tw-ring-color: rgba(255, 255, 255, 0.16) !important; }
+.lb-dark [class*="divide-black/"] > * { border-color: rgba(255, 255, 255, 0.10) !important; }
+
+/* Bright status tints (-50/-100) → dim translucent version of the same hue */
+.lb-dark [class~="bg-amber-50"], .lb-dark [class~="bg-amber-100"] { background-color: rgba(245, 158, 11, 0.15) !important; }
+.lb-dark [class~="bg-emerald-50"], .lb-dark [class~="bg-emerald-100"] { background-color: rgba(16, 185, 129, 0.15) !important; }
+.lb-dark [class~="bg-red-50"], .lb-dark [class~="bg-red-100"] { background-color: rgba(244, 63, 94, 0.15) !important; }
+.lb-dark [class~="bg-blue-100"], .lb-dark [class~="bg-indigo-50"] { background-color: rgba(59, 130, 246, 0.15) !important; }
+/* …and bump their darkest text a shade lighter so it reads on the dark tint */
+.lb-dark [class~="text-amber-700"], .lb-dark [class~="text-amber-800"] { color: #fcd34d !important; }
+.lb-dark [class~="text-emerald-700"], .lb-dark [class~="text-emerald-800"] { color: #6ee7b7 !important; }
+.lb-dark [class~="text-red-700"], .lb-dark [class~="text-red-800"] { color: #fca5a5 !important; }
+
+/* Inputs: placeholder + caret readable on dark */
+.lb-dark input, .lb-dark textarea, .lb-dark select { color: #e7e7ea; caret-color: #e7e7ea; }
+.lb-dark input::placeholder, .lb-dark textarea::placeholder { color: rgba(231, 231, 235, 0.4); }
