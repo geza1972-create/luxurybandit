@@ -168,7 +168,11 @@ export default function ModelChat({
   const [passUntil, setPassUntil] = useState(0); // epoch ms the active pass runs until (0 = none)
   const [buyingPass, setBuyingPass] = useState(false);
   useEffect(() => {
-    try { const t = Number(localStorage.getItem(`lb_chatpass_${curatorId}`) || 0); setPassUntil(t > Date.now() ? t : 0); } catch { /**/ }
+    const read = () => { try { const t = Number(localStorage.getItem(`lb_chatpass_${curatorId}`) || 0); if (t > Date.now()) setPassUntil(t); } catch { /**/ } };
+    read();
+    // Fired by the chat page after it verifies a returned $3.99 payment → pick the pass up live.
+    window.addEventListener("lb-chatpass", read);
+    return () => window.removeEventListener("lb-chatpass", read);
   }, [curatorId]);
   useEffect(() => {
     if (!passUntil) return;
@@ -192,7 +196,8 @@ export default function ModelChat({
     if (buyingPass) return;
     setBuyingPass(true);
     try {
-      const r = await fetch("/api/chat-pass-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ curatorId }) }).then(x => x.json()).catch(() => null);
+      const returnPath = typeof window !== "undefined" ? window.location.pathname : "/";
+      const r = await fetch("/api/chat-pass-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ curatorId, returnPath }) }).then(x => x.json()).catch(() => null);
       if (!r?.url || !r?.sessionId) { onBuyPass ? onBuyPass() : onNeedPremium(); setBuyingPass(false); return; }
       const popup = window.open(r.url, "lb-chatpass", "width=460,height=760");
       const started = Date.now();

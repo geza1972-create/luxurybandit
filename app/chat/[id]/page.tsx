@@ -19,14 +19,41 @@ export default function ChatPage() {
   const [notFound, setNotFound] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showSubscribe, setShowSubscribe] = useState(false);
+  const [isOwn, setIsOwn] = useState(false);
 
   useEffect(() => {
     try { setIsSubscribed(!!localStorage.getItem("luxurybandit-try-look-admin-pin") || localStorage.getItem("lb_subscribed") === "1"); } catch { /**/ }
+    try { setIsOwn(JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id === id); } catch { /**/ }
     if (!id) return;
     fetch(`/api/curator?profile=${encodeURIComponent(id)}`)
       .then(r => r.json())
       .then(d => { if (d?.profile) setProfile(d.profile as Profile); else setNotFound(true); })
       .catch(() => setNotFound(true));
+  }, [id]);
+
+  // Returned from the $3.99 Stripe pass (full-page redirect fallback, e.g. popup-blocked
+  // mobile): verify the payment, activate the 30-min pass, and stay right here in the chat.
+  useEffect(() => {
+    let sp: URLSearchParams;
+    try { sp = new URLSearchParams(window.location.search); } catch { return; }
+    const paidCurator = sp.get("chatpaid");
+    const cs = sp.get("cs");
+    if (!paidCurator || !cs) return;
+    (async () => {
+      try {
+        const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(cs)}`).then(r => r.json()).catch(() => ({}));
+        if (st?.paid) {
+          const cid = String(st.chatPassCuratorId || paidCurator);
+          try { localStorage.setItem(`lb_chatpass_${cid}`, String(Date.now() + 30 * 60 * 1000)); } catch { /**/ }
+          try { window.dispatchEvent(new Event("lb-chatpass")); } catch { /**/ }
+        }
+      } catch { /**/ }
+      try {
+        const url = new URL(window.location.href);
+        ["chatpaid", "cs", "chatcancelled"].forEach(k => url.searchParams.delete(k));
+        window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+      } catch { /**/ }
+    })();
   }, [id]);
 
   const back = () => { if (typeof window !== "undefined" && window.history.length > 1) router.back(); else router.push("/stores"); };
@@ -56,6 +83,7 @@ export default function ChatPage() {
         style={profile.style ?? ""}
         avatarUrl={profile.photoUrl ?? ""}
         isPaid={isSubscribed}
+        isOwn={isOwn}
         onNeedPremium={() => setShowSubscribe(true)}
       />
       <SubscribeDialog open={showSubscribe} onClose={() => setShowSubscribe(false)} />

@@ -91,20 +91,25 @@ export async function createTryonCheckout(opts: {
 // One-time credit-pack checkout (the $8 → 4 videos pack). Ties the buyer's email so
 // checkout-status can grant the credits on return.
 export async function createPackCheckout(opts: {
-  amount: number;          // minor units (cents)
-  currency: string;
-  productName: string;
+  priceId?: string;        // a Stripe Price id — preferred; overrides amount/currency/productName
+  amount?: number;         // minor units (cents) — used only when priceId is not given
+  currency?: string;
+  productName?: string;
   email?: string;
+  clientReferenceId?: string;
   successUrl: string;
   cancelUrl: string;
   metadata: Record<string, string>;
 }): Promise<{ id: string; url: string }> {
+  const line_items = opts.priceId
+    ? [{ price: opts.priceId, quantity: 1 }]
+    : [{ quantity: 1, price_data: { currency: opts.currency ?? "usd", unit_amount: opts.amount ?? 0, product_data: { name: opts.productName ?? "LuxuryBandit" } } }];
   const session = await stripeRequest("POST", "/checkout/sessions", {
     mode: "payment",
     success_url: opts.successUrl,
     cancel_url: opts.cancelUrl,
-    ...(opts.email ? { customer_email: opts.email, client_reference_id: opts.email } : {}),
-    line_items: [{ quantity: 1, price_data: { currency: opts.currency, unit_amount: opts.amount, product_data: { name: opts.productName } } }],
+    ...(opts.email ? { customer_email: opts.email, client_reference_id: opts.email } : (opts.clientReferenceId ? { client_reference_id: opts.clientReferenceId } : {})),
+    line_items,
     allow_promotion_codes: true,
     metadata: opts.metadata,
     payment_intent_data: { metadata: opts.metadata },
