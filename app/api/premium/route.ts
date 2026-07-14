@@ -8,12 +8,15 @@ export const dynamic = "force-dynamic";
 
 // The Premium monthly price. Override with STRIPE_PREMIUM_PRICE_ID on Vercel to
 // swap the plan/price without a code change.
-const PRICE_ID = process.env.STRIPE_PREMIUM_PRICE_ID?.trim() || "price_1TqvRE1jPNCWoiztVkIaOg7x";
+// ⚠️ TEMP TEST ($1/mo): REVERT to "price_1TqvRE1jPNCWoiztVkIaOg7x" (the real $49/mo) after testing.
+const PRICE_ID = process.env.STRIPE_PREMIUM_PRICE_ID?.trim() || "price_1Tt7lD1jPNCWoiztw8I4yfZH";
 // The $9.99/mo "own an AI influencer" Starter plan. Override via STRIPE_STARTER_PRICE_ID.
 const STARTER_PRICE_ID = process.env.STRIPE_STARTER_PRICE_ID?.trim() || "price_1Tsoio1jPNCWoizthtENtj9d";
 // First-month discount coupon ("Erster Monat Rabatt" — $41 off once → $8 first month).
 // Auto-applied at checkout. Override via env to swap the promo without a code change.
-const FIRST_MONTH_COUPON = process.env.STRIPE_PREMIUM_FIRST_MONTH_COUPON?.trim() || "CjOJYKVV";
+// ⚠️ TEMP TEST: emptied so the $1 test price is charged in full (a $41 coupon would zero it out).
+//    REVERT to "CjOJYKVV" together with the $49 price above after testing.
+const FIRST_MONTH_COUPON = process.env.STRIPE_PREMIUM_FIRST_MONTH_COUPON?.trim() || "";
 
 // GET /api/premium?email=…  → { premium, credits? }  (queries Stripe live)
 // Subscribers also get their monthly video-credit allowance topped up here (idempotent per
