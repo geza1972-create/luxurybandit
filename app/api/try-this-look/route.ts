@@ -455,6 +455,8 @@ export async function GET(request: Request) {
         imageUrl: f.imagePath ? await getSignedUrl(f.imagePath).catch(() => "") : (f.imageUrl ?? ""),
         videoUrl: f.videoPath ? await getSignedUrl(f.videoPath).catch(() => "") : "",
         claimed: !!f.claimedBy,
+        sold: !!(f as { sold?: boolean }).sold,
+        createdAt: (f as { createdAt?: string }).createdAt ?? "",
       })));
       return NextResponse.json({ faces: out });
     }
@@ -1913,6 +1915,20 @@ export async function POST(request: Request) {
       face.imageUrl = undefined;
       await saveTryThisLookState(st);
       return NextResponse.json({ ok: true, id: faceId });
+    }
+
+    // Admin: mark a face SOLD → it's hidden from the public picker (but kept in the pool).
+    if (payload.action === "set-avatar-face-sold") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 403 });
+      const faceId = String((payload as any).faceId ?? "").trim();
+      const sold = Boolean((payload as any).sold);
+      if (!faceId) return NextResponse.json({ error: "faceId required." }, { status: 400 });
+      const st = await readTryThisLookState();
+      const face = (st.avatarFaces ?? []).find(f => f.id === faceId);
+      if (!face) return NextResponse.json({ error: "Face not found." }, { status: 404 });
+      (face as { sold?: boolean }).sold = sold;
+      await saveTryThisLookState(st);
+      return NextResponse.json({ ok: true, sold });
     }
 
     // Claim an AI face for a creator — ONCE only. A face belongs to exactly one influencer,

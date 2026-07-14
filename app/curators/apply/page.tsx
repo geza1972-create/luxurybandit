@@ -46,8 +46,8 @@ export default function CuratorApplyPage() {
   const [styleModelId, setStyleModelId] = useState("");
   const [imageSource, setImageSource] = useState<"own" | "ours">("ours"); // default to our AI faces (the "own an AI influencer" funnel); "own" = your own photos
   const [roleModels, setRoleModels] = useState<{ id: string; name: string; photoUrl?: string; style?: string }[]>([]);
-  const [avatarFaces, setAvatarFaces] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean }[]>([]);
-  const [faceDialog, setFaceDialog] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean } | null>(null); // preview + take a face
+  const [avatarFaces, setAvatarFaces] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean; sold?: boolean; createdAt?: string }[]>([]);
+  const [faceDialog, setFaceDialog] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean; sold?: boolean; createdAt?: string } | null>(null); // preview + take a face
   const [rulesOpen, setRulesOpen] = useState(false); // "You get one shot" rules → link under the photo opens this dialog
   const [avatarFaceId, setAvatarFaceId] = useState(""); // the FREE face this creator picks (booked on $9.99 payment)
   const [appliedCuratorId, setAppliedCuratorId] = useState(""); // returned by apply → needed to buy the face
@@ -69,7 +69,7 @@ export default function CuratorApplyPage() {
     }).catch(() => {});
     // AI-face library (for the "our images" path).
     fetch("/api/try-this-look?avatarFaces=1").then(r => r.json()).then((d: any) => {
-      setAvatarFaces(Array.isArray(d.faces) ? d.faces : []);
+      setAvatarFaces(Array.isArray(d.faces) ? d.faces.filter((f: any) => !f.sold) : []); // sold faces are hidden
     }).catch(() => {});
   }, []);
 
@@ -183,11 +183,13 @@ export default function CuratorApplyPage() {
   const [editId, setEditId] = useState("");
   const [savedDone, setSavedDone] = useState<{ photo: string } | null>(null); // success confirmation
   const getPin = () => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } };
+  // A face is "NEW" for its first 14 days.
+  const isNewFace = (createdAt?: string) => { if (!createdAt) return false; const t = Date.parse(createdAt); return !!t && Date.now() - t < 14 * 24 * 60 * 60 * 1000; };
   // Admin: re-crop a pool face to 3:4 and replace it (uses the existing replace-avatar-face action).
   const [faceCropSrc, setFaceCropSrc] = useState("");
   const [faceCropId, setFaceCropId] = useState("");
   const [faceCropBusy, setFaceCropBusy] = useState(false);
-  const reloadFaces = () => fetch("/api/try-this-look?avatarFaces=1").then(r => r.json()).then((d: any) => setAvatarFaces(Array.isArray(d.faces) ? d.faces : [])).catch(() => {});
+  const reloadFaces = () => fetch("/api/try-this-look?avatarFaces=1").then(r => r.json()).then((d: any) => setAvatarFaces(Array.isArray(d.faces) ? d.faces.filter((f: any) => !f.sold) : [])).catch(() => {});
   const startFaceCrop = async (imageUrl: string, id: string) => {
     setFaceDialog(null); setFaceCropId(id); // close the dialog FIRST — no overlap with the cropper
     try {
@@ -547,6 +549,7 @@ export default function CuratorApplyPage() {
                     <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
                     {f.claimed && <span className="absolute bottom-1 left-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[11px] font-black text-white/70">Booked</span>}
                     {f.videoUrl && !f.claimed && <span className="pointer-events-none absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-[11px] text-white">▶</span>}
+                    {isNewFace(f.createdAt) && !f.claimed && avatarFaceId !== f.id && <span className="pointer-events-none absolute right-1 top-1 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white shadow">New</span>}
                     {avatarFaceId === f.id && <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-slate-800 text-[13px] font-black text-white">✓</span>}
                   </button>
                 ))}

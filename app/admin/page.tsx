@@ -424,7 +424,7 @@ export default function AdminPage() {
   // AI-face library (creation-tool pool). Admin uploads faces (single or many at once);
   // creators claim a free one with their subscription. GET is public; add/delete are admin-gated.
   const faceFileRef = useRef<HTMLInputElement>(null);
-  const [faces, setFaces] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean }[]>([]);
+  const [faces, setFaces] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean; sold?: boolean; createdAt?: string }[]>([]);
   const [facesLoaded, setFacesLoaded] = useState(false);
   const [faceBusy, setFaceBusy] = useState(0); // remaining uploads in flight
   const [faceErr, setFaceErr] = useState("");
@@ -536,8 +536,16 @@ export default function AdminPage() {
       if (r.ok) { setFaces(fs => fs.map(f => f.id === id ? { ...f, videoUrl: "" } : f)); setBigFace(b => (b && b.id === id ? { ...b, videoUrl: "" } : b)); }
     } catch { /**/ }
   };
+  // Mark a face SOLD (hides it from the public picker) or back to available.
+  const toggleFaceSold = async (id: string, sold: boolean) => {
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "set-avatar-face-sold", faceId: id, sold }) });
+      if (r.ok) { setFaces(fs => fs.map(f => f.id === id ? { ...f, sold } : f)); setBigFace(b => (b && b.id === id ? { ...b, sold } : b)); }
+    } catch { /**/ }
+  };
+  const isNewFace = (createdAt?: string) => { if (!createdAt) return false; const t = Date.parse(createdAt); return !!t && Date.now() - t < 14 * 24 * 60 * 60 * 1000; };
   // Big view + crop for a single face.
-  const [bigFace, setBigFace] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean } | null>(null);
+  const [bigFace, setBigFace] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean; sold?: boolean; createdAt?: string } | null>(null);
   const [faceCropSrc, setFaceCropSrc] = useState(""); // data URL fed to PhotoCropper
   const [faceCropBusy, setFaceCropBusy] = useState(false);
   const startFaceCrop = async () => {
@@ -1700,7 +1708,8 @@ export default function AdminPage() {
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
                       </button>
-                      <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[9px] font-black ${f.claimed ? "bg-black/70 text-white/70" : "bg-emerald-600 text-white"}`}>{f.claimed ? "Booked" : "Free"}</span>
+                      <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[9px] font-black ${f.sold ? "bg-red-600 text-white" : f.claimed ? "bg-black/70 text-white/70" : "bg-emerald-600 text-white"}`}>{f.sold ? "SOLD" : f.claimed ? "Booked" : "Free"}</span>
+                      {isNewFace(f.createdAt) && !f.sold && !f.claimed && <span className="absolute left-1 top-1 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">New</span>}
                       <button type="button" title={f.claimed ? "Booked — delete anyway" : "Delete face"}
                         onClick={() => armOrRun(`face-${f.id}`, () => void deleteFace(f.id, f.claimed))}
                         className={`absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full text-white ring-1 ring-white/30 transition ${confirmId === `face-${f.id}` ? "bg-red-600" : "bg-black/60"}`}>
@@ -2094,7 +2103,7 @@ export default function AdminPage() {
           <div className="flex w-full max-w-sm flex-col items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={bigFace.imageUrl} alt="" className="max-h-[68vh] w-auto rounded-2xl object-contain" />
-            <p className="mt-2 text-[12px] font-bold text-white/60">{bigFace.claimed ? "Booked by an influencer" : "Free — available to claim"}</p>
+            <p className="mt-2 text-[12px] font-bold text-white/60">{bigFace.sold ? "🔴 Sold — hidden from the picker" : bigFace.claimed ? "Booked by an influencer" : "Free — available to claim"}</p>
             {faceErr && <p className="mt-1 text-[12px] font-bold text-red-400">{faceErr}</p>}
             {bigFace.videoUrl && (
               /* eslint-disable-next-line jsx-a11y/media-has-caption */
@@ -2104,7 +2113,11 @@ export default function AdminPage() {
               className="mt-3 inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-white/10 text-sm font-black text-white ring-1 ring-white/20 active:scale-95 transition disabled:opacity-50">
               {faceVidBusy === bigFace.id ? <><Loader2 className="h-4 w-4 animate-spin" /> Making video… (1–3 min)</> : <><Video className="h-4 w-4" /> {bigFace.videoUrl ? "Regenerate video" : "Make video"}</>}
             </button>
-            <div className="mt-3 grid w-full grid-cols-3 gap-2">
+            <button type="button" onClick={() => void toggleFaceSold(bigFace.id, !bigFace.sold)}
+              className={`mt-3 inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl text-sm font-black active:scale-95 transition ${bigFace.sold ? "bg-emerald-600 text-white" : "bg-red-600 text-white"}`}>
+              {bigFace.sold ? "↩︎ Mark available again" : "🔴 Mark SOLD — hide from picker"}
+            </button>
+            <div className="mt-2 grid w-full grid-cols-3 gap-2">
               <button type="button" onClick={() => void startFaceCrop()}
                 className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-white text-sm font-black text-black active:scale-95 transition"><Crop className="h-4 w-4" /> Crop</button>
               <button type="button" onClick={() => armOrRun(`bigdel-${bigFace.id}`, () => { const id = bigFace.id, cl = bigFace.claimed; setBigFace(null); void deleteFace(id, cl); })}
