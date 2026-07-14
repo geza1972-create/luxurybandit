@@ -98,6 +98,7 @@ export default function CuratorApplyPage() {
   const [suggesting, setSuggesting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [agreed, setAgreed] = useState(false); // 18+, real me, accepts the model rules
+  const [agreeError, setAgreeError] = useState(false); // turn the consent box red if they submit without ticking it
   const [applied, setApplied] = useState(false);
   const [error, setError] = useState("");
 
@@ -352,6 +353,7 @@ export default function CuratorApplyPage() {
   };
 
   const submit = async () => {
+    setAgreeError(!agreed); // any submit attempt reflects the consent state (red box if unticked)
     if (!modelName.trim() || !firstName.trim() || !lastName.trim() || !email.trim()) {
       setError("Model name, first name, last name and email are required."); return;
     }
@@ -843,9 +845,9 @@ export default function CuratorApplyPage() {
         </div>
 
         {/* Consent — required. She confirms she's real + accepts the rules (T&C). */}
-        <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border border-black/25 bg-black/[0.03] p-4">
-          <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)}
-            className="mt-0.5 h-5 w-5 shrink-0 accent-amber-400" />
+        <label className={`mt-6 flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition ${agreeError && !agreed ? "border-red-500 bg-red-50 ring-2 ring-red-500/25" : "border-black/25 bg-black/[0.03]"}`}>
+          <input type="checkbox" checked={agreed} onChange={e => { setAgreed(e.target.checked); if (e.target.checked) setAgreeError(false); }}
+            className={`mt-0.5 h-5 w-5 shrink-0 accent-amber-400 ${agreeError && !agreed ? "outline outline-2 outline-red-500" : ""}`} />
           <span className="text-[14px] font-bold leading-relaxed text-slate-800">
             I&apos;m <b className="text-slate-900">18 or older</b>, the photos are <b className="text-slate-900">really me</b>, and I accept the{" "}
             <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-slate-900 underline underline-offset-2">Terms &amp; Conditions</a>.
@@ -859,7 +861,7 @@ export default function CuratorApplyPage() {
       {/* Submit */}
       <div className="lb-phone-col fixed inset-x-0 bottom-0 z-20 border-t border-black/22 bg-[#faf7f0]/95 px-5 pt-3 backdrop-blur"
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
-        <button type="button" onClick={() => void submit()} disabled={submitting || (!editId && !agreed)}
+        <button type="button" onClick={() => void submit()} disabled={submitting}
           className={`bg-slate-800 text-white flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black disabled:opacity-50 ${btn3d}`}>
           {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Coins className="h-5 w-5" />}
           {submitting ? (editId ? "Saving…" : "Setting up…") : (editId ? "Save changes" : "Sign up & start earning")}
