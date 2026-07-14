@@ -456,6 +456,7 @@ export async function GET(request: Request) {
         videoUrl: f.videoPath ? await getSignedUrl(f.videoPath).catch(() => "") : "",
         claimed: !!f.claimedBy,
         sold: !!(f as { sold?: boolean }).sold,
+        promotedTo: (f as { promotedTo?: string }).promotedTo ?? "",
         createdAt: (f as { createdAt?: string }).createdAt ?? "",
       })));
       return NextResponse.json({ faces: out });

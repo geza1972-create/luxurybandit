@@ -383,6 +383,63 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, priced: set, total: (state.curators ?? []).length });
   }
 
+  // Promote AI faces → sellable influencers. Each un-promoted face in the pool
+  // becomes a real curator/influencer (so it gets a /curator/[id] profile, a price,
+  // and shows up in the Models list like the others). Auto-named "Model N" ($9.99,
+  // private + unowned/for-sale); the admin renames + reprices later. The face STAYS
+  // in the library, marked `promotedTo` so it's not converted twice.
+  if (action === "promote-faces") {
+    if (!(await isAdminRequest(request))) return jsonError("Not allowed.", 403);
+    const state = await readTryThisLookState();
+    const faces = state.avatarFaces ?? [];
+    const curators = [...(state.curators ?? [])];
+    // Next free "Model N" number (don't collide with existing auto-named ones).
+    let n = 0;
+    for (const c of curators) {
+      for (const s of [String((c as any).modelName ?? ""), String(c.firstName ?? "")]) {
+        const m = /^model\s+(\d+)$/i.exec(s.trim());
+        if (m) n = Math.max(n, parseInt(m[1], 10));
+      }
+    }
+    const pathFrom = (f: any): string | undefined => {
+      if (f.imagePath) return String(f.imagePath);
+      const u = String(f.imageUrl ?? "");
+      const mm = /\/object\/(?:sign|public)\/[^/]+\/(.+?)(?:\?|$)/.exec(u);
+      return mm ? decodeURIComponent(mm[1]) : undefined;
+    };
+    let made = 0;
+    for (let i = 0; i < faces.length; i++) {
+      const f: any = faces[i];
+      if (f.sold || f.promotedTo || f.claimedBy) continue;
+      const photoPath = pathFrom(f);
+      if (!photoPath) continue;
+      n += 1;
+      const name = `Model ${n}`;
+      const id = `curator-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`;
+      const cur: CuratorProfile = {
+        id,
+        firstName: name,
+        lastName: "",
+        modelName: name,
+        email: "", // unowned — no owner yet (for sale)
+        imageSource: "ours",
+        avatarFaceId: f.id,
+        photoPath,
+        photoFullPath: photoPath,
+        priceCents: 999,
+        status: "active",
+        hidden: true, // private until the admin makes her public
+        paid: false,  // unowned — doesn't reserve the name
+        createdAt: f.createdAt || new Date().toISOString(),
+      } as CuratorProfile;
+      curators.push(cur);
+      f.promotedTo = id; // mark the face so it isn't promoted again (stays in the pool)
+      made++;
+    }
+    if (made) await saveTryThisLookState({ ...state, curators, avatarFaces: faces });
+    return NextResponse.json({ ok: true, promoted: made, total: curators.length });
+  }
+
   if (action === "apply") {
     const firstName = String(payload.firstName ?? "").trim();
     const lastName = String(payload.lastName ?? "").trim();

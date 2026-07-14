@@ -425,7 +425,7 @@ export default function AdminPage() {
   // AI-face library (creation-tool pool). Admin uploads faces (single or many at once);
   // creators claim a free one with their subscription. GET is public; add/delete are admin-gated.
   const faceFileRef = useRef<HTMLInputElement>(null);
-  const [faces, setFaces] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean; sold?: boolean; createdAt?: string }[]>([]);
+  const [faces, setFaces] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean; sold?: boolean; promotedTo?: string; createdAt?: string }[]>([]);
   const [facesLoaded, setFacesLoaded] = useState(false);
   const [faceBusy, setFaceBusy] = useState(0); // remaining uploads in flight
   const [faceErr, setFaceErr] = useState("");
@@ -461,6 +461,29 @@ export default function AdminPage() {
       const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-avatar-face", faceId: id, ...(claimed ? { force: true } : {}) }) });
       if (r.ok) setFaces(fs => fs.filter(f => f.id !== id));
     } catch { /**/ }
+  };
+  // Promote every un-promoted face → a real influencer (curator) so it lands in the
+  // Models list with a price + profile. Auto-named "Model N" ($9.99, private/for-sale);
+  // rename + reprice later. Faces stay in the library, marked as promoted.
+  const [promoteBusy, setPromoteBusy] = useState(false);
+  const promoteFaces = async () => {
+    const pending = faces.filter(f => !f.promotedTo && !f.sold && !f.claimed).length;
+    if (!pending) { setFaceErr("No new faces to promote — all are already influencers."); return; }
+    if (!confirm(`Turn ${pending} face${pending > 1 ? "s" : ""} into influencer${pending > 1 ? "s" : ""}?\n\nEach gets an auto name (Model N), $9.99 price and a private profile in the Models list. You can rename & reprice them afterwards.`)) return;
+    setPromoteBusy(true); setFaceErr("");
+    try {
+      const r = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "promote-faces" }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setFaceErr(d.error || "Promotion failed."); return; }
+      await loadFaces();
+      // Refresh the Models list so the new influencers appear immediately.
+      try {
+        const cr = await fetch("/api/try-this-look?curators=1", { headers: headers(), cache: "no-store" });
+        const cd = await cr.json().catch(() => ({}));
+        if (Array.isArray(cd.curators)) setCurators(cd.curators);
+      } catch { /**/ }
+    } catch { setFaceErr("Promotion failed."); }
+    finally { setPromoteBusy(false); }
   };
   // Generate AI faces via fal FLUX → straight into the pool.
   const [faceGenOpen, setFaceGenOpen] = useState(false);
@@ -1635,9 +1658,15 @@ export default function AdminPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-black text-ink">AI-face library <span className="text-ink/40">{faces.length}</span></p>
-                <p className="text-[12px] font-bold text-ink/45">Creators claim a face with their subscription. Green = available, Booked = taken.</p>
+                <p className="text-[12px] font-bold text-ink/45">Promote a face → it becomes a sellable influencer in the Models list (with a price + profile). ✦ = already an influencer.</p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
+                {faces.some(f => !f.promotedTo && !f.sold && !f.claimed) && (
+                  <button type="button" onClick={() => void promoteFaces()} disabled={promoteBusy}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-violet-600 px-3 text-xs font-black text-white active:scale-95 transition disabled:opacity-50">
+                    {promoteBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Promoting…</> : <><Sparkles className="h-4 w-4" /> → Influencers ({faces.filter(f => !f.promotedTo && !f.sold && !f.claimed).length})</>}
+                  </button>
+                )}
                 <button type="button" onClick={() => { setFaceGenOpen(o => !o); setFaceErr(""); }}
                   className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-black/15 px-3 text-xs font-black text-ink active:scale-95 transition">
                   <Sparkles className="h-4 w-4" /> Generate
@@ -1739,6 +1768,7 @@ export default function AdminPage() {
                         <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
                       </button>
                       <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[9px] font-black ${f.sold ? "bg-red-600 text-white" : f.claimed ? "bg-black/70 text-white/70" : "bg-emerald-600 text-white"}`}>{f.sold ? "SOLD" : f.claimed ? "Booked" : "Free"}</span>
+                      {f.promotedTo && <span className="absolute bottom-1 right-1 rounded-full bg-violet-600 px-1.5 py-0.5 text-[9px] font-black text-white" title="Already an influencer in the Models list">✦ Influencer</span>}
                       {isNewFace(f.createdAt) && !f.sold && !f.claimed && <span className="absolute left-1 top-1 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">New</span>}
                       <button type="button" title={f.claimed ? "Booked — delete anyway" : "Delete face"}
                         onClick={() => armOrRun(`face-${f.id}`, () => void deleteFace(f.id, f.claimed))}
@@ -1771,7 +1801,7 @@ export default function AdminPage() {
         )}
 
         {tab === "curators" && modelsView === "list" && (
-          <div className="mt-2 grid grid-cols-1 gap-2 pb-16 lg:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-2 grid grid-cols-1 gap-2 pb-16">
             {/* One shared file input — pickModelVideo() sets the target model, then opens it. */}
             <input ref={vidFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) void uploadModelVideo(f); e.target.value = ""; }} />
