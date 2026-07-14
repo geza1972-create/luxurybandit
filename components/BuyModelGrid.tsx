@@ -16,10 +16,10 @@ export default function BuyModelGrid({ models }: { models: Model[] }) {
         <p className="text-[15px] font-black uppercase leading-none tracking-tight text-white drop-shadow">🔥 Grab yours before she&apos;s gone!</p>
         <p className="mt-1 text-[11px] font-black uppercase tracking-wide text-white/90">Each face = only ONE owner, ever</p>
       </div>
-      <div className="mt-3 grid grid-cols-3 gap-2">
+      <div className="mt-3 flex snap-x gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {models.map((m, i) => (
           <Link key={i} href="/curators/apply"
-            className="group relative block aspect-[3/4] overflow-hidden rounded-xl lb-media-bg active:scale-95 transition">
+            className="group relative block aspect-[3/4] w-[30%] shrink-0 snap-start overflow-hidden rounded-xl lb-media-bg active:scale-95 transition">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={m.poster || m.photo} alt={m.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
             <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wide text-white shadow">

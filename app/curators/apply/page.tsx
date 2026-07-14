@@ -540,11 +540,11 @@ export default function CuratorApplyPage() {
                 <p className="text-[15px] font-black uppercase leading-none tracking-tight text-white drop-shadow">🔥 Grab yours before she&apos;s gone!</p>
                 <p className="mt-1 text-[11px] font-black uppercase tracking-wide text-white/90">Each face = only ONE owner, ever</p>
               </div>
-              <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="mt-3 flex snap-x gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {avatarFaces.map(f => (
                   <button key={f.id} type="button" disabled={f.claimed}
                     onClick={() => setFaceDialog(f)}
-                    className={`relative aspect-[3/4] overflow-hidden rounded-xl border-2 bg-black/[0.04] transition ${f.claimed ? "cursor-not-allowed border-black/22 opacity-40" : avatarFaceId === f.id ? "border-slate-800" : "border-black/22"}`}>
+                    className={`relative aspect-[3/4] w-[30%] shrink-0 snap-start overflow-hidden rounded-xl border-2 bg-black/[0.04] transition ${f.claimed ? "cursor-not-allowed border-black/22 opacity-40" : avatarFaceId === f.id ? "border-slate-800" : "border-black/22"}`}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
                     {f.claimed && <span className="absolute bottom-1 left-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[11px] font-black text-white/70">Booked</span>}
@@ -723,7 +723,7 @@ export default function CuratorApplyPage() {
           </div>
           <div><span className={label}>Email</span><input type="email" className={field} value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" /></div>
           <div>
-            <span className={label}>WhatsApp 🔒</span>
+            <span className={label}>WhatsApp 🔒 <span className="font-bold normal-case text-slate-400">· optional</span></span>
             <input type="tel" className={field} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+40 7xx… (WhatsApp)" />
             <p className="mt-1.5 text-[13px] font-bold leading-relaxed text-slate-600">
               Never shown publicly — only our team sees it. We use it to notify you about fan
@@ -731,8 +731,8 @@ export default function CuratorApplyPage() {
               <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-slate-900 underline underline-offset-2">See our terms</a>.
             </p>
           </div>
-          <div><span className={label}>Instagram</span><input className={field} value={instagram} onChange={e => setInstagram(e.target.value)} placeholder="@handle" /></div>
-          <div><span className={label}>Address</span><input className={field} value={address} onChange={e => setAddress(e.target.value)} placeholder="City, country" /></div>
+          <div><span className={label}>Instagram <span className="font-bold normal-case text-slate-400">· optional</span></span><input className={field} value={instagram} onChange={e => setInstagram(e.target.value)} placeholder="@handle" /></div>
+          <div><span className={label}>Address <span className="font-bold normal-case text-slate-400">· optional</span></span><input className={field} value={address} onChange={e => setAddress(e.target.value)} placeholder="City, country" /></div>
         </div>
 
         {/* Taste */}

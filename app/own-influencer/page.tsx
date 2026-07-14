@@ -39,7 +39,7 @@ async function landingData() {
     const clips = showcaseClips.length ? showcaseClips : ginaClips;
     // Buyable AI influencers = the UNCLAIMED avatar-face pool (admin-generated for sale) —
     // NOT the real curators (those are live models, not for sale). Sign the storage paths.
-    const faces = (state.avatarFaces ?? []).filter(f => !(f as { claimedBy?: string }).claimedBy && !(f as { sold?: boolean }).sold && ((f as { imagePath?: string }).imagePath || (f as { imageUrl?: string }).imageUrl)).slice(0, 6);
+    const faces = (state.avatarFaces ?? []).filter(f => !(f as { claimedBy?: string }).claimedBy && !(f as { sold?: boolean }).sold && ((f as { imagePath?: string }).imagePath || (f as { imageUrl?: string }).imageUrl)).slice(0, 12);
     const models = await Promise.all(faces.map(async f => {
       const face = f as { imagePath?: string; imageUrl?: string; videoPath?: string; videoUrl?: string; createdAt?: string };
       const photo = face.imagePath ? await getSignedUrl(face.imagePath).catch(() => face.imageUrl || "") : (face.imageUrl || "");
@@ -179,7 +179,7 @@ export default async function OwnInfluencerLanding() {
             <p className="mt-3 text-[14px] font-semibold leading-relaxed text-white/70">
               Every AI influencer is one-of-a-kind — and only <span className="font-black text-white">one person</span> can own her: her daily content, her chats, her whole audience. These are <span className="font-black text-emerald-400">still free</span>. Claim one before someone else does — or <BuyFormLink className="font-black text-amber-400 underline decoration-amber-400/40 underline-offset-2">create your own</BuyFormLink>.
             </p>
-            {models.length >= 1 && <BuyModelGrid models={models.slice(0, 6)} />}
+            {models.length >= 1 && <BuyModelGrid models={models.slice(0, 12)} />}
           </div>
         </div>
       </section>
