@@ -22,9 +22,6 @@ export default function BuyModelGrid({ models }: { models: Model[] }) {
             className="group relative block aspect-[3/4] w-[30%] shrink-0 snap-start overflow-hidden rounded-xl lb-media-bg active:scale-95 transition">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={m.poster || m.photo} alt={m.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
-            <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wide text-white shadow">
-              <span className="h-1.5 w-1.5 rounded-full bg-white" /> Free
-            </span>
             {isNew(m.createdAt)
               ? <span className="absolute right-1.5 top-1.5 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wide text-white shadow">New</span>
               : m.video ? <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-black/45 text-white backdrop-blur"><Play className="h-2.5 w-2.5" fill="currentColor" /></span> : null}

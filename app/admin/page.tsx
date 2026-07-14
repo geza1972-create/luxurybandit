@@ -2100,9 +2100,9 @@ export default function AdminPage() {
       {/* ── AI-face big view: enlarge, crop (in-place, keeps booking), or delete ── */}
       {bigFace && !faceCropSrc && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-4" onClick={e => { if (e.target === e.currentTarget) setBigFace(null); }}>
-          <div className="flex w-full max-w-sm flex-col items-center">
+          <div className="flex max-h-[92dvh] w-full max-w-sm flex-col items-center overflow-y-auto rounded-2xl [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={bigFace.imageUrl} alt="" className="max-h-[68vh] w-auto rounded-2xl object-contain" />
+            <img src={bigFace.imageUrl} alt="" className="max-h-[42vh] w-auto shrink-0 rounded-2xl object-contain" />
             <p className="mt-2 text-[12px] font-bold text-white/60">{bigFace.sold ? "🔴 Sold — hidden from the picker" : bigFace.claimed ? "Booked by an influencer" : "Free — available to claim"}</p>
             {faceErr && <p className="mt-1 text-[12px] font-bold text-red-400">{faceErr}</p>}
             {bigFace.videoUrl && (
@@ -2110,14 +2110,14 @@ export default function AdminPage() {
               <video src={bigFace.videoUrl} controls playsInline className="mt-3 w-full max-w-[220px] rounded-xl" />
             )}
             <button type="button" onClick={() => void makeFaceVideo(bigFace.id)} disabled={faceVidBusy === bigFace.id}
-              className="mt-3 inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-white/10 text-sm font-black text-white ring-1 ring-white/20 active:scale-95 transition disabled:opacity-50">
+              className="mt-3 inline-flex h-11 w-full shrink-0 items-center justify-center gap-1.5 rounded-xl bg-white/10 text-sm font-black text-white ring-1 ring-white/20 active:scale-95 transition disabled:opacity-50">
               {faceVidBusy === bigFace.id ? <><Loader2 className="h-4 w-4 animate-spin" /> Making video… (1–3 min)</> : <><Video className="h-4 w-4" /> {bigFace.videoUrl ? "Regenerate video" : "Make video"}</>}
             </button>
             <button type="button" onClick={() => void toggleFaceSold(bigFace.id, !bigFace.sold)}
-              className={`mt-3 inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-xl text-sm font-black active:scale-95 transition ${bigFace.sold ? "bg-emerald-600 text-white" : "bg-red-600 text-white"}`}>
+              className={`mt-3 inline-flex h-11 w-full shrink-0 items-center justify-center gap-1.5 rounded-xl text-sm font-black active:scale-95 transition ${bigFace.sold ? "bg-emerald-600 text-white" : "bg-red-600 text-white"}`}>
               {bigFace.sold ? "↩︎ Mark available again" : "🔴 Mark SOLD — hide from picker"}
             </button>
-            <div className="mt-2 grid w-full grid-cols-3 gap-2">
+            <div className="mt-2 grid w-full shrink-0 grid-cols-3 gap-2 pb-1">
               <button type="button" onClick={() => void startFaceCrop()}
                 className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-white text-sm font-black text-black active:scale-95 transition"><Crop className="h-4 w-4" /> Crop</button>
               <button type="button" onClick={() => armOrRun(`bigdel-${bigFace.id}`, () => { const id = bigFace.id, cl = bigFace.claimed; setBigFace(null); void deleteFace(id, cl); })}
