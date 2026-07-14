@@ -68,7 +68,7 @@ export default async function OwnInfluencerLanding() {
     { icon: MessageCircle, label: "Premium fan interactions" },
     { icon: TrendingUp, label: "You earn revenue" },
   ];
-  const CREATOR_POINTS = ["We create fresh content every day", "No AI skills required", "No editing or posting", "Grow your audience", "Earn from premium experiences"];
+  const CREATOR_POINTS = ["We create fresh content every day", "No AI skills required", "No editing or posting", "Chat with her yourself, anytime", "Earn 30% in credits when others try on her looks", "Earn from premium fan experiences"];
   const FAN_POINTS = ["Discover amazing AI influencers", "Chat with your favorites", "Unlock exclusive content", "Watch premium videos", "Try on her looks"];
   const STEPS = [
     { icon: Users, t: "Create your influencer", d: "Choose a style or create your own AI influencer." },
@@ -82,7 +82,7 @@ export default async function OwnInfluencerLanding() {
     { icon: Users, t: "A loyal fanbase", d: "Build an audience that follows her every single day." },
     { icon: Camera, t: "Daily luxury content", d: "We create high-quality content every single day." },
     { icon: Gem, t: "Premium experiences", d: "Offer exclusive content, try-ons, videos and more." },
-    { icon: BarChart3, t: "Build your business", d: "Grow your audience and increase your income." },
+    { icon: BarChart3, t: "Earn from every try-on", d: "Get 30% back in credits whenever anyone tries on a look with her — plus premium fan revenue." },
     { icon: Wand2, t: "We do the work", d: "No prompts. No editing. No daily posting." },
   ];
 

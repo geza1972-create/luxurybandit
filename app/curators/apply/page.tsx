@@ -698,8 +698,9 @@ export default function CuratorApplyPage() {
           <ul className="mt-2.5 space-y-1.5 text-[13px] font-bold text-slate-700">
             <li className="flex gap-2"><span>💎</span> We create her luxury content — fresh photos &amp; videos, every day.</li>
             <li className="flex gap-2"><span>📱</span> She gets her own public profile — like the card above.</li>
-            <li className="flex gap-2"><span>💬</span> Fans discover, follow &amp; chat with her.</li>
-            <li className="flex gap-2"><span>💰</span> You earn from premium fans &amp; try-ons.</li>
+            <li className="flex gap-2"><span>💬</span> Chat with her yourself — and her fans discover, follow &amp; chat with her too.</li>
+            <li className="flex gap-2"><span>🎬</span> When anyone does a try-on with her, you earn <b>30% back in credits</b>.</li>
+            <li className="flex gap-2"><span>💰</span> Plus you earn from premium fan experiences.</li>
           </ul>
         </div>
 
