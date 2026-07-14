@@ -16,6 +16,7 @@ export default function OwnInfluencerCTA() {
       const sp = new URLSearchParams(window.location.search);
       if (sp.get("premium") === "success") {
         setSuccess(true);
+        try { localStorage.removeItem("lb-apply-draft-v1"); } catch { /**/ } // signup done → drop the saved form draft
         trackMetaPixel("Subscribe", { content_category: "influencer_subscription", value: 8, currency: "USD" });
       }
     } catch { /**/ }

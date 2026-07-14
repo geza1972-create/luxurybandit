@@ -233,6 +233,59 @@ export default function CuratorApplyPage() {
       .catch(() => setError("Could not load the model."));
   }, []);
 
+  // ── Draft persistence ─────────────────────────────────────────────────────
+  // The #1 drop-off killer: a user goes to Stripe, hits "back", and the whole
+  // form is empty. So we keep every text/selection field in localStorage and
+  // restore it on return/reload. Photos are intentionally excluded (base64
+  // selfies would blow the ~5MB quota). Public signup only — never admin edit.
+  const DRAFT_KEY = "lb-apply-draft-v1";
+  const [draftReady, setDraftReady] = useState(false);
+  const clearDraft = () => { try { localStorage.removeItem(DRAFT_KEY); } catch { /**/ } };
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("edit")) return; // edit mode prefills from the server
+    try {
+      const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
+      if (d && typeof d === "object") {
+        const s = (v: unknown) => (typeof v === "string" ? v : "");
+        const arr = (v: unknown) => (Array.isArray(v) ? v.filter(x => typeof x === "string") as string[] : []);
+        if (d.modelName) setModelName(s(d.modelName));
+        if (d.firstName) setFirstName(s(d.firstName));
+        if (d.lastName) setLastName(s(d.lastName));
+        if (d.email) setEmail(s(d.email));
+        if (d.phone) setPhone(s(d.phone));
+        if (d.address) setAddress(s(d.address));
+        if (d.instagram) setInstagram(s(d.instagram));
+        if (d.brandChips) setBrandChips(arr(d.brandChips));
+        if (d.styleChips) setStyleChips(arr(d.styleChips));
+        if (d.colorChips) setColorChips(arr(d.colorChips));
+        if (d.fabricChips) setFabricChips(arr(d.fabricChips));
+        if (d.occasionChips) setOccasionChips(arr(d.occasionChips));
+        if (d.genderFocus) setGenderFocus(s(d.genderFocus));
+        if (d.priceTiers) setPriceTiers(arr(d.priceTiers));
+        if (d.fitFocus) setFitFocus(arr(d.fitFocus));
+        if (d.styleModelId) setStyleModelId(s(d.styleModelId));
+        if (d.imageSource === "own" || d.imageSource === "ours") setImageSource(d.imageSource);
+        if (d.avatarFaceId) setAvatarFaceId(s(d.avatarFaceId));
+        if (d.motto) setMotto(s(d.motto));
+        if (d.bio) setBio(s(d.bio));
+        if (d.aiHint) setAiHint(s(d.aiHint));
+        if (d.agreed) setAgreed(true);
+      }
+    } catch { /**/ }
+    setDraftReady(true); // start persisting from here (gates the save effect below)
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!draftReady) return; // don't clobber the stored draft before we've restored it
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        modelName, firstName, lastName, email, phone, address, instagram,
+        brandChips, styleChips, colorChips, fabricChips, occasionChips,
+        genderFocus, priceTiers, fitFocus, styleModelId, imageSource, avatarFaceId,
+        motto, bio, aiHint, agreed,
+      }));
+    } catch { /* quota / private mode — persistence is best-effort */ }
+  }, [draftReady, modelName, firstName, lastName, email, phone, address, instagram, brandChips, styleChips, colorChips, fabricChips, occasionChips, genderFocus, priceTiers, fitFocus, styleModelId, imageSource, avatarFaceId, motto, bio, aiHint, agreed]);
+
   // Cancel/back: from the admin ("New model") this returns to the Models list;
   // from the public signup it just goes back to wherever the user came from.
   const cancel = () => {
@@ -350,8 +403,11 @@ export default function CuratorApplyPage() {
           // Success → landing (confirmation). Back/cancel → THIS form, so the session isn't lost.
           body: JSON.stringify({ email: email.trim(), returnPath: "/own-influencer", cancelPath: window.location.pathname }),
         }).then(x => x.json()).catch(() => null);
+        // Keep the draft through the Stripe round-trip: if the user hits "back"/cancel
+        // they return to this form and the draft repopulates it. Cleared only on success.
         if (pr?.url) { window.location.href = pr.url as string; return; }
       } catch { /**/ }
+      clearDraft();
       setApplied(true); // Stripe not available → show the application-received screen instead
     } catch {
       setError("Could not submit.");
