@@ -460,9 +460,10 @@ export default function CuratorApplyPage() {
   const btn3d = "shadow-[0_3px_0_#0f172a,0_6px_14px_rgba(15,23,42,0.28)] transition-all active:translate-y-[3px] active:shadow-[0_1px_0_#0f172a]";
   const raise = "shadow-[0_2px_0_rgba(15,23,42,0.22),0_5px_12px_rgba(15,23,42,0.10)] transition-all active:translate-y-[2px] active:shadow-[0_0_0_rgba(0,0,0,0)]";
 
-  // Wait for the auth check, then gate: no real account → sign-up wall (banner stays).
+  // No login required to apply — the CTA goes straight to the form; the email is collected in
+  // the form and the login is set up later via the onboarding email. (Wall kept but disabled.)
   if (!authReady) return <div className="min-h-screen bg-[#faf7f0]" />;
-  if (!authSession && !isAdminEdit) {
+  if (false && !authSession && !isAdminEdit) {
     return (
       <div className="min-h-screen bg-[#faf7f0] text-slate-900">
         {/* The VISUAL comes first — full-bleed banner at the very top, back button floats over it. */}

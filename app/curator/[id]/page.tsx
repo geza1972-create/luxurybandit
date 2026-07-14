@@ -22,7 +22,7 @@ function viewerHeaders(): Record<string, string> {
   return h;
 }
 
-type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; brands?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string; status?: string; profilePhotoUrls?: string[] };
+type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; brands?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string; status?: string; hidden?: boolean; profilePhotoUrls?: string[] };
 type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; featured?: boolean; productType?: string; wardrobe?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
 type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string; feed?: boolean };
 
@@ -502,6 +502,16 @@ export default function CuratorPublicPage() {
     } catch (e) { alert(e instanceof Error ? e.message : "Fehlgeschlagen"); }
     finally { setBadgeBusy(false); }
   };
+  // Flip her public (hidden:false) or private (hidden:true) — no approval step anymore.
+  const setPublic = async (makePublic: boolean) => {
+    if (badgeBusy) return;
+    setBadgeBusy(true);
+    try {
+      await fetch("/api/curator", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ action: "update", id, hidden: !makePublic }) });
+      setProfile(p => (p ? { ...p, hidden: !makePublic } : p));
+    } catch (e) { alert(e instanceof Error ? e.message : "Failed"); }
+    finally { setBadgeBusy(false); }
+  };
   // Send the "your influencer is ready — set your password & open your dashboard" email.
   const sendOnboarding = async () => {
     if (onbBusy) return;
@@ -879,6 +889,18 @@ export default function CuratorPublicPage() {
               </div>
             )}
             <div className="mt-3 border-t border-white/10 pt-3">
+              <div className="mb-2 flex items-center gap-2">
+                <span className={`flex-1 rounded-full px-3 py-2 text-center text-[12px] font-black ${profile.hidden === false ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30" : "bg-white/5 text-white/50"}`}>
+                  {profile.hidden === false ? "🌍 Public" : "🔒 Private"}
+                </span>
+                {profile.hidden === false ? (
+                  <button type="button" onClick={() => void setPublic(false)} disabled={badgeBusy}
+                    className="rounded-full border border-white/20 px-4 py-2 text-[12px] font-black text-white active:scale-95 transition disabled:opacity-50">Make private</button>
+                ) : (
+                  <button type="button" onClick={() => void setPublic(true)} disabled={badgeBusy}
+                    className="lb-gold rounded-full px-4 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-50">Make public</button>
+                )}
+              </div>
               <button type="button" onClick={() => void sendOnboarding()} disabled={onbBusy}
                 className="flex w-full items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-2.5 text-[13px] font-black text-white active:scale-95 transition disabled:opacity-50">
                 {onbBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} Send onboarding email

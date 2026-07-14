@@ -117,7 +117,7 @@ export async function GET(request: Request) {
       likeBoost: (c as any).likeBoost ?? 0, viewBoost: (c as any).viewBoost ?? 0,
       realBadge: (c as any).realBadge === true,
       realModel: (c as any).realModel === true,
-      ...(adminView ? { verificationSelfieUrl: (c as any).verificationSelfieUrl ?? "", phone: c.phone ?? "", status: (c as any).status ?? "active", profilePhotoUrls: (c as any).profilePhotoUrls ?? [] } : {}),
+      ...(adminView ? { verificationSelfieUrl: (c as any).verificationSelfieUrl ?? "", phone: c.phone ?? "", status: (c as any).status ?? "active", hidden: (c as any).hidden === true, profilePhotoUrls: (c as any).profilePhotoUrls ?? [] } : {}),
     } });
   }
 
@@ -350,12 +350,22 @@ export async function POST(request: Request) {
     try { const { hasActiveSubscription } = await import("@/lib/stripe"); active = await hasActiveSubscription(email); } catch { /**/ }
     if (!active) return NextResponse.json({ ok: true, paid: false });
     const state = await readTryThisLookState();
-    let changed = false;
+    const nowPaid: any[] = [];
     for (const c of state.curators ?? []) {
-      if ((c.email ?? "").trim().toLowerCase() === email && (c as any).paid === false) { (c as any).paid = true; changed = true; }
+      if ((c.email ?? "").trim().toLowerCase() === email && (c as any).paid === false) {
+        (c as any).paid = true; (c as any).onboardedAt = new Date().toISOString(); nowPaid.push(c);
+      }
     }
-    if (changed) await saveTryThisLookState(state);
-    return NextResponse.json({ ok: true, paid: true, confirmed: changed });
+    if (nowPaid.length) {
+      await saveTryThisLookState(state);
+      // Auto-send the onboarding email (set-password link → dashboard) — once, on first payment.
+      const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://luxurybandit.com";
+      try {
+        const { sendOnboardingEmail } = await import("@/lib/onboarding-email");
+        for (const c of nowPaid) { await sendOnboardingEmail(c, origin).catch(() => {}); }
+      } catch { /**/ }
+    }
+    return NextResponse.json({ ok: true, paid: true, confirmed: nowPaid.length > 0 });
   }
 
   if (action === "apply") {
@@ -434,7 +444,11 @@ export async function POST(request: Request) {
       // Model applications are REVIEWED: they start "pending" and the admin approves
       // (Power button in the Models list) before they can sign in. This gates the
       // "Werde Model" ad traffic — no self-service accounts go live unchecked.
-      status: "pending",
+      // No approval step: she goes live IMMEDIATELY but PRIVATE — active (she can sign in &
+      // use her influencer) yet hidden from the public models gallery. Admin flips her public
+      // (un-hide) when everything looks right.
+      status: "active",
+      hidden: true,
       // Not paid yet — the name is NOT reserved until the subscription is confirmed
       // (see `confirm-paid`). Unpaid applications never block a name for someone else.
       paid: false,
@@ -792,6 +806,11 @@ export async function POST(request: Request) {
       realModel: isAdmin && (payload as any).realModel !== undefined
         ? (payload as any).realModel === true
         : (cur as any).realModel,
+      // Public vs private: hidden:true = live but NOT in the public models gallery. Admin flips
+      // her public (hidden:false) when everything looks right. Admin only.
+      hidden: isAdmin && (payload as any).hidden !== undefined
+        ? (payload as any).hidden === true
+        : (cur as any).hidden,
     } as any;
     // Optional new photo
     const photo = String(payload.photo ?? "");
