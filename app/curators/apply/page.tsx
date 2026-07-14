@@ -646,57 +646,49 @@ export default function CuratorApplyPage() {
           );
         })()}
 
-        {imageSource === "ours" && (
-          avatarFaces.length === 0 ? (
-            <div className="mt-5 rounded-2xl border border-black/15 bg-black/[0.04] p-4">
-              <p className="text-[14px] font-bold text-[#e7c877]">No free faces right now — new ones drop regularly. Pick “My own photos” below, or check back soon.</p>
+        {/* Gallery — your own photo (upload + crop) + our AI faces, directly under the big card. */}
+        <div className="mt-4 flex snap-x gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {/* Your own photo — same tile as the faces, with upload + crop built in. */}
+          <button type="button" onClick={() => { setImageSource("own"); fileRef.current?.click(); }}
+            className={`relative aspect-[3/4] w-[30%] shrink-0 snap-start overflow-hidden rounded-xl border-2 bg-black/[0.04] transition ${imageSource === "own" ? "border-slate-800" : "border-dashed border-black/30"}`}>
+            {imageSource === "own" && photo ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photo} alt="" className="h-full w-full object-cover" />
+                <span className="absolute inset-x-0 bottom-0 bg-black/60 py-0.5 text-center text-[9px] font-black uppercase tracking-wide text-white">Tap to re-crop</span>
+                <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-slate-800 text-[13px] font-black text-white">✓</span>
+              </>
+            ) : (
+              <span className="flex h-full w-full flex-col items-center justify-center gap-1 px-1 text-center text-slate-600">
+                <span className="text-[20px]">📸</span>
+                <span className="text-[10px] font-black uppercase leading-tight">Your own photo</span>
+                <span className="text-[8px] font-bold text-slate-400">upload + crop</span>
+              </span>
+            )}
+          </button>
+          {avatarFaces.map(f => (
+            <button key={f.id} type="button" disabled={f.claimed}
+              onClick={() => setFaceDialog(f)}
+              className={`relative aspect-[3/4] w-[30%] shrink-0 snap-start overflow-hidden rounded-xl border-2 bg-black/[0.04] transition ${f.claimed ? "cursor-not-allowed border-black/22 opacity-40" : imageSource === "ours" && avatarFaceId === f.id ? "border-slate-800" : "border-black/22"}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
+              {f.claimed && <span className="absolute bottom-1 left-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[11px] font-black text-white/70">Booked</span>}
+              {f.videoUrl && !f.claimed && <span className="pointer-events-none absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-[11px] text-white">▶</span>}
+              {isNewFace(f.createdAt) && !f.claimed && !(imageSource === "ours" && avatarFaceId === f.id) && <span className="pointer-events-none absolute right-1 top-1 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white shadow">New</span>}
+              {imageSource === "ours" && avatarFaceId === f.id && <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-slate-800 text-[13px] font-black text-white">✓</span>}
+            </button>
+          ))}
+        </div>
+        <div className="mt-3 rounded-2xl border border-black/15 bg-black/[0.04] p-4">
+          <span className={label}>Pick your influencer</span>
+          <p className="mt-0.5 text-[13px] font-bold text-slate-600">Tap a <b>one-of-a-kind</b> AI face above — or the first tile to use <b>your own photo</b>. We add new faces all the time.</p>
+          {avatarFaces.length > 0 && (
+            <div className="mt-3 rounded-2xl bg-gradient-to-r from-red-600 to-rose-500 px-4 py-2.5 text-center shadow-[0_6px_20px_rgba(220,38,38,0.45)]">
+              <p className="text-[15px] font-black uppercase leading-none tracking-tight text-white drop-shadow">🔥 Grab yours before she&apos;s gone!</p>
+              <p className="mt-1 text-[11px] font-black uppercase tracking-wide text-white/90">Each face = only ONE owner, ever</p>
             </div>
-          ) : (
-            <>
-              {/* Gallery FIRST — directly under the big card; the explanatory text follows below. */}
-              <div className="mt-4 flex snap-x gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {avatarFaces.map(f => (
-                  <button key={f.id} type="button" disabled={f.claimed}
-                    onClick={() => setFaceDialog(f)}
-                    className={`relative aspect-[3/4] w-[30%] shrink-0 snap-start overflow-hidden rounded-xl border-2 bg-black/[0.04] transition ${f.claimed ? "cursor-not-allowed border-black/22 opacity-40" : avatarFaceId === f.id ? "border-slate-800" : "border-black/22"}`}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
-                    {f.claimed && <span className="absolute bottom-1 left-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[11px] font-black text-white/70">Booked</span>}
-                    {f.videoUrl && !f.claimed && <span className="pointer-events-none absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-[11px] text-white">▶</span>}
-                    {isNewFace(f.createdAt) && !f.claimed && avatarFaceId !== f.id && <span className="pointer-events-none absolute right-1 top-1 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white shadow">New</span>}
-                    {avatarFaceId === f.id && <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-slate-800 text-[13px] font-black text-white">✓</span>}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-3 rounded-2xl border border-black/15 bg-black/[0.04] p-4">
-                <span className={label}>New influencer available today</span>
-                <p className="mt-0.5 text-[13px] font-bold text-slate-600">Each face is <b>one-of-a-kind</b> — tap one above to pick the influencer that fits. We add new ones all the time.</p>
-                <div className="mt-3 rounded-2xl bg-gradient-to-r from-red-600 to-rose-500 px-4 py-2.5 text-center shadow-[0_6px_20px_rgba(220,38,38,0.45)]">
-                  <p className="text-[15px] font-black uppercase leading-none tracking-tight text-white drop-shadow">🔥 Grab yours before she&apos;s gone!</p>
-                  <p className="mt-1 text-[11px] font-black uppercase tracking-wide text-white/90">Each face = only ONE owner, ever</p>
-                </div>
-                <p className="mt-2 text-[12px] font-bold text-slate-600">Uploading your own photos below is optional when you use our face.</p>
-              </div>
-            </>
-          )
-        )}
-
-        {/* Whose face? — pick one of our AI faces above, OR become the influencer yourself. */}
-        <div className="mt-5 rounded-2xl border border-black/22 bg-black/[0.03] p-4">
-          <span className={label}>Whose face?</span>
-          <p className="mb-2 text-[12px] font-bold text-slate-600">Choose one — it&apos;s either/or, you can&apos;t pick both.</p>
-          <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
-            <button type="button" onClick={() => setImageSource("ours")}
-              className={`rounded-2xl px-3 py-3 text-center text-[14px] font-black ${imageSource === "ours" ? `bg-slate-800 text-white ${btn3d}` : `border-[1.5px] border-slate-400 bg-white text-slate-800 ${raise}`}`}>
-              ✨ LuxuryBandit face<br /><span className={`text-[12px] font-bold ${imageSource === "ours" ? "text-white/75" : "text-slate-500"}`}>Use our AI faces</span>
-            </button>
-            <span className="self-center text-[12px] font-black text-slate-500">OR</span>
-            <button type="button" onClick={() => setImageSource("own")}
-              className={`rounded-2xl px-3 py-3 text-center text-[14px] font-black ${imageSource === "own" ? `bg-slate-800 text-white ${btn3d}` : `border-[1.5px] border-slate-400 bg-white text-slate-800 ${raise}`}`}>
-              📸 My own photos<br /><span className={`text-[12px] font-bold ${imageSource === "own" ? "text-white/75" : "text-slate-500"}`}>You become the influencer</span>
-            </button>
-          </div>
-          <p className="mt-2 text-[12px] font-bold text-slate-600">To protect everyone, an influencer can only use YOUR verified photos or our images — never someone else&apos;s face.</p>
+          )}
+          <p className="mt-2 text-[11px] font-bold text-slate-500">To protect everyone, an influencer can only use YOUR verified photo or our AI images — never someone else&apos;s face.</p>
         </div>
 
         {/* What you get after you sign up. */}
@@ -711,56 +703,11 @@ export default function CuratorApplyPage() {
           </ul>
         </div>
 
-        {/* Profile photos — one main + up to 3 more; the team picks the best one. */}
-        <div className="mt-5 flex flex-col items-center gap-2">
-          <span className={`${label} text-center`}>Profile photo{` `}· main</span>
-          {(() => {
-            const combined = [...profilePhotos.map(src => ({ src, isNew: true })), ...profileExisting.map(src => ({ src, isNew: false }))].slice(0, 4);
-            const remove = (p: { src: string; isNew: boolean }) => { if (p.isNew) setProfilePhotos(prev => prev.filter(s => s !== p.src)); else setProfileExisting(prev => prev.filter(s => s !== p.src)); };
-            const slot = (item: { src: string; isNew: boolean } | undefined, sizeCls: string, isMain: boolean) => item ? (
-              <div className="relative">
-                {/* Tap the photo itself to change it (opens the picker); the × removes it. */}
-                <button type="button" onClick={() => profileFileRef.current?.click()} title="Tap to change this photo" className="block">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.src} alt="" className={`${sizeCls} rounded-2xl object-cover object-top`} />
-                </button>
-                <button type="button" onClick={(e) => { e.stopPropagation(); remove(item); }}
-                  className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black text-white ring-1 ring-white/25">×</button>
-                {isMain && <span className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-slate-800 px-2 py-px text-[10px] font-black uppercase tracking-wide text-white">Main</span>}
-              </div>
-            ) : (
-              <button type="button" onClick={() => profileFileRef.current?.click()}
-                className={`${sizeCls} relative grid place-items-center overflow-hidden rounded-2xl border-2 border-dashed border-black/20 bg-black/[0.04] active:scale-95 transition-transform`}>
-                {isMain && combined.length === 0 ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/apply-example-face.jpg" alt="" className="h-full w-full object-cover object-top opacity-40" />
-                    <span className="absolute inset-0 grid place-items-center"><Camera className="h-6 w-6 text-slate-900 drop-shadow" /></span>
-                    <span className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white">Example</span>
-                  </>
-                ) : (
-                  <span className="grid place-items-center gap-0.5 text-slate-900"><Camera className={isMain ? "h-7 w-7" : "h-5 w-5"} /><span className="text-[10px] font-black">Add</span></span>
-                )}
-              </button>
-            );
-            const chosenFace = imageSource === "ours" && avatarFaceId ? avatarFaces.find(f => f.id === avatarFaceId) : null;
-            return (
-              <div className="flex flex-col items-center gap-2.5">
-                {chosenFace ? (
-                  <div className="relative">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={chosenFace.imageUrl} alt="" className="h-48 w-36 rounded-2xl object-contain bg-black/[0.04] ring-2 ring-slate-800" />
-                    <span className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-slate-800 px-2 py-px text-[10px] font-black uppercase tracking-wide text-white">Main</span>
-                  </div>
-                ) : imageSource === "ours" ? (
-                  <div className="grid h-48 w-36 place-items-center rounded-2xl border-2 border-dashed border-slate-400 bg-black/[0.03] px-3 text-center text-[12px] font-bold text-slate-600">Pick a face above ↑</div>
-                ) : slot(combined[0], "h-48 w-36", true)}
-              </div>
-            );
-          })()}
-          <p className="max-w-xs text-center text-[13px] font-bold text-slate-600">{imageSource === "ours" ? "Your chosen LuxuryBandit face becomes your public profile photo." : "One clear, well-lit face photo — this is you."}</p>
+        {/* Own photo + face selection now live in the gallery under the big card. Keep only the
+            rules link + the hidden file inputs the gallery's "your own photo" tile triggers. */}
+        <div className="mt-4 flex flex-col items-center gap-2">
           <button type="button" onClick={() => setRulesOpen(true)}
-            className="mt-1 text-[13px] font-black text-slate-700 underline underline-offset-2 active:opacity-70">
+            className="text-[13px] font-black text-slate-700 underline underline-offset-2 active:opacity-70">
             ⚠️ You get one shot — read the rules &amp; how it works
           </button>
           <input ref={profileFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
@@ -965,9 +912,9 @@ export default function CuratorApplyPage() {
             <div className="p-4">
               <p className="text-[13px] font-bold text-slate-700">This becomes <b className="text-slate-900">your face</b> — we dress her in your style, always the same face.</p>
               <div className="mt-3 flex gap-2">
-                <button type="button" onClick={() => { setAvatarFaceId(faceDialog.id); setFaceDialog(null); }}
+                <button type="button" onClick={() => { setImageSource("ours"); setAvatarFaceId(faceDialog.id); setFaceDialog(null); }}
                   className={`bg-slate-800 text-white flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl text-sm font-black ${btn3d}`}>
-                  {avatarFaceId === faceDialog.id ? "✓ This is my face" : "Use this face"}
+                  {imageSource === "ours" && avatarFaceId === faceDialog.id ? "✓ This is my face" : "Use this face"}
                 </button>
                 {getPin() && (
                   <button type="button" onClick={() => void startFaceCrop(faceDialog.imageUrl, faceDialog.id)}
