@@ -170,9 +170,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
     pathname.includes("/tryon") || // focused try-on funnel — no bottom nav (it cut off content)
     pathname.includes("/try/") ||  // new Try-On funnel (also /admin/try/*) — full-screen, no bottom nav
     pathname.includes("/chat/") || // dedicated chat page — full-screen, no bottom nav
-    pathname.includes("/luxury-products") || // Dupe-style funnel — its own top hamburger menu
-    pathname === "/" || // marketing landing (root rewrite) — full-width, its own top nav
-    pathname.startsWith("/own-influencer") // same landing on its direct URL
+    pathname.includes("/luxury-products") // Dupe-style funnel — its own top hamburger menu
   );
 
   const go = (tab: Tab, href: string) => {

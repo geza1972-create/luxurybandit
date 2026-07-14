@@ -82,7 +82,7 @@ export default async function OwnInfluencerLanding() {
 
       {/* ── Top nav ── */}
       <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0d0b0a]/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
           <Link href="/own-influencer" className="flex shrink-0 items-center gap-2.5">
             <img src="/lb-logo.png" alt="LuxuryBandit" className="h-9 w-9 shrink-0 rounded-full object-contain" />
             <span className="leading-none">
@@ -90,12 +90,12 @@ export default async function OwnInfluencerLanding() {
               <span className="block text-[9px] font-bold uppercase tracking-[0.2em] text-amber-400/80">AI Influencer Marketplace</span>
             </span>
           </Link>
-          <nav className="ml-auto hidden items-center gap-6 lg:flex">
+          <nav className="ml-auto hidden items-center gap-6">
             {NAV.map(n => (
               <Link key={n.label} href={n.href} className="text-[13px] font-bold text-white/70 transition hover:text-white">{n.label}</Link>
             ))}
           </nav>
-          <Link href="#launch" className="ml-auto shrink-0 rounded-full border border-amber-400 px-4 py-2 text-[13px] font-black text-amber-400 transition hover:bg-amber-400 hover:text-black lg:ml-4">
+          <Link href="#launch" className="ml-auto shrink-0 rounded-full border border-amber-400 px-4 py-2 text-[13px] font-black text-amber-400 transition hover:bg-amber-400 hover:text-black">
             Get Started
           </Link>
         </div>
@@ -103,9 +103,9 @@ export default async function OwnInfluencerLanding() {
 
       {/* ── Hero ── */}
       <section className="relative overflow-hidden border-b border-white/10">
-        <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-10 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:py-16">
+        <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-10">
           {/* Image */}
-          <div className="relative order-1 mx-auto w-full max-w-md overflow-hidden rounded-3xl lg:max-w-none">
+          <div className="relative order-1 mx-auto w-full max-w-md overflow-hidden rounded-3xl">
             {heroPhoto ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img src={heroPhoto} alt="Your AI influencer" className="aspect-[4/5] w-full rounded-3xl object-cover" />
@@ -115,17 +115,17 @@ export default async function OwnInfluencerLanding() {
             )}
           </div>
           {/* Copy */}
-          <div className="order-2 text-center lg:text-left">
-            <h1 className="text-[30px] font-black leading-[0.98] tracking-tight sm:text-[44px] lg:text-[60px]">
+          <div className="order-2 text-center">
+            <h1 className="text-[30px] font-black leading-[0.98] tracking-tight">
               OWN AN<br /><span className="text-amber-400">AI INFLUENCER.</span>
             </h1>
-            <p className="mt-3 text-[20px] font-black leading-tight sm:text-[24px]">We&apos;ll help her grow.</p>
-            <p className="mx-auto mt-4 max-w-md text-[15px] font-semibold leading-7 text-white/65 lg:mx-0">
+            <p className="mt-3 text-[20px] font-black leading-tight">We&apos;ll help her grow.</p>
+            <p className="mx-auto mt-4 max-w-md text-[15px] font-semibold leading-7 text-white/65">
               Launch your <strong className="text-white">AI influencer business</strong> on LuxuryBandit. We create the content, you build the audience and earn from premium fan experiences.
             </p>
-            <div className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-4 sm:grid-cols-4 lg:mx-0">
+            <div className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-4">
               {HERO_FEATURES.map(f => (
-                <div key={f.label} className="flex flex-col items-center gap-1.5 text-center lg:items-start lg:text-left">
+                <div key={f.label} className="flex flex-col items-center gap-1.5 text-center">
                   <f.icon className="h-6 w-6 text-amber-400" />
                   <span className="text-[12px] font-bold leading-tight text-white/70">{f.label}</span>
                 </div>
@@ -138,9 +138,9 @@ export default async function OwnInfluencerLanding() {
 
       {/* ── For Creators / For Fans ── */}
       <section className="border-b border-white/10">
-        <div className="mx-auto grid max-w-6xl gap-6 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:gap-8 lg:py-16">
+        <div className="mx-auto grid max-w-6xl gap-6 px-4 py-12">
           {/* Creators */}
-          <div id="creators" className="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
+          <div id="creators" className="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.03] p-6">
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">For Creators</p>
             <h2 className="mt-2 text-[26px] font-black leading-tight">Launch your<br />AI influencer business.</h2>
             <ul className="mt-5 space-y-2.5">
@@ -162,7 +162,7 @@ export default async function OwnInfluencerLanding() {
             </Link>
           </div>
           {/* Fans */}
-          <div id="fans" className="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
+          <div id="fans" className="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.03] p-6">
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">For Fans</p>
             <h2 className="mt-2 text-[26px] font-black leading-tight">Discover. Follow.<br />Connect.</h2>
             <ul className="mt-5 space-y-2.5">
@@ -189,9 +189,9 @@ export default async function OwnInfluencerLanding() {
 
       {/* ── How it works ── */}
       <section id="how" className="scroll-mt-24 border-b border-white/10">
-        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:py-16">
+        <div className="mx-auto max-w-6xl px-4 py-12">
           <h2 className="text-center text-[28px] font-black">How it works</h2>
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-8 grid gap-6">
             {STEPS.map((s, i) => (
               <div key={i} className="text-center">
                 <span className="mx-auto grid h-8 w-8 place-items-center rounded-full bg-amber-400 text-[14px] font-black text-black">{i + 1}</span>
@@ -206,11 +206,11 @@ export default async function OwnInfluencerLanding() {
 
       {/* ── Why + Start card ── */}
       <section id="pricing" className="scroll-mt-24 border-b border-white/10">
-        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:py-16">
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12">
           {/* Why */}
           <div>
             <h2 className="text-[26px] font-black uppercase tracking-tight text-amber-400">Why LuxuryBandit?</h2>
-            <div className="mt-6 grid gap-5 sm:grid-cols-2">
+            <div className="mt-6 grid gap-5">
               {WHY.map(w => (
                 <div key={w.t} className="flex gap-3">
                   <w.icon className="mt-0.5 h-6 w-6 shrink-0 text-amber-400" />
@@ -223,7 +223,7 @@ export default async function OwnInfluencerLanding() {
             </div>
           </div>
           {/* Start card */}
-          <div className="relative overflow-hidden rounded-3xl border border-amber-400/30 bg-gradient-to-b from-amber-400/[0.10] to-transparent p-6 sm:p-8">
+          <div className="relative overflow-hidden rounded-3xl border border-amber-400/30 bg-gradient-to-b from-amber-400/[0.10] to-transparent p-6">
             <p className="text-[12px] font-black uppercase tracking-[0.15em] text-amber-400">Start your journey today</p>
             <p className="mt-2 max-w-sm text-[14px] font-semibold leading-6 text-white/65">Join the first creators building their AI influencer business on LuxuryBandit.</p>
             <div className="mt-5 flex items-end gap-1">
@@ -237,14 +237,14 @@ export default async function OwnInfluencerLanding() {
 
       {/* ── Footer CTA ── */}
       <section className="border-b border-white/10 bg-white/[0.02]">
-        <div className="mx-auto max-w-3xl px-4 py-14 text-center sm:px-6">
+        <div className="mx-auto max-w-3xl px-4 py-14 text-center">
           <h2 className="text-[30px] font-black leading-tight">Own an AI Influencer.<br /><span className="text-amber-400">We&apos;ll help her grow.</span></h2>
           <div className="mx-auto mt-6 max-w-md"><OwnInfluencerCTA /></div>
         </div>
       </section>
 
       {/* ── Footer ── */}
-      <footer className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
+      <footer className="mx-auto max-w-6xl px-4 py-10">
         <div className="flex flex-col items-center gap-3 text-center">
           <img src="/lb-logo.png" alt="LuxuryBandit" className="h-11 w-11 rounded-full object-contain" />
           <span className="text-[15px] font-black tracking-wide">LUXURYBANDIT</span>
