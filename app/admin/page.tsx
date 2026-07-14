@@ -216,6 +216,7 @@ export default function AdminPage() {
   const [looks, setLooks] = useState<Look[]>([]);
   const [community, setCommunity] = useState<{ customerName?: string; curatorId?: string }[]>([]);
   const [sortC, setSortC] = useState<"new" | "looks" | "tryons" | "name">("new");
+  const [modelsView, setModelsView] = useState<"list" | "tools">("list"); // Models tab sub-view
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const pickSort = (key: "looks" | "tryons" | "name") => {
     if (sortC === key) setSortDir(d => (d === "desc" ? "asc" : "desc"));
@@ -1215,8 +1216,22 @@ export default function AdminPage() {
           </button>
         </div>
 
+        {/* Models tab → two sub-views: the model LIST, and TOOLS (kill-switches, newsletter,
+            resend, AI-face library). */}
+        {tab === "curators" && (
+          <div className="mt-3 flex gap-1 rounded-xl border border-black/10 bg-white p-1">
+            {(["list", "tools"] as const).map(v => (
+              <button key={v} type="button" onClick={() => setModelsView(v)}
+                className={`flex h-9 flex-1 items-center justify-center rounded-lg text-xs font-black transition ${modelsView === v ? "bg-black text-white" : "text-ink/50"}`}>
+                {v === "list" ? "Models List" : "Models Tools"}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Global try-on kill-switch — flip it to instantly pause end-user generation
             ("coming soon"); clicks are still counted, and you + curators keep full access. */}
+        {tab === "curators" && modelsView === "tools" && (<>
         <section className={`mt-3 flex items-center gap-3 rounded-xl border p-3 ${tryonPaused ? "border-amber-300 bg-amber-50" : "border-black/10 bg-white"}`}>
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/[0.06] text-base">{tryonPaused ? "⏸️" : "▶️"}</span>
           <div className="min-w-0 flex-1">
@@ -1293,8 +1308,9 @@ export default function AdminPage() {
           </div>
           {rsMsg && <p className="mt-1.5 text-[11px] font-black text-ink/60">{rsMsg}</p>}
         </section>
+        </>)}
 
-        {tab !== "inbox" && tab !== "insights" && (
+        {tab !== "inbox" && tab !== "insights" && !(tab === "curators" && modelsView === "tools") && (
           <div className="mt-3 flex items-center gap-2">
             <div className="flex flex-1 items-center gap-2 rounded-xl border border-black/10 bg-white px-3">
               <Search className="h-4 w-4 text-ink/30" />
@@ -1577,7 +1593,7 @@ export default function AdminPage() {
             reuse elsewhere if needed. */}
         {/* Payout requests — models withdraw their video earnings; you transfer the money
             (IBAN/PayPal) then tap "Mark paid". */}
-        {tab === "curators" && pendingPayouts.length > 0 && (
+        {tab === "curators" && modelsView === "tools" && pendingPayouts.length > 0 && (
           <div className="mt-3 rounded-2xl border border-amber-400/40 bg-amber-50 p-3">
             <p className="flex items-center gap-1.5 text-[12px] font-black text-amber-800">💸 Payout requests <span className="rounded-full bg-amber-500 px-1.5 text-[10px] text-white">{pendingPayouts.length}</span></p>
             <div className="mt-2 space-y-1.5">
@@ -1597,7 +1613,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {tab === "curators" && (
+        {tab === "curators" && modelsView === "list" && (
           <div className="mt-3 flex items-center gap-1.5">
             <span className="text-[11px] font-black uppercase tracking-wider text-ink/35">Sort</span>
             {([["new", "Newest"], ["looks", "Looks"], ["tryons", "Try-ons"], ["name", "Name"]] as const).map(([key, label]) => (
@@ -1614,7 +1630,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {tab === "curators" && (
+        {tab === "curators" && modelsView === "tools" && (
           <div className="mt-3 rounded-2xl border border-black/10 bg-white p-3">
             <div className="flex items-center justify-between">
               <div>
@@ -1754,7 +1770,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {tab === "curators" && (
+        {tab === "curators" && modelsView === "list" && (
           <div className="mt-2 grid grid-cols-1 gap-2 pb-16 lg:grid-cols-2 xl:grid-cols-3">
             {/* One shared file input — pickModelVideo() sets the target model, then opens it. */}
             <input ref={vidFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden"
