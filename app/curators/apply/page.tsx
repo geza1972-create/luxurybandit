@@ -44,7 +44,7 @@ export default function CuratorApplyPage() {
   const [fitFocus, setFitFocus] = useState<string[]>([]);
   // CONCEPT 2.0 creation tool: which role model's STYLE you emulate + where your face comes from.
   const [styleModelId, setStyleModelId] = useState("");
-  const [imageSource, setImageSource] = useState<"own" | "ours">("own"); // own photos (you) vs our images (anti-deepfake: never someone else's face)
+  const [imageSource, setImageSource] = useState<"own" | "ours">("ours"); // default to our AI faces (the "own an AI influencer" funnel); "own" = your own photos
   const [roleModels, setRoleModels] = useState<{ id: string; name: string; photoUrl?: string; style?: string }[]>([]);
   const [avatarFaces, setAvatarFaces] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean }[]>([]);
   const [faceDialog, setFaceDialog] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean } | null>(null); // preview + take a face
