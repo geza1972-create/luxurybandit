@@ -865,7 +865,7 @@ export default function CuratorApplyPage() {
         <button type="button" onClick={() => void submit()} disabled={submitting}
           className={`bg-slate-800 text-white flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black disabled:opacity-50 ${btn3d}`}>
           {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Coins className="h-5 w-5" />}
-          {submitting ? (editId ? "Saving…" : "Setting up…") : (editId ? "Save changes" : "Sign up & start earning")}
+          {submitting ? (editId ? "Saving…" : "Setting up…") : (editId ? "Save changes" : "OWN THE INFLUENCER — $8")}
         </button>
         <p className="mt-1.5 text-center text-[12px] font-bold text-slate-600">
           {editId ? "Changes go live immediately" : <>First month <b className="text-slate-900">$8</b>, then $49/mo · cancel anytime · 🔒 secure Stripe checkout</>}
@@ -875,11 +875,6 @@ export default function CuratorApplyPage() {
       {cropSrc && (
         <PhotoCropper src={cropSrc} aspect="portrait" onCancel={() => setCropSrc("")}
           onDone={(dataUrl) => { setPhoto(dataUrl); setPhotoFull(cropSrc); setCropSrc(""); }} />
-      )}
-      {/* Admin: re-crop a pool face → replace it (3:4). */}
-      {faceCropSrc && (
-        <PhotoCropper src={faceCropSrc} aspect="portrait" onCancel={() => { setFaceCropSrc(""); setFaceCropId(""); }}
-          onDone={(dataUrl) => void saveFaceCrop(dataUrl)} />
       )}
       {bodyCropSrc && (
         <PhotoCropper src={bodyCropSrc} aspect="portrait" onCancel={() => setBodyCropSrc("")}
@@ -923,10 +918,7 @@ export default function CuratorApplyPage() {
                   className={`bg-slate-800 text-white flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl text-sm font-black ${btn3d}`}>
                   {imageSource === "ours" && avatarFaceId === faceDialog.id ? "✓ This is my face" : "Use this face"}
                 </button>
-                {getPin() && (
-                  <button type="button" onClick={() => void startFaceCrop(faceDialog.imageUrl, faceDialog.id)}
-                    className="flex h-12 items-center justify-center rounded-2xl border-[1.5px] border-slate-400 px-3 text-sm font-black text-slate-800">✂️ Crop</button>
-                )}
+                {/* Face cropping lives in the Admin dashboard now — not in the signup funnel. */}
                 <button type="button" onClick={() => setFaceDialog(null)}
                   className="flex h-12 items-center justify-center rounded-2xl border-[1.5px] border-slate-400 px-4 text-sm font-black text-slate-800">Close</button>
               </div>
