@@ -42,6 +42,14 @@
     background: #fbfaf7;
     box-shadow: 0 0 60px rgba(0, 0, 0, 0.45);
   }
+  /* The ADMIN dashboard is a real desktop tool — break it out of the mobile phone column. */
+  .lb-frame:has(.lb-admin) {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    background: transparent;
+    box-shadow: none;
+  }
   /* Full-bleed FIXED overlays (reels feed, bottom nav) are viewport-fixed, so they'd
      span the whole desktop — center them into the same phone column instead. */
   .lb-phone-col {

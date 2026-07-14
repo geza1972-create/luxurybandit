@@ -23,7 +23,7 @@ type Curator = {
   colors?: string; fabrics?: string; occasions?: string; priceTiers?: string; fitFocus?: string;
   motto?: string; bio?: string;
   status?: "active" | "pending" | "deactivated";
-  photoUrl?: string; credits?: number; creditsSpent?: number; createdAt?: string;
+  photoUrl?: string; credits?: number; creditsSpent?: number; createdAt?: string; priceCents?: number;
   // Server-computed engagement (curators=1): comments on her posts, total views
   // (boost + real), and "See her in other looks" taps.
   commentCount?: number; viewTotal?: number; tryonClicks?: number;
@@ -780,6 +780,20 @@ export default function AdminPage() {
     setBusy("");
   };
 
+  // Set her base sale price ($). Grow-pricing adds videos/looks/days on top (see lib/influencer-price).
+  const setModelPrice = async (c: Curator) => {
+    const input = window.prompt(`Base price for ${fullName(c)} — in $ (buyers pay this + $3.99/video + $3/look + $1/day owned):`, ((c.priceCents ?? 0) / 100).toString());
+    if (input === null) return;
+    const cents = Math.max(0, Math.round(parseFloat(input.replace(",", ".")) * 100) || 0);
+    setBusy(`price-${c.id}`); setError("");
+    try {
+      const r = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "update", id: c.id, priceCents: cents }) });
+      if (r.ok) setCurators(cs => cs.map(x => x.id === c.id ? { ...x, priceCents: cents } : x));
+      else await fail(r, "Could not set price");
+    } catch { setError("Network error."); }
+    setBusy("");
+  };
+
   // Mark a model's payout request as paid (after you've transferred the money).
   const markPayoutPaid = async (curatorId: string, requestId: string) => {
     setBusy(requestId); setError("");
@@ -1150,8 +1164,8 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen w-full overflow-x-hidden bg-[#fbfaf7] px-4 py-5 text-ink">
-      <div className="mx-auto w-full max-w-3xl">
+    <main className="lb-admin min-h-screen w-full overflow-x-hidden bg-[#fbfaf7] px-4 py-5 text-ink lg:px-8">
+      <div className="mx-auto w-full max-w-3xl lg:max-w-6xl">
         <header className="flex items-center justify-between gap-3">
           <div>
             <div className="text-[11px] font-black uppercase tracking-[0.18em] text-cobalt">LuxuryBandit</div>
@@ -1478,7 +1492,7 @@ export default function AdminPage() {
               </div>
             );
           })()}
-          <div className="mt-3 grid grid-cols-1 gap-2 pb-16">
+          <div className="mt-3 grid grid-cols-1 gap-2 pb-16 lg:grid-cols-2">
             {shownLooks.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No listings.</p>}
             {shownLooks.map(l => {
               const live = l.published !== false;
@@ -1700,7 +1714,7 @@ export default function AdminPage() {
               onChange={e => { void uploadFaces(e.target.files); e.target.value = ""; }} />
             {faceErr && <p className="mt-2 text-[12px] font-bold text-red-500">{faceErr}</p>}
             {faces.length > 0 && (
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
                 {faces.map(f => (
                   <div key={f.id} className="rounded-xl border border-black/10 bg-black/[0.02] p-1.5">
                     <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-black/[0.04]">
@@ -1741,7 +1755,7 @@ export default function AdminPage() {
         )}
 
         {tab === "curators" && (
-          <div className="mt-2 grid grid-cols-1 gap-2 pb-16">
+          <div className="mt-2 grid grid-cols-1 gap-2 pb-16 lg:grid-cols-2">
             {/* One shared file input — pickModelVideo() sets the target model, then opens it. */}
             <input ref={vidFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) void uploadModelVideo(f); e.target.value = ""; }} />
@@ -1802,6 +1816,16 @@ export default function AdminPage() {
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${sortC === "looks" ? "bg-cobalt/10 text-cobalt" : "bg-black/5 text-ink/50"}`}>{looksByCurator.get(c.id) ?? 0} looks</span>
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${sortC === "tryons" ? "bg-cobalt/10 text-cobalt" : "bg-black/5 text-ink/50"}`}>{tryonsByCurator.get(c.id) ?? 0} try-ons</span>
                       {!house && typeof c.credits === "number" && <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">{c.credits} cr</span>}
+                      {/* Base sale price — tap to change (grow-pricing adds videos/looks/days on top). */}
+                      {!house && (
+                        <button type="button" disabled={busy === `price-${c.id}`}
+                          onClick={e => { e.stopPropagation(); void setModelPrice(c); }}
+                          title="Base price — tap to change"
+                          className="inline-flex items-center gap-1 rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-black text-amber-700 ring-1 ring-amber-400/40 transition active:scale-95 disabled:opacity-50">
+                          {busy === `price-${c.id}` ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : null}
+                          💲{(((c.priceCents ?? 0) / 100)).toLocaleString("en-US", { minimumFractionDigits: (c.priceCents ?? 0) % 100 ? 2 : 0, maximumFractionDigits: 2 })}
+                        </button>
+                      )}
                       {/* Engagement: comments on her posts · views (boost+real) · "See her in other looks" taps */}
                       {!house && (() => { const k = (n?: number) => (n ?? 0) >= 1000 ? `${((n ?? 0) / 1000).toFixed((n ?? 0) >= 10000 ? 0 : 1)}k` : String(n ?? 0); return (
                         <>
