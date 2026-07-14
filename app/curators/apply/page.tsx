@@ -319,13 +319,12 @@ export default function CuratorApplyPage() {
       setAppliedCuratorId(data.curatorId || "");
       setAppliedFaceId(data.avatarFaceId || "");
       // One package purchase at the end: start the $8-first-month subscription now.
-      // Admins (testing) get the promo-code field instead of the auto $8 coupon, so a
-      // 100%-off test code can be entered; real users keep the auto first-month coupon.
+      // The auto first-month coupon is applied for EVERYONE (incl. admins) so the checkout
+      // always shows "$8 first month" — that's the buy trigger. (No promo-code field then.)
       try {
-        const adminTest = (() => { try { return !!localStorage.getItem("luxurybandit-try-look-admin-pin"); } catch { return false; } })();
         const pr = await fetch("/api/premium", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim(), returnPath: "/own-influencer", ...(adminTest ? { allowPromo: true } : {}) }),
+          body: JSON.stringify({ email: email.trim(), returnPath: "/own-influencer" }),
         }).then(x => x.json()).catch(() => null);
         if (pr?.url) { window.location.href = pr.url as string; return; }
       } catch { /**/ }
