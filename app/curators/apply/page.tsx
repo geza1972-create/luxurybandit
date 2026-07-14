@@ -700,7 +700,7 @@ export default function CuratorApplyPage() {
             <li className="flex gap-2"><span>📱</span> She gets her own public profile — like the card above.</li>
             <li className="flex gap-2"><span>💬</span> Chat with her yourself — and her fans discover, follow &amp; chat with her too.</li>
             <li className="flex gap-2"><span>🎬</span> When anyone does a try-on with her, you earn <b>30% back in credits</b>.</li>
-            <li className="flex gap-2"><span>💰</span> Plus you earn from premium fan experiences.</li>
+            <li className="flex gap-2"><span>💬</span> Fans get 10 free messages, then pay <b>$3.99 for 30 min</b> to chat with her — you earn from it.</li>
           </ul>
         </div>
 

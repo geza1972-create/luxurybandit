@@ -68,7 +68,7 @@ export default async function OwnInfluencerLanding() {
     { icon: MessageCircle, label: "Premium fan interactions" },
     { icon: TrendingUp, label: "You earn revenue" },
   ];
-  const CREATOR_POINTS = ["We create fresh content every day", "No AI skills required", "No editing or posting", "Chat with her yourself, anytime", "Earn 30% in credits when others try on her looks", "Earn from premium fan experiences"];
+  const CREATOR_POINTS = ["We create fresh content every day", "No AI skills required", "No editing or posting", "Chat with her yourself, anytime", "Earn 30% in credits when others try on her looks", "Earn when fans pay to chat with her"];
   const FAN_POINTS = ["Discover amazing AI influencers", "Chat with your favorites", "Unlock exclusive content", "Watch premium videos", "Try on her looks"];
   const STEPS = [
     { icon: Users, t: "Create your influencer", d: "Choose a style or create your own AI influencer." },
