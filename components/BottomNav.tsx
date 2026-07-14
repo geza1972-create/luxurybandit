@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu } from "lucide-react";
+import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid } from "lucide-react";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -345,16 +345,16 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               {isCurator && (
                 <button type="button" onClick={() => navigate(curatorId ? `/curator/${curatorId}` : "/stores")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <Sparkles className="h-5 w-5 shrink-0 text-white/50" />
-                  <span className="text-sm font-black text-white">My model page</span>
+                  <LayoutGrid className="h-5 w-5 shrink-0 text-[#b8912f]" />
+                  <span className="text-sm font-black text-white">My Dashboard</span>
                 </button>
               )}
-              {/* Curator → My profile (their form data); others → generic account */}
+              {/* Curator → her dark front-end influencer profile (all her entered data). */}
               {isCurator ? (
-                <button type="button" onClick={() => navigate("/curators/profile")}
+                <button type="button" onClick={() => navigate(curatorId ? `/curator/${curatorId}` : "/stores")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <User className="h-5 w-5 text-white/50 shrink-0" />
-                  <span className="text-sm font-black text-white">My profile</span>
+                  <span className="text-sm font-black text-white">My Influencer profile</span>
                 </button>
               ) : (
                 <button type="button" onClick={() => navigate(slug ? `/${slug}/myaccount` : "/user/myaccount")}
