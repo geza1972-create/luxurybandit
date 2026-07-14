@@ -521,7 +521,7 @@ export default function CuratorPublicPage() {
         method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() },
         body: JSON.stringify({ curatorId: id }),
       }).then(x => x.json()).catch(() => null);
-      setOnbMsg(r?.ok ? "✓ Onboarding email sent" : (r?.error || "Could not send"));
+      setOnbMsg(r?.ok ? "✓ Onboarding email sent" : (r?.error || (r?.skipped ? `Not sent: ${r.skipped}` : "Could not send")));
     } catch { setOnbMsg("Could not send"); }
     finally { setOnbBusy(false); }
   };
