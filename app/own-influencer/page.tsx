@@ -5,6 +5,7 @@ import TrackView from "@/components/TrackView";
 import LazyVideo from "@/components/LazyVideo";
 import OwnInfluencerCTA from "@/components/OwnInfluencerCTA";
 import AboutVideoPicker from "@/components/AboutVideoPicker";
+import BuyModelGrid from "@/components/BuyModelGrid";
 
 export const metadata = {
   title: "LuxuryBandit — Own an AI Influencer. We'll help her grow.",
@@ -38,7 +39,17 @@ async function landingData() {
     const models = curators
       .filter(c => (c as { photoUrl?: string }).photoUrl && String((c as { status?: string }).status ?? "active") === "active" && !(c as { hidden?: boolean }).hidden)
       .slice(0, 6)
-      .map(c => ({ name: [(c as { firstName?: string }).firstName, (c as { lastName?: string }).lastName].filter(Boolean).join(" "), photo: (c as { photoUrl?: string }).photoUrl as string }));
+      .map(c => {
+        const cid = (c as { id?: string }).id;
+        const v = vids.find(g => (g as { curatorId?: string }).curatorId === cid && (g as { public?: boolean }).public === true);
+        const photo = (c as { photoUrl?: string }).photoUrl as string;
+        return {
+          name: [(c as { firstName?: string }).firstName, (c as { lastName?: string }).lastName].filter(Boolean).join(" "),
+          photo,
+          video: (v ? (v as { videoUrl?: string }).videoUrl : "") as string,
+          poster: (v ? ((v as { imageUrl?: string }).imageUrl || photo) : photo) as string,
+        };
+      });
     return { heroPhoto: (gina?.photoUrl ?? models[0]?.photo ?? "") as string, clips, models };
   } catch { return { heroPhoto: "", clips: [] as { poster: string; video: string }[], models: [] as { name: string; photo: string }[] }; }
 }
@@ -177,16 +188,14 @@ export default async function OwnInfluencerLanding() {
               ))}
             </ul>
             {models.length >= 4 && (
-              <div className="mt-6 grid grid-cols-3 gap-2">
-                {models.slice(0, 6).map((m, i) => (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img key={i} src={m.photo} alt={m.name} className="aspect-[3/4] w-full rounded-xl object-cover" />
-                ))}
+              <div className="mt-6 border-t border-white/10 pt-5">
+                <p className="text-[14px] font-black text-white">Own a unique AI influencer</p>
+                <p className="mt-1 text-[12px] font-semibold leading-relaxed text-white/60">
+                  Every one is one-of-a-kind. These are <span className="font-black text-emerald-400">still free</span> — buy now and claim her before someone else does.
+                </p>
+                <BuyModelGrid models={models.slice(0, 6)} />
               </div>
             )}
-            <Link href="/stores?view=grid" className="mt-6 inline-flex rounded-full border border-white/20 px-5 py-2.5 text-[13px] font-black text-white transition hover:border-amber-400 hover:text-amber-400">
-              Explore the marketplace
-            </Link>
           </div>
         </div>
       </section>
