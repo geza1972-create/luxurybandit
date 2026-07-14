@@ -1555,7 +1555,10 @@ function StoresPage() {
   // Home/start page (/stores?view=grid) opens on the "Let's Play Big" feeds grid — NOT Models.
   // Initial tab from the URL so a shared link opens the right section (?view=models
   // / ?view=garderobe). Everything else lands on the feeds tab.
+  // /wardrobe is the clean-URL alias for the Wardrobe (garderobe) gallery.
+  const onWardrobe = pathname.endsWith("/wardrobe");
   const [homeTab, setHomeTab] = useState<"feeds" | "models" | "garderobe">(() => {
+    if (onWardrobe) return "garderobe";
     const v = searchParams.get("view");
     return v === "models" ? "models" : v === "garderobe" ? "garderobe" : "feeds";
   });
@@ -1809,7 +1812,7 @@ function StoresPage() {
   const showAList = false; // The A List was removed — one feed now (legacy ?view=alist → grid)
   // /home (the start page, its own clean URL) always shows the grid — same as ?view=grid.
   const onHome = pathname.endsWith("/home");
-  const showGrid = view === "grid" || view === "alist" || view === "models" || view === "garderobe" || onHome;
+  const showGrid = view === "grid" || view === "alist" || view === "models" || view === "garderobe" || onHome || onWardrobe;
   // Account/Saved deep links open over the grid, not the immersive reels.
   const showReels = !showAList && !showGrid && !searchParams.get("panel"); // default
   // Keep ?view in sync with the active home tab so the address bar is always
@@ -1817,6 +1820,7 @@ function StoresPage() {
   // Only manage it inside the grid overview, where the tab toggle is visible.
   useEffect(() => {
     if (!showGrid) return;
+    if (onWardrobe) return; // /wardrobe is its own clean URL — don't mirror ?view onto it
     const cur = searchParams.get("view");
     let want: string | null = null;
     if (homeTab === "models") want = "models";

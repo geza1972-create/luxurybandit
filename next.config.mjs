@@ -19,6 +19,9 @@ const nextConfig = {
         // root — URL stays clean (no /own-influencer in the address bar). The app itself
         // still lives at /home, /stores, /clothes, /luxury-products, …
         { source: "/", destination: "/own-influencer" },
+        // /wardrobe is a clean URL for the Wardrobe (garderobe) gallery — the browser
+        // URL stays /wardrobe while /stores renders it (usePathname → onWardrobe → garderobe tab).
+        { source: "/wardrobe", destination: "/stores" },
       ],
       afterFiles: [
         { source: "/admin/:path*", destination: "/:path*" },

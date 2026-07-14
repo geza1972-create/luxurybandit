@@ -308,10 +308,10 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <ImageIcon className="h-5 w-5 shrink-0 text-white/50" />
                 <span className="text-sm font-black text-white">Looks - Gallery</span>
               </button>
-              <button type="button" onClick={() => navigate("/clothes")}
+              <button type="button" onClick={() => navigate("/wardrobe")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <Shirt className="h-5 w-5 shrink-0 text-[#b8912f]" />
-                <span className="text-sm font-black text-white">Clothes</span>
+                <span className="text-sm font-black text-white">Wardrobe</span>
               </button>
               <button type="button" onClick={() => navigate("/stores?view=models")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">

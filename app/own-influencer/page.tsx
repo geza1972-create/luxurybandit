@@ -212,7 +212,7 @@ export default async function OwnInfluencerLanding() {
               ))}
             </ul>
             <WardrobePeek />
-            <Link href="/clothes" className="mt-6 inline-flex rounded-full border border-white/20 px-5 py-2.5 text-[13px] font-black text-white transition hover:border-amber-400 hover:text-amber-400">
+            <Link href="/wardrobe" className="mt-6 inline-flex rounded-full border border-white/20 px-5 py-2.5 text-[13px] font-black text-white transition hover:border-amber-400 hover:text-amber-400">
               Browse the wardrobe
             </Link>
           </div>

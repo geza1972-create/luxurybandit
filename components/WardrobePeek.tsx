@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-type Outfit = { id: string; imageUrl?: string; lookId?: string };
+type Look = { productType?: string; wardrobe?: boolean; frontImageUrl?: string; imageUrl?: string; published?: boolean };
 
-// A peek at OUR wardrobe — the admin-managed outfit gallery (state.outfits, the
-// garments you upload at /admin/outfits and dress the influencer in). NOT the
-// /clothes catalogue (that mixes Bellucci + model look-photos). GET is signed & cheap.
+// A peek at OUR Wardrobe — the exact same garments as the /wardrobe (garderobe) gallery:
+// looks flagged productType "ai" or wardrobe. Thumbnail = frontImageUrl || imageUrl.
+// GET is signed & cheap. (NOT the /clothes catalogue — that mixes Bellucci + model photos.)
 export default function WardrobePeek() {
   const [imgs, setImgs] = useState<string[]>([]);
 
@@ -17,8 +17,11 @@ export default function WardrobePeek() {
         const r = await fetch("/api/try-this-look", { cache: "no-store" });
         const d = await r.json().catch(() => ({}));
         if (!alive) return;
-        const outfits: Outfit[] = Array.isArray(d.outfits) ? d.outfits : [];
-        const urls = outfits.map(o => o.imageUrl || "").filter(Boolean);
+        const looks: Look[] = Array.isArray(d.looks) ? d.looks : [];
+        const urls = looks
+          .filter(l => (l.productType === "ai" || l.wardrobe) && (l.frontImageUrl || l.imageUrl) && l.published !== false)
+          .map(l => l.frontImageUrl || l.imageUrl || "")
+          .filter(Boolean);
         setImgs([...new Set(urls)].slice(0, 12));
       } catch { /* silent — box just hides its image row */ }
     })();
