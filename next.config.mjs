@@ -38,9 +38,17 @@ const nextConfig = {
         permanent: false
       },
       {
-        // Romanian route names retired → English. Old bookmarks/shares keep working.
+        // The old /clothes catalogue (mixed Bellucci + model look-photos) is retired —
+        // the real garment gallery is /wardrobe. Redirect so stale menu links / bookmarks
+        // land on the correct wardrobe, never the old wrong catalogue.
+        source: "/clothes",
+        destination: "/wardrobe",
+        permanent: false
+      },
+      {
+        // Romanian route name retired → the wardrobe. Old bookmarks/shares keep working.
         source: "/haine",
-        destination: "/clothes",
+        destination: "/wardrobe",
         permanent: false
       },
       {
