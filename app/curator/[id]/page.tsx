@@ -811,12 +811,9 @@ export default function CuratorPublicPage() {
                 {profile.firstName ? `${profile.firstName}'s favorite brands` : "Favorite brands"}
               </p>
               <div className="flex flex-wrap items-center gap-1.5">
-                {list.map((b, i) => {
-                  const isGB = b.toLowerCase().replace(/\s+/g, "") === "giannabellucci";
-                  return <span key={i} className={isGB
-                    ? "rounded-full bg-amber-400 px-2.5 py-1 text-[11px] font-black text-black"
-                    : "rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-black text-amber-300 ring-1 ring-amber-400/25"}>{b}</span>;
-                })}
+                {list.map((b, i) => (
+                  <span key={i} className="rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-black text-amber-300 ring-1 ring-amber-400/25">{b}</span>
+                ))}
               </div>
             </div>
           );
