@@ -27,7 +27,7 @@ const CHAT_T: Record<Lang, { who: string; name: string; msg: (f: string) => stri
 };
 
 // Free users get a few lines to try; after that the composer locks and we upsell.
-const FREE_USER_MESSAGES = 30;
+const FREE_USER_MESSAGES = 10;
 // When the model offers to show herself in hot outfits (e.g. after a nudes request), the
 // AI ends its reply with this tag; the client hides the tag and renders tappable lingerie
 // looks she can be tried on in — turning the request into a paid try-on.
@@ -46,7 +46,7 @@ const GIFTS = [
 ];
 
 export default function ModelChat({
-  open, onClose, curatorId, modelName, modelFirstName, bio, style, avatarUrl, isPaid, onNeedPremium, page = false,
+  open, onClose, curatorId, modelName, modelFirstName, bio, style, avatarUrl, isPaid, onNeedPremium, isOwn = false, onBuyPass, page = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -58,6 +58,8 @@ export default function ModelChat({
   avatarUrl?: string;
   isPaid: boolean;
   onNeedPremium: () => void;
+  isOwn?: boolean;              // true = this is the viewer's OWN influencer → free unlimited chat
+  onBuyPass?: () => void;       // buy a $3.99 / 30-min chat pass for THIS influencer (falls back to onNeedPremium)
   page?: boolean; // true = render as a full dedicated page (no overlay/backdrop) — avoids the iOS keyboard bug
 }) {
   const router = useRouter();
@@ -165,7 +167,9 @@ export default function ModelChat({
   if (!open) return null;
 
   const userTurns = messages.filter(m => m.role === "user").length;
-  const locked = !isPaid && userTurns >= FREE_USER_MESSAGES;
+  // Your OWN influencer → always free. Everyone else (fans AND subscribers chatting with
+  // someone else's influencer) gets 10 free messages, then the wall (own one / $3.99 pass).
+  const locked = !isOwn && userTurns >= FREE_USER_MESSAGES;
 
   const submitName = () => {
     const n = input.trim();
@@ -318,16 +322,25 @@ export default function ModelChat({
 
           {error && <p className="text-center text-[12px] font-bold text-red-400">{error}</p>}
 
-          {/* Premium wall — free trial used up */}
+          {/* Wall after the free messages — a promo with two ways to keep going. */}
           {locked && (
             <div className="mt-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-center">
-              <Lock className="mx-auto h-5 w-5 text-amber-400" />
-              <p className="mt-2 text-sm font-black text-white">Keep chatting with {first}</p>
-              <p className="mt-1 text-[12px] font-bold text-white/55">You&apos;ve used your {FREE_USER_MESSAGES} free messages. Go Premium to chat with {first} without limits — and your conversations are saved so you can pick up where you left off.</p>
-              <button type="button" onClick={onNeedPremium}
-                className="lb-gold mt-3 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[13px] font-black active:scale-95 transition">
-                <Sparkles className="h-4 w-4" /> Unlock Premium
-              </button>
+              <p className="text-sm font-black text-white">Loving {first}? 💛</p>
+              <p className="mt-1 text-[12px] font-bold text-white/55">You&apos;ve used your {FREE_USER_MESSAGES} free messages. Keep going —</p>
+              <div className="mt-3 grid gap-2">
+                {/* Own your own influencer → chat with HER free, forever. */}
+                <button type="button" onClick={() => router.push("/curators/apply")}
+                  className="lb-gold flex w-full flex-col items-center rounded-2xl px-4 py-3 active:scale-95 transition">
+                  <span className="text-[14px] font-black">👑 Own your own AI influencer</span>
+                  <span className="text-[11px] font-bold text-black/60">Get your own — and chat with her free, forever</span>
+                </button>
+                {/* Pay to keep chatting with THIS one. */}
+                <button type="button" onClick={() => (onBuyPass ?? onNeedPremium)()}
+                  className="flex w-full flex-col items-center rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-white active:scale-95 transition">
+                  <span className="text-[14px] font-black">💬 Chat with {first} — $3.99</span>
+                  <span className="text-[11px] font-bold text-white/50">30 minutes, unlimited messages</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -335,10 +348,16 @@ export default function ModelChat({
         {/* Composer */}
         <div className="shrink-0 border-t border-white/10 px-3 pt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.85rem)" }}>
           {locked ? (
-            <button type="button" onClick={onNeedPremium}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-white/10 text-sm font-black text-white/70 active:scale-95 transition">
-              <Lock className="h-4 w-4" /> Go Premium to keep chatting
-            </button>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => router.push("/curators/apply")}
+                className="lb-gold flex h-12 flex-1 items-center justify-center gap-1.5 rounded-full text-[13px] font-black active:scale-95 transition">
+                👑 Own your own
+              </button>
+              <button type="button" onClick={() => (onBuyPass ?? onNeedPremium)()}
+                className="flex h-12 flex-1 items-center justify-center gap-1.5 rounded-full bg-white/10 text-[13px] font-black text-white/80 active:scale-95 transition">
+                $3.99 · 30 min
+              </button>
+            </div>
           ) : (
             <>
               {/* Emoji palette */}
@@ -391,8 +410,8 @@ export default function ModelChat({
               </div>
             </>
           )}
-          {!isPaid && stage === "chat" && !locked && (
-            <p className="mt-2 text-center text-[11px] font-bold text-white/30">{Math.max(0, FREE_USER_MESSAGES - userTurns)} free messages left · Premium saves your chat</p>
+          {!isOwn && stage === "chat" && !locked && (
+            <p className="mt-2 text-center text-[11px] font-bold text-white/30">{Math.max(0, FREE_USER_MESSAGES - userTurns)} free messages left</p>
           )}
           {/* AI transparency (EU AI Act) — users must be told they're chatting with an AI. */}
           <p className="mt-1.5 text-center text-[11px] font-bold text-white/45">✨ You&apos;re chatting with {first}&apos;s AI Assistant — an AI persona, not the real person.</p>
