@@ -324,7 +324,8 @@ export default function CuratorApplyPage() {
       try {
         const pr = await fetch("/api/premium", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim(), returnPath: "/own-influencer" }),
+          // Success → landing (confirmation). Back/cancel → THIS form, so the session isn't lost.
+          body: JSON.stringify({ email: email.trim(), returnPath: "/own-influencer", cancelPath: window.location.pathname }),
         }).then(x => x.json()).catch(() => null);
         if (pr?.url) { window.location.href = pr.url as string; return; }
       } catch { /**/ }

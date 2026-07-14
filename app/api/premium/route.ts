@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   if (!stripeConfigured()) {
     return NextResponse.json({ error: "Payments aren't set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { email?: string; returnPath?: string; allowPromo?: boolean; action?: string; plan?: string };
+  const body = (await request.json().catch(() => ({}))) as { email?: string; returnPath?: string; cancelPath?: string; allowPromo?: boolean; action?: string; plan?: string };
   const email = String(body.email ?? "").trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return NextResponse.json({ error: "Sign in first so we can link your subscription." }, { status: 401 });
@@ -54,6 +54,11 @@ export async function POST(request: Request) {
   const rp = String(body.returnPath ?? "/stores");
   const safeRp = rp.startsWith("/") && !rp.startsWith("//") ? rp : "/stores";
   const sep = safeRp.includes("?") ? "&" : "?";
+  // Cancel/back returns HERE (defaults to the success path) — so "back" can drop the user
+  // straight back onto the form they came from instead of a generic page.
+  const cp = String(body.cancelPath ?? "");
+  const safeCp = cp.startsWith("/") && !cp.startsWith("//") ? cp : safeRp;
+  const csep = safeCp.includes("?") ? "&" : "?";
 
   // Customer Portal — manage/cancel the subscription + payment method.
   if (body.action === "portal") {
@@ -80,7 +85,7 @@ export async function POST(request: Request) {
       email,
       coupon,
       successUrl: `${origin}${safeRp}${sep}premium=success`,
-      cancelUrl: `${origin}${safeRp}${sep}premium=cancelled`,
+      cancelUrl: `${origin}${safeCp}${csep}premium=cancelled`,
     });
     return NextResponse.json({ url });
   } catch (e) {
