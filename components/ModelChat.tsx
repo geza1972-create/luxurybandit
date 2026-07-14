@@ -164,12 +164,51 @@ export default function ModelChat({
     };
   }, [open]);
 
+  // ── $3.99 / 30-minute chat pass for THIS influencer ──
+  const [passUntil, setPassUntil] = useState(0); // epoch ms the active pass runs until (0 = none)
+  const [buyingPass, setBuyingPass] = useState(false);
+  useEffect(() => {
+    try { const t = Number(localStorage.getItem(`lb_chatpass_${curatorId}`) || 0); setPassUntil(t > Date.now() ? t : 0); } catch { /**/ }
+  }, [curatorId]);
+  useEffect(() => {
+    if (!passUntil) return;
+    const ms = passUntil - Date.now();
+    if (ms <= 0) { setPassUntil(0); return; }
+    const to = setTimeout(() => setPassUntil(0), ms); // re-lock the moment the 30 min run out
+    return () => clearTimeout(to);
+  }, [passUntil]);
+
   if (!open) return null;
 
   const userTurns = messages.filter(m => m.role === "user").length;
+  const hasPass = passUntil > Date.now();
   // Your OWN influencer → always free. Everyone else (fans AND subscribers chatting with
-  // someone else's influencer) gets 10 free messages, then the wall (own one / $3.99 pass).
-  const locked = !isOwn && userTurns >= FREE_USER_MESSAGES;
+  // someone else's influencer) gets 10 free messages, then the wall — unless a paid 30-min
+  // pass is active.
+  const locked = !isOwn && !hasPass && userTurns >= FREE_USER_MESSAGES;
+
+  // Buy a $3.99 / 30-min pass for this influencer: Stripe popup → poll → unlock for 30 min.
+  const buyChatPass = async () => {
+    if (buyingPass) return;
+    setBuyingPass(true);
+    try {
+      const r = await fetch("/api/chat-pass-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ curatorId }) }).then(x => x.json()).catch(() => null);
+      if (!r?.url || !r?.sessionId) { onBuyPass ? onBuyPass() : onNeedPremium(); setBuyingPass(false); return; }
+      const popup = window.open(r.url, "lb-chatpass", "width=460,height=760");
+      const started = Date.now();
+      const poll = setInterval(async () => {
+        const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(r.sessionId)}`).then(x => x.json()).catch(() => ({}));
+        if (st?.paid) {
+          clearInterval(poll); try { popup?.close(); } catch { /**/ }
+          const until = Date.now() + 30 * 60 * 1000;
+          try { localStorage.setItem(`lb_chatpass_${curatorId}`, String(until)); } catch { /**/ }
+          setPassUntil(until); setBuyingPass(false);
+        } else if ((popup && popup.closed) || Date.now() - started > 6 * 60 * 1000) {
+          clearInterval(poll); setBuyingPass(false);
+        }
+      }, 2000);
+    } catch { setBuyingPass(false); }
+  };
 
   const submitName = () => {
     const n = input.trim();
@@ -335,9 +374,9 @@ export default function ModelChat({
                   <span className="text-[11px] font-bold text-black/60">Get your own — and chat with her free, forever</span>
                 </button>
                 {/* Pay to keep chatting with THIS one. */}
-                <button type="button" onClick={() => (onBuyPass ?? onNeedPremium)()}
-                  className="flex w-full flex-col items-center rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-white active:scale-95 transition">
-                  <span className="text-[14px] font-black">💬 Chat with {first} — $3.99</span>
+                <button type="button" onClick={() => void buyChatPass()} disabled={buyingPass}
+                  className="flex w-full flex-col items-center rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-white active:scale-95 transition disabled:opacity-60">
+                  <span className="text-[14px] font-black">{buyingPass ? "Opening checkout…" : `💬 Chat with ${first} — $3.99`}</span>
                   <span className="text-[11px] font-bold text-white/50">30 minutes, unlimited messages</span>
                 </button>
               </div>
@@ -353,9 +392,9 @@ export default function ModelChat({
                 className="lb-gold flex h-12 flex-1 items-center justify-center gap-1.5 rounded-full text-[13px] font-black active:scale-95 transition">
                 👑 Own your own
               </button>
-              <button type="button" onClick={() => (onBuyPass ?? onNeedPremium)()}
-                className="flex h-12 flex-1 items-center justify-center gap-1.5 rounded-full bg-white/10 text-[13px] font-black text-white/80 active:scale-95 transition">
-                $3.99 · 30 min
+              <button type="button" onClick={() => void buyChatPass()} disabled={buyingPass}
+                className="flex h-12 flex-1 items-center justify-center gap-1.5 rounded-full bg-white/10 text-[13px] font-black text-white/80 active:scale-95 transition disabled:opacity-60">
+                {buyingPass ? "…" : "$3.99 · 30 min"}
               </button>
             </div>
           ) : (

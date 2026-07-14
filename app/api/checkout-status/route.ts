@@ -56,12 +56,35 @@ export async function GET(request: Request) {
       }
     }
 
+    // Fan paid $3.99 for a 30-min chat pass → credit the influencer's OWNER 30% (idempotent
+    // via the shared redeemed-session list). The client activates the 30-min pass on `paid`.
+    let chatPassCuratorId = "";
+    if (paid && s.metadata.kind === "chat-pass") {
+      const curatorId = String(s.metadata.curatorId ?? s.clientReferenceId ?? "").trim();
+      if (curatorId) {
+        chatPassCuratorId = curatorId;
+        const st = await readTryThisLookState();
+        const vc = (st.videoCredits = st.videoCredits ?? { balances: {}, redeemed: [] });
+        vc.redeemed = vc.redeemed ?? [];
+        if (!vc.redeemed.includes(sessionId)) {
+          const cur = (st.curators ?? []).find(c => c.id === curatorId) as { earningsCents?: number } | undefined;
+          if (cur) {
+            const sharePct = Number(process.env.MODEL_EARNING_SHARE_PCT ?? 30) || 30;
+            cur.earningsCents = (cur.earningsCents ?? 0) + Math.round(399 * sharePct / 100);
+          }
+          vc.redeemed.push(sessionId);
+          await saveTryThisLookState(st);
+        }
+      }
+    }
+
     return NextResponse.json({
       paid,
       status: s.status,
       tier: s.metadata.tier ?? "",
       lookId: s.metadata.lookId ?? "",
       kind: s.metadata.kind ?? "",
+      ...(chatPassCuratorId ? { chatPassCuratorId } : {}),
       ...(credits !== undefined ? { credits } : {}),
     });
   } catch (e) {

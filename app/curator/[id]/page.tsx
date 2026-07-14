@@ -1145,6 +1145,7 @@ export default function CuratorPublicPage() {
         style={profile.style ?? ""}
         avatarUrl={profile.photoUrl ?? ""}
         isPaid={isSubscribed}
+        isOwn={isOwn}
         onNeedPremium={() => { setShowChat(false); setShowSubscribe(true); }}
       />
       <SubscribeDialog open={showSubscribe} onClose={() => setShowSubscribe(false)} />
