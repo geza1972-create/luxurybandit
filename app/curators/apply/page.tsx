@@ -600,24 +600,19 @@ export default function CuratorApplyPage() {
                   <span className="flex-1 rounded-full bg-white/12 py-2 text-center text-[13px] font-black">Message</span>
                 </div>
               </div>
-              <p className="mt-2 text-center text-[11px] font-bold text-slate-400">This is how your influencer&apos;s profile will look — pick her below.</p>
             </div>
           );
         })()}
 
         {imageSource === "ours" && (
-          <div className="mt-5 rounded-2xl border border-black/15 bg-black/[0.04] p-4">
-            <span className={label}>New influencer available today</span>
-            <p className="mt-0.5 text-[13px] font-bold text-slate-600">Each face is <b>one-of-a-kind</b> — pick the one that fits your influencer. We add new ones all the time.</p>
-            {avatarFaces.length === 0 ? (
-              <p className="mt-2 text-[14px] font-bold text-[#e7c877]">No free faces right now — new ones drop regularly. Pick “My own photos” above, or check back soon.</p>
-            ) : (
-              <>
-              <div className="mt-3 rounded-2xl bg-gradient-to-r from-red-600 to-rose-500 px-4 py-2.5 text-center shadow-[0_6px_20px_rgba(220,38,38,0.45)]">
-                <p className="text-[15px] font-black uppercase leading-none tracking-tight text-white drop-shadow">🔥 Grab yours before she&apos;s gone!</p>
-                <p className="mt-1 text-[11px] font-black uppercase tracking-wide text-white/90">Each face = only ONE owner, ever</p>
-              </div>
-              <div className="mt-3 flex snap-x gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          avatarFaces.length === 0 ? (
+            <div className="mt-5 rounded-2xl border border-black/15 bg-black/[0.04] p-4">
+              <p className="text-[14px] font-bold text-[#e7c877]">No free faces right now — new ones drop regularly. Pick “My own photos” below, or check back soon.</p>
+            </div>
+          ) : (
+            <>
+              {/* Gallery FIRST — directly under the big card; the explanatory text follows below. */}
+              <div className="mt-4 flex snap-x gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {avatarFaces.map(f => (
                   <button key={f.id} type="button" disabled={f.claimed}
                     onClick={() => setFaceDialog(f)}
@@ -631,10 +626,17 @@ export default function CuratorApplyPage() {
                   </button>
                 ))}
               </div>
-              </>
-            )}
-            <p className="mt-2 text-[12px] font-bold text-slate-600">Uploading your own photos below is optional when you use our face.</p>
-          </div>
+              <div className="mt-3 rounded-2xl border border-black/15 bg-black/[0.04] p-4">
+                <span className={label}>New influencer available today</span>
+                <p className="mt-0.5 text-[13px] font-bold text-slate-600">Each face is <b>one-of-a-kind</b> — tap one above to pick the influencer that fits. We add new ones all the time.</p>
+                <div className="mt-3 rounded-2xl bg-gradient-to-r from-red-600 to-rose-500 px-4 py-2.5 text-center shadow-[0_6px_20px_rgba(220,38,38,0.45)]">
+                  <p className="text-[15px] font-black uppercase leading-none tracking-tight text-white drop-shadow">🔥 Grab yours before she&apos;s gone!</p>
+                  <p className="mt-1 text-[11px] font-black uppercase tracking-wide text-white/90">Each face = only ONE owner, ever</p>
+                </div>
+                <p className="mt-2 text-[12px] font-bold text-slate-600">Uploading your own photos below is optional when you use our face.</p>
+              </div>
+            </>
+          )
         )}
 
         {/* Whose face? — pick one of our AI faces above, OR become the influencer yourself. */}
