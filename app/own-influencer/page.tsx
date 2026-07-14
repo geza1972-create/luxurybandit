@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Sparkles, Video, MessageCircle, TrendingUp, Check, Crown, Camera, BarChart3, Users, Gem, Wand2 } from "lucide-react";
-import { readTryThisLookState } from "@/lib/try-this-look-store";
+import { readTryThisLookState, getSignedUrl } from "@/lib/try-this-look-store";
 import TrackView from "@/components/TrackView";
 import LazyVideo from "@/components/LazyVideo";
 import OwnInfluencerCTA from "@/components/OwnInfluencerCTA";
@@ -36,21 +36,16 @@ async function landingData() {
     const showcaseClips = vids.filter(g => (g as { showcase?: boolean }).showcase === true).slice(0, 6).map(pick);
     const ginaClips = gina ? vids.filter(g => (g as { curatorId?: string }).curatorId === gina.id && (g as { public?: boolean }).public === true).slice(0, 4).map(pick) : [];
     const clips = showcaseClips.length ? showcaseClips : ginaClips;
-    const models = curators
-      .filter(c => (c as { photoUrl?: string }).photoUrl && String((c as { status?: string }).status ?? "active") === "active" && !(c as { hidden?: boolean }).hidden)
-      .slice(0, 6)
-      .map(c => {
-        const cid = (c as { id?: string }).id;
-        const v = vids.find(g => (g as { curatorId?: string }).curatorId === cid && (g as { public?: boolean }).public === true);
-        const photo = (c as { photoUrl?: string }).photoUrl as string;
-        return {
-          name: [(c as { firstName?: string }).firstName, (c as { lastName?: string }).lastName].filter(Boolean).join(" "),
-          photo,
-          video: (v ? (v as { videoUrl?: string }).videoUrl : "") as string,
-          poster: (v ? ((v as { imageUrl?: string }).imageUrl || photo) : photo) as string,
-        };
-      });
-    return { heroPhoto: (gina?.photoUrl ?? models[0]?.photo ?? "") as string, clips, models };
+    // Buyable AI influencers = the UNCLAIMED avatar-face pool (admin-generated for sale) —
+    // NOT the real curators (those are live models, not for sale). Sign the storage paths.
+    const faces = (state.avatarFaces ?? []).filter(f => !(f as { claimedBy?: string }).claimedBy && ((f as { imagePath?: string }).imagePath || (f as { imageUrl?: string }).imageUrl)).slice(0, 6);
+    const models = await Promise.all(faces.map(async f => {
+      const face = f as { imagePath?: string; imageUrl?: string; videoPath?: string; videoUrl?: string };
+      const photo = face.imagePath ? await getSignedUrl(face.imagePath).catch(() => face.imageUrl || "") : (face.imageUrl || "");
+      const video = face.videoPath ? await getSignedUrl(face.videoPath).catch(() => "") : (face.videoUrl || "");
+      return { name: "", photo, video, poster: photo };
+    }));
+    return { heroPhoto: (gina?.photoUrl ?? "") as string, clips, models };
   } catch { return { heroPhoto: "", clips: [] as { poster: string; video: string }[], models: [] as { name: string; photo: string }[] }; }
 }
 
@@ -183,7 +178,7 @@ export default async function OwnInfluencerLanding() {
             <p className="mt-3 text-[14px] font-semibold leading-relaxed text-white/70">
               Every AI influencer is one-of-a-kind — and only <span className="font-black text-white">one person</span> can own her: her daily content, her chats, her whole audience. These are <span className="font-black text-emerald-400">still free</span>. Claim one before someone else does.
             </p>
-            {models.length >= 4 && <BuyModelGrid models={models.slice(0, 6)} />}
+            {models.length >= 1 && <BuyModelGrid models={models.slice(0, 6)} />}
           </div>
         </div>
       </section>
