@@ -1845,7 +1845,10 @@ export default function AdminPage() {
           <div className="mt-3 pb-16">
             {/* Premium subscribers (Stripe) — who is paying. */}
             <div className="mb-3 rounded-2xl border border-amber-300/60 bg-amber-50 p-3">
-              <p className="flex items-center gap-1.5 text-sm font-black text-ink">👑 Premium subscribers <span className="text-ink/40">{subscribers === null ? "" : subscribers.length}</span></p>
+              <p className="flex items-center gap-1.5 text-sm font-black text-ink">👑 Premium subscribers <span className="text-ink/40">{subscribers === null ? "" : subscribers.length}</span>
+                <button type="button" onClick={() => setSubscribers(null)} title="Refresh from Stripe"
+                  className="ml-auto rounded-full bg-ink/5 px-2.5 py-1 text-[11px] font-black text-ink/60 active:scale-95 transition">↻ Refresh</button>
+              </p>
               {subscribers === null ? (
                 <div className="flex items-center gap-2 py-3 text-[12px] font-bold text-ink/40"><Loader2 className="h-4 w-4 animate-spin" /> Loading from Stripe…</div>
               ) : subscribers.length === 0 ? (
