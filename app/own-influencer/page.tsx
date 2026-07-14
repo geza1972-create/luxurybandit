@@ -7,6 +7,7 @@ import OwnInfluencerCTA from "@/components/OwnInfluencerCTA";
 import AboutVideoPicker from "@/components/AboutVideoPicker";
 import BuyModelGrid from "@/components/BuyModelGrid";
 import InfluencerFormDialog from "@/components/InfluencerFormDialog";
+import BuyFormLink from "@/components/BuyFormLink";
 
 export const metadata = {
   title: "LuxuryBandit — Own an AI Influencer. We'll help her grow.",
@@ -179,7 +180,7 @@ export default async function OwnInfluencerLanding() {
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">The AI Influencer Marketplace</p>
             <h2 className="mt-2 text-[30px] font-black uppercase leading-none tracking-tight">Who owns her?</h2>
             <p className="mt-3 text-[14px] font-semibold leading-relaxed text-white/70">
-              Every AI influencer is one-of-a-kind — and only <span className="font-black text-white">one person</span> can own her: her daily content, her chats, her whole audience. These are <span className="font-black text-emerald-400">still free</span>. Claim one before someone else does.
+              Every AI influencer is one-of-a-kind — and only <span className="font-black text-white">one person</span> can own her: her daily content, her chats, her whole audience. These are <span className="font-black text-emerald-400">still free</span>. Claim one before someone else does — or <BuyFormLink className="font-black text-amber-400 underline decoration-amber-400/40 underline-offset-2">create your own</BuyFormLink>.
             </p>
             {models.length >= 1 && <BuyModelGrid models={models.slice(0, 6)} />}
           </div>
