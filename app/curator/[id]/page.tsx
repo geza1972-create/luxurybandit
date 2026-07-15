@@ -8,6 +8,7 @@ import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
+import { influencerPriceCents, fmtPriceCents } from "@/lib/influencer-price";
 import { LOOK_CATEGORIES, categorizeLook, isLookCategory, type LookCategory } from "@/lib/look-category";
 
 // Wardrobe category label — "Community"/boudoir reads as "Lingerie" in wardrobe contexts.
@@ -22,9 +23,9 @@ function viewerHeaders(): Record<string, string> {
   return h;
 }
 
-type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; brands?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string; status?: string; hidden?: boolean; priceCents?: number; profilePhotoUrls?: string[] };
+type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; brands?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string; status?: string; hidden?: boolean; priceCents?: number; profilePhotoUrls?: string[]; growPriceLabel?: string; growPriceCents?: number; forSale?: boolean; owned?: boolean; youOwnHer?: boolean; flagship?: boolean; lookCount?: number; videoCount?: number; superFollowers?: number };
 type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; featured?: boolean; productType?: string; wardrobe?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
-type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string; feed?: boolean };
+type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string; feed?: boolean; private?: boolean };
 
 const toSlug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 function optImg(url?: string, w = 600) { if (!url) return ""; if (url.startsWith("data:") || url.startsWith("blob:")) return url; return `/_next/image?url=${encodeURIComponent(url)}&w=${w}&q=70`; }
@@ -163,6 +164,11 @@ export default function CuratorPublicPage() {
   const [followerCount, setFollowerCount] = useState(0);
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [showSFInfo, setShowSFInfo] = useState(false); // "what you get" explainer before registration
+  // Super Follow = the ONE $4.99/mo membership → read the single membership price from the list.
+  const [superFollowCents, setSuperFollowCents] = useState(499);
+  useEffect(() => { fetch("/api/try-this-look?pricing=1").then(r => r.json()).then(d => { if (d?.pricing?.subscriptionMonthlyCents != null) setSuperFollowCents(d.pricing.subscriptionMonthlyCents); }).catch(() => {}); }, []);
+  const superFollowLabel = (() => { const n = Math.max(0, Math.round(superFollowCents)) / 100; return `$${n % 1 ? n.toFixed(2) : n.toLocaleString("en-US")}`; })();
   const [showMsg, setShowMsg] = useState(false);
   const [showChat, setShowChat] = useState(false);
   // Chat now lives on its own page (/chat/<id>). Old ?chat=1 deep links redirect there.
@@ -194,15 +200,57 @@ export default function CuratorPublicPage() {
 
   const isAuthed = () => { try { return !!getStoredAuthSession()?.access_token || !!JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id; } catch { return false; } };
   const handleFollow = async () => {
-    if (!isAuthed()) { router.push("/stores?panel=account"); return; }
+    // Already a Super Follower → unfollow (free).
+    if (following) {
+      if (!isAuthed()) { router.push("/stores?panel=account"); return; }
+      setFollowLoading(true);
+      try {
+        const res = await fetch("/api/follow", { method: "POST", headers: viewerHeaders(), body: JSON.stringify({ slug: id, type: "user", action: "unfollow" }) });
+        if (res.ok) { const d = await res.json(); setFollowerCount(d.followerCount); setFollowing(d.following); }
+      } catch { /**/ }
+      setFollowLoading(false);
+      return;
+    }
+    // Already a paying member → Super Follow her right away (free for members).
+    if (isMember && isAuthed()) { void startSuperFollow(); return; }
+    // Otherwise → show the "what you get" explainer first, then registration/checkout.
+    setShowSFInfo(true);
+  };
+  // Runs after the explainer: joins her (member) or starts the $4.99/mo membership (non-member),
+  // or sends an anonymous visitor to register first.
+  const startSuperFollow = async () => {
+    setShowSFInfo(false);
+    const sess = (() => { try { return getStoredAuthSession(); } catch { return null; } })();
+    const followerId = sess?.user?.id ?? "";
+    const email = sess?.user?.email ?? "";
+    if (!followerId) { router.push("/stores?panel=account"); return; } // register first
     setFollowLoading(true);
     try {
-      const res = await fetch("/api/follow", { method: "POST", headers: viewerHeaders(), body: JSON.stringify({ slug: id, type: "user", action: following ? "unfollow" : "follow" }) });
-      if (res.ok) { const d = await res.json(); setFollowerCount(d.followerCount); setFollowing(d.following); }
-      else if (res.status === 401) router.push("/stores?panel=account");
+      const res = await fetch("/api/super-follow-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ curatorId: id, email, followerId, returnPath: `/curator/${id}` }) });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.followed) { setFollowing(true); setFollowerCount(c => c + 1); setFollowLoading(false); return; } // already a member
+      if (res.ok && d.url) { window.location.href = d.url; return; } // → Stripe membership checkout
+      if (res.status === 401) { router.push("/stores?panel=account"); }
     } catch { /**/ }
     setFollowLoading(false);
   };
+  // Back from Stripe after paying to Super Follow → confirm + reflect the follow.
+  useEffect(() => {
+    let cs = "", fid = "";
+    try { const q = new URLSearchParams(window.location.search); cs = q.get("cs") ?? ""; fid = q.get("superfollowpaid") ?? ""; } catch { /**/ }
+    if (!cs || fid !== id) return;
+    (async () => {
+      try {
+        const r = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(cs)}`);
+        const d = await r.json().catch(() => ({}));
+        if (d.paid && d.superFollowCuratorId === id) {
+          setFollowing(true);
+          fetch(`/api/follow?slug=${encodeURIComponent(id)}&type=user`, { headers: viewerHeaders() }).then(x => x.ok ? x.json() : null).then(x => { if (x) { setFollowerCount(x.followerCount); setFollowing(!!x.following); } }).catch(() => {});
+        }
+      } catch { /**/ }
+      try { const u = new URL(window.location.href); u.searchParams.delete("cs"); u.searchParams.delete("superfollowpaid"); u.searchParams.delete("superfollowcancelled"); window.history.replaceState({}, "", u.toString()); } catch { /**/ }
+    })();
+  }, [id]);
   const handleSendMsg = async () => {
     if (!msgText.trim()) return;
     if (!isAuthed()) { router.push("/stores?panel=account"); return; }
@@ -327,6 +375,14 @@ export default function CuratorPublicPage() {
     try {
       await fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ action: "set-generation-feed", generationId: t.id, feed: next }) });
     } catch { setTryons(prev => prev.map(x => x.id === t.id ? { ...x, feed: !next } : x)); }
+  };
+  // Admin: mark a video PRIVATE (Super Followers / members only) vs PUBLIC (everyone).
+  const toggleVideoPrivate = async (t: TryOn) => {
+    const next = !t.private;
+    setTryons(prev => prev.map(x => x.id === t.id ? { ...x, private: next } : x));
+    try {
+      await fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ action: "set-generation-private", generationId: t.id, private: next }) });
+    } catch { setTryons(prev => prev.map(x => x.id === t.id ? { ...x, private: !next } : x)); }
   };
   // ── Admin: upload a self-made video (e.g. generated in the Pixverse UI) as a NEW
   // "In motion" video for this model. Direct-to-Supabase (signed URL, no 4.5MB limit),
@@ -518,6 +574,17 @@ export default function CuratorPublicPage() {
   const [priceInput, setPriceInput] = useState("");
   const [priceBusy, setPriceBusy] = useState(false);
   useEffect(() => { if (typeof profile?.priceCents === "number") setPriceInput(((profile.priceCents || 0) / 100).toString()); }, [profile?.priceCents]);
+  // Flagship checkbox — the model's tier (Flagship $500 vs AI $9.99). No free prices.
+  const [flagBusy, setFlagBusy] = useState(false);
+  const saveFlagship = async (next: boolean) => {
+    if (flagBusy) return;
+    setFlagBusy(true);
+    try {
+      await fetch("/api/curator", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ action: "update", id, flagship: next }) });
+      setProfile(p => (p ? { ...p, flagship: next } : p));
+    } catch (e) { alert(e instanceof Error ? e.message : "Failed"); }
+    finally { setFlagBusy(false); }
+  };
   const savePrice = async () => {
     if (priceBusy) return;
     const cents = Math.max(0, Math.round(parseFloat(priceInput.replace(",", ".")) * 100) || 0);
@@ -528,6 +595,38 @@ export default function CuratorPublicPage() {
     } catch (e) { alert(e instanceof Error ? e.message : "Failed"); }
     finally { setPriceBusy(false); }
   };
+  // ── Own-a-model: buy her at her current LB-Value (dynamic Stripe checkout). ──
+  const [buying, setBuying] = useState(false);
+  const [bought, setBought] = useState(false);
+  const [buyErr, setBuyErr] = useState("");
+  const buyInfluencer = async () => {
+    if (buying) return;
+    setBuyErr(""); setBuying(true);
+    try {
+      const email = (() => { try { return getStoredAuthSession()?.user?.email ?? ""; } catch { return ""; } })();
+      const res = await fetch("/api/buy-influencer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ curatorId: id, email, returnPath: `/curator/${id}` }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || !d.url) { setBuyErr(d.error || "Could not start checkout."); setBuying(false); return; }
+      window.location.href = d.url; // → Stripe; returns to ?bought=<id>&cs=<session>
+    } catch { setBuyErr("Could not start checkout."); setBuying(false); }
+  };
+  // Back from Stripe → confirm the purchase transferred ownership, then refresh her profile.
+  useEffect(() => {
+    let cs = "", bid = "";
+    try { const q = new URLSearchParams(window.location.search); cs = q.get("cs") ?? ""; bid = q.get("bought") ?? ""; } catch { /**/ }
+    if (!cs || bid !== id) return;
+    (async () => {
+      try {
+        const r = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(cs)}`);
+        const d = await r.json().catch(() => ({}));
+        if (d.paid && d.boughtCuratorId === id) {
+          setBought(true);
+          fetch(`/api/curator?profile=${encodeURIComponent(id)}`).then(x => x.json()).then(x => { if (x.profile) setProfile(x.profile); }).catch(() => {});
+        }
+      } catch { /**/ }
+      try { const u = new URL(window.location.href); u.searchParams.delete("cs"); u.searchParams.delete("bought"); u.searchParams.delete("buycancelled"); window.history.replaceState({}, "", u.toString()); } catch { /**/ }
+    })();
+  }, [id]);
   // Flip her public (hidden:false) or private (hidden:true) — no approval step anymore.
   const setPublic = async (makePublic: boolean) => {
     if (badgeBusy) return;
@@ -767,7 +866,16 @@ export default function CuratorPublicPage() {
   );
 
   const name = `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() || "Model";
-  const videos = tryons.filter(t => t.videoUrl);
+  // Grow-price label. For admins (who have her base priceCents) recompute LIVE so it
+  // reflects a just-saved base price instantly; public visitors use the server value.
+  const growLabel = fmtPriceCents(influencerPriceCents({
+    name, flagship: profile.flagship, realModel: profile.realModel, videoCount: profile.videoCount,
+    lookCount: profile.lookCount, followerCount: profile.superFollowers, purchasedAt: profile.purchasedAt, createdAt: profile.createdAt,
+  })) || (profile.growPriceLabel ?? "");
+  // Membership ($4.99/mo) unlocks EVERY private video. Owners/admin always see hers.
+  const isMember = (() => { try { return isAdmin || isOwn || localStorage.getItem("lb_subscribed") === "1" || localStorage.getItem("lb_paid") === "1"; } catch { return false; } })();
+  // Private videos (Super Followers / members only) are hidden from everyone else.
+  const videos = tryons.filter(t => t.videoUrl && (!t.private || isMember));
   // Photo drafts (no video yet): the model's self-made photos. Visible to admin +
   // the model herself in the gallery strip; the admin turns good ones into videos.
   const photoDrafts = (isAdmin || isOwn) ? tryons.filter(t => !t.videoUrl && t.imageUrl) : [];
@@ -794,7 +902,7 @@ export default function CuratorPublicPage() {
           <div className="mt-2 flex items-center gap-2">
             <button type="button" onClick={() => void handleFollow()} disabled={followLoading}
               className={`flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full px-6 text-xs font-black transition active:scale-95 disabled:opacity-50 ${following ? "border border-white/20 text-white/70" : "lb-black3d"}`}>
-              {followLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : following ? <><UserCheck className="h-3.5 w-3.5" /> Following</> : <><UserPlus className="h-3.5 w-3.5" /> Follow</>}
+              {followLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : following ? <><UserCheck className="h-3.5 w-3.5" /> Super Following</> : <><UserPlus className="h-3.5 w-3.5" /> Super Follow · {superFollowLabel}/mo</>}
             </button>
             <button type="button" onClick={() => { const url = window.location.href; if (navigator.share) navigator.share({ title: name, url }).catch(() => {}); else navigator.clipboard?.writeText(url); }}
               className="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full bg-white/10 px-4 text-xs font-black text-white active:scale-95 transition">
@@ -862,6 +970,33 @@ export default function CuratorPublicPage() {
         )}
         {profile.motto && <p className="text-sm font-black text-amber-400">{profile.motto}</p>}
         {profile.bio && <p className="max-w-sm text-sm font-medium leading-relaxed text-white/55">{profile.bio}</p>}
+        {/* LB-Value: her current value ON LUXURYBANDIT (only here does she have this value).
+            Grows +$1/generated video + $1/day owned. Buy her at this value → she's yours. */}
+        {growLabel && (
+          <div className="mt-3 max-w-sm rounded-2xl border border-amber-400/25 bg-amber-400/[0.07] px-3.5 py-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-amber-300/70">
+                  LB-Value · grows daily
+                  {profile.forSale && <span className="rounded-full bg-emerald-500/20 px-1.5 py-px text-[9px] font-black text-emerald-300 ring-1 ring-emerald-400/30">For sale</span>}
+                  {profile.owned && <span className="rounded-full bg-white/10 px-1.5 py-px text-[9px] font-black text-white/55">Owned</span>}
+                </p>
+                <p className="text-2xl font-black leading-tight text-amber-300" title="Her LB-Value — only on LuxuryBandit. Base + $1/video + $10 per 10 videos + $1/super-follower + $1/day owned.">{growLabel}</p>
+                <p className="mt-0.5 truncate text-[10px] font-bold text-white/40">
+                  +$1/day · +$1/video · +$1/follower · +$10 per 10
+                </p>
+              </div>
+              {profile.forSale && !isOwn && (
+                <button type="button" onClick={() => void buyInfluencer()} disabled={buying} title={`Buy ${name} at her current LB-Value`}
+                  className="lb-gold shrink-0 rounded-full px-4 py-2.5 text-[13px] font-black shadow active:scale-95 transition disabled:opacity-60">
+                  {buying ? "…" : "Own her"}
+                </button>
+              )}
+            </div>
+            {bought && <p className="mt-2 rounded-lg bg-emerald-500/15 px-2.5 py-1.5 text-[11px] font-black text-emerald-300 ring-1 ring-emerald-400/30">🎉 She's yours! Her LB-Value now grows for you.</p>}
+            {buyErr && <p className="mt-2 text-[11px] font-black text-red-400">{buyErr}</p>}
+          </div>
+        )}
         {/* Brands — her own (if set) PLUS our affiliate partner GiannaBellucci, ALWAYS appended
             for every model (highlighted, since it's what she actually wears & the chat delivers).
             Code-based so it can never be clobbered by concurrent saves. */}
@@ -874,9 +1009,9 @@ export default function CuratorPublicPage() {
               <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-white/35">
                 {profile.firstName ? `${profile.firstName}'s favorite brands` : "Favorite brands"}
               </p>
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {list.map((b, i) => (
-                  <span key={i} className="shrink-0 whitespace-nowrap rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-black text-amber-300 ring-1 ring-amber-400/25">{b}</span>
+                  <span key={i} className="whitespace-nowrap rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-black text-amber-300 ring-1 ring-amber-400/25">{b}</span>
                 ))}
               </div>
             </div>
@@ -928,14 +1063,17 @@ export default function CuratorPublicPage() {
               </div>
             )}
             <div className="mt-3 border-t border-white/10 pt-3">
-              <div className="mb-2 flex items-center gap-2">
-                <span className="text-[12px] font-black text-white/60">Base price $</span>
-                <input type="number" inputMode="decimal" min="0" step="0.01" value={priceInput} onChange={e => setPriceInput(e.target.value)}
-                  className="w-24 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm font-black text-white outline-none focus:border-amber-400" placeholder="9.99" />
-                <button type="button" onClick={() => void savePrice()} disabled={priceBusy}
-                  className="ml-auto rounded-full bg-white/10 px-4 py-2 text-[12px] font-black text-white active:scale-95 transition disabled:opacity-50">{priceBusy ? "…" : "Save price"}</button>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[12px] font-black text-white/70">Flagship model</p>
+                  <p className="text-[11px] font-bold text-white/40">Flagship = $500 base · off = AI model $9.99{profile.realModel ? " · real model floors at $100" : ""}</p>
+                </div>
+                <button type="button" onClick={() => void saveFlagship(!profile.flagship)} disabled={flagBusy}
+                  className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[12px] font-black active:scale-95 transition disabled:opacity-50 ${profile.flagship ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>
+                  {flagBusy ? "…" : (profile.flagship ? "★ Flagship" : "AI model")}
+                </button>
               </div>
-              <p className="mb-2 text-[11px] font-bold text-white/40">Buyers pay this + $3.99/video + $3/look + $1/day owned (grows daily).</p>
+              <p className="mb-2 text-[11px] font-bold text-white/40">Her LB-Value = base + $1/video + $10 per 10 videos + $1/day. Generating a video costs the owner $3.99.</p>
               <div className="mb-2 flex items-center gap-2">
                 <span className={`flex-1 rounded-full px-3 py-2 text-center text-[12px] font-black ${profile.hidden === false ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30" : "bg-white/5 text-white/50"}`}>
                   {profile.hidden === false ? "🌍 Public" : "🔒 Private"}
@@ -988,10 +1126,12 @@ export default function CuratorPublicPage() {
             className="lb-gold flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-black leading-tight active:scale-95 transition">
             <MessageCircle className="h-4 w-4 shrink-0" /> Chat with her AI Assistant
           </button>
-          <button type="button" onClick={() => wardrobeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-            className="lb-gold flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-black leading-tight active:scale-95 transition">
-            See {profile.firstName || "her"} in other looks
-          </button>
+          {(profile.youOwnHer || isAdmin || isOwn) && (
+            <button type="button" onClick={() => wardrobeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="lb-gold flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-black leading-tight active:scale-95 transition">
+              Dress {profile.firstName || "her"} in any look
+            </button>
+          )}
         </div>
 
         {/* Report — any visitor can flag a profile for review. */}
@@ -1130,6 +1270,22 @@ export default function CuratorPublicPage() {
           (admin) per-piece management. */}
       <div ref={wardrobeRef} className="scroll-mt-4 mt-6 px-4 pb-8">
         {(() => {
+          // Try-ons are only for YOUR OWN influencers now (no more trying on someone else's).
+          // Non-owners (and anonymous visitors) get an "own her to dress her" prompt instead.
+          if (!(profile.youOwnHer || isAdmin || isOwn)) {
+            return (
+              <div className="mx-auto max-w-sm rounded-2xl border border-amber-400/20 bg-amber-400/[0.05] p-5 text-center">
+                <p className="text-sm font-black text-white">Try-ons are for your own influencers</p>
+                <p className="mt-1 text-[13px] font-semibold leading-relaxed text-white/55">Own {profile.firstName || "her"} to dress her in any look — one tap, videos are yours.</p>
+                {profile.forSale && (
+                  <button type="button" onClick={() => void buyInfluencer()} disabled={buying}
+                    className="lb-gold mt-3 inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[13px] font-black active:scale-95 transition disabled:opacity-60">
+                    {buying ? "…" : `Own her${profile.growPriceLabel ? ` · ${profile.growPriceLabel}` : ""}`}
+                  </button>
+                )}
+              </div>
+            );
+          }
           // De-dupe: repeated "Generieren" runs can create identical garments (same
           // deterministic name) — show each unique piece once so nothing appears doubled.
           const seen = new Set<string>();
@@ -1242,6 +1398,31 @@ export default function CuratorPublicPage() {
       />
       <SubscribeDialog open={showSubscribe} onClose={() => setShowSubscribe(false)} />
 
+      {/* Super Follow explainer — what the $4.99/mo membership unlocks, then → registration. */}
+      {showSFInfo && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4" onClick={e => { if (e.target === e.currentTarget) setShowSFInfo(false); }}>
+          <div className="w-full max-w-sm rounded-t-3xl border border-amber-400/25 bg-[#141018] p-6 text-center sm:rounded-3xl">
+            <button type="button" onClick={() => setShowSFInfo(false)} className="ml-auto grid h-8 w-8 place-items-center rounded-full border border-white/15 text-white/70"><X className="h-4 w-4" /></button>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Super Follow {profile.firstName || "her"}</p>
+            <h2 className="mt-1 text-[26px] font-black leading-tight text-white">Join for {superFollowLabel}<span className="text-white/50">/month</span></h2>
+            <p className="mt-1 text-[13px] font-semibold text-white/55">Your LuxuryBandit membership — one price, everything:</p>
+            <table className="mx-auto mt-4 w-full max-w-xs text-left text-[14px] font-bold text-white/80">
+              <tbody className="[&>tr>td]:border-b [&>tr>td]:border-white/10 [&>tr>td]:py-2.5 [&>tr:last-child>td]:border-0 [&>tr:last-child>td]:pb-0">
+                <tr><td className="w-6 pr-2 align-top text-amber-400">🔒</td><td><b className="text-white">Every private video</b> — hers and everyone&apos;s.</td></tr>
+                <tr><td className="w-6 pr-2 align-top text-amber-400">➕</td><td><b className="text-white">Super Follow anyone</b> on LuxuryBandit.</td></tr>
+                <tr><td className="w-6 pr-2 align-top text-amber-400">👑</td><td><b className="text-white">Buy &amp; own influencers</b> — they&apos;re yours.</td></tr>
+                <tr><td className="w-6 pr-2 align-top text-amber-400">💬</td><td><b className="text-white">Free unlimited chat</b> with any of them.</td></tr>
+              </tbody>
+            </table>
+            <button type="button" onClick={() => void startSuperFollow()} disabled={followLoading}
+              className="lb-gold mt-5 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-60">
+              {followLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Continue — sign up"}
+            </button>
+            <p className="mt-2 text-[11px] font-bold text-white/35">cancel anytime · 🔒 secure Stripe checkout</p>
+          </div>
+        </div>
+      )}
+
       {/* Profile photo lightbox — tap anywhere (or X) to close. */}
       {photoOpen && profile.photoUrl && (
         <div className="lb-phone-col fixed inset-0 z-[70] flex flex-col bg-black/95" onClick={() => setPhotoOpen(false)}>
@@ -1330,6 +1511,12 @@ export default function CuratorPublicPage() {
                         aria-label={t.feed === false ? "Im Profil zeigen" : "Aus dem Profil ausblenden"}
                         title={t.feed === false ? "Im Profil zeigen" : "Aus dem Profil ausblenden"}>
                         {t.feed === false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                      </button>
+                      <button type="button" onClick={() => void toggleVideoPrivate(t)}
+                        className={`grid h-9 w-9 place-items-center rounded-full text-white backdrop-blur active:scale-90 transition ${t.private ? "bg-violet-600/90" : "bg-black/55"}`}
+                        aria-label={t.private ? "Private — nur Super Follower" : "Public — für alle"}
+                        title={t.private ? "Private (Super Followers only) — tap to make public" : "Public — tap to make private (Super Followers only)"}>
+                        {t.private ? <Lock className="h-4 w-4" /> : <Lock className="h-4 w-4 opacity-40" />}
                       </button>
                       <button type="button" onClick={() => deleteVideo(t)}
                         className="grid h-9 w-9 place-items-center rounded-full bg-red-500/90 text-white backdrop-blur active:scale-90 transition" aria-label="Video löschen">

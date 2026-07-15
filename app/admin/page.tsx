@@ -31,7 +31,7 @@ type Curator = {
   earningsCents?: number; payoutMethod?: string;
   payouts?: { id: string; amountCents: number; method: string; status: string; requestedAt?: string; paidAt?: string }[];
   // "✓ Real model" carousel badge (realModel) + profile banner (realBadge) — a real person, not an AI persona.
-  realModel?: boolean; realBadge?: boolean;
+  realModel?: boolean; realBadge?: boolean; flagship?: boolean;
   // CONCEPT 2.0 creation tool: role model she emulates + where her face comes from.
   styleModelId?: string; imageSource?: "own" | "ours";
 };
@@ -222,10 +222,10 @@ export default function AdminPage() {
   const [curators, setCurators] = useState<Curator[]>([]);
   const [looks, setLooks] = useState<Look[]>([]);
   const [community, setCommunity] = useState<{ customerName?: string; curatorId?: string }[]>([]);
-  const [sortC, setSortC] = useState<"new" | "looks" | "tryons" | "name">("new");
+  const [sortC, setSortC] = useState<"new" | "looks" | "tryons" | "name" | "owner">("new");
   const [modelsView, setModelsView] = useState<"list" | "tools">("list"); // Models tab sub-view
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
-  const pickSort = (key: "looks" | "tryons" | "name") => {
+  const pickSort = (key: "looks" | "tryons" | "name" | "owner") => {
     if (sortC === key) setSortDir(d => (d === "desc" ? "asc" : "desc"));
     else { setSortC(key); setSortDir("desc"); }
   };
@@ -462,6 +462,8 @@ export default function AdminPage() {
     }
     if (failed) setFaceErr(prev => prev || `${failed} face${failed > 1 ? "s" : ""} failed to upload.`);
     await loadFaces();
+    // New faces become influencers automatically → they show up in the Models list.
+    void promoteFaces(true);
   };
   const deleteFace = async (id: string, claimed: boolean) => {
     try {
@@ -473,15 +475,20 @@ export default function AdminPage() {
   // Models list with a price + profile. Auto-named "Model N" ($9.99, private/for-sale);
   // rename + reprice later. Faces stay in the library, marked as promoted.
   const [promoteBusy, setPromoteBusy] = useState(false);
-  const promoteFaces = async () => {
-    const pending = faces.filter(f => !f.promotedTo && !f.sold && !f.claimed).length;
-    if (!pending) { setFaceErr("No new faces to promote — all are already influencers."); return; }
-    if (!confirm(`Turn ${pending} face${pending > 1 ? "s" : ""} into influencer${pending > 1 ? "s" : ""}?\n\nEach gets an auto name (Model N), $9.99 price and a private profile in the Models list. You can rename & reprice them afterwards.`)) return;
-    setPromoteBusy(true); setFaceErr("");
+  // auto=true is used right after generating/uploading a face: it promotes silently
+  // (no confirm dialog, no "nothing to do" error) and reads the SERVER's un-promoted
+  // set directly, so it doesn't depend on the client faces state being up to date.
+  const promoteFaces = async (auto = false) => {
+    if (!auto) {
+      const pending = faces.filter(f => !f.promotedTo && !f.sold && !f.claimed).length;
+      if (!pending) { setFaceErr("No new faces to promote — all are already influencers."); return; }
+      if (!confirm(`Turn ${pending} face${pending > 1 ? "s" : ""} into influencer${pending > 1 ? "s" : ""}?\n\nEach gets an auto name (Model N), $9.99 price and a private profile in the Models list. You can rename & reprice them afterwards.`)) return;
+    }
+    setPromoteBusy(true); if (!auto) setFaceErr("");
     try {
       const r = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "promote-faces" }) });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) { setFaceErr(d.error || "Promotion failed."); return; }
+      if (!r.ok) { if (!auto) setFaceErr(d.error || "Promotion failed."); return; }
       await loadFaces();
       // Refresh the Models list so the new influencers appear immediately.
       try {
@@ -489,9 +496,60 @@ export default function AdminPage() {
         const cd = await cr.json().catch(() => ({}));
         if (Array.isArray(cd.curators)) setCurators(cd.curators);
       } catch { /**/ }
-    } catch { setFaceErr("Promotion failed."); }
+    } catch { if (!auto) setFaceErr("Promotion failed."); }
     finally { setPromoteBusy(false); }
   };
+  // ── Central PRICE LIST (admin-editable). Stored server-side in state.pricing (cents). ──
+  const PRICE_FIELDS: { k: string; label: string; hint?: string; count?: boolean }[] = [
+    { k: "subscriptionMonthlyCents", label: "Membership / month", hint: "the ONE price for everything" },
+    { k: "videoGenCents", label: "Generate a video / try-on", hint: "owner pays" },
+    { k: "ownPhotoUploadCents", label: "Upload your own photo", hint: "free" },
+    { k: "freshBaseCents", label: "AI model — base value" },
+    { k: "realModelBaseCents", label: "Real model — base value", hint: "floor" },
+    { k: "flagshipBaseCents", label: "Flagship — base value", hint: "Gina/Bella" },
+    { k: "videoValueCents", label: "Value gift / generated video" },
+    { k: "videoMilestoneBonusCents", label: "Value bonus / 10 videos", hint: "milestone" },
+    { k: "followerValueCents", label: "Value gift / super-follower" },
+    { k: "lookValueCents", label: "Value gift / look" },
+    { k: "dayValueCents", label: "Value gift / day owned" },
+    { k: "chatFreeMessages", label: "Chat — free messages", hint: "then membership", count: true },
+  ];
+  const COUNT_FIELDS = new Set(PRICE_FIELDS.filter(f => f.count).map(f => f.k)); // stored as-is, not cents
+  const [pricingDraft, setPricingDraft] = useState<Record<string, string>>({});
+  const [pricingIds, setPricingIds] = useState<Record<string, string>>({}); // per-field Stripe Price IDs
+  const [pricingBusy, setPricingBusy] = useState(false);
+  const [pricingMsg, setPricingMsg] = useState("");
+  const applyPricing = (p: any) => {
+    // Count fields (minutes, free messages) are raw numbers; money fields are cents → show as $.
+    setPricingDraft(Object.fromEntries(Object.entries(p).filter(([k]) => k !== "stripeIds").map(([k, v]) => [k, COUNT_FIELDS.has(k) ? String(Number(v) || 0) : String((Number(v) || 0) / 100)])));
+    setPricingIds({ ...(p.stripeIds ?? {}) });
+  };
+  const loadPricing = async () => {
+    try {
+      const r = await fetch("/api/try-this-look?pricing=1", { cache: "no-store" });
+      const d = await r.json();
+      if (d.pricing) applyPricing(d.pricing);
+    } catch { /**/ }
+  };
+  const savePricing = async () => {
+    setPricingBusy(true); setPricingMsg("");
+    try {
+      const out: Record<string, number> = {};
+      for (const [k, v] of Object.entries(pricingDraft)) {
+        const raw = parseFloat(String(v).replace(",", "."));
+        const n = COUNT_FIELDS.has(k) ? Math.round(raw) : Math.round(raw * 100); // count vs cents
+        if (isFinite(n) && n >= 0) out[k] = n;
+      }
+      const stripeIds: Record<string, string> = {};
+      for (const [k, v] of Object.entries(pricingIds)) stripeIds[k] = String(v ?? "").trim();
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "update-pricing", pricing: { ...out, stripeIds } }) });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.pricing) { applyPricing(d.pricing); setPricingMsg("Saved ✓"); }
+      else setPricingMsg(d.error || "Save failed.");
+    } catch { setPricingMsg("Save failed."); }
+    finally { setPricingBusy(false); }
+  };
+  useEffect(() => { if (authed) void loadPricing(); }, [authed]);
   // Generate AI faces via fal FLUX → straight into the pool.
   const [faceGenOpen, setFaceGenOpen] = useState(false);
   const [facePrompt, setFacePrompt] = useState("");
@@ -545,7 +603,7 @@ export default function AdminPage() {
       const r = await fetch("/api/generate-avatar-face", { method: "POST", headers: headers(), body: JSON.stringify({ prompt: facePrompt.trim() || undefined, count: faceCount, ...(faceRef ? { referenceImage: faceRef } : {}), ...(faceRef && garmentImg ? { garmentImage: garmentImg } : {}) }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) setFaceErr(d.error || "Generation failed.");
-      else { await loadFaces(); setFaceGenOpen(false); }
+      else { await loadFaces(); setFaceGenOpen(false); void promoteFaces(true); } // new faces auto-become influencers → appear in the Models list
     } catch { setFaceErr("Generation failed."); }
     finally { setFaceGenBusy(false); }
   };
@@ -810,6 +868,17 @@ export default function AdminPage() {
     } catch { setError("Network error."); }
     setBusy("");
   };
+  // Flagship tier ($500 base) vs AI model ($9.99) — the model's price tier, no free prices.
+  const toggleFlagship = async (c: Curator) => {
+    const next = !(c.flagship === true);
+    setBusy(`flag-${c.id}`); setError("");
+    try {
+      const r = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "update", id: c.id, flagship: next }) });
+      if (r.ok) setCurators(cs => cs.map(x => x.id === c.id ? { ...x, flagship: next } : x));
+      else await fail(r, "Could not update flagship");
+    } catch { setError("Network error."); }
+    setBusy("");
+  };
 
   // Set her base sale price ($). Grow-pricing adds videos/looks/days on top (see lib/influencer-price).
   const setModelPrice = async (c: Curator) => {
@@ -895,6 +964,16 @@ export default function AdminPage() {
     if (sortC === "new") arr.sort((a, b) => (String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? ""))) * dir);
     else if (sortC === "name") arr.sort((a, b) => fullName(a).localeCompare(fullName(b)) * dir);
     else if (sortC === "tryons") arr.sort((a, b) => ((tryonsByCurator.get(a.id) ?? 0) - (tryonsByCurator.get(b.id) ?? 0)) * dir);
+    else if (sortC === "owner") arr.sort((a, b) => {
+      // Group influencers by their OWNER (account email). Unowned "for sale"
+      // models (no email) always sink to the bottom, regardless of direction.
+      const ea = String(a.email ?? "").trim().toLowerCase();
+      const eb = String(b.email ?? "").trim().toLowerCase();
+      if (!ea && !eb) return fullName(a).localeCompare(fullName(b));
+      if (!ea) return 1;
+      if (!eb) return -1;
+      return ea.localeCompare(eb) * dir || fullName(a).localeCompare(fullName(b));
+    });
     else arr.sort((a, b) => ((looksByCurator.get(a.id) ?? 0) - (looksByCurator.get(b.id) ?? 0)) * dir);
     // Admin/house entry pinned at the top (respects search).
     return hasHouse && (!q || "admin house".includes(q)) ? [houseCurator, ...arr] : arr;
@@ -1196,7 +1275,7 @@ export default function AdminPage() {
 
   return (
     <main className={`lb-admin ${dark ? "lb-dark" : ""} min-h-screen w-full overflow-x-hidden bg-[#fbfaf7] px-4 py-5 text-ink lg:px-10`}>
-      <div className="mx-auto w-full max-w-3xl lg:max-w-6xl xl:max-w-[1600px]">
+      <div className="mx-auto w-full max-w-[1600px]">
         <header className="flex items-center justify-between gap-3">
           <div>
             <div className="text-[11px] font-black uppercase tracking-[0.18em] text-cobalt">LuxuryBandit</div>
@@ -1206,9 +1285,6 @@ export default function AdminPage() {
             <button type="button" onClick={toggleDark} title={dark ? "Switch to light" : "Switch to dark"} className="grid h-10 w-10 place-items-center rounded-xl border border-black/10 bg-white active:scale-95 transition">
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-            <a href="/admin/trends" className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-black/10 bg-white px-3 text-xs font-black text-ink active:scale-95 transition">
-              Studio <ExternalLink className="h-3.5 w-3.5" />
-            </a>
             <button type="button" onClick={() => void load()} title="Refresh" className="grid h-10 w-10 place-items-center rounded-xl border border-black/10 bg-white active:scale-95 transition">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </button>
@@ -1265,6 +1341,43 @@ export default function AdminPage() {
         {/* Global try-on kill-switch — flip it to instantly pause end-user generation
             ("coming soon"); clicks are still counted, and you + curators keep full access. */}
         {tab === "curators" && modelsView === "tools" && (<>
+        {/* Central PRICE LIST — the whole pricing model, editable. */}
+        <section className="mt-3 rounded-2xl border border-amber-300/60 bg-amber-50 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-sm font-black text-ink">💲 Price list</p>
+              <p className="text-[12px] font-bold text-ink/50">The whole pricing model — edit any amount (in $) and save. (Next step: wire these into the live grow-price, checkout & gen cost.)</p>
+            </div>
+            <button type="button" onClick={() => void savePricing()} disabled={pricingBusy}
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-black px-4 text-xs font-black text-white active:scale-95 transition disabled:opacity-50">
+              {pricingBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Save prices
+            </button>
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {PRICE_FIELDS.map(f => (
+              <div key={f.k} className="min-w-0 rounded-xl border border-black/10 bg-white px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[12px] font-black text-ink">{f.label}</span>
+                    {f.hint && <span className="block truncate text-[10px] font-bold text-ink/40">{f.hint}</span>}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1">
+                    <span className="text-[12px] font-black text-ink/40">{f.count ? "×" : "$"}</span>
+                    <input type="number" inputMode={f.count ? "numeric" : "decimal"} min="0" step={f.count ? "1" : "0.01"}
+                      value={pricingDraft[f.k] ?? ""} onChange={e => setPricingDraft(d => ({ ...d, [f.k]: e.target.value }))}
+                      className="w-20 rounded-lg border border-black/10 bg-panel px-2 py-1.5 text-right text-sm font-black text-ink outline-none focus:border-cobalt" />
+                  </span>
+                </div>
+                {!f.count && (
+                  <input type="text" spellCheck={false} placeholder="Stripe price ID (price_…)"
+                    value={pricingIds[f.k] ?? ""} onChange={e => setPricingIds(d => ({ ...d, [f.k]: e.target.value }))}
+                    className="mt-1.5 w-full rounded-lg border border-black/10 bg-panel px-2 py-1.5 text-[11px] font-bold text-ink/70 outline-none focus:border-cobalt" />
+                )}
+              </div>
+            ))}
+          </div>
+          {pricingMsg && <p className="mt-2 text-[12px] font-black text-emerald-600">{pricingMsg}</p>}
+        </section>
         <section className={`mt-3 flex items-center gap-3 rounded-xl border p-3 ${tryonPaused ? "border-amber-300 bg-amber-50" : "border-black/10 bg-white"}`}>
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/[0.06] text-base">{tryonPaused ? "⏸️" : "▶️"}</span>
           <div className="min-w-0 flex-1">
@@ -1649,7 +1762,7 @@ export default function AdminPage() {
         {tab === "curators" && modelsView === "list" && (
           <div className="mt-3 flex items-center gap-1.5">
             <span className="text-[11px] font-black uppercase tracking-wider text-ink/35">Sort</span>
-            {([["new", "Newest"], ["looks", "Looks"], ["tryons", "Try-ons"], ["name", "Name"]] as const).map(([key, label]) => (
+            {([["new", "Newest"], ["owner", "Owner"], ["looks", "Looks"], ["tryons", "Try-ons"], ["name", "Name"]] as const).map(([key, label]) => (
               <button key={key} type="button" onClick={() => pickSort(key)} title={sortC === key ? (sortDir === "desc" ? "Descending — tap to flip" : "Ascending — tap to flip") : "Sort"}
                 className={`inline-flex h-8 items-center gap-1 rounded-lg border px-3 text-xs font-black transition ${sortC === key ? "border-black bg-black text-white" : "border-black/10 text-ink/55"}`}>
                 {label}
@@ -1665,12 +1778,12 @@ export default function AdminPage() {
 
         {tab === "curators" && modelsView === "tools" && (
           <div className="mt-3 rounded-2xl border border-black/10 bg-white p-3">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
                 <p className="text-sm font-black text-ink">AI-face library <span className="text-ink/40">{faces.length}</span></p>
                 <p className="text-[12px] font-bold text-ink/45">Promote a face → it becomes a sellable influencer in the Models list (with a price + profile). ✦ = already an influencer.</p>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
                 {faces.some(f => !f.promotedTo && !f.sold && !f.claimed) && (
                   <button type="button" onClick={() => void promoteFaces()} disabled={promoteBusy}
                     className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-violet-600 px-3 text-xs font-black text-white active:scale-95 transition disabled:opacity-50">
@@ -1811,112 +1924,129 @@ export default function AdminPage() {
         )}
 
         {tab === "curators" && modelsView === "list" && (
-          <div className="mt-2 grid grid-cols-1 gap-2 pb-16">
+          <div className="mt-2 overflow-x-auto pb-16">
             {/* One shared file input — pickModelVideo() sets the target model, then opens it. */}
             <input ref={vidFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) void uploadModelVideo(f); e.target.value = ""; }} />
-            {shownCurators.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No models yet.</p>}
+            {shownCurators.length === 0 ? (
+              <p className="py-10 text-center text-sm font-bold text-ink/40">No models yet.</p>
+            ) : (
+            <table className="w-full min-w-[880px] border-separate border-spacing-y-2 text-left align-middle">
+              <thead>
+                <tr className="text-[10px] font-black uppercase tracking-wider text-ink/40">
+                  <th className="px-3 pb-1 font-black">Model</th>
+                  <th className="px-2 pb-1 font-black">Owner</th>
+                  <th className="px-2 pb-1 font-black">Price</th>
+                  <th className="px-2 pb-1 text-right font-black">Looks</th>
+                  <th className="px-2 pb-1 text-right font-black">Try-ons</th>
+                  <th className="px-2 pb-1 text-right font-black">Views</th>
+                  <th className="px-2 pb-1 font-black">Joined</th>
+                  <th className="px-2 pb-1 text-right font-black">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
             {shownCurators.map(c => {
               const off = c.status === "deactivated";
               const pending = c.status === "pending";
               const house = c.id === "house";
+              const k = (n?: number) => (n ?? 0) >= 1000 ? `${((n ?? 0) / 1000).toFixed((n ?? 0) >= 10000 ? 0 : 1)}k` : String(n ?? 0);
+              const tdBg = house ? "bg-cobalt/[0.04] border-cobalt/20" : "bg-white border-black/10";
+              const td = `px-2 py-2 align-middle border-y ${tdBg}`;
               return (
-                <div key={c.id} role={house ? undefined : "button"} tabIndex={house ? undefined : 0}
+                <tr key={c.id}
+                  role={house ? undefined : "button"} tabIndex={house ? undefined : 0}
                   onClick={house ? undefined : () => { setEdit({ ...c }); setCreditsDraft(String(c.credits ?? "")); }}
                   onKeyDown={house ? undefined : e => { if (e.key === "Enter") { setEdit({ ...c }); setCreditsDraft(String(c.credits ?? "")); } }}
-                  className={`flex w-full min-w-0 items-center gap-3 rounded-xl border bg-white p-2.5 text-left transition ${house ? "border-cobalt/30 bg-cobalt/[0.03]" : `cursor-pointer active:scale-[0.99] ${off ? "border-black/10 opacity-70" : "border-black/10"}`}`}>
-                  {house ? (
-                    <a href="/stores" target="_blank" rel="noreferrer" title="House looks in the frontend"
-                      className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-black text-[11px] font-black text-white active:scale-95 transition">LB</a>
-                  ) : (
-                    <a href={`/curator/${c.id}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} title="View profile in the frontend"
-                      className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-black/5 text-sm font-black text-ink/50 active:scale-95 transition">
-                      {c.photoUrl ? <img src={c.photoUrl} alt="" className="h-full w-full object-cover" /> : initials(c)}
-                    </a>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-black text-ink">{house ? "Admin (house)" : fullName(c)}</div>
-                    <div className="truncate text-xs font-bold text-ink/45">{house ? "Looks & try-ons with no curator" : (c.email ?? "—")}</div>
-                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                      {!house && (pending
-                        ? <button type="button" disabled={busy === c.id}
-                            onClick={e => { e.stopPropagation(); void setCuratorStatus(c.id, "active"); }}
-                            title="Pending — tap to approve & activate"
-                            className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700 transition active:scale-95 disabled:opacity-50">
-                            {busy === c.id ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : null} Pending — approve
-                          </button>
-                        : <button type="button" disabled={busy === c.id}
-                            onClick={e => { e.stopPropagation(); void setCuratorStatus(c.id, off ? "active" : "deactivated"); }}
-                            title={off ? "Deactivated — tap to activate" : "Active — tap to deactivate"}
-                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black transition active:scale-95 disabled:opacity-50 ${off ? "bg-black/8 text-ink/50" : "bg-emerald-500 text-white"}`}>
-                            {busy === c.id ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : (off ? null : <Check className="h-2.5 w-2.5" />)}
-                            {off ? "Deactivated" : "Active"}
-                          </button>)}
-                      {/* Real-model toggle — tap to add/remove the "✓ Real model" badge. */}
-                      {!house && (
-                        <button type="button" disabled={busy === `real-${c.id}`}
-                          onClick={e => { e.stopPropagation(); void toggleRealModel(c); }}
-                          title={(c.realModel || c.realBadge) ? "Real Model — tap to remove the badge" : "Not a real model — tap to mark as Real Model"}
-                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black transition active:scale-95 disabled:opacity-50 ${(c.realModel || c.realBadge) ? "bg-emerald-500 text-white" : "bg-black/5 text-ink/40"}`}>
-                          {busy === `real-${c.id}` ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : (c.realModel || c.realBadge) ? <Check className="h-2.5 w-2.5" /> : null}
-                          {(c.realModel || c.realBadge) ? "Real ✓" : "Real: off"}
-                        </button>
+                  className={`text-sm ${house ? "" : `cursor-pointer ${off ? "opacity-70" : ""}`}`}>
+                  {/* Model — avatar + name + quick status/real toggles */}
+                  <td className={`${td} border-l rounded-l-xl pl-3`}>
+                    <div className="flex items-center gap-2.5">
+                      {house ? (
+                        <a href="/stores" target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} title="House looks in the frontend"
+                          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black text-[10px] font-black text-white active:scale-95 transition">LB</a>
+                      ) : (
+                        <a href={`/curator/${c.id}`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} title="View profile in the frontend"
+                          className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-black/5 text-xs font-black text-ink/50 active:scale-95 transition">
+                          {c.photoUrl ? <img src={c.photoUrl} alt="" className="h-full w-full object-cover" /> : initials(c)}
+                        </a>
                       )}
-                      {/* CONCEPT 2.0: which role model she emulates + whose face — so you know how to set her up. */}
-                      {!house && (c.styleModelId || c.imageSource) && (
-                        <span className="rounded-full bg-fuchsia-100 px-2 py-0.5 text-[10px] font-black text-fuchsia-700" title="Role model she emulates + face source (own photos / our images)">
-                          {c.styleModelId && curatorById.get(c.styleModelId) ? `🎭 like ${fullName(curatorById.get(c.styleModelId)!).split(" ")[0]}` : "🎭 own style"}
-                          {c.imageSource === "ours" ? " · ✨ our face" : " · 📸 own face"}
-                        </span>
-                      )}
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${sortC === "looks" ? "bg-cobalt/10 text-cobalt" : "bg-black/5 text-ink/50"}`}>{looksByCurator.get(c.id) ?? 0} looks</span>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${sortC === "tryons" ? "bg-cobalt/10 text-cobalt" : "bg-black/5 text-ink/50"}`}>{tryonsByCurator.get(c.id) ?? 0} try-ons</span>
-                      {!house && typeof c.credits === "number" && <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">{c.credits} cr</span>}
-                      {/* Base sale price — tap to change (grow-pricing adds videos/looks/days on top). */}
-                      {!house && (
-                        <button type="button" disabled={busy === `price-${c.id}`}
-                          onClick={e => { e.stopPropagation(); void setModelPrice(c); }}
-                          title="Base price — tap to change"
-                          className="inline-flex items-center gap-1 rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-black text-amber-700 ring-1 ring-amber-400/40 transition active:scale-95 disabled:opacity-50">
-                          {busy === `price-${c.id}` ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : null}
-                          💲{(((c.priceCents ?? 0) / 100)).toLocaleString("en-US", { minimumFractionDigits: (c.priceCents ?? 0) % 100 ? 2 : 0, maximumFractionDigits: 2 })}
-                        </button>
-                      )}
-                      {/* Engagement: comments on her posts · views (boost+real) · "See her in other looks" taps */}
-                      {!house && (() => { const k = (n?: number) => (n ?? 0) >= 1000 ? `${((n ?? 0) / 1000).toFixed((n ?? 0) >= 10000 ? 0 : 1)}k` : String(n ?? 0); return (
-                        <>
-                          <span title="Kommentare auf ihren Posts" className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">💬 {k(c.commentCount)}</span>
-                          <span title="Views (Boost + echt)" className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">👁 {k(c.viewTotal)}</span>
-                          <span title="Wollten sie in anderen Looks sehen (Taps)" className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">✨ {k(c.tryonClicks)}</span>
-                        </>
-                      ); })()}
-                      {!house && c.brands && <span className="truncate rounded-full bg-cobalt/10 px-2 py-0.5 text-[10px] font-black text-cobalt">{c.brands.split(",")[0]}</span>}
+                      <div className="min-w-0">
+                        <div className="truncate font-black text-ink">{house ? "Admin (house)" : fullName(c)}</div>
+                        <div className="mt-0.5 flex items-center gap-1.5">
+                          {house ? (
+                            <span className="text-[11px] font-bold text-ink/45">Looks & try-ons with no curator</span>
+                          ) : (<>
+                            {pending
+                              ? <button type="button" disabled={busy === c.id} onClick={e => { e.stopPropagation(); void setCuratorStatus(c.id, "active"); }} title="Pending — tap to approve & activate"
+                                  className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700 transition active:scale-95 disabled:opacity-50">
+                                  {busy === c.id ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : null} Pending
+                                </button>
+                              : <button type="button" disabled={busy === c.id} onClick={e => { e.stopPropagation(); void setCuratorStatus(c.id, off ? "active" : "deactivated"); }} title={off ? "Deactivated — tap to activate" : "Active — tap to deactivate"}
+                                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black transition active:scale-95 disabled:opacity-50 ${off ? "bg-black/8 text-ink/50" : "bg-emerald-500 text-white"}`}>
+                                  {busy === c.id ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : (off ? null : <Check className="h-2.5 w-2.5" />)} {off ? "Off" : "Active"}
+                                </button>}
+                            <button type="button" disabled={busy === `real-${c.id}`} onClick={e => { e.stopPropagation(); void toggleRealModel(c); }} title={(c.realModel || c.realBadge) ? "Real model — tap to remove the badge" : "Not a real model — tap to mark as Real Model"}
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black transition active:scale-95 disabled:opacity-50 ${(c.realModel || c.realBadge) ? "bg-emerald-500 text-white" : "bg-black/5 text-ink/40"}`}>
+                              {(c.realModel || c.realBadge) ? "Real ✓" : "Real"}
+                            </button>
+                            <button type="button" disabled={busy === `flag-${c.id}`} onClick={e => { e.stopPropagation(); void toggleFlagship(c); }} title={c.flagship ? "Flagship ($500 base) — tap to make AI model ($9.99)" : "AI model ($9.99) — tap to make Flagship ($500)"}
+                              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black transition active:scale-95 disabled:opacity-50 ${c.flagship ? "bg-amber-400 text-black" : "bg-black/5 text-ink/40"}`}>
+                              {c.flagship ? "★ Flagship" : "AI"}
+                            </button>
+                          </>)}
+                        </div>
+                      </div>
                     </div>
-                    {!house && c.createdAt && <div className="mt-1 flex items-center gap-1 truncate text-[11px] font-bold text-ink/40"><Clock className="h-3 w-3 shrink-0" /> {fmtTs(c.createdAt)}</div>}
-                  </div>
-                  {!house && (
-                    <div className="flex shrink-0 items-center gap-1.5" onClick={e => e.stopPropagation()}>
-                      <button type="button" disabled={!!vidBusyId} onClick={() => pickModelVideo(c.id)} title="Video für dieses Model hochladen (z. B. aus Pixverse)"
-                        className="grid h-9 w-9 place-items-center rounded-lg border border-black/10 text-ink/60 active:scale-95 transition disabled:opacity-50">
-                        {vidBusyId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
+                  </td>
+                  {/* Owner (account email) — unowned models are "For sale" */}
+                  <td className={td}>
+                    {house ? <span className="text-ink/30">—</span>
+                      : c.email ? <span className="block max-w-[180px] truncate text-xs font-bold text-ink/55">{c.email}</span>
+                      : <span className="inline-block rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-black text-amber-700 ring-1 ring-amber-400/30">For sale</span>}
+                  </td>
+                  {/* Price (base) — tap to change */}
+                  <td className={td}>
+                    {house ? <span className="text-ink/30">—</span> : (
+                      <button type="button" disabled={busy === `price-${c.id}`} onClick={e => { e.stopPropagation(); void setModelPrice(c); }} title="Base price — tap to change (grow-pricing adds videos/looks/days on top)"
+                        className="inline-flex items-center gap-1 rounded-full bg-amber-400/20 px-2 py-0.5 text-xs font-black text-amber-700 ring-1 ring-amber-400/40 transition active:scale-95 disabled:opacity-50">
+                        {busy === `price-${c.id}` ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : null}
+                        💲{(((c.priceCents ?? 0) / 100)).toLocaleString("en-US", { minimumFractionDigits: (c.priceCents ?? 0) % 100 ? 2 : 0, maximumFractionDigits: 2 })}
                       </button>
-                      <a href={`/admin/curators/apply?edit=${c.id}`} title="Edit the full model profile"
-                        className="rounded-lg border border-black/10 px-2.5 py-1.5 text-[11px] font-black text-ink/60 active:scale-95 transition">Edit</a>
-                      <button type="button" disabled={busy === c.id} onClick={() => void setCuratorStatus(c.id, (off || pending) ? "active" : "deactivated")} title={pending ? "Approve" : off ? "Activate" : "Deactivate"}
-                        className={`grid h-9 w-9 place-items-center rounded-lg border active:scale-95 transition ${(off || pending) ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-black/10 text-ink/60"}`}>
-                        <Power className="h-4 w-4" />
-                      </button>
-                      {/* Delete the model — two taps (arm → confirm) so it can't fire by accident. */}
-                      <button type="button" disabled={busy === c.id} onClick={() => armOrRun(`del-${c.id}`, () => void deleteCurator(c.id))}
-                        title={confirmId === `del-${c.id}` ? "Tap again to delete" : "Delete model"}
-                        className={`grid h-9 w-9 place-items-center rounded-lg border active:scale-95 transition ${confirmId === `del-${c.id}` ? "border-red-300 bg-red-500 text-white" : "border-black/10 text-red-500"}`}>
-                        {busy === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : confirmId === `del-${c.id}` ? <Check className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </td>
+                  {/* Looks / Try-ons / Views */}
+                  <td className={`${td} text-right tabular-nums ${sortC === "looks" ? "font-black text-cobalt" : "font-bold text-ink/60"}`}>{looksByCurator.get(c.id) ?? 0}</td>
+                  <td className={`${td} text-right tabular-nums ${sortC === "tryons" ? "font-black text-cobalt" : "font-bold text-ink/60"}`}>{tryonsByCurator.get(c.id) ?? 0}</td>
+                  <td className={`${td} text-right tabular-nums font-bold text-ink/50`}>{house ? "—" : k(c.viewTotal)}</td>
+                  {/* Joined */}
+                  <td className={`${td} whitespace-nowrap text-[11px] font-bold text-ink/45`}>{house ? "—" : (c.createdAt ? fmtTs(c.createdAt) : "—")}</td>
+                  {/* Actions */}
+                  <td className={`${td} border-r rounded-r-xl pr-3`} onClick={e => e.stopPropagation()}>
+                    {house ? <span className="block text-right text-ink/30">—</span> : (
+                      <div className="flex shrink-0 items-center justify-end gap-1.5">
+                        <button type="button" disabled={!!vidBusyId} onClick={() => pickModelVideo(c.id)} title="Video für dieses Model hochladen (z. B. aus Pixverse)"
+                          className="grid h-8 w-8 place-items-center rounded-lg border border-black/10 text-ink/60 active:scale-95 transition disabled:opacity-50">
+                          {vidBusyId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
+                        </button>
+                        <a href={`/admin/curators/apply?edit=${c.id}`} title="Edit the full model profile"
+                          className="grid h-8 place-items-center rounded-lg border border-black/10 px-2.5 text-[11px] font-black text-ink/60 active:scale-95 transition">Edit</a>
+                        <button type="button" disabled={busy === c.id} onClick={() => void setCuratorStatus(c.id, (off || pending) ? "active" : "deactivated")} title={pending ? "Approve" : off ? "Activate" : "Deactivate"}
+                          className={`grid h-8 w-8 place-items-center rounded-lg border active:scale-95 transition ${(off || pending) ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-black/10 text-ink/60"}`}>
+                          <Power className="h-4 w-4" />
+                        </button>
+                        <button type="button" disabled={busy === c.id} onClick={() => armOrRun(`del-${c.id}`, () => void deleteCurator(c.id))} title={confirmId === `del-${c.id}` ? "Tap again to delete" : "Delete model"}
+                          className={`grid h-8 w-8 place-items-center rounded-lg border active:scale-95 transition ${confirmId === `del-${c.id}` ? "border-red-300 bg-red-500 text-white" : "border-black/10 text-red-500"}`}>
+                          {busy === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : confirmId === `del-${c.id}` ? <Check className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
               );
             })}
+              </tbody>
+            </table>
+            )}
           </div>
         )}
 
@@ -2219,7 +2349,7 @@ export default function AdminPage() {
       {/* ── Curator edit sheet ── */}
       {edit && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" onClick={e => { if (e.target === e.currentTarget) setEdit(null); }}>
-          <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl">
+          <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl sm:max-w-2xl lg:max-w-4xl">
             <div className="flex items-center gap-3 border-b border-black/10 px-5 py-4">
               <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-black/5 text-sm font-black text-ink/50">
                 {edit.photoUrl ? <img src={edit.photoUrl} alt="" className="h-full w-full object-cover" /> : initials(edit)}
@@ -2233,8 +2363,8 @@ export default function AdminPage() {
               <button type="button" onClick={() => setEdit(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10"><X className="h-4 w-4" /></button>
             </div>
 
-            <div className="grid gap-3 overflow-y-auto px-5 py-4">
-              <div className="grid gap-2 rounded-xl border border-cobalt/25 bg-cobalt/[0.04] p-3">
+            <div className="grid gap-3 overflow-y-auto px-5 py-4 lg:grid-cols-2">
+              <div className="grid gap-2 rounded-xl border border-cobalt/25 bg-cobalt/[0.04] p-3 lg:col-span-2">
                 <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-cobalt"><LogIn className="h-3.5 w-3.5" /> Act as {edit.firstName || "this curator"}</div>
                 <p className="text-[11px] font-bold text-ink/45">Signs in as {edit.firstName || "this curator"} (new tab) — Studio, messages, comments, try-ons & credits all run in their name. Your admin tab stays open.</p>
                 <button type="button" onClick={() => loginAs(edit, "studio")}
@@ -2256,7 +2386,7 @@ export default function AdminPage() {
                   </button>
                 </div>
               </div>
-              <div className="flex items-end gap-2 rounded-xl bg-panel p-3">
+              <div className="flex items-end gap-2 rounded-xl bg-panel p-3 lg:col-span-2">
                 <label className="grid flex-1 gap-1">
                   <span className="text-[11px] font-black uppercase tracking-wider text-ink/40">Credits</span>
                   <input type="number" value={creditsDraft} onChange={e => setCreditsDraft(e.target.value)}
@@ -2268,7 +2398,7 @@ export default function AdminPage() {
                 </button>
               </div>
               {/* Real-model badge — clearly labelled toggle (the "✓ Real model" carousel badge). */}
-              <div className="flex items-center justify-between gap-2 rounded-xl bg-panel p-3">
+              <div className="flex items-center justify-between gap-2 rounded-xl bg-panel p-3 lg:col-span-2">
                 <div className="min-w-0">
                   <p className="text-[11px] font-black uppercase tracking-wider text-ink/40">Real model badge</p>
                   <p className="text-[11px] font-bold text-ink/45">Shows the green “✓ Real model” badge — a real person, not an AI model.</p>
@@ -2284,7 +2414,7 @@ export default function AdminPage() {
               <Field label="Email" v={edit.email} on={v => setEdit(e => e && { ...e, email: v })} />
               <Field2 label="Phone" v={edit.phone} on={v => setEdit(e => e && { ...e, phone: v })} label2="Instagram" v2={edit.instagram} on2={v => setEdit(e => e && { ...e, instagram: v })} />
               <Field label="Address" v={edit.address} on={v => setEdit(e => e && { ...e, address: v })} />
-              <div className="my-1 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-ink/35"><Sparkles className="h-3.5 w-3.5" /> Taste</div>
+              <div className="my-1 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-ink/35 lg:col-span-2"><Sparkles className="h-3.5 w-3.5" /> Taste</div>
               <Field label="Brands" v={edit.brands} on={v => setEdit(e => e && { ...e, brands: v })} />
               <Field label="Style" v={edit.style} on={v => setEdit(e => e && { ...e, style: v })} />
               <Field2 label="Gender focus" v={edit.genderFocus} on={v => setEdit(e => e && { ...e, genderFocus: v })} label2="Age focus" v2={edit.ageFocus} on2={v => setEdit(e => e && { ...e, ageFocus: v })} />
@@ -2315,7 +2445,7 @@ export default function AdminPage() {
         const img = editLook.frontImageUrl || editLook.imageUrl;
         return (
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" onClick={e => { if (e.target === e.currentTarget) setEditLook(null); }}>
-            <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl">
+            <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl sm:max-w-2xl lg:max-w-3xl">
               <div className="flex items-center gap-3 border-b border-black/10 px-5 py-4">
                 <div className="relative h-14 w-12 shrink-0 overflow-hidden rounded-lg bg-black/5">
                   {img ? <img src={img} alt="" className="h-full w-full object-cover object-top" /> : <div className="grid h-full w-full place-items-center text-[10px] font-black text-ink/30">LB</div>}
@@ -2332,8 +2462,8 @@ export default function AdminPage() {
                 <button type="button" onClick={() => setEditLook(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10"><X className="h-4 w-4" /></button>
               </div>
 
-              <div className="grid gap-3 overflow-y-auto px-5 py-4">
-                <div className="flex items-center gap-2">
+              <div className="grid gap-3 overflow-y-auto px-5 py-4 lg:grid-cols-2">
+                <div className="flex items-center gap-2 lg:col-span-2">
                   <button type="button" onClick={() => { void setLookPublished(editLook.id, !live); setEditLook(e => e && { ...e, published: !live }); }}
                     className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-black active:scale-95 transition ${live ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-black/10 text-ink/60"}`}>
                     <Power className="h-3.5 w-3.5" /> {live ? "Live — tap to deactivate" : "Off — tap to activate"}
@@ -2494,7 +2624,7 @@ function Field({ label, v, on }: { label: string; v?: string; on: (v: string) =>
 }
 function Field2(p: { label: string; v?: string; on: (v: string) => void; label2: string; v2?: string; on2: (v: string) => void }) {
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 gap-3 lg:col-span-2">
       <Field label={p.label} v={p.v} on={p.on} />
       <Field label={p.label2} v={p.v2} on={p.on2} />
     </div>
@@ -2502,7 +2632,7 @@ function Field2(p: { label: string; v?: string; on: (v: string) => void; label2:
 }
 function Area({ label, v, on }: { label: string; v?: string; on: (v: string) => void }) {
   return (
-    <label className="grid gap-1">
+    <label className="grid gap-1 lg:col-span-2">
       <span className="text-[11px] font-black uppercase tracking-wider text-ink/40">{label}</span>
       <textarea value={v ?? ""} onChange={e => on(e.target.value)} rows={3}
         className="w-full rounded-lg border border-black/10 bg-panel px-3 py-2 text-sm font-bold text-ink outline-none focus:border-cobalt" />

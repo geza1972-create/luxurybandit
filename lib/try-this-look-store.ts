@@ -171,6 +171,64 @@ export type Follow = {
 
 // A fashion curator: applies via /curators/apply, then works in AI Studio
 // (generates looks + tryons). Earns later via affiliate on approved looks.
+// Central price list (all in CENTS). Admin-editable on the admin Pricing page.
+export type PricingConfig = {
+  subscriptionMonthlyCents?: number; // membership fee / month
+  videoGenCents?: number;            // cost to generate a video / look try-on (owner pays)
+  ownPhotoUploadCents?: number;      // cost to upload your own photo (free)
+  freshBaseCents?: number;           // starting value of a fresh AI model
+  realModelBaseCents?: number;       // starting value floor of a REAL model
+  flagshipBaseCents?: number;        // default value of a flagship (Gina/Bella)
+  videoValueCents?: number;          // value GIFT added per generated video
+  videoMilestoneBonusCents?: number; // EXTRA value gift for every full 10 videos generated
+  followerValueCents?: number;       // value gift per super-follower (registered fan)
+  lookValueCents?: number;           // value gift per look (0 = none)
+  dayValueCents?: number;            // value gift per day owned
+  chatPassCents?: number;            // paid chat pass price with someone else's model
+  chatPassMinutes?: number;          // how many MINUTES a paid chat pass lasts (a count, not $)
+  chatFreeMessages?: number;         // how many FREE messages a fan gets first (a count, not $)
+  superFollowCents?: number;         // what a fan pays to Super Follow her (one-time)
+  // Per-field Stripe Price ID (admin fills these in Stripe → paste here). Keyed by the same
+  // field names as the cents amounts above, e.g. stripeIds.subscriptionMonthlyCents = "price_…".
+  stripeIds?: Record<string, string>;
+};
+
+// Defaults = the numbers agreed for the own-a-model concept. The admin can override each.
+export const DEFAULT_PRICING: Required<PricingConfig> = {
+  subscriptionMonthlyCents: 499,   // $4.99 / month membership
+  videoGenCents: 399,              // $3.99 per generated video / try-on
+  ownPhotoUploadCents: 0,          // free
+  freshBaseCents: 999,             // $9.99 fresh AI model
+  realModelBaseCents: 10000,       // $100 real model floor
+  flagshipBaseCents: 50000,        // $500 flagship
+  videoValueCents: 100,            // +$1 value per generated video
+  videoMilestoneBonusCents: 1000,  // +$10 extra for every full 10 videos
+  followerValueCents: 100,         // +$1 value per super-follower
+  lookValueCents: 0,               // looks add no value on their own
+  dayValueCents: 100,              // +$1 value per day owned
+  chatPassCents: 399,              // $3.99 paid chat pass
+  chatPassMinutes: 30,             // 30-minute chat pass
+  chatFreeMessages: 10,            // 10 free messages first
+  superFollowCents: 499,           // $4.99 / month to Super Follow her (unlocks her private videos)
+  stripeIds: { subscriptionMonthlyCents: "price_1TtEoM1jPNCWoiztvswekWJD" }, // rest filled by admin
+};
+
+// Read the live price list (admin-editable) merged over the defaults. ONE source of truth for
+// every price shown across the app — landing, apply, checkouts. Change it once in the admin.
+export async function getPricingConfig(): Promise<Required<PricingConfig>> {
+  const state = await readTryThisLookState();
+  return {
+    ...DEFAULT_PRICING,
+    ...(state.pricing ?? {}),
+    stripeIds: { ...DEFAULT_PRICING.stripeIds, ...(state.pricing?.stripeIds ?? {}) },
+  };
+}
+// "$9.99" / "$500" — re-exported so UI can format cents without importing the pricing lib.
+export function fmtCents(cents: number): string {
+  const n = Math.max(0, Math.round(cents)) / 100;
+  return `$${n % 1 ? n.toFixed(2) : n.toLocaleString("en-US")}`;
+}
+
 export type CuratorProfile = {
   id: string;
   firstName: string;
@@ -214,6 +272,12 @@ export type CuratorProfile = {
   chatEnabled?: boolean;      // admin toggle: is "chat with the model" on? (undefined = on)
   pinned?: boolean;           // admin-pinned → shown first in the Models gallery
   featured?: boolean;         // featured → free showcase on the Models tab; non-featured are locked (paid)
+  priceCents?: number;        // (legacy) old free base value — superseded by the flagship flag
+  flagship?: boolean;         // admin checkbox: Flagship ($500 base) vs AI model ($9.99 base)
+  // Ownership (own-a-model concept). A model with NO ownerEmail is "for sale". When bought,
+  // ownerEmail = the buyer + purchasedAt = now (her age/appreciation restarts from the purchase).
+  ownerEmail?: string;
+  purchasedAt?: string;
   status: "active" | "pending" | "deactivated";
   createdAt: string;
   // Creator credits (communicated to creators as "credits", never money).
@@ -312,6 +376,10 @@ export type TryThisLookState = {
   colors?: string[];
   fabrics?: string[];
   occasions?: string[];
+  // Central, admin-editable PRICE LIST (all amounts in CENTS). One source of truth the admin
+  // page shows + edits. Defaults live in DEFAULT_PRICING; the grow-price helper reads these
+  // (or falls back to its own constants) so numbers can be tuned without a redeploy.
+  pricing?: PricingConfig;
   // Global kill-switch: when true, end-user try-on generation is paused ("coming soon").
   // Admin/staff bypass it. Toggled instantly from the admin panel (no redeploy).
   tryonPaused?: boolean;
@@ -730,6 +798,7 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     colors: unionTags(DEFAULT_COLORS, state.colors ?? []),
     fabrics: unionTags(DEFAULT_FABRICS, state.fabrics ?? []),
     occasions: unionTags(DEFAULT_OCCASIONS, state.occasions ?? []),
+    pricing: { ...DEFAULT_PRICING, ...(state.pricing ?? {}), stripeIds: { ...DEFAULT_PRICING.stripeIds, ...(state.pricing?.stripeIds ?? {}) } },
     tryonPaused: state.tryonPaused === true,
     chatNotifyPaused: state.chatNotifyPaused === true,
     outfits: state.outfits ?? [],
@@ -852,6 +921,9 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
         }
         return out;
       })(),
+      // Price list: field-level merge (latest as base, our edits on top) so a concurrent
+      // analytics save carrying a stale copy can't wipe a just-saved price.
+      pricing: { ...(latest.pricing ?? {}), ...(state.pricing ?? {}), stripeIds: { ...(latest.pricing?.stripeIds ?? {}), ...(state.pricing?.stripeIds ?? {}) } },
     };
   }
   const strippedState: TryThisLookState = {
@@ -890,6 +962,7 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     occasions: (state.occasions ?? []).slice(0, 5000),
     tryonPaused: state.tryonPaused === true,
     chatNotifyPaused: state.chatNotifyPaused === true,
+    pricing: state.pricing ?? DEFAULT_PRICING,
   };
 
   const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(STATE_PATH)}`, {

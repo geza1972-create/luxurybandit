@@ -366,25 +366,23 @@ export default function ModelChat({
 
           {error && <p className="text-center text-[12px] font-bold text-red-400">{error}</p>}
 
-          {/* Wall after the free messages — a promo with two ways to keep going. */}
+          {/* Wall after the free messages — the LuxuryBandit membership unlocks unlimited chat. */}
           {locked && (
-            <div className="mt-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-center">
-              <p className="text-sm font-black text-white">Loving {first}? 💛</p>
-              <p className="mt-1 text-[12px] font-bold text-white/55">You&apos;ve used your {FREE_USER_MESSAGES} free messages. Keep going —</p>
-              <div className="mt-3 grid gap-2">
-                {/* Own your own influencer → chat with HER free, forever. */}
-                <button type="button" onClick={() => router.push("/curators/apply")}
-                  className="lb-gold flex w-full flex-col items-center rounded-2xl px-4 py-3 active:scale-95 transition">
-                  <span className="text-[14px] font-black">👑 Own your own AI influencer</span>
-                  <span className="text-[11px] font-bold text-black/60">Get your own — and chat with her free, forever</span>
-                </button>
-                {/* Pay to keep chatting with THIS one. */}
-                <button type="button" onClick={() => void buyChatPass()} disabled={buyingPass}
-                  className="flex w-full flex-col items-center rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-white active:scale-95 transition disabled:opacity-60">
-                  <span className="text-[14px] font-black">{buyingPass ? "Opening checkout…" : `💬 Chat with ${first} — $3.99`}</span>
-                  <span className="text-[11px] font-bold text-white/50">30 minutes, unlimited messages</span>
-                </button>
-              </div>
+            <div className="mt-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4">
+              <p className="text-center text-sm font-black text-white">Loving {first}? 💛</p>
+              <p className="mx-auto mt-1 max-w-xs text-center text-[12px] font-bold text-white/55">Your {FREE_USER_MESSAGES} free messages are up. Join the membership to keep chatting — one price, everything:</p>
+              <table className="mx-auto mt-3 w-full max-w-[15rem] text-left text-[12.5px] font-bold text-white/80">
+                <tbody className="[&>tr>td]:py-1">
+                  <tr><td className="w-6 align-top text-amber-400">💬</td><td><b className="text-white">Free unlimited chat</b> with anyone</td></tr>
+                  <tr><td className="w-6 align-top text-amber-400">🔒</td><td><b className="text-white">Every private video</b></td></tr>
+                  <tr><td className="w-6 align-top text-amber-400">➕</td><td><b className="text-white">Super Follow anyone</b></td></tr>
+                  <tr><td className="w-6 align-top text-amber-400">👑</td><td><b className="text-white">Buy &amp; own influencers</b></td></tr>
+                </tbody>
+              </table>
+              <button type="button" onClick={onNeedPremium}
+                className="lb-gold mt-3 flex w-full items-center justify-center rounded-2xl px-4 py-3 text-[14px] font-black active:scale-95 transition">
+                👑 Get membership
+              </button>
             </div>
           )}
         </div>
@@ -392,16 +390,10 @@ export default function ModelChat({
         {/* Composer */}
         <div className="shrink-0 border-t border-white/10 px-3 pt-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.85rem)" }}>
           {locked ? (
-            <div className="flex gap-2">
-              <button type="button" onClick={() => router.push("/curators/apply")}
-                className="lb-gold flex h-12 flex-1 items-center justify-center gap-1.5 rounded-full text-[13px] font-black active:scale-95 transition">
-                👑 Own your own
-              </button>
-              <button type="button" onClick={() => void buyChatPass()} disabled={buyingPass}
-                className="flex h-12 flex-1 items-center justify-center gap-1.5 rounded-full bg-white/10 text-[13px] font-black text-white/80 active:scale-95 transition disabled:opacity-60">
-                {buyingPass ? "…" : "$3.99 · 30 min"}
-              </button>
-            </div>
+            <button type="button" onClick={onNeedPremium}
+              className="lb-gold flex h-12 w-full items-center justify-center gap-1.5 rounded-full text-[13px] font-black active:scale-95 transition">
+              👑 Get membership — unlimited chat
+            </button>
           ) : (
             <>
               {/* Emoji palette */}

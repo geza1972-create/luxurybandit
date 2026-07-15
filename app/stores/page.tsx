@@ -39,9 +39,9 @@ const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub
   },
   en: {
     eyebrow: "The AI Influencer Marketplace",
-    h1a: "Discover AI influencers.", h1b: "Follow, chat & try their looks.",
-    sub: "Browse a marketplace of AI influencers — watch their daily luxury looks, chat with them, and try their outfits on your own photo. New faces and new looks every day.",
-    b1t: "Follow & chat", b1x: "Message any influencer, get styled by her, and try her looks on your own photo.",
+    h1a: "Discover AI influencers.", h1b: "Follow, chat & own them.",
+    sub: "Browse a marketplace of AI influencers — watch their daily luxury looks, chat with them, and own the one you love. New faces and new looks every day.",
+    b1t: "Follow & chat", b1x: "Message any influencer, get styled by her, and make her yours.",
     b2t: "New looks daily", b2x: "Fresh luxury fashion videos from every influencer, every single day.",
     cta: "Own an AI influencer",
     becomeModel: "Browse the marketplace",
@@ -1562,7 +1562,7 @@ function StoresPage() {
   }, []);
   // Home has two views: the Feeds thumbnail grid, and the Models gallery (a grid of the
   // model profiles). Toggled at the top of the home.
-  type GalleryModel = { id: string; name: string; photoUrl: string; style: string; brands?: string; lookCount: number; bio?: string; motto?: string; hidden?: boolean; hairColor?: string; createdAt?: string; pinned?: boolean; featured?: boolean; chatPersona?: string; chatEnabled?: boolean; realModel?: boolean };
+  type GalleryModel = { id: string; name: string; photoUrl: string; style: string; brands?: string; lookCount: number; bio?: string; motto?: string; hidden?: boolean; hairColor?: string; createdAt?: string; pinned?: boolean; featured?: boolean; chatPersona?: string; chatEnabled?: boolean; realModel?: boolean; growPriceLabel?: string; growPriceCents?: number; forSale?: boolean };
   const [models, setModels] = useState<GalleryModel[]>([]);
   // Models tab: sort (newest first by default, so a freshly added model is on top)
   // + optional hair-color filter (models are AI-tagged blond/brunette/black/red).
@@ -2875,6 +2875,12 @@ function StoresPage() {
                         )}
                         {isAdmin && m.pinned && (
                           <span className="absolute right-2 bottom-2 z-10 rounded-full bg-black/70 px-1.5 py-0.5 text-[11px] backdrop-blur">📌</span>
+                        )}
+                        {/* Grow-price: her current appreciating value (rises daily). Public/aspirational. */}
+                        {m.growPriceLabel && (
+                          <span className="lb-gold absolute right-2 top-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-black shadow" title="Her LB-Value — grows daily">
+                            <span className="opacity-70">LB-Value</span> {m.growPriceLabel}
+                          </span>
                         )}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={m.photoUrl} alt={m.name} loading="lazy" decoding="async" className={`h-full w-full object-cover object-top ${m.hidden ? "opacity-40" : ""} ${locked ? "blur-[6px] scale-105 opacity-70" : ""}`} />

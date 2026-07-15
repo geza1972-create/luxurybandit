@@ -8,7 +8,9 @@ import {
   readOutfits,
   writeOutfits,
   uploadTryThisLookImage,
-  type CuratorProfile
+  DEFAULT_PRICING,
+  type CuratorProfile,
+  type PricingConfig
 } from "@/lib/try-this-look-store";
 import { authorizeStudio } from "@/lib/studio-auth";
 import { tryOnGarment } from "@/lib/tryon";
@@ -19,6 +21,7 @@ import { isAdminRequest } from "@/lib/admin-auth";
 import { deleteAuthUser } from "@/lib/supabase-admin-users";
 import { sendCuratorInviteEmail } from "@/lib/curator-invite-email";
 import { FASHION_BRANDS } from "@/lib/fashion-brands";
+import { influencerPriceCents, fmtPriceCents } from "@/lib/influencer-price";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -374,6 +377,10 @@ export async function GET(request: Request) {
       }
       return NextResponse.json({ hit: false });
     }
+    // Central price list — public read (prices are shown to users); editing is admin-only (POST).
+    if (url.searchParams.get("pricing") === "1") {
+      return NextResponse.json({ pricing: { ...DEFAULT_PRICING, ...(state.pricing ?? {}) } });
+    }
     // Partner stores — read by the studio (curators) and the admin manager.
     // Admin sees the affiliate templates; curators get only what discovery needs.
     if (url.searchParams.get("partnerStores") === "1") {
@@ -467,10 +474,21 @@ export async function GET(request: Request) {
       // Admins get hidden models too (to un-hide/manage) + editable fields (name parts, bio).
       const modelsAdmin = await isAdmin(request);
       const genCountByName = new Map<string, number>();
+      const vidCountByName = new Map<string, number>(); // videos she owns → grow-pricing
       for (const g of (state.generations ?? [])) {
         if ((g as any).feed !== true) continue;
         const nm = String((g as any).customerName ?? "").trim().toLowerCase();
-        if (nm && nm !== "you") genCountByName.set(nm, (genCountByName.get(nm) ?? 0) + 1);
+        if (nm && nm !== "you") {
+          genCountByName.set(nm, (genCountByName.get(nm) ?? 0) + 1);
+          if ((g as any).videoUrl) vidCountByName.set(nm, (vidCountByName.get(nm) ?? 0) + 1);
+        }
+      }
+      // Super-followers per curator (real registered follows) → grow-pricing (+$1 each).
+      const followersByCurator = new Map<string, number>();
+      for (const f of (state.follows ?? [])) {
+        if ((f as any).followeeType === "user" && (f as any).followeeSlug) {
+          followersByCurator.set((f as any).followeeSlug, (followersByCurator.get((f as any).followeeSlug) ?? 0) + 1);
+        }
       }
       const models = (state.curators ?? [])
         // Public: only APPROVED (active) models. Admins also see pending applications
@@ -480,6 +498,14 @@ export async function GET(request: Request) {
         .map(c => {
           const cc = c as any;
           const name = [cc.firstName, cc.lastName].filter(Boolean).join(" ").trim();
+          const lookCount = genCountByName.get(name.toLowerCase()) ?? 0;
+          const videoCount = vidCountByName.get(name.toLowerCase()) ?? 0;
+          const followerCount = followersByCurator.get(cc.id) ?? 0;
+          // Grow-price: her current appreciating ASSET value (base + videos + followers + days owned).
+          const priceCents = influencerPriceCents({
+            name, flagship: cc.flagship, realModel: cc.realModel === true,
+            videoCount, lookCount, followerCount, purchasedAt: cc.purchasedAt, createdAt: cc.createdAt,
+          });
           return {
             id: cc.id,
             name,
@@ -491,7 +517,10 @@ export async function GET(request: Request) {
             pinned: cc.pinned === true, // admin-pinned → shown first in the Models grid
             featured: cc.featured === true, // featured → free showcase; others are locked (paid)
             realModel: cc.realModel === true, // a real person (not an AI persona) → "Real model" badge
-            lookCount: genCountByName.get(name.toLowerCase()) ?? 0,
+            lookCount,
+            growPriceCents: priceCents,             // current grow-price (cents)
+            growPriceLabel: fmtPriceCents(priceCents), // "$9.99" / "$1,240"
+            forSale: !cc.ownerEmail,          // no owner yet → on the market
             ...(modelsAdmin ? {
               firstName: cc.firstName ?? "",
               lastName: cc.lastName ?? "",
@@ -822,6 +851,7 @@ export async function GET(request: Request) {
           videoUrl: (g as any).videoUrl ?? undefined,
           feed: (g as any).feed === true,
           public: (g as any).public === true,
+          private: (g as any).private === true,
           lockedByAdmin: !!(g as any).lockedByAdmin,
           customerName: (g as any).customerName ?? "",
           lookName: g.lookName ?? look?.name ?? "",
@@ -1504,6 +1534,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    // Mark a generated video PRIVATE (Super Followers only) or PUBLIC. Admin-managed.
+    if (payload.action === "set-generation-private") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 401 });
+      const genId = String(payload.generationId ?? "").trim();
+      const gen = state.generations.find(g => g.id === genId);
+      if (!gen) return NextResponse.json({ error: "Generation not found." }, { status: 404 });
+      (gen as any).private = (payload as any).private === true;
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, private: (gen as any).private });
+    }
+
     // Admin: CONNECT a generated video to a look — sets the look's own videoUrl (+ poster)
     // from an existing generation, so the look becomes a free try-on (look-video fallback).
     if (payload.action === "attach-look-video-from-generation") {
@@ -2018,6 +2059,36 @@ export async function POST(request: Request) {
       const state = await readTryThisLookState();
       await saveTryThisLookState({ ...state, tryonPaused: paused });
       return NextResponse.json({ ok: true, tryonPaused: paused });
+    }
+
+    // Admin: edit the central PRICE LIST. Body { pricing: {<field>: cents, ...} } — only known
+    // numeric fields are accepted; each merges over the current values (partial updates ok).
+    if (payload.action === "update-pricing") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 401 });
+      const incoming = ((payload as any).pricing ?? {}) as Record<string, unknown>;
+      const allowed: (keyof PricingConfig)[] = [
+        "subscriptionMonthlyCents", "videoGenCents", "ownPhotoUploadCents", "freshBaseCents",
+        "realModelBaseCents", "flagshipBaseCents", "videoValueCents", "videoMilestoneBonusCents",
+        "followerValueCents", "lookValueCents", "dayValueCents", "chatPassCents",
+        "chatPassMinutes", "chatFreeMessages", "superFollowCents",
+      ];
+      const clean: PricingConfig = {};
+      for (const k of allowed) {
+        const v = incoming[k];
+        if (typeof v === "number" && isFinite(v) && v >= 0) clean[k] = Math.round(v);
+      }
+      // Per-field Stripe Price IDs (strings). Empty string clears one.
+      const incomingIds = ((payload as any).pricing?.stripeIds ?? {}) as Record<string, unknown>;
+      const cleanIds: Record<string, string> = {};
+      for (const k of allowed) {
+        const v = incomingIds[k as string];
+        if (typeof v === "string") cleanIds[k as string] = v.trim();
+      }
+      const state = await readTryThisLookState();
+      const pricing = { ...DEFAULT_PRICING, ...(state.pricing ?? {}), ...clean };
+      pricing.stripeIds = { ...DEFAULT_PRICING.stripeIds, ...(state.pricing?.stripeIds ?? {}), ...cleanIds };
+      await saveTryThisLookState({ ...state, pricing });
+      return NextResponse.json({ ok: true, pricing });
     }
 
     // Chat-notification kill-switch (admin-only). When paused, a new model chat no longer pings

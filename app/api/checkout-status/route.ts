@@ -78,6 +78,55 @@ export async function GET(request: Request) {
       }
     }
 
+    // Buyer paid the (dynamic) price to OWN an influencer → transfer ownership: set her
+    // ownerEmail + purchasedAt = now (her appreciation restarts). Idempotent per session id.
+    let boughtCuratorId = "", boughtOwnerEmail = "";
+    if (paid && s.metadata.kind === "buy-influencer") {
+      const curatorId = String(s.metadata.curatorId ?? "").trim();
+      const buyer = (s.clientReferenceId || s.customerEmail || "").trim().toLowerCase();
+      if (curatorId && buyer) {
+        const st = await readTryThisLookState();
+        const vc = (st.videoCredits = st.videoCredits ?? { balances: {}, redeemed: [] });
+        vc.redeemed = vc.redeemed ?? [];
+        const cur = (st.curators ?? []).find(c => c.id === curatorId) as any;
+        if (cur && !vc.redeemed.includes(sessionId)) {
+          // Only claim if still unowned (or already this buyer) — never steal an owned model.
+          if (!cur.ownerEmail || cur.ownerEmail === buyer) {
+            cur.ownerEmail = buyer;
+            cur.purchasedAt = new Date().toISOString();
+          }
+          vc.redeemed.push(sessionId);
+          await saveTryThisLookState(st);
+        }
+        if (cur) { boughtCuratorId = curatorId; boughtOwnerEmail = String(cur.ownerEmail ?? ""); }
+      }
+    }
+
+    // Fan paid to SUPER FOLLOW → record the follow (→ +$1 to her LB-Value) + credit her owner.
+    // Idempotent per session id AND per (follower × influencer) so it can't double-add.
+    let superFollowCuratorId = "";
+    if (paid && s.metadata.kind === "super-follow") {
+      const curatorId = String(s.metadata.curatorId ?? "").trim();
+      const followerId = String(s.metadata.followerId ?? s.clientReferenceId ?? "").trim();
+      if (curatorId && followerId) {
+        superFollowCuratorId = curatorId;
+        const st = await readTryThisLookState();
+        const vc = (st.videoCredits = st.videoCredits ?? { balances: {}, redeemed: [] });
+        vc.redeemed = vc.redeemed ?? [];
+        if (!vc.redeemed.includes(sessionId)) {
+          // Super Follow uses the shared $4.99/mo membership — record the follow (→ +$1 to her
+          // LB-Value + unlocks her private videos for this fan). Membership revenue is platform.
+          const follows = (st.follows = st.follows ?? []);
+          const already = follows.some((f: any) => f.followeeType === "user" && f.followeeSlug === curatorId && f.followerId === followerId);
+          if (!already) {
+            follows.push({ id: `follow-${sessionId}`, followerId, followeeSlug: curatorId, followeeType: "user", createdAt: new Date().toISOString() } as any);
+          }
+          vc.redeemed.push(sessionId);
+          await saveTryThisLookState(st);
+        }
+      }
+    }
+
     return NextResponse.json({
       paid,
       status: s.status,
@@ -85,6 +134,8 @@ export async function GET(request: Request) {
       lookId: s.metadata.lookId ?? "",
       kind: s.metadata.kind ?? "",
       ...(chatPassCuratorId ? { chatPassCuratorId } : {}),
+      ...(boughtCuratorId ? { boughtCuratorId, boughtOwnerEmail } : {}),
+      ...(superFollowCuratorId ? { superFollowCuratorId } : {}),
       ...(credits !== undefined ? { credits } : {}),
     });
   } catch (e) {

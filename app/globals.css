@@ -238,6 +238,11 @@ svg {
 .lb-dark [class~="bg-white"],
 .lb-dark [class*="bg-white/9"] { background-color: #1d1d21 !important; }
 
+/* bg-panel (#f6f4ef cream — every input field + the credit/badge sub-panels) →
+   a slightly-raised dark fill so fields stay visible against the #1d1d21 cards.
+   This was the white-text-on-white-panel bug in the edit sheet. */
+.lb-dark [class~="bg-panel"] { background-color: #2a2a30 !important; }
+
 /* Subtle light overlays (bg-black/5, /8, /10 and arbitrary bg-black/[0.0x]) → faint light */
 .lb-dark [class~="bg-black/5"],
 .lb-dark [class~="bg-black/8"],

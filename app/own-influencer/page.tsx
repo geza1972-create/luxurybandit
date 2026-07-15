@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Sparkles, Video, MessageCircle, TrendingUp, Check, Crown, Camera, BarChart3, Users, Gem, Wand2 } from "lucide-react";
-import { readTryThisLookState, getSignedUrl } from "@/lib/try-this-look-store";
+import { readTryThisLookState, getSignedUrl, getPricingConfig, fmtCents } from "@/lib/try-this-look-store";
 import TrackView from "@/components/TrackView";
 import LazyVideo from "@/components/LazyVideo";
 import OwnInfluencerCTA from "@/components/OwnInfluencerCTA";
@@ -11,10 +11,10 @@ import WardrobePeek from "@/components/WardrobePeek";
 
 export const metadata = {
   title: "LuxuryBandit — Own an AI Influencer. We'll help her grow.",
-  description: "Launch your AI influencer business on LuxuryBandit — the marketplace where fans discover, follow and support AI influencers. We create the content daily, you build the audience. Start from $8 (first month, then $49/month).",
+  description: "Own an AI influencer on LuxuryBandit — she's yours, and her LB-Value grows every day. Generate her videos in one tap, use them anywhere, resell her for more. Membership $4.99/month.",
   openGraph: {
     title: "Own an AI Influencer — We'll help her grow | LuxuryBandit",
-    description: "Launch your AI influencer business. We create the content, you build the audience, you earn from premium fan experiences. Start from $8 (first month, then $49/month).",
+    description: "Own your AI influencer — she's an appreciating asset. Generate her videos yourself, her LB-Value grows daily. Membership $4.99/month.",
     images: [{ url: "/become-a-model-banner.jpg?v=3", width: 1280, height: 720 }],
     url: "/own-influencer",
     type: "website",
@@ -53,6 +53,12 @@ async function landingData() {
 
 export default async function OwnInfluencerLanding() {
   const { heroPhoto, clips, models } = await landingData();
+  // All prices come from the admin-editable price list — change them once there, not here.
+  const pricing = await getPricingConfig();
+  const subLabel = fmtCents(pricing.subscriptionMonthlyCents);   // membership / month
+  const chatLabel = fmtCents(pricing.chatPassCents);             // paid chat pass / 30 min
+  const videoLabel = fmtCents(pricing.videoGenCents);            // generate a video
+  const superFollowLabel = subLabel;   // Super Follow = the ONE membership price (no separate price)
 
   const NAV = [
     { label: "For Creators", href: "#creators" },
@@ -66,24 +72,25 @@ export default async function OwnInfluencerLanding() {
     { icon: Sparkles, label: "Daily luxury content" },
     { icon: Video, label: "AI fashion videos" },
     { icon: MessageCircle, label: "Premium fan interactions" },
-    { icon: TrendingUp, label: "You earn revenue" },
+    { icon: TrendingUp, label: "You earn LB-Value" },
   ];
-  const CREATOR_POINTS = ["We create fresh content every day", "No AI skills required", "No editing or posting", "Chat with her yourself, anytime", "Earn 30% in credits when others try on her looks", "Earn when fans pay to chat with her"];
+  const CREATOR_POINTS = ["We add fresh clothes to her wardrobe daily", "No AI skills required", "You generate her videos yourself — one tap", "Mark videos private — only her Super Followers see them", "Earn when fans Super Follow her ($4.99/mo)", "Earn when fans pay to chat with her"];
   const FAN_POINTS = ["Discover amazing AI influencers", "Chat with your favorites", "Unlock exclusive content", "Watch premium videos", "Try on her looks"];
   const STEPS = [
-    { icon: Users, t: "Create your influencer", d: "Choose a style or create your own AI influencer." },
-    { icon: Camera, t: "Choose a monthly plan", d: "Pick the plan that fits your goals." },
-    { icon: Sparkles, t: "We create content every day", d: "Luxury photos, videos, looks and more." },
-    { icon: MessageCircle, t: "Fans discover your influencer", d: "They follow, chat and unlock premium content." },
-    { icon: TrendingUp, t: "You earn from premium experiences", d: "Grow your audience and your revenue." },
+    { icon: Users, t: "Pick your influencer", d: "Choose one of ours or create your own — one-of-a-kind, and she's yours." },
+    { icon: Crown, t: "Start your membership", d: "$4.99/month unlocks your studio." },
+    { icon: Sparkles, t: "Generate her videos", d: "One tap — we handle the AI. No prompts, no skills." },
+    { icon: TrendingUp, t: "Her LB-Value grows", d: "Every video and every day makes her worth more." },
+    { icon: Video, t: "Use her — or resell her", d: "Post her videos on your shop, Facebook & Instagram — or sell her later for her higher value." },
   ];
   const WHY = [
     { icon: Crown, t: "Own your influencer", d: "You own your AI influencer and your brand." },
+    { icon: TrendingUp, t: "Her LB-Value grows", d: "She's an appreciating asset — +$1/day, +$1/video, +$10 per 10 videos. Resell her later for more." },
     { icon: Users, t: "A loyal fanbase", d: "Build an audience that follows her every single day." },
     { icon: Camera, t: "Daily luxury content", d: "We create high-quality content every single day." },
-    { icon: Gem, t: "Premium experiences", d: "Offer exclusive content, try-ons, videos and more." },
-    { icon: BarChart3, t: "Earn from every try-on", d: "Get 30% back in credits whenever anyone tries on a look with her — plus premium fan revenue." },
-    { icon: Wand2, t: "We do the work", d: "No prompts. No editing. No daily posting." },
+    { icon: Gem, t: "One of a kind", d: "Fixed name, one owner — nobody else can have her. Yours like an NFT." },
+    { icon: BarChart3, t: "Earn from her", d: "Fans pay to chat with her — you earn from it. And resell her later at her higher LB-Value." },
+    { icon: Wand2, t: "One-tap generation", d: "You generate her videos yourself — no prompts, no editing skills." },
   ];
 
   return (
@@ -129,9 +136,9 @@ export default async function OwnInfluencerLanding() {
             <h1 className="text-[30px] font-black leading-[0.98] tracking-tight">
               OWN AN<br /><span className="text-amber-400">AI INFLUENCER.</span>
             </h1>
-            <p className="mt-3 text-[20px] font-black leading-tight">We&apos;ll help her grow.</p>
+            <p className="mt-3 text-[20px] font-black leading-tight">We&apos;ll help her grow with <span className="text-amber-400">LB-Value</span>!</p>
             <p className="mx-auto mt-4 max-w-md text-[15px] font-semibold leading-7 text-white/65">
-              Launch your <strong className="text-white">AI influencer business</strong> on LuxuryBandit. We create the content, you build the audience and earn from premium fan experiences.
+              Own a one-of-a-kind <strong className="text-white">AI influencer</strong> on LuxuryBandit. Generate her videos in one tap, use them anywhere — and her <strong className="text-white">LB-Value</strong> grows every single day.
             </p>
             <div className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-4">
               {HERO_FEATURES.map(f => (
@@ -142,6 +149,31 @@ export default async function OwnInfluencerLanding() {
               ))}
             </div>
             <div id="launch" className="mt-7 scroll-mt-24"><OwnInfluencerCTA /></div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Membership — the ONE price, general benefits for everyone ── */}
+      <section className="border-b border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-12">
+          <div className="rounded-3xl border border-amber-400/30 bg-gradient-to-b from-amber-400/[0.08] to-transparent p-6">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Membership · {subLabel}/month</p>
+            <h2 className="mt-2 text-[26px] font-black leading-tight">One price.<br />The whole marketplace.</h2>
+            <p className="mt-3 max-w-md text-[14px] font-semibold leading-6 text-white/65">Your LuxuryBandit membership unlocks everything — for every influencer here. Cancel anytime.</p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {[
+                { icon: "💬", t: "Free unlimited chat", d: "Message any influencer, as much as you like." },
+                { icon: "🔒", t: "Every private video", d: "See the private videos of every influencer." },
+                { icon: "➕", t: "Super Follow anyone", d: "Back your favorites — they grow in value." },
+                { icon: "👑", t: "Buy & own influencers", d: "Turn any influencer into your own asset." },
+              ].map(x => (
+                <div key={x.t} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-2xl leading-none">{x.icon}</p>
+                  <p className="mt-2 text-[15px] font-black text-white">{x.t}</p>
+                  <p className="mt-0.5 text-[13px] font-semibold leading-snug text-white/55">{x.d}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -185,22 +217,49 @@ export default async function OwnInfluencerLanding() {
         </div>
       </section>
 
+      {/* ── LB-Value: the appreciating asset ── */}
+      <section className="border-b border-white/10">
+        <div className="mx-auto max-w-6xl px-4 py-12">
+          <div className="rounded-3xl border border-amber-400/25 bg-amber-400/[0.05] p-6">
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">LB-Value · she appreciates</p>
+            <h2 className="mt-2 text-[26px] font-black leading-tight">We&apos;ll help her grow —<br />with <span className="text-amber-300">LB-Value</span>.</h2>
+            <p className="mt-3 text-[14px] font-semibold leading-relaxed text-white/70">
+              Every influencer has an <span className="font-black text-amber-300">LB-Value</span> — what she&apos;s worth, and she only has it here on LuxuryBandit. Own her and she becomes an appreciating asset: the more you build her out, the more she&apos;s worth — and you can resell her later at her higher value.
+            </p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { v: "+$1", d: "every day you own her" },
+                { v: "+$1", d: "per video you generate" },
+                { v: "+$1", d: "per Super Follower she gains" },
+                { v: "+$10", d: "bonus for every 10 videos" },
+              ].map(x => (
+                <div key={x.d} className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                  <p className="text-2xl font-black text-amber-300">{x.v}</p>
+                  <p className="text-[12px] font-bold text-white/50">{x.d}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-[12px] font-bold text-white/40">Fans <span className="font-black text-white/70">Super Follow her for {superFollowLabel}/month</span> to unlock her <span className="font-black text-white/70">private videos</span> — <span className="font-black text-white/70">you earn from it</span>, and every Super Follower adds <span className="font-black text-amber-300">+$1</span> to her LB-Value. Mark any video private when you generate it — only Super Followers see it.</p>
+          </div>
+        </div>
+      </section>
+
       {/* ── Her wardrobe / content engine ── */}
       <section className="border-b border-white/10">
         <div className="mx-auto max-w-6xl px-4 py-12">
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Her Wardrobe · Your Content Engine</p>
-            <h2 className="mt-2 text-[26px] font-black leading-tight">New looks every day —<br />zero work for you.</h2>
+            <h2 className="mt-2 text-[26px] font-black leading-tight">New looks every day —<br />one tap to create.</h2>
             <p className="mt-3 text-[14px] font-semibold leading-relaxed text-white/70">
-              Here&apos;s how her content keeps flowing — completely hands-off for you:
+              The wardrobe&apos;s on us — the videos are yours to make:
             </p>
             <ul className="mt-5 space-y-3">
               {[
                 { t: "New clothes every single day", d: "We add fresh outfits to her wardrobe daily." },
-                { t: "Add your own clothes too", d: "Want a specific piece? Upload it and she'll wear it." },
-                { t: "We generate her videos regularly", d: "Fresh videos of your influencer, created automatically." },
+                { t: "A curated luxury wardrobe", d: "Only the finest pieces — hand-picked by us. She always wears luxury." },
+                { t: "Generate her videos yourself", d: "One tap — we handle the AI. No prompts, no editing skills." },
                 { t: "The videos are yours to use", d: "Post them on your own shop, your Facebook or your Instagram." },
-                { t: "You do nothing", d: "We create all the content — you just grow your business." },
+                { t: "Every video grows her LB-Value", d: "The more you generate, the more she's worth — and can resell for." },
               ].map(p => (
                 <li key={p.t} className="flex items-start gap-2.5">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
@@ -292,10 +351,16 @@ export default async function OwnInfluencerLanding() {
             <p className="text-[12px] font-black uppercase tracking-[0.15em] text-amber-400">Start your journey today</p>
             <p className="mt-2 max-w-sm text-[14px] font-semibold leading-6 text-white/65">Join the first creators building their AI influencer business on LuxuryBandit.</p>
             <div className="mt-5 flex items-end gap-1">
-              <span className="text-[12px] font-bold text-white/50">Start for only</span>
+              <span className="text-[12px] font-bold text-white/50">Membership</span>
             </div>
-            <p className="-mt-1"><span className="text-[48px] font-black leading-none text-amber-400">$8</span><span className="text-[14px] font-bold text-white/60"> first month</span></p>
-            <p className="mt-1 text-[12px] font-bold text-white/45">then $49/month · cancel anytime</p>
+            <p className="-mt-1"><span className="text-[48px] font-black leading-none text-amber-400">{subLabel}</span><span className="text-[14px] font-bold text-white/60"> / month</span></p>
+            <p className="mt-1 text-[12px] font-bold text-white/45">cancel anytime · your influencer &amp; her videos are yours</p>
+            <ul className="mt-4 space-y-1.5 text-[13px] font-bold text-white/70">
+              <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> Buy &amp; own influencers</li>
+              <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> Super Follow anyone</li>
+              <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> See every private video</li>
+              <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> Free unlimited chat</li>
+            </ul>
             <div className="mt-5"><OwnInfluencerCTA /></div>
           </div>
         </div>

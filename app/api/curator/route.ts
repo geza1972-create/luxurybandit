@@ -9,6 +9,7 @@ import {
 import { setCuratorCredits, grantCredits, awardEngagementCredits, getCuratorCredits, STARTER_CREDITS, TRYON_CREDITS, SEARCH_CREDITS, VIDEO_CREDITS } from "@/lib/curator-budget";
 import { notifyAdminWhatsApp, ADMIN_URL } from "@/lib/notify-admin";
 import { isAdminRequest } from "@/lib/admin-auth";
+import { influencerPriceCents, fmtPriceCents } from "@/lib/influencer-price";
 import crypto from "crypto";
 
 // One-click consent token (matches /api/curator-confirm) — only the person who got the email can confirm.
@@ -110,6 +111,24 @@ export async function GET(request: Request) {
     if (!c) return NextResponse.json({ profile: null });
     // The verification selfie is PRIVATE — only the admin (reviewing her) may see it.
     const adminView = await isAdminRequest(request);
+    // Grow-price (public): her current appreciating ASSET value, shown daily on her profile.
+    // base (admin/quality) + $3.99/video + $3/look + $1/day owned (since purchase, else created).
+    const nmKey = [c.firstName, c.lastName].filter(Boolean).join(" ").trim().toLowerCase();
+    let lookCount = 0, videoCount = 0;
+    for (const g of (state.generations ?? [])) {
+      if ((g as any).feed !== true) continue;
+      const gn = String((g as any).customerName ?? "").trim().toLowerCase();
+      if (gn && gn === nmKey) { lookCount++; if ((g as any).videoUrl) videoCount++; }
+    }
+    // Super-followers (real registered follows) → +$1 each on her LB-Value.
+    const superFollowers = (state.follows ?? []).filter((f: any) => f.followeeType === "user" && f.followeeSlug === c.id).length;
+    const growPriceCents = influencerPriceCents({
+      name: nmKey, flagship: (c as any).flagship, realModel: (c as any).realModel === true,
+      videoCount, lookCount, followerCount: superFollowers, purchasedAt: (c as any).purchasedAt, createdAt: (c as any).createdAt,
+    });
+    // Does the VIEWER own her? Try-ons are now only for your OWN influencers.
+    const requesterEmail = (await emailFromToken(request)).trim().toLowerCase();
+    const youOwnHer = !!(c as any).ownerEmail && requesterEmail === String((c as any).ownerEmail).trim().toLowerCase();
     return NextResponse.json({ profile: {
       id: c.id, firstName: c.firstName, lastName: c.lastName, motto: c.motto, bio: c.bio,
       photoUrl: c.photoUrl, photoFullUrl: (c as any).photoFullUrl, photoBodyUrls: (c as any).photoBodyUrls ?? [], instagram: c.instagram, style: c.style, brands: c.brands, genderFocus: c.genderFocus,
@@ -117,6 +136,13 @@ export async function GET(request: Request) {
       likeBoost: (c as any).likeBoost ?? 0, viewBoost: (c as any).viewBoost ?? 0,
       realBadge: (c as any).realBadge === true,
       realModel: (c as any).realModel === true,
+      flagship: (c as any).flagship === true,
+      // Grow-pricing (public): current value + whether she's unowned (on the market).
+      growPriceCents, growPriceLabel: fmtPriceCents(growPriceCents), forSale: !(c as any).ownerEmail,
+      owned: !!(c as any).ownerEmail, youOwnHer,
+      lookCount, videoCount, superFollowers, purchasedAt: (c as any).purchasedAt ?? "", createdAt: (c as any).createdAt ?? "",
+      // Admin sees who owns her; the buyer can tell it's theirs (compared client-side to their email).
+      ...(adminView ? { ownerEmail: (c as any).ownerEmail ?? "" } : {}),
       ...(adminView ? { verificationSelfieUrl: (c as any).verificationSelfieUrl ?? "", phone: c.phone ?? "", status: (c as any).status ?? "active", hidden: (c as any).hidden === true, priceCents: (c as any).priceCents ?? 0, profilePhotoUrls: (c as any).profilePhotoUrls ?? [] } : {}),
     } });
   }
@@ -888,6 +914,10 @@ export async function POST(request: Request) {
       priceCents: isAdmin && (payload as any).priceCents !== undefined
         ? Math.max(0, Math.round(Number((payload as any).priceCents) || 0))
         : (cur as any).priceCents,
+      // Flagship tier ($500 base) vs AI model ($9.99). Admin checkbox — drives her LB-Value.
+      flagship: isAdmin && (payload as any).flagship !== undefined
+        ? (payload as any).flagship === true
+        : (cur as any).flagship,
     } as any;
     // Optional new photo
     const photo = String(payload.photo ?? "");

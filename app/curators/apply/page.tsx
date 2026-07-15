@@ -10,6 +10,10 @@ export default function CuratorApplyPage() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Prices come from the admin-editable price list (change once there). Defaults until loaded.
+  const [pricing, setPricing] = useState({ subscriptionMonthlyCents: 499, chatPassCents: 399, videoGenCents: 399 });
+  useEffect(() => { fetch("/api/try-this-look?pricing=1").then(r => r.json()).then(d => { if (d.pricing) setPricing(p => ({ ...p, ...d.pricing })); }).catch(() => {}); }, []);
+  const fmtPrice = (c: number) => { const n = Math.max(0, Math.round(c)) / 100; return `$${n % 1 ? n.toFixed(2) : n.toLocaleString("en-US")}`; };
   const [photo, setPhoto] = useState("");
   const [photoFull, setPhotoFull] = useState(""); // the UNCROPPED original (portrait) — shown large on her profile
   const [photoError, setPhotoError] = useState("");
@@ -704,13 +708,30 @@ export default function CuratorApplyPage() {
         <div className="mt-5 rounded-2xl border border-black/12 bg-white p-4">
           <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">After you sign up</p>
           <h3 className="mt-0.5 text-[16px] font-black text-slate-900">What you get</h3>
-          <ul className="mt-2.5 space-y-1.5 text-[13px] font-bold text-slate-700">
-            <li className="flex gap-2"><span>💎</span> We create her luxury content — fresh photos &amp; videos, every day.</li>
-            <li className="flex gap-2"><span>📱</span> She gets her own public profile — like the card above.</li>
-            <li className="flex gap-2"><span>💬</span> Chat with her yourself — and her fans discover, follow &amp; chat with her too.</li>
-            <li className="flex gap-2"><span>🎬</span> When anyone does a try-on with her, you earn <b>30% back in credits</b>.</li>
-            <li className="flex gap-2"><span>💬</span> Fans get 10 free messages, then pay <b>$3.99 for 30 min</b> to chat with her — you earn from it.</li>
-          </ul>
+          <table className="mt-2.5 w-full text-[13px] font-bold text-slate-700">
+            <tbody className="[&>tr>td]:border-b [&>tr>td]:border-black/[0.06] [&>tr>td]:py-2 [&>tr:last-child>td]:border-0 [&>tr:last-child>td]:pb-0">
+              <tr>
+                <td className="pr-3 align-top"><span className="mr-1.5">👗</span> Fresh clothes in her wardrobe daily — you dress her.</td>
+                <td className="whitespace-nowrap text-right align-top text-slate-500">included</td>
+              </tr>
+              <tr>
+                <td className="pr-3 align-top"><span className="mr-1.5">🎬</span> Generate her videos yourself — one tap, yours to post.</td>
+                <td className="whitespace-nowrap text-right align-top text-slate-900">{fmtPrice(pricing.videoGenCents)}/video</td>
+              </tr>
+              <tr>
+                <td className="pr-3 align-top"><span className="mr-1.5">📈</span> Her <b>LB-Value</b> grows — +$1/day · +$1/video · +$10 per 10.</td>
+                <td className="whitespace-nowrap text-right align-top text-slate-500">resell for more</td>
+              </tr>
+              <tr>
+                <td className="pr-3 align-top"><span className="mr-1.5">📱</span> Her own public profile — like the card above.</td>
+                <td className="whitespace-nowrap text-right align-top text-slate-500">included</td>
+              </tr>
+              <tr>
+                <td className="pr-3 align-top"><span className="mr-1.5">💬</span> Fans chat with her — 10 free, then they join.</td>
+                <td className="whitespace-nowrap text-right align-top text-slate-500">membership</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         {/* Own photo + face selection now live in the gallery under the big card. Keep only the
@@ -868,10 +889,10 @@ export default function CuratorApplyPage() {
         <button type="button" onClick={() => void submit()} disabled={submitting}
           className={`bg-slate-800 text-white flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black disabled:opacity-50 ${btn3d}`}>
           {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Coins className="h-5 w-5" />}
-          {submitting ? (editId ? "Saving…" : "Setting up…") : (editId ? "Save changes" : "OWN THE INFLUENCER — $8")}
+          {submitting ? (editId ? "Saving…" : "Setting up…") : (editId ? "Save changes" : `OWN THE INFLUENCER — ${fmtPrice(pricing.subscriptionMonthlyCents)}/mo`)}
         </button>
         <p className="mt-1.5 text-center text-[12px] font-bold text-slate-600">
-          {editId ? "Changes go live immediately" : <>First month <b className="text-slate-900">$8</b>, then $49/mo · cancel anytime · 🔒 secure Stripe checkout</>}
+          {editId ? "Changes go live immediately" : <><b className="text-slate-900">{fmtPrice(pricing.subscriptionMonthlyCents)}/month</b> · cancel anytime · 🔒 secure Stripe checkout</>}
         </p>
       </div>
 
@@ -895,7 +916,7 @@ export default function CuratorApplyPage() {
             <p className="text-[16px] font-black text-slate-900">⚠️ You get one shot — send your very best photos.</p>
             <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-700">Photos that are blurry, hide your face (hat/sunglasses), fake, or don&apos;t fit our luxury concept are rejected — and a rejected application can&apos;t apply again. Sharp, well-lit, real photos only.</p>
             <p className="mt-3 text-[13px] font-bold leading-relaxed text-slate-900">💰 You earn <b>30%</b> (~$1.20) every time a fan makes a paid video with you — it lands in your account automatically. The more fans pick you, the more you earn. <a href="/earnings" className="underline underline-offset-2">How earnings work →</a></p>
-            <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-900">🎬 Turn your photos into stunning videos once you&apos;re approved — just $3.99 per video. Serious creators only.</p>
+            <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-900">🎬 Turn your photos into stunning videos once you&apos;re approved — just {fmtPrice(pricing.videoGenCents)} per video. Serious creators only.</p>
             <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-800">💡 <b className="text-slate-900">You&apos;re never on your own.</b> Every single day we hand you fresh <b className="text-slate-900">outfits and video ideas</b> — you just post. No ideas needed, we do the creative work.</p>
             <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-800">🤖 <b className="text-slate-900">A free AI chat assistant for your fans</b> — it chats with them for you, day and night. You have <b className="text-slate-900">zero work</b> with it.</p>
             <button type="button" onClick={() => setRulesOpen(false)} className="mt-4 h-11 w-full rounded-2xl bg-slate-800 text-sm font-black text-white active:scale-95 transition">Got it</button>
