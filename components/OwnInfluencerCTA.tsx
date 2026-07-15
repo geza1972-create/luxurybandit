@@ -7,7 +7,7 @@ import { trackMetaPixel } from "@/lib/meta-pixel";
 
 // The ad-test CTA card. "Choose an Influencer" leads to the existing application form
 // (/curators/apply) — sign-up + set up your influencer. Returns to ?premium=success
-// (fires the Meta Subscribe event). The $49/mo Premium sub, first month $8.
+// (fires the Meta Subscribe event). The $4.99/mo membership.
 export default function OwnInfluencerCTA() {
   const [success, setSuccess] = useState(false);
   // Membership price from the admin-editable price list.

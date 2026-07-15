@@ -18,7 +18,7 @@ const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
 type Curator = {
   id: string;
   firstName?: string; lastName?: string; email?: string;
-  phone?: string; address?: string; instagram?: string;
+  phone?: string; address?: string; country?: string; instagram?: string; verificationSelfieUrl?: string;
   brands?: string; style?: string; genderFocus?: string; ageFocus?: string;
   colors?: string; fabrics?: string; occasions?: string; priceTiers?: string; fitFocus?: string;
   motto?: string; bio?: string;
@@ -31,7 +31,7 @@ type Curator = {
   earningsCents?: number; payoutMethod?: string;
   payouts?: { id: string; amountCents: number; method: string; status: string; requestedAt?: string; paidAt?: string }[];
   // "✓ Real model" carousel badge (realModel) + profile banner (realBadge) — a real person, not an AI persona.
-  realModel?: boolean; realBadge?: boolean; flagship?: boolean;
+  realModel?: boolean; realBadge?: boolean; flagship?: boolean; flagshipTier?: number;
   // CONCEPT 2.0 creation tool: role model she emulates + where her face comes from.
   styleModelId?: string; imageSource?: "own" | "ours";
 };
@@ -500,13 +500,15 @@ export default function AdminPage() {
     finally { setPromoteBusy(false); }
   };
   // ── Central PRICE LIST (admin-editable). Stored server-side in state.pricing (cents). ──
-  const PRICE_FIELDS: { k: string; label: string; hint?: string; count?: boolean }[] = [
-    { k: "subscriptionMonthlyCents", label: "Membership / month", hint: "the ONE price for everything" },
+  const PRICE_FIELDS: { k: string; label: string; hint?: string; count?: boolean; stripe?: boolean }[] = [
+    { k: "subscriptionMonthlyCents", label: "Membership / month", hint: "the ONE price for everything", stripe: true },
     { k: "videoGenCents", label: "Generate a video / try-on", hint: "owner pays" },
     { k: "ownPhotoUploadCents", label: "Upload your own photo", hint: "free" },
     { k: "freshBaseCents", label: "AI model — base value" },
     { k: "realModelBaseCents", label: "Real model — base value", hint: "floor" },
-    { k: "flagshipBaseCents", label: "Flagship — base value", hint: "Gina/Bella" },
+    { k: "flagshipBase1Cents", label: "Flagship 1 — base value", hint: "tier 1" },
+    { k: "flagshipBase2Cents", label: "Flagship 2 — base value", hint: "tier 2" },
+    { k: "flagshipBase3Cents", label: "Flagship 3 — base value", hint: "tier 3" },
     { k: "videoValueCents", label: "Value gift / generated video" },
     { k: "videoMilestoneBonusCents", label: "Value bonus / 10 videos", hint: "milestone" },
     { k: "followerValueCents", label: "Value gift / super-follower" },
@@ -540,8 +542,11 @@ export default function AdminPage() {
         const n = COUNT_FIELDS.has(k) ? Math.round(raw) : Math.round(raw * 100); // count vs cents
         if (isFinite(n) && n >= 0) out[k] = n;
       }
+      // Only the membership needs a real Stripe Price ID; everything else is ad-hoc price_data or
+      // a pure LB-Value number. Persist IDs for Stripe fields only so stale IDs drop out of the list.
+      const stripeFields = new Set(PRICE_FIELDS.filter(f => f.stripe).map(f => f.k));
       const stripeIds: Record<string, string> = {};
-      for (const [k, v] of Object.entries(pricingIds)) stripeIds[k] = String(v ?? "").trim();
+      for (const k of stripeFields) stripeIds[k] = String(pricingIds[k] ?? "").trim();
       const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "update-pricing", pricing: { ...out, stripeIds } }) });
       const d = await r.json().catch(() => ({}));
       if (r.ok && d.pricing) { applyPricing(d.pricing); setPricingMsg("Saved ✓"); }
@@ -870,11 +875,16 @@ export default function AdminPage() {
   };
   // Flagship tier ($500 base) vs AI model ($9.99) — the model's price tier, no free prices.
   const toggleFlagship = async (c: Curator) => {
-    const next = !(c.flagship === true);
+    // Cycle AI → Flagship 1 → Flagship 2 → Flagship 3 → AI. Each flagship tier has its own
+    // base value in the price list.
+    const cur = c.flagship === true ? Math.min(3, Math.max(1, c.flagshipTier ?? 1)) : 0;
+    const nextState = (cur + 1) % 4;               // 0 = AI, 1/2/3 = flagship tier
+    const flagship = nextState > 0;
+    const flagshipTier = nextState > 0 ? nextState : (c.flagshipTier ?? 1);
     setBusy(`flag-${c.id}`); setError("");
     try {
-      const r = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "update", id: c.id, flagship: next }) });
-      if (r.ok) setCurators(cs => cs.map(x => x.id === c.id ? { ...x, flagship: next } : x));
+      const r = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "update", id: c.id, flagship, flagshipTier }) });
+      if (r.ok) setCurators(cs => cs.map(x => x.id === c.id ? { ...x, flagship, flagshipTier } : x));
       else await fail(r, "Could not update flagship");
     } catch { setError("Network error."); }
     setBusy("");
@@ -1368,7 +1378,7 @@ export default function AdminPage() {
                       className="w-20 rounded-lg border border-black/10 bg-panel px-2 py-1.5 text-right text-sm font-black text-ink outline-none focus:border-cobalt" />
                   </span>
                 </div>
-                {!f.count && (
+                {f.stripe && (
                   <input type="text" spellCheck={false} placeholder="Stripe price ID (price_…)"
                     value={pricingIds[f.k] ?? ""} onChange={e => setPricingIds(d => ({ ...d, [f.k]: e.target.value }))}
                     className="mt-1.5 w-full rounded-lg border border-black/10 bg-panel px-2 py-1.5 text-[11px] font-bold text-ink/70 outline-none focus:border-cobalt" />
@@ -1989,9 +1999,9 @@ export default function AdminPage() {
                               className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black transition active:scale-95 disabled:opacity-50 ${(c.realModel || c.realBadge) ? "bg-emerald-500 text-white" : "bg-black/5 text-ink/40"}`}>
                               {(c.realModel || c.realBadge) ? "Real ✓" : "Real"}
                             </button>
-                            <button type="button" disabled={busy === `flag-${c.id}`} onClick={e => { e.stopPropagation(); void toggleFlagship(c); }} title={c.flagship ? "Flagship ($500 base) — tap to make AI model ($9.99)" : "AI model ($9.99) — tap to make Flagship ($500)"}
+                            <button type="button" disabled={busy === `flag-${c.id}`} onClick={e => { e.stopPropagation(); void toggleFlagship(c); }} title={c.flagship ? `Flagship tier ${c.flagshipTier ?? 1} — tap to cycle tier / back to AI` : "AI model ($9.99) — tap to make Flagship (tier 1 → 2 → 3)"}
                               className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black transition active:scale-95 disabled:opacity-50 ${c.flagship ? "bg-amber-400 text-black" : "bg-black/5 text-ink/40"}`}>
-                              {c.flagship ? "★ Flagship" : "AI"}
+                              {c.flagship ? `★ Flagship ${c.flagshipTier ?? 1}` : "AI"}
                             </button>
                           </>)}
                         </div>
@@ -2397,6 +2407,20 @@ export default function AdminPage() {
                   {busy === edit.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Set credits"}
                 </button>
               </div>
+              {/* Verification selfie — review it before marking her a Real model (moved here
+                  from her public profile). */}
+              {edit.verificationSelfieUrl && (
+                <div className="flex items-center gap-3 rounded-xl bg-panel p-3 lg:col-span-2">
+                  <a href={edit.verificationSelfieUrl} target="_blank" rel="noreferrer" className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-black/10">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={edit.verificationSelfieUrl} alt="verification selfie" className="h-full w-full object-cover" />
+                  </a>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-wider text-ink/40">Verification selfie</p>
+                    <p className="text-[11px] font-bold text-ink/45">Review before marking her as a Real model. WhatsApp: <span className="text-ink/70">{edit.phone || "—"}</span></p>
+                  </div>
+                </div>
+              )}
               {/* Real-model badge — clearly labelled toggle (the "✓ Real model" carousel badge). */}
               <div className="flex items-center justify-between gap-2 rounded-xl bg-panel p-3 lg:col-span-2">
                 <div className="min-w-0">
@@ -2413,7 +2437,7 @@ export default function AdminPage() {
               <Field2 label="First name" v={edit.firstName} on={v => setEdit(e => e && { ...e, firstName: v })} label2="Last name" v2={edit.lastName} on2={v => setEdit(e => e && { ...e, lastName: v })} />
               <Field label="Email" v={edit.email} on={v => setEdit(e => e && { ...e, email: v })} />
               <Field2 label="Phone" v={edit.phone} on={v => setEdit(e => e && { ...e, phone: v })} label2="Instagram" v2={edit.instagram} on2={v => setEdit(e => e && { ...e, instagram: v })} />
-              <Field label="Address" v={edit.address} on={v => setEdit(e => e && { ...e, address: v })} />
+              <Field2 label="Address" v={edit.address} on={v => setEdit(e => e && { ...e, address: v })} label2="Country (ISO-2, e.g. RO)" v2={edit.country} on2={v => setEdit(e => e && { ...e, country: v })} />
               <div className="my-1 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-ink/35 lg:col-span-2"><Sparkles className="h-3.5 w-3.5" /> Taste</div>
               <Field label="Brands" v={edit.brands} on={v => setEdit(e => e && { ...e, brands: v })} />
               <Field label="Style" v={edit.style} on={v => setEdit(e => e && { ...e, style: v })} />

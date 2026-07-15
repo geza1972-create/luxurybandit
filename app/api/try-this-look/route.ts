@@ -490,6 +490,9 @@ export async function GET(request: Request) {
           followersByCurator.set((f as any).followeeSlug, (followersByCurator.get((f as any).followeeSlug) ?? 0) + 1);
         }
       }
+      // Flagship tier base values from the admin price list (3 tiers).
+      const prc = { ...DEFAULT_PRICING, ...(state.pricing ?? {}) };
+      const flagshipBases = [prc.flagshipBase1Cents, prc.flagshipBase2Cents, prc.flagshipBase3Cents];
       const models = (state.curators ?? [])
         // Public: only APPROVED (active) models. Admins also see pending applications
         // and hidden models so they can review/unhide them.
@@ -505,10 +508,11 @@ export async function GET(request: Request) {
           const priceCents = influencerPriceCents({
             name, flagship: cc.flagship, realModel: cc.realModel === true,
             videoCount, lookCount, followerCount, purchasedAt: cc.purchasedAt, createdAt: cc.createdAt,
+            flagshipTier: cc.flagshipTier, flagshipBases,
           });
           return {
             id: cc.id,
-            name,
+            name: (cc.modelName || "").trim() || name, // display her elegant single name (matching stays by real name)
             photoUrl: cc.photoUrl as string,
             style: typeof cc.style === "string" ? cc.style : "",
             brands: typeof cc.brands === "string" ? cc.brands : "", // her favourite brands (chips/desc)
@@ -520,7 +524,7 @@ export async function GET(request: Request) {
             lookCount,
             growPriceCents: priceCents,             // current grow-price (cents)
             growPriceLabel: fmtPriceCents(priceCents), // "$9.99" / "$1,240"
-            forSale: !cc.ownerEmail,          // no owner yet → on the market
+            forSale: typeof cc.forSale === "boolean" ? cc.forSale : !cc.ownerEmail, // explicit flag wins
             ...(modelsAdmin ? {
               firstName: cc.firstName ?? "",
               lastName: cc.lastName ?? "",
@@ -2068,7 +2072,8 @@ export async function POST(request: Request) {
       const incoming = ((payload as any).pricing ?? {}) as Record<string, unknown>;
       const allowed: (keyof PricingConfig)[] = [
         "subscriptionMonthlyCents", "videoGenCents", "ownPhotoUploadCents", "freshBaseCents",
-        "realModelBaseCents", "flagshipBaseCents", "videoValueCents", "videoMilestoneBonusCents",
+        "realModelBaseCents", "flagshipBaseCents", "flagshipBase1Cents", "flagshipBase2Cents",
+        "flagshipBase3Cents", "videoValueCents", "videoMilestoneBonusCents",
         "followerValueCents", "lookValueCents", "dayValueCents", "chatPassCents",
         "chatPassMinutes", "chatFreeMessages", "superFollowCents",
       ];
@@ -2086,7 +2091,9 @@ export async function POST(request: Request) {
       }
       const state = await readTryThisLookState();
       const pricing = { ...DEFAULT_PRICING, ...(state.pricing ?? {}), ...clean };
-      pricing.stripeIds = { ...DEFAULT_PRICING.stripeIds, ...(state.pricing?.stripeIds ?? {}), ...cleanIds };
+      // Rebuild stripeIds from the default + what the admin just sent (the membership price only) —
+      // do NOT re-merge stored IDs, so any stale per-field IDs from earlier get purged on save.
+      pricing.stripeIds = { ...DEFAULT_PRICING.stripeIds, ...cleanIds };
       await saveTryThisLookState({ ...state, pricing });
       return NextResponse.json({ ok: true, pricing });
     }

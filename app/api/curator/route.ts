@@ -4,6 +4,7 @@ import {
   readTryThisLookState,
   saveTryThisLookState,
   uploadTryThisLookImage,
+  getPricingConfig,
   type CuratorProfile,
 } from "@/lib/try-this-look-store";
 import { setCuratorCredits, grantCredits, awardEngagementCredits, getCuratorCredits, STARTER_CREDITS, TRYON_CREDITS, SEARCH_CREDITS, VIDEO_CREDITS } from "@/lib/curator-budget";
@@ -122,24 +123,44 @@ export async function GET(request: Request) {
     }
     // Super-followers (real registered follows) → +$1 each on her LB-Value.
     const superFollowers = (state.follows ?? []).filter((f: any) => f.followeeType === "user" && f.followeeSlug === c.id).length;
+    // Flagship tier base values come from the admin price list (3 tiers).
+    const pr = await getPricingConfig();
+    const flagshipBases = [pr.flagshipBase1Cents, pr.flagshipBase2Cents, pr.flagshipBase3Cents];
     const growPriceCents = influencerPriceCents({
       name: nmKey, flagship: (c as any).flagship, realModel: (c as any).realModel === true,
       videoCount, lookCount, followerCount: superFollowers, purchasedAt: (c as any).purchasedAt, createdAt: (c as any).createdAt,
+      flagshipTier: (c as any).flagshipTier, flagshipBases,
     });
     // Does the VIEWER own her? Try-ons are now only for your OWN influencers.
     const requesterEmail = (await emailFromToken(request)).trim().toLowerCase();
     const youOwnHer = !!(c as any).ownerEmail && requesterEmail === String((c as any).ownerEmail).trim().toLowerCase();
     return NextResponse.json({ profile: {
-      id: c.id, firstName: c.firstName, lastName: c.lastName, motto: c.motto, bio: c.bio,
-      photoUrl: c.photoUrl, photoFullUrl: (c as any).photoFullUrl, photoBodyUrls: (c as any).photoBodyUrls ?? [], instagram: c.instagram, style: c.style, brands: c.brands, genderFocus: c.genderFocus,
+      id: c.id, firstName: c.firstName, lastName: c.lastName, modelName: (c as any).modelName ?? "", motto: c.motto, bio: c.bio,
+      photoUrl: c.photoUrl, photoFullUrl: (c as any).photoFullUrl, photoBodyUrls: (c as any).photoBodyUrls ?? [], instagram: c.instagram, style: c.style, brands: c.brands, genderFocus: c.genderFocus, country: (c as any).country ?? "",
       // Vanity baselines (admin-set) — added to the real sums on her stats row.
       likeBoost: (c as any).likeBoost ?? 0, viewBoost: (c as any).viewBoost ?? 0,
       realBadge: (c as any).realBadge === true,
       realModel: (c as any).realModel === true,
       flagship: (c as any).flagship === true,
-      // Grow-pricing (public): current value + whether she's unowned (on the market).
-      growPriceCents, growPriceLabel: fmtPriceCents(growPriceCents), forSale: !(c as any).ownerEmail,
+      flagshipTier: (c as any).flagshipTier ?? 1,
+      flagshipBases,
+      // Grow-pricing (public): current value + whether she's listed for sale. Explicit forSale
+      // flag (admin/owner-set) wins; otherwise an unowned model defaults to on-the-market.
+      growPriceCents, growPriceLabel: fmtPriceCents(growPriceCents),
+      forSale: typeof (c as any).forSale === "boolean" ? (c as any).forSale : !(c as any).ownerEmail,
       owned: !!(c as any).ownerEmail, youOwnHer,
+      // Owner NAME + short ID. The owner can hide their name (privacy) and keep only the ID.
+      owner: (() => {
+        const oe = String((c as any).ownerEmail || "").trim().toLowerCase();
+        if (!oe) return "";
+        const acc = (state.curators ?? []).find(x => String((x as any).email || "").trim().toLowerCase() === oe) as any;
+        const accName = acc ? (String(acc.modelName || "").trim() || [acc.firstName, acc.lastName].filter(Boolean).join(" ").trim()) : "";
+        if (accName) return accName;
+        const local = oe.split("@")[0].split(/[._-]/)[0];
+        return local ? local.charAt(0).toUpperCase() + local.slice(1) : "";
+      })(),
+      ownerId: (c as any).ownerEmail ? `#${crypto.createHash("sha1").update(String((c as any).ownerEmail).toLowerCase()).digest("hex").slice(0, 5).toUpperCase()}` : "",
+      ownerHideName: (c as any).ownerHideName === true,
       lookCount, videoCount, superFollowers, purchasedAt: (c as any).purchasedAt ?? "", createdAt: (c as any).createdAt ?? "",
       // Admin sees who owns her; the buyer can tell it's theirs (compared client-side to their email).
       ...(adminView ? { ownerEmail: (c as any).ownerEmail ?? "" } : {}),
@@ -466,6 +487,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, promoted: made, total: curators.length });
   }
 
+  // Owner privacy: the OWNER (buyer) or an admin can hide the owner's name on the card (keep ID).
+  if (action === "set-owner-hide-name") {
+    const id = String((payload as any).id ?? "").trim();
+    const hide = (payload as any).hide === true;
+    const state = await readTryThisLookState();
+    const idx = (state.curators ?? []).findIndex(c => c.id === id);
+    if (idx < 0) return jsonError("Model not found.", 404);
+    const cur = state.curators[idx] as any;
+    const admin = await isAdminRequest(request);
+    const requester = (await emailFromToken(request)).trim().toLowerCase();
+    const isOwner = !!cur.ownerEmail && requester === String(cur.ownerEmail).trim().toLowerCase();
+    if (!admin && !isOwner) return jsonError("Only the owner or an admin can change this.", 403);
+    state.curators[idx] = { ...cur, ownerHideName: hide };
+    await saveTryThisLookState(state);
+    return NextResponse.json({ ok: true, ownerHideName: hide });
+  }
+
   if (action === "apply") {
     const firstName = String(payload.firstName ?? "").trim();
     const lastName = String(payload.lastName ?? "").trim();
@@ -523,6 +561,7 @@ export async function POST(request: Request) {
       email,
       phone: String(payload.phone ?? "").trim() || undefined,
       address: String(payload.address ?? "").trim() || undefined,
+      country: String(payload.country ?? "").trim().toUpperCase().slice(0, 2) || undefined,
       brands: String(payload.brands ?? "").trim() || undefined,
       style: String(payload.style ?? "").trim() || undefined,
       genderFocus: String(payload.genderFocus ?? "").trim() || undefined,
@@ -872,6 +911,7 @@ export async function POST(request: Request) {
       lastName: str("lastName", cur.lastName) || cur.lastName,
       phone: str("phone", cur.phone),
       address: str("address", cur.address),
+      country: ((str("country", (cur as any).country) ?? "") as string).toUpperCase().slice(0, 2) || undefined,
       instagram: (str("instagram", cur.instagram) ?? "").replace(/^@/, "") || undefined,
       brands: str("brands", cur.brands),
       style: str("style", cur.style),
@@ -918,6 +958,18 @@ export async function POST(request: Request) {
       flagship: isAdmin && (payload as any).flagship !== undefined
         ? (payload as any).flagship === true
         : (cur as any).flagship,
+      // Which flagship tier (1/2/3) — picks her base value from the price list. Admin only.
+      flagshipTier: isAdmin && (payload as any).flagshipTier !== undefined
+        ? Math.min(3, Math.max(1, Math.round(Number((payload as any).flagshipTier) || 1)))
+        : (cur as any).flagshipTier,
+      // Listed for sale — admin OR the model herself may toggle this (auth already checked above).
+      forSale: (payload as any).forSale !== undefined
+        ? (payload as any).forSale === true
+        : (cur as any).forSale,
+      // Owner privacy: hide the owner's name on the card, keep only the ID.
+      ownerHideName: (payload as any).ownerHideName !== undefined
+        ? (payload as any).ownerHideName === true
+        : (cur as any).ownerHideName,
     } as any;
     // Optional new photo
     const photo = String(payload.photo ?? "");

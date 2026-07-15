@@ -7,6 +7,7 @@ import TopNav from "@/components/TopNav";
 import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
+import ModelCard from "@/components/ModelCard";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { influencerPriceCents, fmtPriceCents } from "@/lib/influencer-price";
 import { LOOK_CATEGORIES, categorizeLook, isLookCategory, type LookCategory } from "@/lib/look-category";
@@ -23,7 +24,7 @@ function viewerHeaders(): Record<string, string> {
   return h;
 }
 
-type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; brands?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string; status?: string; hidden?: boolean; priceCents?: number; profilePhotoUrls?: string[]; growPriceLabel?: string; growPriceCents?: number; forSale?: boolean; owned?: boolean; youOwnHer?: boolean; flagship?: boolean; lookCount?: number; videoCount?: number; superFollowers?: number };
+type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; brands?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string; status?: string; hidden?: boolean; priceCents?: number; profilePhotoUrls?: string[]; growPriceLabel?: string; growPriceCents?: number; forSale?: boolean; owned?: boolean; youOwnHer?: boolean; flagship?: boolean; flagshipTier?: number; flagshipBases?: number[]; purchasedAt?: string; createdAt?: string; lookCount?: number; videoCount?: number; superFollowers?: number; country?: string; owner?: string; ownerId?: string; ownerHideName?: boolean; modelName?: string };
 type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; featured?: boolean; productType?: string; wardrobe?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
 type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string; feed?: boolean; private?: boolean };
 
@@ -165,6 +166,15 @@ export default function CuratorPublicPage() {
   const [following, setFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [showSFInfo, setShowSFInfo] = useState(false); // "what you get" explainer before registration
+  const [sfSuccess, setSfSuccess] = useState(false);   // "thanks — her value rose +$1, videos unlocked" window
+  // Reflect a completed Super Follow: her value rises +$1 (a super-follower), all her private
+  // videos unlock (membership), and we show the thank-you window.
+  const onSuperFollowed = () => {
+    setFollowing(true);
+    setProfile(p => (p ? { ...p, superFollowers: (p.superFollowers ?? 0) + 1 } : p));
+    try { localStorage.setItem("lb_subscribed", "1"); } catch { /**/ }
+    setSfSuccess(true);
+  };
   // Super Follow = the ONE $4.99/mo membership → read the single membership price from the list.
   const [superFollowCents, setSuperFollowCents] = useState(499);
   useEffect(() => { fetch("/api/try-this-look?pricing=1").then(r => r.json()).then(d => { if (d?.pricing?.subscriptionMonthlyCents != null) setSuperFollowCents(d.pricing.subscriptionMonthlyCents); }).catch(() => {}); }, []);
@@ -211,24 +221,41 @@ export default function CuratorPublicPage() {
       setFollowLoading(false);
       return;
     }
-    // Already a paying member → Super Follow her right away (free for members).
-    if (isMember && isAuthed()) { void startSuperFollow(); return; }
-    // Otherwise → show the "what you get" explainer first, then registration/checkout.
+    // Logged in (member, owner or model) → Super Follow right away: record it + thank-you window.
+    if (isAuthed()) { void doSuperFollow(); return; }
+    // Anonymous → show the "what you get" explainer first, then registration.
     setShowSFInfo(true);
+  };
+  // Record the Super Follow for a logged-in user (Supabase OR curator session) and celebrate:
+  // her value rises +$1 and her private videos unlock (see onSuperFollowed).
+  const doSuperFollow = async () => {
+    if (followLoading) return;
+    setFollowLoading(true);
+    try {
+      const res = await fetch("/api/follow", { method: "POST", headers: viewerHeaders(), body: JSON.stringify({ slug: id, type: "user", action: "follow" }) });
+      if (res.ok) { const d = await res.json().catch(() => ({})); if (typeof d.followerCount === "number") setFollowerCount(d.followerCount); onSuperFollowed(); }
+      else if (res.status === 401) { router.push("/stores?panel=account"); }
+    } catch { /**/ }
+    setFollowLoading(false);
   };
   // Runs after the explainer: joins her (member) or starts the $4.99/mo membership (non-member),
   // or sends an anonymous visitor to register first.
   const startSuperFollow = async () => {
     setShowSFInfo(false);
     const sess = (() => { try { return getStoredAuthSession(); } catch { return null; } })();
-    const followerId = sess?.user?.id ?? "";
-    const email = sess?.user?.email ?? "";
-    if (!followerId) { router.push("/stores?panel=account"); return; } // register first
+    // Identity comes from the Supabase session OR — for a logged-in model/curator with no Supabase
+    // session (lb_curator) — from that stored account, so a logged-in user never dead-ends here.
+    let followerId = sess?.user?.id ?? "";
+    let email = sess?.user?.email ?? "";
+    if (!followerId) {
+      try { const c = JSON.parse(localStorage.getItem("lb_curator") ?? "{}"); if (c?.id) { followerId = c.id; email = email || c.email || ""; } } catch { /**/ }
+    }
+    if (!followerId) { router.push("/stores?panel=account"); return; } // truly anonymous → register first
     setFollowLoading(true);
     try {
       const res = await fetch("/api/super-follow-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ curatorId: id, email, followerId, returnPath: `/curator/${id}` }) });
       const d = await res.json().catch(() => ({}));
-      if (res.ok && d.followed) { setFollowing(true); setFollowerCount(c => c + 1); setFollowLoading(false); return; } // already a member
+      if (res.ok && d.followed) { setFollowerCount(c => c + 1); onSuperFollowed(); setFollowLoading(false); return; } // already a member
       if (res.ok && d.url) { window.location.href = d.url; return; } // → Stripe membership checkout
       if (res.status === 401) { router.push("/stores?panel=account"); }
     } catch { /**/ }
@@ -244,7 +271,7 @@ export default function CuratorPublicPage() {
         const r = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(cs)}`);
         const d = await r.json().catch(() => ({}));
         if (d.paid && d.superFollowCuratorId === id) {
-          setFollowing(true);
+          onSuperFollowed();
           fetch(`/api/follow?slug=${encodeURIComponent(id)}&type=user`, { headers: viewerHeaders() }).then(x => x.ok ? x.json() : null).then(x => { if (x) { setFollowerCount(x.followerCount); setFollowing(!!x.following); } }).catch(() => {});
         }
       } catch { /**/ }
@@ -574,17 +601,7 @@ export default function CuratorPublicPage() {
   const [priceInput, setPriceInput] = useState("");
   const [priceBusy, setPriceBusy] = useState(false);
   useEffect(() => { if (typeof profile?.priceCents === "number") setPriceInput(((profile.priceCents || 0) / 100).toString()); }, [profile?.priceCents]);
-  // Flagship checkbox — the model's tier (Flagship $500 vs AI $9.99). No free prices.
-  const [flagBusy, setFlagBusy] = useState(false);
-  const saveFlagship = async (next: boolean) => {
-    if (flagBusy) return;
-    setFlagBusy(true);
-    try {
-      await fetch("/api/curator", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ action: "update", id, flagship: next }) });
-      setProfile(p => (p ? { ...p, flagship: next } : p));
-    } catch (e) { alert(e instanceof Error ? e.message : "Failed"); }
-    finally { setFlagBusy(false); }
-  };
+  // Flagship tier is managed in the Admin Models list, not on the profile.
   const savePrice = async () => {
     if (priceBusy) return;
     const cents = Math.max(0, Math.round(parseFloat(priceInput.replace(",", ".")) * 100) || 0);
@@ -609,6 +626,28 @@ export default function CuratorPublicPage() {
       if (!res.ok || !d.url) { setBuyErr(d.error || "Could not start checkout."); setBuying(false); return; }
       window.location.href = d.url; // → Stripe; returns to ?bought=<id>&cs=<session>
     } catch { setBuyErr("Could not start checkout."); setBuying(false); }
+  };
+  // List her For sale / take her off the market. Admin OR the model herself (owner) may toggle.
+  const [saleBusy, setSaleBusy] = useState(false);
+  const toggleForSale = async (next: boolean) => {
+    if (saleBusy) return;
+    setSaleBusy(true);
+    try {
+      const r = await fetch("/api/curator", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ action: "update", id, forSale: next }) });
+      if (r.ok) setProfile(p => (p ? { ...p, forSale: next } : p));
+    } catch { /* ignore */ }
+    finally { setSaleBusy(false); }
+  };
+  // Owner privacy: hide the owner's name on the card (keep only the ID). Owner or admin.
+  const [hideBusy, setHideBusy] = useState(false);
+  const toggleOwnerHideName = async (next: boolean) => {
+    if (hideBusy) return;
+    setHideBusy(true);
+    try {
+      const r = await fetch("/api/curator", { method: "POST", headers: { "Content-Type": "application/json", ...viewerHeaders(), ...adminHeaders() }, body: JSON.stringify({ action: "set-owner-hide-name", id, hide: next }) });
+      if (r.ok) setProfile(p => (p ? { ...p, ownerHideName: next } : p));
+    } catch { /* ignore */ }
+    finally { setHideBusy(false); }
   };
   // Back from Stripe → confirm the purchase transferred ownership, then refresh her profile.
   useEffect(() => {
@@ -866,11 +905,15 @@ export default function CuratorPublicPage() {
   );
 
   const name = `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() || "Model";
+  // Public display name — her elegant single avatar name (modelName) wins; the real name stays
+  // for internal content matching (videos/looks are keyed by it).
+  const displayName = (profile.modelName ?? "").trim() || name;
   // Grow-price label. For admins (who have her base priceCents) recompute LIVE so it
   // reflects a just-saved base price instantly; public visitors use the server value.
   const growLabel = fmtPriceCents(influencerPriceCents({
     name, flagship: profile.flagship, realModel: profile.realModel, videoCount: profile.videoCount,
     lookCount: profile.lookCount, followerCount: profile.superFollowers, purchasedAt: profile.purchasedAt, createdAt: profile.createdAt,
+    flagshipTier: profile.flagshipTier, flagshipBases: profile.flagshipBases,
   })) || (profile.growPriceLabel ?? "");
   // Membership ($4.99/mo) unlocks EVERY private video. Owners/admin always see hers.
   const isMember = (() => { try { return isAdmin || isOwn || localStorage.getItem("lb_subscribed") === "1" || localStorage.getItem("lb_paid") === "1"; } catch { return false; } })();
@@ -880,39 +923,52 @@ export default function CuratorPublicPage() {
   // the model herself in the gallery strip; the admin turns good ones into videos.
   const photoDrafts = (isAdmin || isOwn) ? tryons.filter(t => !t.videoUrl && t.imageUrl) : [];
 
+  // Her video clips for the card thumb-strip — ALL of them (public + private). Public play for
+  // everyone; private show blurred + locked and only members can open them. Public first, cap 8.
+  const cardClips = tryons
+    .filter(t => t.videoUrl && t.imageUrl)
+    .map(t => ({ poster: t.imageUrl, video: t.videoUrl as string, private: t.private === true }))
+    .sort((a, b) => Number(a.private) - Number(b.private))
+    .slice(0, 30);
+  // Data for the shareable collectible ModelCard (THE reusable card, same as the landing).
+  const cardData = {
+    id: profile.id,
+    serial: (profile.id || "").replace(/[^a-z0-9]/gi, "").slice(-6).toUpperCase() || "LB0001",
+    name: displayName,
+    photo: profile.photoUrl || profile.photoFullUrl || "",
+    video: cardClips[0]?.video || "",
+    poster: profile.photoUrl || profile.photoFullUrl || "",
+    clips: cardClips,
+    valueLabel: growLabel,
+    looks: looks.length,
+    bio: profile.bio || profile.motto || "",
+    brands: profile.brands || "",
+    createdAt: profile.createdAt || "",
+    tagline: profile.motto || "Your vibe, every day 💛",
+    realModel: profile.realModel === true,
+    forSale: profile.forSale === true,
+    canDownload: isAdmin || isOwn,
+    country: profile.country || "",
+    owner: profile.owner || "",
+    ownerId: profile.ownerId || "",
+    ownerHideName: profile.ownerHideName === true,
+  };
+
   return (
     <main className="min-h-[100dvh] bg-[#0d0b0a] text-white pb-16">
       <TopNav />
       {/* Profile-context bar sits just under the shared TopNav (name/photo/follow stay in view). */}
       <div className="sticky top-14 z-20 bg-[#0d0b0a]/90 px-4 py-3 backdrop-blur">
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 active:opacity-70"><ArrowLeft className="h-4 w-4" /></button>
-          <div className="w-9 aspect-[3/4] shrink-0 overflow-hidden rounded-lg bg-white/10">
-            {profile.photoUrl
-              // eslint-disable-next-line @next/next/no-img-element
-              ? <img src={profile.photoUrl} alt={name} className="h-full w-full object-cover" />
-              : <div className="grid h-full w-full place-items-center text-xs font-black text-white/40">{name.slice(0, 2).toUpperCase()}</div>}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-black text-white">{name}</p>
-            {profile.motto && <p className="truncate text-[11px] font-medium text-amber-400">{profile.motto}</p>}
-          </div>
-        </div>
+        {/* Super Follow + Share now live on the Model Card below — sticky bar keeps only Back. */}
         {!isOwn && (
-          <div className="mt-2 flex items-center gap-2">
-            <button type="button" onClick={() => void handleFollow()} disabled={followLoading}
-              className={`flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full px-6 text-xs font-black transition active:scale-95 disabled:opacity-50 ${following ? "border border-white/20 text-white/70" : "lb-black3d"}`}>
-              {followLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : following ? <><UserCheck className="h-3.5 w-3.5" /> Super Following</> : <><UserPlus className="h-3.5 w-3.5" /> Super Follow · {superFollowLabel}/mo</>}
-            </button>
-            <button type="button" onClick={() => { const url = window.location.href; if (navigator.share) navigator.share({ title: name, url }).catch(() => {}); else navigator.clipboard?.writeText(url); }}
-              className="flex h-9 shrink-0 items-center justify-center gap-1 rounded-full bg-white/10 px-4 text-xs font-black text-white active:scale-95 transition">
-              <Send className="h-3.5 w-3.5" /> Share
-            </button>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 active:opacity-70"><ArrowLeft className="h-4 w-4" /></button>
           </div>
         )}
         {/* Owner strip: her video credits (from the subscription) + quick account access. */}
         {isOwn && (
-          <div className="mt-2 flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 active:opacity-70"><ArrowLeft className="h-4 w-4" /></button>
             <div className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-amber-400/10 px-4 py-2 ring-1 ring-amber-400/25">
               <span className="text-sm font-black text-amber-400">{ownerCredits === null ? "…" : ownerCredits}</span>
               <span className="text-[11px] font-bold uppercase tracking-wide text-white/55">video credits</span>
@@ -925,24 +981,23 @@ export default function CuratorPublicPage() {
         )}
       </div>
 
+      {/* Shareable collectible — THE reusable LuxuryBandit Model Card */}
+      <div className="px-4 pt-4">
+        <ModelCard {...cardData} isMember={isMember} onLockedClick={() => setShowSubscribe(true)}
+          following={following} onSuperFollow={() => void handleFollow()}
+          onChat={() => { const lg = (() => { try { return localStorage.getItem("lb_lang") === "ro" ? "ro" : "en"; } catch { return "en"; } })(); router.push(`/luxury-products?model=${encodeURIComponent(id)}&lang=${lg}`); }} />
+      </div>
+
       {/* Profile header */}
       <div className="flex flex-col items-center gap-2 px-6 pt-6 text-center">
-        {/* Stats ABOVE the photo — likes/views = real sums + the admin vanity baselines. */}
-        <div className="mb-1 flex w-full items-center justify-center gap-4">
-          {[["Looks", looks.length], ["Followers", fmtN(followerCount)], ["Likes", fmtN((profile.likeBoost ?? 0) + looks.reduce((s, l) => s + ((l as any).likeCount ?? 0), 0))], ["Views", fmtN((profile.viewBoost ?? 0) + looks.reduce((s, l) => s + ((l as any).viewCount ?? 0), 0))]].map(([label, val]) => (
-            <div key={label as string} className="flex flex-col items-center">
-              <span className="text-base font-black text-white">{val}</span>
-              <span className="text-[10px] font-bold uppercase tracking-wide text-white/40">{label}</span>
-            </div>
-          ))}
-          {/* Admin: one tap gives her healthy vanity numbers; tap again to re-roll. */}
-          {isAdmin && (
+        {/* Her stats, photo, name, bio, LB-Value & brands now live in the Model Card above —
+            kept out here to avoid redundancy. Only admin controls + buy + socials remain. */}
+        {isAdmin && (
+          <div className="mb-1 flex items-center justify-center gap-2">
             <button type="button" onClick={() => void boostStats()} disabled={boostBusy} title="Followers/Likes/Views boosten"
               className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-amber-400/40 bg-amber-400/10 text-amber-400 active:scale-90 transition disabled:opacity-50">
               {boostBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
             </button>
-          )}
-          {isAdmin && (
             <button type="button" onClick={() => void toggleRealBadge()} disabled={badgeBusy}
               title={(profile.realModel || profile.realBadge) ? "Real-Model-Verifizierung entfernen" : "Als Real Model verifizieren & freigeben"}
               className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border active:scale-90 transition disabled:opacity-50 ${
@@ -950,74 +1005,32 @@ export default function CuratorPublicPage() {
               }`}>
               {badgeBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BadgeCheck className="h-3.5 w-3.5" />}
             </button>
-          )}
-        </div>
-        {/* Profile photo — tap opens it LARGE (lightbox). Her videos live in the
-            gallery strip below, so no play badge here anymore. */}
-        <button type="button" disabled={!profile.photoUrl} onClick={() => setPhotoOpen(true)}
-          className="relative w-24 aspect-[3/4] shrink-0 rounded-2xl disabled:cursor-default active:scale-95 transition">
-          <span className="block h-full w-full overflow-hidden rounded-2xl bg-white/10 ring-2 ring-amber-400/80 ring-offset-2 ring-offset-[#0d0b0a]">
-            {profile.photoUrl
-              // eslint-disable-next-line @next/next/no-img-element
-              ? <img src={profile.photoUrl} alt={name} className="h-full w-full object-cover" />
-              : <div className="grid h-full w-full place-items-center text-2xl font-black text-white/30">{name.slice(0, 1)}</div>}
-          </span>
-        </button>
-        <h1 className="mt-2 text-2xl font-black leading-tight text-white">{name}</h1>
-        {/* Persistent "Real model" chip — shows once the admin has verified + approved her. */}
-        {(profile.realModel === true || profile.realBadge === true) && (
-          <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-0.5 text-[11px] font-black text-black shadow"><BadgeCheck className="h-3.5 w-3.5 text-emerald-600" /> Real model</span>
-        )}
-        {profile.motto && <p className="text-sm font-black text-amber-400">{profile.motto}</p>}
-        {profile.bio && <p className="max-w-sm text-sm font-medium leading-relaxed text-white/55">{profile.bio}</p>}
-        {/* LB-Value: her current value ON LUXURYBANDIT (only here does she have this value).
-            Grows +$1/generated video + $1/day owned. Buy her at this value → she's yours. */}
-        {growLabel && (
-          <div className="mt-3 max-w-sm rounded-2xl border border-amber-400/25 bg-amber-400/[0.07] px-3.5 py-2.5">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-amber-300/70">
-                  LB-Value · grows daily
-                  {profile.forSale && <span className="rounded-full bg-emerald-500/20 px-1.5 py-px text-[9px] font-black text-emerald-300 ring-1 ring-emerald-400/30">For sale</span>}
-                  {profile.owned && <span className="rounded-full bg-white/10 px-1.5 py-px text-[9px] font-black text-white/55">Owned</span>}
-                </p>
-                <p className="text-2xl font-black leading-tight text-amber-300" title="Her LB-Value — only on LuxuryBandit. Base + $1/video + $10 per 10 videos + $1/super-follower + $1/day owned.">{growLabel}</p>
-                <p className="mt-0.5 truncate text-[10px] font-bold text-white/40">
-                  +$1/day · +$1/video · +$1/follower · +$10 per 10
-                </p>
-              </div>
-              {profile.forSale && !isOwn && (
-                <button type="button" onClick={() => void buyInfluencer()} disabled={buying} title={`Buy ${name} at her current LB-Value`}
-                  className="lb-gold shrink-0 rounded-full px-4 py-2.5 text-[13px] font-black shadow active:scale-95 transition disabled:opacity-60">
-                  {buying ? "…" : "Own her"}
-                </button>
-              )}
-            </div>
-            {bought && <p className="mt-2 rounded-lg bg-emerald-500/15 px-2.5 py-1.5 text-[11px] font-black text-emerald-300 ring-1 ring-emerald-400/30">🎉 She's yours! Her LB-Value now grows for you.</p>}
-            {buyErr && <p className="mt-2 text-[11px] font-black text-red-400">{buyErr}</p>}
           </div>
         )}
-        {/* Brands — her own (if set) PLUS our affiliate partner GiannaBellucci, ALWAYS appended
-            for every model (highlighted, since it's what she actually wears & the chat delivers).
-            Code-based so it can never be clobbered by concurrent saves. */}
-        {(() => {
-          const custom = (profile.brands?.trim() || "").split(",").map(b => b.trim()).filter(Boolean);
-          const hasGB = custom.some(b => b.toLowerCase().replace(/\s+/g, "") === "giannabellucci");
-          const list = hasGB ? custom.slice(0, 6) : [...custom.slice(0, 5), "GiannaBellucci"];
-          return (
-            <div className="mt-2">
-              <p className="mb-1 text-[10px] font-black uppercase tracking-wide text-white/35">
-                {profile.firstName ? `${profile.firstName}'s favorite brands` : "Favorite brands"}
-              </p>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {list.map((b, i) => (
-                  <span key={i} className="whitespace-nowrap rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-black text-amber-300 ring-1 ring-amber-400/25">{b}</span>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
-        <div className="mt-1 flex items-center gap-3 text-[11px] font-bold text-white/40">
+        {/* For sale — admin OR the model herself lists her on the market (or takes her off). */}
+        {(isAdmin || isOwn) && (
+          <button type="button" onClick={() => void toggleForSale(!profile.forSale)} disabled={saleBusy}
+            className={`mt-1 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-black transition active:scale-95 disabled:opacity-50 ${profile.forSale ? "bg-emerald-500 text-white" : "border border-white/20 bg-white/5 text-white/60"}`}>
+            {saleBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : profile.forSale ? "✓ Listed for sale" : "List her for sale"}
+          </button>
+        )}
+        {/* Owner privacy — the OWNER (or admin) can hide their name on the card, keep only the ID. */}
+        {(profile.youOwnHer || isAdmin) && profile.owned && (
+          <button type="button" onClick={() => void toggleOwnerHideName(!profile.ownerHideName)} disabled={hideBusy}
+            className={`mt-1 ml-2 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-black transition active:scale-95 disabled:opacity-50 ${profile.ownerHideName ? "bg-white/15 text-white" : "border border-white/20 bg-white/5 text-white/60"}`}>
+            {hideBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : profile.ownerHideName ? "🙈 Name hidden — only ID" : "Hide my owner name"}
+          </button>
+        )}
+        {/* Own her — buy at her current LB-Value (the value + how it grows are on the card + /lb-value). */}
+        {growLabel && profile.forSale && !isOwn && (
+          <button type="button" onClick={() => void buyInfluencer()} disabled={buying} title={`Buy ${name} at her current LB-Value`}
+            className="lb-gold mt-1 inline-flex items-center justify-center rounded-full px-6 py-3 text-[14px] font-black shadow active:scale-95 transition disabled:opacity-60">
+            {buying ? "…" : `Own her · ${growLabel}`}
+          </button>
+        )}
+        {bought && <p className="mt-2 rounded-lg bg-emerald-500/15 px-2.5 py-1.5 text-[11px] font-black text-emerald-300 ring-1 ring-emerald-400/30">🎉 She's yours! Her LB-Value now grows for you.</p>}
+        {buyErr && <p className="mt-2 text-[11px] font-black text-red-400">{buyErr}</p>}
+        <div className="mt-2 flex items-center gap-3 text-[11px] font-bold text-white/40">
           {profile.genderFocus && <span className="rounded-full bg-white/10 px-2.5 py-1">{profile.genderFocus}</span>}
           {profile.instagram && (
             <a href={`https://instagram.com/${profile.instagram}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-amber-400">
@@ -1026,77 +1039,8 @@ export default function CuratorPublicPage() {
           )}
         </div>
 
-        {/* Admin verification review — the selfie (holding the code) + her WhatsApp. Review,
-            then tap the ✓ in the stats row to verify + approve her as a Real model. */}
-        {isAdmin && (
-          <div className="mt-3 w-full max-w-sm rounded-2xl border border-white/12 bg-white/[0.03] p-3 text-left">
-            <p className="text-[11px] font-black uppercase tracking-wide text-white/45">Verification (admin)</p>
-            <div className="mt-2 flex items-center gap-3">
-              {profile.verificationSelfieUrl ? (
-                <a href={profile.verificationSelfieUrl} target="_blank" rel="noopener noreferrer" className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-white/10">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={profile.verificationSelfieUrl} alt="verification selfie" className="h-full w-full object-cover" />
-                </a>
-              ) : (
-                <div className="grid h-20 w-20 shrink-0 place-items-center rounded-lg border border-dashed border-white/15 text-[10px] font-bold text-white/30">no selfie</div>
-              )}
-              <div className="min-w-0 flex-1 text-[12px] font-bold text-white/60">
-                <p>WhatsApp: <span className="text-white">{profile.phone || "—"}</span></p>
-                <p className="mt-1 text-[11px] text-white/40">Status: <span className={profile.status === "deactivated" ? "text-red-400" : profile.status === "pending" ? "text-amber-400" : "text-emerald-400"}>{profile.status === "deactivated" ? "Rejected" : profile.status === "pending" ? "Pending review" : "Active"}</span></p>
-              </div>
-            </div>
-            {/* One tap: APPROVE (pending→active) + VERIFY (Real model). */}
-            {profile.realModel ? (
-              <div className="mt-3 flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-3 py-1.5 text-[12px] font-black text-white"><BadgeCheck className="h-4 w-4" /> Verified &amp; approved</span>
-                <button type="button" onClick={() => void rejectModel()} disabled={badgeBusy}
-                  className="ml-auto rounded-full border border-red-400/40 px-3 py-1.5 text-[12px] font-black text-red-400 active:scale-95 transition disabled:opacity-50">Reject</button>
-              </div>
-            ) : (
-              <div className="mt-3 flex items-center gap-2">
-                <button type="button" onClick={() => void verifyAndApprove()} disabled={badgeBusy}
-                  className="lb-gold flex flex-1 items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-black active:scale-95 transition disabled:opacity-50">
-                  {badgeBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />} Verify &amp; approve
-                </button>
-                <button type="button" onClick={() => void rejectModel()} disabled={badgeBusy}
-                  className="rounded-full border border-red-400/40 px-3 py-2.5 text-[12px] font-black text-red-400 active:scale-95 transition disabled:opacity-50">Reject</button>
-              </div>
-            )}
-            <div className="mt-3 border-t border-white/10 pt-3">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-[12px] font-black text-white/70">Flagship model</p>
-                  <p className="text-[11px] font-bold text-white/40">Flagship = $500 base · off = AI model $9.99{profile.realModel ? " · real model floors at $100" : ""}</p>
-                </div>
-                <button type="button" onClick={() => void saveFlagship(!profile.flagship)} disabled={flagBusy}
-                  className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[12px] font-black active:scale-95 transition disabled:opacity-50 ${profile.flagship ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>
-                  {flagBusy ? "…" : (profile.flagship ? "★ Flagship" : "AI model")}
-                </button>
-              </div>
-              <p className="mb-2 text-[11px] font-bold text-white/40">Her LB-Value = base + $1/video + $10 per 10 videos + $1/day. Generating a video costs the owner $3.99.</p>
-              <div className="mb-2 flex items-center gap-2">
-                <span className={`flex-1 rounded-full px-3 py-2 text-center text-[12px] font-black ${profile.hidden === false ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30" : "bg-white/5 text-white/50"}`}>
-                  {profile.hidden === false ? "🌍 Public" : "🔒 Private"}
-                </span>
-                {profile.hidden === false ? (
-                  <button type="button" onClick={() => void setPublic(false)} disabled={badgeBusy}
-                    className="rounded-full border border-white/20 px-4 py-2 text-[12px] font-black text-white active:scale-95 transition disabled:opacity-50">Make private</button>
-                ) : (
-                  <button type="button" onClick={() => void setPublic(true)} disabled={badgeBusy}
-                    className="lb-gold rounded-full px-4 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-50">Make public</button>
-                )}
-              </div>
-              <button type="button" onClick={() => void sendOnboarding()} disabled={onbBusy}
-                className="flex w-full items-center justify-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-2.5 text-[13px] font-black text-white active:scale-95 transition disabled:opacity-50">
-                {onbBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} Send onboarding email
-              </button>
-              <p className="mt-1.5 text-center text-[11px] font-bold text-white/40">Emails her a set-password / login link that lands on her dashboard.</p>
-              {onbMsg && <p className={`mt-1 text-center text-[12px] font-black ${onbMsg.startsWith("✓") ? "text-emerald-400" : "text-red-400"}`}>{onbMsg}</p>}
-            </div>
-            <a href="/model-rules" target="_blank" rel="noopener noreferrer"
-              className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-white/40 underline underline-offset-2 hover:text-white/70">See the model rules ↗</a>
-          </div>
-        )}
+        {/* Verification, approve/reject, public/private & onboarding are managed in the Admin
+            Models list — kept off the public profile. */}
 
         {/* Admin: pick her main profile photo from the candidates she uploaded. */}
         {isAdmin && (profile.profilePhotoUrls?.length ?? 0) > 0 && (
@@ -1119,19 +1063,13 @@ export default function CuratorPublicPage() {
           </div>
         )}
 
-        {/* Two gold CTAs side by side — chat with her + jump to her other looks. */}
+        {/* Chat CTA — try-ons on foreign influencers are retired, so no "dress her" button. */}
         <div className="mt-3 flex w-full max-w-sm items-stretch gap-2">
           <button type="button"
             onClick={() => { const lg = (() => { try { return localStorage.getItem("lb_lang") === "ro" ? "ro" : "en"; } catch { return "en"; } })(); router.push(`/luxury-products?model=${encodeURIComponent(id)}&lang=${lg}`); }}
             className="lb-gold flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-black leading-tight active:scale-95 transition">
             <MessageCircle className="h-4 w-4 shrink-0" /> Chat with her AI Assistant
           </button>
-          {(profile.youOwnHer || isAdmin || isOwn) && (
-            <button type="button" onClick={() => wardrobeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              className="lb-gold flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-black leading-tight active:scale-95 transition">
-              Dress {profile.firstName || "her"} in any look
-            </button>
-          )}
         </div>
 
         {/* Report — any visitor can flag a profile for review. */}
@@ -1268,10 +1206,12 @@ export default function CuratorPublicPage() {
       {/* Her wardrobe = the clothes selection (the main action, immediately under the
           profile). Tap a piece → the funnel generates HER wearing it. Category filter +
           (admin) per-piece management. */}
-      <div ref={wardrobeRef} className="scroll-mt-4 mt-6 px-4 pb-8">
+      {/* "Try her in any look" wardrobe retired — try-ons on foreign influencers are gone,
+          so this section no longer renders on the profile. */}
+      <div ref={wardrobeRef} className="hidden">
         {(() => {
-          // Try-ons are only for YOUR OWN influencers now (no more trying on someone else's).
-          // Non-owners (and anonymous visitors) get an "own her to dress her" prompt instead.
+          return null;
+          // eslint-disable-next-line no-unreachable
           if (!(profile.youOwnHer || isAdmin || isOwn)) {
             return (
               <div className="mx-auto max-w-sm rounded-2xl border border-amber-400/20 bg-amber-400/[0.05] p-5 text-center">
@@ -1419,6 +1359,25 @@ export default function CuratorPublicPage() {
               {followLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Continue — sign up"}
             </button>
             <p className="mt-2 text-[11px] font-bold text-white/35">cancel anytime · 🔒 secure Stripe checkout</p>
+          </div>
+        </div>
+      )}
+
+      {/* Super Follow thank-you — her value rose +$1 and all her videos are unlocked. */}
+      {sfSuccess && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4" onClick={e => { if (e.target === e.currentTarget) setSfSuccess(false); }}>
+          <div className="w-full max-w-sm rounded-t-3xl border border-amber-400/30 bg-[#141018] p-6 text-center sm:rounded-3xl">
+            <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-3xl">🎉</span>
+            <h2 className="mt-4 text-[22px] font-black leading-tight text-white">Vielen Dank!</h2>
+            <p className="mt-2 text-[15px] font-bold leading-relaxed text-white/70">
+              Ihr Wert ist um <span className="font-black text-amber-300">$1</span> gestiegen! Du hast <span className="font-black text-white">alle Videos von {profile.firstName || "ihr"} entriegelt</span>.
+            </p>
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-amber-400/10 px-4 py-2 ring-1 ring-amber-400/25">
+              <span className="text-[11px] font-black uppercase tracking-wide text-white/55">Neuer LB-Value</span>
+              <span className="text-[16px] font-black text-amber-300">{growLabel}</span>
+            </div>
+            <button type="button" onClick={() => setSfSuccess(false)}
+              className="lb-gold mt-5 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition">Weiter</button>
           </div>
         </div>
       )}

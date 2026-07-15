@@ -3,9 +3,9 @@
 import { useEffect } from "react";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
-// Keeps the client's unlock flags in sync with the signed-in user. Premium is a single
-// €49/mo subscription (first month €8) that grants 40 video credits/month and unlocks all
-// locked models / looks / full videos + Community. Calling /api/premium tops up the monthly
+// Keeps the client's unlock flags in sync with the signed-in user. Membership is a single
+// $4.99/mo subscription that unlocks everything (free chat, private videos, Super Follow, buying
+// influencers) and grants the monthly video allowance. Calling /api/premium tops up the monthly
 // allowance server-side; lb_subscribed tracks the sub, lb_paid tracks having credits (which
 // re-locks at 0). Flags are tied to the email that earned them so they can't leak on a shared
 // device.

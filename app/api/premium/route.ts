@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSubscriptionCheckout, createBillingPortalSession, hasActiveSubscription, listSubscribers, stripeConfigured } from "@/lib/stripe";
-import { grantMonthlySubscriptionCredits } from "@/lib/try-this-look-store";
+import { grantMonthlySubscriptionCredits, getPricingConfig } from "@/lib/try-this-look-store";
 import { isAdminRequest } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
@@ -80,7 +80,11 @@ export async function POST(request: Request) {
   if (isStarter && !STARTER_PRICE_ID) {
     return NextResponse.json({ error: "Starter plan not set up yet (STRIPE_STARTER_PRICE_ID missing on Vercel)." }, { status: 503 });
   }
-  const priceId = isStarter ? STARTER_PRICE_ID : PRICE_ID;
+  // The membership price comes from the admin price list (the ONE $4.99/mo Stripe price the user
+  // entered), falling back to the env/default. So every membership entry point uses the same price.
+  const pricing = await getPricingConfig();
+  const membershipPriceId = (pricing.stripeIds?.subscriptionMonthlyCents || "").trim() || PRICE_ID;
+  const priceId = isStarter ? STARTER_PRICE_ID : membershipPriceId;
   const coupon = isStarter ? undefined : (body.allowPromo ? undefined : (FIRST_MONTH_COUPON || undefined));
   try {
     const { url } = await createSubscriptionCheckout({

@@ -5,6 +5,18 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Camera, Sparkles, Loader2, Check, Coins } from "lucide-react";
 import { TagField, PhotoCropper, readPhotoFile } from "../taste-form";
 import { getStoredAuthSession, signInWithPassword, signUpWithPassword, signInWithOAuth, type SupabaseAuthSession } from "@/lib/supabase-auth-client";
+import { countryOptions } from "@/lib/countries";
+import ModelCard from "@/components/ModelCard";
+
+const COUNTRIES = countryOptions();
+
+// Elegant single names suggested (randomly) in the influencer-name field on load.
+const NAME_SUGGESTIONS = [
+  "Amaya", "Lila", "Serena", "Giselle", "Milena", "Valeria", "Aurora", "Vivienne", "Noor", "Leila",
+  "Mireille", "Renata", "Ciara", "Solene", "Anouk", "Faye", "Cleo", "Juno", "Esme", "Odette",
+  "Elodie", "Yara", "Celine", "Antonia", "Aveline", "Marlow", "Sabine", "Ondine", "Liora", "Suri",
+  "Noelia", "Calla", "Elina", "Rhea", "Talise", "Ysabel", "Ottilie", "Mavie", "Nayara", "Selene",
+];
 
 export default function CuratorApplyPage() {
   const router = useRouter();
@@ -35,6 +47,14 @@ export default function CuratorApplyPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [country, setCountry] = useState("");          // ISO-2 code (e.g. "RO")
+  const [countryName, setCountryName] = useState("");  // what's typed in the autofill input
+  // On first load (new application only) drop a random elegant name into the field as a suggestion.
+  useEffect(() => {
+    if (editId) return;
+    setModelName(prev => prev.trim() ? prev : NAME_SUGGESTIONS[Math.floor(Math.random() * NAME_SUGGESTIONS.length)]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [instagram, setInstagram] = useState("");
   // Taste — chip fields backed by growing databases
   const [brandChips, setBrandChips] = useState<string[]>([]);
@@ -238,6 +258,7 @@ export default function CuratorApplyPage() {
         setModelName(c.modelName ?? "");
         setFirstName(c.firstName ?? ""); setLastName(c.lastName ?? "");
         setEmail(c.email ?? ""); setPhone(c.phone ?? ""); setAddress(c.address ?? "");
+        { const cc = String(c.country ?? "").toUpperCase(); setCountry(cc); setCountryName(COUNTRIES.find(x => x.code === cc)?.name ?? ""); }
         setInstagram(c.instagram ?? "");
         setBrandChips(split(c.brands)); setStyleChips(split(c.style));
         setColorChips(split(c.colors)); setFabricChips(split(c.fabrics)); setOccasionChips(split(c.occasions));
@@ -366,7 +387,7 @@ export default function CuratorApplyPage() {
     setError(""); setSubmitting(true);
     try {
       const shared = {
-        modelName, firstName, lastName, email, phone, address, instagram, brands, style, motto, bio,
+        modelName, firstName, lastName, email, phone, address, country, instagram, brands, style, motto, bio,
         genderFocus, styleModelId, imageSource, ...(imageSource === "ours" && avatarFaceId ? { avatarFaceId } : {}), consent: agreed, consentText: "18+, photos are really me, accept the Terms & Conditions",
         colors: colorChips.join(", "),
         fabrics: fabricChips.join(", "),
@@ -609,52 +630,12 @@ export default function CuratorApplyPage() {
           const tag = motto.trim() || "Your vibe, every day 💛";
           return (
             <div className="mt-5">
-              <div className="mx-auto max-w-[340px] overflow-hidden rounded-3xl bg-[#0d0b0a] text-white shadow-[0_16px_50px_rgba(0,0,0,0.3)]">
-                <div className="relative aspect-[4/5] w-full">
-                  {heroVideoOn && heroVideo ? (
-                    /* eslint-disable-next-line jsx-a11y/media-has-caption */
-                    <video src={heroVideo} autoPlay muted playsInline controls className="h-full w-full bg-black object-cover" />
-                  ) : (
-                    <>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={heroSrc} alt={nm} className="h-full w-full object-cover" />
-                      {heroVideo && (
-                        <button type="button" onClick={() => setHeroVideoOn(true)} aria-label="Play video"
-                          className="absolute inset-0 grid place-items-center">
-                          <span className="grid h-16 w-16 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/50 backdrop-blur transition active:scale-95">
-                            <svg viewBox="0 0 24 24" className="h-7 w-7 translate-x-0.5 fill-current"><path d="M8 5v14l11-7z" /></svg>
-                          </span>
-                        </button>
-                      )}
-                    </>
-                  )}
-                  {!heroVideoOn && (
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-4 pt-10">
-                    <p className="text-[20px] font-black leading-none">{nm}</p>
-                    <p className="mt-1 text-[13px] font-bold text-amber-400">{tag}</p>
-                    {outfitThumbs.length > 0 && (
-                      <div className="mt-2.5 flex gap-1.5">
-                        {outfitThumbs.map((src, i) => (
-                          <div key={i} className="h-11 w-9 shrink-0 overflow-hidden rounded-md bg-white/10 ring-1 ring-white/40">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  )}
-                </div>
-                <div className="grid grid-cols-4 gap-1 px-3 py-3 text-center">
-                  {[["Looks", "24"], ["Followers", "345k"], ["Likes", "1.2M"], ["Views", "4.8M"]].map(([l, v]) => (
-                    <div key={l}><p className="text-[16px] font-black">{v}</p><p className="text-[9px] font-bold uppercase tracking-wide text-white/45">{l}</p></div>
-                  ))}
-                </div>
-                <div className="flex gap-2 px-3 pb-4">
-                  <span className="flex-1 rounded-full bg-white py-2 text-center text-[13px] font-black text-black">Follow</span>
-                  <span className="flex-1 rounded-full bg-white/12 py-2 text-center text-[13px] font-black">Chat with me!</span>
-                </div>
-              </div>
+              <ModelCard
+                id="" serial="PREVIEW" name={nm} photo={heroSrc} video={heroVideo} poster={heroSrc}
+                thumbs={outfitThumbs} valueLabel="$9.99" looks={24} bio={bio.trim()}
+                brands={brandChips.join(", ")} tagline={tag} realModel={imageSource === "own"}
+                country={country} owner="You"
+              />
             </div>
           );
         })()}
@@ -821,6 +802,14 @@ export default function CuratorApplyPage() {
           </div>
           <div><span className={label}>Instagram <span className="font-bold normal-case text-slate-400">· optional</span></span><input className={field} value={instagram} onChange={e => setInstagram(e.target.value)} placeholder="@handle" /></div>
           <div><span className={label}>Address <span className="font-bold normal-case text-slate-400">· optional</span></span><input className={field} value={address} onChange={e => setAddress(e.target.value)} placeholder="City, country" /></div>
+          <div>
+            <span className={label}>Country</span>
+            <input className={field} list="lb-country-list" value={countryName} placeholder="Start typing… e.g. Romania"
+              onChange={e => { const v = e.target.value; setCountryName(v); const hit = COUNTRIES.find(c => c.name.toLowerCase() === v.trim().toLowerCase()); setCountry(hit?.code ?? ""); }} />
+            <datalist id="lb-country-list">
+              {COUNTRIES.map(c => <option key={c.code} value={c.name} />)}
+            </datalist>
+          </div>
         </div>
 
         {/* Taste */}

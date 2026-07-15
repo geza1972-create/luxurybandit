@@ -178,7 +178,10 @@ export type PricingConfig = {
   ownPhotoUploadCents?: number;      // cost to upload your own photo (free)
   freshBaseCents?: number;           // starting value of a fresh AI model
   realModelBaseCents?: number;       // starting value floor of a REAL model
-  flagshipBaseCents?: number;        // default value of a flagship (Gina/Bella)
+  flagshipBaseCents?: number;        // legacy single flagship base (fallback = tier 1)
+  flagshipBase1Cents?: number;       // Flagship tier 1 — starting value
+  flagshipBase2Cents?: number;       // Flagship tier 2 — starting value
+  flagshipBase3Cents?: number;       // Flagship tier 3 — starting value
   videoValueCents?: number;          // value GIFT added per generated video
   videoMilestoneBonusCents?: number; // EXTRA value gift for every full 10 videos generated
   followerValueCents?: number;       // value gift per super-follower (registered fan)
@@ -200,7 +203,10 @@ export const DEFAULT_PRICING: Required<PricingConfig> = {
   ownPhotoUploadCents: 0,          // free
   freshBaseCents: 999,             // $9.99 fresh AI model
   realModelBaseCents: 10000,       // $100 real model floor
-  flagshipBaseCents: 50000,        // $500 flagship
+  flagshipBaseCents: 50000,        // legacy single flagship base
+  flagshipBase1Cents: 50000,       // $500 — Flagship tier 1
+  flagshipBase2Cents: 150000,      // $1,500 — Flagship tier 2
+  flagshipBase3Cents: 500000,      // $5,000 — Flagship tier 3
   videoValueCents: 100,            // +$1 value per generated video
   videoMilestoneBonusCents: 1000,  // +$10 extra for every full 10 videos
   followerValueCents: 100,         // +$1 value per super-follower
@@ -237,6 +243,7 @@ export type CuratorProfile = {
   email: string;
   phone?: string;
   address?: string;
+  country?: string;           // ISO-2 country code she's from (e.g. "RO") → flag + name on the card
   brands?: string;            // free-text brands they love
   style?: string;             // free-text style description
   genderFocus?: string;       // "women" | "men" | "unisex"
@@ -274,6 +281,9 @@ export type CuratorProfile = {
   featured?: boolean;         // featured → free showcase on the Models tab; non-featured are locked (paid)
   priceCents?: number;        // (legacy) old free base value — superseded by the flagship flag
   flagship?: boolean;         // admin checkbox: Flagship ($500 base) vs AI model ($9.99 base)
+  flagshipTier?: number;      // 1 | 2 | 3 — which flagship tier (base value from the price list)
+  forSale?: boolean;          // listed for sale (admin/owner toggle); default = unowned
+  ownerHideName?: boolean;    // owner chose to hide their name on the card (show only the ID)
   // Ownership (own-a-model concept). A model with NO ownerEmail is "for sale". When bought,
   // ownerEmail = the buyer + purchasedAt = now (her age/appreciation restarts from the purchase).
   ownerEmail?: string;

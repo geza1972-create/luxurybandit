@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createPackCheckout, stripeConfigured } from "@/lib/stripe";
-import { readTryThisLookState } from "@/lib/try-this-look-store";
+import { readTryThisLookState, getPricingConfig } from "@/lib/try-this-look-store";
 import { influencerPriceCents, fmtPriceCents } from "@/lib/influencer-price";
 
 export const runtime = "nodejs";
@@ -33,9 +33,12 @@ export async function POST(request: Request) {
     if (gn && gn === nmKey) { lookCount++; if ((g as any).videoUrl) videoCount++; }
   }
   const superFollowers = (state.follows ?? []).filter((f: any) => f.followeeType === "user" && f.followeeSlug === curatorId).length;
+  const pr = await getPricingConfig();
+  const flagshipBases = [pr.flagshipBase1Cents, pr.flagshipBase2Cents, pr.flagshipBase3Cents];
   const priceCents = influencerPriceCents({
     name, flagship: c.flagship, realModel: c.realModel === true,
     videoCount, lookCount, followerCount: superFollowers, purchasedAt: c.purchasedAt, createdAt: c.createdAt,
+    flagshipTier: c.flagshipTier, flagshipBases,
   });
   if (!(priceCents > 0)) return NextResponse.json({ error: "Price unavailable." }, { status: 400 });
 

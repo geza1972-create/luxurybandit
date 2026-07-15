@@ -29,21 +29,21 @@ import { PhotoCropper } from "../curators/taste-form";
 // Landing hero copy — Romanian by default, English via the switcher.
 const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub: string; b1t: string; b1x: string; b2t: string; b2x: string; cta: string; becomeModel: string }> = {
   ro: {
-    eyebrow: "Marketplace-ul de influenceri AI",
-    h1a: "Descoperă influenceri AI.", h1b: "Urmărește, vorbește, probează-le ținutele.",
-    sub: "Explorează un marketplace de influenceri AI — vezi ținutele lor de lux zilnice, vorbește cu ei și probează-le hainele pe tine. Fețe noi și ținute noi în fiecare zi.",
+    eyebrow: "LuxuryBandit Marketplace",
+    h1a: "Descoperă influenceri.", h1b: "Urmărește, vorbește, probează-le ținutele.",
+    sub: "Explorează un marketplace de influenceri AI & reali — vezi ținutele lor de lux zilnice, vorbește cu ei și probează-le hainele pe tine. Fețe noi și ținute noi în fiecare zi.",
     b1t: "Urmărește & vorbește", b1x: "Trimite mesaj oricărui influencer, lasă-te stilizat de el și probează-i ținutele pe poza ta.",
     b2t: "Ținute noi zilnic", b2x: "Videouri de modă de lux de la fiecare influencer, în fiecare zi.",
     cta: "Deține un influencer AI",
     becomeModel: "Explorează marketplace-ul",
   },
   en: {
-    eyebrow: "The AI Influencer Marketplace",
-    h1a: "Discover AI influencers.", h1b: "Follow, chat & own them.",
-    sub: "Browse a marketplace of AI influencers — watch their daily luxury looks, chat with them, and own the one you love. New faces and new looks every day.",
+    eyebrow: "LuxuryBandit Marketplace",
+    h1a: "Discover influencers.", h1b: "Follow, chat & own them.",
+    sub: "Browse a marketplace of AI & real influencers — watch their daily luxury looks, chat with them, and own the one you love. New faces and new looks every day.",
     b1t: "Follow & chat", b1x: "Message any influencer, get styled by her, and make her yours.",
     b2t: "New looks daily", b2x: "Fresh luxury fashion videos from every influencer, every single day.",
-    cta: "Own an AI influencer",
+    cta: "Own an influencer",
     becomeModel: "Browse the marketplace",
   },
 };

@@ -13,7 +13,7 @@ import { Menu } from "lucide-react";
  * BELOW this bar — this component stays identical across the whole app.
  */
 export default function TopNav({
-  subtitle = "Bandit the look",
+  subtitle = "The influencer marketplace",
   actions,
 }: {
   subtitle?: string;

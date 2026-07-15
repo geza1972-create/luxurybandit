@@ -291,7 +291,7 @@ export default function InsightsPro({
       {/* Payment (Premium subscription) funnel */}
       <div className={card}>
         <p className="flex items-center gap-1.5 text-sm font-black text-ink"><Crown className="h-4 w-4 text-amber-500" /> Premium payments</p>
-        <p className="mt-0.5 text-[11px] font-bold text-ink/40">From seeing the paywall to an active $49/mo subscription (first month $8).</p>
+        <p className="mt-0.5 text-[11px] font-bold text-ink/40">From seeing the paywall to an active $4.99/mo membership.</p>
         <div className="mt-3 space-y-2">
           {data.payment.map((s) => (
             <div key={s.label}>

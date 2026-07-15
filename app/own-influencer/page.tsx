@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Sparkles, Video, MessageCircle, TrendingUp, Check, Crown, Camera, BarChart3, Users, Gem, Wand2 } from "lucide-react";
 import { readTryThisLookState, getSignedUrl, getPricingConfig, fmtCents } from "@/lib/try-this-look-store";
+import { influencerPriceCents, fmtPriceCents } from "@/lib/influencer-price";
+import ModelCard from "@/components/ModelCard";
 import TrackView from "@/components/TrackView";
 import LazyVideo from "@/components/LazyVideo";
 import OwnInfluencerCTA from "@/components/OwnInfluencerCTA";
@@ -30,7 +32,7 @@ async function landingData() {
   try {
     const state = await readTryThisLookState();
     const curators = state.curators ?? [];
-    const gina = curators.find(c => c.firstName === "Gina" && c.lastName === "Popescu") as { id?: string; photoUrl?: string } | undefined;
+    const gina = curators.find(c => c.firstName === "Gina" && c.lastName === "Popescu") as { id?: string; photoUrl?: string; flagship?: boolean; realModel?: boolean; purchasedAt?: string; createdAt?: string; bio?: string; motto?: string; brands?: string } | undefined;
     const vids = (state.generations ?? []).filter(g => (g as { videoUrl?: string }).videoUrl && !(g as { hidden?: boolean }).hidden);
     const pick = (g: unknown) => ({ poster: ((g as { imageUrl?: string }).imageUrl ?? "") as string, video: (g as { videoUrl?: string }).videoUrl as string });
     // Admin-picked showcase clips lead (chosen via the on-page picker → `showcase` flag);
@@ -38,6 +40,60 @@ async function landingData() {
     const showcaseClips = vids.filter(g => (g as { showcase?: boolean }).showcase === true).slice(0, 6).map(pick);
     const ginaClips = gina ? vids.filter(g => (g as { curatorId?: string }).curatorId === gina.id && (g as { public?: boolean }).public === true).slice(0, 4).map(pick) : [];
     const clips = showcaseClips.length ? showcaseClips : ginaClips;
+    // Gina's trading-card data — her real LB-Value (appreciating-asset proof) + her looks/clip.
+    const ginaKey = "gina popescu";
+    let ginaLooks = 0, ginaVideos = 0;
+    const ginaClipTiles: { poster: string; video: string; private: boolean }[] = [];
+    for (const g of (state.generations ?? [])) {
+      if ((g as { feed?: boolean }).feed !== true) continue;
+      const gn = String((g as { customerName?: string }).customerName ?? "").trim().toLowerCase();
+      if (gn !== ginaKey) continue;
+      ginaLooks++;
+      const vurl = (g as { videoUrl?: string }).videoUrl;
+      if (vurl) ginaVideos++;
+      const thumb = (g as { imageUrl?: string }).imageUrl;
+      // Her video clips → clickable thumbs. Public shown to all; private = members-only.
+      if (vurl && thumb) ginaClipTiles.push({ poster: thumb, video: vurl, private: (g as { public?: boolean }).public !== true });
+    }
+    // Public clips first, private (members-only) after — show all (swipeable), cap high for perf.
+    ginaClipTiles.sort((a, b) => Number(a.private) - Number(b.private));
+    const ginaTiles = ginaClipTiles.slice(0, 30);
+    const ginaFollowers = (state.follows ?? []).filter((f: unknown) => (f as { followeeType?: string }).followeeType === "user" && (f as { followeeSlug?: string }).followeeSlug === gina?.id).length;
+    const prc = (state.pricing ?? {}) as { flagshipBase1Cents?: number; flagshipBase2Cents?: number; flagshipBase3Cents?: number };
+    const flagshipBases = [prc.flagshipBase1Cents ?? 50000, prc.flagshipBase2Cents ?? 150000, prc.flagshipBase3Cents ?? 500000];
+    const ginaValueCents = gina ? influencerPriceCents({
+      name: ginaKey, flagship: gina.flagship, realModel: gina.realModel === true,
+      videoCount: ginaVideos, lookCount: ginaLooks, followerCount: ginaFollowers,
+      purchasedAt: gina.purchasedAt, createdAt: gina.createdAt,
+      flagshipTier: (gina as { flagshipTier?: number }).flagshipTier, flagshipBases,
+    }) : 0;
+    const heroClip = ginaTiles[0] || ginaClips[0] || clips[0] || { poster: "", video: "" };
+    // A short 6-char model number derived from her id — a stable "serial" for the card.
+    const ginaSerial = (gina?.id ?? "").replace(/[^a-z0-9]/gi, "").slice(-6).toUpperCase() || "GINA01";
+    const ginaCard = {
+      id: (gina?.id ?? "") as string,
+      serial: ginaSerial,
+      name: "Gina Popescu",
+      photo: (gina?.photoUrl ?? "") as string,
+      video: heroClip.video || "",
+      poster: heroClip.poster || (gina?.photoUrl ?? ""),
+      clips: ginaTiles,
+      valueLabel: fmtPriceCents(ginaValueCents),
+      looks: ginaLooks,
+      bio: (gina?.bio || gina?.motto || "") as string,
+      brands: (gina?.brands || "") as string,
+      createdAt: (gina?.createdAt || "") as string,
+      forSale: typeof (gina as { forSale?: boolean })?.forSale === "boolean"
+        ? (gina as { forSale?: boolean }).forSale
+        : !(gina as { ownerEmail?: string })?.ownerEmail,
+      country: ((gina as { country?: string })?.country || "") as string,
+      owner: (() => {
+        const oe = String((gina as { ownerEmail?: string })?.ownerEmail || "").trim().toLowerCase();
+        if (!oe) return "";
+        const local = oe.split("@")[0].split(/[._-]/)[0];
+        return local ? local.charAt(0).toUpperCase() + local.slice(1) : "";
+      })(),
+    };
     // Buyable AI influencers = the UNCLAIMED avatar-face pool (admin-generated for sale) —
     // NOT the real curators (those are live models, not for sale). Sign the storage paths.
     const faces = (state.avatarFaces ?? []).filter(f => !(f as { claimedBy?: string }).claimedBy && !(f as { sold?: boolean }).sold && ((f as { imagePath?: string }).imagePath || (f as { imageUrl?: string }).imageUrl)).slice(0, 12);
@@ -47,12 +103,12 @@ async function landingData() {
       const video = face.videoPath ? await getSignedUrl(face.videoPath).catch(() => "") : (face.videoUrl || "");
       return { name: "", photo, video, poster: photo, createdAt: face.createdAt || "" };
     }));
-    return { heroPhoto: (gina?.photoUrl ?? "") as string, clips, models };
-  } catch { return { heroPhoto: "", clips: [] as { poster: string; video: string }[], models: [] as { name: string; photo: string }[] }; }
+    return { heroPhoto: (gina?.photoUrl ?? "") as string, clips, models, ginaCard };
+  } catch { return { heroPhoto: "", clips: [] as { poster: string; video: string }[], models: [] as { name: string; photo: string }[], ginaCard: null }; }
 }
 
 export default async function OwnInfluencerLanding() {
-  const { heroPhoto, clips, models } = await landingData();
+  const { heroPhoto, clips, models, ginaCard } = await landingData();
   // All prices come from the admin-editable price list — change them once there, not here.
   const pricing = await getPricingConfig();
   const subLabel = fmtCents(pricing.subscriptionMonthlyCents);   // membership / month
@@ -104,7 +160,7 @@ export default async function OwnInfluencerLanding() {
             <img src="/lb-logo.png" alt="LuxuryBandit" className="h-9 w-9 shrink-0 rounded-full object-contain" />
             <span className="leading-none">
               <span className="block text-[15px] font-black tracking-wide">LUXURYBANDIT</span>
-              <span className="block text-[9px] font-bold uppercase tracking-[0.2em] text-amber-400/80">AI Influencer Marketplace</span>
+              <span className="block text-[9px] font-bold uppercase tracking-[0.2em] text-amber-400/80">The Influencer Marketplace</span>
             </span>
           </Link>
           <nav className="ml-auto hidden items-center gap-6">
@@ -121,9 +177,11 @@ export default async function OwnInfluencerLanding() {
       {/* ── Hero ── */}
       <section className="relative overflow-hidden border-b border-white/10">
         <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-10">
-          {/* Image */}
-          <div className="relative order-1 mx-auto w-full max-w-md overflow-hidden rounded-3xl">
-            {heroPhoto ? (
+          {/* Trading card — Gina, the flagship, with her live LB-Value */}
+          <div className="relative order-1 mx-auto w-full max-w-md">
+            {ginaCard && ginaCard.photo ? (
+              <ModelCard {...ginaCard} />
+            ) : heroPhoto ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img src={heroPhoto} alt="Your AI influencer" className="aspect-[4/5] w-full rounded-3xl object-cover" />
             ) : (
@@ -207,7 +265,7 @@ export default async function OwnInfluencerLanding() {
           </div>
           {/* Who owns her? — one-of-a-kind influencers, claim before taken */}
           <div id="fans" className="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">The AI Influencer Marketplace</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">The Influencer Marketplace</p>
             <h2 className="mt-2 text-[30px] font-black uppercase leading-none tracking-tight">Who owns her?</h2>
             <p className="mt-3 text-[14px] font-semibold leading-relaxed text-white/70">
               Every AI influencer is one-of-a-kind — and only <span className="font-black text-white">one person</span> can own her: her daily content, her chats, her whole audience. These are <span className="font-black text-emerald-400">still free</span>. Claim one before someone else does — or <BuyFormLink className="font-black text-amber-400 underline decoration-amber-400/40 underline-offset-2">create your own</BuyFormLink>.
@@ -371,7 +429,7 @@ export default async function OwnInfluencerLanding() {
         <div className="flex flex-col items-center gap-3 text-center">
           <img src="/lb-logo.png" alt="LuxuryBandit" className="h-11 w-11 rounded-full object-contain" />
           <span className="text-[15px] font-black tracking-wide">LUXURYBANDIT</span>
-          <p className="text-[12px] font-bold text-white/45">The AI Influencer Marketplace. Own. Grow. Earn.</p>
+          <p className="text-[12px] font-bold text-white/45">The Influencer Marketplace. Own. Grow. Earn.</p>
           <div className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] font-bold text-white/55">
             <Link href="/stores?view=grid" className="hover:text-white">Marketplace</Link>
             <Link href="#pricing" className="hover:text-white">Pricing</Link>

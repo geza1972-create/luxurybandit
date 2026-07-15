@@ -6,10 +6,10 @@ import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { startPremiumCheckout } from "@/lib/start-premium-checkout";
 import { logFunnelEvent } from "@/lib/track-funnel";
 
-// Community membership dialog — a $49/mo Stripe subscription (separate from the $8 video
-// pack, which is pay-per-use for generating videos). Seeing the Community feed requires an
-// active subscription. Uses the hosted subscription checkout at /api/premium; Stripe returns
-// to the current page with ?premium=success, where the page re-checks the subscription.
+// Membership dialog — the ONE $4.99/mo Stripe subscription that unlocks everything:
+// free unlimited chat, every private video, Super Follow, and buying influencers. Uses the
+// hosted subscription checkout at /api/premium (which reads the membership price from the admin
+// price list); Stripe returns to the current page with ?premium=success, where it re-checks.
 export default function SubscribeDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -50,11 +50,11 @@ export default function SubscribeDialog({ open, onClose }: { open: boolean; onCl
       <div className="relative w-full max-w-sm rounded-3xl border border-amber-400/20 bg-[#141210] p-6 text-center" onClick={e => e.stopPropagation()}>
         <button type="button" onClick={close} className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white"><X className="h-4 w-4" /></button>
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-black"><Crown className="h-7 w-7" /></span>
-        <h3 className="mt-4 text-lg font-black text-white">Members only</h3>
-        <p className="mt-1.5 text-[13px] font-semibold leading-6 text-white/55">The Community feed is for members. Subscribe to unlock it.</p>
+        <h3 className="mt-4 text-lg font-black text-white">Membership</h3>
+        <p className="mt-1.5 text-[13px] font-semibold leading-6 text-white/55">One price. The whole marketplace.</p>
 
         <div className="mt-5 grid gap-2 text-left">
-          {["Full access to the Community feed", "New members-only drops", "Cancel anytime"].map(perk => (
+          {["Free unlimited chat with any model", "See every private video", "Super Follow anyone", "Buy & own influencers"].map(perk => (
             <div key={perk} className="flex items-center gap-2.5 rounded-xl bg-white/[0.04] px-3 py-2.5">
               <Check className="h-4 w-4 shrink-0 text-amber-400" />
               <span className="text-[13px] font-bold text-white/80">{perk}</span>
@@ -64,7 +64,7 @@ export default function SubscribeDialog({ open, onClose }: { open: boolean; onCl
 
         <button type="button" onClick={() => void subscribe()} disabled={busy}
           className="lb-gold mt-5 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-black active:scale-95 transition-transform disabled:opacity-60">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Start Premium — $8 first month</>}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Get membership — $4.99/mo</>}
         </button>
         {error && <p className="mt-2 text-[12px] font-bold text-red-400">{error}</p>}
         {signedIn ? (

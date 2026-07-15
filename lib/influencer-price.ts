@@ -26,9 +26,19 @@ const FLAGSHIP_NAME = /\b(gina|bella|isabella)\b/i;
 // No free per-model prices. `flagship` (bool) is the source of truth; when it's not set yet,
 // flagship NAMES (Gina/Bella/Isabella) default to Flagship so they're premium out of the box.
 // REAL models (actual people) floor at $100 on top — a non-flagship real model is still ≥ $100.
-export function baseCentsFor(name?: string, flagship?: boolean, realModel?: boolean): number {
+export function baseCentsFor(name?: string, flagship?: boolean, realModel?: boolean, opts?: {
+  flagshipTier?: number;      // 1 | 2 | 3 — which flagship tier she is (default 1)
+  flagshipBases?: number[];   // [tier1, tier2, tier3] base cents from the admin price list
+}): number {
   const isFlag = typeof flagship === "boolean" ? flagship : !!(name && FLAGSHIP_NAME.test(name));
-  let base = isFlag ? FLAGSHIP_BASE_CENTS : FRESH_BASE_CENTS;
+  let base: number;
+  if (isFlag) {
+    const tier = Math.min(3, Math.max(1, Math.floor(opts?.flagshipTier ?? 1)));
+    const fromList = opts?.flagshipBases?.[tier - 1];
+    base = typeof fromList === "number" && fromList > 0 ? fromList : FLAGSHIP_BASE_CENTS;
+  } else {
+    base = FRESH_BASE_CENTS;
+  }
   if (realModel) base = Math.max(base, REAL_MODEL_BASE_CENTS); // real people start at $100
   return base;
 }
@@ -51,8 +61,10 @@ export function influencerPriceCents(opts: {
   followerCount?: number;    // each SUPER-FOLLOWER (registered fan) gifts +$1
   purchasedAt?: string;      // Kauftag — her age reference; +$1/day since then
   createdAt?: string;        // fallback age reference before she's ever been sold
+  flagshipTier?: number;     // 1 | 2 | 3 — flagship tier (default 1)
+  flagshipBases?: number[];  // [tier1, tier2, tier3] base cents from the admin price list
 }): number {
-  const base = baseCentsFor(opts.name, opts.flagship, opts.realModel);
+  const base = baseCentsFor(opts.name, opts.flagship, opts.realModel, { flagshipTier: opts.flagshipTier, flagshipBases: opts.flagshipBases });
   const videos = Math.max(0, Math.floor(opts.videoCount ?? 0));
   const looks = Math.max(0, Math.floor(opts.lookCount ?? 0));
   const followers = Math.max(0, Math.floor(opts.followerCount ?? 0));
