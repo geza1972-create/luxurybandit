@@ -96,6 +96,21 @@ async function landingData() {
       brand: "Gianna Bellucci",   // her sponsor — every look she wears is theirs
       shopUrl: "/haine",          // "Shop now" → the clothes gallery (Gianna Bellucci pieces)
     }));
+    // Card Studio slides targeted at THIS landing (LP-Own-Model) lead the carousel.
+    const ownModelClips = [] as { poster: string; video: string; private: boolean; story?: string }[];
+    for (const sl of [...(state.bellaSlides ?? [])].sort((a: any, b: any) => (a.order ?? 1e9) - (b.order ?? 1e9))) {
+      const s = sl as any;
+      if (s.hidden === true || s.customer) continue;
+      if (s.pages && !s.pages.includes("lp-own-model")) continue; // empty array = nowhere
+      const media = s.path ? await getSignedUrl(s.path).catch(() => "") : "";
+      if (!media) continue;
+      const poster = s.posterPath ? await getSignedUrl(s.posterPath).catch(() => "") : "";
+      const cap = [s.title, s.caption].filter(Boolean).join(" — ") || undefined;
+      ownModelClips.push(s.kind === "video"
+        ? { poster: poster || "", video: media, private: false, story: cap }
+        : { poster: media, video: "", private: false, story: cap });
+    }
+    const ginaClips2 = [...ownModelClips, ...ginaStory];
     const ginaCard = {
       id: (gina?.id ?? "") as string,
       serial: ginaSerial,
@@ -106,7 +121,7 @@ async function landingData() {
       photo: (gina?.photoUrl ?? "") as string,
       video: heroClip.video || "",
       poster: heroClip.poster || (gina?.photoUrl ?? ""),
-      clips: ginaStory,
+      clips: ginaClips2,
       valueLabel: fmtPriceCents(ginaValueCents),
       looks: ginaLooks,
       bio: (gina?.bio || gina?.motto || "") as string,

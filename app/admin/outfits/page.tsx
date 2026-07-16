@@ -41,6 +41,7 @@ export default function AdminOutfitsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    document.title = "Wardrobe";
     try { setPin(localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""); } catch { /**/ }
     try { const l = new URLSearchParams(window.location.search).get("look"); if (l) { setUrlLookId(l); setScopeLookId(l); } } catch { /**/ }
   }, []);

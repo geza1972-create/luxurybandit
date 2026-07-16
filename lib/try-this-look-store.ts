@@ -1,4 +1,6 @@
 import { compressImage } from "@/lib/image-compress";
+import type { LookCategory } from "@/lib/look-category";
+import type { WardrobeVocab } from "@/lib/wardrobe-taxonomy";
 
 export type TryThisLookLook = {
   id: string;
@@ -25,6 +27,21 @@ export type TryThisLookLook = {
   deliveryTime?: string;
   productNote?: string;
   buyUrl?: string;
+  // Which admin Collection this garment belongs to (replaces the old editorial `category`
+  // as the primary grouping). Empty/undefined = unassigned. See TryThisLookCollection.
+  collectionId?: string;
+  // Editorial wardrobe attributes (admin-managed vocab in state.wardrobeVocab). The
+  // customer never sees these raw — they compose into an editorial title. See
+  // lib/wardrobe-taxonomy.ts. `collection` is stored via collectionId above.
+  location?: string;   // Monaco, Capri, Paris… (the top-level "trip/program" dimension)
+  garmentCategory?: string;    // Kleider, Lingerie, Bademode… (garment TYPE — 2nd browsing level)
+  garmentSubcategory?: string; // Sommerkleid, Abendkleid, Bikini… (sub-type under the category)
+  theme?: string;      // Floral, Citrus, Emerald… (supplies the title emoji)
+  occasion?: string;   // Yacht, Gala, Pool…
+  style?: string;      // Luxury, Elegant, Sexy…
+  aiClassified?: boolean;      // true = attributes set by the AI classifier (not by hand)
+  classifyConfidence?: number; // 0..1 confidence from the last classification
+  imageHash?: string;          // perceptual dHash of the garment image (near-duplicate detection)
   // Price-ladder alternatives (dupes) found via visual search, sorted desc by price.
   alternatives?: {
     title: string;
@@ -401,6 +418,16 @@ export type TryThisLookState = {
   // Admin-managed wardrobe: outfit images shown in the Try-On funnel gallery, so a user
   // can pick an outfit to see the video's model (or their own avatar) wearing it.
   outfits?: TryThisLookOutfit[];
+  // Admin-managed COLLECTIONS — renameable groupings of wardrobe garments. Replaces the
+  // old fixed editorial categories. Each look points at one via look.collectionId.
+  collections?: TryThisLookCollection[];
+  // Admin-editable vocab for the other wardrobe attributes (Location/Theme/Occasion/Style).
+  // Collections live in `collections[]` above. See lib/wardrobe-taxonomy.ts.
+  wardrobeVocab?: WardrobeVocab;
+  // Monthly TRAVEL PROGRAMS (per destination) owners subscribe to for their influencer.
+  programs?: WardrobeProgram[];
+  // AI-generated feed posts per program (image+caption), pending admin approval.
+  programFeeds?: ProgramFeedPost[];
   // CONCEPT 2.0 — AI-face library for the creation tool. Each face is UNIQUE: once a creator
   // claims it (pays $3.99) it's "booked" and can't be picked again. Admin adds new ones.
   avatarFaces?: { id: string; imagePath?: string; imageUrl?: string; videoPath?: string; videoUrl?: string; claimedBy?: string; claimedAt?: string; createdAt?: string; sold?: boolean }[];
@@ -426,6 +453,43 @@ export type TryThisLookState = {
   // welcomed = emails that already got their free welcome credits (granted once).
   // subMonths = "email|YYYY-MM" keys already granted the monthly subscriber allowance (idempotency).
   videoCredits?: { balances: Record<string, number>; redeemed: string[]; welcomed?: string[]; subMonths?: string[]; genLog?: Record<string, number> };
+  // Admin-managed carousel slides for the /urlaub-mit-bella landing card — an intro image
+  // (e.g. "Das ist Peter" + description) and example videos, injected into Bella's ModelCard
+  // carousel. Persist PATHS only; buildBellaCard signs them on read.
+  bellaSlides?: BellaSlide[];
+  // Booked journeys (customer name/email) so the Card Studio can build per-customer cards.
+  tripBookings?: TripBooking[];
+  // Log of emails sent to customers from the Card Studio (subject/topic + when).
+  emailLog?: { id: string; email: string; subject: string; sentAt: string }[];
+  // Saved generation prompts (Card Studio prompt library): image + video prompts, and "voice"
+  // = saved spoken lines for the lip-sync feature.
+  promptLibrary?: { id: string; kind: "image" | "video" | "voice"; text: string; createdAt: string }[];
+};
+
+// One admin-uploaded slide for the Bella landing-card carousel: an image OR a video, plus
+// optional title/caption text shown over it.
+export type BellaSlide = {
+  id: string;
+  kind: "image" | "video";
+  path: string;          // storage path of the image or video (signed on read)
+  posterPath?: string;   // optional poster for a video slide
+  title?: string;        // e.g. "Das ist Peter"
+  caption?: string;      // short description / caption
+  hidden?: boolean;      // kept in the library but NOT shown on any card
+  pages?: string[];      // surface keys it appears on ("landing" | "profile"); empty = everywhere
+  customer?: string;     // customer email this slide is FOR; empty = the general (public) card
+  order?: number;        // manual sort order within its scope (ascending); undefined = by createdAt
+  createdAt?: string;
+};
+
+// A booked journey (from the /urlaub-mit-bella landing) — so the Card Studio can pick a customer
+// and build a personalised card for them.
+export type TripBooking = {
+  id: string;
+  name?: string;
+  email: string;
+  program?: string;
+  createdAt: string;
 };
 
 export type ModelChatLog = {
@@ -445,6 +509,63 @@ export type TryThisLookOutfit = {
   imagePath?: string;   // storage path (signed on read)
   imageUrl?: string;    // signed URL (hydrated) or legacy stored URL
   lookId?: string;      // undefined/empty = global (all looks); else only that look
+  createdAt: string;
+};
+
+// Admin-managed COLLECTION — a renameable grouping of wardrobe garments (looks).
+// Replaces the old fixed editorial categories (After Dark / Riviera / …). A collection
+// can be made PUBLIC (its garments show as a filter chip on the public feed) and/or
+// RELEASED to models (its garments appear in a model's video-creation garment picker).
+export type TryThisLookCollection = {
+  id: string;
+  name: string;
+  order?: number;            // display order (ascending)
+  public?: boolean;          // shows as a chip on the public feed
+  releaseToAllModels?: boolean; // every model may use these garments in her videos
+  modelIds?: string[];       // specific curators/models this collection is released to
+  legacyCategory?: LookCategory; // set when seeded from an old editorial category
+  createdAt: string;
+};
+
+// A monthly TRAVEL PROGRAM an owner subscribes to for their AI influencer. The influencer
+// "travels" to `location` for `days` and posts one look/day from that destination's
+// wardrobe (a video + a place report + shop link). Definition only here — the daily
+// auto-content engine + subscription come later.
+// One stop on a program's route (a city for N days). A single-city program is a 1-stop route.
+export type ProgramStop = { location: string; days: number };
+
+export type WardrobeProgram = {
+  id: string;
+  name: string;              // e.g. "Mittelmeer-Cruise"
+  // FIXED route the admin curates (a package). The owner picks the package, not the cities.
+  stops?: ProgramStop[];     // ordered stops; total days = sum of stop days
+  location?: string;         // legacy/first destination (kept for cover + back-compat)
+  description?: string;      // marketing copy: what's included, shown to the owner
+  days?: number;             // legacy single-stop length; superseded by stops
+  price?: string;            // subscription price / month
+  published?: boolean;       // available for owners to subscribe
+  surprise?: boolean;        // mystery trip — stops hidden from the owner, revealed day by day
+  lookIds?: string[];        // optional explicit ordered daily sequence; empty = auto by the stops' locations
+  coverImagePath?: string;
+  coverImageUrl?: string;
+  createdAt: string;
+};
+
+// A single AI-generated feed post for a program (image + caption), awaiting admin approval
+// before it's released to the owner. Generated up-front so the admin previews the month.
+export type ProgramFeedPost = {
+  id: string;
+  programId: string;
+  day: number;               // which day of the trip
+  location: string;          // the stop this post belongs to
+  caption: string;
+  lingerie?: boolean;        // used our lingerie pool for this post
+  imagePath?: string;
+  imageUrl?: string;
+  videoPath?: string;        // PixVerse image→video result (persisted)
+  videoUrl?: string;         // signed on read
+  videoPrompt?: string;      // the motion prompt used
+  approved?: boolean;        // admin pre-approved for the owner
   createdAt: string;
 };
 
@@ -696,6 +817,12 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
     const p = outfit.imagePath ?? extractPathFromUrl(outfit.imageUrl);
     if (p) allPaths.push(p);
   }
+  for (const post of state.programFeeds ?? []) {
+    const p = post.imagePath ?? extractPathFromUrl(post.imageUrl);
+    if (p) allPaths.push(p);
+    const vp = post.videoPath ?? extractPathFromUrl(post.videoUrl);
+    if (vp) allPaths.push(vp);
+  }
 
   // Single batch request instead of N×2 individual requests
   const signed = await batchGetSignedUrls(allPaths);
@@ -762,8 +889,13 @@ async function hydrateState(state: TryThisLookState): Promise<TryThisLookState> 
     ...outfit,
     imageUrl: s(outfit.imagePath ?? extractPathFromUrl(outfit.imageUrl), outfit.imageUrl),
   }));
+  const programFeeds = (state.programFeeds ?? []).map(post => ({
+    ...post,
+    imageUrl: s(post.imagePath ?? extractPathFromUrl(post.imageUrl), post.imageUrl),
+    videoUrl: (post.videoPath || post.videoUrl) ? s(post.videoPath ?? extractPathFromUrl(post.videoUrl), post.videoUrl) : undefined,
+  }));
 
-  return { ...state, looks, leads, generations, curators, outfits };
+  return { ...state, looks, leads, generations, curators, outfits, programFeeds };
 }
 
 export async function readTryThisLookState(): Promise<TryThisLookState> {
@@ -815,6 +947,10 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     tryonPaused: state.tryonPaused === true,
     chatNotifyPaused: state.chatNotifyPaused === true,
     outfits: state.outfits ?? [],
+    collections: state.collections ?? [],
+    wardrobeVocab: state.wardrobeVocab,
+    programs: state.programs ?? [],
+    programFeeds: state.programFeeds ?? [],
     avatarFaces: state.avatarFaces ?? [],
     funnelVideoPrompt: state.funnelVideoPrompt,
     viewsByDay: state.viewsByDay ?? {},
@@ -823,6 +959,10 @@ export async function readTryThisLookState(): Promise<TryThisLookState> {
     modelChats: state.modelChats ?? [],
     directMessages: state.directMessages ?? [],
     videoCredits: state.videoCredits ?? { balances: {}, redeemed: [] },
+    bellaSlides: state.bellaSlides ?? [],
+    tripBookings: state.tripBookings ?? [],
+    emailLog: state.emailLog ?? [],
+    promptLibrary: state.promptLibrary ?? [],
   });
 }
 
@@ -869,7 +1009,7 @@ function mergeNewerById<T extends { id: string; createdAt?: string }>(ours: T[] 
   return [...missedNewer, ...ours];
 }
 
-type SaveOptions = { deletedGenerationIds?: string[]; deletedLeadIds?: string[]; deletedOutfitIds?: string[]; deletedChatIds?: string[]; deletedFaceIds?: string[] };
+type SaveOptions = { deletedGenerationIds?: string[]; deletedLeadIds?: string[]; deletedOutfitIds?: string[]; deletedChatIds?: string[]; deletedFaceIds?: string[]; deletedCollectionIds?: string[]; deletedProgramIds?: string[]; deletedFeedPostIds?: string[]; deletedBellaSlideIds?: string[]; deletedBookingIds?: string[]; deletedPromptIds?: string[] };
 
 async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions = {}) {
   await ensureBucket();
@@ -896,6 +1036,56 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
       // Admin-uploaded outfits CAN be deleted → mergeNewerById (like generations) so a
       // concurrent/stale save can never DROP them, while a real delete isn't resurrected.
       outfits: mergeNewerById((state.outfits ?? []) as any, (latest.outfits ?? []) as any, delOutfit) as any,
+      // Collections: our version wins (admin just read→edited→saved); union in any the
+      // concurrent save knows about so a stale analytics write can't drop a new collection.
+      collections: (() => {
+        const byId = new Map(((latest.collections ?? []) as any[]).map(c => [c.id, c]));
+        for (const c of ((state.collections ?? []) as any[])) byId.set(c.id, c);
+        if (opts.deletedCollectionIds?.length) for (const id of opts.deletedCollectionIds) byId.delete(id);
+        return [...byId.values()] as any;
+      })(),
+      // Wardrobe vocab: our version wins (admin just edited it); if we somehow don't have
+      // it, keep whatever latest holds so a concurrent save can't wipe it.
+      wardrobeVocab: state.wardrobeVocab ?? latest.wardrobeVocab,
+      // Travel programs: union by id (admin edited); a concurrent save can't drop a program.
+      programs: (() => {
+        const byId = new Map(((latest.programs ?? []) as any[]).map(p => [p.id, p]));
+        for (const p of ((state.programs ?? []) as any[])) byId.set(p.id, p);
+        if (opts.deletedProgramIds?.length) for (const id of opts.deletedProgramIds) byId.delete(id);
+        return [...byId.values()] as any;
+      })(),
+      // Program feed posts: union by id (admin generates/approves); deletable.
+      programFeeds: (() => {
+        const byId = new Map(((latest.programFeeds ?? []) as any[]).map(f => [f.id, f]));
+        for (const f of ((state.programFeeds ?? []) as any[])) byId.set(f.id, f);
+        if (opts.deletedFeedPostIds?.length) for (const id of opts.deletedFeedPostIds) byId.delete(id);
+        return [...byId.values()] as any;
+      })(),
+      // Card Studio slides (Bella landing card): union by id (admin uploads/replaces); deletable.
+      // Without this a concurrent/stale analytics save silently reverts newly-added slides.
+      bellaSlides: (() => {
+        const byId = new Map(((latest.bellaSlides ?? []) as any[]).map(s => [s.id, s]));
+        for (const s of ((state.bellaSlides ?? []) as any[])) byId.set(s.id, s);
+        if (opts.deletedBellaSlideIds?.length) for (const id of opts.deletedBellaSlideIds) byId.delete(id);
+        return [...byId.values()] as any;
+      })(),
+      // Trip bookings: union by id (public landing appends) so a concurrent save can't drop a
+      // just-made booking; admin can prune via deletedBookingIds (not resurrected).
+      tripBookings: (() => {
+        const byId = new Map(((latest.tripBookings ?? []) as any[]).map(b => [b.id, b]));
+        for (const b of ((state.tripBookings ?? []) as any[])) byId.set(b.id, b);
+        if (opts.deletedBookingIds?.length) for (const id of opts.deletedBookingIds) byId.delete(id);
+        return [...byId.values()] as any;
+      })(),
+      // Sent-email log: append-only union by id so a concurrent save can't drop a just-logged mail.
+      emailLog: unionById((state.emailLog ?? []) as any, (latest.emailLog ?? []) as any) as any,
+      // Prompt library: union by id (admin adds/edits); deletable via deletedPromptIds.
+      promptLibrary: (() => {
+        const byId = new Map(((latest.promptLibrary ?? []) as any[]).map(p => [p.id, p]));
+        for (const p of ((state.promptLibrary ?? []) as any[])) byId.set(p.id, p);
+        if (opts.deletedPromptIds?.length) for (const id of opts.deletedPromptIds) byId.delete(id);
+        return [...byId.values()] as any;
+      })(),
       comments: unionById((state.comments ?? []) as any, (latest.comments ?? []) as any) as any,
       // Leads CAN be deleted in the admin → use mergeNewerById (like generations) so a
       // deletion isn't resurrected by the read-merge, while concurrent new leads survive.
@@ -952,6 +1142,14 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
     messages: (state.messages ?? []).slice(0, 2000),
     curators: (state.curators ?? []).map(({ photoUrl, photoFullUrl, photoBodyUrls, profilePhotoUrls, verificationSelfieUrl, ...curator }) => curator).slice(0, 2000),
     outfits: (state.outfits ?? []).map(({ imageUrl, ...outfit }) => outfit).slice(0, 500),
+    collections: (state.collections ?? []).slice(0, 500),
+    wardrobeVocab: state.wardrobeVocab,
+    programs: (state.programs ?? []).map(({ coverImageUrl, ...p }) => p).slice(0, 200),
+    programFeeds: (state.programFeeds ?? []).map(({ imageUrl, videoUrl, ...f }) => f).slice(0, 2000),
+    bellaSlides: (state.bellaSlides ?? []).slice(0, 500),
+    tripBookings: (state.tripBookings ?? []).slice(0, 2000),
+    emailLog: (state.emailLog ?? []).slice(-5000),
+    promptLibrary: (state.promptLibrary ?? []).slice(0, 500),
     avatarFaces: (state.avatarFaces ?? []).map(({ imageUrl, videoUrl, ...f }) => f).slice(0, 2000),
     funnelVideoPrompt: state.funnelVideoPrompt,
     viewsByDay: state.viewsByDay ?? {},

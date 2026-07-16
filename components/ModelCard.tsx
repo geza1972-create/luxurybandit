@@ -56,7 +56,7 @@ export default function ModelCard({
   // Growth Score is an INTEGER, never a price — strip the currency + any decimals.
   const gsLabel = Math.round(parseFloat(String(valueLabel).replace(/[^0-9.]/g, "")) || 0).toLocaleString("en-US");
   const router = useRouter();
-  const [zoomed, setZoomed] = useState(false);       // tap the photo → fullscreen enlarged view
+  const [zoomIdx, setZoomIdx] = useState(-1);        // which slide is open fullscreen (-1 = none)
   const [activeSlide, setActiveSlide] = useState(0);  // which slide is centred (0 = her card face)
   const [playingIdx, setPlayingIdx] = useState(-1);   // which look slide is playing its video (-1 = none)
   const slidesRef = useRef<HTMLDivElement>(null);
@@ -160,20 +160,28 @@ export default function ModelCard({
                     </div>
                   </>
                 ) : isLook && isPlaying ? (
+                  /* Plays WITH sound — playback is user-initiated (tap on play), so the browser
+                     allows audio. The <video controls> still lets the viewer mute if they want. */
                   /* eslint-disable-next-line jsx-a11y/media-has-caption */
-                  <video src={c.video} poster={c.poster} autoPlay muted playsInline controls preload="metadata" controlsList={canDownload ? undefined : "nodownload"} onContextMenu={canDownload ? undefined : (e) => e.preventDefault()} className="h-full w-full bg-black object-contain" />
+                  <video src={c.video} poster={c.poster} autoPlay playsInline controls preload="metadata" controlsList={canDownload ? undefined : "nodownload"} onContextMenu={canDownload ? undefined : (e) => e.preventDefault()} className="h-full w-full bg-black object-contain" />
+                ) : isLook && c.video && !c.poster ? (
+                  /* Posterless video → show the video's OWN first frame (muted), not a fallback image. */
+                  /* eslint-disable-next-line jsx-a11y/media-has-caption */
+                  <video src={c.video} muted playsInline preload="metadata" onClick={() => setPlayingIdx(i)}
+                    onContextMenu={canDownload ? undefined : (e) => e.preventDefault()}
+                    className="h-full w-full cursor-pointer bg-black object-cover" />
                 ) : (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={c.poster} alt={i === 0 ? name : ""} loading={i === 0 ? undefined : "lazy"}
-                    onClick={() => (i === 0 ? setZoomed(true) : c.video ? setPlayingIdx(i) : undefined)}
+                    onClick={() => (c.video ? setPlayingIdx(i) : setZoomIdx(i))}
                     className="h-full w-full cursor-pointer object-cover object-top" />
                 )}
 
                 {/* Play affordance on a look poster (low, off her face). */}
                 {isLook && c.video && !locked && !isPlaying && (
                   <button type="button" onClick={() => setPlayingIdx(i)} aria-label="Play video"
-                    className="absolute bottom-[20%] left-1/2 grid h-12 w-12 -translate-x-1/2 place-items-center rounded-full bg-black/35 text-white/90 ring-1 ring-white/30 backdrop-blur-sm transition active:scale-95">
-                    <svg viewBox="0 0 24 24" className="h-5 w-5 translate-x-0.5 fill-current"><path d="M8 5v14l11-7z" /></svg>
+                    className="absolute left-1/2 top-1/2 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/40 text-white ring-1 ring-white/40 backdrop-blur-sm transition active:scale-95">
+                    <svg viewBox="0 0 24 24" className="h-7 w-7 translate-x-0.5 fill-current"><path d="M8 5v14l11-7z" /></svg>
                   </button>
                 )}
 
@@ -236,9 +244,9 @@ export default function ModelCard({
           <p className="relative mt-1 text-center text-[18px] font-black leading-none text-white">{gsLabel}</p>
           <p className="relative mt-1 whitespace-nowrap text-center text-[8px] font-black uppercase tracking-[0.12em] text-amber-400">▲ Trending</p>
         </Link>
-        {/* Enlarge — only on her card face (slide 0). */}
-        {activeSlide === 0 && (
-          <button type="button" onClick={() => setZoomed(true)} aria-label="Enlarge photo"
+        {/* Enlarge — on every slide (photo, look, video) except the intro/story slide. */}
+        {!strip[activeSlide]?.intro && (
+          <button type="button" onClick={() => setZoomIdx(activeSlide)} aria-label="Enlarge"
             className="absolute bottom-3 right-3 z-[6] grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white/90 ring-1 ring-white/20 backdrop-blur transition active:scale-90">
             <Maximize2 className="h-4 w-4" />
           </button>
@@ -264,10 +272,15 @@ export default function ModelCard({
                       <span className="h-[2px] w-3/5 rounded-full bg-white/25" />
                     </div>
                   </div>
+                ) : c.video && !c.poster ? (
+                  /* Posterless video → show the video's own frame in the thumb too. */
+                  /* eslint-disable-next-line jsx-a11y/media-has-caption */
+                  <video src={c.video} muted playsInline preload="metadata" className={`h-full w-full object-cover ${locked ? "blur-[3px] brightness-75" : ""}`} />
                 ) : (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={c.poster} alt="" loading="lazy" className={`h-full w-full object-cover ${locked ? "blur-[3px] brightness-75" : ""}`} />
                 )}
+                {c.video && <span className="pointer-events-none absolute inset-0 grid place-items-center"><svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-white/90 drop-shadow"><path d="M8 5v14l11-7z" /></svg></span>}
                 {locked && <span className="absolute inset-0 grid place-items-center"><Lock className="h-3 w-3 text-white/90" /></span>}
                 {(i === 0 || c.intro) && <span className="absolute inset-x-0 bottom-0 bg-black/55 py-px text-center text-[7px] font-black uppercase tracking-wide text-white/80">{c.intro ? "About" : "Card"}</span>}
               </button>
@@ -341,12 +354,21 @@ export default function ModelCard({
         <span className="text-[10px] font-black uppercase tracking-[0.24em] text-white/40">· AI Influencer</span>
       </Link>
 
-      {/* Fullscreen enlarged photo — tap the image (or the corner button) to open, tap to close. */}
-      {zoomed && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4" onClick={() => setZoomed(false)}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={media} alt={name} className="max-h-full max-w-full rounded-2xl object-contain" onContextMenu={canDownload ? undefined : (e) => e.preventDefault()} />
-          <button type="button" onClick={() => setZoomed(false)} aria-label="Close"
+      {/* Fullscreen enlarged slide — any slide (photo, look or video). Tap the corner button (or
+          an image slide) to open; tap the backdrop or ✕ to close. Videos play with controls. */}
+      {zoomIdx >= 0 && strip[zoomIdx] && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4" onClick={() => setZoomIdx(-1)}>
+          {strip[zoomIdx].video ? (
+            /* eslint-disable-next-line jsx-a11y/media-has-caption */
+            <video src={strip[zoomIdx].video} poster={strip[zoomIdx].poster} autoPlay playsInline controls
+              controlsList={canDownload ? undefined : "nodownload"} onClick={(e) => e.stopPropagation()}
+              onContextMenu={canDownload ? undefined : (e) => e.preventDefault()}
+              className="max-h-full max-w-full rounded-2xl bg-black object-contain" />
+          ) : (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={strip[zoomIdx].poster || media} alt={name} className="max-h-full max-w-full rounded-2xl object-contain" onContextMenu={canDownload ? undefined : (e) => e.preventDefault()} />
+          )}
+          <button type="button" onClick={() => setZoomIdx(-1)} aria-label="Close"
             className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/12 text-lg font-black text-white ring-1 ring-white/25 backdrop-blur active:scale-90">✕</button>
         </div>
       )}

@@ -131,6 +131,10 @@ type Look = {
   brand?: string;
   lingerie?: boolean;
   category?: LookCategory;
+  collectionId?: string;
+  location?: string;
+  theme?: string;
+  editorialTitle?: string;
   generationCount?: number;
   curatorId?: string;
   curatorName?: string;
@@ -2388,7 +2392,7 @@ function StoresPage() {
   // videos the feed shows), PLUS a look-video tile for looks that have a video but no
   // try-on yet. Nothing else — no separately-filtered "curated" list.
   const historyItems = useMemo(() => {
-    type HItem = { key: string; kind: "look" | "tryon"; id: string; lookId: string; thumb: string; videoUrl?: string; videoPoster?: string; hasBefore?: boolean; aiCreated?: boolean; brand?: string; category?: LookCategory; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string; visibility: "public" | "community" | "private"; pinned?: boolean; animated?: boolean };
+    type HItem = { key: string; kind: "look" | "tryon"; id: string; lookId: string; thumb: string; videoUrl?: string; videoPoster?: string; hasBefore?: boolean; aiCreated?: boolean; brand?: string; category?: LookCategory; location?: string; editorialTitle?: string; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string; visibility: "public" | "community" | "private"; pinned?: boolean; animated?: boolean };
     const lookById = new Map(looks.map(l => [l.id, l]));
     const items: HItem[] = [];
     const looksWithTryOn = new Set<string>();
@@ -2396,7 +2400,7 @@ function StoresPage() {
     for (const c of communityItems) {
       const srcLook = lookById.get(c.lookId);
       looksWithTryOn.add(c.lookId);
-      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, hasBefore: !!c.userPhotoUrl, brand: c.brand, category: c.category ?? srcLook?.category, createdAt: c.createdAt ?? "", name: c.customerName || (srcLook ? publicLookLabel(srcLook) : "Luxury look"), price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName, visibility: c.visibility ?? (c.public ? "public" : "community"), pinned: c.pinned, animated: c.animated });
+      items.push({ key: `tryon-${c.id}`, kind: "tryon", id: c.id, lookId: c.lookId, thumb: c.imageUrl, videoUrl: c.videoUrl, videoPoster: c.imageUrl, hasBefore: !!c.userPhotoUrl, brand: c.brand, category: c.category ?? srcLook?.category, location: srcLook?.location, editorialTitle: srcLook?.editorialTitle, createdAt: c.createdAt ?? "", name: c.customerName || (srcLook?.editorialTitle) || (srcLook ? publicLookLabel(srcLook) : "Luxury look"), price: srcLook ? feedPrice(srcLook) : null, curatorName: c.customerName, visibility: c.visibility ?? (c.public ? "public" : "community"), pinned: c.pinned, animated: c.animated });
     }
     // A look-VIDEO tile for looks that have a video but no try-on (so those feed posts are
     // mirrored too). Looks without a video and without a try-on don't appear in the feed.

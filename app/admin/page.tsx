@@ -9,12 +9,26 @@ import { signInWithPassword, getStoredAuthSession, saveAuthSession, signOut, res
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { LOOK_CATEGORIES, categorizeLook, type LookCategory } from "@/lib/look-category";
 import { publicLookLabel } from "@/lib/look-title";
+import { fingerprintDistance } from "@/lib/fingerprint-distance";
 import { safeLookImage } from "@/lib/look-image";
 import InsightsPro from "@/components/InsightsPro";
 import AdminConnections from "@/components/AdminConnections";
 import PasswordInput from "@/components/PasswordInput";
 
 const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
+
+// Downscale a picked photo (owner selfie) to a JPEG data URL under the API body limit.
+async function downscalePhoto(file: File, max = 1024, quality = 0.85): Promise<string> {
+  const dataUrl = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file); });
+  try {
+    const img = await new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl; });
+    const scale = Math.min(1, max / Math.max(img.width, img.height));
+    const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    c.getContext("2d")!.drawImage(img, 0, 0, w, h);
+    return c.toDataURL("image/jpeg", quality);
+  } catch { return dataUrl; }
+}
 
 type Curator = {
   id: string;
@@ -45,11 +59,30 @@ type Look = {
   price?: string; salePrice?: string; buyUrl?: string;
   brand?: string; productNote?: string; storeName?: string;
   category?: LookCategory; lingerie?: boolean;
+  collectionId?: string;
+  location?: string; theme?: string; occasion?: string; style?: string; editorialTitle?: string;
+  garmentCategory?: string; garmentSubcategory?: string;
+  aiClassified?: boolean; classifyConfidence?: number;
+  productType?: string; wardrobe?: boolean; imageHash?: string;
   aiCreated?: boolean; createdAt?: string; videoCreatedAt?: string;
   likeCount?: number; commentCount?: number; viewCount?: number;
   clicks?: Record<string, number>;
   alternatives?: unknown[];
 };
+
+// Admin collection (renameable garment grouping) — mirrors TryThisLookCollection.
+type Collection = {
+  id: string; name: string; order?: number;
+  public?: boolean; releaseToAllModels?: boolean; modelIds?: string[];
+  legacyCategory?: string; createdAt?: string;
+};
+// Wardrobe attribute vocab — mirrors WardrobeVocab.
+type GarmentCat = { name: string; emoji?: string; subcategories: string[] };
+type WardrobeVocab = { locations: string[]; themes: { name: string; emoji: string }[]; occasions: string[]; styles: string[]; garmentCategories: GarmentCat[] };
+// Monthly travel program — mirrors WardrobeProgram.
+type ProgramStop = { location: string; days: number };
+type Program = { id: string; name: string; location?: string; stops?: ProgramStop[]; surprise?: boolean; description?: string; days?: number; price?: string; published?: boolean; lookIds?: string[]; createdAt?: string };
+type FeedPost = { id: string; programId: string; day: number; location: string; caption: string; lingerie?: boolean; imageUrl?: string; approved?: boolean; createdAt?: string };
 
 type FollowRec = { id: string; createdAt?: string; followeeName?: string; followeeCuratorId?: string; followerName?: string; followerIsCurator?: boolean };
 
@@ -222,6 +255,18 @@ export default function AdminPage() {
   const stopBulk = useRef(false);
   const [curators, setCurators] = useState<Curator[]>([]);
   const [looks, setLooks] = useState<Look[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [vocab, setVocab] = useState<WardrobeVocab>({ locations: [], themes: [], occasions: [], styles: [], garmentCategories: [] });
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [showPrograms, setShowPrograms] = useState(false);
+  const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
+  const [feedBusy, setFeedBusy] = useState<string>(""); // programId being generated
+  const [feedMsg, setFeedMsg] = useState("");
+  const [feedModel, setFeedModel] = useState<Record<string, string>>({}); // programId → curatorId
+  const [feedLingerie, setFeedLingerie] = useState<Record<string, boolean>>({});
+  const [feedCount, setFeedCount] = useState<Record<string, number>>({});
+  const [feedOwnerName, setFeedOwnerName] = useState<Record<string, string>>({}); // owner joins the trip
+  const [feedOwnerImage, setFeedOwnerImage] = useState<Record<string, string>>({}); // owner photo data URL
   const [community, setCommunity] = useState<{ customerName?: string; curatorId?: string }[]>([]);
   const [sortC, setSortC] = useState<"new" | "looks" | "tryons" | "name" | "owner">("new");
   const [modelsView, setModelsView] = useState<"list" | "tools">("list"); // Models tab sub-view
@@ -233,7 +278,9 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
-  const [lookCatFilter, setLookCatFilter] = useState<LookCategory | null>(null); // A-List category filter
+  const [lookCatFilter, setLookCatFilter] = useState<LookCategory | null>(null); // A-List category filter (legacy)
+  const [collectionFilter, setCollectionFilter] = useState<string | null>(null); // A-List collection filter ("" = unassigned)
+  const [manageCollections, setManageCollections] = useState(false); // Collections manager panel open
   const [postTierFilter, setPostTierFilter] = useState<"private" | "community" | null>(null); // Try-ons visibility tier
   const [busy, setBusy] = useState("");
   const [confirmId, setConfirmId] = useState("");
@@ -344,6 +391,10 @@ export default function AdminPage() {
       const fold = await fol.json().catch(() => ({}));
       setCurators(Array.isArray(cd.curators) ? cd.curators : []);
       setLooks(Array.isArray(ld.looks) ? ld.looks : []);
+      setCollections(Array.isArray(ld.collections) ? ld.collections : []);
+      if (ld.wardrobeVocab) setVocab({ locations: ld.wardrobeVocab.locations ?? [], themes: ld.wardrobeVocab.themes ?? [], occasions: ld.wardrobeVocab.occasions ?? [], styles: ld.wardrobeVocab.styles ?? [], garmentCategories: ld.wardrobeVocab.garmentCategories ?? [] });
+      setPrograms(Array.isArray(ld.programs) ? ld.programs : []);
+      setFeedPosts(Array.isArray(ld.programFeeds) ? ld.programFeeds : []);
       setFeedEvents(Array.isArray(ld.events) ? ld.events : []);
       setCommunity(Array.isArray(comd.community) ? comd.community : []);
       setMessages(Array.isArray(msgd.messages) ? msgd.messages : []);
@@ -809,6 +860,228 @@ export default function AdminPage() {
     } catch { setLooks(prev); setError("Network error."); }
     setBusy("");
   };
+  // ── Collection actions ── each returns the fresh state (looks + collections).
+  const applyState = (d: any) => {
+    if (Array.isArray(d?.looks)) setLooks(d.looks);
+    if (Array.isArray(d?.collections)) setCollections(d.collections);
+    if (d?.wardrobeVocab) setVocab({ locations: d.wardrobeVocab.locations ?? [], themes: d.wardrobeVocab.themes ?? [], occasions: d.wardrobeVocab.occasions ?? [], styles: d.wardrobeVocab.styles ?? [], garmentCategories: d.wardrobeVocab.garmentCategories ?? [] });
+    if (Array.isArray(d?.programs)) setPrograms(d.programs);
+    if (Array.isArray(d?.programFeeds)) setFeedPosts(d.programFeeds);
+  };
+  const postCollection = async (body: Record<string, unknown>, errMsg: string) => {
+    setError("");
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify(body) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { await fail(r, errMsg); return false; }
+      applyState(d);
+      return true;
+    } catch { setError("Network error."); return false; }
+  };
+  const seedCollections = () => postCollection({ action: "seed-collections" }, "Could not set up collections");
+  const addCollection = async () => {
+    const name = window.prompt("New collection name")?.trim();
+    if (name) await postCollection({ action: "add-collection", name }, "Could not add collection");
+  };
+  const renameCollection = async (id: string, current: string) => {
+    const name = window.prompt("Rename collection", current)?.trim();
+    if (name && name !== current) await postCollection({ action: "rename-collection", id, name }, "Could not rename");
+  };
+  const deleteCollection = async (id: string, name: string) => {
+    if (!window.confirm(`Delete collection "${name}"? Its garments become unassigned (not deleted).`)) return;
+    if (collectionFilter === id) setCollectionFilter(null);
+    await postCollection({ action: "delete-collection", id }, "Could not delete");
+  };
+  const setCollectionRelease = (id: string, patch: { public?: boolean; releaseToAllModels?: boolean; modelIds?: string[] }) =>
+    postCollection({ action: "set-collection-release", id, ...patch }, "Could not update release");
+  // Move a look into a collection ("" = unassign).
+  const setLookCollection = async (id: string, collectionId: string) => {
+    setBusy(id);
+    const prev = looks;
+    setLooks(ls => ls.map(l => l.id === id ? { ...l, collectionId: collectionId || undefined } : l));
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "update-look", id, collectionId }) });
+      if (!r.ok) { setLooks(prev); await fail(r, "Could not move to collection"); }
+    } catch { setLooks(prev); setError("Network error."); }
+    setBusy("");
+  };
+  // Set one wardrobe attribute (location/theme/occasion/style) on a look. "" clears it.
+  const setLookAttr = async (id: string, field: "location" | "theme" | "occasion" | "style" | "garmentCategory" | "garmentSubcategory", value: string) => {
+    setBusy(id);
+    const prev = looks;
+    setLooks(ls => ls.map(l => l.id === id ? { ...l, [field]: value || undefined } : l));
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "update-look", id, [field]: value }) });
+      if (r.ok) { const d = await r.json().catch(() => null); if (d) applyState(d); }
+      else { setLooks(prev); await fail(r, "Could not update"); }
+    } catch { setLooks(prev); setError("Network error."); }
+    setBusy("");
+  };
+  // Vocab management (add/rename/delete a value in a list) + seed defaults.
+  const seedVocab = () => postCollection({ action: "seed-wardrobe-vocab" }, "Could not seed vocab");
+  // Duplicate wardrobe items — detect (client-side, by normalized name) + merge.
+  const [showDupes, setShowDupes] = useState(false);
+  const [dupeThreshold, setDupeThreshold] = useState(1); // max mean per-channel color distance; true dups sit at ~0 (≤1 avoids similar-but-distinct false positives)
+  const isGarment = (l: Look) => (l.productType === "ai" || (l as any).wardrobe === true) && (l.frontImageUrl || l.imageUrl);
+  // Near-duplicate groups by PERCEPTUAL IMAGE HASH (dHash). Union garments whose hashes are
+  // within `dupeThreshold` Hamming distance — catches the same photo under any name. Falls
+  // back to nothing for looks not yet hashed (run "Bilder analysieren" first).
+  const FP_LEN = 8 * 8 * 3 * 2; // fingerprint hex length (must match server)
+  const garmentsHashed = useMemo(() => looks.filter(l => isGarment(l) && l.imageHash?.length === FP_LEN), [looks]);
+  const duplicateGroups = useMemo(() => {
+    const items = garmentsHashed;
+    const parent = new Map<string, string>();
+    const find = (x: string): string => { let r = x; while (parent.get(r) && parent.get(r) !== r) r = parent.get(r)!; return r; };
+    const union = (a: string, b: string) => { parent.set(find(a), find(b)); };
+    items.forEach(l => parent.set(l.id, l.id));
+    for (let i = 0; i < items.length; i++) {
+      for (let j = i + 1; j < items.length; j++) {
+        if (fingerprintDistance(items[i].imageHash, items[j].imageHash) <= dupeThreshold) union(items[i].id, items[j].id);
+      }
+    }
+    const groups = new Map<string, Look[]>();
+    items.forEach(l => { const r = find(l.id); (groups.get(r) ?? groups.set(r, []).get(r)!).push(l); });
+    return [...groups.values()].filter(g => g.length > 1);
+  }, [garmentsHashed, dupeThreshold]);
+  const unhashed = useMemo(() => looks.filter(l => isGarment(l) && l.imageHash?.length !== FP_LEN).length, [looks]);
+  const mergeWardrobe = async (keepId: string, mergeIds: string[]) => {
+    if (!mergeIds.length) return;
+    if (!window.confirm(`Merge ${mergeIds.length} duplicate(s) into the kept item? Their try-ons/comments move to the kept item; the duplicates are deleted.`)) return;
+    setError("");
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "merge-wardrobe", keepId, mergeIds }) });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) applyState(d); else await fail(r, "Merge failed");
+    } catch { setError("Network error."); }
+  };
+  // Manual duplicate cleanup — admin selects the items to remove, then deletes them.
+  const [dupeSel, setDupeSel] = useState<Set<string>>(new Set());
+  const toggleDupe = (id: string) => setDupeSel(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const removeSelectedDupes = async () => {
+    const ids = [...dupeSel];
+    if (!ids.length) return;
+    if (!window.confirm(`Remove ${ids.length} selected wardrobe item(s)? This deletes them permanently.`)) return;
+    setError("");
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "delete-looks", ids }) });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) { applyState(d); setDupeSel(new Set()); } else await fail(r, "Delete failed");
+    } catch { setError("Network error."); }
+  };
+  // Compute perceptual image hashes for all garments (batched loop), then duplicate groups
+  // appear automatically (client-side, by Hamming distance).
+  const [hashBusy, setHashBusy] = useState(false);
+  const [hashMsg, setHashMsg] = useState("");
+  const analyzeImages = async (force = false) => {
+    setHashBusy(true); setError(""); setHashMsg("Analysiere Bilder…");
+    let total = 0, guard = 0;
+    try {
+      while (guard++ < 30) {
+        const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "hash-wardrobe", limit: 40 }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) { await fail(r, "Analyse fehlgeschlagen"); break; }
+        applyState(d);
+        total += Number(d.hashed) || 0;
+        const remaining = Number(d.remaining) || 0;
+        setHashMsg(`${total} analysiert${remaining ? ` · ${remaining} übrig…` : ""}`);
+        if (!d.hashed || remaining <= 0) break;
+      }
+      setHashMsg(`✓ ${total} Bilder analysiert`);
+      window.setTimeout(() => setHashMsg(""), 4000);
+    } catch { setError("Network error."); setHashMsg(""); }
+    setHashBusy(false);
+  };
+  const addVocab = async (kind: "locations" | "themes" | "occasions" | "styles") => {
+    const name = window.prompt(`New ${kind.slice(0, -1)}`)?.trim();
+    if (!name) return;
+    const body: Record<string, unknown> = { action: "add-vocab", kind, name };
+    if (kind === "themes") { const emoji = window.prompt("Emoji for this theme (e.g. 🍋)")?.trim(); body.emoji = emoji || "✨"; }
+    await postCollection(body, "Could not add");
+  };
+  // Garment-type tree management.
+  const addGarmentCategory = async () => {
+    const name = window.prompt("Neue Kleidungs-Kategorie (z.B. Kleider)")?.trim();
+    if (!name) return;
+    const emoji = window.prompt("Emoji (optional, z.B. 👗)")?.trim();
+    await postCollection({ action: "garment-category", op: "add-category", name, emoji: emoji || "" }, "Could not add");
+  };
+  const addGarmentSub = async (category: string) => {
+    const name = window.prompt(`Neue Unterkategorie für „${category}" (z.B. Sommerkleid)`)?.trim();
+    if (name) await postCollection({ action: "garment-category", op: "add-subcategory", category, name }, "Could not add");
+  };
+  const delGarmentCategory = async (category: string) => {
+    if (window.confirm(`Kategorie „${category}" löschen?`)) await postCollection({ action: "garment-category", op: "delete-category", category }, "Could not delete");
+  };
+  const delGarmentSub = (category: string, name: string) => postCollection({ action: "garment-category", op: "delete-subcategory", category, name }, "Could not delete");
+  // ── Travel programs ──
+  const addProgram = async () => {
+    const location = vocab.locations[0] ?? "";
+    await postCollection({ action: "add-program", location, name: location ? `${location} Programm` : "Neues Programm", days: 30 }, "Could not add program");
+  };
+  const updateProgram = (id: string, patch: Record<string, unknown>) => postCollection({ action: "update-program", id, ...patch }, "Could not update program");
+  const deleteProgram = async (id: string, name: string) => {
+    if (window.confirm(`Programm „${name}" löschen?`)) await postCollection({ action: "delete-program", id }, "Could not delete program");
+  };
+  // Generate a TEST feed (image + caption per day) for a program, one post per call.
+  const generateFeed = async (program: Program) => {
+    // Use the picked model, else auto-fall back to the first model that has a photo.
+    const firstModel = curators.find(c => c.id !== "house" && (c as any).photoUrl)?.id ?? "";
+    const curatorId = feedModel[program.id] || firstModel;
+    if (!curatorId) { setFeedBusy(program.id); setFeedMsg("Kein Modell mit Foto gefunden."); window.setTimeout(() => { setFeedMsg(""); setFeedBusy(""); }, 3000); return; }
+    if (!feedModel[program.id]) setFeedModel(m => ({ ...m, [program.id]: curatorId })); // reflect the auto-pick in the dropdown
+    const stops = (program.stops && program.stops.length) ? program.stops : (program.location ? [{ location: program.location, days: program.days ?? 30 }] : []);
+    const totalDays = stops.reduce((a, s) => a + (s.days || 0), 0) || (program.days ?? 3);
+    const count = Math.min(feedCount[program.id] || Math.min(totalDays, 3), totalDays, 10);
+    const lingerie = !!feedLingerie[program.id];
+    setFeedBusy(program.id); setError("");
+    let made = 0;
+    try {
+      for (let day = 1; day <= count; day++) {
+        setFeedMsg(`Generiere Tag ${day}/${count}… (~1 Min/Bild)`);
+        const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "generate-program-feed", programId: program.id, curatorId, day, lingerie, ownerName: feedOwnerName[program.id] ?? "", ownerImage: feedOwnerImage[program.id] ?? "" }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) { await fail(r, "Generierung fehlgeschlagen"); break; }
+        applyState(d); made++;
+      }
+      setFeedMsg(`✓ ${made} Post(s) generiert`);
+      window.setTimeout(() => setFeedMsg(""), 4000);
+    } catch { setError("Network error."); setFeedMsg(""); }
+    setFeedBusy("");
+  };
+  const setFeedApproved = (id: string, approved: boolean) => postCollection({ action: "set-feed-approved", id, approved }, "Could not approve");
+  const deleteFeedPost = (id: string) => postCollection({ action: "delete-feed-post", id }, "Could not delete");
+  // AI classification: single look (force reclassify) or bulk over unclassified.
+  const [classifyBusy, setClassifyBusy] = useState<string>(""); // look id being classified, or "bulk"
+  const [classifyMsg, setClassifyMsg] = useState("");
+  const classifyLook = async (id: string) => {
+    setClassifyBusy(id); setError("");
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "classify-looks", lookIds: [id] }) });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) applyState(d); else await fail(r, "Classification failed");
+    } catch { setError("Network error."); }
+    setClassifyBusy("");
+  };
+  const classifyAll = async () => {
+    setClassifyBusy("bulk"); setError(""); setClassifyMsg("Starte…");
+    let total = 0, guard = 0;
+    try {
+      // Loop batches until the server reports nothing left (guard caps runaway loops).
+      while (guard++ < 60) {
+        const r = await fetch("/api/try-this-look", { method: "POST", headers: headers(), body: JSON.stringify({ action: "classify-looks", onlyUnclassified: true, limit: 8 }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) { await fail(r, "Classification failed"); break; }
+        applyState(d);
+        total += Number(d.classified) || 0;
+        const remaining = Number(d.remaining) || 0;
+        setClassifyMsg(`${total} klassifiziert${remaining ? ` · ${remaining} übrig…` : ""}`);
+        if (!d.classified || remaining <= 0) break;
+      }
+      setClassifyMsg(`✓ ${total} Looks klassifiziert`);
+      window.setTimeout(() => setClassifyMsg(""), 4000);
+    } catch { setError("Network error."); setClassifyMsg(""); }
+    setClassifyBusy("");
+  };
   const deleteLook = async (id: string) => {
     setBusy(id); setError("");
     try {
@@ -989,11 +1262,19 @@ export default function AdminPage() {
     // Admin/house entry pinned at the top (respects search).
     return hasHouse && (!q || "admin house".includes(q)) ? [houseCurator, ...arr] : arr;
   }, [curators, q, sortC, sortDir, looksByCurator, tryonsByCurator, hasHouse, houseCurator]);
+  // The Wardrobe (A List) shows ONLY wardrobe items (garments) — never model-worn
+  // content or video/reel looks. Those are content objects that reference a wardrobe
+  // item and belong in the Posts tab, not here.
+  const wardrobeLooks = useMemo(
+    () => looks.filter(l => (l.productType === "ai" || l.wardrobe === true) && (l.frontImageUrl || l.imageUrl)),
+    [looks]
+  );
   const shownLooks = useMemo(() => {
-    let base = !q ? looks : looks.filter(l => `${l.name} ${l.curatorName ?? ""} ${l.brand ?? ""} ${l.productNote ?? ""}`.toLowerCase().includes(q));
-    if (lookCatFilter) base = base.filter(l => (l.category ?? categorizeLook(l)) === lookCatFilter);
+    let base = !q ? wardrobeLooks : wardrobeLooks.filter(l => `${l.name} ${l.curatorName ?? ""} ${l.brand ?? ""} ${l.productNote ?? ""}`.toLowerCase().includes(q));
+    if (collectionFilter !== null) base = base.filter(l => (l.collectionId ?? "") === collectionFilter);
+    else if (lookCatFilter) base = base.filter(l => (l.category ?? categorizeLook(l)) === lookCatFilter);
     return [...base].sort((a, b) => lookWhen(b).localeCompare(lookWhen(a))); // newest activity first — matches the frontend A List
-  }, [looks, q, lookCatFilter]);
+  }, [wardrobeLooks, q, lookCatFilter, collectionFilter]);
 
   // ── Posts tab: load all generations (incl. hidden), search by name + date ──
   useEffect(() => {
@@ -1216,7 +1497,7 @@ export default function AdminPage() {
     setBulkBusy(false); clearSelection();
   };
 
-  const liveLooks = looks.filter(l => l.published !== false).length;
+  const liveLooks = wardrobeLooks.filter(l => l.published !== false).length;
   const activeCurators = curators.filter(c => c.status !== "deactivated").length;
 
   // Likes: only a count per look (no per-user identities) → rank looks by likes.
@@ -1310,7 +1591,7 @@ export default function AdminPage() {
         <div className="mt-4 flex flex-wrap items-center gap-1 rounded-xl border border-black/10 bg-white p-1">
           <button type="button" onClick={() => setTab("looks")}
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "looks" ? "bg-black text-white" : "text-ink/50"}`}>
-            <LayoutGrid className="h-4 w-4" /> A List <span className="opacity-60">{liveLooks}/{looks.length}</span>
+            <LayoutGrid className="h-4 w-4" /> A List <span className="opacity-60">{liveLooks}/{wardrobeLooks.length}</span>
           </button>
           <button type="button" onClick={() => setTab("curators")}
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "curators" ? "bg-black text-white" : "text-ink/50"}`}>
@@ -1647,26 +1928,407 @@ export default function AdminPage() {
         {/* ── A List ── */}
         {tab === "looks" && (
           <>
-          {/* Category filter chips — All + the 4 editorial categories, each with a count. */}
+          {/* Collection filter chips — All + each collection + Unassigned, with counts.
+              A "Manage" button opens the collections manager (create/rename/release). */}
           {(() => {
-            const counts = new Map<LookCategory, number>();
-            for (const l of looks) { const c = l.category ?? categorizeLook(l); counts.set(c, (counts.get(c) ?? 0) + 1); }
+            const colCount = (id: string) => wardrobeLooks.filter(l => (l.collectionId ?? "") === id).length;
+            const orderedCols = [...collections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+            const unassigned = colCount("");
             return (
+              <>
               <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                <span className="mr-0.5 text-[10px] font-black uppercase tracking-wide text-ink/35">Looks</span>
-                <button type="button" onClick={() => setLookCatFilter(null)}
-                  className={`rounded-full px-3 py-1 text-[11px] font-black transition ${lookCatFilter === null ? "bg-ink text-white" : "bg-black/5 text-ink/55 hover:bg-black/10"}`}>
-                  Alle <span className="opacity-60">{looks.length}</span>
+                <span className="mr-0.5 text-[10px] font-black uppercase tracking-wide text-ink/35">Collections</span>
+                <button type="button" onClick={() => { setCollectionFilter(null); setLookCatFilter(null); }}
+                  className={`rounded-full px-3 py-1 text-[11px] font-black transition ${collectionFilter === null ? "bg-ink text-white" : "bg-black/5 text-ink/55 hover:bg-black/10"}`}>
+                  Alle <span className="opacity-60">{wardrobeLooks.length}</span>
                 </button>
-                {LOOK_CATEGORIES.map(c => (
-                  <button key={c.slug} type="button" onClick={() => setLookCatFilter(c.slug)}
-                    className={`rounded-full px-3 py-1 text-[11px] font-black transition ${lookCatFilter === c.slug ? "bg-ink text-white" : "bg-black/5 text-ink/55 hover:bg-black/10"}`}>
-                    {c.slug === "boudoir" ? "🔒 " : ""}{c.label} <span className="opacity-60">{counts.get(c.slug) ?? 0}</span>
+                {orderedCols.map(c => (
+                  <button key={c.id} type="button" onClick={() => setCollectionFilter(c.id)}
+                    className={`rounded-full px-3 py-1 text-[11px] font-black transition ${collectionFilter === c.id ? "bg-ink text-white" : "bg-black/5 text-ink/55 hover:bg-black/10"}`}>
+                    {c.public ? "" : "🔒 "}{c.name} <span className="opacity-60">{colCount(c.id)}</span>
                   </button>
                 ))}
+                {unassigned > 0 && (
+                  <button type="button" onClick={() => setCollectionFilter("")}
+                    className={`rounded-full px-3 py-1 text-[11px] font-black transition ${collectionFilter === "" ? "bg-ink text-white" : "bg-amber-100 text-amber-700 hover:bg-amber-200"}`}>
+                    Ohne Collection <span className="opacity-60">{unassigned}</span>
+                  </button>
+                )}
+                <button type="button" onClick={() => setManageCollections(v => !v)}
+                  className={`ml-1 rounded-full px-3 py-1 text-[11px] font-black transition ${manageCollections ? "bg-cobalt text-white" : "border border-black/15 text-ink/70 hover:bg-black/5"}`}>
+                  ⚙ Verwalten
+                </button>
+                <button type="button" onClick={() => void classifyAll()} disabled={classifyBusy === "bulk"}
+                  className="rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 px-3 py-1 text-[11px] font-black text-white active:scale-95 disabled:opacity-60">
+                  {classifyBusy === "bulk" ? "✨ Klassifiziere…" : "✨ Alle auto-klassifizieren"}
+                </button>
+                {classifyMsg && <span className="text-[11px] font-black text-violet-600">{classifyMsg}</span>}
+                <button type="button" onClick={() => setShowDupes(v => !v)}
+                  className={`rounded-full px-3 py-1 text-[11px] font-black transition ${showDupes ? "bg-amber-500 text-white" : "border border-amber-400 text-amber-600 hover:bg-amber-50"}`}>
+                  🔀 Duplikate{duplicateGroups.length ? ` ${duplicateGroups.length}` : ""}
+                </button>
+                <button type="button" onClick={() => setShowPrograms(v => !v)}
+                  className={`rounded-full px-3 py-1 text-[11px] font-black transition ${showPrograms ? "bg-teal-600 text-white" : "border border-teal-500 text-teal-600 hover:bg-teal-50"}`}>
+                  🗺 Programme{programs.length ? ` ${programs.length}` : ""}
+                </button>
               </div>
+              {/* Duplicate wardrobe items — one outfit should be ONE wardrobe item. */}
+              {showDupes && (
+                <div className="mt-3 rounded-2xl border border-amber-300/60 bg-amber-50/40 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-black text-ink">Duplikate — nach Bild-Ähnlichkeit</p>
+                      <p className="mt-0.5 text-[12px] font-bold text-ink/50">1 Outfit = 1 Wardrobe-Item. Erkennt gleiche Fotos (auch bei anderem Namen). Tippe die Bilder an, die weg sollen.</p>
+                    </div>
+                    <button type="button" onClick={() => void removeSelectedDupes()} disabled={dupeSel.size === 0}
+                      className="shrink-0 rounded-lg bg-red-500 px-3 py-2 text-[11px] font-black text-white active:scale-95 disabled:opacity-40">
+                      🗑 Entfernen{dupeSel.size ? ` (${dupeSel.size})` : ""}
+                    </button>
+                  </div>
+                  {/* Analyze + sensitivity controls */}
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <button type="button" onClick={() => void analyzeImages(false)} disabled={hashBusy}
+                      className="rounded-lg bg-ink px-3 py-1.5 text-[11px] font-black text-white active:scale-95 disabled:opacity-50">
+                      {hashBusy ? "🔍 Analysiere…" : unhashed > 0 ? `🔍 Bilder analysieren (${unhashed})` : "🔍 Neu analysieren"}
+                    </button>
+                    {hashMsg && <span className="text-[11px] font-black text-ink/60">{hashMsg}</span>}
+                    <label className="ml-auto flex items-center gap-1.5 text-[11px] font-bold text-ink/60">
+                      Empfindlichkeit
+                      <input type="range" min={1} max={10} value={dupeThreshold} onChange={e => setDupeThreshold(Number(e.target.value))} className="w-24" />
+                      <span className="w-16 tabular-nums">≤ {dupeThreshold} {dupeThreshold <= 2 ? "(streng)" : dupeThreshold >= 5 ? "(locker)" : ""}</span>
+                    </label>
+                  </div>
+                  {garmentsHashed.length === 0 ? (
+                    <p className="mt-2 text-[12px] font-bold text-ink/45">Noch keine Bilder analysiert — „🔍 Bilder analysieren" starten.</p>
+                  ) : duplicateGroups.length === 0 ? (
+                    <p className="mt-2 text-[12px] font-bold text-emerald-600">✓ Keine Bild-Duplikate bei dieser Empfindlichkeit.</p>
+                  ) : (
+                    <div className="mt-2 space-y-3">
+                      {duplicateGroups.map((group, gi) => (
+                        <div key={gi} className="rounded-xl border border-black/10 bg-white p-2.5">
+                          <p className="mb-1.5 text-[12px] font-black text-ink/70">{group.length}× gleiches Bild — eins behalten, Rest antippen &amp; entfernen</p>
+                          <div className="flex flex-wrap gap-2">
+                            {group.map(l => {
+                              const sel = dupeSel.has(l.id);
+                              return (
+                                <button key={l.id} type="button" onClick={() => toggleDupe(l.id)}
+                                  className={`relative w-20 overflow-hidden rounded-lg border-2 text-left transition ${sel ? "border-red-500 ring-2 ring-red-300" : "border-transparent"}`}
+                                  title={sel ? "Zum Entfernen ausgewählt" : "Antippen zum Auswählen"}>
+                                  <div className="relative aspect-[3/4] w-full bg-black/5">
+                                    {safeLookImage(l) && <img src={safeLookImage(l)} alt="" className={`h-full w-full object-cover ${sel ? "opacity-50" : ""}`} onError={e => { e.currentTarget.style.display = "none"; }} />}
+                                    <span className={`absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full text-[11px] font-black shadow ${sel ? "bg-red-500 text-white" : "bg-white/85 text-ink/40"}`}>{sel ? "✓" : "+"}</span>
+                                  </div>
+                                  <span className="block truncate px-1 py-0.5 text-[9px] font-black text-ink/60">{l.name}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Travel programs — one destination = one monthly program owners subscribe to. */}
+              {showPrograms && (
+                <div className="mt-3 rounded-2xl border border-teal-300/60 bg-teal-50/40 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-black text-ink">🗺 Reise-Programme</p>
+                      <p className="mt-0.5 text-[12px] font-bold text-ink/50">Ein Ort = ein Monats-Programm. Der Owner abonniert es; die Influencerin „reist" hin und postet täglich einen Look von dort.</p>
+                    </div>
+                    <button type="button" onClick={() => void addProgram()} className="shrink-0 rounded-lg bg-teal-600 px-3 py-2 text-[11px] font-black text-white active:scale-95">+ Neues Programm</button>
+                  </div>
+                  {programs.length === 0 ? (
+                    <p className="mt-2 text-[12px] font-bold text-ink/45">Noch keine Programme. „+ Neues Programm" wählt einen Ort und baut daraus ein Monats-Paket.</p>
+                  ) : (
+                    <div className="mt-2 space-y-2">
+                      {programs.map(p => {
+                        // Route = fixed stops the admin curates. Fall back to a 1-stop route for legacy programs.
+                        const stops: ProgramStop[] = (p.stops && p.stops.length) ? p.stops : (p.location ? [{ location: p.location, days: p.days ?? 30 }] : []);
+                        const setStops = (next: ProgramStop[]) => void updateProgram(p.id, { stops: next, location: next[0]?.location ?? "" });
+                        const totalDays = stops.reduce((a, s) => a + (s.days || 0), 0);
+                        const stopLocs = new Set(stops.map(s => s.location).filter(Boolean));
+                        const pool = wardrobeLooks.filter(l => l.location && stopLocs.has(l.location));
+                        const routeLabel = stops.map(s => s.location || "—").join(" → ");
+                        return (
+                          <div key={p.id} className="rounded-xl border border-black/10 bg-white p-2.5">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <input defaultValue={p.name} onBlur={e => { const v = e.target.value.trim(); if (v && v !== p.name) void updateProgram(p.id, { name: v }); }}
+                                className="min-w-[8rem] flex-1 rounded-md border border-black/15 px-2 py-1 text-[13px] font-black text-ink outline-none focus:border-teal-500" />
+                              <button type="button" onClick={() => void updateProgram(p.id, { surprise: !p.surprise })}
+                                className={`rounded-full px-2.5 py-1 text-[10px] font-black ${p.surprise ? "bg-fuchsia-100 text-fuchsia-700" : "bg-black/5 text-ink/50"}`}>
+                                {p.surprise ? "🎁 Überraschung" : "Route sichtbar"}
+                              </button>
+                              <button type="button" onClick={() => void updateProgram(p.id, { published: !p.published })}
+                                className={`rounded-full px-2.5 py-1 text-[10px] font-black ${p.published ? "bg-emerald-100 text-emerald-700" : "bg-black/5 text-ink/50"}`}>
+                                {p.published ? "🌐 Live" : "Entwurf"}
+                              </button>
+                              <button type="button" onClick={() => void deleteProgram(p.id, p.name)} className="grid h-7 w-7 place-items-center rounded-lg border border-black/10 text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
+                            </div>
+
+                            {/* Route editor — fixed stops (a package). */}
+                            <div className="mt-2">
+                              <div className="mb-1 flex items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-wide text-ink/40">Route (Stops)</span>
+                                <button type="button" onClick={() => setStops([...stops, { location: vocab.locations[0] ?? "", days: 7 }])}
+                                  className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/60 hover:bg-black/10">+ Stop</button>
+                              </div>
+                              <div className="space-y-1">
+                                {stops.length === 0 && <span className="text-[11px] font-bold text-ink/30">Noch kein Stop — „+ Stop".</span>}
+                                {stops.map((s, i) => (
+                                  <div key={i} className="flex items-center gap-1.5 text-[11px] font-bold text-ink/60">
+                                    <span className="w-4 text-ink/30">{i + 1}.</span>
+                                    <select value={s.location} onChange={e => setStops(stops.map((x, j) => j === i ? { ...x, location: e.target.value } : x))}
+                                      className="rounded-md border border-black/15 px-1.5 py-1 font-black text-ink outline-none focus:border-teal-500">
+                                      <option value="">—</option>
+                                      {vocab.locations.map(x => <option key={x} value={x}>{x}</option>)}
+                                    </select>
+                                    <input type="number" min={1} max={90} value={s.days} onChange={e => setStops(stops.map((x, j) => j === i ? { ...x, days: Number(e.target.value) || 1 } : x))}
+                                      className="w-14 rounded-md border border-black/15 px-1.5 py-1 font-black text-ink outline-none focus:border-teal-500" />
+                                    <span className="text-ink/40">Tage · {wardrobeLooks.filter(l => l.location === s.location).length} Looks</span>
+                                    <button type="button" onClick={() => setStops(stops.filter((_, j) => j !== i))} className="ml-auto text-red-400 hover:text-red-600">✕</button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold text-ink/60">
+                              <label className="flex items-center gap-1">Preis/Monat
+                                <input defaultValue={p.price ?? ""} placeholder="€49" onBlur={e => void updateProgram(p.id, { price: e.target.value.trim() })} className="w-20 rounded-md border border-black/15 px-1.5 py-1 font-black text-ink outline-none focus:border-teal-500" />
+                              </label>
+                            </div>
+
+                            {/* "Was ist drin" — the package summary the owner sees. */}
+                            <div className="mt-2 rounded-lg bg-teal-50 px-2.5 py-1.5 text-[11px] font-black text-teal-800">
+                              📦 {stops.length} Stop{stops.length === 1 ? "" : "s"} · {totalDays} Tage · {pool.length} Looks{p.price ? ` · ${p.price}/Monat` : ""}
+                              <div className="mt-0.5 font-bold text-teal-700">{p.surprise ? "🎁 Überraschungsreise — Orte werden Tag für Tag enthüllt" : (routeLabel || "—")}</div>
+                            </div>
+
+                            <textarea defaultValue={p.description ?? ""} placeholder="Was ist drin? Angebotstext fürs Owner-Paket…" onBlur={e => void updateProgram(p.id, { description: e.target.value.trim() })}
+                              className="mt-2 h-14 w-full rounded-md border border-black/15 px-2 py-1 text-[12px] text-ink outline-none focus:border-teal-500" />
+                            {pool.length > 0 && (
+                              <div className="mt-2 flex gap-1 overflow-x-auto">
+                                {pool.slice(0, 14).map(l => (
+                                  <img key={l.id} src={safeLookImage(l)} alt="" className="h-14 w-11 shrink-0 rounded-md object-cover" onError={e => { e.currentTarget.style.display = "none"; }} />
+                                ))}
+                                {pool.length > 14 && <span className="grid h-14 w-11 shrink-0 place-items-center rounded-md bg-black/5 text-[10px] font-black text-ink/50">+{pool.length - 14}</span>}
+                              </div>
+                            )}
+                            {stops.length > 0 && pool.length === 0 && <p className="mt-1 text-[11px] font-bold text-amber-600">Noch keine Looks mit diesen Orten — Looks klassifizieren/taggen.</p>}
+
+                            {/* Test-Feed: generate image+caption posts up front, preview & approve. */}
+                            <div className="mt-3 rounded-lg border border-violet-200 bg-violet-50/50 p-2">
+                              <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-ink/60">
+                                <span className="font-black text-violet-700">🎬 Test-Feed</span>
+                                <select value={feedModel[p.id] ?? ""} onChange={e => setFeedModel(m => ({ ...m, [p.id]: e.target.value }))}
+                                  className="rounded-md border border-black/15 px-1.5 py-1 font-black text-ink outline-none focus:border-violet-500">
+                                  <option value="">Modell…</option>
+                                  {curators.filter(c => c.id !== "house" && (c as any).photoUrl).map(c => <option key={c.id} value={c.id}>{((c as any).firstName ?? "") + " " + ((c as any).lastName ?? "")}</option>)}
+                                </select>
+                                <label className="flex items-center gap-1"><input type="checkbox" checked={!!feedLingerie[p.id]} onChange={e => setFeedLingerie(m => ({ ...m, [p.id]: e.target.checked }))} /> Lingerie</label>
+                                <label className="flex items-center gap-1">Tage
+                                  <input type="number" min={1} max={10} value={feedCount[p.id] ?? Math.min(totalDays, 3)} onChange={e => setFeedCount(m => ({ ...m, [p.id]: Number(e.target.value) || 1 }))} className="w-12 rounded-md border border-black/15 px-1 py-1 font-black text-ink outline-none focus:border-violet-500" />
+                                </label>
+                                <button type="button" onClick={() => void generateFeed(p)} disabled={feedBusy === p.id}
+                                  className="rounded-lg bg-violet-600 px-2.5 py-1 text-[11px] font-black text-white active:scale-95 disabled:opacity-60">
+                                  {feedBusy === p.id ? "Generiere…" : "Feed generieren"}
+                                </button>
+                                {feedBusy === p.id && feedMsg && <span className="text-[11px] font-black text-violet-600">{feedMsg}</span>}
+                              </div>
+                              {/* Owner joins the trip: upload your photo + name → you appear WITH her. */}
+                              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] font-bold text-ink/60">
+                                <span className="font-black text-ink/50">👤 Mit mir im Bild:</span>
+                                <input value={feedOwnerName[p.id] ?? ""} onChange={e => setFeedOwnerName(m => ({ ...m, [p.id]: e.target.value }))} placeholder="Dein Name"
+                                  className="w-28 rounded-md border border-black/15 px-1.5 py-1 font-black text-ink outline-none focus:border-violet-500" />
+                                <label className="cursor-pointer rounded-md border border-black/15 px-2 py-1 font-black text-ink/70 hover:bg-black/5">
+                                  {feedOwnerImage[p.id] ? "Foto ✓" : "Foto hochladen"}
+                                  <input type="file" accept="image/*,.heic,.heif" className="hidden" onChange={async e => {
+                                    const f = e.target.files?.[0]; if (!f) return;
+                                    const url = await downscalePhoto(f); setFeedOwnerImage(m => ({ ...m, [p.id]: url }));
+                                  }} />
+                                </label>
+                                {feedOwnerImage[p.id] && (
+                                  <>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={feedOwnerImage[p.id]} alt="" className="h-8 w-8 rounded-full object-cover" />
+                                    <button type="button" onClick={() => setFeedOwnerImage(m => ({ ...m, [p.id]: "" }))} className="text-red-400 hover:text-red-600">✕</button>
+                                  </>
+                                )}
+                                <span className="text-[10px] text-ink/40">(nur ohne Lingerie)</span>
+                              </div>
+                              {(() => {
+                                const posts = feedPosts.filter(f => f.programId === p.id).sort((a, b) => a.day - b.day);
+                                if (posts.length === 0) return <p className="mt-1.5 text-[11px] font-bold text-ink/40">Noch kein Feed generiert.</p>;
+                                return (
+                                  <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                    {posts.map(f => (
+                                      <div key={f.id} className={`overflow-hidden rounded-lg border bg-white ${f.approved ? "border-emerald-400" : "border-black/10"}`}>
+                                        <div className="relative aspect-[3/4] w-full bg-black/5">
+                                          {f.imageUrl && <img src={f.imageUrl} alt="" className="h-full w-full object-cover" onError={e => { e.currentTarget.style.display = "none"; }} />}
+                                          <span className="absolute left-1 top-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-black text-white">Tag {f.day} · {f.location}</span>
+                                          {f.lingerie && <span className="absolute right-1 top-1 rounded-full bg-fuchsia-500 px-1.5 py-0.5 text-[8px] font-black text-white">Lingerie</span>}
+                                        </div>
+                                        <p className="px-1.5 py-1 text-[10px] font-medium leading-snug text-ink/70 line-clamp-4">{f.caption}</p>
+                                        <div className="flex items-center gap-1 border-t border-black/5 px-1.5 py-1">
+                                          <button type="button" onClick={() => void setFeedApproved(f.id, !f.approved)}
+                                            className={`flex-1 rounded-md px-1 py-1 text-[10px] font-black ${f.approved ? "bg-emerald-100 text-emerald-700" : "bg-black/5 text-ink/50"}`}>
+                                            {f.approved ? "✓ Freigegeben" : "Freigeben"}
+                                          </button>
+                                          <button type="button" onClick={() => void deleteFeedPost(f.id)} className="grid h-6 w-6 place-items-center rounded-md text-red-500"><Trash2 className="h-3 w-3" /></button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+              </>
             );
           })()}
+
+          {/* Collections manager — create / rename / delete / reorder / release to models. */}
+          {manageCollections && (
+            <div className="mt-3 rounded-2xl border border-black/10 bg-black/[0.02] p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-black text-ink">Collections</span>
+                <div className="flex items-center gap-2">
+                  {collections.length === 0 && (
+                    <button type="button" onClick={() => void seedCollections()}
+                      className="rounded-lg bg-cobalt px-3 py-1.5 text-[11px] font-black text-white active:scale-95">
+                      Aus Kategorien einrichten
+                    </button>
+                  )}
+                  <button type="button" onClick={() => void addCollection()}
+                    className="rounded-lg bg-ink px-3 py-1.5 text-[11px] font-black text-white active:scale-95">+ Neue</button>
+                </div>
+              </div>
+              {collections.length === 0 ? (
+                <p className="mt-2 text-[12px] font-bold text-ink/45">Noch keine Collections. „Aus Kategorien einrichten" übernimmt die aktuellen Looks in Start-Collections, danach frei umbenennbar.</p>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  {[...collections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map((c, idx, arr) => {
+                    const count = looks.filter(l => (l.collectionId ?? "") === c.id).length;
+                    return (
+                      <div key={c.id} className="rounded-xl border border-black/10 bg-white p-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="flex flex-col">
+                            <button type="button" disabled={idx === 0} onClick={() => void postCollection({ action: "reorder-collections", ids: arr.map((x, i) => i === idx - 1 ? c.id : i === idx ? arr[idx - 1].id : x.id) }, "Reorder failed")}
+                              className="text-ink/40 disabled:opacity-20 leading-none">▲</button>
+                            <button type="button" disabled={idx === arr.length - 1} onClick={() => void postCollection({ action: "reorder-collections", ids: arr.map((x, i) => i === idx + 1 ? c.id : i === idx ? arr[idx + 1].id : x.id) }, "Reorder failed")}
+                              className="text-ink/40 disabled:opacity-20 leading-none">▼</button>
+                          </div>
+                          <span className="min-w-0 flex-1 truncate text-sm font-black text-ink">{c.name}</span>
+                          <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">{count}</span>
+                          <button type="button" onClick={() => void renameCollection(c.id, c.name)} title="Umbenennen"
+                            className="grid h-7 w-7 place-items-center rounded-lg border border-black/10 text-ink/60 active:scale-95"><Pencil className="h-3.5 w-3.5" /></button>
+                          <button type="button" onClick={() => void deleteCollection(c.id, c.name)} title="Löschen"
+                            className="grid h-7 w-7 place-items-center rounded-lg border border-black/10 text-red-500 active:scale-95"><Trash2 className="h-3.5 w-3.5" /></button>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          <button type="button" onClick={() => void setCollectionRelease(c.id, { public: !c.public })}
+                            className={`rounded-full px-2.5 py-1 text-[10px] font-black transition ${c.public ? "bg-emerald-100 text-emerald-700" : "bg-black/5 text-ink/50"}`}>
+                            {c.public ? "🌐 Öffentlich" : "🔒 Privat"}
+                          </button>
+                          <button type="button" onClick={() => void setCollectionRelease(c.id, { releaseToAllModels: !c.releaseToAllModels })}
+                            className={`rounded-full px-2.5 py-1 text-[10px] font-black transition ${c.releaseToAllModels ? "bg-cobalt text-white" : "bg-black/5 text-ink/50"}`}>
+                            {c.releaseToAllModels ? "✓ Für alle Models frei" : "Für alle Models freigeben"}
+                          </button>
+                          {!c.releaseToAllModels && (
+                            <span className="text-[10px] font-bold text-ink/40">
+                              {(c.modelIds?.length ?? 0) > 0 ? `${c.modelIds!.length} Model(s) freigegeben` : "an einzelne Models unten"}
+                            </span>
+                          )}
+                        </div>
+                        {/* Per-model release — only when not released to all. */}
+                        {!c.releaseToAllModels && (
+                          <details className="mt-2">
+                            <summary className="cursor-pointer text-[11px] font-black text-cobalt">Models auswählen…</summary>
+                            <div className="mt-1.5 max-h-40 overflow-y-auto rounded-lg border border-black/10 p-1.5">
+                              {curators.filter(cu => cu.id !== "house").map(cu => {
+                                const on = (c.modelIds ?? []).includes(cu.id);
+                                const nm = `${(cu as any).firstName ?? ""} ${(cu as any).lastName ?? ""}`.trim() || (cu as any).name || cu.id;
+                                return (
+                                  <label key={cu.id} className="flex items-center gap-2 px-1.5 py-1 text-[12px] font-bold text-ink/70">
+                                    <input type="checkbox" checked={on} onChange={() => {
+                                      const next = on ? (c.modelIds ?? []).filter(x => x !== cu.id) : [...(c.modelIds ?? []), cu.id];
+                                      void setCollectionRelease(c.id, { modelIds: next });
+                                    }} />
+                                    <span className="truncate">{nm}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </details>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Attribute vocab — Location / Theme / Occasion / Style (Collection is above). */}
+              <div className="mt-4 border-t border-black/10 pt-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-black text-ink">Attribute-Vokabular</span>
+                  {(vocab.locations.length + vocab.themes.length + vocab.occasions.length + vocab.styles.length) === 0 && (
+                    <button type="button" onClick={() => void seedVocab()} className="rounded-lg bg-cobalt px-3 py-1.5 text-[11px] font-black text-white active:scale-95">Standard-Vokabular laden</button>
+                  )}
+                </div>
+                {([["locations", "Location"], ["themes", "Theme"], ["occasions", "Occasion"], ["styles", "Style"]] as const).map(([kind, label]) => (
+                  <div key={kind} className="mt-2">
+                    <div className="mb-1 flex items-center gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-wide text-ink/40">{label}</span>
+                      <button type="button" onClick={() => void addVocab(kind)} className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/60 hover:bg-black/10">+ Neu</button>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {kind === "themes"
+                        ? vocab.themes.map(t => <span key={t.name} className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-bold text-ink/70">{t.emoji} {t.name}</span>)
+                        : (vocab[kind] as string[]).map(x => <span key={x} className="rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-bold text-ink/70">{x}</span>)}
+                      {(kind === "themes" ? vocab.themes.length : (vocab[kind] as string[]).length) === 0 && <span className="text-[11px] font-bold text-ink/30">—</span>}
+                    </div>
+                  </div>
+                ))}
+
+                {/* Garment-type tree — Category → Subcategories (the 2nd browsing level). */}
+                <div className="mt-3 border-t border-black/10 pt-2">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-wide text-ink/40">Kleidungstyp (Kategorie → Unterkategorie)</span>
+                    <button type="button" onClick={() => void addGarmentCategory()} className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/60 hover:bg-black/10">+ Kategorie</button>
+                  </div>
+                  <div className="space-y-1.5">
+                    {vocab.garmentCategories.length === 0 && <span className="text-[11px] font-bold text-ink/30">—</span>}
+                    {vocab.garmentCategories.map(c => (
+                      <div key={c.name} className="rounded-lg border border-black/10 bg-white p-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[12px] font-black text-ink">{c.emoji ? c.emoji + " " : ""}{c.name}</span>
+                          <button type="button" onClick={() => void addGarmentSub(c.name)} className="rounded-full bg-black/5 px-1.5 py-0.5 text-[9px] font-black text-ink/50 hover:bg-black/10">+ Sub</button>
+                          <button type="button" onClick={() => void delGarmentCategory(c.name)} className="ml-auto text-[10px] font-black text-red-500">✕</button>
+                        </div>
+                        {c.subcategories.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {c.subcategories.map(s => (
+                              <span key={s} className="group inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-bold text-ink/70">
+                                {s}<button type="button" onClick={() => void delGarmentSub(c.name, s)} className="text-ink/30 hover:text-red-500">×</button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="mt-3 grid grid-cols-1 gap-2 pb-16 lg:grid-cols-2 xl:grid-cols-3">
             {shownLooks.length === 0 && <p className="py-10 text-center text-sm font-bold text-ink/40">No listings.</p>}
             {shownLooks.map(l => {
@@ -1691,31 +2353,82 @@ export default function AdminPage() {
                       : <ExternalLink className="absolute bottom-1 right-1 h-4 w-4 text-white opacity-0 drop-shadow transition group-hover:opacity-100" />}
                   </a>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-black text-ink">{publicLookLabel(l)}</div>
+                    {/* Admin sees the REAL internal name (kept for admin tools); the public
+                        licensing-safe label is only for customers. */}
+                    <div className="truncate text-sm font-black text-ink" title={l.name}>{(l.name || "").trim() || publicLookLabel(l)}</div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${live ? "bg-emerald-100 text-emerald-700" : "bg-black/8 text-ink/50"}`}>{live ? "Live" : "Off"}</span>
                       <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">{l.aiCreated ? "AI" : "Model"}</span>
                       {l.videoUrl && <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/50">Video</span>}
+                      {l.aiClassified && (
+                        <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-black text-violet-700" title={l.classifyConfidence != null ? `Confidence ${Math.round((l.classifyConfidence) * 100)}%` : "AI classified"}>
+                          ✨ AI{l.classifyConfidence != null ? ` ${Math.round(l.classifyConfidence * 100)}%` : ""}
+                        </span>
+                      )}
                     </div>
-                    {/* Category — a single CHOICE (dropdown, not on/off toggles). Boudoir =
-                        lingerie (private + hidden from "All"). Shows the auto-inferred
-                        category until set by hand; picking another switches it. */}
+                    {/* Five editorial attributes — Collection · Location · Theme · Occasion ·
+                        Style. The customer never sees these raw; they compose into the
+                        editorial title (preview below). */}
                     {(() => {
-                      const effective: LookCategory = l.category ?? categorizeLook(l);
+                      const selCls = "rounded-md border border-black/15 bg-white px-1.5 py-1 text-[11px] font-bold text-ink outline-none focus:border-cobalt disabled:opacity-50 max-w-[46%]";
+                      const dis = busy === l.id;
+                      const themeName = (l.theme ?? "").toLowerCase();
+                      const emoji = vocab.themes.find(t => t.name.toLowerCase() === themeName)?.emoji ?? "";
+                      const colName = collections.find(c => c.id === l.collectionId)?.name ?? "";
+                      const preview = l.editorialTitle || [emoji, [l.location, colName].filter(Boolean).join(" ")].filter(Boolean).join(" ") + (l.location || colName ? " Collection" : "");
                       return (
-                        <div className="mt-1.5 flex items-center gap-1.5">
-                          <span className="text-[10px] font-black uppercase tracking-wide text-ink/40">Kategorie</span>
-                          <select
-                            value={effective}
-                            disabled={busy === l.id}
-                            onChange={(e) => void setLookCategory(l.id, e.target.value as LookCategory)}
-                            className="rounded-full border border-black/15 bg-white px-2.5 py-1 text-[11px] font-black text-ink outline-none focus:border-cobalt disabled:opacity-50"
-                          >
-                            {LOOK_CATEGORIES.map(c => (
-                              <option key={c.slug} value={c.slug}>{c.slug === "boudoir" ? "🔒 " : ""}{c.label}</option>
-                            ))}
-                          </select>
-                          {!l.category && <span className="text-[9px] font-bold uppercase tracking-wide text-ink/30">auto</span>}
+                        <div className="mt-1.5">
+                          <div className="flex flex-wrap gap-1">
+                            {collections.length === 0 ? (
+                              <button type="button" onClick={() => setManageCollections(true)}
+                                className="rounded-md border border-cobalt/40 bg-cobalt/5 px-2 py-1 text-[10px] font-black text-cobalt">Collections einrichten →</button>
+                            ) : (
+                              <select value={l.collectionId ?? ""} disabled={dis} onChange={e => void setLookCollection(l.id, e.target.value)} className={selCls} title="Collection">
+                                <option value="">Collection…</option>
+                                {[...collections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(c => <option key={c.id} value={c.id}>{c.public ? "" : "🔒 "}{c.name}</option>)}
+                              </select>
+                            )}
+                            <select value={l.location ?? ""} disabled={dis} onChange={e => void setLookAttr(l.id, "location", e.target.value)} className={selCls} title="Ort / Programm">
+                              <option value="">Ort…</option>
+                              {vocab.locations.map(x => <option key={x} value={x}>{x}</option>)}
+                            </select>
+                            {/* Garment type → sub-type (dependent). */}
+                            <select value={l.garmentCategory ?? ""} disabled={dis}
+                              onChange={e => { void setLookAttr(l.id, "garmentCategory", e.target.value); if ((l.garmentSubcategory ?? "")) void setLookAttr(l.id, "garmentSubcategory", ""); }}
+                              className={selCls} title="Kleidungstyp">
+                              <option value="">Typ…</option>
+                              {vocab.garmentCategories.map(c => <option key={c.name} value={c.name}>{c.emoji ? c.emoji + " " : ""}{c.name}</option>)}
+                            </select>
+                            {(() => {
+                              const subs = vocab.garmentCategories.find(c => c.name === l.garmentCategory)?.subcategories ?? [];
+                              if (!l.garmentCategory || subs.length === 0) return null;
+                              return (
+                                <select value={l.garmentSubcategory ?? ""} disabled={dis} onChange={e => void setLookAttr(l.id, "garmentSubcategory", e.target.value)} className={selCls} title="Unterkategorie">
+                                  <option value="">Unterkat…</option>
+                                  {subs.map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                              );
+                            })()}
+                            <select value={l.theme ?? ""} disabled={dis} onChange={e => void setLookAttr(l.id, "theme", e.target.value)} className={selCls} title="Theme">
+                              <option value="">Theme…</option>
+                              {vocab.themes.map(t => <option key={t.name} value={t.name}>{t.emoji} {t.name}</option>)}
+                            </select>
+                            <select value={l.occasion ?? ""} disabled={dis} onChange={e => void setLookAttr(l.id, "occasion", e.target.value)} className={selCls} title="Occasion">
+                              <option value="">Occasion…</option>
+                              {vocab.occasions.map(x => <option key={x} value={x}>{x}</option>)}
+                            </select>
+                            <select value={l.style ?? ""} disabled={dis} onChange={e => void setLookAttr(l.id, "style", e.target.value)} className={selCls} title="Style">
+                              <option value="">Style…</option>
+                              {vocab.styles.map(x => <option key={x} value={x}>{x}</option>)}
+                            </select>
+                          </div>
+                          <div className="mt-1 flex items-center gap-2">
+                            {preview.trim() && <span className="text-[11px] font-black text-cobalt">{preview.trim()}</span>}
+                            <button type="button" onClick={() => void classifyLook(l.id)} disabled={classifyBusy === l.id}
+                              className="rounded-full border border-violet-300 px-2 py-0.5 text-[10px] font-black text-violet-600 hover:bg-violet-50 active:scale-95 disabled:opacity-50">
+                              {classifyBusy === l.id ? "✨…" : (l.aiClassified || l.location || l.theme ? "✨ Neu" : "✨ Auto")}
+                            </button>
+                          </div>
                         </div>
                       );
                     })()}

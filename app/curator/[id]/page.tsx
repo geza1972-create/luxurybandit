@@ -10,6 +10,10 @@ import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
 import ModelCard from "@/components/ModelCard";
+import BookJourneyCTA from "@/components/BookJourneyCTA";
+
+// Curators who offer a bookable travel journey → show the "Book a Journey" CTA on their profile.
+const JOURNEY_CURATOR_IDS = new Set(["curator-1783683672619-td4cy"]); // Bella
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { influencerPriceCents, fmtPriceCents } from "@/lib/influencer-price";
 import { LOOK_CATEGORIES, categorizeLook, isLookCategory, type LookCategory } from "@/lib/look-category";
@@ -27,7 +31,8 @@ function viewerHeaders(): Record<string, string> {
 }
 
 type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; brands?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string; status?: string; hidden?: boolean; priceCents?: number; profilePhotoUrls?: string[]; growPriceLabel?: string; growPriceCents?: number; forSale?: boolean; owned?: boolean; youOwnHer?: boolean; flagship?: boolean; flagshipTier?: number; flagshipBases?: number[]; purchasedAt?: string; createdAt?: string; lookCount?: number; videoCount?: number; superFollowers?: number; country?: string; owner?: string; ownerId?: string; ownerHideName?: boolean; modelName?: string; hasPrevPhoto?: boolean; title?: string; intro?: string; sponsor?: string };
-type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; featured?: boolean; productType?: string; wardrobe?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string; brand?: string; buyUrl?: string };
+type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; collectionId?: string; productNote?: string; lingerie?: boolean; featured?: boolean; productType?: string; wardrobe?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string; brand?: string; buyUrl?: string };
+type Collection = { id: string; name: string; order?: number; public?: boolean; releaseToAllModels?: boolean; modelIds?: string[] };
 type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string; feed?: boolean; private?: boolean; public?: boolean; brand?: string; shopUrl?: string };
 
 const toSlug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -82,8 +87,12 @@ export default function CuratorPublicPage() {
   const router = useRouter();
   const id = String(params?.id ?? "");
   const [profile, setProfile] = useState<Profile | null>(null);
+  // Admin-uploaded carousel slides (e.g. Bella's Peter intro + example videos) — shown on her
+  // real card too, not just the /urlaub-mit-bella landing.
+  const [carouselSlides, setCarouselSlides] = useState<{ kind: string; mediaUrl: string; posterUrl: string; title: string; caption: string }[]>([]);
   const [looks, setLooks] = useState<Look[]>([]);
   const [allLooks, setAllLooks] = useState<Look[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
@@ -294,18 +303,27 @@ export default function CuratorPublicPage() {
     setSending(false);
   };
 
+  // Load admin-uploaded carousel slides so they appear on her real card (journey curators only).
+  useEffect(() => {
+    if (!JOURNEY_CURATOR_IDS.has(id)) { setCarouselSlides([]); return; }
+    // surface=profile → the public GET returns only visible slides targeted at the profile card.
+    fetch("/api/bella-carousel?surface=profile").then(r => r.json()).then(d => setCarouselSlides(d.slides ?? [])).catch(() => {});
+  }, [id]);
+
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const [p, all] = await Promise.all([
+        const [p, tl] = await Promise.all([
           fetch(`/api/curator?profile=${encodeURIComponent(id)}`).then(r => r.json()).then(d => d.profile as Profile | null),
           // Admins send the PIN → the API also returns hidden (published:false) looks so
           // they can be managed/un-hidden here. Non-admins never receive hidden looks.
-          fetch("/api/try-this-look", { headers: adminHeaders() }).then(r => r.json()).then(d => (d.looks ?? []) as Look[]),
+          fetch("/api/try-this-look", { headers: adminHeaders() }).then(r => r.json()),
         ]);
+        const all = (tl?.looks ?? []) as Look[];
         if (!active) return;
         setProfile(p);
+        setCollections(Array.isArray(tl?.collections) ? tl.collections : []);
         setAllLooks(all.filter(l => l.published !== false));
         setLooks(all.filter(l => l.curatorId === id));
         // Price lookup for try-ons (they reference a shoppable look by id).
@@ -331,7 +349,9 @@ export default function CuratorPublicPage() {
   const adminHeaders = (): Record<string, string> => { const pin = adminPin(); return pin ? { "x-try-look-admin-pin": pin } : {}; };
   // Re-pull looks (admin PIN → hidden looks included) after any edit/delete/generate.
   const reloadLooks = async () => {
-    const all = await fetch("/api/try-this-look", { headers: adminHeaders() }).then(r => r.json()).then(x => (x.looks ?? []) as Look[]);
+    const x = await fetch("/api/try-this-look", { headers: adminHeaders() }).then(r => r.json());
+    const all = (x?.looks ?? []) as Look[];
+    if (Array.isArray(x?.collections)) setCollections(x.collections);
     setAllLooks(all.filter(l => l.published !== false));
     setLooks(all.filter(l => l.curatorId === id));
   };
@@ -440,6 +460,7 @@ export default function CuratorPublicPage() {
   const [genVidOpen, setGenVidOpen] = useState(false); // "Generate AI Video" garment picker
   const [genVidBusy, setGenVidBusy] = useState(false);
   const [gvBellucci, setGvBellucci] = useState(false); // picker filter: only Gianna Bellucci pieces
+  const [gvCol, setGvCol] = useState<string | null>(null); // picker filter: selected collection (null = all released)
   // Admin: change her main photo — upload one OR generate with fal.ai (same tool as "new model").
   const [cpOpen, setCpOpen] = useState(false);
   const [cpBusy, setCpBusy] = useState(false);
@@ -1118,6 +1139,12 @@ export default function CuratorPublicPage() {
     .map(t => ({ poster: t.imageUrl, video: t.videoUrl as string, private: t.private === true, brand: t.brand, shopUrl: t.shopUrl }))
     .sort((a, b) => Number(a.private) - Number(b.private))
     .slice(0, 30);
+  // Admin-uploaded slides (Peter intro image + example videos) lead the carousel, her try-on
+  // clips fill in behind — same as the landing card.
+  const customClips = carouselSlides.map(s => s.kind === "video"
+    ? { poster: s.posterUrl || "", video: s.mediaUrl, private: false, story: s.caption || undefined }
+    : { poster: s.mediaUrl, video: "", private: false, story: [s.title, s.caption].filter(Boolean).join(" — ") || undefined });
+  const allCardClips = [...customClips, ...cardClips];
   // Data for the shareable collectible ModelCard (THE reusable card, same as the landing).
   const cardData = {
     id: profile.id,
@@ -1127,9 +1154,9 @@ export default function CuratorPublicPage() {
     intro: profile.intro || "",       // ABOUT slide — her self-introduction
     sponsor: profile.sponsor || "",   // sponsor badge on the intro slide
     photo: profile.photoUrl || profile.photoFullUrl || "",
-    video: cardClips[0]?.video || "",
+    video: allCardClips[0]?.video || "",
     poster: profile.photoUrl || profile.photoFullUrl || "",
-    clips: cardClips,
+    clips: allCardClips,
     valueLabel: growLabel,
     looks: looks.length,
     bio: profile.bio || profile.motto || "",
@@ -1178,6 +1205,9 @@ export default function CuratorPublicPage() {
         <ModelCard {...cardData} isMember={isMember} onLockedClick={() => setShowSubscribe(true)}
           following={following} onSuperFollow={() => void handleFollow()}
           onChat={() => { const lg = (() => { try { return localStorage.getItem("lb_lang") === "ro" ? "ro" : "en"; } catch { return "en"; } })(); router.push(`/luxury-products?model=${encodeURIComponent(id)}&lang=${lg}`); }} />
+
+        {/* Book a Journey — travel program CTA (only for curators who offer one). */}
+        {JOURNEY_CURATOR_IDS.has(id) && <BookJourneyCTA name={profile.firstName || "her"} />}
       </div>
 
       {/* Profile header */}
@@ -1395,19 +1425,38 @@ export default function CuratorPublicPage() {
               <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/15" />
               <p className="text-base font-black text-white">Pick a garment for her video</p>
               <p className="mb-2 text-[12px] font-bold text-white/45">Tap a piece — we generate a video of {displayName.split(" ")[0]} wearing it. First video free, then $3.99.</p>
-              {/* Brand filter — quickly narrow to her sponsor's pieces. */}
-              <div className="mb-3 flex gap-2">
-                <button type="button" onClick={() => setGvBellucci(false)} className={`rounded-full px-3 py-1 text-[11px] font-black transition ${!gvBellucci ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>All pieces</button>
-                <button type="button" onClick={() => setGvBellucci(true)} className={`rounded-full px-3 py-1 text-[11px] font-black transition ${gvBellucci ? "lb-gold text-black" : "bg-white/10 text-white/60"}`}>Gianna Bellucci</button>
-              </div>
+              {/* Collection filter — she only sees collections RELEASED to her (admin sees
+                  all). "Alle" + one chip per released collection. */}
+              {(() => {
+                const releasedColIds = new Set(
+                  collections
+                    .filter(c => isAdmin || c.releaseToAllModels || (c.modelIds ?? []).includes(id))
+                    .map(c => c.id)
+                );
+                const releasedCols = [...collections]
+                  .filter(c => releasedColIds.has(c.id))
+                  .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+                // A garment is usable if unassigned (no collection) or in a released one.
+                const canUse = (l: Look) => !l.collectionId || releasedColIds.has(l.collectionId);
+                return (
+                  <>
+                    {releasedCols.length > 0 && (
+                      <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+                        <button type="button" onClick={() => setGvCol(null)} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-black transition ${gvCol === null ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>Alle</button>
+                        {releasedCols.map(c => (
+                          <button key={c.id} type="button" onClick={() => setGvCol(c.id)} className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-black transition ${gvCol === c.id ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>{c.name}</button>
+                        ))}
+                      </div>
+                    )}
               {(() => {
                 const brandOf = (l: Look) => (l.brand || "").trim() || (/bellucci/i.test(`${l.name ?? ""} ${l.productNote ?? ""}`) ? "Gianna Bellucci" : "");
                 const items = allLooks
                   .filter(l => (l.productType === "ai" || (l as any).wardrobe === true) && ((l as any).frontImageUrl || l.imageUrl))
-                  .map(l => ({ l, brand: brandOf(l) }))
-                  .filter(({ brand }) => !gvBellucci || /bellucci/i.test(brand));
-                if (gvBellucci && items.length === 0) {
-                  return <p className="py-8 text-center text-[12px] font-bold text-white/40">No Gianna Bellucci pieces tagged yet. Tag a garment&apos;s brand as &quot;Gianna Bellucci&quot; to see it here.</p>;
+                  .filter(canUse)
+                  .filter(l => gvCol === null || l.collectionId === gvCol)
+                  .map(l => ({ l, brand: brandOf(l) }));
+                if (items.length === 0) {
+                  return <p className="py-8 text-center text-[12px] font-bold text-white/40">Noch keine Teile in dieser Collection.</p>;
                 }
                 return (
                   <div className="grid max-h-[52vh] grid-cols-3 gap-2 overflow-y-auto">
@@ -1428,6 +1477,9 @@ export default function CuratorPublicPage() {
                       );
                     })}
                   </div>
+                );
+              })()}
+                  </>
                 );
               })()}
             </div>

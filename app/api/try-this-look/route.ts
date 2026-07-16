@@ -15,7 +15,11 @@ import {
 import { authorizeStudio } from "@/lib/studio-auth";
 import { tryOnGarment } from "@/lib/tryon";
 import { isIntimateName } from "@/lib/lingerie";
-import { categorizeLook, isLookCategory } from "@/lib/look-category";
+import { categorizeLook, isLookCategory, LOOK_CATEGORIES } from "@/lib/look-category";
+import { defaultWardrobeVocab, editorialTitle, type WardrobeVocab, type ThemeEntry } from "@/lib/wardrobe-taxonomy";
+import { classifyWardrobeImage } from "@/lib/classify-wardrobe";
+import { computeImageFingerprint } from "@/lib/image-hash";
+import { generateProgramImage, generateProgramCaption, buildImagePrompt, generateLingerieTryon, normalizeOwnerPhoto, qwenDressGarment } from "@/lib/generate-program-post";
 import { notifyAdminWhatsApp, ADMIN_URL } from "@/lib/notify-admin";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { deleteAuthUser } from "@/lib/supabase-admin-users";
@@ -117,7 +121,7 @@ function affiliateWrap(url: string | undefined, sid: string, stores: AffiliateSt
     .split("{sid}").join(encodeURIComponent(sid || "house"));
 }
 
-function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number], generationCount = 0, partnerStores: AffiliateStore[] = [], curators: CuratorProfile[] = [], tryOnImageUrl?: string, communityTryOns: { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; hidden?: boolean; pending?: boolean; curatorId?: string; curatorPhotoUrl?: string }[] = []) {
+function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number], generationCount = 0, partnerStores: AffiliateStore[] = [], curators: CuratorProfile[] = [], tryOnImageUrl?: string, communityTryOns: { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; hidden?: boolean; pending?: boolean; curatorId?: string; curatorPhotoUrl?: string }[] = [], collections: { id: string; name: string }[] = [], themes: ThemeEntry[] = []) {
   const sid = String((look as any).curatorId ?? "house");
   const wrap = (u: string | undefined) => affiliateWrap(u, sid, partnerStores);
   // Attribute the look to the curator who published it (name, photo, profile link).
@@ -182,6 +186,24 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     lingerie,
     // Editorial category replaces brand as the top-level filter.
     category,
+    // Admin Collection membership (renameable grouping; supersedes category).
+    collectionId: (look as any).collectionId ?? undefined,
+    // Editorial wardrobe attributes (admin-facing) + composed customer-facing title.
+    location: (look as any).location ?? undefined,
+    garmentCategory: (look as any).garmentCategory ?? undefined,
+    garmentSubcategory: (look as any).garmentSubcategory ?? undefined,
+    theme: (look as any).theme ?? undefined,
+    occasion: (look as any).occasion ?? undefined,
+    style: (look as any).style ?? undefined,
+    editorialTitle: editorialTitle({
+      location: (look as any).location,
+      collection: collections.find(c => c.id === (look as any).collectionId)?.name,
+      theme: (look as any).theme,
+      themes,
+    }) || undefined,
+    aiClassified: (look as any).aiClassified === true,
+    classifyConfidence: typeof (look as any).classifyConfidence === "number" ? (look as any).classifyConfidence : undefined,
+    imageHash: (look as any).imageHash ?? undefined,
     aiCreated: (look as any).aiCreated === true,
     curatorNote: (look as any).curatorNote ?? undefined,
     commentsOff: (look as any).commentsOff === true,
@@ -300,7 +322,9 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
     list.push({ id: g.id, imageUrl: url, videoUrl: (g as any).videoUrl || undefined, userPhotoUrl: (g as any).userPhotoUrl || undefined, name: (g as any).customerName || undefined, isCurator, hidden: isAdminHidden, pending: isPending, curatorId: genCuratorId || undefined, curatorPhotoUrl: (genCuratorId && curatorPhotoById.get(genCuratorId)) || undefined });
     communityByLook.set(g.lookId, list);
   }
-  const sl = (look: (typeof visibleLooks)[number]) => serializeLook(look, genCountByLook.get(look.id) ?? 0, state.partnerStores ?? [], state.curators ?? [], selftestByLook.get(look.id)?.url, communityByLook.get(look.id) ?? []);
+  const slThemes = state.wardrobeVocab?.themes ?? [];
+  const slCollections = (state.collections ?? []).map(c => ({ id: c.id, name: c.name }));
+  const sl = (look: (typeof visibleLooks)[number]) => serializeLook(look, genCountByLook.get(look.id) ?? 0, state.partnerStores ?? [], state.curators ?? [], selftestByLook.get(look.id)?.url, communityByLook.get(look.id) ?? [], slCollections, slThemes);
   return {
     activeLook: activeLook ? sl(activeLook) : undefined,
     activeLooks: activeLooks.map(sl),
@@ -312,6 +336,16 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
     chatNotifyPaused: state.chatNotifyPaused === true,
     // Admin-managed outfit gallery shown in the Try-On funnel.
     outfits: (state.outfits ?? []).map(o => ({ id: o.id, name: o.name, imageUrl: o.imageUrl || "", lookId: o.lookId || "" })).filter(o => o.imageUrl),
+    // Admin COLLECTIONS — renameable garment groupings. Public chips read `public`;
+    // the model garment picker reads `releaseToAllModels`/`modelIds` to gate what a
+    // model may wear. Returned in display order.
+    collections: [...(state.collections ?? [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    // Admin-managed vocab for Location/Theme/Occasion/Style dropdowns + emoji lookup.
+    wardrobeVocab: state.wardrobeVocab ?? defaultWardrobeVocab(),
+    // Monthly travel programs (per destination) — owners subscribe to these.
+    programs: [...(state.programs ?? [])].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""))),
+    // Generated feed previews (admin-only until approved & released).
+    programFeeds: forAdmin ? [...(state.programFeeds ?? [])].sort((a, b) => a.day - b.day) : undefined,
     // Admin-editable video prompt template for the funnel (@Bild1 = model, @Bild2 = outfit).
     funnelVideoPrompt: (state.funnelVideoPrompt ?? "").trim() || DEFAULT_FUNNEL_PROMPT,
   };
@@ -1830,6 +1864,440 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, funnelVideoPrompt: prompt || DEFAULT_FUNNEL_PROMPT });
     }
 
+    // ─────────────────────────── COLLECTIONS (admin) ───────────────────────────
+    // Renameable garment groupings that replace the old fixed editorial categories.
+    // A collection can be PUBLIC (feed chip) and/or RELEASED to models (garment picker).
+    if (payload.action === "seed-collections") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      // Idempotent: ensure one collection per legacy category (create only the missing
+      // ones — keeps any renames), public + released-to-all so behaviour is unchanged.
+      const cols = [...(state.collections ?? [])];
+      LOOK_CATEGORIES.forEach((c, i) => {
+        if (!cols.some(x => x.legacyCategory === c.slug || x.id === `col-${c.slug}`)) {
+          cols.push({ id: `col-${c.slug}`, name: c.label, order: i, public: c.hideFromAll !== true, releaseToAllModels: true, modelIds: [], legacyCategory: c.slug, createdAt: now });
+        }
+      });
+      state.collections = cols;
+      // Backfill: bucket every UNASSIGNED look into the collection matching its category.
+      const bySlug = new Map(cols.filter(c => c.legacyCategory).map(c => [c.legacyCategory as string, c.id] as const));
+      let assigned = 0;
+      state.looks = state.looks.map(l => {
+        if ((l as any).collectionId) return l;
+        const cat = isLookCategory((l as any).category) ? (l as any).category : categorizeLook(l as any);
+        const cid = bySlug.get(cat);
+        if (cid) { assigned++; return { ...l, collectionId: cid }; }
+        return l;
+      });
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json({ ...ps(updatedState), assigned });
+    }
+    if (payload.action === "add-collection") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const name = String(payload.name ?? "").trim().slice(0, 60);
+      if (!name) return NextResponse.json({ error: "Name required." }, { status: 400 });
+      const order = (state.collections ?? []).reduce((m, c) => Math.max(m, c.order ?? 0), -1) + 1;
+      const col = { id: `col-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`, name, order, public: false, releaseToAllModels: false, modelIds: [] as string[], createdAt: now };
+      state.collections = [...(state.collections ?? []), col];
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json(ps(updatedState));
+    }
+    if (payload.action === "rename-collection") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const id = String(payload.id ?? "").trim();
+      const name = String(payload.name ?? "").trim().slice(0, 60);
+      if (!id || !name) return NextResponse.json({ error: "id and name required." }, { status: 400 });
+      state.collections = (state.collections ?? []).map(c => c.id === id ? { ...c, name } : c);
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json(ps(updatedState));
+    }
+    if (payload.action === "delete-collection") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const id = String(payload.id ?? "").trim();
+      state.collections = (state.collections ?? []).filter(c => c.id !== id);
+      state.looks = state.looks.map(l => (l as any).collectionId === id ? { ...l, collectionId: undefined } : l);
+      const updatedState = await saveTryThisLookState(state, { deletedCollectionIds: [id] });
+      return NextResponse.json(ps(updatedState));
+    }
+    if (payload.action === "reorder-collections") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const ids: string[] = Array.isArray(payload.ids) ? payload.ids.map((x: any) => String(x)) : [];
+      const rank = new Map(ids.map((id, i) => [id, i] as const));
+      state.collections = (state.collections ?? []).map(c => ({ ...c, order: rank.has(c.id) ? (rank.get(c.id) as number) : (c.order ?? 999) }));
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json(ps(updatedState));
+    }
+    if (payload.action === "set-collection-release") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const id = String(payload.id ?? "").trim();
+      const has = (k: string) => Object.prototype.hasOwnProperty.call(payload, k);
+      state.collections = (state.collections ?? []).map(c => {
+        if (c.id !== id) return c;
+        return {
+          ...c,
+          public: has("public") ? (payload as any).public === true : c.public,
+          releaseToAllModels: has("releaseToAllModels") ? (payload as any).releaseToAllModels === true : c.releaseToAllModels,
+          modelIds: has("modelIds") && Array.isArray((payload as any).modelIds)
+            ? (payload as any).modelIds.map((x: any) => String(x)).filter(Boolean).slice(0, 500)
+            : c.modelIds,
+        };
+      });
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json(ps(updatedState));
+    }
+
+    // ─────────────── WARDROBE VOCAB (admin) — Location/Theme/Occasion/Style ───────────────
+    // Seed default vocab if empty (idempotent — only fills missing lists).
+    if (payload.action === "seed-wardrobe-vocab") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const def = defaultWardrobeVocab();
+      const v = state.wardrobeVocab ?? { locations: [], themes: [], occasions: [], styles: [] };
+      state.wardrobeVocab = {
+        locations: v.locations?.length ? v.locations : def.locations,
+        themes: v.themes?.length ? v.themes : def.themes,
+        occasions: v.occasions?.length ? v.occasions : def.occasions,
+        styles: v.styles?.length ? v.styles : def.styles,
+        garmentCategories: v.garmentCategories?.length ? v.garmentCategories : def.garmentCategories,
+      };
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json(ps(updatedState));
+    }
+    // Add / rename / delete a value in one of the four vocab lists.
+    if (payload.action === "add-vocab" || payload.action === "rename-vocab" || payload.action === "delete-vocab") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const kind = String((payload as any).kind ?? "").trim() as keyof WardrobeVocab;
+      if (!["locations", "themes", "occasions", "styles"].includes(kind)) return NextResponse.json({ error: "Bad vocab kind." }, { status: 400 });
+      const v: WardrobeVocab = state.wardrobeVocab ?? defaultWardrobeVocab();
+      const name = String((payload as any).name ?? "").trim().slice(0, 40);
+      const emoji = String((payload as any).emoji ?? "").trim().slice(0, 8);
+      const oldName = String((payload as any).oldName ?? "").trim();
+      if (kind === "themes") {
+        let list: ThemeEntry[] = [...(v.themes ?? [])];
+        if (payload.action === "add-vocab" && name && !list.some(t => t.name.toLowerCase() === name.toLowerCase())) list.push({ name, emoji: emoji || "✨" });
+        if (payload.action === "rename-vocab" && oldName) list = list.map(t => t.name === oldName ? { name: name || t.name, emoji: emoji || t.emoji } : t);
+        if (payload.action === "delete-vocab" && oldName) list = list.filter(t => t.name !== oldName);
+        v.themes = list;
+      } else {
+        let list: string[] = [...((v[kind] as string[]) ?? [])];
+        if (payload.action === "add-vocab" && name && !list.some(x => x.toLowerCase() === name.toLowerCase())) list.push(name);
+        if (payload.action === "rename-vocab" && oldName) list = list.map(x => x === oldName ? (name || x) : x);
+        if (payload.action === "delete-vocab" && oldName) list = list.filter(x => x !== oldName);
+        (v[kind] as string[]) = list;
+      }
+      state.wardrobeVocab = v;
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json(ps(updatedState));
+    }
+    // Manage the garment-type tree (Category → Subcategories).
+    if (payload.action === "garment-category") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const op = String((payload as any).op ?? "");
+      const category = String((payload as any).category ?? "").trim().slice(0, 40);
+      const name = String((payload as any).name ?? "").trim().slice(0, 40);
+      const emoji = String((payload as any).emoji ?? "").trim().slice(0, 8);
+      const v: WardrobeVocab = state.wardrobeVocab ?? defaultWardrobeVocab();
+      let cats = [...(v.garmentCategories ?? [])];
+      if (op === "add-category" && name && !cats.some(c => c.name.toLowerCase() === name.toLowerCase())) cats.push({ name, emoji: emoji || undefined, subcategories: [] });
+      else if (op === "delete-category" && category) cats = cats.filter(c => c.name !== category);
+      else if (op === "add-subcategory" && category && name) cats = cats.map(c => c.name === category && !c.subcategories.some(s => s.toLowerCase() === name.toLowerCase()) ? { ...c, subcategories: [...c.subcategories, name] } : c);
+      else if (op === "delete-subcategory" && category && name) cats = cats.map(c => c.name === category ? { ...c, subcategories: c.subcategories.filter(s => s !== name) } : c);
+      v.garmentCategories = cats;
+      state.wardrobeVocab = v;
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json(ps(updatedState));
+    }
+
+    // ─────────────── TRAVEL PROGRAMS (admin) ───────────────
+    if (payload.action === "add-program") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const location = String((payload as any).location ?? "").trim().slice(0, 40);
+      const name = String((payload as any).name ?? "").trim().slice(0, 80) || (location ? `${location} Programm` : "");
+      if (!name) return NextResponse.json({ error: "Name or location required." }, { status: 400 });
+      const days0 = Number((payload as any).days) > 0 ? Math.min(90, Math.floor(Number((payload as any).days))) : 30;
+      const prog = {
+        id: `prog-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
+        name, location,
+        // Start the fixed route with one stop (the chosen location). Admin adds more for cruises/journeys.
+        stops: location ? [{ location, days: days0 }] : [],
+        description: String((payload as any).description ?? "").trim().slice(0, 500) || undefined,
+        days: days0,
+        price: String((payload as any).price ?? "").trim().slice(0, 20) || undefined,
+        published: false,
+        surprise: false,
+        createdAt: now,
+      };
+      state.programs = [prog, ...(state.programs ?? [])];
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json(ps(updatedState));
+    }
+    if (payload.action === "update-program") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const id = String((payload as any).id ?? "").trim();
+      const has = (k: string) => Object.prototype.hasOwnProperty.call(payload, k);
+      state.programs = (state.programs ?? []).map(p => {
+        if (p.id !== id) return p;
+        return {
+          ...p,
+          name: has("name") ? (String((payload as any).name ?? "").trim().slice(0, 80) || p.name) : p.name,
+          location: has("location") ? String((payload as any).location ?? "").trim().slice(0, 40) : p.location,
+          description: has("description") ? (String((payload as any).description ?? "").trim().slice(0, 500) || undefined) : p.description,
+          days: has("days") ? (Number((payload as any).days) > 0 ? Math.min(90, Math.floor(Number((payload as any).days))) : p.days) : p.days,
+          price: has("price") ? (String((payload as any).price ?? "").trim().slice(0, 20) || undefined) : p.price,
+          published: has("published") ? (payload as any).published === true : p.published,
+          surprise: has("surprise") ? (payload as any).surprise === true : p.surprise,
+          // Fixed route (a package): ordered stops {location, days}. Admin-curated.
+          stops: has("stops") && Array.isArray((payload as any).stops)
+            ? (payload as any).stops
+                .filter((s: any) => s && typeof s.location === "string" && s.location.trim())
+                .slice(0, 20)
+                .map((s: any) => ({ location: String(s.location).trim().slice(0, 40), days: Number(s.days) > 0 ? Math.min(90, Math.floor(Number(s.days))) : 7 }))
+            : p.stops,
+          lookIds: has("lookIds") && Array.isArray((payload as any).lookIds) ? (payload as any).lookIds.map((x: any) => String(x)).slice(0, 200) : p.lookIds,
+        };
+      });
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json(ps(updatedState));
+    }
+    if (payload.action === "delete-program") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const id = String((payload as any).id ?? "").trim();
+      state.programs = (state.programs ?? []).filter(p => p.id !== id);
+      const updatedState = await saveTryThisLookState(state, { deletedProgramIds: [id] });
+      return NextResponse.json(ps(updatedState));
+    }
+    // Generate ONE feed post (image + caption) for a program day. The client loops to build
+    // the whole preview; the admin approves before release. Test: images first.
+    if (payload.action === "generate-program-feed") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const programId = String((payload as any).programId ?? "").trim();
+      const curatorId = String((payload as any).curatorId ?? "").trim();
+      const day = Math.max(1, Math.min(60, Number((payload as any).day) || 1));
+      const lingerie = (payload as any).lingerie === true;
+      const ownerName = String((payload as any).ownerName ?? "").trim().slice(0, 40);
+      const ownerImage = String((payload as any).ownerImage ?? "");
+      // Owner wants to appear WITH the model: decode + normalise their uploaded photo
+      // (any format incl. iPhone HEIC → JPEG, downscaled) as a 2nd reference.
+      let ownerRef: { buffer: Buffer; mime: string } | null = null;
+      if (ownerImage.startsWith("data:")) {
+        try {
+          const m = ownerImage.match(/^data:[^;]*;base64,(.+)$/i);
+          if (m) ownerRef = await normalizeOwnerPhoto(Buffer.from(m[1], "base64"));
+        } catch { /**/ }
+        if (ownerImage && !ownerRef) return NextResponse.json({ error: "Dein Foto konnte nicht verarbeitet werden (Format?). Bitte JPG/PNG/HEIC." }, { status: 400 });
+      }
+      const program = (state.programs ?? []).find(p => p.id === programId);
+      if (!program) return NextResponse.json({ error: "Programm nicht gefunden." }, { status: 404 });
+      const curator = (state.curators ?? []).find(c => c.id === curatorId);
+      const photoUrl = (curator as any)?.photoFullUrl || (curator as any)?.photoUrl;
+      if (!photoUrl) return NextResponse.json({ error: "Modell hat kein Foto." }, { status: 400 });
+      // Which stop/location is this day on?
+      const stops = program.stops?.length ? program.stops : (program.location ? [{ location: program.location, days: program.days ?? 30 }] : []);
+      let loc = program.location || "";
+      { let acc = 0; for (const s of stops) { acc += s.days; if (day <= acc) { loc = s.location; break; } } }
+      // Outfit: lingerie → a REAL garment from our pool (try-on, not free generation);
+      // else a location-appropriate theme generated freely.
+      let outfit: string;
+      let poolGarmentUrl = "";
+      if (lingerie) {
+        const pool = state.looks.filter(l => ((l as any).garmentCategory === "Lingerie" || (l as any).lingerie === true) && ((l as any).frontImageUrl || (l as any).imageUrl));
+        const pick = pool.length ? pool[(day - 1) % pool.length] : null;
+        outfit = pick ? `${(pick as any).garmentSubcategory || "lingerie"}` : "lingerie";
+        poolGarmentUrl = pick ? ((pick as any).frontImageUrl || (pick as any).imageUrl || "") : "";
+      } else {
+        const themes = ["a flowing summer dress", "a chic tailored day look", "an elegant evening gown", "resort-chic beachwear", "a glamorous cocktail dress"];
+        outfit = themes[(day - 1) % themes.length];
+      }
+      let refBuf: Buffer, refMime: string;
+      try {
+        const r = await fetch(photoUrl);
+        if (!r.ok) throw new Error("photo fetch");
+        refBuf = Buffer.from(await r.arrayBuffer());
+        refMime = r.headers.get("content-type") || "image/jpeg";
+      } catch { return NextResponse.json({ error: "Modell-Foto konnte nicht geladen werden." }, { status: 502 }); }
+      let generated: string | null;
+      if (ownerRef) {
+        // TWO-PERSON (owner + model) is being REWORKED — the previous gpt-image-1 compose →
+        // Qwen dress chain distorted faces/bodies and dressed the male owner in lingerie.
+        // Parked until we rebuild it properly, so it never produces garbage.
+        return NextResponse.json({ error: "Zwei-Personen-Modus (mit deinem Foto) wird gerade ueberarbeitet — bitte vorerst OHNE eigenes Foto generieren." }, { status: 400 });
+      } else if (lingerie && poolGarmentUrl) {
+        // Model alone in our lingerie → FASHN try-on (OpenAI blocks lingerie).
+        generated = await generateLingerieTryon(refBuf, refMime, poolGarmentUrl, `Editorial boudoir shot in ${loc}, elegant and tasteful.`);
+        if (!generated) return NextResponse.json({ error: "Lingerie-Try-On fehlgeschlagen (FASHN). Ist ein Ganzkörperfoto des Modells hinterlegt?" }, { status: 502 });
+      } else if (lingerie) {
+        return NextResponse.json({ error: "Kein Lingerie-Teil im Pool gefunden." }, { status: 400 });
+      } else {
+        generated = await generateProgramImage([{ buffer: refBuf, mime: refMime }], buildImagePrompt(loc, outfit, lingerie));
+        if (!generated) return NextResponse.json({ error: "Bild-Generierung fehlgeschlagen (OpenAI)." }, { status: 502 });
+      }
+      // Normalise to a data URL for storage (FASHN may return a plain URL).
+      let dataUrl = generated;
+      if (!dataUrl.startsWith("data:")) {
+        try { const ir = await fetch(dataUrl); const ib = Buffer.from(await ir.arrayBuffer()); dataUrl = `data:${ir.headers.get("content-type") || "image/png"};base64,${ib.toString("base64")}`; }
+        catch { return NextResponse.json({ error: "Ergebnisbild konnte nicht geladen werden." }, { status: 502 }); }
+      }
+      const imagePath = await uploadTryThisLookImage("generations", dataUrl);
+      const caption = await generateProgramCaption(loc, day, outfit, lingerie, ownerRef ? (ownerName || undefined) : undefined);
+      const post = { id: `feed-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`, programId, day, location: loc, caption, lingerie, imagePath, approved: false, createdAt: now };
+      // Replace any existing post for the same program+day (regenerate with current settings).
+      const prevSameDay = (state.programFeeds ?? []).filter(f => f.programId === programId && f.day === day);
+      for (const old of prevSameDay) if (old.imagePath) await deleteTryThisLookImage(old.imagePath).catch(() => {});
+      const delIds = prevSameDay.map(f => f.id);
+      state.programFeeds = [...(state.programFeeds ?? []).filter(f => !(f.programId === programId && f.day === day)), post];
+      const updatedState = await saveTryThisLookState(state, delIds.length ? { deletedFeedPostIds: delIds } : {});
+      return NextResponse.json(ps(updatedState));
+    }
+    if (payload.action === "set-feed-approved") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const id = String((payload as any).id ?? "").trim();
+      const approved = (payload as any).approved === true;
+      state.programFeeds = (state.programFeeds ?? []).map(f => f.id === id ? { ...f, approved } : f);
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json(ps(updatedState));
+    }
+    if (payload.action === "delete-feed-post") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const id = String((payload as any).id ?? "").trim();
+      const post = (state.programFeeds ?? []).find(f => f.id === id);
+      if (post?.imagePath) await deleteTryThisLookImage(post.imagePath).catch(() => {});
+      state.programFeeds = (state.programFeeds ?? []).filter(f => f.id !== id);
+      const updatedState = await saveTryThisLookState(state, { deletedFeedPostIds: [id] });
+      return NextResponse.json(ps(updatedState));
+    }
+
+    // ─────────────── AI WARDROBE CLASSIFICATION (admin) ───────────────
+    // Inspects garment images and fills the 5 attributes from the taxonomy. Processes a
+    // small batch per call (vision is slow) — the client loops until remaining === 0.
+    if (payload.action === "classify-looks") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const vocab: WardrobeVocab = state.wardrobeVocab ?? defaultWardrobeVocab();
+      const cols = state.collections ?? [];
+      const collectionNames = cols.map(c => c.name);
+      const nameToId = new Map(cols.map(c => [c.name.toLowerCase(), c.id] as const));
+      const isGarment = (l: any) => (l.productType === "ai" || l.wardrobe === true) && (l.frontImageUrl || l.imageUrl);
+      const hasAttrs = (l: any) => !!(l.location || l.theme || l.occasion || l.style);
+      const explicitIds: string[] = Array.isArray((payload as any).lookIds) ? (payload as any).lookIds.map((x: any) => String(x)) : [];
+      const limit = Math.max(1, Math.min(10, Number((payload as any).limit) || 8));
+
+      // Candidate set: explicit ids (force reclassify) OR unclassified garments
+      // (not AI-done and no manual attributes yet).
+      const candidates = explicitIds.length
+        ? state.looks.filter(l => explicitIds.includes(l.id))
+        : state.looks.filter(l => isGarment(l) && (l as any).aiClassified !== true && !hasAttrs(l));
+      const remainingBefore = candidates.length;
+      const batch = candidates.slice(0, limit);
+
+      const results = await Promise.all(batch.map(async (l) => {
+        const img = (l as any).frontImageUrl || (l as any).imageUrl;
+        const res = await classifyWardrobeImage(img, vocab, collectionNames);
+        return { id: l.id, res };
+      }));
+      const byId = new Map(results.map(r => [r.id, r.res]));
+      let classified = 0;
+      state.looks = state.looks.map(l => {
+        const r = byId.get(l.id);
+        if (!r) return l;
+        classified++;
+        const cid = r.collection ? nameToId.get(r.collection.toLowerCase()) : (l as any).collectionId;
+        return {
+          ...l,
+          collectionId: cid ?? (l as any).collectionId,
+          location: r.location || (l as any).location,
+          garmentCategory: r.garmentCategory || (l as any).garmentCategory,
+          garmentSubcategory: r.garmentSubcategory || (l as any).garmentSubcategory,
+          theme: r.theme || (l as any).theme,
+          occasion: r.occasion || (l as any).occasion,
+          style: r.style || (l as any).style,
+          aiClassified: true,
+          classifyConfidence: r.confidence,
+        } as typeof l;
+      });
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json({ ...ps(updatedState), classified, remaining: Math.max(0, remainingBefore - classified) });
+    }
+
+    // Merge duplicate wardrobe items into one canonical item (the single source of truth).
+    // All content that referenced a duplicate (try-ons, comments, events) is repointed to
+    // the kept item, then the duplicates are deleted. 1 Outfit = 1 Wardrobe Item.
+    if (payload.action === "merge-wardrobe") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const keepId = String((payload as any).keepId ?? "").trim();
+      const mergeIds = (Array.isArray((payload as any).mergeIds) ? (payload as any).mergeIds.map((x: any) => String(x)) : []).filter((id: string) => id && id !== keepId);
+      const keep = state.looks.find(l => l.id === keepId);
+      if (!keep || mergeIds.length === 0) return NextResponse.json({ error: "keepId and mergeIds required." }, { status: 400 });
+      const mergeSet = new Set<string>(mergeIds);
+      if (state.looks.length - mergeSet.size < 1) return NextResponse.json({ error: "At least one look must remain." }, { status: 400 });
+
+      // Repoint every content reference from a duplicate → the kept wardrobe item.
+      let repointed = 0;
+      state.generations = (state.generations ?? []).map(g => { if (g.lookId && mergeSet.has(g.lookId)) { repointed++; return { ...g, lookId: keepId }; } return g; });
+      state.comments = (state.comments ?? []).map(c => (c.lookId && mergeSet.has(c.lookId)) ? { ...c, lookId: keepId } : c);
+      state.events = (state.events ?? []).map(e => ((e as any).lookId && mergeSet.has((e as any).lookId)) ? { ...e, lookId: keepId } as any : e);
+
+      // Delete the duplicate looks + their images.
+      const toDelete = state.looks.filter(l => mergeSet.has(l.id));
+      for (const l of toDelete) {
+        for (const p of [l.imagePath, l.frontImagePath, l.backImagePath, l.garmentFrontImagePath, l.garmentBackImagePath, ...(l.galleryImagePaths ?? [])].filter(Boolean)) {
+          await deleteTryThisLookImage(String(p)).catch(() => {});
+        }
+      }
+      state.looks = state.looks.filter(l => !mergeSet.has(l.id));
+      state.activeLookIds = (state.activeLookIds ?? [state.activeLookId]).filter(id => !mergeSet.has(id));
+      if (!state.activeLookIds.length) state.activeLookIds = [state.looks[0].id];
+      state.activeLookId = state.activeLookIds[0];
+
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json({ ...ps(updatedState), merged: mergeIds.length, repointed });
+    }
+
+    // Bulk-delete looks by id (used by the duplicate manager's manual "remove selected").
+    if (payload.action === "delete-looks") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const ids = new Set<string>((Array.isArray((payload as any).ids) ? (payload as any).ids.map((x: any) => String(x)) : []).filter(Boolean));
+      if (ids.size === 0) return NextResponse.json({ error: "No ids." }, { status: 400 });
+      if (state.looks.length - ids.size < 1) return NextResponse.json({ error: "At least one look must remain." }, { status: 400 });
+      const toDelete = state.looks.filter(l => ids.has(l.id));
+      for (const l of toDelete) {
+        for (const p of [l.imagePath, l.frontImagePath, l.backImagePath, l.garmentFrontImagePath, l.garmentBackImagePath, ...(l.galleryImagePaths ?? [])].filter(Boolean)) {
+          await deleteTryThisLookImage(String(p)).catch(() => {});
+        }
+      }
+      state.looks = state.looks.filter(l => !ids.has(l.id));
+      state.activeLookIds = (state.activeLookIds ?? [state.activeLookId]).filter(id => !ids.has(id));
+      if (!state.activeLookIds.length) state.activeLookIds = [state.looks[0].id];
+      state.activeLookId = state.activeLookIds[0];
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json({ ...ps(updatedState), deleted: toDelete.length });
+    }
+
+    // Compute a perceptual image hash (dHash) for wardrobe garments that don't have one
+    // yet, so the admin can detect near-duplicate images. Batched (image fetch is the slow
+    // part); the client loops until remaining === 0. force=true rehashes everything.
+    if (payload.action === "hash-wardrobe") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+      const force = (payload as any).force === true;
+      const FP_LEN = 8 * 8 * 3 * 2; // expected fingerprint hex length; re-hash anything else (e.g. legacy dHash)
+      const limit = Math.max(1, Math.min(60, Number((payload as any).limit) || 40));
+      const isGarment = (l: any) => (l.productType === "ai" || l.wardrobe === true) && (l.frontImageUrl || l.imageUrl);
+      const needsHash = (l: any) => force || !l.imageHash || l.imageHash.length !== FP_LEN;
+      const targets = state.looks.filter(l => isGarment(l) && needsHash(l));
+      const remainingBefore = targets.length;
+      const batch = targets.slice(0, limit);
+      const results = await Promise.all(batch.map(async (l) => {
+        try {
+          const url = (l as any).frontImageUrl || (l as any).imageUrl;
+          const res = await fetch(url);
+          if (!res.ok) return { id: l.id, hash: null as string | null };
+          const buf = Buffer.from(await res.arrayBuffer());
+          return { id: l.id, hash: await computeImageFingerprint(buf) };
+        } catch { return { id: l.id, hash: null as string | null }; }
+      }));
+      const hashById = new Map(results.filter(r => r.hash).map(r => [r.id, r.hash as string]));
+      let hashed = 0;
+      state.looks = state.looks.map(l => { const h = hashById.get(l.id); if (h) { hashed++; return { ...l, imageHash: h }; } return l; });
+      const updatedState = await saveTryThisLookState(state);
+      return NextResponse.json({ ...ps(updatedState), hashed, remaining: Math.max(0, remainingBefore - hashed) });
+    }
+
     if (payload.action === "add-comment") {
       const lookId = String(payload.lookId ?? "").trim();
       const text = String(payload.text ?? "").trim().slice(0, 500);
@@ -2634,6 +3102,22 @@ export async function POST(request: Request) {
           category: hasField("category")
             ? (isLookCategory((payload as any).category) ? (payload as any).category : undefined)
             : (look as any).category,
+          // Admin Collection membership (renameable grouping; replaces category as the
+          // primary bucket). Empty string clears it.
+          collectionId: hasField("collectionId")
+            ? (String((payload as any).collectionId ?? "").trim() || undefined)
+            : (look as any).collectionId,
+          // Editorial wardrobe attributes (Location/Theme/Occasion/Style). Empty clears.
+          location: hasField("location") ? (String((payload as any).location ?? "").trim() || undefined) : (look as any).location,
+          garmentCategory: hasField("garmentCategory") ? (String((payload as any).garmentCategory ?? "").trim() || undefined) : (look as any).garmentCategory,
+          garmentSubcategory: hasField("garmentSubcategory") ? (String((payload as any).garmentSubcategory ?? "").trim() || undefined) : (look as any).garmentSubcategory,
+          theme: hasField("theme") ? (String((payload as any).theme ?? "").trim() || undefined) : (look as any).theme,
+          occasion: hasField("occasion") ? (String((payload as any).occasion ?? "").trim() || undefined) : (look as any).occasion,
+          style: hasField("style") ? (String((payload as any).style ?? "").trim() || undefined) : (look as any).style,
+          // A manual edit to any attribute marks the look as hand-classified so the bulk
+          // auto-classifier won't overwrite it (unless the admin force-reclassifies it).
+          aiClassified: (hasField("location") || hasField("theme") || hasField("occasion") || hasField("style") || hasField("collectionId") || hasField("garmentCategory") || hasField("garmentSubcategory"))
+            ? false : (look as any).aiClassified,
           // Creator/admin-set Lingerie/Swimwear flag (retroactively markable). Store the
           // EXPLICIT boolean so the toggle wins both ways (off overrides auto-detection).
           // Boudoir always implies lingerie; switching AWAY from Boudoir clears it.
