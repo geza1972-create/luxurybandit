@@ -500,11 +500,11 @@ export default function BellaCarouselAdmin() {
           </p>
           {scoped.length > 0 && (
             <span className="ml-auto flex gap-1.5">
-              <button type="button" onClick={() => void setAllHidden(false)} disabled={busy === "bulk" || scoped.every(s => !s.hidden)}
+              <button type="button" onClick={() => void setAllHidden(false)} disabled={busy === "bulk"}
                 className="rounded-full bg-green-500 px-3 py-1.5 text-[12px] font-black text-white shadow ring-1 ring-green-300/40 active:scale-95 disabled:opacity-40">
                 {busy === "bulk" ? "…" : "✓ Alle auf Card"}
               </button>
-              <button type="button" onClick={() => void setAllHidden(true)} disabled={busy === "bulk" || scoped.every(s => s.hidden)}
+              <button type="button" onClick={() => void setAllHidden(true)} disabled={busy === "bulk"}
                 className="rounded-full border border-white/20 px-2.5 py-1 text-[11px] font-black text-white/60 active:scale-95 disabled:opacity-40">
                 Alle ausblenden
               </button>
@@ -532,11 +532,11 @@ export default function BellaCarouselAdmin() {
         {/* Bottom bulk bar — apply/hide everything without scrolling back up. */}
         {scoped.length > 0 && (
           <div className="mt-3 flex gap-2">
-            <button type="button" onClick={() => void setAllHidden(false)} disabled={busy === "bulk" || scoped.every(s => !s.hidden)}
+            <button type="button" onClick={() => void setAllHidden(false)} disabled={busy === "bulk"}
               className="flex-1 rounded-lg bg-green-500 py-3 text-[14px] font-black text-white shadow ring-1 ring-green-300/40 active:scale-[0.98] disabled:opacity-40">
               {busy === "bulk" ? "…" : "✓ Alle auf Card übernehmen"}
             </button>
-            <button type="button" onClick={() => void setAllHidden(true)} disabled={busy === "bulk" || scoped.every(s => s.hidden)}
+            <button type="button" onClick={() => void setAllHidden(true)} disabled={busy === "bulk"}
               className="rounded-lg border border-white/20 px-4 py-3 text-[13px] font-black text-white/60 active:scale-95 disabled:opacity-40">
               Alle ausblenden
             </button>
