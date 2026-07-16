@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { saveAuthSession } from "@/lib/supabase-auth-client";
+import PasswordInput from "@/components/PasswordInput";
 
 export default function SellerRegisterPage() {
   const router = useRouter();
@@ -83,14 +84,13 @@ export default function SellerRegisterPage() {
           </div>
           <div className="grid gap-1">
             <label className="text-xs font-black uppercase tracking-widest text-black/50">Password</label>
-            <input
-              type="password"
+            <PasswordInput
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="At least 6 characters"
               required
               minLength={6}
-              className="h-12 rounded-xl border border-black/12 bg-white px-4 text-sm font-bold text-black outline-none focus:border-black"
+              className="h-12 w-full rounded-xl border border-black/12 bg-white px-4 text-sm font-bold text-black outline-none focus:border-black"
             />
           </div>
 

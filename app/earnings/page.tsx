@@ -22,7 +22,7 @@ export default function EarningsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0d0b0a] text-white">
+    <div className="min-h-screen lb-bg text-white">
       {/* Header */}
       <div className="sticky top-0 z-20 flex items-center justify-between border-b border-white/10 bg-[#0d0b0a]/90 px-3 py-3 backdrop-blur">
         <Link href="/own-influencer" className="grid h-9 w-9 place-items-center rounded-full bg-white/10 active:scale-90">
@@ -63,8 +63,8 @@ export default function EarningsPage() {
         </div>
 
         {/* What counts */}
-        <div className="mt-8 rounded-2xl border border-emerald-400/25 bg-emerald-400/[0.05] p-4">
-          <p className="text-[13px] font-black text-emerald-300">Good to know</p>
+        <div className="mt-8 rounded-2xl border border-amber-400/25 bg-amber-400/[0.05] p-4">
+          <p className="text-[13px] font-black text-amber-300">Good to know</p>
           <ul className="mt-2 space-y-1.5">
             {[
               "The more fans pick you, the more you earn — there's no cap.",
@@ -72,7 +72,7 @@ export default function EarningsPage() {
               "Earnings land in your account automatically — check them any time on your profile.",
             ].map((t, i) => (
               <li key={i} className="flex gap-2 text-[13px] font-bold leading-relaxed text-white/60">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" /> {t}
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> {t}
               </li>
             ))}
           </ul>

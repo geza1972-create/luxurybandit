@@ -287,8 +287,8 @@ export default function ModelChat({
     <div className={page ? "" : "fixed left-0 top-0 z-[92] h-[100dvh] w-full origin-top bg-black/60"}
       style={page ? undefined : vpStyle} onClick={page ? undefined : onClose}>
       <div className={page
-          ? "lb-phone-col fixed inset-x-0 top-0 mx-auto flex h-[100dvh] max-w-[440px] flex-col bg-[#0d0b0a]"
-          : "absolute inset-0 mx-auto flex max-w-[440px] flex-col bg-[#0d0b0a]"}
+          ? "lb-phone-col fixed inset-x-0 top-0 mx-auto flex h-[100dvh] max-w-[440px] flex-col lb-bg"
+          : "absolute inset-0 mx-auto flex max-w-[440px] flex-col lb-bg"}
         style={page ? vpStyle : undefined}
         onClick={page ? undefined : (e) => e.stopPropagation()}>
         {/* Header */}
@@ -298,16 +298,16 @@ export default function ModelChat({
               // eslint-disable-next-line @next/next/no-img-element
               ? <img src={avatarUrl} alt={first} className="h-full w-full object-cover" />
               : <span className="grid h-full w-full place-items-center text-sm font-black text-white/60">{first.slice(0, 1)}</span>}
-            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#0d0b0a] bg-emerald-400" />
+            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#0d0b0a] bg-amber-400" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-black text-white">{first}<span className="ml-1.5 font-bold text-white/45">· AI Assistant</span></p>
-            <p className="text-[11px] font-bold text-emerald-400">online now</p>
+            <p className="text-[11px] font-bold text-amber-400">online now</p>
           </div>
           {/* Language picker — the fan chooses; the AI greets & replies in it. */}
           <select value={lang} onChange={e => setLang(e.target.value as Lang)} aria-label="Chat language"
             className="h-8 shrink-0 rounded-full border border-white/15 bg-white/5 px-2 text-[12px] font-black text-white/80 outline-none focus:border-amber-400">
-            {LANGS.map(l => <option key={l.code} value={l.code} className="bg-[#0d0b0a] text-white">{l.label}</option>)}
+            {LANGS.map(l => <option key={l.code} value={l.code} className="lb-bg text-white">{l.label}</option>)}
           </select>
           <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white active:scale-90 transition"><X className="h-5 w-5" /></button>
         </div>

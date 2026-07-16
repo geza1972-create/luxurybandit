@@ -108,7 +108,7 @@ function LoginForm() {
           <p className="mt-1 text-sm font-bold text-black/40">{mode === "signup" ? "Create your account" : "Sign in"}</p>
         </div>
 
-        {confirmed && <div className="mb-4 rounded-lg bg-green-50 px-3 py-2 text-sm font-bold text-green-700">Email confirmed! Sign in below.</div>}
+        {confirmed && <div className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700">Email confirmed! Sign in below.</div>}
 
         {/* Social — fastest */}
         <div className="grid gap-2.5">
@@ -142,7 +142,7 @@ function LoginForm() {
               </div>
 
               {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-bold text-red-600">{error}</p>}
-              {message && <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">{message}</p>}
+              {message && <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700">{message}</p>}
 
               <button type="submit" disabled={loading}
                 className="flex h-12 items-center justify-center gap-2 rounded-xl bg-black text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">

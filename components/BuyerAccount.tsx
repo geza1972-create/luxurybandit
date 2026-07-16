@@ -57,7 +57,7 @@ export default function BuyerAccount() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#0d0b0a] text-white">
+    <div className="min-h-[100dvh] lb-bg text-white">
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-white/10 px-4 py-4">
         <button type="button" onClick={() => router.back()} className="grid h-9 w-9 place-items-center rounded-full border border-white/15 text-white/80 active:scale-90 transition"><ArrowLeft className="h-5 w-5" /></button>

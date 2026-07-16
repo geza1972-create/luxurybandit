@@ -19,7 +19,7 @@ export default function PayDonePage() {
   return (
     <main className="grid min-h-[100dvh] place-items-center bg-white px-6 text-center">
       <div className="max-w-sm">
-        <div className={`mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full ${cancelled ? "bg-black/[0.06]" : "bg-emerald-100"}`}>
+        <div className={`mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full ${cancelled ? "bg-black/[0.06]" : "bg-amber-100"}`}>
           <span className="text-2xl">{cancelled ? "↩︎" : "✓"}</span>
         </div>
         <h1 className="text-lg font-black text-black">{cancelled ? "Payment cancelled" : "Payment received"}</h1>

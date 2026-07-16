@@ -136,7 +136,9 @@ export async function GET(request: Request) {
     const youOwnHer = !!(c as any).ownerEmail && requesterEmail === String((c as any).ownerEmail).trim().toLowerCase();
     return NextResponse.json({ profile: {
       id: c.id, firstName: c.firstName, lastName: c.lastName, modelName: (c as any).modelName ?? "", motto: c.motto, bio: c.bio,
+      title: (c as any).title ?? "", intro: (c as any).intro ?? "", sponsor: (c as any).sponsor ?? "",
       photoUrl: c.photoUrl, photoFullUrl: (c as any).photoFullUrl, photoBodyUrls: (c as any).photoBodyUrls ?? [], instagram: c.instagram, style: c.style, brands: c.brands, genderFocus: c.genderFocus, country: (c as any).country ?? "",
+      ...(adminView ? { hasPrevPhoto: !!(c as any).photoPathPrev } : {}),
       // Vanity baselines (admin-set) — added to the real sums on her stats row.
       likeBoost: (c as any).likeBoost ?? 0, viewBoost: (c as any).viewBoost ?? 0,
       realBadge: (c as any).realBadge === true,
@@ -573,6 +575,10 @@ export async function POST(request: Request) {
       ageFocus: String(payload.ageFocus ?? "").trim() || undefined,
       motto: String(payload.motto ?? "").trim() || undefined,
       bio: String(payload.bio ?? "").trim() || undefined,
+      // Card identity — brand title ("Monaco Influencer"), ABOUT-slide intro, sponsor.
+      title: String((payload as any).title ?? "").trim() || undefined,
+      intro: String((payload as any).intro ?? "").trim() || undefined,
+      sponsor: String((payload as any).sponsor ?? "").trim() || undefined,
       instagram: String(payload.instagram ?? "").trim().replace(/^@/, "") || undefined,
       photoPath,
       photoFullPath,
@@ -689,7 +695,23 @@ export async function POST(request: Request) {
     if (idx < 0) return jsonError("Profile not found.", 404);
     const candidates = state.curators![idx].profilePhotoPaths ?? [];
     if (!candidates[index]) return jsonError("No such photo.", 404);
-    state.curators![idx] = { ...state.curators![idx], photoPath: candidates[index] };
+    state.curators![idx] = { ...state.curators![idx], photoPathPrev: (state.curators![idx] as any).photoPath, photoPath: candidates[index] };
+    await saveTryThisLookState(state);
+    return NextResponse.json({ ok: true });
+  }
+
+  // Admin: RESTORE the previous profile photo (undo an accidental replace). Swaps current ↔ backup,
+  // so tapping it again re-does the change.
+  if (action === "restore-photo") {
+    const isAdmin = await isAdminRequest(request);
+    if (!isAdmin) return jsonError("Admin access required.", 401);
+    const id = String(payload.id ?? "").trim();
+    const state = await readTryThisLookState();
+    const idx = (state.curators ?? []).findIndex(c => c.id === id);
+    if (idx < 0) return jsonError("Profile not found.", 404);
+    const c = state.curators![idx] as any;
+    if (!c.photoPathPrev) return jsonError("No previous photo to restore.", 400);
+    state.curators![idx] = { ...c, photoPath: c.photoPathPrev, photoPathPrev: c.photoPath };
     await saveTryThisLookState(state);
     return NextResponse.json({ ok: true });
   }
@@ -909,6 +931,14 @@ export async function POST(request: Request) {
       email: newEmail,
       firstName: str("firstName", cur.firstName) || cur.firstName,
       lastName: str("lastName", cur.lastName) || cur.lastName,
+      // Public MODEL name (elegant single name). Separate from the owner's real name above.
+      modelName: (typeof (payload as any).modelName === "string" && (payload as any).modelName.trim())
+        ? (payload as any).modelName.trim()
+        : (cur as any).modelName,
+      // Card identity fields — brand title ("Monaco Influencer"), ABOUT-slide intro, sponsor.
+      title: str("title", (cur as any).title),
+      intro: str("intro", (cur as any).intro),
+      sponsor: str("sponsor", (cur as any).sponsor),
       phone: str("phone", cur.phone),
       address: str("address", cur.address),
       country: ((str("country", (cur as any).country) ?? "") as string).toUpperCase().slice(0, 2) || undefined,
@@ -989,6 +1019,8 @@ export async function POST(request: Request) {
         if (!photo.startsWith("data:image/")) updated.photoPath = paths[0]; // default main unless a specific photo was also sent
       }
       if (photo.startsWith("data:image/")) {
+        // Back up the CURRENT photo before replacing it → "Restore" can undo an accidental change.
+        if ((cur as any).photoPath) (updated as any).photoPathPrev = (cur as any).photoPath;
         updated.photoPath = await uploadTryThisLookImage("uploads", photo);
         // Keep the uncropped original too (portrait) — used by the profile lightbox.
         if (photoFull2.startsWith("data:image/")) {

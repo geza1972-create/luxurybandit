@@ -188,6 +188,25 @@ svg {
     radial-gradient(90% 75% at 75% 25%, rgba(88, 44, 78, 0.28), transparent 60%);
 }
 
+/* ── Premium page canvas — a subtle warm gradient instead of flat black.
+   Reads as a deep, elegant black lifted by a faint gold glow (top-left) and a
+   warm ember (bottom-right). Drop-in replacement for the old solid bg-[#0d0b0a],
+   used app-wide so no screen is ever a flat black rectangle. ── */
+.lb-bg {
+  background-color: #0d0b0a;
+  background-image:
+    radial-gradient(120% 80% at 15% -6%, rgba(246, 207, 81, 0.11), transparent 50%),
+    radial-gradient(130% 95% at 88% 108%, rgba(126, 62, 24, 0.15), transparent 58%),
+    linear-gradient(180deg, #15110c 0%, #0d0b0a 34%, #090706 100%);
+}
+/* Light-theme fallback (funnels/pages that flip to daylight via .lb-theme). */
+.lb-theme .lb-bg {
+  background-color: #fbfaf7;
+  background-image:
+    radial-gradient(120% 85% at 14% -8%, rgba(233, 174, 43, 0.10), transparent 55%),
+    radial-gradient(130% 100% at 90% 106%, rgba(0, 0, 0, 0.03), transparent 60%);
+}
+
 /* ── /luxury-products chat & funnel: auto light/dark by the device setting ───────────
    The page is authored dark. In LIGHT mode (daylight) we flip the white-based
    utilities to dark-on-light so it stays readable. Scoped to .lb-theme so the rest

@@ -67,7 +67,7 @@ export default function MessagesPage() {
   }, []);
 
   return (
-    <div className="min-h-[100dvh] bg-[#0d0b0a] text-white">
+    <div className="min-h-[100dvh] lb-bg text-white">
       <TopNav subtitle="Messages" />
 
       <main className="mx-auto max-w-[440px] px-4 py-4 pb-28">
@@ -93,7 +93,7 @@ export default function MessagesPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={c.photoUrl} alt={c.name} className="h-full w-full object-cover" />
                     : <span className="grid h-full w-full place-items-center text-sm font-black text-white/60">{c.name.slice(0, 1)}</span>}
-                  <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#0d0b0a] bg-emerald-400" />
+                  <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#0d0b0a] bg-amber-400" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">

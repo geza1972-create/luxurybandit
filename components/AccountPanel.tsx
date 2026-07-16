@@ -3,6 +3,7 @@
 import { getStoredAuthSession, signInWithPassword, signOut, signUpWithPassword, type SupabaseAuthSession } from "@/lib/supabase-auth-client";
 import { LogOut, UserRound } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
+import PasswordInput from "@/components/PasswordInput";
 
 export function AccountPanel() {
   const [session, setSession] = useState<SupabaseAuthSession | null>(null);
@@ -106,14 +107,13 @@ export function AccountPanel() {
           required
           className="h-11 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold text-ink outline-none focus:border-cobalt"
         />
-        <input
-          type="password"
+        <PasswordInput
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           placeholder="password"
           required
           minLength={6}
-          className="h-11 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold text-ink outline-none focus:border-cobalt"
+          className="h-11 w-full rounded-md border border-black/10 bg-panel px-3 text-sm font-bold text-ink outline-none focus:border-cobalt"
         />
         <button
           type="submit"

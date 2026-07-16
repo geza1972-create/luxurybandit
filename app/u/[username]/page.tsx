@@ -512,7 +512,7 @@ export default function UserGalleryPage() {
             {/* Done state */}
             {quickSellStep === "done" && (
               <div className="flex flex-col items-center gap-4 px-5 py-8 text-center">
-                <div className="grid h-16 w-16 place-items-center rounded-2xl bg-emerald-50 text-4xl">✅</div>
+                <div className="grid h-16 w-16 place-items-center rounded-2xl bg-amber-50 text-4xl">✅</div>
                 <p className="text-base font-black text-black">Produkt eingereicht!</p>
                 <p className="text-sm font-bold text-black/50 max-w-xs leading-relaxed">
                   Dein Produkt ist in der Review. In Kürze wird es auf LuxuryBandit veröffentlicht.
@@ -634,10 +634,10 @@ export default function UserGalleryPage() {
             </div>
             {sent ? (
               <div className="flex flex-col items-center gap-2 py-4">
-                <div className="grid h-12 w-12 place-items-center rounded-full bg-emerald-100 text-emerald-600">
+                <div className="grid h-12 w-12 place-items-center rounded-full bg-amber-100 text-amber-600">
                   <Send className="h-5 w-5" />
                 </div>
-                <p className="text-sm font-black text-emerald-700">Message sent!</p>
+                <p className="text-sm font-black text-amber-700">Message sent!</p>
               </div>
             ) : !session ? (
               <div className="grid gap-3">

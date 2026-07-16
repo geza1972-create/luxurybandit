@@ -724,7 +724,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   };
 
   const headerBar = (
-    <div className="z-20 bg-[#0d0b0a] px-3 pb-2 pt-3">
+    <div className="z-20 lb-bg px-3 pb-2 pt-3">
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => authorCuratorId && router.push(`/curator/${authorCuratorId}`)}
           className="flex min-w-0 items-center gap-2 active:opacity-80">
@@ -735,7 +735,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           <span className="truncate text-sm font-black text-white">{publicAuthorName(authorName)}</span>
         </button>
         {isRealModel && (
-          <span className="shrink-0 rounded-full bg-emerald-500/90 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white shadow">✓ Real model</span>
+          <span className="shrink-0 rounded-full bg-amber-500/90 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white shadow">✓ Real model</span>
         )}
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${look.aiCreated ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
           {look.aiCreated ? "✦ Original" : "Model"}
@@ -764,7 +764,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   if (modRemoved) return null; // admin hid or deleted this look → drop the card
 
   return (
-    <section ref={sectionRef} className="relative flex w-full flex-col bg-[#0d0b0a]">
+    <section ref={sectionRef} className="relative flex w-full flex-col lb-bg">
       {/* ── Media area — vertical format (9:16). Curator name + description render
           BELOW the video (see headerBar block after the media). ── */}
       {/* 9:16 — matches the generated try-on videos exactly (full vertical, no crop, no bars). */}
@@ -781,7 +781,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               // Pending publish request → the admin approves or rejects it.
               <>
                 <button type="button" onClick={approveTryOn} disabled={!!modBusy} title="Approve — publish this try-on"
-                  className="grid h-9 w-9 place-items-center rounded-full bg-emerald-500/90 text-white active:opacity-70 disabled:opacity-40">
+                  className="grid h-9 w-9 place-items-center rounded-full bg-amber-500/90 text-white active:opacity-70 disabled:opacity-40">
                   {modBusy === "approve" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                 </button>
                 <button type="button" onClick={rejectTryOn} disabled={!!modBusy} title="Reject — keep it private"
@@ -801,7 +801,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               return (
                 <>
                   <button type="button" onClick={hideLook} disabled={!!modBusy} title={title}
-                    className={`grid h-9 w-9 place-items-center rounded-full text-white active:opacity-70 disabled:opacity-40 ${showAsHidden ? "bg-emerald-500/90" : "bg-amber-400/90"}`}>
+                    className={`grid h-9 w-9 place-items-center rounded-full text-white active:opacity-70 disabled:opacity-40 ${showAsHidden ? "bg-amber-500/90" : "bg-amber-400/90"}`}>
                     {modBusy === "hide" ? <Loader2 className="h-4 w-4 animate-spin" /> : showAsHidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                   </button>
                   <button type="button" onClick={deleteLook} disabled={!!modBusy} title={activeTryOnId ? "Delete this try-on (look stays)" : "Delete look"}
@@ -1128,7 +1128,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
 
       {/* Carousel dots — directly under the video (Instagram-style) */}
       {media.length > 1 && !immersive && (
-        <div className="shrink-0 flex justify-center gap-1.5 bg-[#0d0b0a] pt-2 pb-1">
+        <div className="shrink-0 flex justify-center gap-1.5 lb-bg pt-2 pb-1">
           {media.map((_, i) => (
             <span key={i} className={`h-1.5 w-1.5 rounded-full transition-colors ${active === i ? "bg-white" : "bg-white/30"}`} />
           ))}
@@ -1139,7 +1139,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
       <div className={`shrink-0 ${immersive ? "hidden" : ""}`}>{headerBar}</div>
 
       {/* ── Dark caption + actions (Instagram-style, below the image) ── */}
-      <div className={`shrink-0 bg-[#0d0b0a] px-4 pt-2.5 ${immersive ? "hidden" : ""}`} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4rem)" }}>
+      <div className={`shrink-0 lb-bg px-4 pt-2.5 ${immersive ? "hidden" : ""}`} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 4rem)" }}>
         {/* Who recreated this look — ADMIN ONLY (business secret). Sits under the
             caption. Replaces the old "Shop now" card; shopping is via "Bandit the look!". */}
         {single && isAdmin && (
@@ -1259,7 +1259,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                       : <span className="grid h-full w-full place-items-center text-xs font-black text-black/30">{c.name.slice(0, 1)}</span>}
                   </span>
                   <span className="min-w-0 flex-1 truncate">{c.name}</span>
-                  {authorCuratorId === c.id && <span className="shrink-0 text-[11px] font-black text-emerald-600">current</span>}
+                  {authorCuratorId === c.id && <span className="shrink-0 text-[11px] font-black text-amber-600">current</span>}
                 </button>
               ))}
             </div>
@@ -1301,7 +1301,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                       <span className="rounded-full bg-black/8 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-black/60">{mediaLabel}</span>
                     </div>
                     <Row k="Created" v={fmt(d.createdAt)} />
-                    <Row k="By" v={<span>{d.who || "—"}{d.isCurator && <span className="ml-1.5 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-black text-emerald-700">CURATOR</span>}</span>} />
+                    <Row k="By" v={<span>{d.who || "—"}{d.isCurator && <span className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-black text-amber-700">CURATOR</span>}</span>} />
                     <Row k="Type" v={typeLabel} />
                     <Row k="Media" v={mediaLabel} />
                     {isLook ? (

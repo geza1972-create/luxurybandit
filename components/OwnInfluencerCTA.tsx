@@ -28,8 +28,8 @@ export default function OwnInfluencerCTA() {
 
   if (success) {
     return (
-      <div className="rounded-2xl border border-emerald-400/40 bg-emerald-400/[0.08] p-5 text-center">
-        <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-emerald-500 text-white"><Check className="h-6 w-6" /></span>
+      <div className="rounded-2xl border border-amber-400/40 bg-amber-400/[0.08] p-5 text-center">
+        <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-amber-500 text-white"><Check className="h-6 w-6" /></span>
         <p className="mt-3 text-lg font-black text-white">You&apos;re in! 🎉</p>
         <p className="mt-1 text-[14px] font-semibold leading-relaxed text-white/70">
           Your AI influencer is ready. Open your dashboard to meet her — and check your email for your login &amp; setup instructions.

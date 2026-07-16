@@ -47,7 +47,7 @@ export default function MyTryOnsPage() {
   const chosenTierOf = (t: TryOnItem): Tier =>
     (t.public || t.publicRequested) ? "public" : (t.published || t.feedRequested) ? "community" : "private";
   const tierMeta = (d: DisplayTier) => ({
-    "public": { label: "Public", cls: "bg-emerald-500 text-white", Icon: Globe },
+    "public": { label: "Public", cls: "bg-amber-500 text-white", Icon: Globe },
     "public-req": { label: "Public · pending", cls: "bg-amber-500 text-white", Icon: Globe },
     "community": { label: "Community", cls: "bg-black text-white", Icon: Users },
     "community-req": { label: "Pending", cls: "bg-amber-500 text-white", Icon: Users },
@@ -244,7 +244,7 @@ export default function MyTryOnsPage() {
         const options: { key: Tier; label: string; desc: string; Icon: typeof Globe; dot: string }[] = [
           { key: "private", label: "Private", desc: "Only you can see it.", Icon: Lock, dot: "bg-black/70 text-white" },
           { key: "community", label: "Community", desc: isAdmin ? "Signed-in users, Community feed. Instantly visible." : "Signed-in users, Community feed. Submit for admin approval.", Icon: Users, dot: "bg-black text-white" },
-          { key: "public", label: "Public", desc: isAdmin ? "Everyone, in the main feed. Instantly visible." : "Everyone, in the main feed. Submit for admin approval.", Icon: Globe, dot: "bg-emerald-500 text-white" },
+          { key: "public", label: "Public", desc: isAdmin ? "Everyone, in the main feed. Instantly visible." : "Everyone, in the main feed. Submit for admin approval.", Icon: Globe, dot: "bg-amber-500 text-white" },
         ];
         return (
           <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/50 backdrop-blur-sm px-4 pb-6"

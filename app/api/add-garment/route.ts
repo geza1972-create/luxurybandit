@@ -131,9 +131,12 @@ export async function POST(request: Request) {
   const path = await uploadTryThisLookImage("looks", finalDataUrl);
   const id = `look-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
   const state = await readTryThisLookState();
+  // Optional partner brand tag (e.g. "Gianna Bellucci") — admin-facing; drives the try-on
+  // picker's brand filter + the "Wearing <brand> · Shop now" caption on look slides.
+  const brand = String(body.brand ?? "").trim() || undefined;
   state.looks.unshift({
     id, name, published: true, aiCreated: true, productType: "ai", wardrobe: true, brandOriginal: true,
-    category, lingerie: category === "boudoir" || undefined, curatorId,
+    category, lingerie: category === "boudoir" || undefined, curatorId, brand,
     productNote: description || undefined,
     buyUrl: /^https?:\/\//.test(buyUrl) ? buyUrl : undefined,
     imagePath: path, frontImagePath: path, garmentFrontImagePath: path, galleryImagePaths: [path],

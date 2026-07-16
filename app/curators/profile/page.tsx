@@ -371,7 +371,7 @@ export default function CuratorProfilePage() {
             <p className="mt-1 text-[12px] font-bold text-black/50">Upload a <b>selfie of yourself holding a paper</b> with <b>“LuxuryBandit”</b> + <b>today’s date</b> written on it. This proves you’re a real person — then we approve you. 💛</p>
             <div className="mt-3 flex items-center gap-3">
               <button type="button" onClick={() => verifFileRef.current?.click()}
-                className="relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-xl border-2 border-dashed border-emerald-500/50 bg-black/[0.03] active:scale-95 transition">
+                className="relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-xl border-2 border-dashed border-amber-500/50 bg-black/[0.03] active:scale-95 transition">
                 {(verificationSelfie || verificationSelfieUrl) ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={verificationSelfie || verificationSelfieUrl} alt="" className="h-full w-full object-cover" />
@@ -379,7 +379,7 @@ export default function CuratorProfilePage() {
               </button>
               <div className="min-w-0 flex-1">
                 {isRealModel ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black text-white"><Check className="h-3.5 w-3.5" /> Verified</span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[11px] font-black text-white"><Check className="h-3.5 w-3.5" /> Verified</span>
                 ) : (verificationSelfie || verificationSelfieUrl) ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-amber-400 px-2.5 py-1 text-[11px] font-black text-black">Pending review</span>
                 ) : (
@@ -424,7 +424,7 @@ export default function CuratorProfilePage() {
                 {payouts.slice(0, 5).map(p => (
                   <div key={p.id} className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-[12px] font-bold text-black/70">
                     <span>€{(p.amountCents / 100).toFixed(2)} · {p.requestedAt ? new Date(p.requestedAt).toLocaleDateString() : ""}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${p.status === "paid" ? "bg-emerald-500 text-white" : "bg-amber-400 text-black"}`}>{p.status === "paid" ? "Paid" : "Pending"}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${p.status === "paid" ? "bg-amber-500 text-white" : "bg-amber-400 text-black"}`}>{p.status === "paid" ? "Paid" : "Pending"}</span>
                   </div>
                 ))}
               </div>
@@ -435,8 +435,8 @@ export default function CuratorProfilePage() {
         {/* Identity */}
         <div className="mt-5 grid gap-3">
           <div className="grid grid-cols-2 gap-3">
-            <div><span className={label}>First name</span><input className={field} value={firstName} onChange={e => setFirstName(e.target.value)} /></div>
-            <div><span className={label}>Last name</span><input className={field} value={lastName} onChange={e => setLastName(e.target.value)} /></div>
+            <div><span className={label}>Owner first name</span><input className={field} value={firstName} onChange={e => setFirstName(e.target.value)} /></div>
+            <div><span className={label}>Owner last name</span><input className={field} value={lastName} onChange={e => setLastName(e.target.value)} /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><span className={label}>WhatsApp <span className="ml-1 rounded bg-black/5 px-1.5 py-0.5 text-[9px] font-bold normal-case tracking-normal text-black/45">🔒 for chat notifications</span></span><input type="tel" className={field} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+40 7xx… (WhatsApp)" /></div>

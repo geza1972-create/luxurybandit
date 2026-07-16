@@ -40,9 +40,9 @@ export default function WelcomePage() {
   }, []);
 
   return (
-    <main className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#0d0b0a] px-6 py-12 text-center text-white">
+    <main className="flex min-h-[100dvh] flex-col items-center justify-center lb-bg px-6 py-12 text-center text-white">
       <img src="/lb-logo.png" alt="LuxuryBandit" className="h-12 w-12 rounded-full object-contain" />
-      <span className="mt-6 grid h-16 w-16 place-items-center rounded-full bg-emerald-500 text-white shadow-[0_10px_40px_rgba(16,185,129,0.4)]">
+      <span className="mt-6 grid h-16 w-16 place-items-center rounded-full bg-amber-500 text-white shadow-[0_10px_40px_rgba(16,185,129,0.4)]">
         <Check className="h-8 w-8" />
       </span>
       <h1 className="mt-5 text-[30px] font-black leading-tight">You&apos;re in! 🎉</h1>

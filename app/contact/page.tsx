@@ -67,8 +67,8 @@ export default function ContactPage() {
 
       <div className="mx-auto max-w-xl px-5 py-6">
         {status === "sent" ? (
-          <div className="grid place-items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-6 py-12 text-center">
-            <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+          <div className="grid place-items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-6 py-12 text-center">
+            <CheckCircle2 className="h-10 w-10 text-amber-500" />
             <p className="text-lg font-black text-black">Message sent!</p>
             <p className="max-w-xs text-sm font-medium text-black/55">
               Thanks for reaching out. A confirmation is on its way to <span className="font-bold text-black">{email}</span> — we&apos;ll get back to you as soon as we can.

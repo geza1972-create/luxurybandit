@@ -71,8 +71,8 @@ export default function ConfirmPage() {
 
         {status === "success" && (
           <>
-            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-emerald-50">
-              <CheckCircle className="h-8 w-8 text-emerald-500" />
+            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-amber-50">
+              <CheckCircle className="h-8 w-8 text-amber-500" />
             </div>
             <p className="text-base font-black text-black">Account confirmed! 🎉</p>
             <p className="text-sm font-bold text-black/50">You&apos;re signed in. One moment…</p>

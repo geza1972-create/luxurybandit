@@ -512,7 +512,7 @@ export default function ProductFormPage({ editId }: { editId: string | null }) {
           <div>
             <label className="mb-1.5 block text-[11px] font-black uppercase tracking-wider text-black/40">Sale Price (€)</label>
             <div className="flex items-center gap-2 h-12 rounded-2xl border border-black/10 bg-black/[0.02] px-4 focus-within:border-black">
-              <span className="text-sm font-black text-emerald-500">€</span>
+              <span className="text-sm font-black text-amber-500">€</span>
               <input type="number" inputMode="decimal" value={form.salePrice} onChange={e => setForm(f => ({ ...f, salePrice: e.target.value }))}
                 placeholder="0.00" className="flex-1 bg-transparent text-sm font-bold text-black placeholder:text-black/25 outline-none" />
             </div>

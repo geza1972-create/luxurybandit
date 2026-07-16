@@ -155,7 +155,7 @@ function MaiIeftinInner() {
   const [preview, setPreview] = useState(""); // object URL of an attached photo
   const [loading, setLoading] = useState(false);
   // Language lives in the URL (?lang=ro|en) so a page can be shared in a given language.
-  const [lang, setLang] = useState<Lang>(params.get("lang") === "ro" ? "ro" : "en"); // default EN now
+  const [lang, setLang] = useState<Lang>("en"); // English forced everywhere (RO strings kept as a dormant fallback)
   const [navOpen, setNavOpen] = useState(false);
   const t = T[lang];
   const setLangUrl = (l: Lang) => {
@@ -165,13 +165,10 @@ function MaiIeftinInner() {
     p.set("lang", l);
     router.replace(`${pathname}?${p.toString()}`, { scroll: false });
   };
-  // Remember the language so navigating anywhere stays in it; a ?lang in the URL wins + is saved.
+  // English forced everywhere — normalise any stored/URL language back to EN. (RO kept dormant.)
   useEffect(() => {
-    const q = params.get("lang");
-    try {
-      if (q === "en" || q === "ro") localStorage.setItem("lb_lang", q);
-      else { const s = localStorage.getItem("lb_lang"); if (s === "en" || s === "ro") setLang(s as Lang); }
-    } catch { /**/ }
+    setLang("en");
+    try { localStorage.setItem("lb_lang", "en"); } catch { /**/ }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Append the current language to internal links so clicks keep the user in that language.
   const withLang = (href: string) => `${href}${href.includes("?") ? "&" : "?"}lang=${lang}`;
@@ -466,19 +463,21 @@ function MaiIeftinInner() {
               </>
             )}
           </div>
-          {/* Language switcher — Romanian default, toggle to English. */}
-          <div className="flex items-center rounded-full bg-white/[0.07] p-0.5 ring-1 ring-white/10">
-            {(["ro", "en"] as Lang[]).map((l) => (
-              <button key={l} type="button" onClick={() => setLangUrl(l)}
-                className={`rounded-full px-2.5 py-1 text-[12px] font-black uppercase transition ${lang === l ? "bg-white text-black" : "text-white/55"}`}>
-                {l}
-              </button>
-            ))}
-          </div>
+          {/* Language switcher hidden — English is forced everywhere. Re-enable to bring RO back. */}
+          {false && (
+            <div className="flex items-center rounded-full bg-white/[0.07] p-0.5 ring-1 ring-white/10">
+              {(["ro", "en"] as Lang[]).map((l) => (
+                <button key={l} type="button" onClick={() => setLangUrl(l)}
+                  className={`rounded-full px-2.5 py-1 text-[12px] font-black uppercase transition ${lang === l ? "bg-white text-black" : "text-white/55"}`}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          )}
           {/* Share this page (URL carries ?model / ?lang so it opens the same view). */}
           <button type="button" onClick={() => void share()} aria-label="Share"
             className="grid h-10 w-10 place-items-center rounded-full text-white/75 hover:bg-white/10 active:scale-90 transition">
-            {shared ? <Check className="h-5 w-5 text-emerald-400" /> : <Share2 className="h-5 w-5" />}
+            {shared ? <Check className="h-5 w-5 text-amber-400" /> : <Share2 className="h-5 w-5" />}
           </button>
           {/* Opens the SAME app drawer as everywhere (mounted globally in BottomNav). */}
           <button type="button" onClick={() => { try { window.dispatchEvent(new Event("lb-open-account")); } catch { /**/ } }} aria-label="Meniu"

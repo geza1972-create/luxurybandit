@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles, Video, MessageCircle, TrendingUp, Check, Crown, Camera, BarChart3, Users, Gem, Wand2 } from "lucide-react";
+import { Sparkles, Video, MessageCircle, TrendingUp, Check, Crown, Camera, BarChart3, Users, Gem, Wand2, MapPin } from "lucide-react";
 import { readTryThisLookState, getSignedUrl, getPricingConfig, fmtCents } from "@/lib/try-this-look-store";
 import { influencerPriceCents, fmtPriceCents } from "@/lib/influencer-price";
 import ModelCard from "@/components/ModelCard";
@@ -13,10 +13,10 @@ import WardrobePeek from "@/components/WardrobePeek";
 
 export const metadata = {
   title: "LuxuryBandit — Own an AI Influencer. We'll help her grow.",
-  description: "Own an AI influencer on LuxuryBandit — she's yours, and her LB-Value grows every day. Generate her videos in one tap, use them anywhere, resell her for more. Membership $4.99/month.",
+  description: "Own an AI influencer on LuxuryBandit — she's yours, one of a kind. Generate her videos in one tap, use them anywhere, and watch her Growth Score grow. Membership $4.99/month.",
   openGraph: {
     title: "Own an AI Influencer — We'll help her grow | LuxuryBandit",
-    description: "Own your AI influencer — she's an appreciating asset. Generate her videos yourself, her LB-Value grows daily. Membership $4.99/month.",
+    description: "Own your AI influencer — a one-of-a-kind digital collectible. Generate her videos yourself, grow her Growth Score every day. Membership $4.99/month.",
     images: [{ url: "/become-a-model-banner.jpg?v=3", width: 1280, height: 720 }],
     url: "/own-influencer",
     type: "website",
@@ -32,7 +32,8 @@ async function landingData() {
   try {
     const state = await readTryThisLookState();
     const curators = state.curators ?? [];
-    const gina = curators.find(c => c.firstName === "Gina" && c.lastName === "Popescu") as { id?: string; photoUrl?: string; flagship?: boolean; realModel?: boolean; purchasedAt?: string; createdAt?: string; bio?: string; motto?: string; brands?: string } | undefined;
+    // Landing example = Bella (her ads performed best). Found by her stable id, robust to renames.
+    const gina = curators.find(c => c.id === "curator-1783683672619-td4cy") as { id?: string; firstName?: string; lastName?: string; photoUrl?: string; flagship?: boolean; realModel?: boolean; purchasedAt?: string; createdAt?: string; bio?: string; motto?: string; brands?: string } | undefined;
     const vids = (state.generations ?? []).filter(g => (g as { videoUrl?: string }).videoUrl && !(g as { hidden?: boolean }).hidden);
     const pick = (g: unknown) => ({ poster: ((g as { imageUrl?: string }).imageUrl ?? "") as string, video: (g as { videoUrl?: string }).videoUrl as string });
     // Admin-picked showcase clips lead (chosen via the on-page picker → `showcase` flag);
@@ -40,10 +41,10 @@ async function landingData() {
     const showcaseClips = vids.filter(g => (g as { showcase?: boolean }).showcase === true).slice(0, 6).map(pick);
     const ginaClips = gina ? vids.filter(g => (g as { curatorId?: string }).curatorId === gina.id && (g as { public?: boolean }).public === true).slice(0, 4).map(pick) : [];
     const clips = showcaseClips.length ? showcaseClips : ginaClips;
-    // Gina's trading-card data — her real LB-Value (appreciating-asset proof) + her looks/clip.
-    const ginaKey = "gina popescu";
+    // Gina's collectible-card data — her live Growth Score + her looks/clip.
+    const ginaKey = [gina?.firstName, gina?.lastName].filter(Boolean).join(" ").trim().toLowerCase() || "bella jussi";
     let ginaLooks = 0, ginaVideos = 0;
-    const ginaClipTiles: { poster: string; video: string; private: boolean }[] = [];
+    const ginaClipTiles: { poster: string; video: string; private: boolean; createdAt: string; look: string }[] = [];
     for (const g of (state.generations ?? [])) {
       if ((g as { feed?: boolean }).feed !== true) continue;
       const gn = String((g as { customerName?: string }).customerName ?? "").trim().toLowerCase();
@@ -53,7 +54,7 @@ async function landingData() {
       if (vurl) ginaVideos++;
       const thumb = (g as { imageUrl?: string }).imageUrl;
       // Her video clips → clickable thumbs. Public shown to all; private = members-only.
-      if (vurl && thumb) ginaClipTiles.push({ poster: thumb, video: vurl, private: (g as { public?: boolean }).public !== true });
+      if (vurl && thumb) ginaClipTiles.push({ poster: thumb, video: vurl, private: (g as { public?: boolean }).public !== true, createdAt: (g as { createdAt?: string }).createdAt ?? "", look: String((g as { lookName?: string }).lookName ?? "") });
     }
     // Public clips first, private (members-only) after — show all (swipeable), cap high for perf.
     ginaClipTiles.sort((a, b) => Number(a.private) - Number(b.private));
@@ -70,14 +71,41 @@ async function landingData() {
     const heroClip = ginaTiles[0] || ginaClips[0] || clips[0] || { poster: "", video: "" };
     // A short 6-char model number derived from her id — a stable "serial" for the card.
     const ginaSerial = (gina?.id ?? "").replace(/[^a-z0-9]/gi, "").slice(-6).toUpperCase() || "GINA01";
+    // ── Her brand story: who she is + per-look story (date · location · caption). ──
+    // Dynamic card identity — her stored fields win; the crafted copy is only the fallback.
+    const ginaIntro = String((gina as any)?.intro ?? "").trim()
+      || "Hi, I'm Bella — your Monaco influencer. On my world tour I was discovered by Gianna Bellucci, and now I'm the face of the label: I travel the world, test her latest collection first-hand, and bring every look to you with photos and stories from each stop. Follow along and never miss a drop.";
+    const ginaTitle = String((gina as any)?.title ?? "").trim() || "Monaco Influencer";
+    const ginaSponsor = String((gina as any)?.sponsor ?? "").trim() || "Gianna Bellucci";
+    const LOCATIONS = ["Monte-Carlo, Monaco", "Saint-Tropez, France", "Lake Como, Italy", "Milan, Italy", "Paris, France", "Mykonos, Greece", "Dubai, UAE", "Ibiza, Spain"];
+    const STORIES = [
+      "Golden hour on the terrace — testing this season's liquid-satin trend. Verdict: obsessed.",
+      "Off-duty in the old town. Sheer lace is having a moment; here's how I'd wear it by day.",
+      "Rooftop sunset, city lights. This is the silhouette everyone will copy next month.",
+      "Poolside and unbothered. Reporting live on the trend that's taking over the Riviera.",
+      "Backstage energy. New drop, first look — you saw it here before anyone else.",
+      "A quiet luxury moment. Sometimes the simplest piece is the whole story.",
+    ];
+    const fmtDate = (iso: string) => { try { return iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : ""; } catch { return ""; } };
+    const ginaStory = ginaTiles.slice(0, 8).map((t, i) => ({
+      poster: t.poster, video: t.video, private: false, // showcase landing: always show her looks
+      date: fmtDate(t.createdAt),
+      location: LOCATIONS[i % LOCATIONS.length],
+      story: STORIES[i % STORIES.length],
+      brand: "Gianna Bellucci",   // her sponsor — every look she wears is theirs
+      shopUrl: "/haine",          // "Shop now" → the clothes gallery (Gianna Bellucci pieces)
+    }));
     const ginaCard = {
       id: (gina?.id ?? "") as string,
       serial: ginaSerial,
-      name: "Gina Popescu",
+      name: "Bella",
+      title: ginaTitle,
+      intro: ginaIntro,
+      sponsor: ginaSponsor,
       photo: (gina?.photoUrl ?? "") as string,
       video: heroClip.video || "",
       poster: heroClip.poster || (gina?.photoUrl ?? ""),
-      clips: ginaTiles,
+      clips: ginaStory,
       valueLabel: fmtPriceCents(ginaValueCents),
       looks: ginaLooks,
       bio: (gina?.bio || gina?.motto || "") as string,
@@ -103,12 +131,12 @@ async function landingData() {
       const video = face.videoPath ? await getSignedUrl(face.videoPath).catch(() => "") : (face.videoUrl || "");
       return { name: "", photo, video, poster: photo, createdAt: face.createdAt || "" };
     }));
-    return { heroPhoto: (gina?.photoUrl ?? "") as string, clips, models, ginaCard };
-  } catch { return { heroPhoto: "", clips: [] as { poster: string; video: string }[], models: [] as { name: string; photo: string }[], ginaCard: null }; }
+    return { heroPhoto: (gina?.photoUrl ?? "") as string, clips, models, ginaCard, ginaIntro, ginaStory };
+  } catch { return { heroPhoto: "", clips: [] as { poster: string; video: string }[], models: [] as { name: string; photo: string }[], ginaCard: null, ginaIntro: "", ginaStory: [] as { poster: string; video: string; private: boolean; date: string; location: string; story: string }[] }; }
 }
 
 export default async function OwnInfluencerLanding() {
-  const { heroPhoto, clips, models, ginaCard } = await landingData();
+  const { heroPhoto, clips, models, ginaCard, ginaIntro, ginaStory } = await landingData();
   // All prices come from the admin-editable price list — change them once there, not here.
   const pricing = await getPricingConfig();
   const subLabel = fmtCents(pricing.subscriptionMonthlyCents);   // membership / month
@@ -128,7 +156,7 @@ export default async function OwnInfluencerLanding() {
     { icon: Sparkles, label: "Daily luxury content" },
     { icon: Video, label: "AI fashion videos" },
     { icon: MessageCircle, label: "Premium fan interactions" },
-    { icon: TrendingUp, label: "You earn LB-Value" },
+    { icon: TrendingUp, label: "A growing fan community" },
   ];
   const CREATOR_POINTS = ["We add fresh clothes to her wardrobe daily", "No AI skills required", "You generate her videos yourself — one tap", "Mark videos private — only her Super Followers see them", "Earn when fans Super Follow her ($4.99/mo)", "Earn when fans pay to chat with her"];
   const FAN_POINTS = ["Discover amazing AI influencers", "Chat with your favorites", "Unlock exclusive content", "Watch premium videos", "Try on her looks"];
@@ -136,31 +164,31 @@ export default async function OwnInfluencerLanding() {
     { icon: Users, t: "Pick your influencer", d: "Choose one of ours or create your own — one-of-a-kind, and she's yours." },
     { icon: Crown, t: "Start your membership", d: "$4.99/month unlocks your studio." },
     { icon: Sparkles, t: "Generate her videos", d: "One tap — we handle the AI. No prompts, no skills." },
-    { icon: TrendingUp, t: "Her LB-Value grows", d: "Every video and every day makes her worth more." },
-    { icon: Video, t: "Use her — or resell her", d: "Post her videos on your shop, Facebook & Instagram — or sell her later for her higher value." },
+    { icon: TrendingUp, t: "Her Growth Score grows", d: "Every video and every day makes her more popular." },
+    { icon: Video, t: "Use her everywhere", d: "Post her videos on your shop, Facebook & Instagram — she's yours to use." },
   ];
   const WHY = [
     { icon: Crown, t: "Own your influencer", d: "You own your AI influencer and your brand." },
-    { icon: TrendingUp, t: "Her LB-Value grows", d: "She's an appreciating asset — +$1/day, +$1/video, +$10 per 10 videos. Resell her later for more." },
+    { icon: TrendingUp, t: "Her Growth Score grows", d: "More looks, more videos, more fans — she grows more complete and desirable every day." },
     { icon: Users, t: "A loyal fanbase", d: "Build an audience that follows her every single day." },
     { icon: Camera, t: "Daily luxury content", d: "We create high-quality content every single day." },
-    { icon: Gem, t: "One of a kind", d: "Fixed name, one owner — nobody else can have her. Yours like an NFT." },
-    { icon: BarChart3, t: "Earn from her", d: "Fans pay to chat with her — you earn from it. And resell her later at her higher LB-Value." },
+    { icon: Gem, t: "One of a kind", d: "Fixed name, one owner — nobody else can have her. Yours alone." },
+    { icon: BarChart3, t: "Earn from her", d: "Fans pay to chat with her and to super-follow her — you earn from it." },
     { icon: Wand2, t: "One-tap generation", d: "You generate her videos yourself — no prompts, no editing skills." },
   ];
 
   return (
-    <main className="lb-landing min-h-[100dvh] bg-[#0d0b0a] text-white">
+    <main className="lb-landing min-h-[100dvh] lb-bg text-white">
       <TrackView event="recruit_view" />
 
       {/* ── Top nav ── */}
       <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0d0b0a]/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
-          <Link href="/own-influencer" className="flex shrink-0 items-center gap-2.5">
+          <Link href="/own-influencer" className="flex min-w-0 items-center gap-2.5">
             <img src="/lb-logo.png" alt="LuxuryBandit" className="h-9 w-9 shrink-0 rounded-full object-contain" />
-            <span className="leading-none">
-              <span className="block text-[15px] font-black tracking-wide">LUXURYBANDIT</span>
-              <span className="block text-[9px] font-bold uppercase tracking-[0.2em] text-amber-400/80">The Influencer Marketplace</span>
+            <span className="min-w-0 leading-none">
+              <span className="block truncate text-[15px] font-black tracking-wide">LUXURYBANDIT</span>
+              <span className="block truncate text-[9px] font-bold uppercase tracking-[0.2em] text-amber-400/80">The Influencer Marketplace</span>
             </span>
           </Link>
           <nav className="ml-auto hidden items-center gap-6">
@@ -177,10 +205,10 @@ export default async function OwnInfluencerLanding() {
       {/* ── Hero ── */}
       <section className="relative overflow-hidden border-b border-white/10">
         <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-10">
-          {/* Trading card — Gina, the flagship, with her live LB-Value */}
-          <div className="relative order-1 mx-auto w-full max-w-md">
+          {/* Collectible card — Gina, the flagship, with her live Growth Score */}
+          <div className="relative order-1 mx-auto w-full min-w-0 max-w-md">
             {ginaCard && ginaCard.photo ? (
-              <ModelCard {...ginaCard} />
+              <ModelCard {...ginaCard} showProfileLink />
             ) : heroPhoto ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img src={heroPhoto} alt="Your AI influencer" className="aspect-[4/5] w-full rounded-3xl object-cover" />
@@ -194,9 +222,9 @@ export default async function OwnInfluencerLanding() {
             <h1 className="text-[30px] font-black leading-[0.98] tracking-tight">
               OWN AN<br /><span className="text-amber-400">AI INFLUENCER.</span>
             </h1>
-            <p className="mt-3 text-[20px] font-black leading-tight">We&apos;ll help her grow with <span className="text-amber-400">LB-Value</span>!</p>
+            <p className="mt-3 text-[20px] font-black leading-tight">We&apos;ll help her grow every single day!</p>
             <p className="mx-auto mt-4 max-w-md text-[15px] font-semibold leading-7 text-white/65">
-              Own a one-of-a-kind <strong className="text-white">AI influencer</strong> on LuxuryBandit. Generate her videos in one tap, use them anywhere — and her <strong className="text-white">LB-Value</strong> grows every single day.
+              Own a one-of-a-kind <strong className="text-white">AI influencer</strong> on LuxuryBandit. Generate her videos in one tap, use them anywhere — and her <strong className="text-white">Growth Score</strong> grows every single day.
             </p>
             <div className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-4">
               {HERO_FEATURES.map(f => (
@@ -268,36 +296,37 @@ export default async function OwnInfluencerLanding() {
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">The Influencer Marketplace</p>
             <h2 className="mt-2 text-[30px] font-black uppercase leading-none tracking-tight">Who owns her?</h2>
             <p className="mt-3 text-[14px] font-semibold leading-relaxed text-white/70">
-              Every AI influencer is one-of-a-kind — and only <span className="font-black text-white">one person</span> can own her: her daily content, her chats, her whole audience. These are <span className="font-black text-emerald-400">still free</span>. Claim one before someone else does — or <BuyFormLink className="font-black text-amber-400 underline decoration-amber-400/40 underline-offset-2">create your own</BuyFormLink>.
+              Every AI influencer is one-of-a-kind — and only <span className="font-black text-white">one person</span> can own her: her daily content, her chats, her whole audience. These are <span className="font-black text-amber-400">still free</span>. Claim one before someone else does — or <BuyFormLink className="font-black text-amber-400 underline decoration-amber-400/40 underline-offset-2">create your own</BuyFormLink>.
             </p>
             {models.length >= 1 && <BuyModelGrid models={models.slice(0, 12)} />}
           </div>
         </div>
       </section>
 
-      {/* ── LB-Value: the appreciating asset ── */}
+      {/* ── Growth Score: how she grows (NOT a financial value) ── */}
       <section className="border-b border-white/10">
         <div className="mx-auto max-w-6xl px-4 py-12">
           <div className="rounded-3xl border border-amber-400/25 bg-amber-400/[0.05] p-6">
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">LB-Value · she appreciates</p>
-            <h2 className="mt-2 text-[26px] font-black leading-tight">We&apos;ll help her grow —<br />with <span className="text-amber-300">LB-Value</span>.</h2>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Growth Score · she grows every day</p>
+            <h2 className="mt-2 text-[26px] font-black leading-tight">We&apos;ll help her grow —<br />with a rising <span className="text-amber-300">Growth Score</span>.</h2>
             <p className="mt-3 text-[14px] font-semibold leading-relaxed text-white/70">
-              Every influencer has an <span className="font-black text-amber-300">LB-Value</span> — what she&apos;s worth, and she only has it here on LuxuryBandit. Own her and she becomes an appreciating asset: the more you build her out, the more she&apos;s worth — and you can resell her later at her higher value.
+              Every influencer has a <span className="font-black text-amber-300">Growth Score</span> — how popular and developed she is here on LuxuryBandit. Build her out with looks, videos and fans and her score climbs. It&apos;s a mark of how unique and desirable she is — <span className="font-black text-white">not a price, not an investment</span>.
             </p>
             <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { v: "+$1", d: "every day you own her" },
-                { v: "+$1", d: "per video you generate" },
-                { v: "+$1", d: "per Super Follower she gains" },
-                { v: "+$10", d: "bonus for every 10 videos" },
+                { v: "New looks", d: "exclusive fashion, added for you" },
+                { v: "Premium videos", d: "one tap — fans stay engaged" },
+                { v: "A fan community", d: "followers, chats & super-fans" },
+                { v: "Marketplace fame", d: "featured creators get seen" },
               ].map(x => (
                 <div key={x.d} className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                  <p className="text-2xl font-black text-amber-300">{x.v}</p>
+                  <p className="text-[15px] font-black text-amber-300">{x.v}</p>
                   <p className="text-[12px] font-bold text-white/50">{x.d}</p>
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-[12px] font-bold text-white/40">Fans <span className="font-black text-white/70">Super Follow her for {superFollowLabel}/month</span> to unlock her <span className="font-black text-white/70">private videos</span> — <span className="font-black text-white/70">you earn from it</span>, and every Super Follower adds <span className="font-black text-amber-300">+$1</span> to her LB-Value. Mark any video private when you generate it — only Super Followers see it.</p>
+            <p className="mt-3 text-[12px] font-bold text-white/40">Fans <span className="font-black text-white/70">Super Follow her for {superFollowLabel}/month</span> to unlock her <span className="font-black text-white/70">private videos</span> — <span className="font-black text-white/70">you earn from it</span>, and every super-follower lifts her <span className="font-black text-amber-300">Growth Score</span>. Mark any video private when you generate it — only Super Followers see it.</p>
+            <Link href="/lb-value" className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 px-4 py-2 text-[12px] font-black text-amber-300 transition hover:bg-amber-400/10">How she grows →</Link>
           </div>
         </div>
       </section>
@@ -317,7 +346,7 @@ export default async function OwnInfluencerLanding() {
                 { t: "A curated luxury wardrobe", d: "Only the finest pieces — hand-picked by us. She always wears luxury." },
                 { t: "Generate her videos yourself", d: "One tap — we handle the AI. No prompts, no editing skills." },
                 { t: "The videos are yours to use", d: "Post them on your own shop, your Facebook or your Instagram." },
-                { t: "Every video grows her LB-Value", d: "The more you generate, the more she's worth — and can resell for." },
+                { t: "Every video grows her Growth Score", d: "The more you generate, the more popular and complete she becomes." },
               ].map(p => (
                 <li key={p.t} className="flex items-start gap-2.5">
                   <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />

@@ -2,7 +2,9 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, BadgeCheck, Instagram, Loader2, Lock, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play, Sparkles, SlidersHorizontal, Trash2, EyeOff, Eye, ImageUp, Video, Download, Mail } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Instagram, Loader2, Lock, ShoppingBag, UserPlus, UserCheck, MessageCircle, X, Send, Play, Sparkles, SlidersHorizontal, Trash2, EyeOff, Eye, ImageUp, Video, Download, Mail, Pencil } from "lucide-react";
+import { TagField } from "../../curators/taste-form";
+import { SPONSORS } from "@/lib/sponsors";
 import TopNav from "@/components/TopNav";
 import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
@@ -24,9 +26,9 @@ function viewerHeaders(): Record<string, string> {
   return h;
 }
 
-type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; brands?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string; status?: string; hidden?: boolean; priceCents?: number; profilePhotoUrls?: string[]; growPriceLabel?: string; growPriceCents?: number; forSale?: boolean; owned?: boolean; youOwnHer?: boolean; flagship?: boolean; flagshipTier?: number; flagshipBases?: number[]; purchasedAt?: string; createdAt?: string; lookCount?: number; videoCount?: number; superFollowers?: number; country?: string; owner?: string; ownerId?: string; ownerHideName?: boolean; modelName?: string };
-type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; featured?: boolean; productType?: string; wardrobe?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string };
-type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string; feed?: boolean; private?: boolean };
+type Profile = { id: string; firstName?: string; lastName?: string; motto?: string; bio?: string; photoUrl?: string; photoFullUrl?: string; instagram?: string; style?: string; brands?: string; genderFocus?: string; likeBoost?: number; viewBoost?: number; realBadge?: boolean; realModel?: boolean; verificationSelfieUrl?: string; phone?: string; status?: string; hidden?: boolean; priceCents?: number; profilePhotoUrls?: string[]; growPriceLabel?: string; growPriceCents?: number; forSale?: boolean; owned?: boolean; youOwnHer?: boolean; flagship?: boolean; flagshipTier?: number; flagshipBases?: number[]; purchasedAt?: string; createdAt?: string; lookCount?: number; videoCount?: number; superFollowers?: number; country?: string; owner?: string; ownerId?: string; ownerHideName?: boolean; modelName?: string; hasPrevPhoto?: boolean; title?: string; intro?: string; sponsor?: string };
+type Look = { id: string; name: string; imageUrl: string; frontImageUrl?: string; curatorId?: string; published?: boolean; aiCreated?: boolean; videoUrl?: string; category?: string; productNote?: string; lingerie?: boolean; featured?: boolean; productType?: string; wardrobe?: boolean; alternatives?: { priceValue?: number; currency?: string }[]; price?: string; salePrice?: string; brand?: string; buyUrl?: string };
+type TryOn = { id: string; imageUrl: string; videoUrl?: string; lookName?: string; lookId?: string; feed?: boolean; private?: boolean; public?: boolean; brand?: string; shopUrl?: string };
 
 const toSlug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 function optImg(url?: string, w = 600) { if (!url) return ""; if (url.startsWith("data:") || url.startsWith("blob:")) return url; return `/_next/image?url=${encodeURIComponent(url)}&w=${w}&q=70`; }
@@ -47,9 +49,9 @@ function StripClip({ t, onOpen }: { t: TryOn; onOpen: () => void }) {
       <span className="absolute bottom-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white backdrop-blur">
         <Play className="h-3 w-3 translate-x-[0.5px]" fill="currentColor" />
       </span>
-      {/* Admin-only in practice: non-admins never receive feed:false clips. Marks a clip
-          that is hidden from her public profile + the feed (kept for ads / the cache). */}
-      {t.feed === false && (
+      {/* Owner/admin visibility marker: a clip not fully public (feed:false = hidden everywhere,
+          or public:false = not on her public profile) is flagged "Hidden" so the owner sees it. */}
+      {(t.feed === false || t.public === false) && (
         <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 text-[9px] font-black text-amber-300 backdrop-blur">
           <EyeOff className="h-2.5 w-2.5" /> Hidden
         </span>
@@ -103,6 +105,8 @@ export default function CuratorPublicPage() {
   const [genBrief, setGenBrief] = useState("");
   const [genRefs, setGenRefs] = useState<string[]>([]);
   const genRefFileRef = useRef<HTMLInputElement>(null);
+  const cpFileRef = useRef<HTMLInputElement>(null);      // change-photo: upload input
+  const cpRefFileRef = useRef<HTMLInputElement>(null);   // change-photo: AI reference input
   // How many pieces to auto-generate (editable, no longer a fixed 3 + 3).
   const [genMain, setGenMain] = useState(3);
   const [genLingerie, setGenLingerie] = useState(3);
@@ -331,9 +335,25 @@ export default function CuratorPublicPage() {
     setAllLooks(all.filter(l => l.published !== false));
     setLooks(all.filter(l => l.curatorId === id));
   };
-  // Admin: delete an "in motion" video (the underlying try-on generation).
+  // Admin: attach a SHOP link (+ brand) to an EXISTING video — the look slide then shows
+  // "Wearing <brand> · Shop now". Raw URL is stored; affiliate wrapping happens at serve time.
+  const setShopLink = async (t: TryOn) => {
+    const url = window.prompt("Shop link for this video (the product page URL):", t.shopUrl && !/anrdoezrs|cj\.com/.test(t.shopUrl) ? t.shopUrl : "https://giannabellucci.com/");
+    if (url === null) return;
+    const brand = window.prompt("Brand shown on the video (\"Wearing …\"):", t.brand || "Gianna Bellucci");
+    if (brand === null) return;
+    try {
+      const res = await fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ action: "set-generation-shop", generationId: t.id, shopUrl: url.trim(), brand: brand.trim() }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || d.error) throw new Error(d.error || "Save failed");
+      await reloadTryons(); // re-pull → serve-time affiliate-wrapped link
+      alert("Shop link saved ✓ — the video now shows “Wearing " + brand.trim() + " · Shop now”.");
+    } catch (e) { alert(e instanceof Error ? e.message : "Save failed"); }
+  };
+
+  // Admin/owner: delete a try-on generation (video OR photo draft).
   const deleteVideo = async (t: TryOn) => {
-    if (!window.confirm("Dieses Video endgültig löschen?")) return;
+    if (!window.confirm(t.videoUrl ? "Delete this video permanently?" : "Delete this photo permanently?")) return;
     try {
       await fetch("/api/try-this-look", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ action: "delete-generation", id: t.id }) });
       setTryons(prev => prev.filter(x => x.id !== t.id));
@@ -348,19 +368,19 @@ export default function CuratorPublicPage() {
     const H = { "Content-Type": "application/json", ...adminHeaders() };
     try {
       const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ upscale: true, videoUrl: t.videoUrl }) }).then(r => r.json());
-      if (!start.videoId) throw new Error(start.error || "Upscale-Start fehlgeschlagen.");
+      if (!start.videoId) throw new Error(start.error || "Upscale start failed.");
       let videoUrl = "";
       for (let i = 0; i < 90; i++) {
         await new Promise(r => setTimeout(r, 5000));
         const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}`).then(r => r.json());
         if (p.status === "done" && p.videoUrl) { videoUrl = p.videoUrl; break; }
-        if (p.status === "failed") throw new Error(p.error || "Umrechnen fehlgeschlagen.");
+        if (p.status === "failed") throw new Error(p.error || "Conversion failed.");
       }
-      if (!videoUrl) throw new Error("Zeitüberschreitung.");
+      if (!videoUrl) throw new Error("Timed out.");
       await fetch("/api/try-this-look", { method: "POST", headers: H, body: JSON.stringify({ action: "attach-generation-video", generationId: t.id, videoUrl }) });
       setTryons(prev => prev.map(x => x.id === t.id ? { ...x, videoUrl } : x));
       alert("In HD umgerechnet ✓ — neu laden zum Ansehen.");
-    } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Umrechnen"); }
+    } catch (e) { alert(e instanceof Error ? e.message : "Conversion error"); }
     finally { setHdVidBusy(""); }
   };
   // Download the clip as an .mp4 so you can post it to Instagram (Reel) from your phone.
@@ -389,9 +409,9 @@ export default function CuratorPublicPage() {
       const caption = `${name} · LuxuryBandit ✨\n\n#luxurybandit #fashion #reels #model #ootd`;
       const res = await fetch("/api/instagram-publish", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ videoUrl: t.videoUrl, caption }) });
       const d = await res.json().catch(() => ({}));
-      if (!res.ok || !d.ok) throw new Error(d?.error || "IG-Post fehlgeschlagen");
+      if (!res.ok || !d.ok) throw new Error(d?.error || "IG post failed");
       alert("Auf Instagram gepostet ✓");
-    } catch (e) { alert(e instanceof Error ? e.message : "IG-Post fehlgeschlagen"); }
+    } catch (e) { alert(e instanceof Error ? e.message : "IG post failed"); }
     finally { setIgBusy(""); }
   };
   // Admin: hide/show a video in HER public profile (and the feed) without deleting it —
@@ -417,6 +437,31 @@ export default function CuratorPublicPage() {
   const vidFileRef = useRef<HTMLInputElement>(null);
   const uploadLookRef = useRef(""); // the garment picked in the gallery, read at upload time
   const [videoPickerOpen, setVideoPickerOpen] = useState(false); // garment gallery before picking the file
+  const [genVidOpen, setGenVidOpen] = useState(false); // "Generate AI Video" garment picker
+  const [genVidBusy, setGenVidBusy] = useState(false);
+  const [gvBellucci, setGvBellucci] = useState(false); // picker filter: only Gianna Bellucci pieces
+  // Admin: change her main photo — upload one OR generate with fal.ai (same tool as "new model").
+  const [cpOpen, setCpOpen] = useState(false);
+  const [cpBusy, setCpBusy] = useState(false);
+  const [cpPrompt, setCpPrompt] = useState("");
+  const [cpRef, setCpRef] = useState("");            // reference image (dataURL) for a similar face
+  const [cpResults, setCpResults] = useState<string[]>([]); // generated face image URLs to choose from
+  const [cpBefore, setCpBefore] = useState(""); // before/after preview after an enhance
+  const [cpAfter, setCpAfter] = useState("");
+  // Edit profile (admin/creator): all her text fields, editable right on her page.
+  const [epOpen, setEpOpen] = useState(false);
+  const [epBusy, setEpBusy] = useState(false);
+  const [epName, setEpName] = useState("");
+  const [epTitle, setEpTitle] = useState("");
+  const [epIntro, setEpIntro] = useState("");
+  const [epSponsor, setEpSponsor] = useState("");
+  const [epMotto, setEpMotto] = useState("");
+  const [epBio, setEpBio] = useState("");
+  // Brands as CHIPS (same TagField as the apply form) — free text would break the
+  // brand filters & display, so she picks from the same curated brand list.
+  const [epBrandChips, setEpBrandChips] = useState<string[]>([]);
+  const [epBrandsDb, setEpBrandsDb] = useState<string[]>([]);
+  const [epStyle, setEpStyle] = useState("");
   const [vidBusy, setVidBusy] = useState(false);
   const firstFrameDataUrl = (file: File): Promise<string> => new Promise((resolve) => {
     try {
@@ -439,29 +484,29 @@ export default function CuratorPublicPage() {
   });
   const uploadModelVideo = async (file: File) => {
     if (vidBusy) return;
-    if (!file.type.startsWith("video/")) { alert("Bitte eine Videodatei wählen."); return; }
+    if (!file.type.startsWith("video/")) { alert("Please choose a video file."); return; }
     setVidBusy(true);
     try {
       const H = { "Content-Type": "application/json", ...adminHeaders() };
       const ext = (file.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "") || "mp4";
       const posterImage = await firstFrameDataUrl(file); // capture BEFORE upload (file still in memory)
       const sig = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ importVideo: true, sign: true, ext }) }).then(r => r.json());
-      if (!sig.uploadUrl || !sig.path) throw new Error(sig.error || "Upload konnte nicht starten (Rechte prüfen)");
+      if (!sig.uploadUrl || !sig.path) throw new Error(sig.error || "Upload could not start (check permissions)");
       const put = await fetch(sig.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type || "video/mp4", "x-upsert": "true" }, body: file });
-      if (!put.ok) throw new Error("Upload zu Supabase fehlgeschlagen");
+      if (!put.ok) throw new Error("Upload to Supabase failed");
       const att = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ importVideo: true, videoPath: sig.path }) }).then(r => r.json());
-      if (!att.videoUrl) throw new Error(att.error || "Signieren fehlgeschlagen");
+      if (!att.videoUrl) throw new Error(att.error || "Signing failed");
       // If a garment was picked (in the gallery dialog), attach it so this video IS her wearing
       // that piece (reuse cache model×look×turn → served instantly on that try-on, no regen).
       const pickedLookId = uploadLookRef.current;
       const look = allLooks.find(l => l.id === pickedLookId);
       const add = await fetch("/api/try-this-look", { method: "POST", headers: H, body: JSON.stringify({ action: "add-model-video", curatorId: id, videoUrl: att.videoUrl, ...(pickedLookId ? { lookId: pickedLookId, title: look?.name || "", motion: "turn" } : {}), ...(posterImage ? { posterImage } : {}) }) }).then(r => r.json());
-      if (!add.ok) throw new Error(add.error || "Video konnte nicht gespeichert werden");
+      if (!add.ok) throw new Error(add.error || "Could not save the video");
       uploadLookRef.current = "";
       // Refresh her videos so it shows up immediately.
       await reloadTryons();
-      alert(look ? `Video hochgeladen ✓ — verknüpft mit „${look.name}".` : "Video hochgeladen ✓ — es ist jetzt in ihrem Profil (Play-Button am Foto).");
-    } catch (e) { alert(e instanceof Error ? e.message : "Fehler beim Hochladen"); }
+      alert(look ? `Video uploaded ✓ — linked to “${look.name}”.` : "Video uploaded ✓ — it is now on her profile (play button on the photo).");
+    } catch (e) { alert(e instanceof Error ? e.message : "Upload error"); }
     finally { setVidBusy(false); }
   };
 
@@ -489,13 +534,13 @@ export default function CuratorPublicPage() {
         headers: { "Content-Type": "application/json", ...adminHeaders() },
         body: JSON.stringify({ action: "update", id, followerBoost, likeBoost, viewBoost }),
       });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Boost fehlgeschlagen");
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Boost failed");
       // Reflect immediately: like/view baselines live on the profile; followers are
       // re-fetched from the follow API (boost + real follows).
       fetch(`/api/follow?slug=${encodeURIComponent(id)}&type=user`, { headers: viewerHeaders() })
         .then(r => r.ok ? r.json() : null).then(d => { if (d) setFollowerCount(d.followerCount ?? followerBoost); }).catch(() => {});
       setProfile(p => (p ? { ...p, likeBoost, viewBoost } : p));
-    } catch (e) { alert(e instanceof Error ? e.message : "Boost fehlgeschlagen"); }
+    } catch (e) { alert(e instanceof Error ? e.message : "Boost failed"); }
     finally { setBoostBusy(false); }
   };
 
@@ -508,15 +553,16 @@ export default function CuratorPublicPage() {
   const [hdBusy, setHdBusy] = useState(false);
   const upscalePhoto = async () => {
     if (hdBusy) return;
-    if (!window.confirm("Profilfoto in HD hochrechnen? (fal.ai — kostet ein paar Cent)")) return;
+    if (!window.confirm("Enhance her profile photo to HD? (fal.ai — costs a few cents)")) return;
     setHdBusy(true);
     try {
       const res = await fetch("/api/upscale-image", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ curatorId: id }) });
       const d = await res.json().catch(() => ({}));
-      if (!res.ok || !d.photoUrl) throw new Error(d?.error || "Upscale fehlgeschlagen");
-      setProfile(p => (p ? { ...p, photoUrl: d.photoUrl } : p));
-      alert("Profilfoto in HD ✓");
-    } catch (e) { alert(e instanceof Error ? e.message : "Upscale fehlgeschlagen"); }
+      if (!res.ok || !d.photoUrl) throw new Error(d?.error || "Upscale failed");
+      setProfile(p => (p ? { ...p, photoUrl: d.photoUrl, photoFullUrl: d.photoUrl } : p));
+      await reloadProfile();
+      alert("Profile photo enhanced to HD ✓");
+    } catch (e) { alert(e instanceof Error ? e.message : "Upscale failed"); }
     finally { setHdBusy(false); }
   };
   // Admin: download her profile photo (prefers the uncropped original).
@@ -561,9 +607,9 @@ export default function CuratorPublicPage() {
         headers: { "Content-Type": "application/json", ...adminHeaders() },
         body: JSON.stringify({ action: "update", id, realBadge: next, realModel: next }),
       });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Speichern fehlgeschlagen");
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Save failed");
       setProfile(p => (p ? { ...p, realBadge: next, realModel: next } : p));
-    } catch (e) { alert(e instanceof Error ? e.message : "Speichern fehlgeschlagen"); }
+    } catch (e) { alert(e instanceof Error ? e.message : "Save failed"); }
     finally { setBadgeBusy(false); }
   };
 
@@ -713,6 +759,111 @@ export default function CuratorPublicPage() {
     finally { setBadgeBusy(false); }
   };
 
+  // Re-pull her profile from the server → fresh signed photo URL (busts any browser image cache),
+  // so the card reflects a just-changed/enhanced photo immediately.
+  const reloadProfile = async () => {
+    try { const d = await fetch(`/api/curator?profile=${encodeURIComponent(id)}`, { cache: "no-store" }).then(r => r.json()); if (d?.profile) setProfile(d.profile as Profile); } catch { /**/ }
+  };
+  // ── Admin: change her MAIN photo — upload one, or generate with fal.ai (same tool as new-model). ──
+  const cpReadFile = (f: File) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f); });
+  const cpSetMainPhoto = async (dataUrl: string) => {
+    setCpBusy(true);
+    try {
+      const res = await fetch("/api/curator", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ action: "update", id, photo: dataUrl }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || d.error) throw new Error(d.error || "Failed to set photo");
+      setProfile(p => (p ? { ...p, photoUrl: dataUrl, photoFullUrl: dataUrl } : p));
+      setCpOpen(false); setCpResults([]); setCpRef(""); setCpPrompt("");
+      void reloadProfile();
+    } catch (e) { alert(e instanceof Error ? e.message : "Failed"); }
+    finally { setCpBusy(false); }
+  };
+  const cpUpload = async (f?: File) => { if (!f) return; try { await cpSetMainPhoto(await cpReadFile(f)); } catch { alert("Could not read the image."); } };
+  const cpPickRef = async (f?: File) => { if (!f) return; try { setCpRef(await cpReadFile(f)); } catch { /**/ } };
+  const cpGenerate = async () => {
+    if (cpBusy) return;
+    setCpBusy(true); setCpResults([]);
+    try {
+      const res = await fetch("/api/generate-avatar-face", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ prompt: cpPrompt.trim() || undefined, count: 4, ...(cpRef ? { referenceImage: cpRef } : {}) }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || d.error) throw new Error(d.error || "Generation failed.");
+      const urls: string[] = (d.faces ?? []).map((f: { imageUrl?: string }) => f.imageUrl).filter(Boolean);
+      if (!urls.length) throw new Error("No image generated.");
+      setCpResults(urls);
+    } catch (e) { alert(e instanceof Error ? e.message : "Generation failed."); }
+    finally { setCpBusy(false); }
+  };
+  const cpUseResult = async (url: string) => {
+    setCpBusy(true);
+    try {
+      const blob = await fetch(url).then(r => r.blob());
+      const dataUrl = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(blob); });
+      await cpSetMainPhoto(dataUrl);
+    } catch { alert("Could not apply the image."); setCpBusy(false); }
+  };
+  // Enhance = PREVIEW only (don't touch her photo). Show BEFORE / AFTER; the admin then
+  // taps "Apply" to keep it or "Regenerate" for a fresh result.
+  const cpEnhance = async () => {
+    if (cpBusy) return;
+    const before = profile?.photoUrl || profile?.photoFullUrl || "";
+    setCpBusy(true); setCpAfter(""); setCpBefore(before);
+    try {
+      const res = await fetch("/api/upscale-image", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ curatorId: id, preview: true }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || !d.photoUrl) throw new Error(d?.error || "Enhance failed");
+      setCpAfter(d.photoUrl); // full-quality HD data URL — NOT applied yet
+    } catch (e) { alert(e instanceof Error ? e.message : "Enhance failed"); setCpBefore(""); }
+    finally { setCpBusy(false); }
+  };
+  // Apply the previewed HD image as her main photo (persists exactly that image, no recompress loss).
+  const cpApply = async () => { if (cpAfter && !cpBusy) await cpSetMainPhoto(cpAfter); };
+  // Open the profile editor prefilled with her current values.
+  const openEditProfile = () => {
+    if (!profile) return;
+    setEpName((profile.modelName ?? "").trim() || [profile.firstName, profile.lastName].filter(Boolean).join(" "));
+    setEpTitle(profile.title ?? "");
+    setEpIntro(profile.intro ?? "");
+    setEpSponsor(profile.sponsor ?? "");
+    setEpMotto(profile.motto ?? "");
+    setEpBio(profile.bio ?? "");
+    setEpBrandChips((profile.brands ?? "").split(/,\s*/).map(b => b.trim()).filter(Boolean));
+    setEpStyle(profile.style ?? "");
+    // Brand suggestions from the same curated list the apply form uses (fetch once).
+    if (!epBrandsDb.length) fetch("/api/curator").then(r => r.json()).then(d => setEpBrandsDb(Array.isArray(d.brands) ? d.brands : [])).catch(() => {});
+    setEpOpen(true);
+  };
+  const saveEditProfile = async () => {
+    if (epBusy) return;
+    setEpBusy(true);
+    try {
+      const res = await fetch("/api/curator", {
+        method: "POST", headers: { "Content-Type": "application/json", ...viewerHeaders(), ...adminHeaders() },
+        // Her NAME is intentionally NOT sent — it's fixed (part of her collectible identity;
+        // renames would break URLs/links/history). Rename only via the admin Models list if ever.
+        body: JSON.stringify({ action: "update", id, title: epTitle.trim(), intro: epIntro.trim(), sponsor: epSponsor.trim(), motto: epMotto.trim(), bio: epBio.trim(), brands: epBrandChips.join(", "), style: epStyle.trim() }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || d.error) throw new Error(d.error || "Save failed");
+      await reloadProfile();
+      setEpOpen(false);
+    } catch (e) { alert(e instanceof Error ? e.message : "Save failed"); }
+    finally { setEpBusy(false); }
+  };
+  // Restore the previous photo — undo an accidental replace (swaps current ↔ backup).
+  const restorePhoto = async () => {
+    if (cpBusy) return;
+    if (!window.confirm("Restore her previous photo? (undoes the last photo change)")) return;
+    setCpBusy(true);
+    try {
+      const res = await fetch("/api/curator", { method: "POST", headers: { "Content-Type": "application/json", ...adminHeaders() }, body: JSON.stringify({ action: "restore-photo", id }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || d.error) throw new Error(d.error || "Restore failed");
+      await reloadProfile();
+      setCpOpen(false); setCpBefore(""); setCpAfter("");
+    } catch (e) { alert(e instanceof Error ? e.message : "Restore failed"); }
+    finally { setCpBusy(false); }
+  };
+
   // ── Admin one-click: turn a model's PHOTO try-on into a VIDEO (Pixverse animates the
   // dressed photo; single-image mode — no reference binding needed). The video attaches
   // to the SAME generation, so the photo becomes its poster.
@@ -724,19 +875,19 @@ export default function CuratorPublicPage() {
     try {
       const H = { "Content-Type": "application/json", ...adminHeaders() };
       const start = await fetch("/api/generate-tryon-video", { method: "POST", headers: H, body: JSON.stringify({ lookId: t.lookId || "", image: t.imageUrl }) }).then(r => r.json());
-      if (!start.videoId) throw new Error(start.error || "Start fehlgeschlagen.");
+      if (!start.videoId) throw new Error(start.error || "Start failed.");
       let videoUrl = "";
       for (let i = 0; i < 45; i++) {
         await new Promise(r => setTimeout(r, 5000));
         const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || "")}`).then(r => r.json());
         if (p.status === "done" && p.videoUrl) { videoUrl = p.videoUrl; break; }
-        if (p.status === "failed") throw new Error(p.error || "Generierung fehlgeschlagen.");
+        if (p.status === "failed") throw new Error(p.error || "Generation failed.");
       }
-      if (!videoUrl) throw new Error("Zeitüberschreitung.");
+      if (!videoUrl) throw new Error("Timed out.");
       await fetch("/api/try-this-look", { method: "POST", headers: H, body: JSON.stringify({ action: "attach-generation-video", generationId: t.id, videoUrl }) });
       await reloadTryons();
-      alert("Video erstellt ✓ — jetzt in ihrem Reel (Sichtbarkeit wie gehabt steuerbar).");
-    } catch (e) { alert(e instanceof Error ? e.message : "Fehler bei der Video-Generierung"); }
+      alert("Video created ✓ — it is now in her reel (visibility still adjustable).");
+    } catch (e) { alert(e instanceof Error ? e.message : "Video generation error"); }
     finally { setPhotoVidBusy(""); }
   };
 
@@ -747,7 +898,7 @@ export default function CuratorPublicPage() {
     const r = await fetch("/api/model-video-checkout", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ curatorId: id }),
     }).then(x => x.json()).catch(() => null);
-    if (!r?.url || !r?.sessionId) { alert(r?.error || "Zahlung konnte nicht gestartet werden."); return false; }
+    if (!r?.url || !r?.sessionId) { alert(r?.error || "Could not start the payment."); return false; }
     const popup = window.open(r.url, "lb-pay", "width=460,height=760");
     for (let i = 0; i < 180; i++) { // poll ~6 min
       await new Promise(res => setTimeout(res, 2000));
@@ -763,7 +914,7 @@ export default function CuratorPublicPage() {
 
   const makeVideoAsModel = async (t: TryOn, retried = false) => {
     if (photoVidBusy) return;
-    if (!retried && !window.confirm("Dein erstes Video ist gratis, jedes weitere kostet $3.99. Weiter?")) return;
+    if (!retried && !window.confirm("Your first video is free, each additional one costs $3.99. Continue?")) return;
     setPhotoVidBusy(t.id);
     try {
       const res = await fetch("/api/generate-tryon-video", {
@@ -776,20 +927,57 @@ export default function CuratorPublicPage() {
         if (paid) await makeVideoAsModel(t, true); // retry — the credit is now on her account
         return;
       }
-      if (!start.videoId) throw new Error(start.error || "Start fehlgeschlagen.");
+      if (!start.videoId) throw new Error(start.error || "Start failed.");
       let videoUrl = "";
       for (let i = 0; i < 45; i++) {
         await new Promise(r => setTimeout(r, 5000));
         const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || id)}`).then(r => r.json());
         if (p.status === "done" && p.videoUrl) { videoUrl = p.videoUrl; break; }
-        if (p.status === "failed") throw new Error(p.error || "Generierung fehlgeschlagen.");
+        if (p.status === "failed") throw new Error(p.error || "Generation failed.");
       }
-      if (!videoUrl) throw new Error("Zeitüberschreitung.");
+      if (!videoUrl) throw new Error("Timed out.");
       await fetch("/api/try-this-look", { method: "POST", headers: viewerHeaders(), body: JSON.stringify({ action: "attach-generation-video", generationId: t.id, videoUrl }) });
       await reloadTryons();
-      alert("Video erstellt ✓");
-    } catch (e) { alert(e instanceof Error ? e.message : "Fehler bei der Video-Generierung"); }
+      alert("Video created ✓");
+    } catch (e) { alert(e instanceof Error ? e.message : "Video generation error"); }
     finally { setPhotoVidBusy(""); }
+  };
+
+  // "Generate AI Video" — the owner/model flow: HER profile photo + a chosen garment →
+  // an AI try-on video. First is free, each additional one $3.99 (server-enforced); admin
+  // free. The finished clip is added to her reel.
+  const generateVideoInLook = async (look: Look, retried = false) => {
+    if (genVidBusy) return;
+    const photo = profile?.photoFullUrl || profile?.photoUrl || "";
+    if (!photo) { alert("She has no profile photo yet — set one first."); return; }
+    setGenVidBusy(true);
+    try {
+      const res = await fetch("/api/generate-tryon-video", {
+        method: "POST", headers: viewerHeaders(), body: JSON.stringify({ lookId: look.id, image: photo, motion: "turn" }),
+      });
+      const start = await res.json().catch(() => ({}));
+      if (res.status === 402 || start?.paymentRequired) {
+        setGenVidBusy(false);
+        const paid = await payForModelVideo();
+        if (paid) await generateVideoInLook(look, true); // retry — the credit is now on her account
+        return;
+      }
+      if (!start.videoId) throw new Error(start.error || "Could not start the video.");
+      let videoUrl = "";
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 5000));
+        const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || id)}`).then(r => r.json());
+        if (p.status === "done" && p.videoUrl) { videoUrl = p.videoUrl; break; }
+        if (p.status === "failed") throw new Error(p.error || "Generation failed.");
+      }
+      if (!videoUrl) throw new Error("Timed out.");
+      // Carry the garment's brand + shop link so her look slide can show "Wearing <brand> · Shop now".
+      const lookBrand = (look.brand || "").trim() || (/bellucci/i.test(`${look.name ?? ""} ${look.productNote ?? ""}`) ? "Gianna Bellucci" : "");
+      await fetch("/api/try-this-look", { method: "POST", headers: viewerHeaders(), body: JSON.stringify({ action: "add-model-video", curatorId: id, videoUrl, lookId: look.id, title: look.name || "", motion: "turn", ...(lookBrand ? { brand: lookBrand } : {}), ...(look.buyUrl ? { shopUrl: look.buyUrl } : {}) }) });
+      await reloadTryons();
+      alert("Video created ✓ — it is now in her reel.");
+    } catch (e) { alert(e instanceof Error ? e.message : "Video generation error"); }
+    finally { setGenVidBusy(false); }
   };
 
   const readFile = (f: File) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f); });
@@ -808,7 +996,7 @@ export default function CuratorPublicPage() {
     const brief = genBrief.trim();
     const refs = genRefs;
     setGenOpen(false);
-    setGenBusy(true); setGenMsg(refs.length ? "Extrahiere Referenzen & generiere … (bitte warten)" : "Generiere Garderobe … (~1 Min, bitte warten)");
+    setGenBusy(true); setGenMsg(refs.length ? "Extracting references & generating … (please wait)" : "Generating wardrobe … (~1 min, please wait)");
     try {
       const H = { "Content-Type": "application/json", "x-try-look-admin-pin": adminPin() };
       // Reference images → each is extracted into a clean wardrobe piece (attributed to her).
@@ -819,13 +1007,13 @@ export default function CuratorPublicPage() {
       if (brief || refs.length === 0) {
         const res = await fetch("/api/generate-wardrobe", { method: "POST", headers: H, body: JSON.stringify({ curatorId: id, mainCount: genMain, lingerieCount: genLingerie, ...(brief ? { brief } : {}) }) });
         const d = await res.json();
-        if (!res.ok) throw new Error(d?.error || "Fehler");
+        if (!res.ok) throw new Error(d?.error || "Error");
       }
       setGenMsg("Fertig ✓");
       setGenRefs([]); setGenBrief("");
       await reloadLooks();
     } catch (e) {
-      setGenMsg(e instanceof Error ? e.message : "Fehler");
+      setGenMsg(e instanceof Error ? e.message : "Error");
     } finally { setGenBusy(false); }
   };
 
@@ -849,10 +1037,10 @@ export default function CuratorPublicPage() {
         headers: { "Content-Type": "application/json", ...adminHeaders() },
         body: JSON.stringify({ action: "update-look", id: manageId, ...extra }),
       });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Fehler");
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "Error");
       await reloadLooks();
       setMMsg(successMsg);
-    } catch (e) { setMMsg(e instanceof Error ? e.message : "Fehler"); }
+    } catch (e) { setMMsg(e instanceof Error ? e.message : "Error"); }
     finally { setMBusy(false); }
   };
   // Save — empty title/description get filled by AI from the garment photo first.
@@ -882,7 +1070,7 @@ export default function CuratorPublicPage() {
   };
   const deleteManage = async () => {
     if (!manageId || mBusy) return;
-    if (!window.confirm("Dieses Kleidungsstück endgültig löschen?")) return;
+    if (!window.confirm("Delete this garment permanently?")) return;
     setMBusy(true); setMMsg("");
     try {
       const res = await fetch("/api/try-this-look", {
@@ -890,15 +1078,15 @@ export default function CuratorPublicPage() {
         headers: { "Content-Type": "application/json", ...adminHeaders() },
         body: JSON.stringify({ action: "delete-look", id: manageId }),
       });
-      if (!res.ok) throw new Error("Fehler");
+      if (!res.ok) throw new Error("Error");
       closeManage();
       await reloadLooks();
-    } catch { setMMsg("Fehler beim Löschen"); setMBusy(false); }
+    } catch { setMMsg("Delete error"); setMBusy(false); }
   };
 
-  if (loading) return <main className="grid min-h-[100dvh] place-items-center bg-[#0d0b0a]"><Loader2 className="h-6 w-6 animate-spin text-white/30" /></main>;
+  if (loading) return <main className="grid min-h-[100dvh] place-items-center lb-bg"><Loader2 className="h-6 w-6 animate-spin text-white/30" /></main>;
   if (!profile) return (
-    <main className="grid min-h-[100dvh] place-items-center gap-3 bg-[#0d0b0a] text-white">
+    <main className="grid min-h-[100dvh] place-items-center gap-3 lb-bg text-white">
       <p className="text-sm font-black text-white/50">Model not found</p>
       <button type="button" onClick={() => router.back()} className="text-xs font-black text-white/50 underline">Go back</button>
     </main>
@@ -927,7 +1115,7 @@ export default function CuratorPublicPage() {
   // everyone; private show blurred + locked and only members can open them. Public first, cap 8.
   const cardClips = tryons
     .filter(t => t.videoUrl && t.imageUrl)
-    .map(t => ({ poster: t.imageUrl, video: t.videoUrl as string, private: t.private === true }))
+    .map(t => ({ poster: t.imageUrl, video: t.videoUrl as string, private: t.private === true, brand: t.brand, shopUrl: t.shopUrl }))
     .sort((a, b) => Number(a.private) - Number(b.private))
     .slice(0, 30);
   // Data for the shareable collectible ModelCard (THE reusable card, same as the landing).
@@ -935,6 +1123,9 @@ export default function CuratorPublicPage() {
     id: profile.id,
     serial: (profile.id || "").replace(/[^a-z0-9]/gi, "").slice(-6).toUpperCase() || "LB0001",
     name: displayName,
+    title: profile.title || "",       // brand title, e.g. "Monaco Influencer"
+    intro: profile.intro || "",       // ABOUT slide — her self-introduction
+    sponsor: profile.sponsor || "",   // sponsor badge on the intro slide
     photo: profile.photoUrl || profile.photoFullUrl || "",
     video: cardClips[0]?.video || "",
     poster: profile.photoUrl || profile.photoFullUrl || "",
@@ -952,10 +1143,11 @@ export default function CuratorPublicPage() {
     owner: profile.owner || "",
     ownerId: profile.ownerId || "",
     ownerHideName: profile.ownerHideName === true,
+    ownerSince: profile.purchasedAt ? new Date(profile.purchasedAt).toLocaleDateString("en-GB", { month: "long", year: "numeric" }) : "",
   };
 
   return (
-    <main className="min-h-[100dvh] bg-[#0d0b0a] text-white pb-16">
+    <main className="min-h-[100dvh] lb-bg text-white pb-16">
       <TopNav />
       {/* Profile-context bar sits just under the shared TopNav (name/photo/follow stay in view). */}
       <div className="sticky top-14 z-20 bg-[#0d0b0a]/90 px-4 py-3 backdrop-blur">
@@ -1010,7 +1202,7 @@ export default function CuratorPublicPage() {
         {/* For sale — admin OR the model herself lists her on the market (or takes her off). */}
         {(isAdmin || isOwn) && (
           <button type="button" onClick={() => void toggleForSale(!profile.forSale)} disabled={saleBusy}
-            className={`mt-1 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-black transition active:scale-95 disabled:opacity-50 ${profile.forSale ? "bg-emerald-500 text-white" : "border border-white/20 bg-white/5 text-white/60"}`}>
+            className={`mt-1 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-black transition active:scale-95 disabled:opacity-50 ${profile.forSale ? "bg-amber-500 text-white" : "border border-white/20 bg-white/5 text-white/60"}`}>
             {saleBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : profile.forSale ? "✓ Listed for sale" : "List her for sale"}
           </button>
         )}
@@ -1021,14 +1213,14 @@ export default function CuratorPublicPage() {
             {hideBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : profile.ownerHideName ? "🙈 Name hidden — only ID" : "Hide my owner name"}
           </button>
         )}
-        {/* Own her — buy at her current LB-Value (the value + how it grows are on the card + /lb-value). */}
+        {/* Claim ownership — become her creator (how she grows lives on the card + /lb-value). */}
         {growLabel && profile.forSale && !isOwn && (
-          <button type="button" onClick={() => void buyInfluencer()} disabled={buying} title={`Buy ${name} at her current LB-Value`}
+          <button type="button" onClick={() => void buyInfluencer()} disabled={buying} title={`Claim ownership of ${name}`}
             className="lb-gold mt-1 inline-flex items-center justify-center rounded-full px-6 py-3 text-[14px] font-black shadow active:scale-95 transition disabled:opacity-60">
-            {buying ? "…" : `Own her · ${growLabel}`}
+            {buying ? "…" : `Claim Ownership · ${growLabel}`}
           </button>
         )}
-        {bought && <p className="mt-2 rounded-lg bg-emerald-500/15 px-2.5 py-1.5 text-[11px] font-black text-emerald-300 ring-1 ring-emerald-400/30">🎉 She's yours! Her LB-Value now grows for you.</p>}
+        {bought && <p className="mt-2 rounded-lg bg-amber-500/15 px-2.5 py-1.5 text-[11px] font-black text-amber-300 ring-1 ring-amber-400/30">🎉 She's yours! You're her creator now — grow her collection.</p>}
         {buyErr && <p className="mt-2 text-[11px] font-black text-red-400">{buyErr}</p>}
         <div className="mt-2 flex items-center gap-3 text-[11px] font-bold text-white/40">
           {profile.genderFocus && <span className="rounded-full bg-white/10 px-2.5 py-1">{profile.genderFocus}</span>}
@@ -1063,14 +1255,184 @@ export default function CuratorPublicPage() {
           </div>
         )}
 
-        {/* Chat CTA — try-ons on foreign influencers are retired, so no "dress her" button. */}
-        <div className="mt-3 flex w-full max-w-sm items-stretch gap-2">
-          <button type="button"
-            onClick={() => { const lg = (() => { try { return localStorage.getItem("lb_lang") === "ro" ? "ro" : "en"; } catch { return "en"; } })(); router.push(`/luxury-products?model=${encodeURIComponent(id)}&lang=${lg}`); }}
-            className="lb-gold flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-black leading-tight active:scale-95 transition">
-            <MessageCircle className="h-4 w-4 shrink-0" /> Chat with her AI Assistant
+        {/* Edit profile (admin/creator): every text field, right here on her page.
+            Photo changes live on the photo tile next to her videos below. */}
+        {(isAdmin || isOwn) && (
+          <button type="button" onClick={openEditProfile}
+            className="mt-2 flex w-full max-w-sm items-center justify-center gap-2 rounded-2xl border border-amber-400/40 bg-amber-400/10 py-2.5 text-[13px] font-black text-amber-300 active:scale-95 transition">
+            <Pencil className="h-4 w-4" /> Edit profile
           </button>
-        </div>
+        )}
+        {cpOpen && (
+          <div className="fixed inset-0 z-[95] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => !cpBusy && setCpOpen(false)}>
+            <div className="w-full max-w-[440px] rounded-t-3xl bg-[#111] p-5 ring-1 ring-white/10" onClick={e => e.stopPropagation()} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)" }}>
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/15" />
+              <p className="text-base font-black text-white">Change her photo</p>
+              <p className="mb-3 text-[12px] font-bold text-white/45">Upload a new photo, or enhance her current one to HD — her face always stays the same.</p>
+
+              <button type="button" disabled={cpBusy} onClick={() => cpFileRef.current?.click()}
+                className="lb-gold flex w-full items-center justify-center gap-2 rounded-full py-3 text-[13px] font-black active:scale-95 transition disabled:opacity-60">
+                {cpBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageUp className="h-4 w-4" />} Upload a photo
+              </button>
+              <input ref={cpFileRef} type="file" accept="image/*" className="hidden" onChange={e => { void cpUpload(e.target.files?.[0]); e.target.value = ""; }} />
+
+              <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                <p className="text-[11px] font-black uppercase tracking-wide text-amber-300/80">Enhance · keeps her face</p>
+                <p className="mt-1 text-[12px] font-semibold leading-snug text-white/55">Sharpen &amp; upscale her <b className="text-white/80">current</b> photo to HD. Her face stays <b className="text-white/80">exactly the same</b>, with <b className="text-white/80">natural skin</b> — never plastic or airbrushed.</p>
+                {!cpAfter && (
+                  <button type="button" disabled={cpBusy} onClick={() => void cpEnhance()}
+                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-full border border-amber-400/40 bg-amber-400/10 py-2.5 text-[13px] font-black text-amber-300 active:scale-95 transition disabled:opacity-60">
+                    {cpBusy ? <><Loader2 className="h-4 w-4 animate-spin" /> Enhancing…</> : <><Sparkles className="h-4 w-4" /> Enhance to HD</>}
+                  </button>
+                )}
+                {cpBefore && cpAfter && (
+                  <div className="mt-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <p className="mb-1 text-center text-[10px] font-black uppercase tracking-wide text-white/45">Before</p>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={cpBefore} alt="" className="aspect-[3/4] w-full rounded-lg object-cover object-top ring-1 ring-white/10" />
+                      </div>
+                      <div>
+                        <p className="mb-1 text-center text-[10px] font-black uppercase tracking-wide text-amber-300">After · HD</p>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={cpAfter} alt="" className="aspect-[3/4] w-full rounded-lg object-cover object-top ring-2 ring-amber-400/70" />
+                      </div>
+                    </div>
+                    <p className="mt-2 text-center text-[11px] font-bold text-white/45">Preview only — not saved yet.</p>
+                    <div className="mt-2 flex gap-2">
+                      <button type="button" disabled={cpBusy} onClick={() => void cpEnhance()}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-white/20 py-2.5 text-[12px] font-black text-white/80 active:scale-95 transition disabled:opacity-50">
+                        {cpBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Regenerate
+                      </button>
+                      <button type="button" disabled={cpBusy} onClick={() => void cpApply()}
+                        className="lb-gold flex flex-1 items-center justify-center gap-1.5 rounded-full py-2.5 text-[12px] font-black active:scale-95 transition disabled:opacity-50">
+                        ✓ Apply
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Undo an accidental replace — restore her previous photo. */}
+              {profile.hasPrevPhoto && (
+                <button type="button" disabled={cpBusy} onClick={() => void restorePhoto()}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-white/15 py-2.5 text-[12px] font-black text-white/70 active:scale-95 transition disabled:opacity-50">
+                  <ArrowLeft className="h-3.5 w-3.5" /> Restore previous photo
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Edit profile sheet — model name, motto, bio, brands, style. Saves in place. */}
+        {epOpen && (
+          <div className="fixed inset-0 z-[95] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => !epBusy && setEpOpen(false)}>
+            <div className="max-h-[88dvh] w-full max-w-[440px] overflow-y-auto rounded-t-3xl bg-[#111] p-5 ring-1 ring-white/10" onClick={e => e.stopPropagation()} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)" }}>
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/15" />
+              <p className="text-base font-black text-white">Edit profile</p>
+              <p className="mb-4 text-[12px] font-bold text-white/45">Changes go live immediately. Photo &amp; videos are managed below on her page.</p>
+              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-white/45">Model name</label>
+              {/* Her name is FIXED — part of her collectible identity (renames would break
+                  URLs, links and her history). Shown locked, never editable here. */}
+              <div className="mb-1 flex h-11 w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-3">
+                <span className="text-sm font-bold text-white/60">{epName}</span>
+                <Lock className="h-3.5 w-3.5 shrink-0 text-white/35" />
+              </div>
+              <p className="mb-3 text-[10px] font-bold text-white/35">Fixed — her name is part of her identity and can&apos;t be changed.</p>
+              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-white/45">Title / role</label>
+              <input value={epTitle} onChange={e => setEpTitle(e.target.value)} placeholder="e.g. Monaco Influencer"
+                className="mb-3 h-11 w-full rounded-xl border border-white/15 bg-black/30 px-3 text-sm font-bold text-white placeholder:text-white/35 outline-none focus:border-amber-400/50" />
+              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-white/45">About / introduction <span className="normal-case text-white/30">(her ABOUT slide)</span></label>
+              <textarea value={epIntro} onChange={e => setEpIntro(e.target.value)} rows={3} placeholder="Hi, I'm … — I travel the world, test the newest trends…"
+                className="mb-3 w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-sm font-bold text-white placeholder:text-white/35 outline-none focus:border-amber-400/50" />
+              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-white/45">Sponsor</label>
+              {/* Picked from the admin-provided sponsor list (lib/sponsors) — never free text. */}
+              <select value={epSponsor} onChange={e => setEpSponsor(e.target.value)}
+                className="mb-3 h-11 w-full rounded-xl border border-white/15 bg-black/30 px-3 text-sm font-bold text-white outline-none focus:border-amber-400/50">
+                <option value="">No sponsor</option>
+                {SPONSORS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-white/45">Tagline / motto</label>
+              <input value={epMotto} onChange={e => setEpMotto(e.target.value)} placeholder="e.g. Elegance travels light, lives loud"
+                className="mb-3 h-11 w-full rounded-xl border border-white/15 bg-black/30 px-3 text-sm font-bold text-white placeholder:text-white/35 outline-none focus:border-amber-400/50" />
+              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-white/45">Bio / description</label>
+              <textarea value={epBio} onChange={e => setEpBio(e.target.value)} rows={3} placeholder="Who is she? What does she represent?"
+                className="mb-3 w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-sm font-bold text-white placeholder:text-white/35 outline-none focus:border-amber-400/50" />
+              {/* Brands as chips — the SAME curated picker as the apply form, so the brand
+                  filters & display never see free-text variants. */}
+              <div className="mb-3">
+                <TagField label="Favorite brands" list={epBrandsDb} value={epBrandChips} onChange={setEpBrandChips} placeholder="Start typing… Chanel, Dior…" dark />
+              </div>
+              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-white/45">Style</label>
+              <input value={epStyle} onChange={e => setEpStyle(e.target.value)} placeholder="e.g. Quiet luxury, timeless"
+                className="mb-4 h-11 w-full rounded-xl border border-white/15 bg-black/30 px-3 text-sm font-bold text-white placeholder:text-white/35 outline-none focus:border-amber-400/50" />
+              <button type="button" disabled={epBusy} onClick={() => void saveEditProfile()}
+                className="lb-gold flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition disabled:opacity-60">
+                {epBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Save changes
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Generate AI Video — the owner/model management flow: her profile photo + a
+            chosen garment → an AI try-on video (first free, then $3.99; admin free).
+            Chat still lives on the card itself. */}
+        {(isAdmin || isOwn) && (
+          <div className="mt-3 flex w-full max-w-sm items-stretch gap-2">
+            <button type="button" onClick={() => !genVidBusy && setGenVidOpen(true)} disabled={genVidBusy}
+              className="lb-gold flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-black leading-tight active:scale-95 transition disabled:opacity-60">
+              {genVidBusy ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : <Video className="h-4 w-4 shrink-0" />}
+              {genVidBusy ? "Generating video …" : "Generate AI Video"}
+            </button>
+          </div>
+        )}
+
+        {/* Garment picker for "Generate AI Video" → her profile photo in the chosen look. */}
+        {genVidOpen && (
+          <div className="fixed inset-0 z-[95] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => !genVidBusy && setGenVidOpen(false)}>
+            <div className="w-full max-w-[440px] rounded-t-3xl bg-[#111] p-5 ring-1 ring-white/10" onClick={e => e.stopPropagation()} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)" }}>
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/15" />
+              <p className="text-base font-black text-white">Pick a garment for her video</p>
+              <p className="mb-2 text-[12px] font-bold text-white/45">Tap a piece — we generate a video of {displayName.split(" ")[0]} wearing it. First video free, then $3.99.</p>
+              {/* Brand filter — quickly narrow to her sponsor's pieces. */}
+              <div className="mb-3 flex gap-2">
+                <button type="button" onClick={() => setGvBellucci(false)} className={`rounded-full px-3 py-1 text-[11px] font-black transition ${!gvBellucci ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>All pieces</button>
+                <button type="button" onClick={() => setGvBellucci(true)} className={`rounded-full px-3 py-1 text-[11px] font-black transition ${gvBellucci ? "lb-gold text-black" : "bg-white/10 text-white/60"}`}>Gianna Bellucci</button>
+              </div>
+              {(() => {
+                const brandOf = (l: Look) => (l.brand || "").trim() || (/bellucci/i.test(`${l.name ?? ""} ${l.productNote ?? ""}`) ? "Gianna Bellucci" : "");
+                const items = allLooks
+                  .filter(l => (l.productType === "ai" || (l as any).wardrobe === true) && ((l as any).frontImageUrl || l.imageUrl))
+                  .map(l => ({ l, brand: brandOf(l) }))
+                  .filter(({ brand }) => !gvBellucci || /bellucci/i.test(brand));
+                if (gvBellucci && items.length === 0) {
+                  return <p className="py-8 text-center text-[12px] font-bold text-white/40">No Gianna Bellucci pieces tagged yet. Tag a garment&apos;s brand as &quot;Gianna Bellucci&quot; to see it here.</p>;
+                }
+                return (
+                  <div className="grid max-h-[52vh] grid-cols-3 gap-2 overflow-y-auto">
+                    {items.map(({ l, brand }) => {
+                      const img = (l as any).frontImageUrl || l.imageUrl;
+                      const isBellucci = /bellucci/i.test(brand);
+                      return (
+                        <button key={l.id} type="button" disabled={genVidBusy}
+                          onClick={() => { setGenVidOpen(false); void generateVideoInLook(l); }}
+                          className="relative overflow-hidden rounded-xl bg-white/[0.04] text-left ring-1 ring-white/10 active:scale-95 transition disabled:opacity-50">
+                          <div className="aspect-[3/4] w-full bg-white">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={img} alt="" loading="lazy" className="h-full w-full object-cover" onError={e => { e.currentTarget.style.display = "none"; }} />
+                          </div>
+                          {brand && <span className={`absolute left-1 top-1 max-w-[92%] truncate rounded-full px-1.5 py-0.5 text-[8px] font-black shadow ${isBellucci ? "lb-gold text-black" : "bg-black/70 text-white/85"}`}>{brand}</span>}
+                          <p className="truncate px-1.5 py-1 text-[9px] font-black text-white/70">{l.name || "Look"}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
 
         {/* Report — any visitor can flag a profile for review. */}
         {!isOwn && (
@@ -1083,8 +1445,8 @@ export default function CuratorPublicPage() {
             (also hidden in the admin "view as her" preview). Shows ONLY for models
             the admin explicitly marked as real (realBadge) — never on AI models. */}
         {showRealBanner && !isOwn && (profile.realModel === true || profile.realBadge === true) && (
-          <div className="lb-gold mt-3 flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[12px] font-black">
-            <BadgeCheck className="h-4 w-4 shrink-0" />
+          <div className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-black px-6 text-[12px] font-black text-white ring-1 ring-white/12">
+            <BadgeCheck className="h-4 w-4 shrink-0 text-amber-400" />
             <span className="min-w-0 truncate">Real model · verified by LuxuryBandit</span>
           </div>
         )}
@@ -1096,9 +1458,20 @@ export default function CuratorPublicPage() {
             "In motion" carousel opens at exactly that clip. (Photo play-ring stays too.)
             Admin/owner additionally see her PHOTO drafts here — the admin turns them
             into videos with one tap. */}
-        {(videos.length > 0 || photoDrafts.length > 0) && (
+        {(videos.length > 0 || photoDrafts.length > 0 || isAdmin || isOwn) && (
           <div className="mt-2 w-full">
             <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {/* Her PROFILE PHOTO as the first tile (admin/creator) — tap it to change the
+                  picture (upload / enhance / restore). */}
+              {(isAdmin || isOwn) && (profile.photoUrl || profile.photoFullUrl) && (
+                <button type="button" onClick={() => { setCpBefore(""); setCpAfter(""); setCpOpen(true); }} aria-label="Change her photo"
+                  className="relative aspect-[9/16] h-40 shrink-0 overflow-hidden rounded-xl border border-amber-400/50 lb-media-bg active:scale-95 transition">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={profile.photoUrl || profile.photoFullUrl || ""} alt="" className="h-full w-full object-cover object-top" />
+                  <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/70 text-amber-300 backdrop-blur"><ImageUp className="h-3 w-3" /></span>
+                  <span className="absolute inset-x-1.5 bottom-1.5 rounded-full bg-amber-400 py-1 text-center text-[10px] font-black text-black">Change photo</span>
+                </button>
+              )}
               {videos.map((t, i) => (
                 <StripClip key={t.id} t={t} onOpen={() => openMotionAt(i)} />
               ))}
@@ -1109,6 +1482,13 @@ export default function CuratorPublicPage() {
                     onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
                     className="h-full w-full object-cover object-top" />
                   <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">Foto</span>
+                  {/* Delete a photo draft (admin/owner) — same delete as videos. */}
+                  {(isAdmin || isOwn) && (
+                    <button type="button" onClick={() => void deleteVideo(t)} aria-label="Delete photo"
+                      className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/70 text-red-400 backdrop-blur active:scale-90 transition">
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
                   {isAdmin ? (
                     <button type="button" onClick={() => void makeVideoFromPhoto(t)} disabled={!!photoVidBusy}
                       className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-center gap-1 rounded-full bg-amber-400 py-1 text-[10px] font-black text-black active:scale-95 transition disabled:opacity-60">
@@ -1122,7 +1502,7 @@ export default function CuratorPublicPage() {
                       {photoVidBusy === t.id ? <><Loader2 className="h-3 w-3 animate-spin" /> Generiert…</> : <><Play className="h-3 w-3" fill="currentColor" /> Video</>}
                     </button>
                   ) : (
-                    <span className="absolute inset-x-1.5 bottom-1.5 rounded-full bg-black/70 py-1 text-center text-[9px] font-black text-white/80 backdrop-blur">Team macht dein Video</span>
+                    <span className="absolute inset-x-1.5 bottom-1.5 rounded-full bg-black/70 py-1 text-center text-[9px] font-black text-white/80 backdrop-blur">Team makes your video</span>
                   )}
                 </div>
               ))}
@@ -1150,7 +1530,7 @@ export default function CuratorPublicPage() {
               <button type="button" onClick={() => !vidBusy && setVideoPickerOpen(true)} disabled={vidBusy}
                 className="flex items-center justify-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-[11px] font-black text-white active:scale-95 transition disabled:opacity-50">
                 {vidBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
-                {vidBusy ? "Lade hoch …" : "Video hochladen"}
+                {vidBusy ? "Lade hoch …" : "Upload video"}
               </button>
               <button type="button" onClick={() => {
                 // Enter HER session (preview): lb_curator = her + the preview flag that
@@ -1162,7 +1542,7 @@ export default function CuratorPublicPage() {
                 window.location.reload();
               }}
                 className="flex items-center justify-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 px-4 py-2 text-[11px] font-black text-amber-400 active:scale-95 transition">
-                <Eye className="h-3.5 w-3.5" /> Ihre Ansicht testen
+                <Eye className="h-3.5 w-3.5" /> Preview as her
               </button>
             </div>
             <input ref={vidFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden"
@@ -1172,8 +1552,8 @@ export default function CuratorPublicPage() {
               <div className="fixed inset-0 z-[95] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setVideoPickerOpen(false)}>
                 <div className="w-full max-w-[440px] rounded-t-3xl bg-[#111] p-5 ring-1 ring-white/10" onClick={e => e.stopPropagation()} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)" }}>
                   <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/15" />
-                  <p className="text-base font-black text-white">Welches Kleidungsstück zeigt das Video?</p>
-                  <p className="mb-3 text-[12px] font-bold text-white/45">Tippe das Teil an — danach wählst du die Videodatei. Es wird automatisch verknüpft.</p>
+                  <p className="text-base font-black text-white">Which garment does the video show?</p>
+                  <p className="mb-3 text-[12px] font-bold text-white/45">Tap the piece — then pick the video file. It links automatically.</p>
                   <div className="grid max-h-[52vh] grid-cols-3 gap-2 overflow-y-auto">
                     {allLooks.filter(l => (l.productType === "ai" || (l as any).wardrobe === true) && ((l as any).frontImageUrl || l.imageUrl)).map(l => {
                       const img = (l as any).frontImageUrl || l.imageUrl;
@@ -1192,7 +1572,7 @@ export default function CuratorPublicPage() {
                   </div>
                   <button type="button" onClick={() => { uploadLookRef.current = ""; setVideoPickerOpen(false); vidFileRef.current?.click(); }}
                     className="mt-3 w-full rounded-full border border-white/15 py-3 text-[13px] font-black text-white/60 active:scale-[0.98] transition">
-                    Ohne Kleidungsstück hochladen
+                    Upload without a garment
                   </button>
                 </div>
               </div>
@@ -1220,7 +1600,7 @@ export default function CuratorPublicPage() {
                 {profile.forSale && (
                   <button type="button" onClick={() => void buyInfluencer()} disabled={buying}
                     className="lb-gold mt-3 inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[13px] font-black active:scale-95 transition disabled:opacity-60">
-                    {buying ? "…" : `Own her${profile.growPriceLabel ? ` · ${profile.growPriceLabel}` : ""}`}
+                    {buying ? "…" : `Claim Ownership${profile.growPriceLabel ? ` · ${profile.growPriceLabel}` : ""}`}
                   </button>
                 )}
               </div>
@@ -1252,7 +1632,7 @@ export default function CuratorPublicPage() {
                   <button type="button" onClick={() => { setGenBrief(""); setGenOpen(true); }} disabled={genBusy}
                     className="flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3.5 py-1.5 text-[11px] font-black text-white active:scale-95 transition disabled:opacity-50">
                     {genBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                    {genBusy ? "Generiere …" : "Generieren"}
+                    {genBusy ? "Generating …" : "Generate"}
                   </button>
                 )}
               </div>
@@ -1261,7 +1641,7 @@ export default function CuratorPublicPage() {
               {wardrobe.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-16 text-center">
                   <ShoppingBag className="h-8 w-8 text-white/15" />
-                  <p className="text-sm font-black text-white/40">{wardrobeAll.length === 0 ? (isAdmin ? "No looks yet — tap “Generieren”." : "Looks coming soon.") : "Nichts in dieser Kategorie."}</p>
+                  <p className="text-sm font-black text-white/40">{wardrobeAll.length === 0 ? (isAdmin ? "No looks yet — tap “Generate”." : "Looks coming soon.") : "Nothing in this category."}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
@@ -1368,16 +1748,16 @@ export default function CuratorPublicPage() {
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4" onClick={e => { if (e.target === e.currentTarget) setSfSuccess(false); }}>
           <div className="w-full max-w-sm rounded-t-3xl border border-amber-400/30 bg-[#141018] p-6 text-center sm:rounded-3xl">
             <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-3xl">🎉</span>
-            <h2 className="mt-4 text-[22px] font-black leading-tight text-white">Vielen Dank!</h2>
+            <h2 className="mt-4 text-[22px] font-black leading-tight text-white">Thank you!</h2>
             <p className="mt-2 text-[15px] font-bold leading-relaxed text-white/70">
-              Ihr Wert ist um <span className="font-black text-amber-300">$1</span> gestiegen! Du hast <span className="font-black text-white">alle Videos von {profile.firstName || "ihr"} entriegelt</span>.
+              Her <span className="font-black text-amber-300">Growth Score</span> just went up! You unlocked <span className="font-black text-white">all of {profile.firstName || "her"} videos</span>.
             </p>
             <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-amber-400/10 px-4 py-2 ring-1 ring-amber-400/25">
-              <span className="text-[11px] font-black uppercase tracking-wide text-white/55">Neuer LB-Value</span>
-              <span className="text-[16px] font-black text-amber-300">{growLabel}</span>
+              <span className="text-[11px] font-black uppercase tracking-wide text-white/55">New Growth Score</span>
+              <span className="text-[16px] font-black text-amber-300">{(growLabel || "").replace(/^\$/, "")}</span>
             </div>
             <button type="button" onClick={() => setSfSuccess(false)}
-              className="lb-gold mt-5 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition">Weiter</button>
+              className="lb-gold mt-5 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition">Continue</button>
           </div>
         </div>
       )}
@@ -1443,42 +1823,54 @@ export default function CuratorPublicPage() {
                     </>
                   )}
                 </button>
+                {/* "Shop now" — the garment's shop link ON the video (affiliate-wrapped). */}
+                {t.shopUrl && (
+                  <a href={t.shopUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                    className="absolute bottom-6 left-3 z-[6] flex items-center gap-1.5 rounded-full bg-amber-400 px-4 py-2 text-[12px] font-black text-black shadow active:scale-95 transition">
+                    {t.brand ? `Wearing ${t.brand} · ` : ""}Shop now →
+                  </a>
+                )}
                 {isAdmin && (
                   <>
                     {/* Hidden = not in her public profile / feed. Kept for ads + the cache. */}
                     {t.feed === false && (
-                      <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-white backdrop-blur"><EyeOff className="h-3 w-3" /> Im Profil versteckt</span>
+                      <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-black text-white backdrop-blur"><EyeOff className="h-3 w-3" /> Hidden from profile</span>
                     )}
                     <div className="absolute right-3 top-3 flex flex-col gap-2">
                       <button type="button" onClick={() => void downloadVideo(t)} disabled={!!dlBusy}
                         className="grid h-9 w-9 place-items-center rounded-full bg-white text-black backdrop-blur active:scale-90 transition disabled:opacity-50"
-                        title="Video herunterladen (für Instagram-Reel vom Handy)">
+                        title="Download the video (for an Instagram reel from your phone)">
                         {dlBusy === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                       </button>
                       <button type="button" onClick={() => void postToInstagram(t)} disabled={!!igBusy}
                         className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-fuchsia-500 to-amber-500 text-white backdrop-blur active:scale-90 transition disabled:opacity-50"
-                        title="Auf Instagram posten (Reel)">
+                        title="Post to Instagram (reel)">
                         {igBusy === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Instagram className="h-4 w-4" />}
                       </button>
                       <button type="button" onClick={() => void upscaleVideo(t)} disabled={!!hdVidBusy}
                         className="grid h-9 min-w-9 place-items-center rounded-full bg-amber-400 px-2.5 text-[12px] font-black text-black backdrop-blur active:scale-90 transition disabled:opacity-50"
-                        title="In HD umrechnen (1080p)">
+                        title="Upscale to HD (1080p)">
                         {hdVidBusy === t.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "HD"}
                       </button>
+                      <button type="button" onClick={() => void setShopLink(t)}
+                        className={`grid h-9 w-9 place-items-center rounded-full backdrop-blur active:scale-90 transition ${t.shopUrl ? "bg-amber-400 text-black" : "bg-black/55 text-white"}`}
+                        aria-label="Set the shop link" title={t.shopUrl ? "Shop link set — tap to change" : "Add a shop link (Shop now on the video)"}>
+                        <ShoppingBag className="h-4 w-4" />
+                      </button>
                       <button type="button" onClick={() => void toggleVideoFeed(t)}
-                        className={`grid h-9 w-9 place-items-center rounded-full text-white backdrop-blur active:scale-90 transition ${t.feed === false ? "bg-emerald-500/90" : "bg-amber-400/90"}`}
-                        aria-label={t.feed === false ? "Im Profil zeigen" : "Aus dem Profil ausblenden"}
-                        title={t.feed === false ? "Im Profil zeigen" : "Aus dem Profil ausblenden"}>
+                        className={`grid h-9 w-9 place-items-center rounded-full text-white backdrop-blur active:scale-90 transition ${t.feed === false ? "bg-amber-500/90" : "bg-amber-400/90"}`}
+                        aria-label={t.feed === false ? "Show in her profile" : "Hide from her profile"}
+                        title={t.feed === false ? "Show in her profile" : "Hide from her profile"}>
                         {t.feed === false ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                       </button>
                       <button type="button" onClick={() => void toggleVideoPrivate(t)}
                         className={`grid h-9 w-9 place-items-center rounded-full text-white backdrop-blur active:scale-90 transition ${t.private ? "bg-violet-600/90" : "bg-black/55"}`}
-                        aria-label={t.private ? "Private — nur Super Follower" : "Public — für alle"}
+                        aria-label={t.private ? "Private — Super Followers only" : "Public — everyone"}
                         title={t.private ? "Private (Super Followers only) — tap to make public" : "Public — tap to make private (Super Followers only)"}>
                         {t.private ? <Lock className="h-4 w-4" /> : <Lock className="h-4 w-4 opacity-40" />}
                       </button>
                       <button type="button" onClick={() => deleteVideo(t)}
-                        className="grid h-9 w-9 place-items-center rounded-full bg-red-500/90 text-white backdrop-blur active:scale-90 transition" aria-label="Video löschen">
+                        className="grid h-9 w-9 place-items-center rounded-full bg-red-500/90 text-white backdrop-blur active:scale-90 transition" aria-label="Delete video">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -1501,7 +1893,7 @@ export default function CuratorPublicPage() {
           <div className="fixed inset-0 z-50 bg-black/60" onClick={() => setGenOpen(false)} />
           <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[51] rounded-t-2xl border-t border-white/10 bg-[#161311] px-5 pt-4 text-white" style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}>
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-base font-black">Kleidungsstücke generieren</p>
+              <p className="text-base font-black">Generate garments</p>
               <button type="button" onClick={() => setGenOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10"><X className="h-4 w-4" /></button>
             </div>
             <p className="mb-2 text-[12px] font-bold text-white/50">Beschreibe was du willst — ein Stück pro Komma. Leer lassen = automatisch aus ihren Vorlieben (Anzahl unten).</p>
@@ -1538,7 +1930,7 @@ export default function CuratorPublicPage() {
                 className="flex h-16 w-12 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-white/25 text-white/50 active:scale-95 transition">
                 <ImageUp className="h-4 w-4" />
               </button>
-              <span className="text-[11px] font-bold text-white/35">Referenzbild einfügen (Screenshot ⌘V) oder hochladen</span>
+              <span className="text-[11px] font-bold text-white/35">Paste a reference image (screenshot ⌘V) or upload</span>
             </div>
             <input ref={genRefFileRef} type="file" accept="image/*" multiple className="hidden"
               onChange={e => { if (e.target.files?.length) void addGenRefs(e.target.files); e.currentTarget.value = ""; }} />
@@ -1546,7 +1938,7 @@ export default function CuratorPublicPage() {
             <button type="button" onClick={generateWardrobe} disabled={genBusy}
               className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 text-sm font-black text-black active:scale-95 transition disabled:opacity-50">
               {genBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              {(genBrief.trim() || genRefs.length) ? "Generieren" : `Automatisch (${genMain} + ${genLingerie})`}
+              {(genBrief.trim() || genRefs.length) ? "Generate" : `Auto (${genMain} + ${genLingerie})`}
             </button>
           </div>
         </>
@@ -1562,7 +1954,7 @@ export default function CuratorPublicPage() {
               <button type="button" onClick={() => setShowMsg(false)} className="grid h-8 w-8 place-items-center rounded-full bg-black/5"><X className="h-4 w-4" /></button>
             </div>
             {sent ? (
-              <p className="py-4 text-center text-sm font-bold text-emerald-600">Message sent! ✓</p>
+              <p className="py-4 text-center text-sm font-bold text-amber-600">Message sent! ✓</p>
             ) : (
               <div className="grid gap-3">
                 <textarea value={msgText} onChange={e => setMsgText(e.target.value)} rows={4} placeholder={`Say hi to ${name}…`}

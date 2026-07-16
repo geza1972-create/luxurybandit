@@ -65,7 +65,7 @@ export default function AppAssistant() {
       {/* Floating launcher */}
       {!open && (
         <button type="button" onClick={() => setOpen(true)} aria-label="Ask the LuxuryBandit assistant"
-          className="fixed bottom-20 right-4 z-[80] grid h-13 w-13 place-items-center rounded-full bg-[#0d0b0a] text-white shadow-[0_6px_20px_rgba(0,0,0,0.35)] ring-1 ring-white/15 active:scale-90 transition"
+          className="fixed bottom-20 right-4 z-[80] grid h-13 w-13 place-items-center rounded-full lb-bg text-white shadow-[0_6px_20px_rgba(0,0,0,0.35)] ring-1 ring-white/15 active:scale-90 transition"
           style={{ height: "3.25rem", width: "3.25rem" }}>
           <MessageCircle className="h-6 w-6" />
         </button>
@@ -73,13 +73,13 @@ export default function AppAssistant() {
 
       {open && (
         <div className="fixed inset-0 z-[93] bg-black/60" onClick={() => setOpen(false)}>
-          <div className="lb-phone-col fixed inset-x-0 top-0 mx-auto flex h-[100dvh] max-w-[440px] flex-col bg-[#0d0b0a]" onClick={e => e.stopPropagation()}>
+          <div className="lb-phone-col fixed inset-x-0 top-0 mx-auto flex h-[100dvh] max-w-[440px] flex-col lb-bg" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber-400 text-black"><Sparkles className="h-5 w-5" /></span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-black text-white">LuxuryBandit Assistant</p>
-                <p className="text-[11px] font-bold text-emerald-400">online</p>
+                <p className="text-[11px] font-bold text-amber-400">online</p>
               </div>
               <button type="button" onClick={() => setOpen(false)} className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white active:scale-90 transition"><X className="h-5 w-5" /></button>
             </div>

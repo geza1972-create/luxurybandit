@@ -19,8 +19,9 @@ export async function POST(request: Request) {
   const key = process.env.FAL_KEY?.trim();
   if (!key) return NextResponse.json({ error: "FAL_KEY fehlt — trag ihn in den Vercel-Env ein, um HD-Upscaling zu aktivieren." }, { status: 400 });
 
-  const body = (await request.json().catch(() => ({}))) as { curatorId?: string };
+  const body = (await request.json().catch(() => ({}))) as { curatorId?: string; preview?: boolean };
   const curatorId = String(body.curatorId ?? "").trim();
+  const preview = body.preview === true; // true → return the HD image WITHOUT setting it as her photo
   if (!curatorId) return NextResponse.json({ error: "curatorId required." }, { status: 400 });
 
   const state = await readTryThisLookState();
@@ -32,19 +33,20 @@ export async function POST(request: Request) {
   const imageUrl = await getSignedUrl(photoPath).catch(() => "");
   if (!imageUrl) return NextResponse.json({ error: "Could not read the current photo." }, { status: 502 });
 
-  // fal.ai clarity-upscaler — sync endpoint (waits for the result).
+  // fal.ai clarity-upscaler — enough "creativity" to REBUILD crisp detail (sharp hair strands,
+  // skin, eyes) that a soft AI source lacks, while resemblance keeps it the same person. A pure
+  // upscaler (ESRGAN) can't sharpen soft hair — it only enlarges. This adds the missing sharpness.
   const falRes = await fetch("https://fal.run/fal-ai/clarity-upscaler", {
     method: "POST",
     headers: { Authorization: `Key ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       image_url: imageUrl,
       upscale_factor: 2,
-      creativity: 0.25, // low → keep her face, don't hallucinate new detail
-      resemblance: 0.85, // high → stay faithful to the source
-      // Neutral/faithful — no "cinematic" or stylized push; keep it a natural photo.
-      prompt: "sharp high-resolution photo, natural realistic skin texture, true to the original person",
-      negative_prompt: "cinematic, film look, stylized, glossy, over-processed, painting, illustration, blurry, low quality, distorted face",
-      num_inference_steps: 18,
+      creativity: 0.4,   // higher → rebuilds SHARP detail (hair!) instead of keeping the soft source
+      resemblance: 0.7,  // keep her face/composition while adding crispness
+      prompt: "razor-sharp high-resolution portrait photograph, crisp detailed hair with individual strands, sharp eyes and eyelashes, natural realistic skin with pores, in focus, professional camera",
+      negative_prompt: "blurry, soft, out of focus, hazy, painterly, illustration, smooth doll skin, plastic skin, airbrushed, cgi, low quality, distorted face",
+      num_inference_steps: 24,
     }),
   });
   const falData = (await falRes.json().catch(() => null)) as { image?: { url?: string }; detail?: unknown; error?: unknown } | null;
@@ -59,6 +61,9 @@ export async function POST(request: Request) {
   if (!imgResp.ok) return NextResponse.json({ error: "Could not fetch the HD image." }, { status: 502 });
   const mime = imgResp.headers.get("content-type") || "image/png";
   const dataUrl = `data:${mime};base64,${Buffer.from(await imgResp.arrayBuffer()).toString("base64")}`;
+  // Preview: hand back the exact HD image (data URL) WITHOUT changing her photo — the admin
+  // decides to Apply (persist) or Regenerate. This is the full-quality result, not recompressed.
+  if (preview) return NextResponse.json({ ok: true, photoUrl: dataUrl });
   const newPath = await uploadTryThisLookImage("uploads", dataUrl);
 
   (curator as { photoPath?: string }).photoPath = newPath;

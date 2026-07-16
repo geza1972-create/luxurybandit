@@ -925,8 +925,8 @@ export default function TryThisLookPage() {
               {dealCountdown && <span className="col-span-2 min-w-0 rounded-full bg-coral/10 px-2.5 py-1 text-center text-coral">{dealCountdown}</span>}
             </div>
             {selectedLook.inStock !== undefined && (
-              <div className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black ${selectedLook.inStock ? "bg-emerald-50 text-emerald-700" : "bg-ink/10 text-ink/55"}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${selectedLook.inStock ? "bg-emerald-500" : "bg-ink/30"}`} />
+              <div className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-black ${selectedLook.inStock ? "bg-amber-50 text-amber-700" : "bg-ink/10 text-ink/55"}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${selectedLook.inStock ? "bg-amber-500" : "bg-ink/30"}`} />
                 {selectedLook.inStock ? "Available now" : "Sold"}
               </div>
             )}

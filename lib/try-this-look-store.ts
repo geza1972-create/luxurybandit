@@ -240,6 +240,9 @@ export type CuratorProfile = {
   firstName: string;
   lastName: string;
   modelName?: string;         // public stage / influencer name (distinct from real name)
+  title?: string;             // her brand title / role on the card, e.g. "Monaco Influencer"
+  intro?: string;             // her self-introduction — the card's ABOUT slide text
+  sponsor?: string;           // her brand sponsor, e.g. "Gianna Bellucci" (shown on the intro slide)
   email: string;
   phone?: string;
   address?: string;

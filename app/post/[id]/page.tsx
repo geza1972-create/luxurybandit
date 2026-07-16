@@ -381,7 +381,7 @@ export default function PostPage() {
                       // eslint-disable-next-line @next/next/no-img-element
                       : <img src={`https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=000000&fontColor=ffffff&fontSize=40`} alt={name} className="w-10 aspect-[3/4] shrink-0 rounded-xl bg-black/5" />}
                     <span className="min-w-0 flex-1 truncate text-sm font-black text-black">{name}</span>
-                    {post.customerName === name && <span className="text-[11px] font-black text-emerald-600">current</span>}
+                    {post.customerName === name && <span className="text-[11px] font-black text-amber-600">current</span>}
                   </button>
                 );
               })}
@@ -427,7 +427,7 @@ export default function PostPage() {
                       )}
                     </div>
                     <Row k="Created" v={fmt(d.createdAt)} />
-                    <Row k="By" v={<span>{d.who || "—"}{d.isCurator && <span className="ml-1.5 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-black text-emerald-700">CURATOR</span>}</span>} />
+                    <Row k="By" v={<span>{d.who || "—"}{d.isCurator && <span className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-black text-amber-700">CURATOR</span>}</span>} />
                     <Row k="Type" v={typeLabel} />
                     <Row k="Media" v={mediaLabel} />
                     {isLook ? (
@@ -596,10 +596,10 @@ export default function PostPage() {
             </div>
             {sent ? (
               <div className="flex flex-col items-center gap-2 py-4">
-                <div className="grid h-12 w-12 place-items-center rounded-full bg-emerald-100 text-emerald-600">
+                <div className="grid h-12 w-12 place-items-center rounded-full bg-amber-100 text-amber-600">
                   <Send className="h-5 w-5" />
                 </div>
-                <p className="text-sm font-black text-emerald-700">Message sent!</p>
+                <p className="text-sm font-black text-amber-700">Message sent!</p>
               </div>
             ) : !isSignedIn ? (
               <div className="grid gap-3">

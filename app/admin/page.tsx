@@ -12,12 +12,13 @@ import { publicLookLabel } from "@/lib/look-title";
 import { safeLookImage } from "@/lib/look-image";
 import InsightsPro from "@/components/InsightsPro";
 import AdminConnections from "@/components/AdminConnections";
+import PasswordInput from "@/components/PasswordInput";
 
 const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
 
 type Curator = {
   id: string;
-  firstName?: string; lastName?: string; email?: string;
+  firstName?: string; lastName?: string; email?: string; modelName?: string;
   phone?: string; address?: string; country?: string; instagram?: string; verificationSelfieUrl?: string;
   brands?: string; style?: string; genderFocus?: string; ageFocus?: string;
   colors?: string; fabrics?: string; occasions?: string; priceTiers?: string; fitFocus?: string;
@@ -1250,9 +1251,10 @@ export default function AdminPage() {
               <p className="mt-1 text-sm font-bold text-ink/50">Sign in with your admin email & password.</p>
               <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Email" autoComplete="username"
                 className="mt-4 h-12 w-full rounded-xl border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt" />
-              <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Password" autoComplete="current-password"
+              <PasswordInput value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" autoComplete="current-password"
                 onKeyDown={e => { if (e.key === "Enter") void signInEmail(); }}
-                className="mt-2 h-12 w-full rounded-xl border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt" />
+                wrapperClassName="mt-2 w-full"
+                className="h-12 w-full rounded-xl border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt" />
               <button type="button" onClick={() => void signInEmail()} disabled={loading} className="mt-3 h-12 w-full rounded-xl bg-black text-sm font-black text-white active:scale-95 transition disabled:opacity-50">
                 {loading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Sign in"}
               </button>
@@ -1264,9 +1266,10 @@ export default function AdminPage() {
           ) : (
             <>
               <p className="mt-1 text-sm font-bold text-ink/50">Enter the admin PIN.</p>
-              <input value={pin} onChange={e => setPin(e.target.value)} type="password" placeholder="Admin PIN"
+              <PasswordInput value={pin} onChange={e => setPin(e.target.value)} placeholder="Admin PIN"
                 onKeyDown={e => { if (e.key === "Enter") signInPin(); }}
-                className="mt-4 h-12 w-full rounded-xl border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt" />
+                wrapperClassName="mt-4 w-full"
+                className="h-12 w-full rounded-xl border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt" />
               <button type="button" onClick={signInPin} className="mt-3 h-12 w-full rounded-xl bg-black text-sm font-black text-white active:scale-95 transition">
                 {loading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Enter"}
               </button>
@@ -1981,7 +1984,7 @@ export default function AdminPage() {
                         </a>
                       )}
                       <div className="min-w-0">
-                        <div className="truncate font-black text-ink">{house ? "Admin (house)" : fullName(c)}</div>
+                        <div className="truncate font-black text-ink">{house ? "Admin (house)" : (c.modelName?.trim() || fullName(c))}</div>
                         <div className="mt-0.5 flex items-center gap-1.5">
                           {house ? (
                             <span className="text-[11px] font-bold text-ink/45">Looks & try-ons with no curator</span>
@@ -2008,10 +2011,15 @@ export default function AdminPage() {
                       </div>
                     </div>
                   </td>
-                  {/* Owner (account email) — unowned models are "For sale" */}
+                  {/* Owner — the person who owns this model (their real name = the owner name).
+                      Unowned models (no account) are "For sale". */}
                   <td className={td}>
                     {house ? <span className="text-ink/30">—</span>
-                      : c.email ? <span className="block max-w-[180px] truncate text-xs font-bold text-ink/55">{c.email}</span>
+                      : c.email ? (
+                        <span className="block max-w-[180px]">
+                          <span className="block truncate text-xs font-black text-ink/75">{fullName(c)}</span>
+                          <span className="block truncate text-[10px] font-bold text-ink/40">{c.email}</span>
+                        </span>)
                       : <span className="inline-block rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-black text-amber-700 ring-1 ring-amber-400/30">For sale</span>}
                   </td>
                   {/* Price (base) — tap to change */}
@@ -2038,7 +2046,9 @@ export default function AdminPage() {
                           className="grid h-8 w-8 place-items-center rounded-lg border border-black/10 text-ink/60 active:scale-95 transition disabled:opacity-50">
                           {vidBusyId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Video className="h-4 w-4" />}
                         </button>
-                        <a href={`/admin/curators/apply?edit=${c.id}`} title="Edit the full model profile"
+                        {/* Manage EVERYTHING (photo, videos, hide/show, generate) on her own
+                            profile as admin — not the recruitment/apply form. */}
+                        <a href={`/curator/${c.id}`} title="Manage her photo, videos & content"
                           className="grid h-8 place-items-center rounded-lg border border-black/10 px-2.5 text-[11px] font-black text-ink/60 active:scale-95 transition">Edit</a>
                         <button type="button" disabled={busy === c.id} onClick={() => void setCuratorStatus(c.id, (off || pending) ? "active" : "deactivated")} title={pending ? "Approve" : off ? "Activate" : "Deactivate"}
                           className={`grid h-8 w-8 place-items-center rounded-lg border active:scale-95 transition ${(off || pending) ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-black/10 text-ink/60"}`}>
@@ -2434,7 +2444,7 @@ export default function AdminPage() {
                 </button>
                 <span className="pb-2.5 text-[11px] font-bold text-ink/40">spent {edit.creditsSpent ?? 0}</span>
               </div>
-              <Field2 label="First name" v={edit.firstName} on={v => setEdit(e => e && { ...e, firstName: v })} label2="Last name" v2={edit.lastName} on2={v => setEdit(e => e && { ...e, lastName: v })} />
+              <Field2 label="Owner first name" v={edit.firstName} on={v => setEdit(e => e && { ...e, firstName: v })} label2="Owner last name" v2={edit.lastName} on2={v => setEdit(e => e && { ...e, lastName: v })} />
               <Field label="Email" v={edit.email} on={v => setEdit(e => e && { ...e, email: v })} />
               <Field2 label="Phone" v={edit.phone} on={v => setEdit(e => e && { ...e, phone: v })} label2="Instagram" v2={edit.instagram} on2={v => setEdit(e => e && { ...e, instagram: v })} />
               <Field2 label="Address" v={edit.address} on={v => setEdit(e => e && { ...e, address: v })} label2="Country (ISO-2, e.g. RO)" v2={edit.country} on2={v => setEdit(e => e && { ...e, country: v })} />

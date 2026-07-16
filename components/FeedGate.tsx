@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, Loader2, Heart, MessageSquare, Play } from "lucide-react";
 import { signInWithPassword, signUpWithPassword, signInWithOAuth } from "@/lib/supabase-auth-client";
 import { trackMetaPixel } from "@/lib/meta-pixel";
+import PasswordInput from "@/components/PasswordInput";
 
 // A bottom-sheet reachable from the feed. Two modes:
 //  • "auth"     — the SAME registration as the try-on gate: name + email + password,
@@ -143,7 +144,7 @@ export function FeedGate({
         {mode === "feedback" ? (
           done === "sent" ? (
             <div className="py-8 text-center">
-              <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-emerald-100 text-emerald-600"><MessageSquare className="h-6 w-6" /></div>
+              <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-amber-100 text-amber-600"><MessageSquare className="h-6 w-6" /></div>
               <p className="text-lg font-black text-black">Thank you! 💛</p>
               <p className="mt-1 text-sm font-bold text-black/50">We read every message.</p>
               <button type="button" onClick={onClose} className="mt-5 h-11 w-full rounded-full bg-black text-sm font-black text-white active:scale-95 transition-transform">Done</button>
@@ -212,7 +213,7 @@ export function FeedGate({
             </div>
             <input type="text" autoComplete="name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" className={field} />
             <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className={field} />
-            <input type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (min. 6 characters)" className={field} />
+            <PasswordInput autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (min. 6 characters)" className={field} />
             {info && <p className="rounded-lg bg-amber-50 px-3 py-2 text-[12px] font-black text-amber-700">{info}</p>}
             {err && <p className="rounded-lg bg-red-50 px-3 py-2 text-[12px] font-black text-red-600">{err}</p>}
             <button type="submit" disabled={busy} className="flex h-12 items-center justify-center gap-2 rounded-full bg-black text-sm font-black text-white active:scale-95 transition-transform disabled:opacity-40">

@@ -162,7 +162,7 @@ export default function MyStorePage() {
                     <div className="mt-1 flex items-center gap-2">
                       {look.price && <span className="text-xs font-black text-black/60">€{look.price}</span>}
                       {look.published ? (
-                        <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-600">
+                        <span className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-black text-amber-600">
                           <CheckCircle2 className="h-2.5 w-2.5" /> Live
                         </span>
                       ) : (

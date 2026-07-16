@@ -22,7 +22,7 @@ export default function MyAccountPage() {
   }, []);
 
   if (role === "loading") {
-    return <div className="grid min-h-[100dvh] place-items-center bg-[#0d0b0a]"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>;
+    return <div className="grid min-h-[100dvh] place-items-center lb-bg"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>;
   }
   return role === "pro" ? <SellerDashboard /> : <BuyerAccount />;
 }

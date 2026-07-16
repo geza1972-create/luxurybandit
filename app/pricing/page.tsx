@@ -10,7 +10,7 @@ import { Check, Sparkles, MessageCircle, ArrowLeft } from "lucide-react";
 export default function PricingPage() {
   const router = useRouter();
   return (
-    <div className="min-h-screen bg-[#0d0b0a] px-5 pb-24 pt-6 text-white">
+    <div className="min-h-screen lb-bg px-5 pb-24 pt-6 text-white">
       <div className="mx-auto w-full max-w-md">
         <div className="mb-6 flex items-center gap-3">
           <button type="button" onClick={() => router.back()} className="grid h-9 w-9 place-items-center rounded-full bg-white/10 active:scale-90 transition"><ArrowLeft className="h-5 w-5" /></button>

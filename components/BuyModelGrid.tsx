@@ -23,7 +23,7 @@ export default function BuyModelGrid({ models }: { models: Model[] }) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={m.poster || m.photo} alt={m.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
             {isNew(m.createdAt)
-              ? <span className="absolute right-1.5 top-1.5 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wide text-white shadow">New</span>
+              ? <span className="absolute right-1.5 top-1.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wide text-white shadow">New</span>
               : m.video ? <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-black/45 text-white backdrop-blur"><Play className="h-2.5 w-2.5" fill="currentColor" /></span> : null}
             <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-1.5 pb-1.5 pt-5 text-center">
               <span className="text-[10px] font-black text-amber-300">Buy now →</span>

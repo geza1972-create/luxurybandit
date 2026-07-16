@@ -7,7 +7,7 @@ export default function PaymentSuccessPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-white px-6 text-center">
       <div className="flex flex-col items-center gap-6 max-w-sm">
-        <CheckCircle className="h-16 w-16 text-green-500" strokeWidth={1.5} />
+        <CheckCircle className="h-16 w-16 text-amber-500" strokeWidth={1.5} />
         <div>
           <h1 className="text-2xl font-semibold text-black">Credits added!</h1>
           <p className="mt-2 text-sm text-black/50">

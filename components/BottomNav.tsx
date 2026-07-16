@@ -274,8 +274,8 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               <div className="min-w-0 flex-1">
                 <p className="truncate text-base font-black text-white">{displayName || (signedIn ? "Account" : "Not signed in")}</p>
                 {signedIn ? (
-                  <p className="flex items-center gap-1 truncate text-[11px] font-bold text-emerald-400">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  <p className="flex items-center gap-1 truncate text-[11px] font-bold text-amber-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
                     {curator?.id ? "Signed in as model" : isPinAdmin ? "Admin (PIN)" : "Signed in"}{displayEmail ? ` · ${displayEmail}` : ""}
                   </p>
                 ) : (

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, KeyRound, CheckCircle } from "lucide-react";
 import { updatePasswordWithToken } from "@/lib/supabase-auth-client";
+import PasswordInput from "@/components/PasswordInput";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -86,8 +87,8 @@ export default function ResetPasswordPage() {
         ) : done ? (
           /* Success */
           <div className="flex flex-col items-center gap-4 text-center">
-            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-emerald-50">
-              <CheckCircle className="h-8 w-8 text-emerald-500" />
+            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-amber-50">
+              <CheckCircle className="h-8 w-8 text-amber-500" />
             </div>
             <p className="text-base font-black text-black">Password changed!</p>
             <p className="text-sm font-bold text-black/50">
@@ -136,20 +137,18 @@ export default function ResetPasswordPage() {
               <p className="text-sm font-bold text-black/50">Enter your new password.</p>
             </div>
 
-            <input
-              type="password"
+            <PasswordInput
               placeholder="New password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-12 rounded-2xl border border-black/10 bg-black/[0.02] px-4 text-sm font-bold text-black placeholder:text-black/30 outline-none focus:border-black"
+              className="h-12 w-full rounded-2xl border border-black/10 bg-black/[0.02] px-4 text-sm font-bold text-black placeholder:text-black/30 outline-none focus:border-black"
             />
-            <input
-              type="password"
+            <PasswordInput
               placeholder="Confirm password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") void handleSubmit(); }}
-              className="h-12 rounded-2xl border border-black/10 bg-black/[0.02] px-4 text-sm font-bold text-black placeholder:text-black/30 outline-none focus:border-black"
+              className="h-12 w-full rounded-2xl border border-black/10 bg-black/[0.02] px-4 text-sm font-bold text-black placeholder:text-black/30 outline-none focus:border-black"
             />
 
             {error && (

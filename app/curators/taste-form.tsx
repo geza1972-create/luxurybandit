@@ -39,7 +39,7 @@ export function TagPicker({ title, all, selected, onToggle, onClose, dark }: {
   const sel = new Set(selected.map(s => s.toLowerCase()));
   const list = q.trim() ? all.filter(t => t.toLowerCase().includes(q.trim().toLowerCase())) : all;
   return (
-    <div className={`fixed inset-0 z-[60] flex flex-col ${dark ? "bg-[#0d0b0a]" : "bg-white"}`} style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+    <div className={`fixed inset-0 z-[60] flex flex-col ${dark ? "lb-bg" : "bg-white"}`} style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
       <div className={`flex items-center gap-3 border-b px-4 py-3 ${dark ? "border-white/10" : "border-black/8"}`}>
         <button type="button" onClick={onClose} className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border ${dark ? "border-white/15 text-white" : "border-black/10 text-black"}`}><X className="h-4 w-4" /></button>
         <div className="min-w-0 flex-1">

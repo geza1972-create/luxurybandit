@@ -19,8 +19,8 @@ export default function ModelRulesPage() {
         <Link href="/stores" className="grid h-9 w-9 place-items-center rounded-full border border-black/10"><ArrowLeft className="h-4 w-4" /></Link>
         <p className="text-lg font-black">Model rules</p>
       </div>
-      <div className="mb-5 flex items-center gap-2 rounded-2xl bg-emerald-50 px-4 py-3 text-[13px] font-bold text-emerald-800">
-        <BadgeCheck className="h-5 w-5 shrink-0 text-emerald-600" />
+      <div className="mb-5 flex items-center gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-[13px] font-bold text-amber-800">
+        <BadgeCheck className="h-5 w-5 shrink-0 text-amber-600" />
         Meet these to get the <b className="mx-1">✓ Real model</b> badge, earnings & paid chat.
       </div>
       <ol className="space-y-4">

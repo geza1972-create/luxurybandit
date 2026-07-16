@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import CropModal from "@/components/CropModal";
 import { getClientAccountId } from "@/lib/client-account";
 import { publicLookTitle, publicLookLabel } from "@/lib/look-title";
+import PasswordInput from "@/components/PasswordInput";
 import {
   getStoredAuthSession,
   signInWithPassword,
@@ -1396,7 +1397,7 @@ export default function TryonPage() {
                 onChange={e => setGateEmail(e.target.value)}
                 placeholder="you@email.com"
                 className="h-13 w-full rounded-2xl border-2 border-black/15 bg-black/[0.02] px-4 py-3.5 text-base font-bold text-black placeholder:text-black/35 outline-none focus:border-black" />
-              <input type="password" autoComplete="new-password" value={gatePassword}
+              <PasswordInput autoComplete="new-password" value={gatePassword}
                 onChange={e => setGatePassword(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") void gateRegister(); }}
                 placeholder="Choose a password (min. 6)"
@@ -1572,8 +1573,8 @@ export default function TryonPage() {
               try-ons. Hidden once the email GATE already captured it. */}
           {!authSession && !curatorId && !gatePassed && (
             leadDone ? (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-center">
-                <p className="text-sm font-black text-emerald-700">✓ Sent! Check your inbox to save your look.</p>
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center">
+                <p className="text-sm font-black text-amber-700">✓ Sent! Check your inbox to save your look.</p>
               </div>
             ) : (
               <div className="rounded-2xl border border-black/10 bg-black/[0.02] p-4 flex flex-col gap-2.5">
@@ -1609,11 +1610,11 @@ export default function TryonPage() {
           <div className="rounded-2xl border border-black/10 bg-black/[0.02] p-4 flex flex-col gap-3">
             <div className="min-w-0">
               <p className="text-sm font-black">Share your look &amp; win ✨</p>
-              <p className="text-[12px] font-bold text-black/45">Post your {videoUrl ? "photo & video " : "photo "}to the community — the most-liked looks win credits.<span className="text-emerald-600">*</span></p>
+              <p className="text-[12px] font-bold text-black/45">Post your {videoUrl ? "photo & video " : "photo "}to the community — the most-liked looks win credits.<span className="text-amber-600">*</span></p>
             </div>
             {showInFeed ? (
-              <div className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 ${pendingReview ? "bg-amber-50" : "bg-emerald-50"}`}>
-                <p className={`flex items-center gap-1.5 text-[12px] font-black ${pendingReview ? "text-amber-700" : "text-emerald-700"}`}>
+              <div className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 ${pendingReview ? "bg-amber-50" : "bg-amber-50"}`}>
+                <p className={`flex items-center gap-1.5 text-[12px] font-black ${pendingReview ? "text-amber-700" : "text-amber-700"}`}>
                   {isSharing ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {pendingReview ? "Submitting…" : "Posting…"}</>
                     : pendingReview ? <><Send className="h-3.5 w-3.5" /> Submitted — pending review</>
                     : <><Send className="h-3.5 w-3.5" /> Posted to the community</>}
@@ -1640,7 +1641,7 @@ export default function TryonPage() {
                 </p>
               </>
             )}
-            <p className="text-[11px] font-bold leading-snug text-black/35"><span className="text-emerald-600">*</span> The more likes your look gets, the more credits you earn — spend them on more try-ons &amp; videos.</p>
+            <p className="text-[11px] font-bold leading-snug text-black/35"><span className="text-amber-600">*</span> The more likes your look gets, the more credits you earn — spend them on more try-ons &amp; videos.</p>
           </div>
           )}
 
@@ -1759,7 +1760,7 @@ export default function TryonPage() {
               className="flex h-14 w-full items-center gap-3 rounded-2xl bg-white px-4 text-black shadow-xl active:scale-95 transition-transform">
               <Sparkles className="h-5 w-5 shrink-0 text-blue-600" />
               <span className="text-base font-black">See me in this look</span>
-              <span className={`ml-auto rounded-full px-2.5 py-0.5 text-xs font-black ${effectiveLingerie && !isStaff ? "bg-black text-white" : "bg-emerald-100 text-emerald-700"}`}>{isStaff ? "Free" : effectiveLingerie ? "$2.90" : "Free"}</span>
+              <span className={`ml-auto rounded-full px-2.5 py-0.5 text-xs font-black ${effectiveLingerie && !isStaff ? "bg-black text-white" : "bg-amber-100 text-amber-700"}`}>{isStaff ? "Free" : effectiveLingerie ? "$2.90" : "Free"}</span>
             </button>
             <button type="button" onClick={() => { if (isStaff) { setPaidSoon(""); if (effectiveLingerie) void startReferenceVideo(false); else void handleGenerate(undefined, "video"); } else setPaidSoon("video"); }}
               className="flex h-14 w-full items-center gap-3 rounded-2xl bg-white/15 px-4 text-white backdrop-blur active:scale-95 transition-transform">
@@ -1820,7 +1821,7 @@ export default function TryonPage() {
       <div className="flex-1 overflow-y-auto flex flex-col items-center px-6 py-5 gap-5">
         {/* Instructions — price folded into the title (the pill looked like a button) */}
         <div className="text-center">
-          <p className="text-xl font-black">Try this look on you · <span className={effectiveLingerie && !isStaff ? "text-black" : "text-emerald-600"}>{isStaff ? "Free" : effectiveLingerie ? "$2.90" : "Free"}</span></p>
+          <p className="text-xl font-black">Try this look on you · <span className={effectiveLingerie && !isStaff ? "text-black" : "text-amber-600"}>{isStaff ? "Free" : effectiveLingerie ? "$2.90" : "Free"}</span></p>
           <p className="mt-1 text-sm text-black/50">Add your photo and AI dresses you in this outfit — optional video after</p>
         </div>
 

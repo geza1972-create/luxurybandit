@@ -60,14 +60,14 @@ export default function ChatPage() {
 
   if (notFound) {
     return (
-      <div className="flex h-[100dvh] flex-col items-center justify-center gap-3 bg-[#0d0b0a] px-6 text-center text-white">
+      <div className="flex h-[100dvh] flex-col items-center justify-center gap-3 lb-bg px-6 text-center text-white">
         <p className="text-sm font-bold text-white/50">This chat isn&apos;t available.</p>
         <button type="button" onClick={back} className="lb-gold rounded-full px-6 py-2.5 text-sm font-black">Go back</button>
       </div>
     );
   }
   if (!profile) {
-    return <div className="flex h-[100dvh] items-center justify-center bg-[#0d0b0a] text-sm font-bold text-white/40">Loading…</div>;
+    return <div className="flex h-[100dvh] items-center justify-center lb-bg text-sm font-bold text-white/40">Loading…</div>;
   }
 
   const name = [profile.firstName, profile.lastName].filter(Boolean).join(" ") || "Model";

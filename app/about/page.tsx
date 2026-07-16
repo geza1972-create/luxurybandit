@@ -77,7 +77,7 @@ export default async function AboutPage() {
     : "";
 
   return (
-    <main className="min-h-[100dvh] bg-[#0d0b0a] pb-24 text-white">
+    <main className="min-h-[100dvh] lb-bg pb-24 text-white">
       <TopNav />
 
       <article className="mx-auto max-w-2xl px-5 py-8">

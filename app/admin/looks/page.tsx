@@ -10,6 +10,7 @@ import Link from "next/link";
 import { ChangeEvent, RefObject, useEffect, useRef, useState } from "react";
 import { LOOK_CATEGORIES, categorizeLook, type LookCategory } from "@/lib/look-category";
 import { findBrandsInText } from "@/lib/fashion-brands";
+import PasswordInput from "@/components/PasswordInput";
 
 function inferGarmentCategory(look: { name?: string; productNote?: string; hashtags?: string }): "tops" | "bottoms" | "one-pieces" | "lingerie" {
   const text = [look.name, look.productNote, look.hashtags].filter(Boolean).join(" ").toLowerCase();
@@ -2382,12 +2383,11 @@ export default function AdminLooksPage() {
         <section className="grid gap-3 rounded-lg border border-black/10 bg-white p-3 shadow-soft">
           <div className="text-sm font-black text-ink/60">Admin access</div>
           <div className="grid gap-2 md:grid-cols-[1fr_auto]">
-            <input
+            <PasswordInput
               value={pin}
               onChange={(event) => setPin(event.target.value)}
-              type="password"
               placeholder="Admin PIN"
-              className="h-12 rounded-md border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt"
+              className="h-12 w-full rounded-md border border-black/10 bg-panel px-3 text-sm font-bold outline-none focus:border-cobalt"
             />
             <button type="button" onClick={savePin} className="h-12 rounded-md bg-ink px-5 text-sm font-black text-white">
               Load admin

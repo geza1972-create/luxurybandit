@@ -95,18 +95,24 @@ export async function GET(request: Request) {
     return new ImageResponse(
       (
         <div style={{ width: "100%", height: "100%", display: "flex", background: "#000", padding: 20 }}>
-         <div style={{ display: "flex", flexDirection: "column", flex: 1, background: "#0d0b0a", color: "#fff", fontFamily: "sans-serif", borderRadius: 36, border: "5px solid #eab308", overflow: "hidden" }}>
+         <div style={{ display: "flex", flexDirection: "column", flex: 1, background: "linear-gradient(150deg, #17120d 0%, #0d0b0a 45%, #080605 100%)", color: "#fff", fontFamily: "sans-serif", borderRadius: 36, border: "5px solid #eab308", overflow: "hidden" }}>
           {/* Header — HER NAME (not over the video) + brand line, with the "LB" watermark behind. */}
           <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 122, padding: "0 30px", borderBottom: "1px solid rgba(251,191,36,0.25)", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: -60, left: -80, right: -80, bottom: -60, display: "flex", flexWrap: "wrap", alignContent: "center", justifyContent: "center", gap: "3px 8px", color: "rgba(253,224,120,0.18)", fontSize: 12, fontWeight: 800, lineHeight: 1, transform: "rotate(-24deg)" }}>
               {Array.from({ length: 260 }).map((_, i) => <span key={i}>LB</span>)}
             </div>
-            <span style={{ fontSize: 48, fontWeight: 800, color: "#fff", zIndex: 1, lineHeight: 1.05 }}>{name}</span>
-            <div style={{ display: "flex", alignItems: "center", marginTop: 4, background: "rgba(0,0,0,0.45)", border: "1px solid rgba(252,211,77,0.3)", borderRadius: 999, padding: "3px 14px", zIndex: 1 }}>
-              <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: 1, color: "#fbbf24" }}>LuxuryBandit.com <span style={{ color: "rgba(255,255,255,0.5)" }}>· Grow Card</span></span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", marginTop: 5, background: "rgba(0,0,0,0.55)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 999, padding: "2px 12px", zIndex: 1 }}>
-              <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: 2, color: "rgba(255,255,255,0.75)" }}>INVEST THAT GROWS EVERY DAY</span>
+            <span style={{ fontSize: 46, fontWeight: 800, color: "#fff", zIndex: 1, lineHeight: 1.05 }}>{name}</span>
+            {owner ? (
+              <div style={{ display: "flex", alignItems: "center", marginTop: 5, background: "#fbbf24", borderRadius: 999, padding: "4px 18px", zIndex: 1 }}>
+                <span style={{ fontSize: 16, fontWeight: 800, color: "#000" }}>OWNED BY {owner}</span>
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", marginTop: 5, background: "rgba(0,0,0,0.5)", border: "1px solid rgba(252,211,77,0.55)", borderRadius: 999, padding: "4px 22px", zIndex: 1 }}>
+                <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: 2, color: "#fde68a" }}>AVAILABLE</span>
+              </div>
+            )}
+            <div style={{ display: "flex", alignItems: "center", marginTop: 5, background: "rgba(0,0,0,0.45)", border: "1px solid rgba(252,211,77,0.3)", borderRadius: 999, padding: "3px 14px", zIndex: 1 }}>
+              <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: 1, color: "#fbbf24" }}>LuxuryBandit.com <span style={{ color: "rgba(255,255,255,0.5)" }}>· Own an AI Influencer</span></span>
             </div>
           </div>
           {/* photo + overlays */}
@@ -114,20 +120,23 @@ export async function GET(request: Request) {
             {photo ? <img src={photo} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ display: "flex", width: "100%", height: "100%" }} />}
             <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 320, display: "flex", backgroundImage: "linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.4) 45%, rgba(0,0,0,0))" }} />
             <div style={{ position: "absolute", top: 22, left: 22, display: "flex", background: "rgba(0,0,0,0.55)", borderRadius: 999, padding: "7px 15px", fontSize: 21, fontWeight: 800, letterSpacing: 2 }}>Nº {serial}</div>
-            {forSale && <div style={{ position: "absolute", top: 70, left: 22, display: "flex", background: "#10b981", borderRadius: 999, padding: "5px 15px", fontSize: 19, fontWeight: 800 }}>For sale</div>}
-            {realModel && <div style={{ position: "absolute", top: forSale ? 112 : 70, left: 22, display: "flex", background: "rgba(255,255,255,0.9)", color: "#047857", borderRadius: 999, padding: "5px 15px", fontSize: 19, fontWeight: 800 }}>Real</div>}
+            {forSale && <div style={{ position: "absolute", top: 70, left: 22, display: "flex", background: "#f59e0b", borderRadius: 999, padding: "5px 15px", fontSize: 19, fontWeight: 800 }}>For sale</div>}
+            {realModel && <div style={{ position: "absolute", top: forSale ? 112 : 70, left: 22, display: "flex", background: "rgba(255,255,255,0.9)", color: "#b45309", borderRadius: 999, padding: "5px 15px", fontSize: 19, fontWeight: 800 }}>Real</div>}
             <div style={{ position: "absolute", top: 22, right: 22, display: "flex", flexDirection: "column", alignItems: "center", background: "rgba(0,0,0,0.55)", border: "1px solid rgba(252,211,77,0.7)", borderRadius: 999, padding: "9px 22px", overflow: "hidden" }}>
               <div style={{ position: "absolute", top: -30, left: -30, right: -30, bottom: -30, display: "flex", flexWrap: "wrap", justifyContent: "center", alignContent: "center", gap: "0 4px", transform: "rotate(-24deg)", color: "rgba(253,224,120,0.14)", fontSize: 8, fontWeight: 800, lineHeight: 1 }}>{Array.from({ length: 80 }).map((_, i) => <span key={i}>LB</span>)}</div>
-              <span style={{ fontSize: 13, fontWeight: 800, color: "rgba(252,211,77,0.9)", letterSpacing: 1.5, zIndex: 1, lineHeight: 1 }}>TODAY&apos;S</span>
-              <span style={{ fontSize: 13, fontWeight: 800, color: "rgba(252,211,77,0.9)", letterSpacing: 1.5, zIndex: 1, lineHeight: 1.1 }}>LB-VALUE</span>
-              <span style={{ fontSize: 32, fontWeight: 800, zIndex: 1 }}>{value}</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: "rgba(252,211,77,0.9)", letterSpacing: 2, zIndex: 1, lineHeight: 1.1 }}>GS</span>
+              <span style={{ fontSize: 32, fontWeight: 800, zIndex: 1, lineHeight: 1.05 }}>{Math.round(parseFloat(String(value).replace(/[^0-9.]/g, "")) || 0).toLocaleString("en-US")}</span>
+              <div style={{ display: "flex", alignItems: "center", marginTop: 2, zIndex: 1 }}>
+                <div style={{ width: 0, height: 0, borderLeft: "4px solid transparent", borderRight: "4px solid transparent", borderBottom: "6px solid #fbbf24", marginRight: 5 }} />
+                <span style={{ fontSize: 11, fontWeight: 800, color: "#fbbf24", letterSpacing: 1 }}>TRENDING</span>
+              </div>
             </div>
             <div style={{ position: "absolute", left: 26, bottom: 22, display: "flex", flexDirection: "column" }}>
               {tagline ? <span style={{ fontSize: 26, fontWeight: 700, color: "rgba(255,255,255,0.95)", textShadow: "0 2px 14px rgba(0,0,0,1)" }}>{tagline}</span> : <span />}
               {owner ? (
-                <span style={{ marginTop: 6, fontSize: 17, fontWeight: 700, color: "rgba(255,255,255,0.6)", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}><span style={{ color: "rgba(255,255,255,0.4)", letterSpacing: 1 }}>OWNER</span> · {owner}</span>
+                <span style={{ marginTop: 6, fontSize: 18, fontWeight: 800, color: "#fcd34d", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>Owned by {owner}</span>
               ) : (
-                <span style={{ marginTop: 6, fontSize: 17, fontWeight: 700, letterSpacing: 1, color: "rgba(255,255,255,0.45)", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>NO OWNER YET</span>
+                <span style={{ marginTop: 6, fontSize: 18, fontWeight: 800, color: "#fbbf24", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>No owner yet — be the first owner</span>
               )}
             </div>
           </div>
@@ -169,7 +178,7 @@ export async function GET(request: Request) {
           {/* footer */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 52, borderTop: "1px solid rgba(255,255,255,0.1)", letterSpacing: 6, fontSize: 17, fontWeight: 800 }}>
             <span style={{ color: "rgba(252,211,77,0.85)" }}>LUXURYBANDIT.COM</span>
-            <span style={{ color: "rgba(255,255,255,0.4)", marginLeft: 12 }}>· GROW CARD</span>
+            <span style={{ color: "rgba(255,255,255,0.4)", marginLeft: 12 }}>· AI INFLUENCER</span>
           </div>
          </div>
         </div>

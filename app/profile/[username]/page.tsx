@@ -197,10 +197,10 @@ export default function PublicProfilePage() {
 
             {sent ? (
               <div className="flex flex-col items-center gap-2 py-4">
-                <div className="grid h-12 w-12 place-items-center rounded-full bg-emerald-100 text-emerald-600">
+                <div className="grid h-12 w-12 place-items-center rounded-full bg-amber-100 text-amber-600">
                   <Send className="h-5 w-5" />
                 </div>
-                <p className="text-sm font-black text-emerald-700">Message sent!</p>
+                <p className="text-sm font-black text-amber-700">Message sent!</p>
               </div>
             ) : !session ? (
               <div className="grid gap-3">

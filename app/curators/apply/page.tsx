@@ -6,7 +6,9 @@ import { ArrowLeft, Camera, Sparkles, Loader2, Check, Coins } from "lucide-react
 import { TagField, PhotoCropper, readPhotoFile } from "../taste-form";
 import { getStoredAuthSession, signInWithPassword, signUpWithPassword, signInWithOAuth, type SupabaseAuthSession } from "@/lib/supabase-auth-client";
 import { countryOptions } from "@/lib/countries";
+import { SPONSORS } from "@/lib/sponsors";
 import ModelCard from "@/components/ModelCard";
+import PasswordInput from "@/components/PasswordInput";
 
 const COUNTRIES = countryOptions();
 
@@ -116,6 +118,9 @@ export default function CuratorApplyPage() {
 
   const [motto, setMotto] = useState("");
   const [bio, setBio] = useState("");
+  const [cardTitle, setCardTitle] = useState("");   // brand title on her card, e.g. "Monaco Influencer"
+  const [cardIntro, setCardIntro] = useState("");   // her ABOUT-slide introduction
+  const [cardSponsor, setCardSponsor] = useState(""); // sponsor shown on the intro slide
   const [aiHint, setAiHint] = useState(""); // rough free-text for the AI (optional)
 
   const [mottoIdeas, setMottoIdeas] = useState<string[]>([]);
@@ -264,6 +269,7 @@ export default function CuratorApplyPage() {
         setColorChips(split(c.colors)); setFabricChips(split(c.fabrics)); setOccasionChips(split(c.occasions));
         setGenderFocus(c.genderFocus ?? ""); setPriceTiers(split(c.priceTiers)); setFitFocus(split(c.fitFocus));
         setMotto(c.motto ?? ""); setBio(c.bio ?? "");
+        setCardTitle((c as any).title ?? ""); setCardIntro((c as any).intro ?? ""); setCardSponsor((c as any).sponsor ?? "");
         if (c.photoUrl) setPhoto(c.photoUrl); // signed URL — only re-sent if she picks a new one
         setBodyExisting(Array.isArray(c.photoBodyUrls) ? c.photoBodyUrls : []);
         // Existing candidate profile photos (edit mode) — show them; new picks replace the set.
@@ -380,7 +386,7 @@ export default function CuratorApplyPage() {
   const submit = async () => {
     setAgreeError(!agreed); // any submit attempt reflects the consent state (red box if unticked)
     if (!modelName.trim() || !firstName.trim() || !lastName.trim() || !email.trim()) {
-      setError("Model name, first name, last name and email are required."); return;
+      setError("Model name, owner name and email are required."); return;
     }
     if (nameStatus === "taken") { setError("That model name is taken — please choose another."); return; }
     if (!agreed) { setError("Please confirm you're 18+, the photos are really you, and you accept the Terms & Conditions."); return; }
@@ -388,6 +394,7 @@ export default function CuratorApplyPage() {
     try {
       const shared = {
         modelName, firstName, lastName, email, phone, address, country, instagram, brands, style, motto, bio,
+        title: cardTitle, intro: cardIntro, sponsor: cardSponsor,
         genderFocus, styleModelId, imageSource, ...(imageSource === "ours" && avatarFaceId ? { avatarFaceId } : {}), consent: agreed, consentText: "18+, photos are really me, accept the Terms & Conditions",
         colors: colorChips.join(", "),
         fabrics: fabricChips.join(", "),
@@ -521,11 +528,11 @@ export default function CuratorApplyPage() {
 
           <div className="mt-3 grid gap-2.5">
             <input type="email" autoComplete="email" className={field} value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" />
-            <input type="password" autoComplete={authTab === "register" ? "new-password" : "current-password"} className={field}
+            <PasswordInput autoComplete={authTab === "register" ? "new-password" : "current-password"} className={field}
               value={authPassword} onChange={e => setAuthPassword(e.target.value)} placeholder="Password (6+ characters)"
               onKeyDown={e => { if (e.key === "Enter") void doAuth(); }} />
             {authErr && <p className="text-[13px] font-bold text-red-500">{authErr}</p>}
-            {authMsg && <p className="text-[13px] font-bold text-emerald-600">{authMsg}</p>}
+            {authMsg && <p className="text-[13px] font-bold text-amber-600">{authMsg}</p>}
             <button type="button" onClick={() => void doAuth()} disabled={authLoading}
               className={`bg-slate-800 text-white flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-black disabled:opacity-50 ${btn3d}`}>
               {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (authTab === "register" ? "Sign up & continue" : "Log in & continue")}
@@ -668,7 +675,7 @@ export default function CuratorApplyPage() {
               <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
               {f.claimed && <span className="absolute bottom-1 left-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[11px] font-black text-white/70">Booked</span>}
               {f.videoUrl && !f.claimed && <span className="pointer-events-none absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-[11px] text-white">▶</span>}
-              {isNewFace(f.createdAt) && !f.claimed && !(imageSource === "ours" && avatarFaceId === f.id) && <span className="pointer-events-none absolute right-1 top-1 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white shadow">New</span>}
+              {isNewFace(f.createdAt) && !f.claimed && !(imageSource === "ours" && avatarFaceId === f.id) && <span className="pointer-events-none absolute right-1 top-1 rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white shadow">New</span>}
               {imageSource === "ours" && avatarFaceId === f.id && <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-slate-800 text-[13px] font-black text-white">✓</span>}
             </button>
           ))}
@@ -700,8 +707,8 @@ export default function CuratorApplyPage() {
                 <td className="whitespace-nowrap text-right align-top text-slate-900">{fmtPrice(pricing.videoGenCents)}/video</td>
               </tr>
               <tr>
-                <td className="pr-3 align-top"><span className="mr-1.5">📈</span> Her <b>LB-Value</b> grows — +$1/day · +$1/video · +$10 per 10.</td>
-                <td className="whitespace-nowrap text-right align-top text-slate-500">resell for more</td>
+                <td className="pr-3 align-top"><span className="mr-1.5">📈</span> Her <b>Growth Score</b> grows — more looks, videos &amp; fans every day.</td>
+                <td className="whitespace-nowrap text-right align-top text-slate-500">more popular</td>
               </tr>
               <tr>
                 <td className="pr-3 align-top"><span className="mr-1.5">📱</span> Her own public profile — like the card above.</td>
@@ -775,20 +782,20 @@ export default function CuratorApplyPage() {
           <div>
             <span className={label}>Your model name</span>
             <div className="relative">
-              <input className={`${field} ${nameStatus === "taken" ? "ring-2 ring-red-400" : nameStatus === "available" ? "ring-2 ring-emerald-500" : ""}`}
+              <input className={`${field} ${nameStatus === "taken" ? "ring-2 ring-red-400" : nameStatus === "available" ? "ring-2 ring-amber-500" : ""}`}
                 value={modelName} onChange={e => setModelName(e.target.value)} placeholder="e.g. Bella Rose — your public influencer name" />
               {nameStatus === "checking" && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400" />}
-              {nameStatus === "available" && <Check className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-600" />}
+              {nameStatus === "available" && <Check className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-amber-600" />}
             </div>
             {nameStatus === "taken"
               ? <p className="mt-1 text-[12px] font-bold text-red-500">That name is taken — please choose another.</p>
               : nameStatus === "available"
-                ? <p className="mt-1 text-[12px] font-bold text-emerald-600">✓ Available — this name is yours.</p>
-                : <p className="mt-1 text-[12px] font-bold text-slate-600">This is the name fans see. Your real name below stays private.</p>}
+                ? <p className="mt-1 text-[12px] font-bold text-amber-600">✓ Available — this name is yours.</p>
+                : <p className="mt-1 text-[12px] font-bold text-slate-600">This is the name fans see. The owner name below stays private.</p>}
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><span className={label}>First name</span><input className={field} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Maria" /></div>
-            <div><span className={label}>Last name</span><input className={field} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Popescu" /></div>
+            <div><span className={label}>Owner first name</span><input className={field} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Maria" /></div>
+            <div><span className={label}>Owner last name</span><input className={field} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Popescu" /></div>
           </div>
           <div><span className={label}>Email</span><input type="email" className={field} value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" /></div>
           <div>
@@ -855,6 +862,23 @@ export default function CuratorApplyPage() {
           <div>
             <span className={label}>Short bio <span className="font-bold normal-case text-slate-400">· optional</span></span>
             <textarea className={`${field} h-auto py-3 leading-5`} rows={3} value={bio} onChange={e => setBio(e.target.value)} placeholder="One line about your eye for fashion…" />
+          </div>
+          {/* Card identity — the same dynamic fields the Model Card shows (title / ABOUT / sponsor). */}
+          <div>
+            <span className={label}>Title / role <span className="font-bold normal-case text-slate-400">· optional</span></span>
+            <input className={field} value={cardTitle} onChange={e => setCardTitle(e.target.value)} placeholder="e.g. Monaco Influencer" />
+          </div>
+          <div>
+            <span className={label}>About / introduction <span className="font-bold normal-case text-slate-400">· her ABOUT slide</span></span>
+            <textarea className={`${field} h-auto py-3 leading-5`} rows={3} value={cardIntro} onChange={e => setCardIntro(e.target.value)} placeholder="Hi, I'm … — I travel the world, test the newest trends…" />
+          </div>
+          <div>
+            <span className={label}>Sponsor <span className="font-bold normal-case text-slate-400">· optional</span></span>
+            {/* Picked from the admin-provided sponsor list (lib/sponsors) — never free text. */}
+            <select className={field} value={cardSponsor} onChange={e => setCardSponsor(e.target.value)}>
+              <option value="">No sponsor</option>
+              {SPONSORS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
           </div>
         </div>
 
@@ -949,7 +973,7 @@ export default function CuratorApplyPage() {
             <p className="mt-1 text-[15px] font-bold text-slate-700">{savedDone.photo ? "The profile photo has been updated." : "Changes saved."}</p>
             {savedDone.photo && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={savedDone.photo} alt="" className="mx-auto mt-4 h-40 w-32 rounded-2xl object-cover object-top ring-2 ring-emerald-400/40" />
+              <img src={savedDone.photo} alt="" className="mx-auto mt-4 h-40 w-32 rounded-2xl object-cover object-top ring-2 ring-amber-400/40" />
             )}
             <button type="button" onClick={() => router.push("/admin?tab=curators")}
               className={`bg-slate-800 text-white mt-5 w-full rounded-full px-5 py-3 text-sm font-black ${btn3d}`}>Back to models</button>

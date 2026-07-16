@@ -862,6 +862,10 @@ export async function GET(request: Request) {
           storeName: g.storeName ?? look?.storeName ?? "",
           lookThumbUrl: look?.frontImageUrl ?? look?.imageUrl ?? "",
           createdAt: g.createdAt,
+          // "Wearing <brand> · Shop now" on her look slide. Falls back to the LOOK's own
+          // brand/buyUrl; the link is affiliate-wrapped at serve time (partner stores).
+          brand: ((g as any).brand ?? (look as any)?.brand) || undefined,
+          shopUrl: affiliateWrap((g as any).shopUrl ?? (look as any)?.buyUrl, curatorTryonsId, state.partnerStores ?? []),
         };
       });
       return NextResponse.json({ userGallery, displayName: cur ? [cur.firstName, cur.lastName].filter(Boolean).join(" ") : "" });
@@ -1507,10 +1511,15 @@ export async function POST(request: Request) {
         customerName: [cur.firstName, cur.lastName].filter(Boolean).join(" "),
         videoUrl,
         feed: true,
-        public: false,
+        // Visible by default — the owner/admin decides what to hide (no automatic hiding).
+        public: true,
         imported: true, // uploaded by the admin, not generated through the funnel
         createdAt: new Date().toISOString(),
       };
+      // Garment brand + shop link → the look slide shows "Wearing <brand> · Shop now".
+      // shopUrl is stored RAW; affiliate wrapping happens at serve time (partner stores).
+      if (typeof (payload as any).brand === "string" && (payload as any).brand.trim()) gen.brand = (payload as any).brand.trim();
+      if (typeof (payload as any).shopUrl === "string" && /^https?:\/\//.test((payload as any).shopUrl)) gen.shopUrl = (payload as any).shopUrl.trim();
       const posterImage = (payload as any).posterImage;
       if (typeof posterImage === "string" && posterImage.startsWith("data:image/")) {
         gen.imagePath = await uploadTryThisLookImage("generations", posterImage);
@@ -1518,6 +1527,21 @@ export async function POST(request: Request) {
       state.generations = [gen, ...state.generations];
       await saveTryThisLookState(state);
       return NextResponse.json({ ok: true, id: gen.id });
+    }
+
+    // Admin: set/clear the SHOP link (+ brand) on an EXISTING video — retroactive tagging,
+    // e.g. attach the Gianna Bellucci product a clip shows. Stored raw; wrapped at serve time.
+    if (payload.action === "set-generation-shop") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 401 });
+      const genId = String((payload as any).generationId ?? "").trim();
+      const gen = state.generations.find(g => g.id === genId) as any;
+      if (!gen) return NextResponse.json({ error: "Generation not found." }, { status: 404 });
+      const shopUrl = String((payload as any).shopUrl ?? "").trim();
+      const brand = String((payload as any).brand ?? "").trim();
+      gen.shopUrl = /^https?:\/\//.test(shopUrl) ? shopUrl : undefined;
+      gen.brand = brand || undefined;
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true });
     }
 
     if (payload.action === "attach-generation-video") {
@@ -2013,7 +2037,10 @@ export async function POST(request: Request) {
       if (idx < 0) return NextResponse.json({ error: "Model not found." }, { status: 404 });
       const c = state.curators![idx] as any;
       const has = (k: string) => Object.prototype.hasOwnProperty.call(payload, k);
-      if (has("name")) { const parts = String((payload as any).name ?? "").trim().split(/\s+/).filter(Boolean); c.firstName = parts.shift() ?? ""; c.lastName = parts.join(" "); }
+      // `name` = the public MODEL name (modelName). It must NOT touch firstName/lastName —
+      // those are the OWNER's real name and the key content is matched by (don't corrupt it).
+      if (has("name")) c.modelName = String((payload as any).name ?? "").trim() || undefined;
+      if (has("modelName")) c.modelName = String((payload as any).modelName ?? "").trim() || undefined;
       if (has("firstName")) c.firstName = String((payload as any).firstName ?? "").trim();
       if (has("lastName")) c.lastName = String((payload as any).lastName ?? "").trim();
       if (has("bio")) c.bio = String((payload as any).bio ?? "").trim() || undefined;
@@ -2042,6 +2069,9 @@ export async function POST(request: Request) {
       const photoPath = await uploadTryThisLookImage("uploads", photo);
       const curator: any = {
         id: `curator-${Date.now()}-${crypto.randomUUID().slice(0, 5)}`,
+        // The entered name is the public MODEL name; also seed firstName/lastName so the
+        // content-matching key exists. Admin can later rename either independently.
+        modelName: String((payload as any).modelName ?? "").trim() || name,
         firstName: parts.shift() ?? name,
         lastName: parts.join(" "),
         style: String((payload as any).style ?? "").trim() || undefined,

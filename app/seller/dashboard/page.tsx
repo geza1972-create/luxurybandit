@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { getStoredAuthSession, signOut, updateUserProfile, getAuthUser } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
+import PasswordInput from "@/components/PasswordInput";
 
 type Look = {
   id: string;
@@ -175,21 +176,19 @@ function ProfileMenu({ email, storeName, onLogout }: { email?: string; storeName
                 </button>
                 <span className="text-sm font-black">Change password</span>
               </div>
-              <input
-                type="password"
+              <PasswordInput
                 value={newPw}
                 onChange={(e) => setNewPw(e.target.value)}
                 placeholder="New password"
-                className="h-11 rounded-xl border border-black/10 bg-black/4 px-3 text-sm font-bold outline-none focus:border-black"
+                className="h-11 w-full rounded-xl border border-black/10 bg-black/4 px-3 text-sm font-bold outline-none focus:border-black"
               />
-              <input
-                type="password"
+              <PasswordInput
                 value={confirmPw}
                 onChange={(e) => setConfirmPw(e.target.value)}
                 placeholder="Confirm new password"
-                className="h-11 rounded-xl border border-black/10 bg-black/4 px-3 text-sm font-bold outline-none focus:border-black"
+                className="h-11 w-full rounded-xl border border-black/10 bg-black/4 px-3 text-sm font-bold outline-none focus:border-black"
               />
-              {msg && <p className={`text-xs font-bold ${msg.includes("updated") ? "text-green-600" : "text-red-500"}`}>{msg}</p>}
+              {msg && <p className={`text-xs font-bold ${msg.includes("updated") ? "text-amber-600" : "text-red-500"}`}>{msg}</p>}
               <button
                 type="button"
                 onClick={handleChangePassword}
@@ -224,7 +223,7 @@ function ProfileMenu({ email, storeName, onLogout }: { email?: string; storeName
                   className="h-full flex-1 bg-transparent px-2 text-sm font-bold outline-none"
                 />
               </div>
-              {msg && <p className={`text-xs font-bold ${msg.includes("saved") ? "text-green-600" : "text-red-500"}`}>{msg}</p>}
+              {msg && <p className={`text-xs font-bold ${msg.includes("saved") ? "text-amber-600" : "text-red-500"}`}>{msg}</p>}
               <button
                 type="button"
                 onClick={() => setMsg("Contact details saved.")}
@@ -672,13 +671,13 @@ function ProfilePage({ isAdmin, userEmail, userInitial, accessToken, onLogout }:
             <p className="text-xs font-black uppercase tracking-widest text-black/30">Change password</p>
           </div>
           <div className="p-4 grid gap-3">
-            <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="New password" autoComplete="new-password" className={field} />
-            <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} placeholder="Confirm new password" autoComplete="new-password" className={field} />
+            <PasswordInput value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="New password" autoComplete="new-password" className={field} />
+            <PasswordInput value={confirmPw} onChange={e => setConfirmPw(e.target.value)} placeholder="Confirm new password" autoComplete="new-password" className={field} />
           </div>
         </section>
 
         {saveErr && <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-600">{saveErr}</p>}
-        {saveMsg && <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">{saveMsg}</p>}
+        {saveMsg && <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">{saveMsg}</p>}
 
         <button type="button" onClick={handleSave} disabled={saving}
           className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-black text-sm font-black text-white disabled:opacity-40 active:scale-95 transition-transform">
@@ -933,7 +932,7 @@ export default function SellerDashboardPage() {
           </div>
         )}
         {message && (
-          <div className="flex items-start justify-between rounded-xl bg-green-50 px-4 py-3 text-sm font-bold text-green-700">
+          <div className="flex items-start justify-between rounded-xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">
             <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4" />{message}</span>
             <button type="button" onClick={() => setMessage("")}><X className="h-4 w-4" /></button>
           </div>
@@ -1165,7 +1164,7 @@ export default function SellerDashboardPage() {
                     {(look.salePrice || look.price) && (
                       <span className="text-xs font-bold text-black/60">{look.salePrice ?? look.price}</span>
                     )}
-                    <span className={`text-[10px] font-black uppercase tracking-wide ${look.published ? "text-green-600" : "text-black/30"}`}>
+                    <span className={`text-[10px] font-black uppercase tracking-wide ${look.published ? "text-amber-600" : "text-black/30"}`}>
                       {look.published ? "Live" : "Draft"}
                     </span>
                     {look.inStock === false && (

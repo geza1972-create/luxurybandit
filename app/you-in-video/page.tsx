@@ -20,7 +20,7 @@ type Clip = { id: string; videoUrl: string; imageUrl: string; thumbUrl?: string 
 
 export default function YouInVideoPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0d0b0a]" />}>
+    <Suspense fallback={<div className="min-h-screen lb-bg" />}>
       <YouInVideoInner />
     </Suspense>
   );
@@ -29,7 +29,7 @@ export default function YouInVideoPage() {
 function YouInVideoInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const lang = (params.get("lang") === "ro" ? "ro" : "en") as "ro" | "en";
+  const lang = "en" as "ro" | "en"; // English forced everywhere (RO strings kept as a dormant fallback)
   const L = (ro: string, en: string) => (lang === "ro" ? ro : en);
 
   type Step = "pick" | "upload" | "generating" | "paywall" | "unlocked";
@@ -165,7 +165,7 @@ function YouInVideoInner() {
   ][Math.min(3, Math.floor(progress / 26))];
 
   return (
-    <div className="min-h-screen bg-[#0d0b0a] text-white">
+    <div className="min-h-screen lb-bg text-white">
       {/* Header */}
       <div className="sticky top-0 z-20 flex items-center justify-between border-b border-white/10 bg-[#0d0b0a]/90 px-3 py-3 backdrop-blur">
         <button type="button" onClick={() => (step === "pick" ? router.back() : setStep("pick"))}
@@ -303,7 +303,7 @@ function YouInVideoInner() {
               <Lock className="h-5 w-5" /> {L(`Deblochează videoul — ${PRICE_LABEL}`, `Unlock your video — ${PRICE_LABEL}`)}
             </button>
             <div className="mx-auto mt-3 flex max-w-xs items-center justify-center gap-1.5 text-[11px] font-bold text-white/40">
-              <Check className="h-3.5 w-3.5 text-emerald-400" /> {L("Plată securizată prin Stripe", "Secure checkout by Stripe")}
+              <Check className="h-3.5 w-3.5 text-amber-400" /> {L("Plată securizată prin Stripe", "Secure checkout by Stripe")}
             </div>
             <button type="button" onClick={() => setStep("unlocked")}
               className="mx-auto mt-4 block text-[11px] font-bold text-white/35 underline underline-offset-2">

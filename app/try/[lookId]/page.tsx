@@ -66,10 +66,10 @@ export default function TryFunnelPage() {
   // Language: DEFAULT EN. `?lang=ro|en` wins (ad links) and persists; otherwise a stored choice
   // (lb_lang) applies, else EN. A visible RO/EN switcher lets the visitor toggle. SSR-safe.
   const langParam = (searchParams?.get("lang") ?? "").toLowerCase();
-  const [lang, setLang] = useState<"ro" | "en">(langParam === "ro" ? "ro" : "en");
+  const [lang, setLang] = useState<"ro" | "en">("en"); // English forced everywhere (RO kept dormant)
   useEffect(() => {
-    if (langParam === "ro" || langParam === "en") { setLang(langParam as "ro" | "en"); try { localStorage.setItem("lb_lang", langParam); } catch { /**/ } return; }
-    try { setLang(localStorage.getItem("lb_lang") === "ro" ? "ro" : "en"); } catch { /**/ }
+    setLang("en");
+    try { localStorage.setItem("lb_lang", "en"); } catch { /**/ }
   }, [langParam]);
   const pickLang = (l: "ro" | "en") => { setLang(l); try { localStorage.setItem("lb_lang", l); } catch { /**/ } };
   const L = (ro: string, en: string) => (lang === "ro" ? ro : en);
@@ -788,7 +788,7 @@ export default function TryFunnelPage() {
   const inConfirm = step === 2 && !avatar && !((pickModel || chooseModel) && !pickedModel) && showConfirm;
 
   return (
-    <div className="relative mx-auto min-h-[100dvh] w-full max-w-[440px] bg-[#0d0b0a] text-white shadow-[0_0_60px_rgba(0,0,0,0.45)]">
+    <div className="relative mx-auto min-h-[100dvh] w-full max-w-[440px] lb-bg text-white shadow-[0_0_60px_rgba(0,0,0,0.45)]">
       {/* Background music for the try-on video (the clips have no audio). Always mounted so
           it can start within the GO tap gesture. */}
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
@@ -827,21 +827,23 @@ export default function TryFunnelPage() {
             const isVerified = !!sessEmail && sessVerified;
             return (
               <button type="button" onClick={() => { if (!isVerified) onUnlock(); }} title={isVerified ? "Verified account" : "Not verified — tap to create a full account"}
-                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black ring-1 active:scale-95 transition ${isVerified ? "bg-emerald-500/15 text-emerald-300 ring-emerald-400/25" : "bg-amber-400/15 text-amber-300 ring-amber-400/30"}`}>
+                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black ring-1 active:scale-95 transition ${isVerified ? "bg-amber-500/15 text-amber-300 ring-amber-400/25" : "bg-amber-400/15 text-amber-300 ring-amber-400/30"}`}>
                 {isVerified ? <BadgeCheck className="h-3.5 w-3.5 shrink-0" /> : <AlertTriangle className="h-3.5 w-3.5 shrink-0" />}
                 <span className="max-w-[110px] truncate">{email}</span>
               </button>
             );
           })()}
-          {/* Language switcher — default EN, toggle RO. */}
-          <div className="ml-auto flex items-center rounded-full bg-white/[0.07] p-0.5 ring-1 ring-white/10">
-            {(["en", "ro"] as const).map((l) => (
-              <button key={l} type="button" onClick={() => pickLang(l)}
-                className={`rounded-full px-2.5 py-1 text-[12px] font-black uppercase transition ${lang === l ? "bg-white text-black" : "text-white/55"}`}>
-                {l}
-              </button>
-            ))}
-          </div>
+          {/* Language switcher hidden — English is forced everywhere. Re-enable to bring RO back. */}
+          {false && (
+            <div className="ml-auto flex items-center rounded-full bg-white/[0.07] p-0.5 ring-1 ring-white/10">
+              {(["en", "ro"] as const).map((l) => (
+                <button key={l} type="button" onClick={() => pickLang(l)}
+                  className={`rounded-full px-2.5 py-1 text-[12px] font-black uppercase transition ${lang === l ? "bg-white text-black" : "text-white/55"}`}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          )}
           {/* Progress bar + admin-view toggle removed — it's all one window now. */}
         </div>
       </div>
@@ -942,7 +944,7 @@ export default function TryFunnelPage() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     {modelImg ? <img src={modelImg} alt="" className={`h-full w-full object-cover object-top ${chosenModelLocked ? "blur-[3px] opacity-70" : ""}`} /> : <div className="h-full w-full bg-white/5" />}
                     {!chosenModelLocked && chosenModelObj?.featured && (
-                      <span className="absolute left-1.5 top-1.5 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-black text-white">Free</span>
+                      <span className="absolute left-1.5 top-1.5 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-black text-white">Free</span>
                     )}
                     {chosenModelLocked ? (
                       // Premium (non-free) model → show the same crown/PREMIUM lock as the carousel.
@@ -1042,7 +1044,7 @@ export default function TryFunnelPage() {
                                   {isActive && <span className="text-[11px] font-bold leading-snug text-white/80">This is a Premium feature. Unlock to try her on.</span>}
                                 </div>
                               )
-                              : !m.realModel && <span className="absolute left-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-black text-white">Free</span>}
+                              : !m.realModel && <span className="absolute left-2 top-2 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-black text-white">Free</span>}
                             {isActive && !m.realModel && chosenModelName && (
                               // Chat is available with every (free) AI model.
                               <button type="button" onClick={(e) => { e.stopPropagation(); chosenModelId && router.push(`/luxury-products?model=${encodeURIComponent(chosenModelId)}&lang=${lang}`); }} title={`Chat with ${chosenModelName.split(/\s+/)[0]}`}
@@ -1112,7 +1114,7 @@ export default function TryFunnelPage() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={v.imageUrl} alt={v.lookName ?? ""} loading="lazy" className="h-full w-full object-cover object-top" />
                     <span className="absolute inset-0 grid place-items-center text-white/90"><Play className="h-7 w-7 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" fill="currentColor" /></span>
-                    <span className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[8px] font-black backdrop-blur ${v.public ? "bg-emerald-500 text-white" : v.feed ? "bg-amber-400 text-black" : "bg-black/70 text-white"}`}>{v.public ? "Public" : v.feed ? "Show" : "Private"}</span>
+                    <span className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[8px] font-black backdrop-blur ${v.public ? "bg-amber-500 text-white" : v.feed ? "bg-amber-400 text-black" : "bg-black/70 text-white"}`}>{v.public ? "Public" : v.feed ? "Show" : "Private"}</span>
                   </a>
                 ))}
               </div>
@@ -1185,7 +1187,7 @@ export default function TryFunnelPage() {
                     <span className="flex items-center gap-2 rounded-full bg-white/90 px-4 py-2.5 text-[13px] font-black text-black shadow-lg"><Play className="h-4 w-4 fill-black text-black" /> {L("Apasă ca s-o vezi", "Tap to watch")}</span>
                   </button>
                 ) : (
-                  <span className="pointer-events-none absolute left-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black"><Check className="h-3.5 w-3.5" /> Free</span>
+                  <span className="pointer-events-none absolute left-3 top-3 flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[11px] font-black"><Check className="h-3.5 w-3.5" /> Free</span>
                 )}
               </div>
             ) : (
@@ -1201,7 +1203,7 @@ export default function TryFunnelPage() {
                   ) : (
                     <div className="flex flex-col items-center gap-2">
                       <span className="grid h-16 w-16 place-items-center rounded-full bg-white/15 backdrop-blur"><Play className="h-7 w-7" /></span>
-                      <span className="mt-1 flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1 text-[12px] font-black"><Check className="h-3.5 w-3.5" /> Video ready</span>
+                      <span className="mt-1 flex items-center gap-1.5 rounded-full bg-amber-500 px-3 py-1 text-[12px] font-black"><Check className="h-3.5 w-3.5" /> Video ready</span>
                     </div>
                   )}
                 </div>
@@ -1269,7 +1271,7 @@ export default function TryFunnelPage() {
 
           {(packCredits ?? 0) > 0 ? (
             /* Has credits → just generate. */
-            <div className="mx-auto mt-6 max-w-sm rounded-2xl border border-emerald-400/30 bg-emerald-400/[0.06] p-5 text-center">
+            <div className="mx-auto mt-6 max-w-sm rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] p-5 text-center">
               <p className="text-3xl font-black text-white">{packCredits} <span className="text-base font-bold text-white/50">videos left</span></p>
               <p className="mt-1 text-[12px] font-bold text-white/45">Generating this video uses 1 credit.</p>
             </div>
@@ -1298,7 +1300,7 @@ export default function TryFunnelPage() {
           {/* Admin: skip the paywall and jump to the unlocked result (test the paid flow). */}
           {adminPin && !previewAsUser && (
             <button type="button" onClick={() => setStep(5)}
-              className="mx-auto mt-4 flex w-full max-w-sm items-center justify-center gap-2 rounded-xl border border-emerald-400/40 bg-emerald-400/10 py-3 text-[13px] font-black text-emerald-300 active:scale-95 transition-transform">
+              className="mx-auto mt-4 flex w-full max-w-sm items-center justify-center gap-2 rounded-xl border border-amber-400/40 bg-amber-400/10 py-3 text-[13px] font-black text-amber-300 active:scale-95 transition-transform">
               <Check className="h-4 w-4" /> Admin: continue as paid →
             </button>
           )}
@@ -1320,7 +1322,7 @@ export default function TryFunnelPage() {
             <X className="h-4 w-4" /> Cancel
           </button>
           {genStatus === "idle" && motionPicker && <div className="mb-3">{motionPicker}</div>}
-          <div className="relative mx-auto mt-2 max-w-[78vw] overflow-hidden rounded-3xl border border-emerald-400/30 bg-black">
+          <div className="relative mx-auto mt-2 max-w-[78vw] overflow-hidden rounded-3xl border border-amber-400/30 bg-black">
             <div className="relative aspect-[9/16] w-full">
               {genStatus === "done" && genVideoUrl ? (
                 // Both motions carry Pixverse's generated sound (the prompt asks for music),
@@ -1382,7 +1384,7 @@ export default function TryFunnelPage() {
                   </div>
                 </>
               )}
-              {genStatus === "done" && <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-black"><Check className="h-3.5 w-3.5" /> Ready</span>}
+              {genStatus === "done" && <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[11px] font-black"><Check className="h-3.5 w-3.5" /> Ready</span>}
             </div>
           </div>
           <h1 className="mt-6 text-center text-[22px] font-black leading-tight">
@@ -1438,7 +1440,7 @@ export default function TryFunnelPage() {
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={v.imageUrl} alt={v.lookName ?? ""} loading="lazy" className="h-full w-full object-cover object-top" />
                         <span className="absolute inset-0 grid place-items-center text-white/90"><Play className="h-8 w-8 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" fill="currentColor" /></span>
-                        <span className={`absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[9px] font-black backdrop-blur ${v.public ? "bg-emerald-500 text-white" : v.feed ? "bg-amber-400 text-black" : "bg-black/70 text-white"}`}>{status}</span>
+                        <span className={`absolute left-1.5 top-1.5 rounded-full px-2 py-0.5 text-[9px] font-black backdrop-blur ${v.public ? "bg-amber-500 text-white" : v.feed ? "bg-amber-400 text-black" : "bg-black/70 text-white"}`}>{status}</span>
                       </a>
                       {adminPin && (
                         <div className="p-1.5">
@@ -1446,7 +1448,7 @@ export default function TryFunnelPage() {
                             <button type="button" onClick={() => setVideoFeed(v.id, !v.feed)}
                               className={`flex-1 rounded-lg px-1.5 py-1.5 text-[10px] font-black transition ${v.feed ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>Fashionshow</button>
                             <button type="button" onClick={() => setVideoPublic(v.id, !v.public)}
-                              className={`flex-1 rounded-lg px-1.5 py-1.5 text-[10px] font-black transition ${v.public ? "bg-emerald-500 text-white" : "bg-white/10 text-white/60"}`}>{v.public ? "Public" : "Members"}</button>
+                              className={`flex-1 rounded-lg px-1.5 py-1.5 text-[10px] font-black transition ${v.public ? "bg-amber-500 text-white" : "bg-white/10 text-white/60"}`}>{v.public ? "Public" : "Members"}</button>
                             <button type="button" onClick={() => deleteVideoGen(v.id)}
                               className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-red-500/20 text-red-300 active:scale-90"><Trash2 className="h-3.5 w-3.5" /></button>
                           </div>
@@ -1601,7 +1603,7 @@ export default function TryFunnelPage() {
           </div>
           {adminPin ? (
             <div className="px-4 pb-2">
-              <p className="text-[12px] font-bold text-white/45">Production: pick a look for {chosenModelName?.split(" ")[0] || "the model"}, then Generate. <span className="text-emerald-400">🎬 = already has a video.</span></p>
+              <p className="text-[12px] font-bold text-white/45">Production: pick a look for {chosenModelName?.split(" ")[0] || "the model"}, then Generate. <span className="text-amber-400">🎬 = already has a video.</span></p>
               <div className="mt-2 flex gap-1.5">
                 {([["all", "All"], ["novideo", "To do"], ["video", "🎬 With video"]] as const).map(([k, label]) => (
                   <button key={k} type="button" onClick={() => setLookVideoFilter(k)}

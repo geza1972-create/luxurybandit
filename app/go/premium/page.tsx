@@ -48,7 +48,7 @@ export default function GoPremiumPage() {
   }, []);
 
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-[#0d0b0a] px-6 text-center">
+    <div className="flex min-h-[100dvh] items-center justify-center lb-bg px-6 text-center">
       <div className="flex flex-col items-center gap-4 text-white">
         {stuck ? (
           <>
