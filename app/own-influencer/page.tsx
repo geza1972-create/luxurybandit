@@ -73,8 +73,9 @@ async function landingData() {
     const ginaSerial = (gina?.id ?? "").replace(/[^a-z0-9]/gi, "").slice(-6).toUpperCase() || "GINA01";
     // ── Her brand story: who she is + per-look story (date · location · caption). ──
     // Dynamic card identity — her stored fields win; the crafted copy is only the fallback.
+    // NB: keep this TRUE — no claimed brand deals ("discovered by…") until one actually exists.
     const ginaIntro = String((gina as any)?.intro ?? "").trim()
-      || "Hi, I'm Bella — your Monaco influencer. On my world tour I was discovered by Gianna Bellucci, and now I'm the face of the label: I travel the world, test her latest collection first-hand, and bring every look to you with photos and stories from each stop. Follow along and never miss a drop.";
+      || "Hi, I'm Bella — your Monaco influencer. I travel the world, test the newest trends first-hand — I'm obsessed with Gianna Bellucci lingerie — and bring every look to you with photos and stories from each stop. Follow along and never miss a drop.";
     const ginaTitle = String((gina as any)?.title ?? "").trim() || "Monaco Influencer";
     const ginaSponsor = String((gina as any)?.sponsor ?? "").trim() || "Gianna Bellucci";
     const LOCATIONS = ["Monte-Carlo, Monaco", "Saint-Tropez, France", "Lake Como, Italy", "Milan, Italy", "Paris, France", "Mykonos, Greece", "Dubai, UAE", "Ibiza, Spain"];
@@ -188,7 +189,8 @@ export default async function OwnInfluencerLanding() {
             <img src="/lb-logo.png" alt="LuxuryBandit" className="h-9 w-9 shrink-0 rounded-full object-contain" />
             <span className="min-w-0 leading-none">
               <span className="block truncate text-[15px] font-black tracking-wide">LUXURYBANDIT</span>
-              <span className="block truncate text-[9px] font-bold uppercase tracking-[0.2em] text-amber-400/80">The Influencer Marketplace</span>
+              {/* Tighter tracking so the full motto fits even at 375px — never cut off. */}
+              <span className="block text-[8.5px] font-bold uppercase tracking-[0.12em] text-amber-400/80">The Influencer Marketplace</span>
             </span>
           </Link>
           <nav className="ml-auto hidden items-center gap-6">
@@ -196,8 +198,9 @@ export default async function OwnInfluencerLanding() {
               <Link key={n.label} href={n.href} className="text-[13px] font-bold text-white/70 transition hover:text-white">{n.label}</Link>
             ))}
           </nav>
-          <Link href="#launch" className="ml-auto shrink-0 rounded-full border border-amber-400 px-4 py-2 text-[13px] font-black text-amber-400 transition hover:bg-amber-400 hover:text-black">
-            Get Started
+          {/* Models-first funnel: the header CTA goes straight to the models gallery. */}
+          <Link href="/stores?view=models" className="ml-auto shrink-0 rounded-full border border-amber-400 px-4 py-2 text-[13px] font-black text-amber-400 transition hover:bg-amber-400 hover:text-black">
+            Models
           </Link>
         </div>
       </header>

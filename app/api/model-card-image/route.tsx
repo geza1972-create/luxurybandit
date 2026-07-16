@@ -90,7 +90,6 @@ export async function GET(request: Request) {
     })();
     const ownerId = c.ownerEmail ? `#${crypto.createHash("sha1").update(String(c.ownerEmail).toLowerCase()).digest("hex").slice(0, 5).toUpperCase()}` : "";
     const owner = c.ownerHideName === true ? ownerId : [ownerName, ownerId].filter(Boolean).join(" · ");
-    const stats: [string, string][] = [["Looks", String(looksCount || 24)], ["Followers", "345k"], ["Likes", "1.2M"], ["Views", "4.8M"]];
 
     return new ImageResponse(
       (
@@ -159,16 +158,7 @@ export async function GET(request: Request) {
             {bio ? <span style={{ marginTop: 6, fontSize: 20, fontWeight: 600, color: "rgba(255,255,255,0.72)" }}>{bio}</span> : <span />}
             {brandsText ? <span style={{ marginTop: 6, fontSize: 19, fontWeight: 600, color: "rgba(255,255,255,0.55)" }}>{brandsText}</span> : <span />}
           </div>
-          {/* stats */}
-          <div style={{ display: "flex", padding: "14px 12px 4px" }}>
-            {stats.map(([l, v]) => (
-              <div key={l} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
-                <span style={{ fontSize: 26, fontWeight: 800 }}>{v}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 1, color: "rgba(255,255,255,0.45)" }}>{l.toUpperCase()}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: "flex", justifyContent: "center", fontSize: 14, color: "rgba(255,255,255,0.3)" }}>AI-assigned by an algorithm</div>
+          {/* Vanity stats REMOVED (2026-07-16) — no fake followers/likes/views on shared cards. */}
           {/* CTAs */}
           <div style={{ display: "flex", gap: 10, padding: "12px 14px" }}>
             {["Super Follow", "Chat with my AI"].map(t => (

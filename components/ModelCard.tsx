@@ -70,7 +70,6 @@ export default function ModelCard({
   // Swipe ↔ thumbs stay in sync: thumbs scroll the carousel, scrolling updates the active slide.
   const scrollToSlide = (i: number) => { const el = slidesRef.current; if (el) el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" }); setPlayingIdx(-1); };
   const onSlidesScroll = () => { const el = slidesRef.current; if (!el) return; const idx = Math.round(el.scrollLeft / el.clientWidth); if (idx !== activeSlide) { setActiveSlide(idx); setPlayingIdx(-1); } };
-  const stats: [string, string][] = [["Looks", String(looks || 24)], ["Followers", "345k"], ["Likes", "1.2M"], ["Views", "4.8M"]];
   const created = createdAt ? new Date(createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "";
   // ALL her brands — no cap (a freshly added brand must show up immediately, else edits look broken).
   const brandList = brands.split(/[,;•]/).map(b => b.trim()).filter(Boolean);
@@ -143,7 +142,7 @@ export default function ModelCard({
                       <p className="text-[13.5px] font-semibold leading-relaxed text-white/85">{c.intro}</p>
                       {sponsor && (
                         <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-amber-400/15 px-3 py-1.5 text-[11px] font-black text-amber-200 ring-1 ring-amber-300/40">
-                          <Crown className="h-3.5 w-3.5" fill="currentColor" /> Sponsored by {sponsor}
+                          <Crown className="h-3.5 w-3.5" fill="currentColor" /> Wearing {sponsor}
                         </span>
                       )}
                     </div>
@@ -287,7 +286,7 @@ export default function ModelCard({
         {/* Sponsor — visible right on the card face (also on her ABOUT slide). */}
         {sponsor && (
           <p className="mt-1 flex items-center gap-1.5 text-[12px] font-black text-amber-300">
-            <Crown className="h-3.5 w-3.5 shrink-0" fill="currentColor" /> Sponsored by {sponsor}
+            <Crown className="h-3.5 w-3.5 shrink-0" fill="currentColor" /> Wearing {sponsor}
           </p>
         )}
         {bio && <p className="mt-1 text-[12.5px] font-semibold leading-5 text-white/70">{bio}</p>}
@@ -310,17 +309,8 @@ export default function ModelCard({
         </div>
       </div>
 
-      {/* Social reach — secondary; ownership + value come first. */}
-      <div className="px-3 pt-3">
-        <p className="text-center text-[8px] font-black uppercase tracking-[0.18em] text-white/30">Social reach</p>
-        <div className="mt-1 grid grid-cols-4 gap-1 text-center">
-          {stats.map(([l, v]) => (
-            <div key={l}><p className="text-[12px] font-black text-white/70">{v}</p><p className="text-[8px] font-bold uppercase tracking-wide text-white/35">{l}</p></div>
-          ))}
-        </div>
-      </div>
-      {/* Disclosure — the vanity stats are AI-assigned by an algorithm, not literal counts */}
-      <p className="px-3 pt-1 text-center text-[8px] font-medium leading-tight text-white/25">AI-assigned by an algorithm</p>
+      {/* Social-reach vanity stats REMOVED (2026-07-16): no fake followers/likes/views anywhere —
+          brand partners must only ever see real, verifiable numbers. */}
 
       <div className="mt-2.5 flex gap-2 px-3 pb-3">
         {onSuperFollow ? (
