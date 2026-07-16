@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Menu } from "lucide-react";
 
 /**
  * The ONE shared top bar for every page. Left: LB logo + wordmark → home (root
@@ -20,12 +19,7 @@ export default function TopNav({
   actions?: React.ReactNode;
 }) {
   const router = useRouter();
-  const openMenu = () => {
-    try { window.dispatchEvent(new Event("lb-open-account")); } catch { /**/ }
-  };
-  // Announce presence so BottomNav hides its redundant floating hamburger while a
-  // TopNav is on screen (the menu lives in this bar now). Counted so overlapping
-  // mount/unmount during client nav never leaves it stuck hidden or doubled.
+  // Announce presence so BottomNav knows a TopNav is on screen.
   useEffect(() => {
     const w = window as unknown as { __lbTopNav?: number };
     w.__lbTopNav = (w.__lbTopNav ?? 0) + 1;
@@ -55,13 +49,9 @@ export default function TopNav({
           </span>
         </button>
 
-        {/* Right: optional page actions, then the always-present menu button */}
+        {/* Right: optional page actions */}
         <div className="flex shrink-0 items-center gap-2">
           {actions}
-          <button type="button" onClick={openMenu} aria-label="Menu"
-            className="grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-white/[0.06] text-white active:scale-90 transition">
-            <Menu className="h-5 w-5" />
-          </button>
         </div>
       </div>
     </header>

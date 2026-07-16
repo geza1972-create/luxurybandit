@@ -213,17 +213,15 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
         </button>
       </div>
     )}
-    {/* Floating hamburger — replaces the old white bottom bar everywhere. All the bar's
-        destinations (Home, Try-Ons, Mai ieftin) now live inside the menu sheet. Hidden on
-        the feed (its top header has its own hamburger), on full-screen/funnel pages,
-        and wherever a shared TopNav already provides the menu button. */}
-    {!hideChrome && !hideBar && !onFeed && !hasTopNav && (
-      <div className="lb-phone-col pointer-events-none fixed inset-x-0 bottom-0 z-50"
+    {/* Floating hamburger — always shows in bottom right, except on full-screen/funnel
+        pages and the feed (which has its own menu in the top header). */}
+    {!hideChrome && !hideBar && !onFeed && (
+      <div className="lb-phone-col pointer-events-none fixed inset-x-0 bottom-0 z-[70]"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="flex justify-end px-4 pb-4">
-          <button type="button" onClick={() => { setActive("account"); setShowProfileMenu(true); }} aria-label="Menu"
+          <button type="button" onClick={() => { setShowProfileMenu(!showProfileMenu); }} aria-label="Menu"
             className="pointer-events-auto grid h-12 w-12 place-items-center rounded-full border border-white/15 bg-black/85 text-white shadow-xl backdrop-blur-md active:scale-90 transition">
-            <Menu className="h-6 w-6" />
+            {showProfileMenu ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
       </div>
