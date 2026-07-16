@@ -12,25 +12,39 @@ export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "OPENAI_API_KEY fehlt." }, { status: 400 });
 
-  const body = (await request.json().catch(() => ({}))) as { brief?: string; kind?: string; context?: string };
+  const body = (await request.json().catch(() => ({}))) as { brief?: string; kind?: string; context?: string; imageUrl?: string };
   const brief = String(body.brief ?? "").trim().slice(0, 400);
-  if (!brief) return NextResponse.json({ error: "Bitte kurz reinschreiben, worum es geht." }, { status: 400 });
+  const imageUrl = String(body.imageUrl ?? "").trim();
+  if (!brief && !imageUrl) return NextResponse.json({ error: "Bitte kurz reinschreiben oder ein Bild angeben." }, { status: 400 });
   const context = String(body.context ?? "").trim().slice(0, 120);
 
-  const prompt = [
-    "You are Bella, an elegant luxury travel & fashion influencer (brand LuxuryBandit).",
-    `From this short brief, write BOTH a short title AND a caption (ENGLISH, first-person): "${brief}".`,
-    context ? `Context: ${context}.` : "",
-    body.kind === "video" ? "It is about a short video." : "",
-    "Title: 2–4 words, punchy. Caption: 1–2 sentences, elegant/aspirational/tasteful, at most 1–2 fitting hashtags, no emoji flood.",
-    'Return ONLY strict JSON: {"title":"...","caption":"..."}',
-  ].filter(Boolean).join(" ");
+  const prompt = imageUrl
+    ? [
+        "You are Bella, an elegant luxury travel & fashion influencer (brand LuxuryBandit).",
+        "Look at the attached photo and write BOTH a short title AND a caption (ENGLISH, first-person) that FIT what is actually shown — the outfit, the setting and the mood in the image.",
+        brief ? `Extra hint: "${brief}".` : "",
+        context ? `Context: ${context}.` : "",
+        "Title: 2–4 words, punchy. Caption: 1–2 sentences, elegant/aspirational/tasteful, at most 1–2 fitting hashtags, no emoji flood. Keep it tasteful.",
+        'Return ONLY strict JSON: {"title":"...","caption":"..."}',
+      ].filter(Boolean).join(" ")
+    : [
+        "You are Bella, an elegant luxury travel & fashion influencer (brand LuxuryBandit).",
+        `From this short brief, write BOTH a short title AND a caption (ENGLISH, first-person): "${brief}".`,
+        context ? `Context: ${context}.` : "",
+        body.kind === "video" ? "It is about a short video." : "",
+        "Title: 2–4 words, punchy. Caption: 1–2 sentences, elegant/aspirational/tasteful, at most 1–2 fitting hashtags, no emoji flood.",
+        'Return ONLY strict JSON: {"title":"...","caption":"..."}',
+      ].filter(Boolean).join(" ");
+
+  const content: any[] = imageUrl
+    ? [{ type: "input_text", text: prompt }, { type: "input_image", image_url: imageUrl }]
+    : [{ type: "input_text", text: prompt }];
 
   try {
     const res = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: TEXT_MODEL, input: [{ role: "user", content: [{ type: "input_text", text: prompt }] }] }),
+      body: JSON.stringify({ model: TEXT_MODEL, input: [{ role: "user", content }] }),
     });
     if (!res.ok) return NextResponse.json({ error: "OpenAI-Fehler." }, { status: 502 });
     const data = await res.json().catch(() => null);

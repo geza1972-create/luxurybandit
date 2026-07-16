@@ -610,10 +610,13 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
   useEffect(() => { setTitle(slide.title); setCaption(slide.caption); }, [slide.title, slide.caption]);
 
   const genText = async () => {
-    if (!brief.trim()) return;
+    // For an image, the AI looks at the picture (vision) — a brief is optional then.
+    if (!brief.trim() && slide.kind !== "image") return;
     setAiBusy(true);
     try {
-      const res = await fetch("/api/bella-caption", { method: "POST", headers: { "Content-Type": "application/json", "x-try-look-admin-pin": pin() }, body: JSON.stringify({ brief, kind: slide.kind, context: slide.title }) }).then(r => r.json());
+      const payload: Record<string, unknown> = { brief, kind: slide.kind, context: slide.title };
+      if (slide.kind === "image" && slide.mediaUrl) payload.imageUrl = slide.mediaUrl;
+      const res = await fetch("/api/bella-caption", { method: "POST", headers: { "Content-Type": "application/json", "x-try-look-admin-pin": pin() }, body: JSON.stringify(payload) }).then(r => r.json());
       if (res?.caption || res?.title) {
         const patch: { title?: string; caption?: string } = {};
         if (res.title) { setTitle(res.title); patch.title = res.title; }
@@ -661,8 +664,8 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
       <div className="mt-2 flex gap-2">
         <input value={brief} onChange={e => setBrief(e.target.value)} placeholder="Kurz reinschreiben → KI-Text…"
           className="h-8 flex-1 rounded border border-white/15 bg-white/[0.04] px-2 text-[12px] text-white outline-none placeholder:text-white/30 focus:border-amber-400" />
-        <button type="button" onClick={() => void genText()} disabled={aiBusy || !brief.trim()}
-          className="shrink-0 rounded border border-amber-400/50 bg-amber-400/10 px-2.5 text-[12px] font-black text-amber-300 active:scale-95 disabled:opacity-40">{aiBusy ? "…" : "✨ Text"}</button>
+        <button type="button" onClick={() => void genText()} disabled={aiBusy || (!brief.trim() && slide.kind !== "image")}
+          className="shrink-0 rounded border border-amber-400/50 bg-amber-400/10 px-2.5 text-[12px] font-black text-amber-300 active:scale-95 disabled:opacity-40">{aiBusy ? "…" : slide.kind === "image" ? "✨ Text (Bild)" : "✨ Text"}</button>
       </div>
 
       {/* Controls: show/hide · pages · make-video · replace · delete */}
