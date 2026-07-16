@@ -11,7 +11,7 @@ export const slideSort = (a: BellaSlide, b: BellaSlide) =>
 async function signSlides(slides: BellaSlide[]) {
   return Promise.all([...slides].sort(slideSort).map(async (s) => ({
     id: s.id, kind: s.kind, title: s.title ?? "", caption: s.caption ?? "",
-    hidden: s.hidden === true, pages: s.pages ?? [], customer: s.customer ?? "", order: s.order ?? null,
+    hidden: s.hidden === true, pages: s.pages ?? null, customer: s.customer ?? "", order: s.order ?? null,
     mediaUrl: s.path ? await getSignedUrl(s.path).catch(() => "") : "",
     posterUrl: s.posterPath ? await getSignedUrl(s.posterPath).catch(() => "") : "",
   })));

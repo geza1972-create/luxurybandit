@@ -7,7 +7,7 @@ import ModelCard from "@/components/ModelCard";
 const PIN_KEY = "luxurybandit-try-look-admin-pin";
 const pin = () => { try { return localStorage.getItem("lb_preview_model") ? "" : (localStorage.getItem(PIN_KEY) ?? ""); } catch { return ""; } };
 
-type Slide = { id: string; kind: "image" | "video"; title: string; caption: string; hidden: boolean; pages: string[]; customer: string; order: number | null; mediaUrl: string; posterUrl: string };
+type Slide = { id: string; kind: "image" | "video"; title: string; caption: string; hidden: boolean; pages: string[] | null; customer: string; order: number | null; mediaUrl: string; posterUrl: string };
 type Customer = { email: string; name: string; provider?: string; createdAt?: string; videoCredits: number; purchases: { type: string; label: string; date?: string }[]; videoNote: string; emails: { subject: string; sentAt: string }[] };
 type Staged = { path: string; url: string };
 type SavedPrompt = { id: string; kind: "image" | "video" | "voice"; text: string };
@@ -132,17 +132,18 @@ export default function BellaCarouselAdmin() {
     finally { setNotifyBusy(false); }
   };
   // Slides in the currently-selected scope (general card, or one customer), already sorted by the API.
-  const scoped = slides.filter(s => (s.customer || "") === customer);
+  const scoped = slides.filter(s => (s.customer || "") === customer).sort((a, b) => (a.order ?? 1e9) - (b.order ?? 1e9));
 
-  // Move a slide up/down within its scope → persist the new order.
-  const move = async (id: string, dir: "up" | "down") => {
+  // Move a slide up/down within its scope — instant (optimistic), persisted in the background.
+  const move = (id: string, dir: "up" | "down") => {
     const ids = scoped.map(s => s.id);
     const i = ids.indexOf(id);
     const j = dir === "up" ? i - 1 : i + 1;
     if (j < 0 || j >= ids.length) return;
     [ids[i], ids[j]] = [ids[j], ids[i]];
-    setBusy("order-" + id);
-    try { applyResult(await post({ reorder: ids })); } finally { setBusy(""); }
+    const orderMap = new Map(ids.map((sid, idx) => [sid, idx]));
+    setSlides(prev => prev.map(s => orderMap.has(s.id) ? { ...s, order: orderMap.get(s.id)! } : s));
+    post({ reorder: ids }).catch(() => {});
   };
 
   // Auto-generate a title + caption from a brief (used when the admin leaves the text empty).
@@ -223,7 +224,12 @@ export default function BellaCarouselAdmin() {
     finally { setBusy(""); setReplaceTarget(null); if (replaceRef.current) replaceRef.current.value = ""; }
   };
 
-  const updateSlide = async (id: string, patch: object) => { applyResult(await post({ update: { id, ...patch } })); };
+  // Instant (optimistic) field edit — update the row immediately, persist in the background so
+  // typing/toggling never waits on the server. No router.refresh here (that was the slowness).
+  const updateSlide = (id: string, patch: Record<string, unknown>) => {
+    setSlides(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s));
+    post({ update: { id, ...patch } }).catch(() => {});
+  };
   // Bulk show/hide every slide in the current scope.
   const setAllHidden = async (hidden: boolean) => {
     setBusy("bulk");
@@ -591,7 +597,7 @@ export default function BellaCarouselAdmin() {
 // (for images) make-video + replace + delete. Text edits auto-save on blur.
 function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onMakeVideo, onTalk, onMove, onOpen, videoPromptDefault, prompts, onSavePrompt, onSaveVoice, onDeletePrompt }: {
   slide: Slide; busy: string; first: boolean; last: boolean;
-  onUpdate: (patch: object) => void; onReplace: () => void; onRemove: () => void; onMakeVideo: (prompt: string) => void; onTalk: (lines: string) => void; onMove: (dir: "up" | "down") => void; onOpen: () => void;
+  onUpdate: (patch: Record<string, unknown>) => void; onReplace: () => void; onRemove: () => void; onMakeVideo: (prompt: string) => void; onTalk: (lines: string) => void; onMove: (dir: "up" | "down") => void; onOpen: () => void;
   videoPromptDefault: string; prompts: SavedPrompt[]; onSavePrompt: (text: string) => void; onSaveVoice: (text: string) => void; onDeletePrompt: (id: string) => void;
 }) {
   const [title, setTitle] = useState(slide.title);
