@@ -9,7 +9,9 @@ export const dynamic = "force-dynamic";
 // Card Studio can SHOW which card is being edited.
 export async function GET(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
-  const customer = new URL(request.url).searchParams.get("customer") || "";
-  const { card } = await buildBellaCard(customer ? { customer } : { surface: "lp-journey" });
+  const url = new URL(request.url);
+  const customer = url.searchParams.get("customer") || "";
+  const modelId = url.searchParams.get("model") || undefined;
+  const { card } = await buildBellaCard({ modelId, surface: "profile", ...(customer ? { customer } : {}) });
   return NextResponse.json({ card });
 }

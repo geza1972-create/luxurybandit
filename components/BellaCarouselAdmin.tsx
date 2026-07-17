@@ -128,12 +128,10 @@ export default function BellaCarouselAdmin() {
     if (res?.ok) setPrompts(res.prompts ?? []);
   };
 
-  // Live ModelCard preview is only wired for Bella (buildBellaCard). For other models the
-  // editable slide library below IS the tool — the card preview is simply hidden.
+  // Live ModelCard preview of the SELECTED model's card (any model, not just Bella).
   const loadPreview = (cust: string) => {
-    if (modelId !== BELLA_ID) { setPreview(null); return; }
-    fetch(`/api/bella-card-preview${cust ? `?customer=${encodeURIComponent(cust)}` : ""}`, { headers: { "x-try-look-admin-pin": pin() } })
-      .then(r => r.json()).then(d => setPreview(d.card ?? null)).catch(() => {});
+    fetch(`/api/bella-card-preview?model=${encodeURIComponent(modelId)}${cust ? `&customer=${encodeURIComponent(cust)}` : ""}`, { headers: { "x-try-look-admin-pin": pin() } })
+      .then(r => r.json()).then(d => setPreview(d.card ?? null)).catch(() => setPreview(null));
   };
   useEffect(() => { if (isAdmin) void loadPreview(customer); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [customer, isAdmin, modelId]);
 
@@ -515,7 +513,7 @@ export default function BellaCarouselAdmin() {
       {/* Live preview of the currently-selected card. */}
       {preview && (
         <div className="mt-4">
-          <p className="text-[11px] font-black uppercase tracking-wide text-white/40">Vorschau — {customer || "General Card"}</p>
+          <p className="text-[11px] font-black uppercase tracking-wide text-white/40">Vorschau — {models.find(m => m.id === modelId)?.name || "Bella"}{customer ? ` · ${customer}` : ""}</p>
           <div className="mt-2 rounded-2xl bg-black/20 p-2">
             <ModelCard {...preview} isMember canDownload />
           </div>

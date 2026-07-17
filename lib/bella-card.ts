@@ -8,13 +8,14 @@ export const BELLA_ID = "curator-1783683672619-td4cy";
 // Build Bella's REAL collectible ModelCard (the same card the /own-influencer landing shows):
 // her live Growth Score, serial, looks, story clips and ownership — straight from state.json.
 // Extracted so every landing page renders the identical card instead of a hand-rolled copy.
-export async function buildBellaCard(opts: { surface?: string; customer?: string } = {}): Promise<{ card: ModelCardProps | null; story: ModelClip[]; intro: string }> {
+export async function buildBellaCard(opts: { surface?: string; customer?: string; modelId?: string } = {}): Promise<{ card: ModelCardProps | null; story: ModelClip[]; intro: string }> {
   const surface = opts.surface ?? "lp-journey";
+  const modelId = opts.modelId || BELLA_ID;
   const customerScope = (opts.customer ?? "").trim().toLowerCase();
   try {
     const state = await readTryThisLookState();
     const curators = state.curators ?? [];
-    const gina = curators.find(c => c.id === BELLA_ID) as
+    const gina = curators.find(c => c.id === modelId) as
       | { id?: string; firstName?: string; lastName?: string; photoUrl?: string; flagship?: boolean; realModel?: boolean; purchasedAt?: string; createdAt?: string; bio?: string; motto?: string; brands?: string }
       | undefined;
 
@@ -74,7 +75,7 @@ export async function buildBellaCard(opts: { surface?: string; customer?: string
     // carousel, then her real feed clips fill in behind them.
     const bellaPhoto = (gina?.photoUrl ?? "") as string;
     const customClips: ModelClip[] = [];
-    const cardStudioSlides = await readCardStudioSlides();
+    const cardStudioSlides = await readCardStudioSlides(modelId);
     const orderedSlides = [...cardStudioSlides].sort(
       (a, b) => (a.order ?? 1e9) - (b.order ?? 1e9) || String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? "")));
     for (const sl of orderedSlides) {
@@ -104,7 +105,7 @@ export async function buildBellaCard(opts: { surface?: string; customer?: string
     const card: ModelCardProps = {
       id: (gina?.id ?? "") as string,
       serial: ginaSerial,
-      name: "Bella",
+      name: (gina?.firstName || "Bella") as string,
       title: ginaTitle,
       intro: ginaIntro,
       sponsor: ginaSponsor,
