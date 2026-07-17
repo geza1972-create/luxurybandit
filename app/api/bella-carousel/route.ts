@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { readTryThisLookState, saveTryThisLookState, createSignedUploadUrl, getSignedUrl, type BellaSlide } from "@/lib/try-this-look-store";
+import { readTryThisLookState, saveTryThisLookState, createSignedUploadUrl, getSignedUrl,
+  readCardStudioSlides, writeCardStudioSlides, readCardStudioBackup, type BellaSlide } from "@/lib/try-this-look-store";
 import { isAdminRequest } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
@@ -8,10 +9,13 @@ export const runtime = "nodejs";
 export const slideSort = (a: BellaSlide, b: BellaSlide) =>
   (a.order ?? 1e9) - (b.order ?? 1e9) || String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? ""));
 
-async function signSlides(slides: BellaSlide[]) {
+// `includePaths` → also return the raw storage paths (admin only) so the browser draft is
+// complete and can be committed back verbatim.
+async function signSlides(slides: BellaSlide[], includePaths = false) {
   return Promise.all([...slides].sort(slideSort).map(async (s) => ({
     id: s.id, kind: s.kind, title: s.title ?? "", caption: s.caption ?? "",
     hidden: s.hidden === true, pages: s.pages ?? null, customer: s.customer ?? "", order: s.order ?? null,
+    ...(includePaths ? { path: s.path ?? "", posterPath: s.posterPath ?? "", createdAt: s.createdAt ?? "" } : {}),
     mediaUrl: s.path ? await getSignedUrl(s.path).catch(() => "") : "",
     posterUrl: s.posterPath ? await getSignedUrl(s.posterPath).catch(() => "") : "",
   })));
@@ -20,34 +24,64 @@ async function signSlides(slides: BellaSlide[]) {
 // pages undefined = everywhere; an array (even empty) = exactly those surfaces (empty = nowhere).
 const onSurface = (s: BellaSlide, surface: string) => s.pages == null || s.pages.includes(surface);
 
-// GET — admins (PIN) get the FULL library (incl. hidden + per-customer) plus the bookings list to
-// pick a customer. Public callers get only visible GENERAL slides for the requested ?surface.
+// Validate + normalise one incoming slide from a client commit into a stored BellaSlide.
+function normalizeSlide(raw: any): BellaSlide | null {
+  const path = String(raw?.path ?? "").trim();
+  if (!path.startsWith("try-this-look/")) return null;
+  const posterPath = String(raw?.posterPath ?? "").trim();
+  const pages = Array.isArray(raw?.pages) ? raw.pages.map(String).slice(0, 10) : undefined;
+  const customer = String(raw?.customer ?? "").trim().toLowerCase() || undefined;
+  return {
+    id: String(raw?.id ?? "").trim() || crypto.randomUUID(),
+    kind: raw?.kind === "video" ? "video" : "image",
+    path,
+    posterPath: posterPath.startsWith("try-this-look/") ? posterPath : undefined,
+    title: String(raw?.title ?? "").trim().slice(0, 80) || undefined,
+    caption: String(raw?.caption ?? "").trim().slice(0, 400) || undefined,
+    hidden: raw?.hidden === true,
+    pages,
+    customer,
+    order: Number.isFinite(raw?.order) ? Number(raw.order) : undefined,
+    createdAt: String(raw?.createdAt ?? "").trim() || new Date().toISOString(),
+  };
+}
+
+// GET — admins (PIN) get the FULL library (incl. hidden + per-customer, WITH raw paths) plus the
+// bookings list to pick a customer. Public callers get only visible GENERAL slides for ?surface.
 export async function GET(request: Request) {
-  const state = await readTryThisLookState();
-  const all = state.bellaSlides ?? [];
-  if (await isAdminRequest(request)) return NextResponse.json({ slides: await signSlides(all), bookings: state.tripBookings ?? [] });
+  const all = await readCardStudioSlides();
+  if (await isAdminRequest(request)) {
+    const state = await readTryThisLookState();
+    const backup = await readCardStudioBackup();
+    return NextResponse.json({
+      slides: await signSlides(all, true),
+      bookings: state.tripBookings ?? [],
+      backup: { count: backup.slides.length, savedAt: backup.savedAt },
+    });
+  }
   const surface = new URL(request.url).searchParams.get("surface") || "lp-journey";
   const visible = all.filter((s) => s.hidden !== true && !s.customer && onSurface(s, surface));
   return NextResponse.json({ slides: await signSlides(visible) });
 }
 
-// POST — admin only. Modes: sign · add · update · replace · remove · reorder.
+// POST — admin only.
+//   sign         → get a signed upload URL for a new media file (upload happens client-side).
+//   commit       → replace the WHOLE slide library with the given draft, in one write + backup.
+//   restoreBackup→ bring the last backup back as the live library.
+//   removeBooking→ prune a booking (in the shared state.json, separate from slides).
 export async function POST(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
   const body = (await request.json().catch(() => ({}))) as {
     sign?: boolean; kind?: "image" | "video"; ext?: string;
-    add?: { kind?: "image" | "video"; path?: string; posterPath?: string; title?: string; caption?: string; hidden?: boolean; pages?: string[]; customer?: string };
-    update?: { id?: string; title?: string; caption?: string; hidden?: boolean; pages?: string[] };
-    replace?: { id?: string; path?: string; kind?: "image" | "video" };
-    remove?: string; reorder?: string[]; removeBooking?: string;
+    commit?: any[]; restoreBackup?: boolean; removeBooking?: string;
   };
 
-  // Prune a booking (admin) — handled up front, separate from the slides array.
+  // Prune a booking (admin) — lives in the shared state.json, handled up front.
   if (typeof body?.removeBooking === "string" && body.removeBooking) {
     const st = await readTryThisLookState();
     st.tripBookings = (st.tripBookings ?? []).filter(b => b.id !== body.removeBooking);
     await saveTryThisLookState(st, { deletedBookingIds: [body.removeBooking] });
-    return NextResponse.json({ ok: true, slides: await signSlides(st.bellaSlides ?? []), bookings: st.tripBookings });
+    return NextResponse.json({ ok: true, slides: await signSlides(await readCardStudioSlides(), true), bookings: st.tripBookings });
   }
 
   if (body.sign) {
@@ -57,54 +91,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ path, uploadUrl });
   }
 
-  const state = await readTryThisLookState();
-  const slides = [...(state.bellaSlides ?? [])];
-
-  if (body.add?.path) {
-    if (!body.add.path.startsWith("try-this-look/")) return NextResponse.json({ error: "Invalid path." }, { status: 400 });
-    const customer = String(body.add.customer ?? "").trim().toLowerCase() || undefined;
-    // Append at the end of its own scope (general vs a customer).
-    const maxOrder = slides.filter(s => (s.customer ?? "") === (customer ?? "")).reduce((m, s) => Math.max(m, s.order ?? -1), -1);
-    slides.push({
-      id: crypto.randomUUID(),
-      kind: body.add.kind === "video" ? "video" : "image",
-      path: body.add.path,
-      posterPath: body.add.posterPath?.startsWith("try-this-look/") ? body.add.posterPath : undefined,
-      title: String(body.add.title ?? "").trim().slice(0, 80) || undefined,
-      caption: String(body.add.caption ?? "").trim().slice(0, 400) || undefined,
-      hidden: body.add.hidden === true,
-      pages: Array.isArray(body.add.pages) ? body.add.pages.slice(0, 10) : undefined,
-      customer,
-      order: maxOrder + 1,
-      createdAt: new Date().toISOString(),
-    });
-  } else if (body.update?.id) {
-    const i = slides.findIndex((s) => s.id === body.update!.id);
-    if (i < 0) return NextResponse.json({ error: "Slide not found." }, { status: 404 });
-    const u = body.update;
-    slides[i] = {
-      ...slides[i],
-      ...(u.title !== undefined ? { title: String(u.title).trim().slice(0, 80) || undefined } : {}),
-      ...(u.caption !== undefined ? { caption: String(u.caption).trim().slice(0, 400) || undefined } : {}),
-      ...(u.hidden !== undefined ? { hidden: u.hidden === true } : {}),
-      ...(Array.isArray(u.pages) ? { pages: u.pages.slice(0, 10) } : {}),
-    };
-  } else if (body.replace?.id && body.replace.path) {
-    if (!body.replace.path.startsWith("try-this-look/")) return NextResponse.json({ error: "Invalid path." }, { status: 400 });
-    const i = slides.findIndex((s) => s.id === body.replace!.id);
-    if (i < 0) return NextResponse.json({ error: "Slide not found." }, { status: 404 });
-    slides[i] = { ...slides[i], path: body.replace.path, kind: body.replace.kind ?? slides[i].kind };
-  } else if (body.remove) {
-    const i = slides.findIndex((s) => s.id === body.remove);
-    if (i >= 0) slides.splice(i, 1);
-  } else if (Array.isArray(body.reorder)) {
-    // Assign order by the given id sequence (scoped — the client sends one scope's ids in order).
-    body.reorder.forEach((id, idx) => { const s = slides.find(x => x.id === id); if (s) s.order = idx; });
-  } else {
-    return NextResponse.json({ error: "Nothing to do." }, { status: 400 });
+  // Restore the last backup as the live library.
+  if (body.restoreBackup) {
+    const backup = await readCardStudioBackup();
+    if (!backup.slides.length) return NextResponse.json({ error: "Kein Backup vorhanden." }, { status: 404 });
+    await writeCardStudioSlides(backup.slides);
+    return NextResponse.json({ ok: true, slides: await signSlides(backup.slides, true) });
   }
 
-  state.bellaSlides = slides.slice(0, 500);
-  await saveTryThisLookState(state, body.remove ? { deletedBellaSlideIds: [body.remove] } : {});
-  return NextResponse.json({ ok: true, slides: await signSlides(state.bellaSlides), bookings: state.tripBookings ?? [] });
+  // Commit the full draft (this is the ONLY persistence path for editing — nothing auto-saves).
+  if (Array.isArray(body.commit)) {
+    const slides = body.commit.map(normalizeSlide).filter(Boolean) as BellaSlide[];
+    // Re-number order within each scope so the given array order is authoritative.
+    const seen = new Map<string, number>();
+    for (const s of slides) {
+      const scope = s.customer ?? "";
+      const n = (seen.get(scope) ?? -1) + 1; seen.set(scope, n); s.order = n;
+    }
+    await writeCardStudioSlides(slides);
+    return NextResponse.json({ ok: true, slides: await signSlides(slides, true) });
+  }
+
+  return NextResponse.json({ error: "Nothing to do." }, { status: 400 });
 }

@@ -1,4 +1,4 @@
-import { readTryThisLookState, getSignedUrl } from "@/lib/try-this-look-store";
+import { readTryThisLookState, getSignedUrl, readCardStudioSlides } from "@/lib/try-this-look-store";
 import { influencerPriceCents, fmtPriceCents } from "@/lib/influencer-price";
 import type { ModelCardProps, ModelClip } from "@/components/ModelCard";
 
@@ -74,7 +74,8 @@ export async function buildBellaCard(opts: { surface?: string; customer?: string
     // carousel, then her real feed clips fill in behind them.
     const bellaPhoto = (gina?.photoUrl ?? "") as string;
     const customClips: ModelClip[] = [];
-    const orderedSlides = [...(state.bellaSlides ?? [])].sort(
+    const cardStudioSlides = await readCardStudioSlides();
+    const orderedSlides = [...cardStudioSlides].sort(
       (a, b) => (a.order ?? 1e9) - (b.order ?? 1e9) || String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? "")));
     for (const sl of orderedSlides) {
       if (sl.hidden === true) continue;                        // hidden in the library, not on cards

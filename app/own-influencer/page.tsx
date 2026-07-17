@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Sparkles, Video, MessageCircle, TrendingUp, Check, Crown, Camera, BarChart3, Users, Gem, Wand2, MapPin } from "lucide-react";
-import { readTryThisLookState, getSignedUrl, getPricingConfig, fmtCents } from "@/lib/try-this-look-store";
+import { readTryThisLookState, getSignedUrl, getPricingConfig, fmtCents, readCardStudioSlides } from "@/lib/try-this-look-store";
 import { influencerPriceCents, fmtPriceCents } from "@/lib/influencer-price";
 import ModelCard from "@/components/ModelCard";
 import TrackView from "@/components/TrackView";
@@ -98,7 +98,8 @@ async function landingData() {
     }));
     // Card Studio slides targeted at THIS landing (LP-Own-Model) lead the carousel.
     const ownModelClips = [] as { poster: string; video: string; private: boolean; story?: string }[];
-    for (const sl of [...(state.bellaSlides ?? [])].sort((a: any, b: any) => (a.order ?? 1e9) - (b.order ?? 1e9))) {
+    const cardStudioSlides = await readCardStudioSlides();
+    for (const sl of [...cardStudioSlides].sort((a: any, b: any) => (a.order ?? 1e9) - (b.order ?? 1e9))) {
       const s = sl as any;
       if (s.hidden === true || s.customer) continue;
       if (s.pages && !s.pages.includes("lp-own-model")) continue; // empty array = nowhere

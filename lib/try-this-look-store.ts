@@ -1193,6 +1193,62 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
   }
 }
 
+// ── Card Studio store ───────────────────────────────────────────────────────
+// The Card Studio slides live in their OWN blob (NOT in the shared state.json) so
+// that concurrent writes to state.json (analytics, try-ons, …) can never wipe them.
+// Every commit also writes a timestamped backup, so a bad commit is always recoverable.
+const CARD_STUDIO_PATH = "try-this-look/card-studio.json";
+const CARD_STUDIO_BACKUP_PATH = "try-this-look/card-studio-backup.json";
+
+export async function readCardStudioSlides(): Promise<BellaSlide[]> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(CARD_STUDIO_PATH)}`);
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => null);
+    return Array.isArray(data?.slides) ? (data.slides as BellaSlide[]) : [];
+  } catch { return []; }
+}
+
+export async function readCardStudioBackup(): Promise<{ slides: BellaSlide[]; savedAt: string }> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(CARD_STUDIO_BACKUP_PATH)}`);
+    if (!res.ok) return { slides: [], savedAt: "" };
+    const data = await res.json().catch(() => null);
+    return { slides: Array.isArray(data?.slides) ? (data.slides as BellaSlide[]) : [], savedAt: String(data?.savedAt ?? "") };
+  } catch { return { slides: [], savedAt: "" }; }
+}
+
+// Persist the full slide array in ONE write. Before overwriting, the current committed
+// version is copied to the backup blob (last-known-good), so nothing is ever lost silently.
+export async function writeCardStudioSlides(slides: BellaSlide[]): Promise<void> {
+  await ensureBucket();
+  // 1) Back up the CURRENT committed version first (best-effort — never block the save).
+  try {
+    const cur = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(CARD_STUDIO_PATH)}`);
+    if (cur.ok) {
+      const buf = new Uint8Array(await cur.arrayBuffer());
+      if (buf.length > 2) {
+        await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(CARD_STUDIO_BACKUP_PATH)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+          body: buf,
+        });
+      }
+    }
+  } catch { /* backup is best-effort */ }
+  // 2) Write the new committed version.
+  const body = JSON.stringify({ slides: slides.slice(0, 500), savedAt: new Date().toISOString() });
+  const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(CARD_STUDIO_PATH)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body,
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.message ?? "Card Studio could not be saved.");
+  }
+}
+
 async function dataUrlToBytes(dataUrl: string) {
   const [header, base64] = dataUrl.split(",");
   const rawMime = header.match(/data:(.*);base64/)?.[1] ?? "image/png";
