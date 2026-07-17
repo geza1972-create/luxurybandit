@@ -330,6 +330,14 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-sm font-black text-white">Admin dashboard</span>
                 </button>
               )}
+              {/* Admin: Card Studio — post photos/videos + stories to Bella's card. */}
+              {(!!adminPin || isAdminEmail(displayEmail)) && (
+                <button type="button" onClick={() => navigate("/card-studio")}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                  <LayoutGrid className="h-5 w-5 shrink-0 text-amber-400" />
+                  <span className="text-sm font-black text-white">Card Studio</span>
+                </button>
+              )}
               {/* Admin: view/act AS any model (impersonate) — picker with search + photos. */}
               {!!adminPin && (
                 <button type="button" onClick={() => { setShowProfileMenu(false); setPickerQuery(""); setShowModelPicker(true); }}
