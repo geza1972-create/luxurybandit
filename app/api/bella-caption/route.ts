@@ -12,10 +12,11 @@ export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "OPENAI_API_KEY fehlt." }, { status: 400 });
 
-  const body = (await request.json().catch(() => ({}))) as { brief?: string; kind?: string; context?: string; imageUrl?: string };
+  const body = (await request.json().catch(() => ({}))) as { brief?: string; kind?: string; context?: string; imageUrl?: string; rewrite?: string };
   const brief = String(body.brief ?? "").trim().slice(0, 400);
   const imageUrl = String(body.imageUrl ?? "").trim();
-  if (!brief && !imageUrl) return NextResponse.json({ error: "Bitte kurz reinschreiben oder ein Bild angeben." }, { status: 400 });
+  const rewrite = String(body.rewrite ?? "").trim().slice(0, 800);
+  if (!brief && !imageUrl && !rewrite) return NextResponse.json({ error: "Bitte kurz reinschreiben oder ein Bild angeben." }, { status: 400 });
   const context = String(body.context ?? "").trim().slice(0, 120);
 
   // Persona + storytelling rules — the caption is a mini "story" that makes strangers want to
@@ -33,7 +34,17 @@ export async function POST(request: Request) {
     "• end with 3–5 fitting, non-spammy hashtags (travel/fashion/riviera/lifestyle).",
     "Title: 2–4 words, punchy, scroll-stopping.",
   ];
-  const prompt = imageUrl
+  const prompt = rewrite
+    ? [
+        ...PERSONA,
+        `Here is a draft caption I wrote — it may have typos and be in any language: "${rewrite}".`,
+        imageUrl ? "The attached photo is the post it belongs to." : "",
+        "Correct and rewrite it as a POLISHED, engaging caption in ENGLISH: fix ALL spelling & grammar, keep MY intent and any call-to-action (e.g. inviting people to Super Follow / to see private content), and make it flow.",
+        context ? `Context: ${context}.` : "",
+        ...STORY_RULES,
+        'Return ONLY strict JSON: {"title":"...","caption":"..."}',
+      ].filter(Boolean).join(" ")
+    : imageUrl
     ? [
         ...PERSONA,
         "Look at the attached photo and write a title + story caption that FIT what is actually shown — the outfit, the setting, the mood.",

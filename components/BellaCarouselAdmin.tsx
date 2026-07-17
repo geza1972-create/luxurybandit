@@ -721,7 +721,6 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
 }) {
   const [title, setTitle] = useState(slide.title);
   const [caption, setCaption] = useState(slide.caption);
-  const [brief, setBrief] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
   const [vidOpen, setVidOpen] = useState(false);
   const [showPages, setShowPages] = useState(false);
@@ -734,20 +733,22 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
   useEffect(() => { setTitle(slide.title); setCaption(slide.caption); }, [slide.title, slide.caption]);
   useEffect(() => { autoGrow(capRef.current); }, [caption]);
 
-  const genText = async () => {
-    // For an image, the AI looks at the picture (vision) — a brief is optional then.
-    if (!brief.trim() && slide.kind !== "image") return;
+  // ONE AI button for the Story field: if there's text → correct + rephrase it (English);
+  // if it's empty → write a fresh story (from the image via vision, or the title).
+  const hasStory = caption.trim().length > 0;
+  const aiText = async () => {
     setAiBusy(true);
     try {
-      const payload: Record<string, unknown> = { brief, kind: slide.kind, context: slide.title };
-      if (slide.kind === "image" && slide.mediaUrl) payload.imageUrl = slide.mediaUrl;
+      const payload: Record<string, unknown> = { kind: slide.kind, context: slide.title };
+      if (slide.kind === "image" && slide.mediaUrl) payload.imageUrl = slide.mediaUrl;  // let the AI see the photo
+      if (hasStory) payload.rewrite = caption;                                            // polish what I wrote
+      else if (!payload.imageUrl) payload.brief = title.trim() || "a moment from her journey";
       const res = await fetch("/api/bella-caption", { method: "POST", headers: { "Content-Type": "application/json", "x-try-look-admin-pin": pin() }, body: JSON.stringify(payload) }).then(r => r.json());
       if (res?.caption || res?.title) {
         const patch: { title?: string; caption?: string } = {};
         if (res.title) { setTitle(res.title); patch.title = res.title; }
         if (res.caption) { setCaption(res.caption); patch.caption = res.caption; }
         onUpdate(patch);
-        setBrief("");
       }
     } finally { setAiBusy(false); }
   };
@@ -781,17 +782,14 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
           <input value={title} onChange={e => setTitle(e.target.value)} onBlur={() => title !== slide.title && onUpdate({ title })} placeholder="Titel (optional)"
             className="h-8 w-full rounded border border-white/15 bg-white/[0.04] px-2 text-[12px] font-bold text-white outline-none placeholder:text-white/30 focus:border-amber-400" />
           <textarea ref={capRef} value={caption} onChange={e => setCaption(e.target.value)} onInput={e => autoGrow(e.currentTarget)}
-            onBlur={() => caption !== slide.caption && onUpdate({ caption })} placeholder="Story / Caption"
+            onBlur={() => caption !== slide.caption && onUpdate({ caption })} placeholder="Story (auf Englisch – oder tipp auf Deutsch und lass ✨ korrigieren)"
             className="mt-1.5 min-h-[5rem] w-full resize-y overflow-hidden rounded border border-white/15 bg-white/[0.04] px-2 py-1.5 text-[12px] leading-snug text-white outline-none placeholder:text-white/30 focus:border-amber-400" />
+          <button type="button" onClick={() => void aiText()} disabled={aiBusy || (!hasStory && slide.kind !== "image")}
+            title={hasStory ? "Text korrigieren & umformulieren (Englisch)" : "Story aus dem Bild schreiben"}
+            className="mt-1.5 w-full rounded border border-amber-400/50 bg-amber-400/10 py-1.5 text-[12px] font-black text-amber-300 active:scale-95 disabled:opacity-40">
+            {aiBusy ? "✨ …" : hasStory ? "✨ Umformulieren & korrigieren" : "✨ Story mit KI schreiben"}
+          </button>
         </div>
-      </div>
-
-      {/* AI caption */}
-      <div className="mt-2 flex gap-2">
-        <input value={brief} onChange={e => setBrief(e.target.value)} placeholder="Kurz reinschreiben → KI-Text…"
-          className="h-8 flex-1 rounded border border-white/15 bg-white/[0.04] px-2 text-[12px] text-white outline-none placeholder:text-white/30 focus:border-amber-400" />
-        <button type="button" onClick={() => void genText()} disabled={aiBusy || (!brief.trim() && slide.kind !== "image")}
-          className="shrink-0 rounded border border-amber-400/50 bg-amber-400/10 px-2.5 text-[12px] font-black text-amber-300 active:scale-95 disabled:opacity-40">{aiBusy ? "…" : slide.kind === "image" ? "✨ Text (Bild)" : "✨ Text"}</button>
       </div>
 
       {/* Primary controls: visible-toggle · date · (right) video · IG · swap · delete */}
