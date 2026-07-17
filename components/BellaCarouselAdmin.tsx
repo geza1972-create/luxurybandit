@@ -814,7 +814,9 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
           <button type="button" onClick={onReplace} disabled={rowBusy}
             title="Foto/Video austauschen — Datum & Position bleiben (nicht löschen)"
             className="rounded border border-white/20 px-2 py-1 text-[11px] font-black text-white/70 active:scale-95 disabled:opacity-40">🔄 Tauschen</button>
-          <button type="button" onClick={onRemove} disabled={rowBusy} className="rounded border border-red-400/50 bg-red-500/10 px-2 py-1 text-[11px] font-black text-red-300 active:scale-95 disabled:opacity-40">🗑</button>
+          <button type="button" onClick={onRemove} disabled={rowBusy}
+            title="Diesen Slide löschen (danach Übernehmen)"
+            className="rounded border border-red-400/50 bg-red-500/10 px-2 py-1 text-[11px] font-black text-red-300 active:scale-95 disabled:opacity-40">🗑 Löschen</button>
         </span>
       </div>
 
