@@ -722,9 +722,11 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
   const [brief, setBrief] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
   const [vidOpen, setVidOpen] = useState(false);
+  const [showPages, setShowPages] = useState(false);
   const [vidText, setVidText] = useState(videoPromptDefault);
   const [lines, setLines] = useState("");
   const capRef = useRef<HTMLTextAreaElement>(null);
+  const dateLabel = (() => { try { return slide.createdAt ? new Date(slide.createdAt).toLocaleDateString("de-DE", { day: "numeric", month: "short", year: "2-digit" }) : ""; } catch { return ""; } })();
   // Grow the caption box to fit the whole story so nothing is hidden.
   const autoGrow = (el: HTMLTextAreaElement | null) => { if (el) { el.style.height = "auto"; el.style.height = `${el.scrollHeight}px`; } };
   useEffect(() => { setTitle(slide.title); setCaption(slide.caption); }, [slide.title, slide.caption]);
@@ -790,35 +792,47 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
           className="shrink-0 rounded border border-amber-400/50 bg-amber-400/10 px-2.5 text-[12px] font-black text-amber-300 active:scale-95 disabled:opacity-40">{aiBusy ? "…" : slide.kind === "image" ? "✨ Text (Bild)" : "✨ Text"}</button>
       </div>
 
-      {/* Controls: show/hide · pages · make-video · replace · delete */}
+      {/* Primary controls: visible-toggle · date · (right) video · IG · swap · delete */}
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         <button type="button" onClick={() => onUpdate({ hidden: !slide.hidden })}
           className={`rounded-full px-2.5 py-1 text-[11px] font-black active:scale-95 ${slide.hidden ? "bg-white/10 text-white/50" : "bg-amber-400 text-black"}`}>
           {slide.hidden ? "🚫 Ausgeblendet" : "✓ Auf Card"}
         </button>
-        <span className="text-[10px] font-bold text-white/30">Seiten:</span>
-        {SURFACES.map(su => {
-          const on = slide.pages == null ? true : slide.pages.includes(su.key);
-          return (
-            <button key={su.key} type="button" onClick={() => togglePage(su.key)}
-              className={`rounded-full px-2 py-1 text-[11px] font-black active:scale-95 ${on ? "bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/40" : "bg-white/5 text-white/40"}`}>
-              {su.label}
-            </button>
-          );
-        })}
+        {dateLabel && <span className="text-[10px] font-bold text-white/35" title="Zeitstempel (bestimmt die Reihenfolge)">🕒 {dateLabel}</span>}
         <span className="ml-auto flex gap-1.5">
           {slide.kind === "image" && (
             <button type="button" onClick={() => setVidOpen(v => !v)} disabled={rowBusy}
-              className={`rounded border px-2 py-1 text-[11px] font-black active:scale-95 disabled:opacity-40 ${vidOpen ? "border-violet-400 bg-violet-500/25 text-violet-100" : "border-violet-400/50 text-violet-200"}`}>{busy === "vid-" + slide.id ? "Video…" : "🎬 Video machen"}</button>
+              className={`rounded border px-2 py-1 text-[11px] font-black active:scale-95 disabled:opacity-40 ${vidOpen ? "border-violet-400 bg-violet-500/25 text-violet-100" : "border-violet-400/50 text-violet-200"}`}>{busy === "vid-" + slide.id ? "Video…" : "🎬 Video"}</button>
           )}
           <button type="button" onClick={onInstagram} disabled={igBusy || !canIg}
             title={canIg ? "Auf Instagram posten" : "Erst „Übernehmen“ drücken"}
             className="rounded border border-pink-400/50 bg-gradient-to-r from-fuchsia-500/15 to-orange-400/15 px-2 py-1 text-[11px] font-black text-pink-200 active:scale-95 disabled:opacity-30">
             {igBusy ? "IG…" : igDone ? "✓ IG" : "📷 IG"}
           </button>
-          <button type="button" onClick={onReplace} disabled={rowBusy} className="rounded border border-white/20 px-2 py-1 text-[11px] font-black text-white/70 active:scale-95 disabled:opacity-40">↻</button>
+          <button type="button" onClick={onReplace} disabled={rowBusy}
+            title="Foto/Video austauschen — Datum & Position bleiben (nicht löschen)"
+            className="rounded border border-white/20 px-2 py-1 text-[11px] font-black text-white/70 active:scale-95 disabled:opacity-40">🔄 Tauschen</button>
           <button type="button" onClick={onRemove} disabled={rowBusy} className="rounded border border-red-400/50 bg-red-500/10 px-2 py-1 text-[11px] font-black text-red-300 active:scale-95 disabled:opacity-40">🗑</button>
         </span>
+      </div>
+
+      {/* Seiten (surface targeting) — advanced, collapsed per row. */}
+      <div className="mt-1.5">
+        <button type="button" onClick={() => setShowPages(v => !v)}
+          className="text-[10px] font-black uppercase tracking-wide text-white/35 active:scale-95">Seiten {showPages ? "▲" : "▾"}</button>
+        {showPages && (
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {SURFACES.map(su => {
+              const on = slide.pages == null ? true : slide.pages.includes(su.key);
+              return (
+                <button key={su.key} type="button" onClick={() => togglePage(su.key)}
+                  className={`rounded-full px-2 py-1 text-[11px] font-black active:scale-95 ${on ? "bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/40" : "bg-white/5 text-white/40"}`}>
+                  {su.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Make-video panel — enter the MOTION prompt (e.g. "she slowly turns around") before generating. */}
