@@ -83,6 +83,9 @@ export default function BellaCarouselAdmin() {
   const [igDone, setIgDone] = useState("");   // slide id just published
   const [models, setModels] = useState<{ id: string; name: string; photoUrl?: string }[]>([]);
   const [modelId, setModelId] = useState(BELLA_ID);   // which influencer's card we're editing
+  const [showPreview, setShowPreview] = useState(true);
+  const [showGen, setShowGen] = useState(false);       // advanced: AI image generator (collapsed)
+  const [showCustomer, setShowCustomer] = useState(false); // advanced: per-customer card (collapsed)
 
   const replaceRef = useRef<HTMLInputElement>(null);
   const [replaceTarget, setReplaceTarget] = useState<{ id: string; kind: "image" | "video" } | null>(null);
@@ -377,7 +380,7 @@ export default function BellaCarouselAdmin() {
         <span className="rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-black">Admin</span>
         <p className="text-[15px] font-black text-white">🎴 Card Studio</p>
       </div>
-      <p className="mt-1 text-[12px] font-medium text-white/50">Bild oder Video + Story posten → unten <b className="text-green-300">Übernehmen</b>. Nichts wird gespeichert, bis du übernimmst (+ automatisches Backup).</p>
+      <p className="mt-1 text-[12px] font-medium text-white/50">Model wählen → Foto/Video + Story hinzufügen → unten <b className="text-green-300">Übernehmen</b>. Nichts geht live, bis du übernimmst (+ automatisches Backup).</p>
 
       {/* Model selector — which influencer's card you're editing. */}
       <div className="mt-3 rounded-xl border border-violet-400/25 bg-violet-500/[0.05] p-2.5">
@@ -396,9 +399,23 @@ export default function BellaCarouselAdmin() {
         <p className="mt-1 text-[11px] font-medium text-white/40">Du bearbeitest die Card/Slides von <b className="text-white/70">{models.find(m => m.id === modelId)?.name || "Bella"}</b>.</p>
       </div>
 
-      {/* Scope selector: the general (public) card, or a specific customer's personal card. */}
-      <div className="mt-3 rounded-xl border border-amber-400/20 bg-black/20 p-2.5">
-        <label className="text-[11px] font-black uppercase tracking-wide text-white/45">Karte für</label>
+      {/* Live preview of the selected model's card — right under the model so you see what you build. */}
+      <div className="mt-3">
+        <button type="button" onClick={() => setShowPreview(v => !v)}
+          className="flex w-full items-center justify-between rounded-lg bg-white/[0.03] px-3 py-2 text-left active:scale-[0.99]">
+          <span className="text-[11px] font-black uppercase tracking-wide text-white/50">👁 Vorschau — {models.find(m => m.id === modelId)?.name || "Bella"}{customer ? ` · ${customer}` : ""}</span>
+          <span className="text-[12px] font-black text-white/40">{showPreview ? "▲" : "▼"}</span>
+        </button>
+        {showPreview && (preview
+          ? <div className="mt-2 rounded-2xl bg-black/20 p-2"><ModelCard {...preview} isMember canDownload /></div>
+          : <p className="mt-2 rounded-lg border border-dashed border-white/10 py-3 text-center text-[12px] text-white/35">Keine Vorschau verfügbar.</p>)}
+      </div>
+      <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-2.5">
+        <button type="button" onClick={() => setShowCustomer(v => !v)} className="flex w-full items-center justify-between text-left active:scale-[0.99]">
+          <span className="text-[11px] font-black uppercase tracking-wide text-white/45">⚙ Erweitert · Persönliche Kunden-Karte{customer ? ` · ${customer}` : ""}</span>
+          <span className="text-[12px] font-black text-white/40">{showCustomer ? "▲" : "▼"}</span>
+        </button>
+        {showCustomer && (<>
         <select value={customer} onChange={e => setCustomer(e.target.value)}
           className="mt-1 h-10 w-full rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[13px] font-bold text-white outline-none focus:border-amber-400">
           <option value="">🌐 General Card (öffentlich)</option>
@@ -454,25 +471,20 @@ export default function BellaCarouselAdmin() {
             })()}
           </div>
         )}
+        </>)}
       </div>
-
-      {/* Live preview of the currently-selected card. */}
-      {preview && (
-        <div className="mt-4">
-          <p className="text-[11px] font-black uppercase tracking-wide text-white/40">Vorschau — {models.find(m => m.id === modelId)?.name || "Bella"}{customer ? ` · ${customer}` : ""}</p>
-          <div className="mt-2 rounded-2xl bg-black/20 p-2">
-            <ModelCard {...preview} isMember canDownload />
-          </div>
-        </div>
-      )}
 
       <input ref={replaceRef} type="file" accept={replaceTarget?.kind === "video" ? "video/*" : "image/*"} className="hidden"
         onChange={e => { const f = e.target.files?.[0]; if (f) void doReplace(f); }} />
 
-      {/* Lingerie generator */}
-      <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-3">
-        <p className="text-[12px] font-black text-white/80">✨ Bild generieren — Bella in Gianna-Bellucci-Lingerie</p>
-        <p className="mt-0.5 text-[11px] text-white/45">Teil wählen → generieren. Download, oder in die Bibliothek (dann Video/Card).</p>
+      {/* Lingerie generator (advanced, collapsed by default) */}
+      <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3">
+        <button type="button" onClick={() => setShowGen(v => !v)} className="flex w-full items-center justify-between text-left active:scale-[0.99]">
+          <span className="text-[12px] font-black text-white/80">⚙ Erweitert · KI-Bild generieren (Lingerie try-on)</span>
+          <span className="text-[12px] font-black text-white/40">{showGen ? "▲" : "▼"}</span>
+        </button>
+        {showGen && (<>
+        <p className="mt-1 text-[11px] text-white/45">Teil wählen → generieren. Download, oder in die Bibliothek (dann Video/Card).</p>
         <button type="button" onClick={() => setPickerOpen(true)} disabled={garments.length === 0}
           className="mt-2 flex w-full items-center gap-3 rounded-lg border border-white/15 bg-white/[0.04] p-2 text-left transition active:scale-[0.99] disabled:opacity-40">
           {chosen ? (
@@ -527,11 +539,16 @@ export default function BellaCarouselAdmin() {
             )}
           </div>
         )}
+        </>)}
       </div>
 
-      {/* Upload image (Peter) */}
-      <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-3">
-        <p className="text-[12px] font-black text-white/80">🖼 Foto hochladen</p>
+      {/* ── Neuen Beitrag hinzufügen — the main action ── */}
+      <p className="mt-5 text-[14px] font-black text-white">➕ Neuen Beitrag</p>
+      <p className="mt-0.5 mb-1 text-[11px] font-medium text-white/45">Foto oder Video hochladen, Story dazu (leer = KI schreibt sie).</p>
+
+      {/* Upload image */}
+      <div className="mt-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.04] p-3">
+        <p className="text-[12px] font-black text-amber-200">🖼 Foto hochladen</p>
         <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titel (optional, EN)"
           className="mt-2 h-10 w-full rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[13px] font-bold text-white outline-none placeholder:text-white/30 focus:border-amber-400" />
         <textarea value={imgCaption} onChange={e => setImgCaption(e.target.value)} placeholder="Story (English) — leer lassen = KI schreibt sie"
