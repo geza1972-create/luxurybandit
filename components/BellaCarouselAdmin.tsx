@@ -734,7 +734,11 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
   const [vidOpen, setVidOpen] = useState(false);
   const [vidText, setVidText] = useState(videoPromptDefault);
   const [lines, setLines] = useState("");
+  const capRef = useRef<HTMLTextAreaElement>(null);
+  // Grow the caption box to fit the whole story so nothing is hidden.
+  const autoGrow = (el: HTMLTextAreaElement | null) => { if (el) { el.style.height = "auto"; el.style.height = `${el.scrollHeight}px`; } };
   useEffect(() => { setTitle(slide.title); setCaption(slide.caption); }, [slide.title, slide.caption]);
+  useEffect(() => { autoGrow(capRef.current); }, [caption]);
 
   const genText = async () => {
     // For an image, the AI looks at the picture (vision) — a brief is optional then.
@@ -782,8 +786,9 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
         <div className="min-w-0 flex-1">
           <input value={title} onChange={e => setTitle(e.target.value)} onBlur={() => title !== slide.title && onUpdate({ title })} placeholder="Titel (optional)"
             className="h-8 w-full rounded border border-white/15 bg-white/[0.04] px-2 text-[12px] font-bold text-white outline-none placeholder:text-white/30 focus:border-amber-400" />
-          <textarea value={caption} onChange={e => setCaption(e.target.value)} onBlur={() => caption !== slide.caption && onUpdate({ caption })} placeholder="Caption"
-            className="mt-1.5 h-12 w-full rounded border border-white/15 bg-white/[0.04] px-2 py-1 text-[12px] text-white outline-none placeholder:text-white/30 focus:border-amber-400" />
+          <textarea ref={capRef} value={caption} onChange={e => setCaption(e.target.value)} onInput={e => autoGrow(e.currentTarget)}
+            onBlur={() => caption !== slide.caption && onUpdate({ caption })} placeholder="Story / Caption"
+            className="mt-1.5 min-h-[5rem] w-full resize-y overflow-hidden rounded border border-white/15 bg-white/[0.04] px-2 py-1.5 text-[12px] leading-snug text-white outline-none placeholder:text-white/30 focus:border-amber-400" />
         </div>
       </div>
 
