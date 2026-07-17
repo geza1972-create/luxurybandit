@@ -18,12 +18,12 @@ const LANGS = [
 ] as const;
 type Lang = (typeof LANGS)[number]["code"];
 const CHAT_T: Record<Lang, { who: string; name: string; msg: (f: string) => string; greet: (n: string) => string }> = {
-  en: { who: "Hi 💕 who are you?", name: "Type your name…", msg: f => `Message ${f}…`, greet: n => `Love that name, ${n}! 😍 So tell me — what look are you in the mood for today?` },
-  ro: { who: "Bună 💕 cine ești?", name: "Scrie numele tău…", msg: f => `Scrie-i lui ${f}…`, greet: n => `Îmi place numele, ${n}! 😍 Spune-mi — ce ținută ai chef să vezi azi?` },
-  de: { who: "Hi 💕 wer bist du?", name: "Dein Name…", msg: f => `Nachricht an ${f}…`, greet: n => `Schöner Name, ${n}! 😍 Sag mal — auf welchen Look hast du heute Lust?` },
-  fr: { who: "Coucou 💕 qui es-tu ?", name: "Ton prénom…", msg: f => `Message à ${f}…`, greet: n => `J'adore ce prénom, ${n} ! 😍 Dis-moi — quel look te tente aujourd'hui ?` },
-  es: { who: "Hola 💕 ¿quién eres?", name: "Tu nombre…", msg: f => `Mensaje para ${f}…`, greet: n => `¡Me encanta ese nombre, ${n}! 😍 Dime — ¿qué look te apetece hoy?` },
-  it: { who: "Ciao 💕 chi sei?", name: "Il tuo nome…", msg: f => `Messaggio a ${f}…`, greet: n => `Che bel nome, ${n}! 😍 Dimmi — che look ti va di vedere oggi?` },
+  en: { who: "Hi 💕 who are you?", name: "Type your name…", msg: f => `Message ${f}…`, greet: n => `Love that name, ${n}! 😍 I'm so happy you're here. Tell me a bit about you — where are you writing me from?` },
+  ro: { who: "Bună 💕 cine ești?", name: "Scrie numele tău…", msg: f => `Scrie-i lui ${f}…`, greet: n => `Îmi place numele, ${n}! 😍 Mă bucur că ești aici. Spune-mi câte ceva despre tine — de unde îmi scrii?` },
+  de: { who: "Hi 💕 wer bist du?", name: "Dein Name…", msg: f => `Nachricht an ${f}…`, greet: n => `Schöner Name, ${n}! 😍 Schön, dass du da bist. Erzähl mir was von dir — woher schreibst du mir?` },
+  fr: { who: "Coucou 💕 qui es-tu ?", name: "Ton prénom…", msg: f => `Message à ${f}…`, greet: n => `J'adore ce prénom, ${n} ! 😍 Contente que tu sois là. Parle-moi un peu de toi — d'où m'écris-tu ?` },
+  es: { who: "Hola 💕 ¿quién eres?", name: "Tu nombre…", msg: f => `Mensaje para ${f}…`, greet: n => `¡Me encanta ese nombre, ${n}! 😍 Me alegra que estés aquí. Cuéntame algo de ti — ¿desde dónde me escribes?` },
+  it: { who: "Ciao 💕 chi sei?", name: "Il tuo nome…", msg: f => `Messaggio a ${f}…`, greet: n => `Che bel nome, ${n}! 😍 Sono felice che tu sia qui. Raccontami un po' di te — da dove mi scrivi?` },
 };
 
 // Free users get a few lines to try; after that the composer locks and we upsell.
@@ -186,10 +186,9 @@ export default function ModelChat({
 
   const userTurns = messages.filter(m => m.role === "user").length;
   const hasPass = passUntil > Date.now();
-  // Your OWN influencer → always free. Everyone else (fans AND subscribers chatting with
-  // someone else's influencer) gets 10 free messages, then the wall — unless a paid 30-min
-  // pass is active.
-  const locked = !isOwn && !hasPass && userTurns >= FREE_USER_MESSAGES;
+  // Your OWN influencer → always free. Active subscribers (isPaid) chat unlimited. Everyone
+  // else gets 10 free messages, then the wall — unless a paid 30-min pass is active.
+  const locked = !isOwn && !isPaid && !hasPass && userTurns >= FREE_USER_MESSAGES;
 
   // Buy a $3.99 / 30-min pass for this influencer: Stripe popup → poll → unlock for 30 min.
   const buyChatPass = async () => {
@@ -301,7 +300,7 @@ export default function ModelChat({
             <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#0d0b0a] bg-amber-400" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-black text-white">{first}<span className="ml-1.5 font-bold text-white/45">· AI Assistant</span></p>
+            <p className="truncate text-sm font-black text-white">{first}</p>
             <p className="text-[11px] font-bold text-amber-400">online now</p>
           </div>
           {/* Language picker — the fan chooses; the AI greets & replies in it. */}
@@ -366,23 +365,24 @@ export default function ModelChat({
 
           {error && <p className="text-center text-[12px] font-bold text-red-400">{error}</p>}
 
-          {/* Wall after the free messages — the LuxuryBandit membership unlocks unlimited chat. */}
+          {/* Wall after the free messages — personal: subscribe to keep talking to HER. */}
           {locked && (
             <div className="mt-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4">
-              <p className="text-center text-sm font-black text-white">Loving {first}? 💛</p>
-              <p className="mx-auto mt-1 max-w-xs text-center text-[12px] font-bold text-white/55">Your {FREE_USER_MESSAGES} free messages are up. Join the membership to keep chatting — one price, everything:</p>
-              <table className="mx-auto mt-3 w-full max-w-[15rem] text-left text-[12.5px] font-bold text-white/80">
-                <tbody className="[&>tr>td]:py-1">
-                  <tr><td className="w-6 align-top text-amber-400">💬</td><td><b className="text-white">Free unlimited chat</b> with anyone</td></tr>
-                  <tr><td className="w-6 align-top text-amber-400">🔒</td><td><b className="text-white">Every private video</b></td></tr>
-                  <tr><td className="w-6 align-top text-amber-400">➕</td><td><b className="text-white">Super Follow anyone</b></td></tr>
-                  <tr><td className="w-6 align-top text-amber-400">👑</td><td><b className="text-white">Buy &amp; own influencers</b></td></tr>
-                </tbody>
-              </table>
+              <div className="mx-auto h-16 w-16 overflow-hidden rounded-full border-2 border-amber-400/50 bg-white/10">
+                {avatarUrl
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={avatarUrl} alt={first} className="h-full w-full object-cover" />
+                  : <span className="grid h-full w-full place-items-center text-xl font-black text-white/60">{first.slice(0, 1)}</span>}
+              </div>
+              <p className="mt-2.5 text-center text-sm font-black text-white">I loved talking to you 💕</p>
+              <p className="mx-auto mt-1 max-w-xs text-center text-[12px] font-bold text-white/55">
+                We&apos;re just getting started. Subscribe to keep chatting with {first} — and see all her private posts &amp; videos.
+              </p>
               <button type="button" onClick={onNeedPremium}
                 className="lb-gold mt-3 flex w-full items-center justify-center rounded-2xl px-4 py-3 text-[14px] font-black active:scale-95 transition">
-                👑 Get membership
+                💛 Subscribe to {first}
               </button>
+              <p className="mt-1.5 text-center text-[11px] font-bold text-white/35">Cancel anytime.</p>
             </div>
           )}
         </div>
@@ -392,7 +392,7 @@ export default function ModelChat({
           {locked ? (
             <button type="button" onClick={onNeedPremium}
               className="lb-gold flex h-12 w-full items-center justify-center gap-1.5 rounded-full text-[13px] font-black active:scale-95 transition">
-              👑 Get membership — unlimited chat
+              💛 Subscribe to keep chatting with {first}
             </button>
           ) : (
             <>
@@ -446,7 +446,7 @@ export default function ModelChat({
               </div>
             </>
           )}
-          {!isOwn && stage === "chat" && !locked && (
+          {!isOwn && !isPaid && !hasPass && stage === "chat" && !locked && (
             <p className="mt-2 text-center text-[11px] font-bold text-white/30">{Math.max(0, FREE_USER_MESSAGES - userTurns)} free messages left</p>
           )}
           {/* AI transparency (EU AI Act) — users must be told they're chatting with an AI. */}

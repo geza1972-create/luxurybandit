@@ -86,7 +86,7 @@ export default function ChatPage() {
         isOwn={isOwn}
         onNeedPremium={() => setShowSubscribe(true)}
       />
-      <SubscribeDialog open={showSubscribe} onClose={() => setShowSubscribe(false)} />
+      <SubscribeDialog open={showSubscribe} onClose={() => setShowSubscribe(false)} modelName={profile.firstName || name} avatarUrl={profile.photoUrl ?? ""} />
     </>
   );
 }
