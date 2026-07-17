@@ -144,16 +144,19 @@ export default function BellaCarouselAdmin() {
   const markDirty = () => setDirty(true);
 
   // Add a slide to the local draft (shown immediately via a preview URL until the next commit).
+  // Returns the new slide's id so callers can patch it later (e.g. a background AI story).
   const addLocalSlide = (s: { kind: "image" | "video"; path: string; previewUrl?: string; posterUrl?: string; posterPath?: string; title?: string; caption?: string; hidden?: boolean }) => {
     const scope = customer || "";
     const maxOrder = slides.filter(x => (x.customer || "") === scope).reduce((m, x) => Math.max(m, x.order ?? -1), -1);
+    const id = crypto.randomUUID();
     setSlides(prev => [...prev, {
-      id: crypto.randomUUID(), kind: s.kind, path: s.path, posterPath: s.posterPath ?? "",
+      id, kind: s.kind, path: s.path, posterPath: s.posterPath ?? "",
       title: s.title ?? "", caption: s.caption ?? "", hidden: s.hidden === true, pages: null,
       customer: scope, order: maxOrder + 1, createdAt: new Date().toISOString(),
       mediaUrl: s.previewUrl ?? "", posterUrl: s.posterUrl ?? "",
     }]);
     markDirty();
+    return id;
   };
 
   // Persist the WHOLE draft (all scopes) in ONE write + backup.
@@ -245,22 +248,21 @@ export default function BellaCarouselAdmin() {
     finally { setBusy(""); }
   };
 
-  // Add a staged upload to the local draft as a VISIBLE slide.
-  const addStaged = async (kind: "image" | "video") => {
+  // Add a staged upload to the local draft as a VISIBLE slide — INSTANT (never blocks on the AI).
+  const addStaged = (kind: "image" | "video") => {
     const st = kind === "image" ? stagedImg : stagedVid;
     if (!st) return;
-    setBusy("commit-" + kind);
-    try {
-      let t = kind === "image" ? title : "", c = kind === "image" ? imgCaption : vidCaption;
-      // No text written → generate one so no slide stays empty.
-      if (!c.trim()) {
-        const ai = await autoText(kind === "image" ? (title.trim() || "") : "", kind);
-        if (ai.caption) c = ai.caption;
-        if (!t.trim() && ai.title) t = ai.title;
-      }
-      addLocalSlide({ kind, path: st.path, previewUrl: st.url, title: t, caption: c, hidden: false });
-      if (kind === "image") { setStagedImg(null); setImgCaption(""); } else { setStagedVid(null); setVidCaption(""); }
-    } finally { setBusy(""); }
+    const t = kind === "image" ? title : "";
+    const c = kind === "image" ? imgCaption : vidCaption;
+    const id = addLocalSlide({ kind, path: st.path, previewUrl: st.url, title: t, caption: c, hidden: false });
+    if (kind === "image") { setStagedImg(null); setImgCaption(""); } else { setStagedVid(null); setVidCaption(""); }
+    // No story typed → write one with the AI in the BACKGROUND and patch this slide when ready.
+    if (!c.trim()) {
+      autoText(t.trim() || "", kind).then(ai => {
+        if (ai.caption || ai.title) { setSlides(prev => prev.map(s => s.id === id
+          ? { ...s, caption: ai.caption || s.caption, title: (!t.trim() && ai.title) ? ai.title : s.title } : s)); markDirty(); }
+      }).catch(() => {});
+    }
   };
 
   // Save a generated/stored media into the LIBRARY draft (hidden by default) so it can be reviewed.
