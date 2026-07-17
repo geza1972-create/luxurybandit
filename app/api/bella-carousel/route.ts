@@ -49,17 +49,19 @@ function normalizeSlide(raw: any): BellaSlide | null {
 // GET — admins (PIN) get the FULL library (incl. hidden + per-customer, WITH raw paths) plus the
 // bookings list to pick a customer. Public callers get only visible GENERAL slides for ?surface.
 export async function GET(request: Request) {
-  const all = await readCardStudioSlides();
+  const url = new URL(request.url);
+  const model = url.searchParams.get("model") || undefined;   // which influencer's card (default Bella)
+  const all = await readCardStudioSlides(model);
   if (await isAdminRequest(request)) {
     const state = await readTryThisLookState();
-    const backup = await readCardStudioBackup();
+    const backup = await readCardStudioBackup(model);
     return NextResponse.json({
       slides: await signSlides(all, true),
       bookings: state.tripBookings ?? [],
       backup: { count: backup.slides.length, savedAt: backup.savedAt },
     });
   }
-  const surface = new URL(request.url).searchParams.get("surface") || "lp-journey";
+  const surface = url.searchParams.get("surface") || "lp-journey";
   const visible = all.filter((s) => s.hidden !== true && !s.customer && onSurface(s, surface));
   return NextResponse.json({ slides: await signSlides(visible) });
 }
@@ -73,15 +75,16 @@ export async function POST(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
   const body = (await request.json().catch(() => ({}))) as {
     sign?: boolean; kind?: "image" | "video"; ext?: string;
-    commit?: any[]; restoreBackup?: boolean; removeBooking?: string;
+    commit?: any[]; restoreBackup?: boolean; removeBooking?: string; model?: string;
   };
+  const model = (body.model || "").trim() || undefined;   // which influencer's card
 
   // Prune a booking (admin) — lives in the shared state.json, handled up front.
   if (typeof body?.removeBooking === "string" && body.removeBooking) {
     const st = await readTryThisLookState();
     st.tripBookings = (st.tripBookings ?? []).filter(b => b.id !== body.removeBooking);
     await saveTryThisLookState(st, { deletedBookingIds: [body.removeBooking] });
-    return NextResponse.json({ ok: true, slides: await signSlides(await readCardStudioSlides(), true), bookings: st.tripBookings });
+    return NextResponse.json({ ok: true, slides: await signSlides(await readCardStudioSlides(model), true), bookings: st.tripBookings });
   }
 
   if (body.sign) {
@@ -93,9 +96,9 @@ export async function POST(request: Request) {
 
   // Restore the last backup as the live library.
   if (body.restoreBackup) {
-    const backup = await readCardStudioBackup();
+    const backup = await readCardStudioBackup(model);
     if (!backup.slides.length) return NextResponse.json({ error: "Kein Backup vorhanden." }, { status: 404 });
-    await writeCardStudioSlides(backup.slides);
+    await writeCardStudioSlides(backup.slides, model);
     return NextResponse.json({ ok: true, slides: await signSlides(backup.slides, true) });
   }
 
@@ -108,7 +111,7 @@ export async function POST(request: Request) {
       const scope = s.customer ?? "";
       const n = (seen.get(scope) ?? -1) + 1; seen.set(scope, n); s.order = n;
     }
-    await writeCardStudioSlides(slides);
+    await writeCardStudioSlides(slides, model);
     return NextResponse.json({ ok: true, slides: await signSlides(slides, true) });
   }
 

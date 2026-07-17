@@ -303,11 +303,11 @@ export default function CuratorPublicPage() {
     setSending(false);
   };
 
-  // Load admin-uploaded carousel slides so they appear on her real card (journey curators only).
+  // Load THIS model's Card Studio posts so they appear on her card (every model has her own).
   useEffect(() => {
-    if (!JOURNEY_CURATOR_IDS.has(id)) { setCarouselSlides([]); return; }
+    if (!id) { setCarouselSlides([]); return; }
     // surface=profile → the public GET returns only visible slides targeted at the profile card.
-    fetch("/api/bella-carousel?surface=profile").then(r => r.json()).then(d => setCarouselSlides(d.slides ?? [])).catch(() => {});
+    fetch(`/api/bella-carousel?surface=profile&model=${encodeURIComponent(id)}`).then(r => r.json()).then(d => setCarouselSlides(d.slides ?? [])).catch(() => {});
   }, [id]);
 
   useEffect(() => {

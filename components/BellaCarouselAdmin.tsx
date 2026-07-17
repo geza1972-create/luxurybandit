@@ -12,6 +12,7 @@ type Customer = { email: string; name: string; provider?: string; createdAt?: st
 type Staged = { path: string; url: string };
 type SavedPrompt = { id: string; kind: "image" | "video" | "voice"; text: string };
 const SURFACES = [{ key: "profile", label: "Profile" }, { key: "lp-journey", label: "LP-Journey" }, { key: "lp-own-model", label: "LP-Own-Model" }];
+const BELLA_ID = "curator-1783683672619-td4cy";   // the original model; her slides use the legacy blob
 
 // Prompt library for one generation kind: save the current prompt, click a saved one to load it,
 // ✕ to delete.
@@ -83,6 +84,8 @@ export default function BellaCarouselAdmin() {
   const [postStory, setPostStory] = useState("");
   const [igBusy, setIgBusy] = useState("");   // slide id currently publishing to Instagram
   const [igDone, setIgDone] = useState("");   // slide id just published
+  const [models, setModels] = useState<{ id: string; name: string; photoUrl?: string }[]>([]);
+  const [modelId, setModelId] = useState(BELLA_ID);   // which influencer's card we're editing
 
   const replaceRef = useRef<HTMLInputElement>(null);
   const [replaceTarget, setReplaceTarget] = useState<{ id: string; kind: "image" | "video" } | null>(null);
@@ -99,16 +102,20 @@ export default function BellaCarouselAdmin() {
 
   const authH = () => ({ "Content-Type": "application/json", "x-try-look-admin-pin": pin() });
   // Admin GET sends the PIN → returns the FULL library (incl. hidden).
-  const load = () => fetch("/api/bella-carousel", { headers: { "x-try-look-admin-pin": pin() } }).then(r => r.json()).then(d => { setSlides(d.slides ?? []); setBackup(d.backup ?? { count: 0, savedAt: "" }); setDirty(false); }).catch(() => {});
+  const load = () => fetch(`/api/bella-carousel?model=${encodeURIComponent(modelId)}`, { headers: { "x-try-look-admin-pin": pin() } }).then(r => r.json()).then(d => { setSlides(d.slides ?? []); setBackup(d.backup ?? { count: 0, savedAt: "" }); setDirty(false); }).catch(() => {});
   const loadCustomers = () => fetch("/api/customers", { headers: { "x-try-look-admin-pin": pin() } }).then(r => r.json()).then(d => setCustomers(d.customers ?? [])).catch(() => {});
   useEffect(() => {
     setIsAdmin(!!pin());
-    load();
     loadCustomers();
     loadPrompts();
     fetch("/api/bella-lingerie", { headers: { "x-try-look-admin-pin": pin() } })
       .then(r => r.json()).then(d => setGarments(d.garments ?? [])).catch(() => {});
+    // The model list to pick which influencer's card to edit.
+    fetch("/api/try-this-look?models=1", { headers: { "x-try-look-admin-pin": pin() } })
+      .then(r => r.json()).then(d => setModels(Array.isArray(d.models) ? d.models : [])).catch(() => {});
   }, []);
+  // (Re)load slides whenever the selected model changes.
+  useEffect(() => { if (isAdmin) { void load(); setStagedImg(null); setStagedVid(null); setGen(null); setGenVideo(null); } /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [modelId, isAdmin]);
 
   const loadPrompts = () => fetch("/api/prompts", { headers: { "x-try-look-admin-pin": pin() } }).then(r => r.json()).then(d => setPrompts(d.prompts ?? [])).catch(() => {});
   const savePrompt = async (kind: "image" | "video" | "voice", text: string) => {
@@ -121,11 +128,16 @@ export default function BellaCarouselAdmin() {
     if (res?.ok) setPrompts(res.prompts ?? []);
   };
 
-  const loadPreview = (cust: string) => fetch(`/api/bella-card-preview${cust ? `?customer=${encodeURIComponent(cust)}` : ""}`, { headers: { "x-try-look-admin-pin": pin() } })
-    .then(r => r.json()).then(d => setPreview(d.card ?? null)).catch(() => {});
-  useEffect(() => { if (isAdmin) void loadPreview(customer); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [customer, isAdmin]);
+  // Live ModelCard preview is only wired for Bella (buildBellaCard). For other models the
+  // editable slide library below IS the tool — the card preview is simply hidden.
+  const loadPreview = (cust: string) => {
+    if (modelId !== BELLA_ID) { setPreview(null); return; }
+    fetch(`/api/bella-card-preview${cust ? `?customer=${encodeURIComponent(cust)}` : ""}`, { headers: { "x-try-look-admin-pin": pin() } })
+      .then(r => r.json()).then(d => setPreview(d.card ?? null)).catch(() => {});
+  };
+  useEffect(() => { if (isAdmin) void loadPreview(customer); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [customer, isAdmin, modelId]);
 
-  const post = (payload: object) => fetch("/api/bella-carousel", { method: "POST", headers: authH(), body: JSON.stringify(payload) }).then(r => r.json());
+  const post = (payload: object) => fetch("/api/bella-carousel", { method: "POST", headers: authH(), body: JSON.stringify({ ...payload, model: modelId }) }).then(r => r.json());
 
   // ── Draft model ──────────────────────────────────────────────────────────
   // Every edit below changes ONLY the local draft (no server write) and flags `dirty`.
@@ -384,6 +396,23 @@ export default function BellaCarouselAdmin() {
         <p className="text-[15px] font-black text-white">🎴 Card Studio</p>
       </div>
       <p className="mt-1 text-[12px] font-medium text-white/50">Bild oder Video + Story posten → unten <b className="text-green-300">Übernehmen</b>. Nichts wird gespeichert, bis du übernimmst (+ automatisches Backup).</p>
+
+      {/* Model selector — which influencer's card you're editing. */}
+      <div className="mt-3 rounded-xl border border-violet-400/25 bg-violet-500/[0.05] p-2.5">
+        <label className="text-[11px] font-black uppercase tracking-wide text-violet-200/70">Model</label>
+        <div className="mt-1 flex items-center gap-2">
+          {(() => { const m = models.find(x => x.id === modelId); return m?.photoUrl
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={m.photoUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+            : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-[13px] font-black text-white/60">{(m?.name || "B").slice(0, 1)}</span>; })()}
+          <select value={modelId} onChange={e => { if (dirty && !confirm("Ungespeicherte Änderungen verwerfen und Model wechseln?")) return; setModelId(e.target.value); }}
+            className="h-10 flex-1 rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[13px] font-bold text-white outline-none focus:border-violet-400">
+            <option value={BELLA_ID}>Bella{models.some(m => m.id === BELLA_ID) ? "" : " (Standard)"}</option>
+            {models.filter(m => m.id !== BELLA_ID).map(m => <option key={m.id} value={m.id}>{m.name || m.id}</option>)}
+          </select>
+        </div>
+        <p className="mt-1 text-[11px] font-medium text-white/40">Du bearbeitest die Card/Slides von <b className="text-white/70">{models.find(m => m.id === modelId)?.name || "Bella"}</b>.</p>
+      </div>
 
       {/* PRIMARY flow — post an image OR video with its story straight onto her profile. */}
       <div className="mt-3 rounded-2xl border border-green-400/30 bg-green-500/[0.05] p-3">
