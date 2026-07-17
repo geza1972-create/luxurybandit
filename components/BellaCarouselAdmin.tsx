@@ -68,7 +68,7 @@ export default function BellaCarouselAdmin() {
   const [showEmails, setShowEmails] = useState(false);
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
-  const [title, setTitle] = useState("This is Peter");
+  const [title, setTitle] = useState("");
   const [imgCaption, setImgCaption] = useState("");
   const [vidCaption, setVidCaption] = useState("");
   const [imgPrompt, setImgPrompt] = useState(IMG_PROMPT_DEFAULT);
@@ -79,9 +79,6 @@ export default function BellaCarouselAdmin() {
   const [stagedVid, setStagedVid] = useState<Staged | null>(null);
   const [dirty, setDirty] = useState(false);   // un-committed local edits
   const [backup, setBackup] = useState<{ count: number; savedAt: string }>({ count: 0, savedAt: "" });
-  // Simple "new post" flow (the primary way to post): image OR video + story.
-  const [postKind, setPostKind] = useState<"image" | "video">("image");
-  const [postStory, setPostStory] = useState("");
   const [igBusy, setIgBusy] = useState("");   // slide id currently publishing to Instagram
   const [igDone, setIgDone] = useState("");   // slide id just published
   const [models, setModels] = useState<{ id: string; name: string; photoUrl?: string }[]>([]);
@@ -263,19 +260,6 @@ export default function BellaCarouselAdmin() {
     } finally { setBusy(""); }
   };
 
-  // PRIMARY flow — post an image OR video with its story straight onto her profile (draft).
-  const publishPost = async () => {
-    const st = postKind === "image" ? stagedImg : stagedVid;
-    if (!st) { setErr("Bitte zuerst ein Bild oder Video hochladen."); return; }
-    setBusy("post"); setErr("");
-    try {
-      let c = postStory.trim();
-      if (!c) { const ai = await autoText("", postKind); c = ai.caption || ""; }   // no story → generate one
-      addLocalSlide({ kind: postKind, path: st.path, previewUrl: st.url, caption: c, hidden: false });
-      setStagedImg(null); setStagedVid(null); setPostStory("");
-    } finally { setBusy(""); }
-  };
-
   // Save a generated/stored media into the LIBRARY draft (hidden by default) so it can be reviewed.
   const saveToLibrary = async (kind: "image" | "video", path: string, brief?: string, previewUrl?: string) => {
     setBusy("lib");
@@ -410,44 +394,6 @@ export default function BellaCarouselAdmin() {
           </select>
         </div>
         <p className="mt-1 text-[11px] font-medium text-white/40">Du bearbeitest die Card/Slides von <b className="text-white/70">{models.find(m => m.id === modelId)?.name || "Bella"}</b>.</p>
-      </div>
-
-      {/* PRIMARY flow — post an image OR video with its story straight onto her profile. */}
-      <div className="mt-3 rounded-2xl border border-green-400/30 bg-green-500/[0.05] p-3">
-        <p className="text-[14px] font-black text-white">📝 Neuer Beitrag</p>
-        <p className="mt-0.5 text-[11px] font-medium text-white/50">Bild <b>oder</b> Video + Story → erscheint auf ihrem Profil.</p>
-        <div className="mt-2 flex gap-2">
-          <button type="button" onClick={() => setPostKind("image")}
-            className={`flex-1 rounded-lg py-2 text-[13px] font-black active:scale-95 ${postKind === "image" ? "bg-amber-400 text-black" : "bg-white/5 text-white/60"}`}>🖼 Foto</button>
-          <button type="button" onClick={() => setPostKind("video")}
-            className={`flex-1 rounded-lg py-2 text-[13px] font-black active:scale-95 ${postKind === "video" ? "bg-violet-500 text-white" : "bg-white/5 text-white/60"}`}>🎬 Video</button>
-        </div>
-        {(postKind === "image" ? stagedImg : stagedVid) ? (
-          <div className="mt-2">
-            {postKind === "image" && stagedImg && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={stagedImg.url} alt="" className="w-full rounded-lg" />
-            )}
-            {postKind === "video" && stagedVid && (
-              // eslint-disable-next-line jsx-a11y/media-has-caption
-              <video src={stagedVid.url} controls playsInline className="w-full rounded-lg" />
-            )}
-            <label className="mt-2 inline-block cursor-pointer text-[12px] font-black text-white/60 active:scale-95">↻ Anderes wählen
-              <input type="file" accept={postKind === "image" ? "image/*" : "video/*"} className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) void stageFile(f, postKind); }} /></label>
-          </div>
-        ) : (
-          <label className={`mt-2 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg py-3 text-[13px] font-black transition active:scale-[0.98] ${busy === postKind ? "opacity-60" : ""} ${postKind === "image" ? "bg-amber-400 text-black" : "bg-violet-500 text-white"}`}>
-            {busy === postKind ? "Lädt hoch…" : postKind === "image" ? "🖼 Foto auswählen & hochladen" : "🎬 Video auswählen & hochladen"}
-            <input type="file" accept={postKind === "image" ? "image/*" : "video/*"} disabled={!!busy} className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) void stageFile(f, postKind); }} />
-          </label>
-        )}
-        <textarea value={postStory} onChange={e => setPostStory(e.target.value)} placeholder="Story dazu (English)…"
-          className="mt-2 h-20 w-full rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1.5 text-[13px] text-white outline-none placeholder:text-white/30 focus:border-green-400" />
-        <button type="button" onClick={() => void publishPost()} disabled={busy === "post" || !(postKind === "image" ? stagedImg : stagedVid)}
-          className="mt-2 w-full rounded-xl bg-green-500 py-3 text-[14px] font-black text-white shadow ring-1 ring-green-300/40 active:scale-[0.98] disabled:opacity-40">
-          {busy === "post" ? "…" : "＋ Beitrag zum Entwurf hinzufügen"}
-        </button>
-        <p className="mt-1 text-center text-[10px] font-medium text-white/40">Danach unten „Übernehmen" drücken, damit es live geht.</p>
       </div>
 
       {/* Scope selector: the general (public) card, or a specific customer's personal card. */}
@@ -585,10 +531,10 @@ export default function BellaCarouselAdmin() {
 
       {/* Upload image (Peter) */}
       <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-3">
-        <p className="text-[12px] font-black text-white/80">🖼 Bild hochladen (z.B. Peter)</p>
-        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Slide-Text (EN), z.B. „This is Peter“"
+        <p className="text-[12px] font-black text-white/80">🖼 Foto hochladen</p>
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titel (optional, EN)"
           className="mt-2 h-10 w-full rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[13px] font-bold text-white outline-none placeholder:text-white/30 focus:border-amber-400" />
-        <textarea value={imgCaption} onChange={e => setImgCaption(e.target.value)} placeholder="Kurze Beschreibung"
+        <textarea value={imgCaption} onChange={e => setImgCaption(e.target.value)} placeholder="Story (English) — leer lassen = KI schreibt sie"
           className="mt-2 h-16 w-full rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1.5 text-[13px] font-medium text-white outline-none placeholder:text-white/30 focus:border-amber-400" />
         {stagedImg ? (
           <div className="mt-2">
@@ -613,7 +559,7 @@ export default function BellaCarouselAdmin() {
       {/* Upload video */}
       <div className="mt-3 rounded-xl border border-violet-400/20 bg-violet-500/[0.04] p-3">
         <p className="text-[12px] font-black text-violet-200">🎬 Video hochladen</p>
-        <input value={vidCaption} onChange={e => setVidCaption(e.target.value)} placeholder="Caption (optional)"
+        <input value={vidCaption} onChange={e => setVidCaption(e.target.value)} placeholder="Story (English) — leer lassen = KI schreibt sie"
           className="mt-2 h-10 w-full rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[13px] font-medium text-white outline-none placeholder:text-white/30 focus:border-amber-400" />
         {stagedVid ? (
           <div className="mt-2">
