@@ -740,9 +740,13 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
     setAiBusy(true);
     try {
       const payload: Record<string, unknown> = { kind: slide.kind, context: slide.title };
-      if (slide.kind === "image" && slide.mediaUrl) payload.imageUrl = slide.mediaUrl;  // let the AI see the photo
-      if (hasStory) payload.rewrite = caption;                                            // polish what I wrote
-      else if (!payload.imageUrl) payload.brief = title.trim() || "a moment from her journey";
+      if (hasStory) {
+        payload.rewrite = caption;                                                       // faithfully correct MY text — no photo, no invention
+      } else if (slide.kind === "image" && slide.mediaUrl) {
+        payload.imageUrl = slide.mediaUrl;                                               // empty story → write one from the photo (vision)
+      } else {
+        payload.brief = title.trim() || "a moment from her journey";
+      }
       const res = await fetch("/api/bella-caption", { method: "POST", headers: { "Content-Type": "application/json", "x-try-look-admin-pin": pin() }, body: JSON.stringify(payload) }).then(r => r.json());
       if (res?.caption || res?.title) {
         const patch: { title?: string; caption?: string } = {};

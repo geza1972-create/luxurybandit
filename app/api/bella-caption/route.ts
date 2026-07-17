@@ -36,12 +36,14 @@ export async function POST(request: Request) {
   ];
   const prompt = rewrite
     ? [
-        ...PERSONA,
-        `Here is a draft caption I wrote — it may have typos and be in any language: "${rewrite}".`,
-        imageUrl ? "The attached photo is the post it belongs to." : "",
-        "Correct and rewrite it as a POLISHED, engaging caption in ENGLISH: fix ALL spelling & grammar, keep MY intent and any call-to-action (e.g. inviting people to Super Follow / to see private content), and make it flow.",
-        context ? `Context: ${context}.` : "",
-        ...STORY_RULES,
+        "You are a careful copy editor for a fashion influencer's social caption.",
+        `Here is the caption I wrote — it may have typos and be in any language: "${rewrite}".`,
+        "Rewrite it FAITHFULLY in natural, correct ENGLISH.",
+        "• Fix ALL spelling and grammar.",
+        "• KEEP my exact meaning, tone and every detail and call-to-action I wrote.",
+        "• DO NOT invent new places, scenes, facts, emojis or hashtags that I did not write.",
+        "• Keep it about the same length; only smooth the wording so it reads well.",
+        "Also give a short 2–4 word title based ONLY on what I wrote.",
         'Return ONLY strict JSON: {"title":"...","caption":"..."}',
       ].filter(Boolean).join(" ")
     : imageUrl
