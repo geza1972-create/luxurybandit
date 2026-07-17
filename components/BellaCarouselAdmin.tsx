@@ -7,7 +7,7 @@ import ModelCard from "@/components/ModelCard";
 const PIN_KEY = "luxurybandit-try-look-admin-pin";
 const pin = () => { try { return localStorage.getItem("lb_preview_model") ? "" : (localStorage.getItem(PIN_KEY) ?? ""); } catch { return ""; } };
 
-type Slide = { id: string; kind: "image" | "video"; title: string; caption: string; hidden: boolean; pages: string[] | null; customer: string; order: number | null; mediaUrl: string; posterUrl: string; path: string; posterPath: string; createdAt: string };
+type Slide = { id: string; kind: "image" | "video"; title: string; caption: string; hidden: boolean; private: boolean; pages: string[] | null; customer: string; order: number | null; mediaUrl: string; posterUrl: string; path: string; posterPath: string; createdAt: string };
 type Customer = { email: string; name: string; provider?: string; createdAt?: string; videoCredits: number; purchases: { type: string; label: string; date?: string }[]; videoNote: string; emails: { subject: string; sentAt: string }[] };
 type Staged = { path: string; url: string };
 type SavedPrompt = { id: string; kind: "image" | "video" | "voice"; text: string };
@@ -151,7 +151,7 @@ export default function BellaCarouselAdmin() {
     const id = crypto.randomUUID();
     setSlides(prev => [...prev, {
       id, kind: s.kind, path: s.path, posterPath: s.posterPath ?? "",
-      title: s.title ?? "", caption: s.caption ?? "", hidden: s.hidden === true, pages: null,
+      title: s.title ?? "", caption: s.caption ?? "", hidden: s.hidden === true, private: false, pages: null,
       customer: scope, order: maxOrder + 1, createdAt: new Date().toISOString(),
       mediaUrl: s.previewUrl ?? "", posterUrl: s.posterUrl ?? "",
     }]);
@@ -167,7 +167,7 @@ export default function BellaCarouselAdmin() {
       // array order IS the saved order (this is what makes ↑↓ reordering persist).
       const ordered = [...slides].sort((a, b) => (a.customer || "").localeCompare(b.customer || "") || (a.order ?? 1e9) - (b.order ?? 1e9));
       const payload = ordered.map(s => ({ id: s.id, kind: s.kind, path: s.path, posterPath: s.posterPath || undefined,
-        title: s.title, caption: s.caption, hidden: s.hidden, pages: s.pages, customer: s.customer, order: s.order, createdAt: s.createdAt }));
+        title: s.title, caption: s.caption, hidden: s.hidden, private: s.private, pages: s.pages, customer: s.customer, order: s.order, createdAt: s.createdAt }));
       const res = await post({ commit: payload });
       if (res?.ok) { setSlides(res.slides ?? []); setDirty(false); await load(); void loadPreview(customer); router.refresh(); }
       else setErr(res?.error || "Speichern fehlgeschlagen.");
@@ -797,6 +797,11 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
         <button type="button" onClick={() => onUpdate({ hidden: !slide.hidden })}
           className={`rounded-full px-2.5 py-1 text-[11px] font-black active:scale-95 ${slide.hidden ? "bg-white/10 text-white/50" : "bg-amber-400 text-black"}`}>
           {slide.hidden ? "🚫 Ausgeblendet" : "✓ Auf Card"}
+        </button>
+        <button type="button" onClick={() => onUpdate({ private: !slide.private })}
+          title={slide.private ? "Privat — nur Super-Follower/Mitglieder sehen es (sonst gesperrt)" : "Öffentlich sichtbar"}
+          className={`rounded-full px-2.5 py-1 text-[11px] font-black active:scale-95 ${slide.private ? "bg-fuchsia-500/25 text-fuchsia-200 ring-1 ring-fuchsia-400/40" : "bg-white/10 text-white/50"}`}>
+          {slide.private ? "🔒 Privat" : "🔓 Öffentlich"}
         </button>
         {dateLabel && <span className="text-[10px] font-bold text-white/35" title="Zeitstempel (bestimmt die Reihenfolge)">🕒 {dateLabel}</span>}
         <span className="ml-auto flex gap-1.5">

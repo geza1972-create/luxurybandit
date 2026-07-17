@@ -108,8 +108,8 @@ async function landingData() {
       const poster = s.posterPath ? await getSignedUrl(s.posterPath).catch(() => "") : "";
       const cap = [s.title, s.caption].filter(Boolean).join(" — ") || undefined;
       ownModelClips.push(s.kind === "video"
-        ? { poster: poster || "", video: media, private: false, story: cap }
-        : { poster: media, video: "", private: false, story: cap });
+        ? { poster: poster || "", video: media, private: s.private === true, story: cap }
+        : { poster: media, video: "", private: s.private === true, story: cap });
     }
     const ginaClips2 = [...ownModelClips, ...ginaStory];
     const ginaCard = {

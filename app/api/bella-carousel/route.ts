@@ -14,7 +14,7 @@ export const slideSort = (a: BellaSlide, b: BellaSlide) =>
 async function signSlides(slides: BellaSlide[], includePaths = false) {
   return Promise.all([...slides].sort(slideSort).map(async (s) => ({
     id: s.id, kind: s.kind, title: s.title ?? "", caption: s.caption ?? "",
-    hidden: s.hidden === true, pages: s.pages ?? null, customer: s.customer ?? "", order: s.order ?? null,
+    hidden: s.hidden === true, private: s.private === true, pages: s.pages ?? null, customer: s.customer ?? "", order: s.order ?? null,
     ...(includePaths ? { path: s.path ?? "", posterPath: s.posterPath ?? "", createdAt: s.createdAt ?? "" } : {}),
     mediaUrl: s.path ? await getSignedUrl(s.path).catch(() => "") : "",
     posterUrl: s.posterPath ? await getSignedUrl(s.posterPath).catch(() => "") : "",
@@ -39,6 +39,7 @@ function normalizeSlide(raw: any): BellaSlide | null {
     title: String(raw?.title ?? "").trim().slice(0, 80) || undefined,
     caption: String(raw?.caption ?? "").trim().slice(0, 400) || undefined,
     hidden: raw?.hidden === true,
+    private: raw?.private === true,
     pages,
     customer,
     order: Number.isFinite(raw?.order) ? Number(raw.order) : undefined,

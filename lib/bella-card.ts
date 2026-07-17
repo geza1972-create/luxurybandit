@@ -93,9 +93,9 @@ export async function buildBellaCard(opts: { surface?: string; customer?: string
       const caption = [sl.title, sl.caption].filter(Boolean).join(" — ");
       if (sl.kind === "video") {
         // No Bella-photo fallback — a posterless video shows its OWN frame on the card.
-        customClips.push({ poster: poster || "", video: media, private: false, story: caption || undefined });
+        customClips.push({ poster: poster || "", video: media, private: sl.private === true, story: caption || undefined });
       } else {
-        customClips.push({ poster: media, video: "", private: false, story: caption || undefined });
+        customClips.push({ poster: media, video: "", private: sl.private === true, story: caption || undefined });
       }
     }
     // A customer's personal card shows ONLY their own slides; the general card leads with any

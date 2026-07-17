@@ -89,7 +89,7 @@ export default function CuratorPublicPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   // Admin-uploaded carousel slides (e.g. Bella's Peter intro + example videos) — shown on her
   // real card too, not just the /urlaub-mit-bella landing.
-  const [carouselSlides, setCarouselSlides] = useState<{ kind: string; mediaUrl: string; posterUrl: string; title: string; caption: string }[]>([]);
+  const [carouselSlides, setCarouselSlides] = useState<{ kind: string; mediaUrl: string; posterUrl: string; title: string; caption: string; private?: boolean }[]>([]);
   const [looks, setLooks] = useState<Look[]>([]);
   const [allLooks, setAllLooks] = useState<Look[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -1144,8 +1144,8 @@ export default function CuratorPublicPage() {
   // Studio); her try-on clips still live in the video gallery below. No posts yet → fall back
   // to the try-on clips so the card is never empty.
   const customClips = [...carouselSlides].reverse().map(s => s.kind === "video"
-    ? { poster: s.posterUrl || "", video: s.mediaUrl, private: false, story: s.caption || undefined }
-    : { poster: s.mediaUrl, video: "", private: false, story: [s.title, s.caption].filter(Boolean).join(" — ") || undefined });
+    ? { poster: s.posterUrl || "", video: s.mediaUrl, private: s.private === true, story: s.caption || undefined }
+    : { poster: s.mediaUrl, video: "", private: s.private === true, story: [s.title, s.caption].filter(Boolean).join(" — ") || undefined });
   const allCardClips = customClips.length ? customClips : cardClips;
   // Data for the shareable collectible ModelCard (THE reusable card, same as the landing).
   const cardData = {
