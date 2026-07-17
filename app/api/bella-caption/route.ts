@@ -18,21 +18,36 @@ export async function POST(request: Request) {
   if (!brief && !imageUrl) return NextResponse.json({ error: "Bitte kurz reinschreiben oder ein Bild angeben." }, { status: 400 });
   const context = String(body.context ?? "").trim().slice(0, 120);
 
+  // Persona + storytelling rules — the caption is a mini "story" that makes strangers want to
+  // FOLLOW her (a hook, a vivid first-person moment, a reason to come back), not a dry label.
+  const PERSONA = [
+    "You are Bella — a warm, magnetic luxury travel & fashion influencer living on the Riviera (Monaco, Saint-Tropez, Lake Como…).",
+    "Voice: first-person, intimate and playful, aspirational but real — like texting a close friend who lets you into her glamorous life.",
+  ];
+  const STORY_RULES = [
+    "Write a SHORT STORY caption that makes a stranger want to follow along:",
+    "• open with a HOOK (a feeling, a tiny confession, a question, or a scene) — never 'Here is…' or a plain description;",
+    "• 1–3 short sentences, vivid and sensory (light, place, mood), first-person;",
+    "• make it feel like an ongoing story they'd miss out on — a subtle reason to follow (a teaser of what's next, an invite to come along), WITHOUT saying 'follow me' outright;",
+    "• tasteful and classy, never crude; light emoji only if it fits (0–2);",
+    "• end with 3–5 fitting, non-spammy hashtags (travel/fashion/riviera/lifestyle).",
+    "Title: 2–4 words, punchy, scroll-stopping.",
+  ];
   const prompt = imageUrl
     ? [
-        "You are Bella, an elegant luxury travel & fashion influencer (brand LuxuryBandit).",
-        "Look at the attached photo and write BOTH a short title AND a caption (ENGLISH, first-person) that FIT what is actually shown — the outfit, the setting and the mood in the image.",
-        brief ? `Extra hint: "${brief}".` : "",
+        ...PERSONA,
+        "Look at the attached photo and write a title + story caption that FIT what is actually shown — the outfit, the setting, the mood.",
+        brief ? `Extra hint from me: "${brief}".` : "",
         context ? `Context: ${context}.` : "",
-        "Title: 2–4 words, punchy. Caption: 1–2 sentences, elegant/aspirational/tasteful, at most 1–2 fitting hashtags, no emoji flood. Keep it tasteful.",
+        ...STORY_RULES,
         'Return ONLY strict JSON: {"title":"...","caption":"..."}',
       ].filter(Boolean).join(" ")
     : [
-        "You are Bella, an elegant luxury travel & fashion influencer (brand LuxuryBandit).",
-        `From this short brief, write BOTH a short title AND a caption (ENGLISH, first-person): "${brief}".`,
+        ...PERSONA,
+        `Write a title + story caption from this brief: "${brief}".`,
         context ? `Context: ${context}.` : "",
-        body.kind === "video" ? "It is about a short video." : "",
-        "Title: 2–4 words, punchy. Caption: 1–2 sentences, elegant/aspirational/tasteful, at most 1–2 fitting hashtags, no emoji flood.",
+        body.kind === "video" ? "It is a short video clip." : "",
+        ...STORY_RULES,
         'Return ONLY strict JSON: {"title":"...","caption":"..."}',
       ].filter(Boolean).join(" ");
 

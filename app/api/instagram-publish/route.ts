@@ -20,17 +20,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "IG_USER_ID / IG_ACCESS_TOKEN fehlen — in den Vercel-Env eintragen (siehe Anleitung im Chat)." }, { status: 400 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as { videoUrl?: string; caption?: string };
+  const body = (await request.json().catch(() => ({}))) as { videoUrl?: string; imageUrl?: string; caption?: string };
   const videoUrl = String(body.videoUrl ?? "").trim();
+  const imageUrl = String(body.imageUrl ?? "").trim();
   const caption = String(body.caption ?? "").slice(0, 2200);
-  if (!videoUrl) return NextResponse.json({ error: "videoUrl required." }, { status: 400 });
+  if (!videoUrl && !imageUrl) return NextResponse.json({ error: "videoUrl oder imageUrl required." }, { status: 400 });
 
   try {
-    // 1) Create a REELS media container (IG starts downloading + processing the video).
+    // 1) Create a media container. Video → REELS; image → single photo post.
+    const createBody = videoUrl
+      ? { media_type: "REELS", video_url: videoUrl, caption, access_token: token }
+      : { image_url: imageUrl, caption, access_token: token };
     const createRes = await fetch(`${GRAPH}/${igUserId}/media`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ media_type: "REELS", video_url: videoUrl, caption, access_token: token }),
+      body: JSON.stringify(createBody),
     });
     const createData = (await createRes.json().catch(() => ({}))) as { id?: string; error?: { message?: string } };
     const creationId = createData?.id;

@@ -81,6 +81,8 @@ export default function BellaCarouselAdmin() {
   // Simple "new post" flow (the primary way to post): image OR video + story.
   const [postKind, setPostKind] = useState<"image" | "video">("image");
   const [postStory, setPostStory] = useState("");
+  const [igBusy, setIgBusy] = useState("");   // slide id currently publishing to Instagram
+  const [igDone, setIgDone] = useState("");   // slide id just published
 
   const replaceRef = useRef<HTMLInputElement>(null);
   const [replaceTarget, setReplaceTarget] = useState<{ id: string; kind: "image" | "video" } | null>(null);
@@ -299,6 +301,21 @@ export default function BellaCarouselAdmin() {
     markDirty();
   };
   const remove = (id: string) => { setSlides(prev => prev.filter(s => s.id !== id)); markDirty(); };
+
+  // One-click publish this post to Instagram (video → Reel, image → photo). Needs a PUBLIC
+  // media URL, so the slide must be committed first (a signed https URL, not a local preview).
+  const postInstagram = async (s: Slide) => {
+    if (!s.mediaUrl.startsWith("http")) { setErr("Erst unten Übernehmen drücken — dann kann Instagram das Medium laden."); return; }
+    if (!confirm(`Diesen ${s.kind === "video" ? "Clip als Reel" : "Beitrag"} jetzt auf Instagram posten?`)) return;
+    setIgBusy(s.id); setIgDone(""); setErr("");
+    try {
+      const caption = [s.title, s.caption].filter(Boolean).join("\n\n");
+      const payload = s.kind === "video" ? { videoUrl: s.mediaUrl, caption } : { imageUrl: s.mediaUrl, caption };
+      const res = await fetch("/api/instagram-publish", { method: "POST", headers: authH(), body: JSON.stringify(payload) }).then(r => r.json());
+      if (res?.ok) setIgDone(s.id); else setErr(res?.error || "Instagram-Post fehlgeschlagen.");
+    } catch { setErr("Instagram-Post fehlgeschlagen."); }
+    finally { setIgBusy(""); }
+  };
 
   // Force a real download of a signed media URL (fetch → blob → anchor), works cross-origin.
   const downloadMedia = async (url: string, kind: "image" | "video") => {
@@ -622,6 +639,7 @@ export default function BellaCarouselAdmin() {
                 onTalk={lines => void makeTalkVideo(s, lines)}
                 onMove={dir => void move(s.id, dir)}
                 onOpen={() => s.mediaUrl && setLightbox({ url: s.mediaUrl, kind: s.kind })}
+                onInstagram={() => void postInstagram(s)} canIg={s.mediaUrl.startsWith("http")} igBusy={igBusy === s.id} igDone={igDone === s.id}
                 videoPromptDefault={vidPrompt} prompts={prompts}
                 onSavePrompt={t => void savePrompt("video", t)} onSaveVoice={t => void savePrompt("voice", t)} onDeletePrompt={id => void deletePrompt(id)} />
             ))}
@@ -700,9 +718,10 @@ export default function BellaCarouselAdmin() {
 
 // One library media: preview + editable title/caption + AI caption + hide toggle + page targets +
 // (for images) make-video + replace + delete. Text edits auto-save on blur.
-function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onMakeVideo, onTalk, onMove, onOpen, videoPromptDefault, prompts, onSavePrompt, onSaveVoice, onDeletePrompt }: {
+function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onMakeVideo, onTalk, onMove, onOpen, onInstagram, canIg, igBusy, igDone, videoPromptDefault, prompts, onSavePrompt, onSaveVoice, onDeletePrompt }: {
   slide: Slide; busy: string; first: boolean; last: boolean;
   onUpdate: (patch: Record<string, unknown>) => void; onReplace: () => void; onRemove: () => void; onMakeVideo: (prompt: string) => void; onTalk: (lines: string) => void; onMove: (dir: "up" | "down") => void; onOpen: () => void;
+  onInstagram: () => void; canIg: boolean; igBusy: boolean; igDone: boolean;
   videoPromptDefault: string; prompts: SavedPrompt[]; onSavePrompt: (text: string) => void; onSaveVoice: (text: string) => void; onDeletePrompt: (id: string) => void;
 }) {
   const [title, setTitle] = useState(slide.title);
@@ -794,6 +813,11 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
             <button type="button" onClick={() => setVidOpen(v => !v)} disabled={rowBusy}
               className={`rounded border px-2 py-1 text-[11px] font-black active:scale-95 disabled:opacity-40 ${vidOpen ? "border-violet-400 bg-violet-500/25 text-violet-100" : "border-violet-400/50 text-violet-200"}`}>{busy === "vid-" + slide.id ? "Video…" : "🎬 Video machen"}</button>
           )}
+          <button type="button" onClick={onInstagram} disabled={igBusy || !canIg}
+            title={canIg ? "Auf Instagram posten" : "Erst „Übernehmen“ drücken"}
+            className="rounded border border-pink-400/50 bg-gradient-to-r from-fuchsia-500/15 to-orange-400/15 px-2 py-1 text-[11px] font-black text-pink-200 active:scale-95 disabled:opacity-30">
+            {igBusy ? "IG…" : igDone ? "✓ IG" : "📷 IG"}
+          </button>
           <button type="button" onClick={onReplace} disabled={rowBusy} className="rounded border border-white/20 px-2 py-1 text-[11px] font-black text-white/70 active:scale-95 disabled:opacity-40">↻</button>
           <button type="button" onClick={onRemove} disabled={rowBusy} className="rounded border border-red-400/50 bg-red-500/10 px-2 py-1 text-[11px] font-black text-red-300 active:scale-95 disabled:opacity-40">🗑</button>
         </span>
