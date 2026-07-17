@@ -75,13 +75,13 @@ export async function buildBellaCard(opts: { surface?: string; customer?: string
     // carousel, then her real feed clips fill in behind them.
     const bellaPhoto = (gina?.photoUrl ?? "") as string;
     const customClips: ModelClip[] = [];
+    const blurredClips: ModelClip[] = [];   // hidden slides → VERY blurred teasers, always LAST
     const cardStudioSlides = await readCardStudioSlides(modelId);
     // NEWEST first — the card must always open with her latest post (ascending order = oldest
     // first, so sort ascending then REVERSE).
     const orderedSlides = [...cardStudioSlides].sort(
       (a, b) => (a.order ?? 1e9) - (b.order ?? 1e9) || String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? ""))).reverse();
     for (const sl of orderedSlides) {
-      if (sl.hidden === true) continue;                        // hidden in the library, not on cards
       if (customerScope) {
         // A customer's personal card: only THEIR slides (all surfaces).
         if ((sl.customer ?? "").toLowerCase() !== customerScope) continue;
@@ -93,6 +93,11 @@ export async function buildBellaCard(opts: { surface?: string; customer?: string
       if (!media) continue;
       const poster = sl.posterPath ? await getSignedUrl(sl.posterPath).catch(() => "") : "";
       const caption = [sl.title, sl.caption].filter(Boolean).join(" — ");
+      if (sl.hidden === true) {
+        // Hidden → keep on the card but as an unrecognizable blurred teaser (no caption), at the end.
+        blurredClips.push({ poster: sl.kind === "video" ? (poster || "") : media, video: "", private: false, blurred: true });
+        continue;
+      }
       if (sl.kind === "video") {
         // No Bella-photo fallback — a posterless video shows its OWN frame on the card.
         customClips.push({ poster: poster || "", video: media, private: sl.private === true, story: caption || undefined });
@@ -102,7 +107,7 @@ export async function buildBellaCard(opts: { surface?: string; customer?: string
     }
     // A customer's personal card shows ONLY their own slides; the general card leads with any
     // custom slides then fills in with her real feed looks.
-    const clips = customerScope ? customClips : [...customClips, ...story];
+    const clips = (customerScope ? [...customClips] : [...customClips, ...story]).concat(blurredClips);
 
     const card: ModelCardProps = {
       id: (gina?.id ?? "") as string,

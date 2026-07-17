@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid } from "lucide-react";
+import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid, Crown } from "lucide-react";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -32,6 +32,8 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
   const [active, setActive] = useState<Tab>("home");
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isCurator, setIsCurator] = useState(false);
+  const [subCount, setSubCount] = useState(0);   // how many models the user subscribed to (lb_subs)
+  useEffect(() => { try { const s = JSON.parse(localStorage.getItem("lb_subs") || "[]"); setSubCount(Array.isArray(s) ? s.length : 0); } catch { /**/ } }, []);
   const [curatorId, setCuratorId] = useState("");
   const [previewModel, setPreviewModel] = useState(false); // admin "view as her" mode
   // Admin "view as model" picker — choose any model (search + photos) and impersonate her.
@@ -241,6 +243,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
       const signedIn = !!session || !!curator?.id || !!adminPin;
       const displayName = (curator?.firstName || meta?.full_name || username || curator?.email?.split("@")[0] || (isPinAdmin ? "Admin" : "")).trim();
       const displayEmail = curator?.email || session?.user?.email || "";
+      // Staff = admin or a creator/model. Plain members get a trimmed menu (Home · Models ·
+      // My subscriptions · Account), no Looks/Wardrobe/Luxury/Saved.
+      const isStaff = !!adminPin || isAdminEmail(displayEmail) || isCurator;
 
       const navigate = (href: string) => {
         setShowProfileMenu(false);
@@ -289,13 +294,14 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
             <div className="grid divide-y divide-white/10">
               {/* Home — moved here from the old white bottom bar. (Try-Ons lives below as a
                   single sign-in-gated entry; showing it logged-out made no sense.) */}
-              <button type="button" onClick={() => navigate("/home")}
+              <button type="button" onClick={() => navigate("/stores?view=models")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <Home className="h-5 w-5 shrink-0 text-white/50" />
                 <span className="text-sm font-black text-white">Home</span>
               </button>
-              {/* Explore group: Looks Feeds (reel) · Looks - Gallery (grid) · Haine (clothes
-                  & products incl. Bellucci) · Modele — mirrors the Produse-Luxury dropdown. */}
+              {/* Explore group — STAFF only (admin/creator). Members get a clean menu:
+                  just Home, Models, My subscriptions, Account. */}
+              {isStaff && (<>
               <button type="button" onClick={() => navigate("/stores")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <Play className="h-5 w-5 shrink-0 text-white/50" />
@@ -311,17 +317,20 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <Shirt className="h-5 w-5 shrink-0 text-[#b8912f]" />
                 <span className="text-sm font-black text-white">Wardrobe</span>
               </button>
+              </>)}
               <button type="button" onClick={() => navigate("/stores?view=models")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <User className="h-5 w-5 shrink-0 text-white/50" />
                 <span className="text-sm font-black text-white">Models</span>
               </button>
-              {/* Găsește-l mai ieftin — the Dupe-style price-finder funnel (everyone). */}
+              {/* Găsește-l mai ieftin — the Dupe-style price-finder funnel (staff only in the trimmed member menu). */}
+              {isStaff && (
               <button type="button" onClick={() => navigate("/luxury-products")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <Search className="h-5 w-5 shrink-0 text-[#b8912f]" />
                 <span className="text-sm font-black text-white">Luxury Products</span>
               </button>
+              )}
               {/* Admin: jump straight to the admin dashboard (no need to type /admin). */}
               {(!!adminPin || isAdminEmail(displayEmail)) && (
                 <button type="button" onClick={() => navigate("/admin")}
@@ -369,7 +378,16 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-sm font-black text-white">Account</span>
                 </button>
               )}
-              {signedIn && (
+              {/* My subscriptions — the models this user subscribes to (any account type). */}
+              {subCount > 0 && (
+                <button type="button" onClick={() => navigate("/user/subscriptions")}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                  <Crown className="h-5 w-5 shrink-0 text-amber-400" />
+                  <span className="text-sm font-black text-white">My subscriptions</span>
+                  <span className="ml-auto rounded-full bg-amber-400/20 px-2 py-0.5 text-[11px] font-black text-amber-300">{subCount}</span>
+                </button>
+              )}
+              {signedIn && isStaff && (
                 <button type="button" onClick={() => navigate("/stores?panel=saved")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <Bookmark className="h-5 w-5 text-white/50 shrink-0" />
@@ -379,7 +397,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               {/* My try ons → the account dashboard, which lists the user's try-ons
                   (bound by email, incl. funnel ones) with view/download/delete. The
                   public profile (/[slug]) only works for curators, so don't route there. */}
-              {signedIn && !curator?.id && (
+              {signedIn && !curator?.id && isStaff && (
                 <button type="button" onClick={() => navigate("/user/tryons")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <Shirt className="h-5 w-5 text-white/50 shrink-0" />

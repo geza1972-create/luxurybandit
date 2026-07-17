@@ -22,7 +22,8 @@ export default function ChatPage() {
   const [isOwn, setIsOwn] = useState(false);
 
   useEffect(() => {
-    try { setIsSubscribed(!!localStorage.getItem("luxurybandit-try-look-admin-pin") || localStorage.getItem("lb_subscribed") === "1"); } catch { /**/ }
+    // Per-model: unlimited chat with THIS model only if subscribed to it (or admin).
+    try { const subs = JSON.parse(localStorage.getItem("lb_subs") || "[]"); setIsSubscribed(!!localStorage.getItem("luxurybandit-try-look-admin-pin") || (Array.isArray(subs) && subs.includes(id))); } catch { /**/ }
     try { setIsOwn(JSON.parse(localStorage.getItem("lb_curator") ?? "{}").id === id); } catch { /**/ }
     if (!id) return;
     fetch(`/api/curator?profile=${encodeURIComponent(id)}`)

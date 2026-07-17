@@ -70,7 +70,7 @@ export default function CuratorApplyPage() {
   const [fitFocus, setFitFocus] = useState<string[]>([]);
   // CONCEPT 2.0 creation tool: which role model's STYLE you emulate + where your face comes from.
   const [styleModelId, setStyleModelId] = useState("");
-  const [imageSource, setImageSource] = useState<"own" | "ours">("ours"); // default to our AI faces (the "own an AI influencer" funnel); "own" = your own photos
+  const [imageSource, setImageSource] = useState<"own" | "ours">("own"); // real models apply with THEIR OWN photo (no AI-face selection anymore)
   const [roleModels, setRoleModels] = useState<{ id: string; name: string; photoUrl?: string; style?: string }[]>([]);
   const [avatarFaces, setAvatarFaces] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean; sold?: boolean; createdAt?: string }[]>([]);
   const [outfitThumbs, setOutfitThumbs] = useState<string[]>([]); // small wardrobe preview on her card: 1 dress + 4 lingerie
@@ -386,7 +386,7 @@ export default function CuratorApplyPage() {
   const submit = async () => {
     setAgreeError(!agreed); // any submit attempt reflects the consent state (red box if unticked)
     if (!modelName.trim() || !firstName.trim() || !lastName.trim() || !email.trim()) {
-      setError("Model name, owner name and email are required."); return;
+      setError("Model name, your name and email are required."); return;
     }
     if (nameStatus === "taken") { setError("That model name is taken — please choose another."); return; }
     if (!agreed) { setError("Please confirm you're 18+, the photos are really you, and you accept the Terms & Conditions."); return; }
@@ -441,28 +441,10 @@ export default function CuratorApplyPage() {
       }
       trackRecruit("apply_submit");
       setAppliedCuratorId(data.curatorId || "");
-      setAppliedFaceId(data.avatarFaceId || "");
-      // One package purchase at the end: start the $8-first-month subscription now.
-      // The auto first-month coupon is applied for EVERYONE (incl. admins) so the checkout
-      // always shows "$8 first month" — that's the buy trigger. (No promo-code field then.)
-      // TESTING: /curators/apply?promo=1 skips the auto-coupon so the Stripe promo-code field
-      // shows → enter a 100% code to test the subscription free. Normal flow is unchanged.
-      const allowPromo = (() => { try { return new URLSearchParams(window.location.search).get("promo") === "1"; } catch { return false; } })();
-      // The buyer isn't logged in yet — stash the email so the /welcome page can confirm the
-      // payment (confirm-paid → reserve name + auto-send the onboarding/login email).
-      try { localStorage.setItem("lb_signup_email", email.trim().toLowerCase()); } catch { /**/ }
-      try {
-        const pr = await fetch("/api/premium", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          // Success → dedicated welcome page (NOT the landing). Back/cancel → THIS form, session kept.
-          body: JSON.stringify({ email: email.trim(), returnPath: "/welcome", cancelPath: window.location.pathname, ...(allowPromo ? { allowPromo: true } : {}) }),
-        }).then(x => x.json()).catch(() => null);
-        // Keep the draft through the Stripe round-trip: if the user hits "back"/cancel
-        // they return to this form and the draft repopulates it. Cleared only on success.
-        if (pr?.url) { window.location.href = pr.url as string; return; }
-      } catch { /**/ }
+      // Applying is FREE — no payment. Real models are reviewed personally, then invited by
+      // email to sign in and start uploading. They earn 50% of every subscription their fans pay.
       clearDraft();
-      setApplied(true); // Stripe not available → show the application-received screen instead
+      setApplied(true);
     } catch {
       setError("Could not submit.");
     } finally {
@@ -614,9 +596,9 @@ export default function CuratorApplyPage() {
       <div className="px-5 pt-6">
         {/* Header for the applicant flow (replaces the old welcome copy). */}
         {!editId && <div className="text-center">
-          <h1 className="text-[26px] font-black leading-tight text-slate-900">Create your influencer profile</h1>
+          <h1 className="text-[26px] font-black leading-tight text-slate-900">Become a LuxuryBandit model</h1>
           <p className="mx-auto mt-2 max-w-sm text-sm font-semibold leading-6 text-slate-700">
-            Three quick steps — <b className="text-slate-900">1.</b> your face &amp; photo, <b className="text-slate-900">2.</b> your style, <b className="text-slate-900">3.</b> your details. About two minutes.
+            Join with <b className="text-slate-900">your own photo</b>, upload your <b className="text-slate-900">private videos</b>, and keep <b className="text-slate-900">50% of every subscription</b>. Three quick steps — about two minutes.
           </p>
         </div>}
 
@@ -639,84 +621,65 @@ export default function CuratorApplyPage() {
             <div className="mt-5">
               <ModelCard
                 id="" serial="PREVIEW" name={nm} photo={heroSrc} video={heroVideo} poster={heroSrc}
-                thumbs={outfitThumbs} valueLabel="$9.99" looks={24} bio={bio.trim()}
+                thumbs={outfitThumbs} valueLabel="1" looks={24} bio={bio.trim()}
                 brands={brandChips.join(", ")} tagline={tag} realModel={imageSource === "own"}
-                country={country} owner="You"
+                country={country} hideOwner
               />
             </div>
           );
         })()}
 
-        {/* Gallery — your own photo (upload + crop) + our AI faces, directly under the big card. */}
-        <div className="mt-4 flex snap-x gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {/* Your own photo — same tile as the faces, with upload + crop built in. */}
+        {/* Your own photo — real models apply with their OWN photo (no AI-face selection). */}
+        <div className="mt-4 flex justify-center">
           <button type="button" onClick={() => { setImageSource("own"); fileRef.current?.click(); }}
-            className={`relative aspect-[3/4] w-[30%] shrink-0 snap-start overflow-hidden rounded-xl border-2 bg-black/[0.04] transition ${imageSource === "own" ? "border-slate-800" : "border-dashed border-black/30"}`}>
-            {imageSource === "own" && photo ? (
+            className="relative aspect-[3/4] w-[52%] max-w-[220px] shrink-0 overflow-hidden rounded-2xl border-2 border-slate-800 bg-black/[0.04] transition active:scale-95">
+            {photo ? (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={photo} alt="" className="h-full w-full object-cover" />
-                <span className="absolute inset-x-0 bottom-0 bg-black/60 py-0.5 text-center text-[9px] font-black uppercase tracking-wide text-white">Tap to re-crop</span>
-                <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-slate-800 text-[13px] font-black text-white">✓</span>
+                <span className="absolute inset-x-0 bottom-0 bg-black/60 py-1 text-center text-[10px] font-black uppercase tracking-wide text-white">Tap to change / re-crop</span>
+                <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-slate-800 text-[14px] font-black text-white">✓</span>
               </>
             ) : (
-              <span className="flex h-full w-full flex-col items-center justify-center gap-1 px-1 text-center text-slate-600">
-                <span className="text-[20px]">📸</span>
-                <span className="text-[10px] font-black uppercase leading-tight">Your own photo</span>
-                <span className="text-[8px] font-bold text-slate-400">upload + crop</span>
+              <span className="flex h-full w-full flex-col items-center justify-center gap-1.5 px-2 text-center text-slate-600">
+                <span className="text-[28px]">📸</span>
+                <span className="text-[12px] font-black uppercase leading-tight">Your own photo</span>
+                <span className="text-[10px] font-bold text-slate-400">upload + crop (3:4)</span>
               </span>
             )}
           </button>
-          {avatarFaces.map(f => (
-            <button key={f.id} type="button" disabled={f.claimed}
-              onClick={() => setFaceDialog(f)}
-              className={`relative aspect-[3/4] w-[30%] shrink-0 snap-start overflow-hidden rounded-xl border-2 bg-black/[0.04] transition ${f.claimed ? "cursor-not-allowed border-black/22 opacity-40" : imageSource === "ours" && avatarFaceId === f.id ? "border-slate-800" : "border-black/22"}`}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
-              {f.claimed && <span className="absolute bottom-1 left-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[11px] font-black text-white/70">Booked</span>}
-              {f.videoUrl && !f.claimed && <span className="pointer-events-none absolute left-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-[11px] text-white">▶</span>}
-              {isNewFace(f.createdAt) && !f.claimed && !(imageSource === "ours" && avatarFaceId === f.id) && <span className="pointer-events-none absolute right-1 top-1 rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white shadow">New</span>}
-              {imageSource === "ours" && avatarFaceId === f.id && <span className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-slate-800 text-[13px] font-black text-white">✓</span>}
-            </button>
-          ))}
         </div>
         <div className="mt-3 rounded-2xl border border-black/15 bg-black/[0.04] p-4">
-          <span className={label}>Pick your influencer</span>
-          <p className="mt-0.5 text-[13px] font-bold text-slate-600">Tap a <b>one-of-a-kind</b> AI face above — or the first tile to use <b>your own photo</b>. We add new faces all the time.</p>
-          {avatarFaces.length > 0 && (
-            <div className="mt-3 rounded-2xl bg-gradient-to-r from-red-600 to-rose-500 px-4 py-2.5 text-center shadow-[0_6px_20px_rgba(220,38,38,0.45)]">
-              <p className="text-[15px] font-black uppercase leading-none tracking-tight text-white drop-shadow">🔥 Grab yours before she&apos;s gone!</p>
-              <p className="mt-1 text-[11px] font-black uppercase tracking-wide text-white/90">Each face = only ONE owner, ever</p>
-            </div>
-          )}
-          <p className="mt-2 text-[11px] font-bold text-slate-500">To protect everyone, an influencer can only use YOUR verified photo or our AI images — never someone else&apos;s face.</p>
+          <span className={label}>It&apos;s YOU — your own photo</span>
+          <p className="mt-0.5 text-[13px] font-bold text-slate-600">You join with <b>your own photo</b>. You&apos;ll upload <b>your private videos</b>, and you keep <b className="text-slate-900">50% of every subscription</b> your fans pay. We handle the tech &amp; payments.</p>
+          <p className="mt-2 text-[11px] font-bold text-slate-500">To protect everyone, you can only use YOUR verified photo — never someone else&apos;s face.</p>
         </div>
 
-        {/* What you get after you sign up. */}
+        {/* What you get as a LuxuryBandit model — real model, free to join, earns 50%. */}
         <div className="mt-5 rounded-2xl border border-black/12 bg-white p-4">
-          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">After you sign up</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">As a LuxuryBandit model</p>
           <h3 className="mt-0.5 text-[16px] font-black text-slate-900">What you get</h3>
           <table className="mt-2.5 w-full text-[13px] font-bold text-slate-700">
             <tbody className="[&>tr>td]:border-b [&>tr>td]:border-black/[0.06] [&>tr>td]:py-2 [&>tr:last-child>td]:border-0 [&>tr:last-child>td]:pb-0">
               <tr>
-                <td className="pr-3 align-top"><span className="mr-1.5">👗</span> Fresh clothes in her wardrobe daily — you dress her.</td>
+                <td className="pr-3 align-top"><span className="mr-1.5">📱</span> Your own public influencer profile — like the card above.</td>
+                <td className="whitespace-nowrap text-right align-top text-slate-500">free</td>
+              </tr>
+              <tr>
+                <td className="pr-3 align-top"><span className="mr-1.5">🎬</span> Upload your own private photos &amp; videos for your fans.</td>
+                <td className="whitespace-nowrap text-right align-top text-slate-500">free</td>
+              </tr>
+              <tr>
+                <td className="pr-3 align-top"><span className="mr-1.5">💛</span> Fans subscribe to unlock your private world.</td>
+                <td className="whitespace-nowrap text-right align-top text-slate-900">you earn 50%</td>
+              </tr>
+              <tr>
+                <td className="pr-3 align-top"><span className="mr-1.5">🤖</span> A free AI assistant chats with your fans for you, day &amp; night.</td>
                 <td className="whitespace-nowrap text-right align-top text-slate-500">included</td>
               </tr>
               <tr>
-                <td className="pr-3 align-top"><span className="mr-1.5">🎬</span> Generate her videos yourself — one tap, yours to post.</td>
-                <td className="whitespace-nowrap text-right align-top text-slate-900">{fmtPrice(pricing.videoGenCents)}/video</td>
-              </tr>
-              <tr>
-                <td className="pr-3 align-top"><span className="mr-1.5">📈</span> Her <b>Growth Score</b> grows — more looks, videos &amp; fans every day.</td>
-                <td className="whitespace-nowrap text-right align-top text-slate-500">more popular</td>
-              </tr>
-              <tr>
-                <td className="pr-3 align-top"><span className="mr-1.5">📱</span> Her own public profile — like the card above.</td>
+                <td className="pr-3 align-top"><span className="mr-1.5">📈</span> Fresh outfit &amp; video ideas from us every single day.</td>
                 <td className="whitespace-nowrap text-right align-top text-slate-500">included</td>
-              </tr>
-              <tr>
-                <td className="pr-3 align-top"><span className="mr-1.5">💬</span> Fans chat with her — 10 free, then they join.</td>
-                <td className="whitespace-nowrap text-right align-top text-slate-500">membership</td>
               </tr>
             </tbody>
           </table>
@@ -791,11 +754,11 @@ export default function CuratorApplyPage() {
               ? <p className="mt-1 text-[12px] font-bold text-red-500">That name is taken — please choose another.</p>
               : nameStatus === "available"
                 ? <p className="mt-1 text-[12px] font-bold text-amber-600">✓ Available — this name is yours.</p>
-                : <p className="mt-1 text-[12px] font-bold text-slate-600">This is the name fans see. The owner name below stays private.</p>}
+                : <p className="mt-1 text-[12px] font-bold text-slate-600">This is the name fans see. Your real name below stays private.</p>}
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><span className={label}>Owner first name</span><input className={field} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Maria" /></div>
-            <div><span className={label}>Owner last name</span><input className={field} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Popescu" /></div>
+            <div><span className={label}>Your first name</span><input className={field} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Maria" /></div>
+            <div><span className={label}>Your last name</span><input className={field} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Popescu" /></div>
           </div>
           <div><span className={label}>Email</span><input type="email" className={field} value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" /></div>
           <div>
@@ -901,11 +864,11 @@ export default function CuratorApplyPage() {
         style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
         <button type="button" onClick={() => void submit()} disabled={submitting}
           className={`bg-slate-800 text-white flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black disabled:opacity-50 ${btn3d}`}>
-          {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Coins className="h-5 w-5" />}
-          {submitting ? (editId ? "Saving…" : "Setting up…") : (editId ? "Save changes" : `OWN THE INFLUENCER — ${fmtPrice(pricing.subscriptionMonthlyCents)}/mo`)}
+          {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+          {submitting ? (editId ? "Saving…" : "Sending…") : (editId ? "Save changes" : "Send my application — it's free")}
         </button>
         <p className="mt-1.5 text-center text-[12px] font-bold text-slate-600">
-          {editId ? "Changes go live immediately" : <><b className="text-slate-900">{fmtPrice(pricing.subscriptionMonthlyCents)}/month</b> · cancel anytime · 🔒 secure Stripe checkout</>}
+          {editId ? "Changes go live immediately" : <>Free to apply · reviewed personally · you keep <b className="text-slate-900">50% of every subscription</b></>}
         </p>
       </div>
 
@@ -928,8 +891,8 @@ export default function CuratorApplyPage() {
           <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl bg-[#faf7f0] p-5 text-center">
             <p className="text-[16px] font-black text-slate-900">⚠️ You get one shot — send your very best photos.</p>
             <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-700">Photos that are blurry, hide your face (hat/sunglasses), fake, or don&apos;t fit our luxury concept are rejected — and a rejected application can&apos;t apply again. Sharp, well-lit, real photos only.</p>
-            <p className="mt-3 text-[13px] font-bold leading-relaxed text-slate-900">💰 You earn <b>30%</b> (~$1.20) every time a fan makes a paid video with you — it lands in your account automatically. The more fans pick you, the more you earn. <a href="/earnings" className="underline underline-offset-2">How earnings work →</a></p>
-            <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-900">🎬 Turn your photos into stunning videos once you&apos;re approved — just {fmtPrice(pricing.videoGenCents)} per video. Serious creators only.</p>
+            <p className="mt-3 text-[13px] font-bold leading-relaxed text-slate-900">💰 You earn <b>50% of every subscription</b> your fans pay to unlock your private world — it lands in your account automatically. The more fans subscribe, the more you earn. <a href="/earnings" className="underline underline-offset-2">How earnings work →</a></p>
+            <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-900">🎬 Once you&apos;re approved you upload your own <b>private photos &amp; videos</b> — your fans subscribe to see them. Applying is free. Serious creators only.</p>
             <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-800">💡 <b className="text-slate-900">You&apos;re never on your own.</b> Every single day we hand you fresh <b className="text-slate-900">outfits and video ideas</b> — you just post. No ideas needed, we do the creative work.</p>
             <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-800">🤖 <b className="text-slate-900">A free AI chat assistant for your fans</b> — it chats with them for you, day and night. You have <b className="text-slate-900">zero work</b> with it.</p>
             <button type="button" onClick={() => setRulesOpen(false)} className="mt-4 h-11 w-full rounded-2xl bg-slate-800 text-sm font-black text-white active:scale-95 transition">Got it</button>

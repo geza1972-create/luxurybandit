@@ -89,7 +89,7 @@ export default function CuratorPublicPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   // Admin-uploaded carousel slides (e.g. Bella's Peter intro + example videos) — shown on her
   // real card too, not just the /urlaub-mit-bella landing.
-  const [carouselSlides, setCarouselSlides] = useState<{ kind: string; mediaUrl: string; posterUrl: string; title: string; caption: string; private?: boolean }[]>([]);
+  const [carouselSlides, setCarouselSlides] = useState<{ kind: string; mediaUrl: string; posterUrl: string; title: string; caption: string; private?: boolean; hidden?: boolean }[]>([]);
   const [looks, setLooks] = useState<Look[]>([]);
   const [allLooks, setAllLooks] = useState<Look[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -102,10 +102,12 @@ export default function CuratorPublicPage() {
   useEffect(() => {
     try {
       const admin = !!localStorage.getItem("luxurybandit-try-look-admin-pin");
+      // Per-model subscriptions: lb_subs = array of curatorIds the user subscribed to.
+      const subs = JSON.parse(localStorage.getItem("lb_subs") || "[]");
       setIsPaid(admin || localStorage.getItem("lb_paid") === "1");
-      setIsSubscribed(admin || localStorage.getItem("lb_subscribed") === "1");
+      setIsSubscribed(admin || (Array.isArray(subs) && subs.includes(id)));
     } catch { /**/ }
-  }, []);
+  }, [id]);
   const [genBusy, setGenBusy] = useState(false);
   const [genMsg, setGenMsg] = useState("");
   // Admin: describe the pieces to generate (else auto from her prefs) + reference images
@@ -182,10 +184,22 @@ export default function CuratorPublicPage() {
   const [sfSuccess, setSfSuccess] = useState(false);   // "thanks — her value rose +$1, videos unlocked" window
   // Reflect a completed Super Follow: her value rises +$1 (a super-follower), all her private
   // videos unlock (membership), and we show the thank-you window.
+  // Send the member their payment receipt / "you subscribed to <model>" email (email from token).
+  const notifySubscribed = async () => {
+    try { await fetch("/api/subscription-email", { method: "POST", headers: viewerHeaders(), body: JSON.stringify({ curatorId: id, amountCents: superFollowCents }) }); } catch { /**/ }
+  };
+
   const onSuperFollowed = () => {
     setFollowing(true);
     setProfile(p => (p ? { ...p, superFollowers: (p.superFollowers ?? 0) + 1 } : p));
-    try { localStorage.setItem("lb_subscribed", "1"); } catch { /**/ }
+    // Subscribe to THIS model only (per-model): add its id to lb_subs.
+    try {
+      const subs = JSON.parse(localStorage.getItem("lb_subs") || "[]");
+      const next = Array.from(new Set([...(Array.isArray(subs) ? subs : []), id]));
+      localStorage.setItem("lb_subs", JSON.stringify(next));
+    } catch { /**/ }
+    setIsSubscribed(true);
+    void notifySubscribed();
     setSfSuccess(true);
   };
   // Super Follow = the ONE $4.99/mo membership → read the single membership price from the list.
@@ -291,6 +305,14 @@ export default function CuratorPublicPage() {
       try { const u = new URL(window.location.href); u.searchParams.delete("cs"); u.searchParams.delete("superfollowpaid"); u.searchParams.delete("superfollowcancelled"); window.history.replaceState({}, "", u.toString()); } catch { /**/ }
     })();
   }, [id]);
+  // Back from the membership checkout (?premium=success) → subscribe to THIS model.
+  useEffect(() => {
+    let ok = false;
+    try { ok = new URLSearchParams(window.location.search).get("premium") === "success"; } catch { return; }
+    if (!ok || !id) return;
+    onSuperFollowed();
+    try { const u = new URL(window.location.href); u.searchParams.delete("premium"); window.history.replaceState({}, "", u.toString()); } catch { /**/ }
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [id]);
   const handleSendMsg = async () => {
     if (!msgText.trim()) return;
     if (!isAuthed()) { router.push("/stores?panel=account"); return; }
@@ -1125,7 +1147,8 @@ export default function CuratorPublicPage() {
     flagshipTier: profile.flagshipTier, flagshipBases: profile.flagshipBases,
   })) || (profile.growPriceLabel ?? "");
   // Membership ($4.99/mo) unlocks EVERY private video. Owners/admin always see hers.
-  const isMember = (() => { try { return isAdmin || isOwn || localStorage.getItem("lb_subscribed") === "1" || localStorage.getItem("lb_paid") === "1"; } catch { return false; } })();
+  // Per-model: you're a "member" of THIS model only if you subscribed to it (or admin/owner).
+  const isMember = isAdmin || isOwn || isSubscribed;
   // Private videos (Super Followers / members only) are hidden from everyone else.
   const videos = tryons.filter(t => t.videoUrl && (!t.private || isMember));
   // Photo drafts (no video yet): the model's self-made photos. Visible to admin +
@@ -1143,9 +1166,15 @@ export default function CuratorPublicPage() {
   // oldest→newest). When she has posts, the card shows ONLY those (fully editable in the Card
   // Studio); her try-on clips still live in the video gallery below. No posts yet → fall back
   // to the try-on clips so the card is never empty.
-  const customClips = [...carouselSlides].reverse().map(s => s.kind === "video"
-    ? { poster: s.posterUrl || "", video: s.mediaUrl, private: s.private === true, story: s.caption || undefined }
-    : { poster: s.mediaUrl, video: "", private: s.private === true, story: [s.title, s.caption].filter(Boolean).join(" — ") || undefined });
+  const visibleCustom: { poster: string; video: string; private: boolean; story?: string }[] = [];
+  const blurredCustom: { poster: string; video: string; private: boolean; blurred: boolean }[] = [];   // hidden → blurred teasers, last
+  for (const s of [...carouselSlides].reverse()) {   // newest first
+    if (s.hidden) { blurredCustom.push({ poster: s.mediaUrl || s.posterUrl || "", video: "", private: false, blurred: true }); continue; }
+    visibleCustom.push(s.kind === "video"
+      ? { poster: s.posterUrl || "", video: s.mediaUrl, private: s.private === true, story: s.caption || undefined }
+      : { poster: s.mediaUrl, video: "", private: s.private === true, story: [s.title, s.caption].filter(Boolean).join(" — ") || undefined });
+  }
+  const customClips = [...visibleCustom, ...blurredCustom];
   const allCardClips = customClips.length ? customClips : cardClips;
   // Data for the shareable collectible ModelCard (THE reusable card, same as the landing).
   const cardData = {
@@ -1505,75 +1534,8 @@ export default function CuratorPublicPage() {
           </div>
         )}
 
-        {/* Section label — shows for everyone (Gina included), even when empty. */}
-        <p className="mt-5 w-full text-left text-[15px] font-black text-white">Try-ons{videos.length > 0 ? <span className="text-white/40"> {videos.length}</span> : null}</p>
-
-        {/* Video gallery — her clips as a thumbnail strip. Tap one → the SAME fullscreen
-            "In motion" carousel opens at exactly that clip. (Photo play-ring stays too.)
-            Admin/owner additionally see her PHOTO drafts here — the admin turns them
-            into videos with one tap. */}
-        {(videos.length > 0 || photoDrafts.length > 0 || isAdmin || isOwn) && (
-          <div className="mt-2 w-full">
-            <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {/* Her PROFILE PHOTO as the first tile (admin/creator) — tap it to change the
-                  picture (upload / enhance / restore). */}
-              {(isAdmin || isOwn) && (profile.photoUrl || profile.photoFullUrl) && (
-                <button type="button" onClick={() => { setCpBefore(""); setCpAfter(""); setCpOpen(true); }} aria-label="Change her photo"
-                  className="relative aspect-[9/16] h-40 shrink-0 overflow-hidden rounded-xl border border-amber-400/50 lb-media-bg active:scale-95 transition">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={profile.photoUrl || profile.photoFullUrl || ""} alt="" className="h-full w-full object-cover object-top" />
-                  <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/70 text-amber-300 backdrop-blur"><ImageUp className="h-3 w-3" /></span>
-                  <span className="absolute inset-x-1.5 bottom-1.5 rounded-full bg-amber-400 py-1 text-center text-[10px] font-black text-black">Change photo</span>
-                </button>
-              )}
-              {videos.map((t, i) => (
-                <StripClip key={t.id} t={t} onOpen={() => openMotionAt(i)} />
-              ))}
-              {photoDrafts.map(t => (
-                <div key={t.id} className="relative aspect-[9/16] h-40 shrink-0 overflow-hidden rounded-xl border border-dashed border-amber-400/40 lb-media-bg">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={optImg(t.imageUrl, 300)} alt="" loading="lazy" decoding="async"
-                    onError={(e) => { const im = e.currentTarget; if (t.imageUrl && im.src !== t.imageUrl) im.src = t.imageUrl; }}
-                    className="h-full w-full object-cover object-top" />
-                  <span className="absolute left-1.5 top-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white backdrop-blur">Foto</span>
-                  {/* Delete a photo draft (admin/owner) — same delete as videos. */}
-                  {(isAdmin || isOwn) && (
-                    <button type="button" onClick={() => void deleteVideo(t)} aria-label="Delete photo"
-                      className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/70 text-red-400 backdrop-blur active:scale-90 transition">
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  )}
-                  {isAdmin ? (
-                    <button type="button" onClick={() => void makeVideoFromPhoto(t)} disabled={!!photoVidBusy}
-                      className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-center gap-1 rounded-full bg-amber-400 py-1 text-[10px] font-black text-black active:scale-95 transition disabled:opacity-60">
-                      {photoVidBusy === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" fill="currentColor" />}
-                      {photoVidBusy === t.id ? "Generiert…" : "Video"}
-                    </button>
-                  ) : isOwn ? (
-                    /* Model self-service: 1st video free, then $3.99 (server-enforced). */
-                    <button type="button" onClick={() => void makeVideoAsModel(t)} disabled={!!photoVidBusy}
-                      className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-center gap-1 rounded-full bg-amber-400 py-1 text-[10px] font-black text-black active:scale-95 transition disabled:opacity-60">
-                      {photoVidBusy === t.id ? <><Loader2 className="h-3 w-3 animate-spin" /> Generiert…</> : <><Play className="h-3 w-3" fill="currentColor" /> Video</>}
-                    </button>
-                  ) : (
-                    <span className="absolute inset-x-1.5 bottom-1.5 rounded-full bg-black/70 py-1 text-center text-[9px] font-black text-white/80 backdrop-blur">Team makes your video</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* New model, no try-ons yet → a clear placeholder (instead of an empty page). */}
-        {videos.length === 0 && photoDrafts.length === 0 && (
-          <div className="mt-2 w-full">
-            <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-white/12 bg-white/[0.02] px-6 py-10 text-center">
-              <span className="grid h-12 w-12 place-items-center rounded-full bg-white/[0.06]"><Play className="h-5 w-5 text-white/30" fill="currentColor" /></span>
-              <p className="text-sm font-black text-white/50">{name.split(" ")[0]} has no try-ons yet</p>
-              <p className="text-[12px] font-bold text-white/30">{isAdmin ? "Upload her photos, then generate her first try-ons here." : "Her try-ons are coming soon."}</p>
-            </div>
-          </div>
-        )}
+        {/* Try-ons gallery removed — the profile card (Card Studio posts) is her content now.
+            Her private videos live behind the per-model subscription. */}
 
 
         {/* Admin: import a self-made video (e.g. from the Pixverse UI) into her reel,
@@ -1777,22 +1739,20 @@ export default function CuratorPublicPage() {
         <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4" onClick={e => { if (e.target === e.currentTarget) setShowSFInfo(false); }}>
           <div className="w-full max-w-sm rounded-t-3xl border border-amber-400/25 bg-[#141018] p-6 text-center sm:rounded-3xl">
             <button type="button" onClick={() => setShowSFInfo(false)} className="ml-auto grid h-8 w-8 place-items-center rounded-full border border-white/15 text-white/70"><X className="h-4 w-4" /></button>
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Super Follow {profile.firstName || "her"}</p>
-            <h2 className="mt-1 text-[26px] font-black leading-tight text-white">Join for {superFollowLabel}<span className="text-white/50">/month</span></h2>
-            <p className="mt-1 text-[13px] font-semibold text-white/55">Your LuxuryBandit membership — one price, everything:</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Subscribe to {profile.firstName || "her"}</p>
+            <h2 className="mt-1 text-[26px] font-black leading-tight text-white">Unlock {profile.firstName || "her"}&apos;s private world</h2>
             <table className="mx-auto mt-4 w-full max-w-xs text-left text-[14px] font-bold text-white/80">
               <tbody className="[&>tr>td]:border-b [&>tr>td]:border-white/10 [&>tr>td]:py-2.5 [&>tr:last-child>td]:border-0 [&>tr:last-child>td]:pb-0">
-                <tr><td className="w-6 pr-2 align-top text-amber-400">🔒</td><td><b className="text-white">Every private video</b> — hers and everyone&apos;s.</td></tr>
-                <tr><td className="w-6 pr-2 align-top text-amber-400">➕</td><td><b className="text-white">Super Follow anyone</b> on LuxuryBandit.</td></tr>
-                <tr><td className="w-6 pr-2 align-top text-amber-400">👑</td><td><b className="text-white">Buy &amp; own influencers</b> — they&apos;re yours.</td></tr>
-                <tr><td className="w-6 pr-2 align-top text-amber-400">💬</td><td><b className="text-white">Free unlimited chat</b> with any of them.</td></tr>
+                <tr><td className="w-6 pr-2 align-top text-amber-400">🔒</td><td><b className="text-white">All {profile.firstName || "her"}&apos;s private photos &amp; videos</b>.</td></tr>
+                <tr><td className="w-6 pr-2 align-top text-amber-400">💬</td><td><b className="text-white">Unlimited chat</b> with {profile.firstName || "her"}.</td></tr>
+                <tr><td className="w-6 pr-2 align-top text-amber-400">↩</td><td><b className="text-white">Cancel anytime</b> — one subscription per model.</td></tr>
               </tbody>
             </table>
             <button type="button" onClick={() => void startSuperFollow()} disabled={followLoading}
               className="lb-gold mt-5 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-60">
-              {followLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Continue — sign up"}
+              {followLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Continue — subscribe"}
             </button>
-            <p className="mt-2 text-[11px] font-bold text-white/35">cancel anytime · 🔒 secure Stripe checkout</p>
+            <p className="mt-2 text-[11px] font-bold text-white/35">Start with $8 the first month, then {superFollowLabel}/mo · cancel anytime · 🔒 secure Stripe</p>
           </div>
         </div>
       )}

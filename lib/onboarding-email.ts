@@ -65,8 +65,8 @@ export async function sendOnboardingEmail(cur: Cur, origin: string): Promise<{ o
             <p style="margin:0 0 12px;font-size:11px;font-weight:900;letter-spacing:0.12em;text-transform:uppercase;color:#999;">What happens next</p>
             <p style="margin:0 0 10px;font-size:13px;color:#333;">💎 <strong>We create her content</strong> — fresh luxury photos &amp; videos, every day.</p>
             <p style="margin:0 0 10px;font-size:13px;color:#333;">💬 <strong>Chat with her yourself</strong> — and her fans chat with her too.</p>
-            <p style="margin:0 0 10px;font-size:13px;color:#333;">🎬 <strong>Earn 30% in credits</strong> whenever anyone does a try-on with her.</p>
-            <p style="margin:0;font-size:13px;color:#333;">📈 <strong>You grow the audience</strong> — we handle the rest.</p>
+            <p style="margin:0 0 10px;font-size:13px;color:#333;">📈 <strong>She grows in value</strong> — the longer you own her, the more she's worth.</p>
+            <p style="margin:0;font-size:13px;color:#333;">👥 <strong>Her fans subscribe &amp; Super Follow</strong> — you grow the audience, we handle the rest.</p>
           </td></tr>
         </table>
       </td></tr>

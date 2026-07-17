@@ -63,7 +63,8 @@ export async function GET(request: Request) {
     });
   }
   const surface = url.searchParams.get("surface") || "lp-journey";
-  const visible = all.filter((s) => s.hidden !== true && !s.customer && onSurface(s, surface));
+  // Include HIDDEN slides too — the card shows them as VERY blurred teasers (last), it doesn't drop them.
+  const visible = all.filter((s) => !s.customer && onSurface(s, surface));
   return NextResponse.json({ slides: await signSlides(visible) });
 }
 

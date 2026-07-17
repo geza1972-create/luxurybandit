@@ -14,6 +14,10 @@ export default function SubscribeDialog({ open, onClose, modelName, avatarUrl }:
   const personal = !!modelName;   // opened from a model's chat → personal framing
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Monthly price from the admin price list (first month is $8 via the Stripe coupon).
+  const [monthlyCents, setMonthlyCents] = useState(4999);
+  useEffect(() => { if (!open) return; fetch("/api/try-this-look?pricing=1").then(r => r.json()).then(d => { if (d?.pricing?.subscriptionMonthlyCents) setMonthlyCents(d.pricing.subscriptionMonthlyCents); }).catch(() => {}); }, [open]);
+  const monthly = `$${(monthlyCents / 100).toFixed(2)}`;
   // Funnel: paywall seen (fires once when the dialog opens).
   useEffect(() => { if (open) logFunnelEvent("paywall_view", { paywall: "community", lookName: "Premium" }); }, [open]);
   if (!open) return null;
@@ -56,13 +60,12 @@ export default function SubscribeDialog({ open, onClose, modelName, avatarUrl }:
         ) : (
           <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-black"><Crown className="h-7 w-7" /></span>
         )}
-        <h3 className="mt-4 text-lg font-black text-white">{personal ? `Subscribe to ${modelName}` : "Membership"}</h3>
-        <p className="mt-1.5 text-[13px] font-semibold leading-6 text-white/55">{personal ? `Keep talking to ${modelName} — and unlock her whole world.` : "One price. The whole marketplace."}</p>
+        <h3 className="mt-4 text-lg font-black text-white">{personal ? `Unlock ${modelName}'s private world` : "Unlock her private world"}</h3>
 
         <div className="mt-5 grid gap-2 text-left">
           {(personal
-            ? [`Unlimited chats with ${modelName}`, `All her private posts & videos`, "Every other model too", "Cancel anytime"]
-            : ["Free unlimited chat with any model", "See every private video", "Super Follow anyone", "Buy & own influencers"]
+            ? [`Unlimited chat with ${modelName}`, `All ${modelName}'s private photos & videos`, "Cancel anytime"]
+            : ["Unlimited chat with her", "All her private photos & videos", "Cancel anytime"]
           ).map(perk => (
             <div key={perk} className="flex items-center gap-2.5 rounded-xl bg-white/[0.04] px-3 py-2.5">
               <Check className="h-4 w-4 shrink-0 text-amber-400" />
@@ -73,15 +76,16 @@ export default function SubscribeDialog({ open, onClose, modelName, avatarUrl }:
 
         <button type="button" onClick={() => void subscribe()} disabled={busy}
           className="lb-gold mt-5 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-black active:scale-95 transition-transform disabled:opacity-60">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{personal ? `Subscribe to ${modelName} — $4.99/mo` : "Get membership — $4.99/mo"}</>}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Continue — subscribe</>}
         </button>
+        <p className="mt-1.5 text-center text-[11px] font-bold text-white/40">Start with $8 the first month, then {monthly}/mo · one subscription per model</p>
         {error && <p className="mt-2 text-[12px] font-bold text-red-400">{error}</p>}
         {signedIn ? (
           <button type="button" onClick={close} className="mt-2 w-full py-2 text-[13px] font-black text-white/45">Maybe later</button>
         ) : (
           <button type="button" onClick={freeSignup} className="mt-3 flex w-full flex-col items-center justify-center rounded-full border-2 border-amber-400/60 px-5 py-2.5 active:scale-95 transition-transform">
             <span className="text-sm font-black text-amber-300">Create free account · $0</span>
-            <span className="text-[11px] font-bold text-amber-300/70">1 free credit + free chat</span>
+            <span className="text-[11px] font-bold text-amber-300/70">Newsletter — her new looks by email</span>
           </button>
         )}
       </div>

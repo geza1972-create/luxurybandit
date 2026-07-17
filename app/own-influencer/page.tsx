@@ -97,22 +97,24 @@ async function landingData() {
       shopUrl: "/haine",          // "Shop now" → the clothes gallery (Gianna Bellucci pieces)
     }));
     // Card Studio slides targeted at THIS landing (LP-Own-Model) lead the carousel.
-    const ownModelClips = [] as { poster: string; video: string; private: boolean; story?: string }[];
+    const ownModelClips = [] as { poster: string; video: string; private: boolean; story?: string; blurred?: boolean }[];
+    const ownBlurred = [] as { poster: string; video: string; private: boolean; blurred: boolean }[];   // hidden → blurred, last
     const cardStudioSlides = await readCardStudioSlides();
     // NEWEST first — same rule as everywhere: her latest post leads the carousel.
     for (const sl of [...cardStudioSlides].sort((a: any, b: any) => (a.order ?? 1e9) - (b.order ?? 1e9)).reverse()) {
       const s = sl as any;
-      if (s.hidden === true || s.customer) continue;
+      if (s.customer) continue;
       if (s.pages && !s.pages.includes("lp-own-model")) continue; // empty array = nowhere
       const media = s.path ? await getSignedUrl(s.path).catch(() => "") : "";
       if (!media) continue;
       const poster = s.posterPath ? await getSignedUrl(s.posterPath).catch(() => "") : "";
+      if (s.hidden === true) { ownBlurred.push({ poster: s.kind === "video" ? (poster || "") : media, video: "", private: false, blurred: true }); continue; }
       const cap = [s.title, s.caption].filter(Boolean).join(" — ") || undefined;
       ownModelClips.push(s.kind === "video"
         ? { poster: poster || "", video: media, private: s.private === true, story: cap }
         : { poster: media, video: "", private: s.private === true, story: cap });
     }
-    const ginaClips2 = [...ownModelClips, ...ginaStory];
+    const ginaClips2 = [...ownModelClips, ...ginaStory, ...ownBlurred];
     const ginaCard = {
       id: (gina?.id ?? "") as string,
       serial: ginaSerial,
@@ -269,9 +271,9 @@ export default async function OwnInfluencerLanding() {
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               {[
                 { icon: "💬", t: "Free unlimited chat", d: "Message any influencer, as much as you like." },
-                { icon: "🔒", t: "Every private video", d: "See the private videos of every influencer." },
-                { icon: "➕", t: "Super Follow anyone", d: "Back your favorites — they grow in value." },
-                { icon: "👑", t: "Buy & own influencers", d: "Turn any influencer into your own asset." },
+                { icon: "🔒", t: "Her private videos", d: "See her private photos & videos — subscribe per model." },
+                { icon: "➕", t: "Super Follow her", d: "Back your favorites — they grow in value." },
+                { icon: "👑", t: "Become her owner", d: "Own a model monthly — she's yours to direct." },
               ].map(x => (
                 <div key={x.t} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-2xl leading-none">{x.icon}</p>
@@ -463,10 +465,10 @@ export default async function OwnInfluencerLanding() {
             <p className="-mt-1"><span className="text-[48px] font-black leading-none text-amber-400">{subLabel}</span><span className="text-[14px] font-bold text-white/60"> / month</span></p>
             <p className="mt-1 text-[12px] font-bold text-white/45">cancel anytime · your influencer &amp; her videos are yours</p>
             <ul className="mt-4 space-y-1.5 text-[13px] font-bold text-white/70">
-              <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> Buy &amp; own influencers</li>
-              <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> Super Follow anyone</li>
-              <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> See every private video</li>
-              <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> Free unlimited chat</li>
+              <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> Become a model&apos;s owner — monthly</li>
+              <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> She&apos;s yours to direct</li>
+              <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> All her private photos &amp; videos</li>
+              <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> Unlimited chat with her</li>
             </ul>
             <div className="mt-5"><OwnInfluencerCTA /></div>
           </div>

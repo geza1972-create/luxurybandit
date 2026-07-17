@@ -83,6 +83,14 @@ export default function BellaCarouselAdmin() {
   const [igDone, setIgDone] = useState("");   // slide id just published
   const [models, setModels] = useState<{ id: string; name: string; photoUrl?: string }[]>([]);
   const [modelId, setModelId] = useState(BELLA_ID);   // which influencer's card we're editing
+  // Newsletter ("New Look") — pick all/specific users, send an email (with unsubscribe).
+  const [showNewsletter, setShowNewsletter] = useState(false);
+  const [nlSubject, setNlSubject] = useState("A new look just dropped 💛");
+  const [nlMessage, setNlMessage] = useState("");
+  const [nlLink, setNlLink] = useState("");
+  const [nlSel, setNlSel] = useState<Record<string, boolean>>({});
+  const [nlBusy, setNlBusy] = useState(false);
+  const [nlResult, setNlResult] = useState("");
   const [showPreview, setShowPreview] = useState(true);
   const [showGen, setShowGen] = useState(false);       // advanced: AI image generator (collapsed)
   const [showCustomer, setShowCustomer] = useState(false); // advanced: per-customer card (collapsed)
@@ -176,6 +184,22 @@ export default function BellaCarouselAdmin() {
       else setErr(res?.error || "Speichern fehlgeschlagen.");
     } catch { setErr("Speichern fehlgeschlagen."); }
     finally { setBusy(""); }
+  };
+
+  // Send the newsletter to the selected users (admin). Opted-out users are skipped server-side.
+  const nlRecipients = () => customers.filter(c => nlSel[c.email]).map(c => c.email);
+  const sendNewsletter = async () => {
+    const emails = nlRecipients();
+    if (!emails.length) { setNlResult("Bitte mindestens einen User wählen."); return; }
+    if (!nlMessage.trim()) { setNlResult("Bitte eine Nachricht schreiben."); return; }
+    if (!confirm(`Newsletter an ${emails.length} User senden?`)) return;
+    setNlBusy(true); setNlResult("");
+    try {
+      const res = await fetch("/api/newsletter", { method: "POST", headers: authH(), body: JSON.stringify({ emails, subject: nlSubject, message: nlMessage, link: nlLink.trim() || undefined, modelId, modelName: models.find(m => m.id === modelId)?.name || "Bella" }) }).then(r => r.json());
+      if (res?.ok) setNlResult(`✓ ${res.sent} gesendet${res.skippedOptOut ? ` · ${res.skippedOptOut} abgemeldet übersprungen` : ""}${res.failed?.length ? ` · ${res.failed.length} fehlgeschlagen` : ""}`);
+      else setNlResult(res?.error || "Senden fehlgeschlagen.");
+    } catch { setNlResult("Senden fehlgeschlagen."); }
+    finally { setNlBusy(false); }
   };
 
   const restoreBackup = async () => {
@@ -386,6 +410,11 @@ export default function BellaCarouselAdmin() {
         <p className="text-[15px] font-black text-white">🎴 Card Studio</p>
       </div>
       <p className="mt-1 text-[12px] font-medium text-white/50">Model wählen → Foto/Video + Story hinzufügen → unten <b className="text-green-300">Übernehmen</b>. Nichts geht live, bis du übernimmst (+ automatisches Backup).</p>
+
+      <button type="button" onClick={() => { const mn = models.find(m => m.id === modelId)?.name || "Bella"; setNlSubject(`A new look from ${mn} 💛`); setNlResult(""); setShowNewsletter(true); }}
+        className="mt-3 w-full rounded-xl border border-sky-400/40 bg-sky-500/10 py-2.5 text-[13px] font-black text-sky-200 active:scale-[0.98]">
+        📧 Newsletter senden („Neuer Look")
+      </button>
 
       {/* Model selector — which influencer's card you're editing. */}
       <div className="mt-3 rounded-xl border border-violet-400/25 bg-violet-500/[0.05] p-2.5">
@@ -681,6 +710,58 @@ export default function BellaCarouselAdmin() {
         </div>
       </div>
 
+      {/* Newsletter modal — pick all / specific users, write the message, send (with unsubscribe). */}
+      {showNewsletter && (
+        <div className="fixed inset-0 z-[95] flex flex-col bg-black/95">
+          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+            <p className="text-[15px] font-black text-white">📧 Newsletter — „Neuer Look"</p>
+            <button type="button" onClick={() => setShowNewsletter(false)} aria-label="Schließen"
+              className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-lg font-black text-white active:scale-90">✕</button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            <label className="text-[11px] font-black uppercase tracking-wide text-white/45">Betreff</label>
+            <input value={nlSubject} onChange={e => setNlSubject(e.target.value)}
+              className="mt-1 h-10 w-full rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[13px] font-bold text-white outline-none focus:border-sky-400" />
+            <label className="mt-3 block text-[11px] font-black uppercase tracking-wide text-white/45">Nachricht</label>
+            <textarea value={nlMessage} onChange={e => setNlMessage(e.target.value)} placeholder="Hi! Es gibt einen neuen Look von Bella … schau vorbei 💛"
+              className="mt-1 h-28 w-full resize-y rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1.5 text-[13px] text-white outline-none placeholder:text-white/30 focus:border-sky-400" />
+            <label className="mt-3 block text-[11px] font-black uppercase tracking-wide text-white/45">Link (leer lassen = Link zu {models.find(m => m.id === modelId)?.name || "Bella"}s Profil)</label>
+            <input value={nlLink} onChange={e => setNlLink(e.target.value)} placeholder={`Standard: ihr Profil (/curator/…)`}
+              className="mt-1 h-10 w-full rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[13px] text-white outline-none placeholder:text-white/30 focus:border-sky-400" />
+
+            <div className="mt-4 flex items-center justify-between">
+              <p className="text-[11px] font-black uppercase tracking-wide text-white/45">Empfänger ({nlRecipients().length}/{customers.length})</p>
+              <span className="flex gap-2">
+                <button type="button" onClick={() => setNlSel(Object.fromEntries(customers.map(c => [c.email, true])))}
+                  className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-black text-white/80 active:scale-95">Alle</button>
+                <button type="button" onClick={() => setNlSel({})}
+                  className="rounded-full border border-white/20 px-3 py-1 text-[11px] font-black text-white/60 active:scale-95">Keine</button>
+              </span>
+            </div>
+            <div className="mt-2 space-y-1">
+              {customers.map(c => (
+                <label key={c.email} className="flex items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                  <input type="checkbox" checked={!!nlSel[c.email]} onChange={e => setNlSel(s => ({ ...s, [c.email]: e.target.checked }))} className="h-4 w-4 accent-sky-400" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-bold text-white">{c.name || "(kein Name)"}</span>
+                    <span className="block truncate text-[11px] text-white/45">{c.email}</span>
+                  </span>
+                </label>
+              ))}
+              {customers.length === 0 && <p className="rounded-lg border border-dashed border-white/10 py-4 text-center text-[12px] text-white/35">Noch keine User.</p>}
+            </div>
+          </div>
+          <div className="border-t border-white/10 p-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1rem)" }}>
+            {nlResult && <p className="mb-2 text-center text-[12px] font-bold text-sky-300">{nlResult}</p>}
+            <button type="button" onClick={() => void sendNewsletter()} disabled={nlBusy || !nlRecipients().length || !nlMessage.trim()}
+              className="w-full rounded-xl bg-sky-500 py-3.5 text-[15px] font-black text-white shadow ring-1 ring-sky-300/40 active:scale-[0.98] disabled:opacity-40">
+              {nlBusy ? "Sendet…" : `📧 An ${nlRecipients().length} User senden`}
+            </button>
+            <p className="mt-1.5 text-center text-[10px] font-medium text-white/40">Jede E-Mail enthält einen Abmelde-Link. Abgemeldete werden automatisch übersprungen.</p>
+          </div>
+        </div>
+      )}
+
       {/* Lightbox — enlarge a library media + download */}
       {lightbox && (
         <div className="fixed inset-0 z-[95] flex flex-col bg-black/95" onClick={() => setLightbox(null)}>
@@ -815,8 +896,9 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
       {/* Primary controls: visible-toggle · date · (right) video · IG · swap · delete */}
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         <button type="button" onClick={() => onUpdate({ hidden: !slide.hidden })}
+          title={slide.hidden ? "Erscheint als stark verblurrter Teaser am Ende der Card" : "Normal sichtbar auf der Card"}
           className={`rounded-full px-2.5 py-1 text-[11px] font-black active:scale-95 ${slide.hidden ? "bg-white/10 text-white/50" : "bg-amber-400 text-black"}`}>
-          {slide.hidden ? "🚫 Ausgeblendet" : "✓ Auf Card"}
+          {slide.hidden ? "🌫 Verblurrt (Teaser)" : "✓ Auf Card"}
         </button>
         <button type="button" onClick={() => onUpdate({ private: !slide.private })}
           title={slide.private ? "Privat — nur Super-Follower/Mitglieder sehen es (sonst gesperrt)" : "Öffentlich sichtbar"}

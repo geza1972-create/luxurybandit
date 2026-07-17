@@ -35,7 +35,7 @@ export default function TopNav({
         {/* Brand → the "Own an AI Influencer" landing. Target its real route (not "/")
             so client-side nav lands there directly, instead of falling through the old
             root→/stores redirect chain (which, for admins, ends on /admin/stores). */}
-        <button type="button" onClick={() => router.push("/own-influencer")} aria-label="Home"
+        <button type="button" onClick={() => router.push("/stores?view=models")} aria-label="Home"
           className="flex min-w-0 items-center gap-2 active:opacity-70 transition-opacity">
           <span className="relative h-9 w-9 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -1256,6 +1256,33 @@ export async function writeCardStudioSlides(slides: BellaSlide[], modelId?: stri
   }
 }
 
+// ── Newsletter opt-out ──────────────────────────────────────────────────────
+// Emails that unsubscribed from the "New Look" newsletter. Own blob (clobber-proof).
+const NEWSLETTER_OPTOUT_PATH = "try-this-look/newsletter-optout.json";
+
+export async function readNewsletterOptOut(): Promise<string[]> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(NEWSLETTER_OPTOUT_PATH)}`);
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => null);
+    return Array.isArray(data?.emails) ? (data.emails as string[]).map(e => String(e).toLowerCase()) : [];
+  } catch { return []; }
+}
+
+export async function addNewsletterOptOut(email: string): Promise<void> {
+  const e = String(email || "").trim().toLowerCase();
+  if (!e) return;
+  await ensureBucket();
+  const current = await readNewsletterOptOut();
+  if (current.includes(e)) return;
+  const body = JSON.stringify({ emails: [...current, e], updatedAt: new Date().toISOString() });
+  await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(NEWSLETTER_OPTOUT_PATH)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body,
+  });
+}
+
 async function dataUrlToBytes(dataUrl: string) {
   const [header, base64] = dataUrl.split(",");
   const rawMime = header.match(/data:(.*);base64/)?.[1] ?? "image/png";

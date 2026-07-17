@@ -18,6 +18,19 @@ export default function BuyerAccount() {
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState("");
+  const [subs, setSubs] = useState<{ id: string; name: string; photoUrl?: string }[]>([]);
+
+  // Per-model subscriptions the user has (lb_subs = list of curatorIds) → show names/photos.
+  useEffect(() => {
+    let ids: string[] = [];
+    try { const raw = JSON.parse(localStorage.getItem("lb_subs") || "[]"); if (Array.isArray(raw)) ids = raw.map(String); } catch { /**/ }
+    if (!ids.length) { setSubs([]); return; }
+    Promise.all(ids.map(id =>
+      fetch(`/api/curator?profile=${encodeURIComponent(id)}`).then(r => r.json())
+        .then(d => ({ id, name: [d?.profile?.firstName, d?.profile?.lastName].filter(Boolean).join(" ").trim() || d?.profile?.firstName || "Model", photoUrl: d?.profile?.photoUrl as string | undefined }))
+        .catch(() => ({ id, name: "Model", photoUrl: undefined }))
+    )).then(setSubs).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const s = getStoredAuthSession();
@@ -97,6 +110,28 @@ export default function BuyerAccount() {
             <MessageCircle className="h-5 w-5 text-white/60" /><span className="text-sm font-black">Messages</span>
           </button>
         </div>
+
+        {/* My subscriptions — one per model (each model is its own subscription). */}
+        {subs.length > 0 && (
+          <div className="mt-6">
+            <p className="text-[11px] font-black uppercase tracking-wide text-white/45">My subscriptions ({subs.length})</p>
+            <div className="mt-2 grid gap-2">
+              {subs.map(s => (
+                <button key={s.id} type="button" onClick={() => router.push(`/curator/${s.id}`)}
+                  className="flex items-center gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/[0.05] px-3 py-2.5 text-left active:scale-[0.99] transition">
+                  {s.photoUrl
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={s.photoUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover object-top" />
+                    : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-sm font-black text-white/60">{s.name.slice(0, 1)}</span>}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-black text-white">{s.name}</span>
+                    <span className="block text-[11px] font-bold text-amber-300/80">Active subscription</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {error && <p className="mt-4 text-center text-[12px] font-bold text-red-400">{error}</p>}
 

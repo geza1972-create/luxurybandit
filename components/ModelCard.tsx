@@ -17,7 +17,7 @@ const MONO_URL = `url("data:image/svg+xml,${encodeURIComponent(MONO_SVG)}")`;
 // her name, her looks filling the width, her creation date + description + favorite brands, and
 // AI-assigned stats. luxurybandit.com is printed on it so a shared screenshot always carries the
 // brand. The value is the appreciating-asset proof ("she grows every day"), computed server-side.
-export type ModelClip = { poster: string; video: string; private?: boolean; date?: string; location?: string; story?: string; intro?: string; brand?: string; shopUrl?: string };
+export type ModelClip = { poster: string; video: string; private?: boolean; blurred?: boolean; date?: string; location?: string; story?: string; intro?: string; brand?: string; shopUrl?: string };
 export type ModelCardProps = {
   id: string; serial: string; name: string; photo: string; video?: string; poster?: string;
   thumbs?: string[]; clips?: ModelClip[]; isMember?: boolean; onLockedClick?: () => void;
@@ -30,6 +30,7 @@ export type ModelCardProps = {
   sponsor?: string; // her brand sponsor, e.g. "Gianna Bellucci" — shown on the intro slide
   showDates?: boolean; // show the per-slide date — ADMIN only (public viewers see just the location)
   showProfileLink?: boolean; // landing/gallery: show "View full profile →" (admins/creators manage everything there)
+  hideOwner?: boolean; // suppress the slide-0 owner caption (used by the apply-form self-preview)
 };
 
 // Turn an ISO-2 country code into its flag emoji + English name (e.g. "RO" → 🇷🇴 Romania).
@@ -47,7 +48,7 @@ export default function ModelCard({
   isMember = false, onLockedClick, valueLabel,
   looks = 0, bio = "", brands = "", createdAt = "", tagline = "Your vibe, every day 💛", realModel = false, forSale = false, canDownload = false,
   following = false, onSuperFollow, onChat, country = "", owner = "", ownerId = "", ownerHideName = false, ownerSince = "",
-  title = "", intro = "", sponsor = "", showProfileLink = false, showDates = false,
+  title = "", intro = "", sponsor = "", showProfileLink = false, showDates = false, hideOwner = false,
 }: ModelCardProps) {
   const geo = countryInfo(country);
   // Ownership is the hero: is she owned yet, by whom, and since when.
@@ -108,11 +109,13 @@ export default function ModelCard({
         {/* Brand title / role — she's a brand (e.g. "Monaco Influencer"). */}
         {title && <p className="relative -mt-0.5 max-w-full truncate text-[10px] font-black uppercase tracking-[0.22em] text-amber-300">{title}</p>}
         {/* Status directly under the name — the first thing the eye lands on. */}
-        <span className={`relative inline-flex max-w-full items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-[12px] font-black leading-none shadow backdrop-blur ${isOwned ? "bg-amber-400 text-black ring-1 ring-amber-300" : "bg-black/50 text-amber-200 ring-1 ring-amber-300/45"}`}>
-          {isOwned ? <><Crown className="h-3.5 w-3.5 shrink-0" fill="currentColor" /> <span className="min-w-0 truncate">Owned by {ownedName}</span></> : <><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300" /> Available</>}
-        </span>
+        {!hideOwner && (
+          <span className={`relative inline-flex max-w-full items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-[12px] font-black leading-none shadow backdrop-blur ${isOwned ? "bg-amber-400 text-black ring-1 ring-amber-300" : "bg-black/50 text-amber-200 ring-1 ring-amber-300/45"}`}>
+            {isOwned ? <><Crown className="h-3.5 w-3.5 shrink-0" fill="currentColor" /> <span className="min-w-0 truncate">Owned by {ownedName}</span></> : <><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300" /> Available</>}
+          </span>
+        )}
         <span className="relative inline-flex items-center whitespace-nowrap rounded-full bg-black/40 px-3.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-amber-300/85 ring-1 ring-amber-300/20 backdrop-blur">
-          LuxuryBandit.com <span className="mx-1.5 text-amber-300/40">·</span> <span className="text-white/45">Own an AI Influencer</span>
+          LuxuryBandit.com <span className="mx-1.5 text-amber-300/40">·</span> <span className="text-white/45">{hideOwner ? "Creator preview" : "Own an AI Influencer"}</span>
         </span>
         <button type="button" onClick={() => void share()} aria-label="Share this card"
           className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white/70 transition active:scale-90 hover:text-white">
@@ -149,6 +152,15 @@ export default function ModelCard({
                       )}
                     </div>
                   </>
+                ) : c.blurred ? (
+                  /* Hidden slide — shown as a VERY blurred teaser (unrecognizable), no caption, no play. */
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={c.poster || media} alt="" className="h-full w-full scale-110 object-cover object-top blur-2xl brightness-[0.55]" />
+                    <div className="absolute inset-0 grid place-items-center">
+                      <span className="grid h-11 w-11 place-items-center rounded-full bg-black/45 ring-1 ring-white/20 backdrop-blur"><Lock className="h-5 w-5 text-white/70" /></span>
+                    </div>
+                  </>
                 ) : locked ? (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -180,7 +192,7 @@ export default function ModelCard({
                 )}
 
                 {/* Play affordance on a look poster (low, off her face). */}
-                {isLook && c.video && !locked && !isPlaying && (
+                {isLook && c.video && !locked && !c.blurred && !isPlaying && (
                   <button type="button" onClick={() => setPlayingIdx(i)} aria-label="Play video"
                     className="absolute left-1/2 top-1/2 grid h-16 w-16 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-black/40 text-white ring-1 ring-white/40 backdrop-blur-sm transition active:scale-95">
                     <svg viewBox="0 0 24 24" className="h-7 w-7 translate-x-0.5 fill-current"><path d="M8 5v14l11-7z" /></svg>
@@ -188,14 +200,14 @@ export default function ModelCard({
                 )}
 
                 {/* Per-slide caption: slide 0 = tagline/owner; look slides = date · location + story.
-                    Hidden while that slide's video plays so it never covers the footage. */}
-                {!isPlaying && !isIntro && (
+                    Hidden while that slide's video plays, and on blurred teaser slides. */}
+                {!isPlaying && !isIntro && !c.blurred && (
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/55 to-transparent p-4 pt-14">
                     {i === 0 ? (
                       <>
                         {/* Her intro lives HERE on the card face (no separate ABOUT slide). */}
                         <p className={`font-semibold text-white/85 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)] ${intro ? "line-clamp-4 text-[12.5px] leading-snug" : "text-[13px]"}`}>{intro || tagline}</p>
-                        {isOwned ? (
+                        {hideOwner ? null : isOwned ? (
                           <p className="mt-1.5 text-[13px] font-black text-amber-300 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)]">Owned by {ownedName}{ownerSince ? <span className="font-bold text-white/70"> · since {ownerSince}</span> : null}</p>
                         ) : (
                           <p className="mt-1.5 text-[14px] font-black text-amber-300 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)]">No owner yet — be the first owner</p>
@@ -247,8 +259,8 @@ export default function ModelCard({
           <p className="relative mt-1 text-center text-[18px] font-black leading-none text-white">{gsLabel}</p>
           <p className="relative mt-1 whitespace-nowrap text-center text-[8px] font-black uppercase tracking-[0.12em] text-amber-400">▲ Trending</p>
         </Link>
-        {/* Enlarge — on every slide (photo, look, video) except the intro/story slide. */}
-        {!strip[activeSlide]?.intro && (
+        {/* Enlarge — on every slide except the intro and the blurred teaser slides. */}
+        {!strip[activeSlide]?.intro && !strip[activeSlide]?.blurred && (
           <button type="button" onClick={() => setZoomIdx(activeSlide)} aria-label="Enlarge"
             className="absolute bottom-3 right-3 z-[6] grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white/90 ring-1 ring-white/20 backdrop-blur transition active:scale-90">
             <Maximize2 className="h-4 w-4" />
@@ -278,13 +290,13 @@ export default function ModelCard({
                 ) : c.video && !c.poster ? (
                   /* Posterless video → show the video's own frame in the thumb too. */
                   /* eslint-disable-next-line jsx-a11y/media-has-caption */
-                  <video src={c.video} muted playsInline preload="metadata" className={`h-full w-full object-cover ${locked ? "blur-[3px] brightness-75" : ""}`} />
+                  <video src={c.video} muted playsInline preload="metadata" className={`h-full w-full object-cover ${c.blurred ? "blur-md brightness-[0.55]" : locked ? "blur-[3px] brightness-75" : ""}`} />
                 ) : (
                   /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={c.poster} alt="" loading="lazy" className={`h-full w-full object-cover ${locked ? "blur-[3px] brightness-75" : ""}`} />
+                  <img src={c.poster || media} alt="" loading="lazy" className={`h-full w-full object-cover ${c.blurred ? "blur-md brightness-[0.55]" : locked ? "blur-[3px] brightness-75" : ""}`} />
                 )}
-                {c.video && <span className="pointer-events-none absolute inset-0 grid place-items-center"><svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-white/90 drop-shadow"><path d="M8 5v14l11-7z" /></svg></span>}
-                {locked && <span className="absolute inset-0 grid place-items-center"><Lock className="h-3 w-3 text-white/90" /></span>}
+                {c.video && !c.blurred && <span className="pointer-events-none absolute inset-0 grid place-items-center"><svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-white/90 drop-shadow"><path d="M8 5v14l11-7z" /></svg></span>}
+                {(locked || c.blurred) && <span className="absolute inset-0 grid place-items-center"><Lock className="h-3 w-3 text-white/90" /></span>}
                 {(i === 0 || c.intro) && <span className="absolute inset-x-0 bottom-0 bg-black/55 py-px text-center text-[7px] font-black uppercase tracking-wide text-white/80">{c.intro ? "About" : "Card"}</span>}
               </button>
             );
@@ -314,16 +326,18 @@ export default function ModelCard({
       </div>
 
       {/* Ownership & history — the collectible's provenance (creates emotional attachment). */}
-      <div className="border-b border-white/10 px-4 py-3">
-        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-amber-400/70">Ownership &amp; history</p>
-        <div className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[11.5px]">
-          <span className="font-bold text-white/40">Created</span><span className="text-right font-black text-white/85">{created || "—"}</span>
-          <span className="font-bold text-white/40">Owner</span><span className={`text-right font-black ${isOwned ? "text-white/85" : "text-amber-400"}`}>{isOwned ? ownedName : "Available"}</span>
-          {ownerSince && (<><span className="font-bold text-white/40">Owned since</span><span className="text-right font-black text-white/85">{ownerSince}</span></>)}
-          <span className="font-bold text-white/40">Growth Score</span><span className="text-right font-black text-amber-300">{gsLabel}</span>
-          <span className="font-bold text-white/40">Peak Score</span><span className="text-right font-black text-amber-300">{gsLabel}</span>
+      {!hideOwner && (
+        <div className="border-b border-white/10 px-4 py-3">
+          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-amber-400/70">Ownership &amp; history</p>
+          <div className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[11.5px]">
+            <span className="font-bold text-white/40">Created</span><span className="text-right font-black text-white/85">{created || "—"}</span>
+            <span className="font-bold text-white/40">Owner</span><span className={`text-right font-black ${isOwned ? "text-white/85" : "text-amber-400"}`}>{isOwned ? ownedName : "Available"}</span>
+            {ownerSince && (<><span className="font-bold text-white/40">Owned since</span><span className="text-right font-black text-white/85">{ownerSince}</span></>)}
+            <span className="font-bold text-white/40">Growth Score</span><span className="text-right font-black text-amber-300">{gsLabel}</span>
+            <span className="font-bold text-white/40">Peak Score</span><span className="text-right font-black text-amber-300">{gsLabel}</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Social-reach vanity stats REMOVED (2026-07-16): no fake followers/likes/views anywhere —
           brand partners must only ever see real, verifiable numbers. */}

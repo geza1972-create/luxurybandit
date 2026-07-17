@@ -15,10 +15,9 @@ const nextConfig = {
     // fall through here and render the matching public page (URL stays /admin/…).
     return {
       beforeFiles: [
-        // luxurybandit.com serves the "Own an AI Influencer" marketing landing at the
-        // root — URL stays clean (no /own-influencer in the address bar). The app itself
-        // still lives at /home, /stores, /clothes, /luxury-products, …
-        { source: "/", destination: "/own-influencer" },
+        // luxurybandit.com now opens on the Models marketplace (the start page). The root
+        // "/" is handled by app/page.tsx, which redirects to /stores?view=models — no rewrite
+        // here (a rewrite would keep the URL "/" and drop ?view=models on the client).
         // /wardrobe is a clean URL for the Wardrobe (garderobe) gallery — the browser
         // URL stays /wardrobe while /stores renders it (usePathname → onWardrobe → garderobe tab).
         { source: "/wardrobe", destination: "/stores" },
