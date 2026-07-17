@@ -34,32 +34,33 @@ export async function POST(request: Request) {
     "• end with 3–5 fitting, non-spammy hashtags (travel/fashion/riviera/lifestyle).",
     "Title: 2–4 words, punchy, scroll-stopping.",
   ];
-  const prompt = rewrite
+  // The Story field is a PROMPT box: the admin types an INSTRUCTION for what to post, and the
+  // AI turns it into a title + caption. (rewrite kept as an alias for the same instruction text.)
+  const instruction = brief || rewrite;
+  const prompt = instruction
     ? [
-        "You are a careful copy editor for a fashion influencer's social caption.",
-        `Here is the caption I wrote — it may have typos and be in any language: "${rewrite}".`,
-        "Rewrite it FAITHFULLY in natural, correct ENGLISH.",
-        "• Fix ALL spelling and grammar.",
-        "• KEEP my exact meaning, tone and every detail and call-to-action I wrote.",
-        "• DO NOT invent new places, scenes, facts, emojis or hashtags that I did not write.",
-        "• Keep it about the same length; only smooth the wording so it reads well.",
-        "Also give a short 2–4 word title based ONLY on what I wrote.",
+        ...PERSONA,
+        `I'll tell you what to post — my instruction: "${instruction}".`,
+        "Write a short TITLE and an engaging first-person caption in ENGLISH that does exactly what my instruction asks.",
+        imageUrl ? "The attached photo IS the post — describe what's really in it where the instruction calls for it." : "",
+        "Stay ON the topic of my instruction: you may add tasteful, fitting detail, but do NOT drift into unrelated places, events or facts I did not mention.",
+        context ? `Context: ${context}.` : "",
+        body.kind === "video" ? "It is a short video clip." : "",
+        ...STORY_RULES,
         'Return ONLY strict JSON: {"title":"...","caption":"..."}',
       ].filter(Boolean).join(" ")
     : imageUrl
     ? [
         ...PERSONA,
         "Look at the attached photo and write a title + story caption that FIT what is actually shown — the outfit, the setting, the mood.",
-        brief ? `Extra hint from me: "${brief}".` : "",
         context ? `Context: ${context}.` : "",
         ...STORY_RULES,
         'Return ONLY strict JSON: {"title":"...","caption":"..."}',
       ].filter(Boolean).join(" ")
     : [
         ...PERSONA,
-        `Write a title + story caption from this brief: "${brief}".`,
+        "Write a title + story caption for a moment from her glamorous life.",
         context ? `Context: ${context}.` : "",
-        body.kind === "video" ? "It is a short video clip." : "",
         ...STORY_RULES,
         'Return ONLY strict JSON: {"title":"...","caption":"..."}',
       ].filter(Boolean).join(" ");

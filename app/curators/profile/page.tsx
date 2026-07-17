@@ -304,44 +304,22 @@ export default function CuratorProfilePage() {
       </div>
 
       <div className="px-5 pt-5">
-        {/* Profile photos — one main + up to 3 more (the team picks the best). */}
+        {/* ONE profile photo in 3:4 — the SAME image shown on her card (photoUrl). Tap to change. */}
         <div className="flex flex-col items-center gap-2">
-          <p className="text-[11px] font-black uppercase tracking-wide text-black/45">Profile photo · main</p>
-          {(() => {
-            const combined = [...profilePhotos.map(src => ({ src, isNew: true })), ...profileExisting.map(src => ({ src, isNew: false }))].slice(0, 4);
-            const remove = (p: { src: string; isNew: boolean }) => { if (p.isNew) setProfilePhotos(prev => prev.filter(s => s !== p.src)); else setProfileExisting(prev => prev.filter(s => s !== p.src)); };
-            const slot = (item: { src: string; isNew: boolean } | undefined, sizeCls: string, isMain: boolean) => item ? (
-              <div className="relative">
-                {/* Tap the photo itself to change it (opens the picker); the × removes it. */}
-                <button type="button" onClick={() => profileFileRef.current?.click()} title="Tap to change this photo" className="block">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.src} alt="" className={`${sizeCls} rounded-2xl object-cover object-top`} />
-                </button>
-                <button type="button" onClick={(e) => { e.stopPropagation(); remove(item); }}
-                  className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black text-white ring-1 ring-white/25">×</button>
-                {isMain && <span className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-cobalt px-2 py-px text-[8px] font-black uppercase tracking-wide text-white">Main</span>}
-              </div>
-            ) : (
-              <button type="button" onClick={() => profileFileRef.current?.click()}
-                className={`${sizeCls} grid place-items-center rounded-2xl border-2 border-dashed border-black/15 bg-black/[0.03] active:scale-95 transition-transform`}>
-                <span className="grid place-items-center gap-0.5 text-cobalt"><Camera className={isMain ? "h-7 w-7" : "h-5 w-5"} /><span className="text-[8px] font-black">Add</span></span>
-              </button>
-            );
-            return (
-              <div className="flex flex-col items-center gap-2.5">
-                {slot(combined[0], "h-28 w-28", true)}
-                <span className="text-[10px] font-black uppercase tracking-wider text-black/35">+ up to 3 more</span>
-                <div className="flex gap-2">
-                  {slot(combined[1], "h-[70px] w-[70px]", false)}
-                  {slot(combined[2], "h-[70px] w-[70px]", false)}
-                  {slot(combined[3], "h-[70px] w-[70px]", false)}
-                </div>
-              </div>
-            );
-          })()}
+          <p className="text-[11px] font-black uppercase tracking-wide text-black/45">Profile photo · 3:4</p>
+          {photo ? (
+            <button type="button" onClick={() => fileRef.current?.click()} title="Tap to change" className="block">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={photo} alt="" className="h-44 w-[132px] rounded-2xl object-cover object-top" />
+            </button>
+          ) : (
+            <button type="button" onClick={() => fileRef.current?.click()}
+              className="grid h-44 w-[132px] place-items-center rounded-2xl border-2 border-dashed border-black/15 bg-black/[0.03] active:scale-95 transition-transform">
+              <span className="grid place-items-center gap-0.5 text-cobalt"><Camera className="h-7 w-7" /><span className="text-[8px] font-black">Add</span></span>
+            </button>
+          )}
+          {photo && <button type="button" onClick={() => fileRef.current?.click()} className="text-xs font-black text-cobalt">Change photo</button>}
           {photoError && <p className="max-w-xs text-center text-xs font-bold text-red-500">{photoError}</p>}
-          <input ref={profileFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
-            onChange={e => { void onPickProfile(e.target.files?.[0]); e.target.value = ""; }} />
           <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
             onChange={e => { void onPickPhoto(e.target.files?.[0]); e.target.value = ""; }} />
 

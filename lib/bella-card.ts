@@ -76,8 +76,10 @@ export async function buildBellaCard(opts: { surface?: string; customer?: string
     const bellaPhoto = (gina?.photoUrl ?? "") as string;
     const customClips: ModelClip[] = [];
     const cardStudioSlides = await readCardStudioSlides(modelId);
+    // NEWEST first — the card must always open with her latest post (ascending order = oldest
+    // first, so sort ascending then REVERSE).
     const orderedSlides = [...cardStudioSlides].sort(
-      (a, b) => (a.order ?? 1e9) - (b.order ?? 1e9) || String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? "")));
+      (a, b) => (a.order ?? 1e9) - (b.order ?? 1e9) || String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? ""))).reverse();
     for (const sl of orderedSlides) {
       if (sl.hidden === true) continue;                        // hidden in the library, not on cards
       if (customerScope) {

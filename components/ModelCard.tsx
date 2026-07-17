@@ -28,6 +28,7 @@ export type ModelCardProps = {
   title?: string; // her brand title / role, e.g. "Monaco Influencer"
   intro?: string; // her self-introduction — shown as a slide right after the card face
   sponsor?: string; // her brand sponsor, e.g. "Gianna Bellucci" — shown on the intro slide
+  showDates?: boolean; // show the per-slide date — ADMIN only (public viewers see just the location)
   showProfileLink?: boolean; // landing/gallery: show "View full profile →" (admins/creators manage everything there)
 };
 
@@ -46,7 +47,7 @@ export default function ModelCard({
   isMember = false, onLockedClick, valueLabel,
   looks = 0, bio = "", brands = "", createdAt = "", tagline = "Your vibe, every day 💛", realModel = false, forSale = false, canDownload = false,
   following = false, onSuperFollow, onChat, country = "", owner = "", ownerId = "", ownerHideName = false, ownerSince = "",
-  title = "", intro = "", sponsor = "", showProfileLink = false,
+  title = "", intro = "", sponsor = "", showProfileLink = false, showDates = false,
 }: ModelCardProps) {
   const geo = countryInfo(country);
   // Ownership is the hero: is she owned yet, by whom, and since when.
@@ -64,8 +65,9 @@ export default function ModelCard({
   const media = photo || poster;
   // Slides = her PROFILE PHOTO first, then her look clips (each carries its own story/date/location).
   const clipTiles: ModelClip[] = clips.length ? clips : thumbs.map(t => ({ poster: t, video: "", private: false }));
-  // Slides: her card face → (her intro, if any) → her look clips.
-  const strip: ModelClip[] = [{ poster: media, video: "", private: false }, ...(intro ? [{ poster: media, video: "", intro }] : []), ...clipTiles];
+  // Slides: her card face (with her intro overlaid) → her look clips. (No separate ABOUT slide —
+  // the intro lives on slide 1, directly on her profile photo.)
+  const strip: ModelClip[] = [{ poster: media, video: "", private: false }, ...clipTiles];
   const goMembership = () => { onLockedClick ? onLockedClick() : router.push(profile); };
   // Swipe ↔ thumbs stay in sync: thumbs scroll the carousel, scrolling updates the active slide.
   const scrollToSlide = (i: number) => { const el = slidesRef.current; if (el) el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" }); setPlayingIdx(-1); };
@@ -191,7 +193,8 @@ export default function ModelCard({
                   <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/55 to-transparent p-4 pt-14">
                     {i === 0 ? (
                       <>
-                        <p className="text-[13px] font-semibold text-white/80 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)]">{tagline}</p>
+                        {/* Her intro lives HERE on the card face (no separate ABOUT slide). */}
+                        <p className={`font-semibold text-white/85 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)] ${intro ? "line-clamp-4 text-[12.5px] leading-snug" : "text-[13px]"}`}>{intro || tagline}</p>
                         {isOwned ? (
                           <p className="mt-1.5 text-[13px] font-black text-amber-300 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)]">Owned by {ownedName}{ownerSince ? <span className="font-bold text-white/70"> · since {ownerSince}</span> : null}</p>
                         ) : (
@@ -200,9 +203,9 @@ export default function ModelCard({
                       </>
                     ) : (
                       <>
-                        {(c.date || c.location) && (
+                        {((showDates && c.date) || c.location) && (
                           <p className="flex items-center gap-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-300 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)]">
-                            {c.location && <MapPin className="h-3 w-3 shrink-0" />}{[c.date, c.location].filter(Boolean).join(" · ")}
+                            {c.location && <MapPin className="h-3 w-3 shrink-0" />}{[showDates ? c.date : "", c.location].filter(Boolean).join(" · ")}
                           </p>
                         )}
                         {c.story && <p className="mt-1 text-[13px] font-semibold leading-snug text-white/90 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)]">{c.story}</p>}

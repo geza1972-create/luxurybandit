@@ -115,7 +115,10 @@ export default function BellaCarouselAdmin() {
       .then(r => r.json()).then(d => setModels(Array.isArray(d.models) ? d.models : [])).catch(() => {});
   }, []);
   // (Re)load slides whenever the selected model changes.
-  useEffect(() => { if (isAdmin) { void load(); setStagedImg(null); setStagedVid(null); setGen(null); setGenVideo(null); } /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [modelId, isAdmin]);
+  useEffect(() => {
+    if (!isAdmin) return;
+    void load(); setStagedImg(null); setStagedVid(null); setGen(null); setGenVideo(null);
+  /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [modelId, isAdmin]);
 
   const loadPrompts = () => fetch("/api/prompts", { headers: { "x-try-look-admin-pin": pin() } }).then(r => r.json()).then(d => setPrompts(d.prompts ?? [])).catch(() => {});
   const savePrompt = async (kind: "image" | "video" | "voice", text: string) => {
@@ -408,8 +411,24 @@ export default function BellaCarouselAdmin() {
           <span className="text-[11px] font-black uppercase tracking-wide text-white/50">👁 Vorschau — {models.find(m => m.id === modelId)?.name || "Bella"}{customer ? ` · ${customer}` : ""}</span>
           <span className="text-[12px] font-black text-white/40">{showPreview ? "▲" : "▼"}</span>
         </button>
+        {/* ✏️ Profil edit → opens the "My model profile" form (/curators/profile) for THIS model,
+            via the same impersonation the menu's "View as model…" uses (exit via the yellow banner). */}
+        {showPreview && (
+          <button type="button" onClick={() => {
+              const m = models.find(x => x.id === modelId);
+              try {
+                localStorage.setItem("lb_curator", JSON.stringify({ id: modelId, firstName: (m?.name || "").split(" ")[0], email: "" }));
+                localStorage.setItem("lb_preview_model", "1");
+              } catch { /**/ }
+              window.location.href = "/curators/profile";
+            }}
+            className="mt-2 w-full rounded-xl bg-violet-500 py-2.5 text-[13px] font-black text-white shadow ring-1 ring-violet-300/40 active:scale-[0.98]">
+            ✏️ Profil edit — „My model profile"
+          </button>
+        )}
+
         {showPreview && (preview
-          ? <div className="mt-2 rounded-2xl bg-black/20 p-2"><ModelCard {...preview} isMember canDownload /></div>
+          ? <div className="mt-2 rounded-2xl bg-black/20 p-2"><ModelCard {...preview} isMember canDownload showDates /></div>
           : <p className="mt-2 rounded-lg border border-dashed border-white/10 py-3 text-center text-[12px] text-white/35">Keine Vorschau verfügbar.</p>)}
       </div>
       <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-2.5">
@@ -733,20 +752,17 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
   useEffect(() => { setTitle(slide.title); setCaption(slide.caption); }, [slide.title, slide.caption]);
   useEffect(() => { autoGrow(capRef.current); }, [caption]);
 
-  // ONE AI button for the Story field: if there's text → correct + rephrase it (English);
-  // if it's empty → write a fresh story (from the image via vision, or the title).
-  const hasStory = caption.trim().length > 0;
+  // The Story field is a PROMPT box: whatever you type is an INSTRUCTION for the AI, which
+  // turns it into a title + English caption (using the photo as visual context). The result
+  // replaces the instruction in the field.
   const aiText = async () => {
     setAiBusy(true);
     try {
+      const instruction = caption.trim();
       const payload: Record<string, unknown> = { kind: slide.kind, context: slide.title };
-      if (hasStory) {
-        payload.rewrite = caption;                                                       // faithfully correct MY text — no photo, no invention
-      } else if (slide.kind === "image" && slide.mediaUrl) {
-        payload.imageUrl = slide.mediaUrl;                                               // empty story → write one from the photo (vision)
-      } else {
-        payload.brief = title.trim() || "a moment from her journey";
-      }
+      if (instruction) payload.brief = instruction;                                     // your instruction, e.g. "write about the black lingerie…"
+      if (slide.kind === "image" && slide.mediaUrl) payload.imageUrl = slide.mediaUrl;  // let the AI see the photo
+      if (!instruction && !payload.imageUrl) payload.brief = title.trim() || "a moment from her journey";
       const res = await fetch("/api/bella-caption", { method: "POST", headers: { "Content-Type": "application/json", "x-try-look-admin-pin": pin() }, body: JSON.stringify(payload) }).then(r => r.json());
       if (res?.caption || res?.title) {
         const patch: { title?: string; caption?: string } = {};
@@ -786,12 +802,12 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
           <input value={title} onChange={e => setTitle(e.target.value)} onBlur={() => title !== slide.title && onUpdate({ title })} placeholder="Titel (optional)"
             className="h-8 w-full rounded border border-white/15 bg-white/[0.04] px-2 text-[12px] font-bold text-white outline-none placeholder:text-white/30 focus:border-amber-400" />
           <textarea ref={capRef} value={caption} onChange={e => setCaption(e.target.value)} onInput={e => autoGrow(e.currentTarget)}
-            onBlur={() => caption !== slide.caption && onUpdate({ caption })} placeholder="Story (auf Englisch – oder tipp auf Deutsch und lass ✨ korrigieren)"
+            onBlur={() => caption !== slide.caption && onUpdate({ caption })} placeholder="Schreib rein, WAS sie posten soll (z.B. „write something nice about the black lingerie…“) → ✨ macht Titel + Story draus"
             className="mt-1.5 min-h-[5rem] w-full resize-y overflow-hidden rounded border border-white/15 bg-white/[0.04] px-2 py-1.5 text-[12px] leading-snug text-white outline-none placeholder:text-white/30 focus:border-amber-400" />
-          <button type="button" onClick={() => void aiText()} disabled={aiBusy || (!hasStory && slide.kind !== "image")}
-            title={hasStory ? "Text korrigieren & umformulieren (Englisch)" : "Story aus dem Bild schreiben"}
+          <button type="button" onClick={() => void aiText()} disabled={aiBusy || (!caption.trim() && !(slide.kind === "image" && slide.mediaUrl))}
+            title="Aus deiner Anweisung Titel + Story schreiben (Englisch)"
             className="mt-1.5 w-full rounded border border-amber-400/50 bg-amber-400/10 py-1.5 text-[12px] font-black text-amber-300 active:scale-95 disabled:opacity-40">
-            {aiBusy ? "✨ …" : hasStory ? "✨ Umformulieren & korrigieren" : "✨ Story mit KI schreiben"}
+            {aiBusy ? "✨ Schreibt…" : "✨ Titel + Story schreiben"}
           </button>
         </div>
       </div>

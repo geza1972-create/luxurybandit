@@ -1204,7 +1204,7 @@ export default function CuratorPublicPage() {
 
       {/* Shareable collectible — THE reusable LuxuryBandit Model Card */}
       <div className="px-4 pt-4">
-        <ModelCard {...cardData} isMember={isMember} onLockedClick={() => setShowSubscribe(true)}
+        <ModelCard {...cardData} isMember={isMember} showDates={isAdmin} onLockedClick={() => setShowSubscribe(true)}
           following={following} onSuperFollow={() => void handleFollow()}
           onChat={() => { const lg = (() => { try { return localStorage.getItem("lb_lang") === "ro" ? "ro" : "en"; } catch { return "en"; } })(); router.push(`/luxury-products?model=${encodeURIComponent(id)}&lang=${lg}`); }} />
 
