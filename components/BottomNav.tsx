@@ -245,7 +245,10 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
       const displayEmail = curator?.email || session?.user?.email || "";
       // Staff = admin or a creator/model. Plain members get a trimmed menu (Home · Models ·
       // My subscriptions · Account), no Looks/Wardrobe/Luxury/Saved.
-      const isStaff = !!adminPin || isAdminEmail(displayEmail) || isCurator;
+      // Admin tools/content show ONLY for an admin who is NOT currently acting as a model.
+      // A model (real, or an admin previewing via "View as model" → isCurator) gets a MINIMAL
+      // menu: Home, My Studio, My Influencer profile, (My subscriptions), Sign out.
+      const isStaff = (!!adminPin || isAdminEmail(displayEmail)) && !isCurator;
 
       const navigate = (href: string) => {
         setShowProfileMenu(false);
@@ -318,11 +321,14 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <span className="text-sm font-black text-white">Wardrobe</span>
               </button>
               </>)}
-              <button type="button" onClick={() => navigate("/stores?view=models")}
-                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                <User className="h-5 w-5 shrink-0 text-white/50" />
-                <span className="text-sm font-black text-white">Models</span>
-              </button>
+              {/* Members browse models; a model doesn't need it — her Home already opens the models page. */}
+              {!isCurator && (
+                <button type="button" onClick={() => navigate("/stores?view=models")}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                  <User className="h-5 w-5 shrink-0 text-white/50" />
+                  <span className="text-sm font-black text-white">Models</span>
+                </button>
+              )}
               {/* Găsește-l mai ieftin — the Dupe-style price-finder funnel (staff only in the trimmed member menu). */}
               {isStaff && (
               <button type="button" onClick={() => navigate("/luxury-products")}
@@ -332,7 +338,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               </button>
               )}
               {/* Admin: jump straight to the admin dashboard (no need to type /admin). */}
-              {(!!adminPin || isAdminEmail(displayEmail)) && (
+              {isStaff && (
                 <button type="button" onClick={() => navigate("/admin")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <Shield className="h-5 w-5 shrink-0 text-violet-400" />
@@ -340,7 +346,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 </button>
               )}
               {/* Admin: Card Studio — post photos/videos + stories to Bella's card. */}
-              {(!!adminPin || isAdminEmail(displayEmail)) && (
+              {isStaff && (
                 <button type="button" onClick={() => navigate("/card-studio")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <LayoutGrid className="h-5 w-5 shrink-0 text-amber-400" />
@@ -348,20 +354,19 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 </button>
               )}
               {/* Admin: view/act AS any model (impersonate) — picker with search + photos. */}
-              {!!adminPin && (
+              {!!adminPin && !isCurator && (
                 <button type="button" onClick={() => { setShowProfileMenu(false); setPickerQuery(""); setShowModelPicker(true); }}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <Eye className="h-5 w-5 shrink-0 text-white/50" />
                   <span className="text-sm font-black text-white">View as model…</span>
                 </button>
               )}
-              {/* Models land on THEIR OWN page (wardrobe + photos) — the old Studio
-                  tool is retired for models; the team handles videos & publishing. */}
+              {/* Real model: her own simple upload studio — post photos/videos, public or private. */}
               {isCurator && (
-                <button type="button" onClick={() => navigate(curatorId ? `/curator/${curatorId}` : "/stores")}
+                <button type="button" onClick={() => navigate("/my-studio")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <LayoutGrid className="h-5 w-5 shrink-0 text-[#b8912f]" />
-                  <span className="text-sm font-black text-white">My Dashboard</span>
+                  <ImageIcon className="h-5 w-5 shrink-0 text-amber-400" />
+                  <span className="text-sm font-black text-white">My Studio</span>
                 </button>
               )}
               {/* Curator → her dark front-end influencer profile (all her entered data). */}

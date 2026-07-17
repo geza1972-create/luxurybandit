@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2, Mail, CheckCircle2, ChevronDown } from "lucide-react";
 import TopNav from "@/components/TopNav";
 
 const REASONS = [
+  { value: "own", label: "Own an influencer" },
   { value: "support", label: "Support" },
   { value: "complaint", label: "Complaint" },
   { value: "general", label: "General" },
@@ -26,6 +27,15 @@ export default function ContactPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitted, setSubmitted] = useState(false);
   const touch = (f: string) => setTouched(t => ({ ...t, [f]: true }));
+
+  // Prefill from the URL — e.g. the "own her" CTA links here as ?reason=own&about=<model name>.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const r = q.get("reason");
+    if (r && REASONS.some(x => x.value === r)) setReason(r);
+    const about = (q.get("about") || "").trim().slice(0, 60);
+    if (r === "own") setMessage(m => m || `Hi, I'd like to own ${about ? `${about} ` : "an influencer "}exclusively on LuxuryBandit. Please tell me how it works and what it costs.`);
+  }, []);
 
   // Per-field validation → error message ("" = valid).
   const errs = {

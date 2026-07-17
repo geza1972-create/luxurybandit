@@ -1080,7 +1080,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 // Open HER price-finder chat (her photo + her looks), same as her profile.
                 // Falls back to a look reference if this video has no model attached.
                 const lg = (() => { try { return localStorage.getItem("lb_lang") === "ro" ? "ro" : "en"; } catch { return "en"; } })();
-                if (authorCuratorId) { router.push(`/luxury-products?model=${encodeURIComponent(authorCuratorId)}&lang=${lg}`); return; }
+                if (authorCuratorId) { router.push(`/chat/${authorCuratorId}`); return; }
                 const L = look as { name?: string; frontImageUrl?: string; imageUrl?: string; videoPosterUrl?: string };
                 const m = media[active] as { poster?: string; url?: string; afterUrl?: string } | undefined;
                 const img = L.frontImageUrl || L.imageUrl || m?.poster || m?.afterUrl || m?.url || L.videoPosterUrl || "";

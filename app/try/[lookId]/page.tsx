@@ -912,7 +912,7 @@ export default function TryFunnelPage() {
                   {modelImg ? <img src={modelImg} alt="" className="h-full w-full object-cover object-top" /> : <div className="h-full w-full bg-white/5" />}
                   {/* Chat with her — golden button on her photo, top-right. */}
                   {chosenModelId && chosenModelName && !avatar && (
-                    <button type="button" onClick={() => chosenModelId && router.push(`/luxury-products?model=${encodeURIComponent(chosenModelId)}&lang=${lang}`)} title={`Chat with ${chosenModelName.split(/\s+/)[0]}`}
+                    <button type="button" onClick={() => chosenModelId && router.push(`/chat/${chosenModelId}`)} title={`Chat with ${chosenModelName.split(/\s+/)[0]}`}
                       className="lb-gold absolute right-2 top-2 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-black shadow-lg active:scale-95 transition">
                       <MessageCircle className="h-4 w-4" /> AI Chat
                     </button>
@@ -953,7 +953,7 @@ export default function TryFunnelPage() {
                         <span className="text-[11px] font-black uppercase tracking-wide text-amber-300">Premium</span>
                       </div>
                     ) : chosenModelObj?.featured && chosenModelId && chosenModelName && (
-                      <button type="button" onClick={() => chosenModelId && router.push(`/luxury-products?model=${encodeURIComponent(chosenModelId)}&lang=${lang}`)} className="lb-gold absolute right-1.5 top-1.5 flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black shadow"><MessageCircle className="h-3.5 w-3.5" /> AI Chat</button>
+                      <button type="button" onClick={() => chosenModelId && router.push(`/chat/${chosenModelId}`)} className="lb-gold absolute right-1.5 top-1.5 flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black shadow"><MessageCircle className="h-3.5 w-3.5" /> AI Chat</button>
                     )}
                   </div>
                 </div>
@@ -1047,7 +1047,7 @@ export default function TryFunnelPage() {
                               : !m.realModel && <span className="absolute left-2 top-2 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-black text-white">Free</span>}
                             {isActive && !m.realModel && chosenModelName && (
                               // Chat is available with every (free) AI model.
-                              <button type="button" onClick={(e) => { e.stopPropagation(); chosenModelId && router.push(`/luxury-products?model=${encodeURIComponent(chosenModelId)}&lang=${lang}`); }} title={`Chat with ${chosenModelName.split(/\s+/)[0]}`}
+                              <button type="button" onClick={(e) => { e.stopPropagation(); chosenModelId && router.push(`/chat/${chosenModelId}`); }} title={`Chat with ${chosenModelName.split(/\s+/)[0]}`}
                                 className="lb-gold absolute right-2 top-2 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-black shadow-lg active:scale-95 transition">
                                 <MessageCircle className="h-4 w-4" /> AI Chat
                               </button>
@@ -1231,7 +1231,7 @@ export default function TryFunnelPage() {
                         <Sparkles className="h-5 w-5" /> {L("Vezi-te pe TINE în video — $3.99 🎬", "See yourself in this video — $3.99 🎬")}
                       </button>
                       {chosenModelId && (
-                        <button type="button" onClick={() => router.push(`/luxury-products?model=${encodeURIComponent(chosenModelId)}&lang=${lang}`)}
+                        <button type="button" onClick={() => router.push(`/chat/${chosenModelId}`)}
                           className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
                           <MessageCircle className="h-4 w-4" /> {L("Vorbește cu", "Chat with")} {chosenModelName ? chosenModelName.split(/\s+/)[0] : L("ea", "her")}
                         </button>
@@ -1244,7 +1244,7 @@ export default function TryFunnelPage() {
                         <Sparkles className="h-5 w-5" /> {L("Vezi videoul tău →", "View your video →")}
                       </button>
                       {chosenModelId && (
-                        <button type="button" onClick={() => router.push(`/luxury-products?model=${encodeURIComponent(chosenModelId)}&lang=${lang}`)}
+                        <button type="button" onClick={() => router.push(`/chat/${chosenModelId}`)}
                           className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
                           <MessageCircle className="h-4 w-4" /> {L("Vorbește cu", "Chat with")} {chosenModelName ? chosenModelName.split(/\s+/)[0] : L("ea", "her")}
                         </button>

@@ -2,8 +2,8 @@ import InfoPage from "@/components/InfoPage";
 
 export const metadata = { title: "Terms of Service — LuxuryBandit" };
 
-// Plain-language terms reflecting the actual product (AI virtual try-on, AI persona chat, models,
-// Premium subscription). Not a substitute for a lawyer's review before large-scale commercial use.
+// Plain-language terms reflecting the actual product (influencer marketplace: follow, AI/real chat,
+// per-influencer subscription). Not a substitute for a lawyer's review before commercial use.
 export default function TermsPage() {
   return (
     <InfoPage title="Terms of Service">
@@ -14,10 +14,11 @@ export default function TermsPage() {
 
       <h2>1. What LuxuryBandit is</h2>
       <p>
-        LuxuryBandit is an entertainment and fashion app. You can pick a model and an outfit and let
-        our AI generate a short <strong>virtual try-on video</strong> of the model wearing that look,
-        browse models&rsquo; profiles, and chat with a model&rsquo;s <strong>AI persona</strong>. It
-        is for fun and inspiration — try-on videos are AI-generated and not real footage.
+        LuxuryBandit is an entertainment and fashion app — a <strong>marketplace of influencers</strong>.
+        You can browse influencers&rsquo; profiles, watch their daily luxury looks,{" "}
+        <strong>follow</strong> them, <strong>chat</strong> with them, and <strong>subscribe</strong> to
+        an influencer to unlock her <strong>private photos and videos</strong>. Some influencers are
+        AI-generated characters and some are real people — it is for fun and inspiration.
       </p>
 
       <h2>2. Accounts</h2>
@@ -27,38 +28,42 @@ export default function TermsPage() {
         these Terms.
       </p>
 
-      <h2>3. Premium subscription &amp; payments</h2>
+      <h2>3. Subscriptions &amp; payments</h2>
       <p>
-        Some features are free (including a limited number of try-on videos). <strong>Premium</strong>{" "}
-        is a paid monthly subscription (currently $49/month, with a discounted first month) that grants
-        a monthly allowance of try-on videos and unlocks additional features. Payments are handled by{" "}
-        <strong>Stripe</strong>. The subscription <strong>renews automatically</strong> each month until
-        you cancel; you can <strong>cancel anytime</strong> from your account, and cancellation takes
-        effect at the end of the current billing period. Except where required by law, payments are
-        non-refundable.
+        Browsing and <strong>following</strong> influencers is free. Subscribing to an influencer is a
+        paid monthly subscription (currently <strong>$49.99/month, with a discounted first month of $8</strong>)
+        that unlocks that influencer&rsquo;s <strong>private photos and videos</strong> and chat. Each
+        subscription is <strong>per influencer</strong>. Payments are handled by <strong>Stripe</strong>.
+        The subscription <strong>renews automatically</strong> each month until you cancel; you can{" "}
+        <strong>cancel anytime</strong> from your account, and cancellation takes effect at the end of the
+        current billing period. Except where required by law, payments are non-refundable.
       </p>
 
       <h2>4. AI-generated content &amp; AI chat</h2>
       <p>
-        Try-on videos and images are created by artificial intelligence and are provided for your
-        personal, non-commercial entertainment. The <strong>chat feature is an AI persona</strong>, not
-        a live conversation with a real person — you are messaging an automated assistant styled after
-        a model. AI results may contain inaccuracies and should not be relied on as real photos or advice.
+        Some influencers are AI-generated characters and some content and images are created by
+        artificial intelligence, provided for your personal, non-commercial entertainment. Chat may be
+        with an <strong>AI persona</strong> — an automated assistant styled after an influencer — rather
+        than a live conversation with a real person. AI results may contain inaccuracies and should not
+        be relied on as real photos or advice.
       </p>
 
-      <h2>5. Models</h2>
+      <h2>5. Models &amp; earnings</h2>
       <p>
-        Models on LuxuryBandit may be real people or AI-generated characters. Real models are reviewed
-        before they go live. Models must be 18+, use their own genuine photos, and follow our model
-        rules; we may reject or remove any model at our discretion.
+        Influencers on LuxuryBandit may be real people or AI-generated characters. Real models{" "}
+        <strong>apply for free</strong>, are reviewed before they go live, must be <strong>18+</strong>,
+        must use their <strong>own genuine photos</strong>, upload their own content, and follow our model
+        rules. Real models <strong>earn a 50% share</strong> of the subscription revenue from their
+        subscribers. We may reject or remove any model at our discretion.
       </p>
 
       <h2>6. Your content</h2>
       <p>
-        You are responsible for any photo you upload and confirm you have the right to use it. You grant
-        us the limited permission needed to process it and generate your try-on. Don&rsquo;t upload other
-        people&rsquo;s photos without consent, illegal content, or anything that infringes someone&rsquo;s
-        rights.
+        If you upload photos or videos — for example as a model building your profile — you are
+        responsible for them and confirm you have the right to use them, that everyone shown is{" "}
+        <strong>18 or older</strong> and consents, and that they don&rsquo;t infringe anyone&rsquo;s
+        rights. You grant us the limited permission needed to host and display your content on your
+        profile. Don&rsquo;t upload other people&rsquo;s content without consent or anything illegal.
       </p>
 
       <h2>7. Acceptable use</h2>
@@ -72,8 +77,8 @@ export default function TermsPage() {
       <p>
         We take your privacy seriously. We do <strong>not sell your personal data</strong>, and we do{" "}
         <strong>not pass it on to third parties</strong> for their own purposes. We only use the data we
-        actually need to run LuxuryBandit — such as your account details and the photo you upload for a
-        try-on — and we keep it <strong>only as long as it is needed</strong>. When your data is no
+        actually need to run LuxuryBandit — such as your account details and, for models, the content you
+        upload to your profile — and we keep it <strong>only as long as it is needed</strong>. When your data is no
         longer needed, we delete it, and you can ask us to delete your account and data at any time.
       </p>
 
@@ -103,7 +108,7 @@ export default function TermsPage() {
         Questions? Reach us via our <a href="/contact">contact form</a>.
       </p>
 
-      <p className="mt-6 text-xs text-black/40">Last updated: 10 July 2026</p>
+      <p className="mt-6 text-xs text-black/40">Last updated: 17 July 2026</p>
     </InfoPage>
   );
 }

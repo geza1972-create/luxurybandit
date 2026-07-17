@@ -1,25 +1,24 @@
 import Link from "next/link";
-import { Sparkles, Crown, ShoppingBag, Repeat, History, Check } from "lucide-react";
+import { Crown, Check, UserPlus, MessageCircle, Lock } from "lucide-react";
 import TopNav from "@/components/TopNav";
 import { getPricingConfig, fmtCents } from "@/lib/try-this-look-store";
 
 export const metadata = {
-  title: "Own & collect an AI influencer | LuxuryBandit",
-  description: "Every AI influencer on LuxuryBandit is a one-of-a-kind collectible with a single owner. Claim her, own her, grow her — and her full history stays on her card forever.",
+  title: "Follow, chat & subscribe to influencers | LuxuryBandit",
+  description: "Follow any influencer on LuxuryBandit for free, chat with her, and subscribe to unlock her private photos & videos. Want her all to yourself? Exclusive ownership is arranged personally — get in touch.",
 };
 
 export const dynamic = "force-dynamic";
 
-// The ownership explainer for a Model Card — a premium collectible, NOT a financial asset.
+// How the influencer relationship works: follow (free) → chat → subscribe → (exclusive) own by contact.
 export default async function GrowCardPage() {
   const p = await getPricingConfig();
   const sub = fmtCents(p.subscriptionMonthlyCents);
   const steps = [
-    { icon: Crown, title: "Become a member", detail: `A ${sub}/month membership unlocks the marketplace — it's what lets you claim and own AI influencers.` },
-    { icon: ShoppingBag, title: "Claim her", detail: "You claim ownership at her price. From that day she's yours — one of a kind, exclusively yours." },
-    { icon: Sparkles, title: "Own her — grow her", detail: "Generate her videos, add luxury looks, gain fans — her Growth Score rises and her collection grows for YOU." },
-    { icon: Repeat, title: "Pass her on anytime", detail: "List her and another creator can claim her. Ownership transfers cleanly to them." },
-    { icon: History, title: "Her history stays", detail: "Every owner and every transfer is kept on her card forever — her provenance, like any fine collectible." },
+    { icon: UserPlus, title: "Follow — free", detail: "Follow any influencer and watch her daily luxury looks in your feed. Costs nothing." },
+    { icon: MessageCircle, title: "Chat with her", detail: "Message her, get styled, get to know her — she replies day and night." },
+    { icon: Lock, title: "Subscribe — unlock her private world", detail: `${sub}/month (just $8 the first month) unlocks her private photos & videos. One subscription per influencer.` },
+    { icon: Crown, title: "Own her exclusively", detail: "Want an influencer all to yourself? Exclusive ownership is arranged personally — get in touch and we'll walk you through it." },
   ];
 
   return (
@@ -27,13 +26,13 @@ export default async function GrowCardPage() {
       <TopNav />
       <div className="mx-auto max-w-lg px-5 pt-8">
         <span className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-black"><Crown className="h-7 w-7" /></span>
-        <p className="mt-4 text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Own · Collect · Grow</p>
-        <h1 className="mt-1 text-3xl font-black leading-tight">Own an AI influencer.<br />She grows with you.</h1>
+        <p className="mt-4 text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Follow · Subscribe · Own</p>
+        <h1 className="mt-1 text-3xl font-black leading-tight">Discover your influencer.<br />Follow, chat &amp; subscribe.</h1>
         <p className="mt-3 text-[15px] font-semibold leading-7 text-white/65">
-          Every influencer on LuxuryBandit is a <strong className="text-white">one-of-a-kind collectible</strong> with a
-          single owner. Members can <strong className="text-white">claim</strong> her, <strong className="text-white">own</strong> her,
-          and <strong className="text-white">grow</strong> her — and later <strong className="text-white">pass her on</strong> to
-          another creator, while her full history stays on the card. Think rare sneakers or a luxury watch — <strong className="text-amber-300">not an investment</strong>.
+          Every influencer on LuxuryBandit is someone you can <strong className="text-white">follow for free</strong>,
+          <strong className="text-white"> chat</strong> with, and <strong className="text-white">subscribe</strong> to —
+          subscribing unlocks <strong className="text-white">her private photos &amp; videos</strong>. And if you want an
+          influencer <strong className="text-amber-300">all to yourself</strong>, exclusive ownership is arranged personally — just get in touch.
         </p>
 
         <div className="mt-6 grid gap-2.5">
@@ -49,13 +48,13 @@ export default async function GrowCardPage() {
         </div>
 
         <div className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/[0.06] p-4">
-          <p className="flex items-center gap-1.5 text-[13px] font-black text-white"><Check className="h-4 w-4 text-amber-400" /> One owner at a time — she's exclusively yours.</p>
-          <p className="mt-1.5 flex items-center gap-1.5 text-[13px] font-black text-white"><Check className="h-4 w-4 text-amber-400" /> Pass her to another creator anytime.</p>
-          <p className="mt-1.5 flex items-center gap-1.5 text-[13px] font-black text-white"><Check className="h-4 w-4 text-amber-400" /> Her card keeps every owner in its history.</p>
+          <p className="flex items-center gap-1.5 text-[13px] font-black text-white"><Check className="h-4 w-4 text-amber-400" /> Follow &amp; see her daily looks — free.</p>
+          <p className="mt-1.5 flex items-center gap-1.5 text-[13px] font-black text-white"><Check className="h-4 w-4 text-amber-400" /> Subscribe to unlock her private world.</p>
+          <p className="mt-1.5 flex items-center gap-1.5 text-[13px] font-black text-white"><Check className="h-4 w-4 text-amber-400" /> Want her exclusively? Own her — get in touch.</p>
         </div>
 
         <div className="mt-6 flex flex-col gap-2">
-          <Link href="/lb-value" className="flex items-center justify-center rounded-full border border-white/20 px-5 py-3 text-sm font-black text-white/80 active:scale-95 transition">How she grows →</Link>
+          <Link href="/contact?reason=own" className="flex items-center justify-center rounded-full border border-white/20 px-5 py-3 text-sm font-black text-white/80 active:scale-95 transition">Contact us to own an influencer →</Link>
           <Link href="/stores?view=models" className="lb-gold flex items-center justify-center rounded-full px-5 py-3.5 text-sm font-black active:scale-95 transition">Explore the marketplace</Link>
         </div>
       </div>

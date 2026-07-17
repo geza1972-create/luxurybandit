@@ -2,8 +2,26 @@ import { NextResponse } from "next/server";
 import { readTryThisLookState, saveTryThisLookState, createSignedUploadUrl, getSignedUrl,
   readCardStudioSlides, writeCardStudioSlides, readCardStudioBackup, type BellaSlide } from "@/lib/try-this-look-store";
 import { isAdminRequest } from "@/lib/admin-auth";
+import { getSellerFromRequest } from "@/lib/supabase-auth-server";
 
 export const runtime = "nodejs";
+
+// The signed-in REAL MODEL who owns her own card (Studio self-service). Resolves the Bearer token
+// → email → the curator with that email. She qualifies as a real model if she's admin-flagged
+// `realModel` OR applied with her own photo (`imageSource: "own"` — the free real-model application).
+// AI-face models (`imageSource: "ours"`) are excluded. Returns her curator id (== her card blob id)
+// or null. This id scopes every read/write below, so a model can ONLY ever touch her OWN blob —
+// the client-sent `model` is ignored for non-admins.
+async function resolveModelOwner(request: Request): Promise<string | null> {
+  const user = await getSellerFromRequest(request);
+  const email = user?.email?.trim().toLowerCase();
+  if (!email) return null;
+  const state = await readTryThisLookState();
+  const c = (state.curators ?? []).find(x => String((x as any).email || "").trim().toLowerCase() === email);
+  if (!c) return null;
+  const isRealModel = (c as any).realModel === true || (c as any).imageSource === "own";
+  return isRealModel ? c.id : null;
+}
 
 // Canonical slide order: manual `order` first (ascending), then creation time.
 export const slideSort = (a: BellaSlide, b: BellaSlide) =>
@@ -62,6 +80,13 @@ export async function GET(request: Request) {
       backup: { count: backup.slides.length, savedAt: backup.savedAt },
     });
   }
+  // A real model editing her OWN card gets the full library (incl. private/hidden + raw paths),
+  // exactly like the admin — but only for her own blob (model must equal her resolved id).
+  const ownerId = await resolveModelOwner(request);
+  if (ownerId && model === ownerId) {
+    const backup = await readCardStudioBackup(model);
+    return NextResponse.json({ slides: await signSlides(all, true), owner: true, backup: { count: backup.slides.length, savedAt: backup.savedAt } });
+  }
   const surface = url.searchParams.get("surface") || "lp-journey";
   // Include HIDDEN slides too — the card shows them as VERY blurred teasers (last), it doesn't drop them.
   const visible = all.filter((s) => !s.customer && onSurface(s, surface));
@@ -74,15 +99,24 @@ export async function GET(request: Request) {
 //   restoreBackup→ bring the last backup back as the live library.
 //   removeBooking→ prune a booking (in the shared state.json, separate from slides).
 export async function POST(request: Request) {
-  if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+  const admin = await isAdminRequest(request);
   const body = (await request.json().catch(() => ({}))) as {
     sign?: boolean; kind?: "image" | "video"; ext?: string;
     commit?: any[]; restoreBackup?: boolean; removeBooking?: string; model?: string;
   };
-  const model = (body.model || "").trim() || undefined;   // which influencer's card
+  let model = (body.model || "").trim() || undefined;   // which influencer's card
+  // Non-admins: only a signed-in REAL MODEL may write, and ONLY her own blob. Her resolved id
+  // overrides whatever `model` the client sent, so she can never touch another model's card.
+  let isOwner = false;
+  if (!admin) {
+    const ownerId = await resolveModelOwner(request);
+    if (!ownerId) return NextResponse.json({ error: "Sign in as a LuxuryBandit model." }, { status: 401 });
+    model = ownerId; isOwner = true;
+  }
 
-  // Prune a booking (admin) — lives in the shared state.json, handled up front.
+  // Prune a booking (admin only) — lives in the shared state.json, handled up front.
   if (typeof body?.removeBooking === "string" && body.removeBooking) {
+    if (!admin) return NextResponse.json({ error: "Admin access required." }, { status: 403 });
     const st = await readTryThisLookState();
     st.tripBookings = (st.tripBookings ?? []).filter(b => b.id !== body.removeBooking);
     await saveTryThisLookState(st, { deletedBookingIds: [body.removeBooking] });
@@ -107,6 +141,8 @@ export async function POST(request: Request) {
   // Commit the full draft (this is the ONLY persistence path for editing — nothing auto-saves).
   if (Array.isArray(body.commit)) {
     const slides = body.commit.map(normalizeSlide).filter(Boolean) as BellaSlide[];
+    // A model manages ONLY her own public card — never per-customer slides.
+    if (isOwner) for (const s of slides) s.customer = undefined;
     // Re-number order within each scope so the given array order is authoritative.
     const seen = new Map<string, number>();
     for (const s of slides) {
