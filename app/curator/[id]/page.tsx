@@ -1139,12 +1139,14 @@ export default function CuratorPublicPage() {
     .map(t => ({ poster: t.imageUrl, video: t.videoUrl as string, private: t.private === true, brand: t.brand, shopUrl: t.shopUrl }))
     .sort((a, b) => Number(a.private) - Number(b.private))
     .slice(0, 30);
-  // Admin-uploaded slides (Peter intro image + example videos) lead the carousel, her try-on
-  // clips fill in behind — same as the landing card.
-  const customClips = carouselSlides.map(s => s.kind === "video"
+  // Her Card Studio posts ARE the card — NEWEST story first (reverse: the API returns them
+  // oldest→newest). When she has posts, the card shows ONLY those (fully editable in the Card
+  // Studio); her try-on clips still live in the video gallery below. No posts yet → fall back
+  // to the try-on clips so the card is never empty.
+  const customClips = [...carouselSlides].reverse().map(s => s.kind === "video"
     ? { poster: s.posterUrl || "", video: s.mediaUrl, private: false, story: s.caption || undefined }
     : { poster: s.mediaUrl, video: "", private: false, story: [s.title, s.caption].filter(Boolean).join(" — ") || undefined });
-  const allCardClips = [...customClips, ...cardClips];
+  const allCardClips = customClips.length ? customClips : cardClips;
   // Data for the shareable collectible ModelCard (THE reusable card, same as the landing).
   const cardData = {
     id: profile.id,

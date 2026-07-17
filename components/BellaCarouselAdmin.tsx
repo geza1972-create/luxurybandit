@@ -150,7 +150,10 @@ export default function BellaCarouselAdmin() {
   const commitAll = async () => {
     setBusy("commit-all"); setErr("");
     try {
-      const payload = slides.map(s => ({ id: s.id, kind: s.kind, path: s.path, posterPath: s.posterPath || undefined,
+      // Send sorted by scope+order — the server re-numbers `order` by array position, so the
+      // array order IS the saved order (this is what makes ↑↓ reordering persist).
+      const ordered = [...slides].sort((a, b) => (a.customer || "").localeCompare(b.customer || "") || (a.order ?? 1e9) - (b.order ?? 1e9));
+      const payload = ordered.map(s => ({ id: s.id, kind: s.kind, path: s.path, posterPath: s.posterPath || undefined,
         title: s.title, caption: s.caption, hidden: s.hidden, pages: s.pages, customer: s.customer, order: s.order, createdAt: s.createdAt }));
       const res = await post({ commit: payload });
       if (res?.ok) { setSlides(res.slides ?? []); setDirty(false); await load(); void loadPreview(customer); router.refresh(); }
