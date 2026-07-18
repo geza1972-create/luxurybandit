@@ -766,7 +766,7 @@ export default function AdminPage() {
     try {
       window.localStorage.setItem("lb_curator", JSON.stringify({ id: c.id, firstName: c.firstName ?? "", email: c.email ?? "", style: c.style ?? "" }));
     } catch { /* ignore */ }
-    const url = where === "studio" ? "/admin/trends"
+    const url = where === "studio" ? "/my-studio"
       : where === "messages" ? "/messages"
       : where === "feed" ? "/stores"
       : `/curator/${c.id}`;

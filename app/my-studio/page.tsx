@@ -23,9 +23,13 @@ const normFromServer = (s: any): Slide => ({
   createdAt: s?.createdAt || "", order: typeof s?.order === "number" ? s.order : null,
 });
 
+const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
+
 // The real model's OWN upload studio: add photos/videos to her card and mark each public or private
 // (private = only her subscribers see it). Very simple, self-serve. Everything saves immediately.
 // Access is enforced server-side (/api/bella-carousel) — she can only ever touch her own card.
+// Admin can also open this AS a curator (via admin → "Act as" → Open Studio) — the admin PIN +
+// impersonated id (set in localStorage by the admin panel's loginAs) substitute for her own login.
 export default function MyStudioPage() {
   const router = useRouter();
   const [phase, setPhase] = useState<"loading" | "noauth" | "notmodel" | "ready">("loading");
@@ -36,12 +40,30 @@ export default function MyStudioPage() {
   const [err, setErr] = useState("");
   const imgRef = useRef<HTMLInputElement>(null);
   const vidRef = useRef<HTMLInputElement>(null);
+  const adminModeRef = useRef(false);
 
   const authH = (t: string) => ({ "Content-Type": "application/json", Authorization: `Bearer ${t}` });
   const token = () => getStoredAuthSession()?.access_token || "";
+  // Auth headers for API calls — admin-impersonation uses the PIN, a real model uses her Bearer token.
+  const authHeaders = () => adminModeRef.current
+    ? { "Content-Type": "application/json", "x-try-look-admin-pin": (() => { try { return localStorage.getItem(ADMIN_PIN_KEY) ?? ""; } catch { return ""; } })() }
+    : authH(token());
 
   useEffect(() => {
     (async () => {
+      // Admin "Act as" impersonation: PIN + a curator id stashed in localStorage by the admin panel.
+      const pin = (() => { try { return localStorage.getItem(ADMIN_PIN_KEY) ?? ""; } catch { return ""; } })();
+      const impersonate = (() => { try { return JSON.parse(localStorage.getItem("lb_curator") ?? "{}"); } catch { return {}; } })();
+      if (pin && impersonate?.id) {
+        adminModeRef.current = true;
+        try {
+          const s = await fetch(`/api/bella-carousel?model=${encodeURIComponent(impersonate.id)}`, { headers: { "x-try-look-admin-pin": pin } }).then(r => r.json());
+          setMe({ id: impersonate.id, name: impersonate.firstName || "Model" });
+          setSlides((s.slides || []).map(normFromServer));
+          setPhase("ready");
+        } catch { setErr("Could not load her studio."); setPhase("ready"); }
+        return;
+      }
       try { if (isSessionExpiring()) await refreshSession(); } catch { /**/ }
       const t = token();
       if (!t) { setPhase("noauth"); return; }
@@ -70,7 +92,7 @@ export default function MyStudioPage() {
         title: s.title || undefined, caption: s.caption || undefined,
         hidden: s.hidden, private: s.private, pages: null, order: i, createdAt: s.createdAt,
       }));
-      const res = await fetch("/api/bella-carousel", { method: "POST", headers: authH(token()), body: JSON.stringify({ commit: payload, model: me.id }) }).then(r => r.json());
+      const res = await fetch("/api/bella-carousel", { method: "POST", headers: authHeaders(), body: JSON.stringify({ commit: payload, model: me.id }) }).then(r => r.json());
       if (res?.ok) { setSlides((res.slides || []).map(normFromServer)); setSavedAt(Date.now()); }
       else setErr(res?.error || "Could not save.");
     } catch { setErr("Could not save."); }
@@ -87,7 +109,7 @@ export default function MyStudioPage() {
     setBusy(kind);
     try {
       const ext = (file.name.split(".").pop() || (kind === "video" ? "mp4" : "jpg")).toLowerCase();
-      const sign = await fetch("/api/bella-carousel", { method: "POST", headers: authH(token()), body: JSON.stringify({ sign: true, kind, ext, model: me.id }) }).then(r => r.json());
+      const sign = await fetch("/api/bella-carousel", { method: "POST", headers: authHeaders(), body: JSON.stringify({ sign: true, kind, ext, model: me.id }) }).then(r => r.json());
       if (!sign?.uploadUrl) throw new Error();
       const put = await fetch(sign.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type || (kind === "video" ? "video/mp4" : "image/jpeg"), "x-upsert": "true" }, body: file });
       if (!put.ok) throw new Error();
