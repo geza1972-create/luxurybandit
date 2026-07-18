@@ -1280,10 +1280,15 @@ export default function CuratorPublicPage() {
         )}
         {/* Want her exclusively? Owning an influencer is handled personally — get in touch. */}
         {profile.forSale && !isOwn && (
-          <a href={`/contact?reason=own&about=${encodeURIComponent(name)}`} title={`Own ${name}`}
-            className="lb-gold mt-1 inline-flex items-center justify-center rounded-full px-6 py-3 text-[14px] font-black shadow active:scale-95 transition">
-            Own {name} — get in touch
-          </a>
+          <div className="mt-1 flex flex-col items-center gap-2">
+            <a href={`/contact?reason=own&about=${encodeURIComponent(name)}`} title={`Own ${name}`}
+              className="lb-gold inline-flex items-center justify-center rounded-full px-6 py-3 text-[14px] font-black shadow active:scale-95 transition">
+              Own {name} — get in touch
+            </a>
+            <p className="max-w-xs text-center text-[12px] font-semibold leading-relaxed text-white/50">
+              You sponsor her monthly Growth Score{profile.growPriceLabel ? ` (${profile.growPriceLabel})` : ""} — in return she promotes your products and you can direct her looks.
+            </p>
+          </div>
         )}
         <div className="mt-2 flex items-center gap-3 text-[11px] font-bold text-white/40">
           {profile.genderFocus && <span className="rounded-full bg-white/10 px-2.5 py-1">{profile.genderFocus}</span>}
