@@ -33,6 +33,7 @@ export async function GET(request: Request) {
       if (s.customer) continue;                        // per-customer cards never hit the public feed
       if (s.pendingApproval) continue;                  // her own public upload, awaiting admin review
       if (s.hidden === true) continue;                  // "Auf Card" turned off — blurred teaser, not the public feed
+      if (s.pages && s.pages.length && !s.pages.includes("profile")) continue; // campaign-only slides (e.g. Journey/Own-Model) aren't generic feed content
       if (privateOnly && s.private !== true) continue; // Private tab = only private slides
       raw.push({ s, c, name });
     }
