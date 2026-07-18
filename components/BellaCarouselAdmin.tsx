@@ -11,7 +11,7 @@ type Slide = { id: string; kind: "image" | "video"; title: string; caption: stri
 type Customer = { email: string; name: string; provider?: string; createdAt?: string; videoCredits: number; purchases: { type: string; label: string; date?: string }[]; videoNote: string; emails: { subject: string; sentAt: string }[] };
 type Staged = { path: string; url: string };
 type SavedPrompt = { id: string; kind: "image" | "video" | "voice"; text: string };
-const SURFACES = [{ key: "profile", label: "Profile" }, { key: "lp-journey", label: "LP-Journey" }, { key: "lp-own-model", label: "LP-Own-Model" }];
+const SURFACES = [{ key: "profile", label: "Profile" }, { key: "lp-journey", label: "LP-Urlaub" }, { key: "lp-own-model", label: "LP-Own-Model" }];
 const BELLA_ID = "curator-1783683672619-td4cy";   // the original model; her slides use the legacy blob
 
 // Prompt library for one generation kind: save the current prompt, click a saved one to load it,
@@ -823,7 +823,6 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
   const [caption, setCaption] = useState(slide.caption);
   const [aiBusy, setAiBusy] = useState(false);
   const [vidOpen, setVidOpen] = useState(false);
-  const [showPages, setShowPages] = useState(false);
   const [vidText, setVidText] = useState(videoPromptDefault);
   const [lines, setLines] = useState("");
   const capRef = useRef<HTMLTextAreaElement>(null);
@@ -925,23 +924,20 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
         </span>
       </div>
 
-      {/* Seiten (surface targeting) — advanced, collapsed per row. */}
+      {/* Seiten (surface targeting) — always visible so it's clear where this slide appears. */}
       <div className="mt-1.5">
-        <button type="button" onClick={() => setShowPages(v => !v)}
-          className="text-[10px] font-black uppercase tracking-wide text-white/75 active:scale-95">Seiten {showPages ? "▲" : "▾"}</button>
-        {showPages && (
-          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            {SURFACES.map(su => {
-              const on = slide.pages == null ? true : slide.pages.includes(su.key);
-              return (
-                <button key={su.key} type="button" onClick={() => togglePage(su.key)}
-                  className={`rounded-full px-2 py-1 text-[11px] font-black active:scale-95 ${on ? "bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/40" : "bg-white/5 text-white/80"}`}>
-                  {su.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <p className="text-[10px] font-black uppercase tracking-wide text-white/75">Erscheint auf</p>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+          {SURFACES.map(su => {
+            const on = slide.pages == null ? true : slide.pages.includes(su.key);
+            return (
+              <button key={su.key} type="button" onClick={() => togglePage(su.key)}
+                className={`rounded-full px-2 py-1 text-[11px] font-black active:scale-95 ${on ? "bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/40" : "bg-white/5 text-white/80"}`}>
+                {su.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Make-video panel — enter the MOTION prompt (e.g. "she slowly turns around") before generating. */}
