@@ -47,18 +47,18 @@ export async function buildBellaCard(opts: { surface?: string; customer?: string
 
     const ginaSerial = (gina?.id ?? "").replace(/[^a-z0-9]/gi, "").slice(-6).toUpperCase() || "GINA01";
     const ginaIntro = String((gina as any)?.intro ?? "").trim()
-      || "Hi, I'm Bella — your Monaco influencer. I travel the world, test the newest trends first-hand — I'm obsessed with Gianna Bellucci lingerie — and bring every look to you with photos and stories from each stop. Follow along and never miss a drop.";
-    const ginaTitle = String((gina as any)?.title ?? "").trim() || "Monaco Influencer";
+      || "Hi, I'm Bella — traveling Tenerife for you. I bring back fresh photos, videos and stories from the island every day, styled in the newest looks. Book a journey with me and follow along live.";
+    const ginaTitle = String((gina as any)?.title ?? "").trim() || "Tenerife Influencer";
     const ginaSponsor = String((gina as any)?.sponsor ?? "").trim() || "Gianna Bellucci";
 
-    const LOCATIONS = ["Monte-Carlo, Monaco", "Saint-Tropez, France", "Lake Como, Italy", "Milan, Italy", "Paris, France", "Mykonos, Greece", "Dubai, UAE", "Ibiza, Spain"];
+    const LOCATIONS = ["Playa de las Américas, Tenerife", "Costa Adeje, Tenerife", "Mount Teide, Tenerife", "Los Cristianos, Tenerife", "Puerto de la Cruz, Tenerife", "Masca Village, Tenerife", "Los Gigantes, Tenerife", "Anaga Rural Park, Tenerife"];
     const STORIES = [
-      "Golden hour on the terrace — testing this season's liquid-satin trend. Verdict: obsessed.",
-      "Off-duty in the old town. Sheer lace is having a moment; here's how I'd wear it by day.",
-      "Rooftop sunset, city lights. This is the silhouette everyone will copy next month.",
-      "Poolside and unbothered. Reporting live on the trend that's taking over the Riviera.",
-      "Backstage energy. New drop, first look — you saw it here before anyone else.",
-      "A quiet luxury moment. Sometimes the simplest piece is the whole story.",
+      "Golden hour on the beach — testing this season's swimwear. Verdict: obsessed.",
+      "Off-duty in the old town. Light linen is having a moment; here's how I'd wear it by day.",
+      "Rooftop sunset over the ocean. This is the look everyone will copy next month.",
+      "Poolside and unbothered. Reporting live from the island on today's outfit.",
+      "Hiking Mount Teide at sunrise. New drop, first look — you saw it here before anyone else.",
+      "A quiet island moment. Sometimes the simplest piece is the whole story.",
     ];
     const fmtDate = (iso: string) => { try { return iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : ""; } catch { return ""; } };
     const story: ModelClip[] = ginaTiles.slice(0, 8).map((t, i) => ({
