@@ -505,6 +505,19 @@ export default function CuratorPublicPage() {
   const [epBrandChips, setEpBrandChips] = useState<string[]>([]);
   const [epBrandsDb, setEpBrandsDb] = useState<string[]>([]);
   const [epStyle, setEpStyle] = useState("");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteErr, setDeleteErr] = useState("");
+  const deleteMyAccount = async () => {
+    if (deleteBusy) return;
+    setDeleteBusy(true); setDeleteErr("");
+    try {
+      const r = await fetch("/api/try-this-look", { method: "POST", headers: viewerHeaders(), body: JSON.stringify({ action: "delete-curator", id }) });
+      if (!r.ok) { const d = await r.json().catch(() => ({})); setDeleteErr(d.error || "Could not delete your account."); setDeleteBusy(false); return; }
+      try { localStorage.removeItem("lb_curator"); } catch { /**/ }
+      window.location.href = "/";
+    } catch { setDeleteErr("Network error."); setDeleteBusy(false); }
+  };
   const [vidBusy, setVidBusy] = useState(false);
   const firstFrameDataUrl = (file: File): Promise<string> => new Promise((resolve) => {
     try {
@@ -1446,6 +1459,35 @@ export default function CuratorPublicPage() {
                 className="lb-gold flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition disabled:opacity-60">
                 {epBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Save changes
               </button>
+              {isOwn && (
+                <button type="button" onClick={() => setDeleteConfirmOpen(true)}
+                  className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-full border border-red-500/30 text-[13px] font-black text-red-400 active:scale-95 transition">
+                  Delete account
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Delete-account confirmation — spells out exactly what's lost, so it can't be tapped by accident. */}
+        {deleteConfirmOpen && (
+          <div className="fixed inset-0 z-[96] flex items-center justify-center bg-black/70 p-4" onClick={() => !deleteBusy && setDeleteConfirmOpen(false)}>
+            <div className="w-full max-w-sm rounded-2xl bg-[#161616] p-5 ring-1 ring-white/10" onClick={e => e.stopPropagation()}>
+              <p className="text-base font-black text-white">Delete your account?</p>
+              <p className="mt-2 text-[13px] font-semibold leading-relaxed text-white/60">
+                This permanently deletes your profile <strong className="text-white">and all your data and videos</strong> — every photo, video, caption and follower. This can&apos;t be undone.
+              </p>
+              {deleteErr && <p className="mt-3 text-[12px] font-bold text-red-400">{deleteErr}</p>}
+              <div className="mt-5 flex gap-2">
+                <button type="button" disabled={deleteBusy} onClick={() => setDeleteConfirmOpen(false)}
+                  className="h-11 flex-1 rounded-full border border-white/15 text-[13px] font-black text-white active:scale-95 transition disabled:opacity-60">
+                  Cancel
+                </button>
+                <button type="button" disabled={deleteBusy} onClick={() => void deleteMyAccount()}
+                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-red-500 text-[13px] font-black text-white active:scale-95 transition disabled:opacity-60">
+                  {deleteBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Yes, delete everything
+                </button>
+              </div>
             </div>
           </div>
         )}

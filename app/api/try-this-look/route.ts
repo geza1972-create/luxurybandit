@@ -8,6 +8,7 @@ import {
   readOutfits,
   writeOutfits,
   uploadTryThisLookImage,
+  writeCardStudioSlides,
   DEFAULT_PRICING,
   type CuratorProfile,
   type PricingConfig
@@ -2392,9 +2393,19 @@ export async function POST(request: Request) {
     if (payload.action === "delete-curator") {
       const id = String((payload as any).id ?? "").trim();
       const all = String((payload as any).all ?? "") === "1";
+      // Admin can delete/clear anyone; a model may only delete HER OWN account (self-service,
+      // "Edit profile → Delete account"). No third option — never someone else's, never bulk.
+      const myCuratorId = request.headers.get("x-curator-id")?.trim() ?? "";
+      const isSelfDelete = !all && id && myCuratorId && myCuratorId === id;
+      if (!(await isAdmin(request)) && !isSelfDelete) {
+        return NextResponse.json({ error: "Not authorized to delete this account." }, { status: 401 });
+      }
       const state = await readTryThisLookState();
       const curators = all ? [] : (state.curators ?? []).filter(c => c.id !== id);
       await saveTryThisLookState({ ...state, curators });
+      // Wipe her Card-Studio photos/videos too — "delete my account" must really mean
+      // all her data and content are gone, not just the profile record.
+      if (!all && id) { try { await writeCardStudioSlides([], id); } catch { /* best-effort */ } }
       return NextResponse.json({ ok: true, curators });
     }
 
