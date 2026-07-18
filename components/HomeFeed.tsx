@@ -87,7 +87,7 @@ function RailButton({ icon, label, active, onClick }: { icon: React.ReactNode; l
   );
 }
 
-function Slide({ look, onComment, muted, setMuted, index, onActive, single = false, onClose, recruitAd = false, realModelIds = [] }: { look: FeedLook; onComment: (look: FeedLook) => void; muted: boolean; setMuted: (fn: (m: boolean) => boolean) => void; index: number; onActive: (i: number) => void; single?: boolean; onClose?: () => void; recruitAd?: boolean; realModelIds?: string[] }) {
+function Slide({ look, onComment, muted, setMuted, index, onActive, single = false, onClose, recruitAd = false, realModelIds = [], onOpenModelSearch }: { look: FeedLook; onComment: (look: FeedLook) => void; muted: boolean; setMuted: (fn: (m: boolean) => boolean) => void; index: number; onActive: (i: number) => void; single?: boolean; onClose?: () => void; recruitAd?: boolean; realModelIds?: string[]; onOpenModelSearch?: () => void }) {
   const router = useRouter();
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(look.likeCount ?? 0);
@@ -1136,6 +1136,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             <RailButton icon={<Bookmark className="h-8 w-8" fill={saved ? "currentColor" : "none"} strokeWidth={2} />} label={saved ? "Saved" : "Save"} active={saved} onClick={toggleSave} />
             <RailButton icon={<Send className="h-7 w-7" strokeWidth={2} />} label="Share" onClick={share} />
             <RailButton icon={<Home className="h-7 w-7" strokeWidth={2} />} label="Home" onClick={onClose ?? (() => router.push("/stores?view=grid"))} />
+            {onOpenModelSearch && <RailButton icon={<Search className="h-7 w-7" strokeWidth={2} />} label="Search" onClick={onOpenModelSearch} />}
           </div>
         )}
       </div>
@@ -1497,6 +1498,14 @@ function CommentsSheet({ look, onClose }: { look: FeedLook; onClose: () => void 
 export default function HomeFeed({ looks, single = false, initialLookId, initialTryOnId, onClose, realModelIds = [] }: { looks: FeedLook[]; single?: boolean; initialLookId?: string; initialTryOnId?: string; onClose?: () => void; realModelIds?: string[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [commentsFor, setCommentsFor] = useState<FeedLook | null>(null);
+  // Model filter — a quick search/picker (opened from the Home rail) that narrows the
+  // reel down to just one model's posts. Same author-resolution rule as each Slide uses.
+  const [modelFilter, setModelFilter] = useState<{ id: string; name: string } | null>(null);
+  const [modelPickerOpen, setModelPickerOpen] = useState(false);
+  const [modelSearchQ, setModelSearchQ] = useState("");
+  const authorIdOf = (l: FeedLook) => (l.communityTryOns?.[0]?.name ? l.communityTryOns?.[0]?.curatorId : "") || l.curatorId || "";
+  const authorNameOf = (l: FeedLook) => l.communityTryOns?.[0]?.name || l.curatorName || "";
+  const authorPhotoOf = (l: FeedLook) => l.communityTryOns?.[0]?.curatorPhotoUrl || l.curatorPhotoUrl || "";
   // One global sound switch for the whole feed. It now gates each clip's OWN baked-in
   // music (Pixverse generate_audio_switch) — the active <video> plays its audio when
   // unmuted (see syncVideos). The old global /public mp3 soundtrack is DISABLED so it
@@ -1563,6 +1572,18 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
     tryOns.forEach((t, idx) => expanded.push({ look: { ...lk, communityTryOns: [t] }, key: `${lk.id}::${t.id ?? idx}` }));
   }
 
+  // Distinct models across the whole reel, for the search/filter picker.
+  const modelsList = (() => {
+    const seen = new Map<string, { id: string; name: string; photoUrl: string }>();
+    for (const { look: l } of expanded) {
+      const id = authorIdOf(l);
+      if (!id || seen.has(id)) continue;
+      seen.set(id, { id, name: authorNameOf(l) || "Model", photoUrl: authorPhotoOf(l) });
+    }
+    return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
+  })();
+  const filteredExpanded = modelFilter ? expanded.filter(e => authorIdOf(e.look) === modelFilter.id) : expanded;
+
   // Deep-link: when opened on a specific post (/look/[id]), ROTATE the feed so the
   // target look is first (scrollTop 0). This is rock-solid — unlike scrolling to a
   // computed offset, it doesn't depend on the (variable, still-loading) heights of
@@ -1577,10 +1598,10 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
     const c = String(e.look.createdAt ?? "");
     return v > c ? v : c;
   };
-  const pinnedFirst = [...expanded].sort((a, b) =>
+  const pinnedFirst = [...filteredExpanded].sort((a, b) =>
     ((b.look.communityTryOns?.[0]?.pinned ? 1 : 0) - (a.look.communityTryOns?.[0]?.pinned ? 1 : 0))
     || postDate(b).localeCompare(postDate(a)));
-  const startIdx = initialTryOnId
+  const startIdx = modelFilter ? -1 : initialTryOnId
     ? pinnedFirst.findIndex(e => e.look.communityTryOns?.[0]?.id === initialTryOnId)
     : initialLookId ? pinnedFirst.findIndex(e => e.look.id === initialLookId) : -1;
   const feed = startIdx > 0 ? [...pinnedFirst.slice(startIdx), ...pinnedFirst.slice(0, startIdx)] : pinnedFirst;
@@ -1592,11 +1613,18 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // Jump back to the top of the (now filtered/unfiltered) feed whenever the model filter changes.
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [modelFilter]);
 
   if (!feed.length) {
     return (
       <div className="grid h-[100dvh] place-items-center bg-black text-center text-white/50">
-        <p className="text-sm font-black">No looks yet.</p>
+        <p className="text-sm font-black">{modelFilter ? `No posts from ${modelFilter.name} yet.` : "No looks yet."}</p>
+        {modelFilter && (
+          <button type="button" onClick={() => setModelFilter(null)} className="mt-3 rounded-full bg-white/10 px-4 py-2 text-xs font-black text-white">Clear filter</button>
+        )}
       </div>
     );
   }
@@ -1607,9 +1635,48 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
           up to full width (which pushed the Look/Escape thumbs off the bottom). */}
       <div className="flex h-[100dvh] w-full justify-center bg-black">
         <div ref={scrollRef} className="h-[100dvh] w-full max-w-[440px] snap-y snap-mandatory overflow-y-scroll overscroll-contain bg-black [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {feed.map((entry, i) => <Slide key={entry.key} look={entry.look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} index={i} onActive={handleActive} single={single} onClose={onClose} recruitAd={i % 4 === 1} realModelIds={realModelIds} />)}
+          {feed.map((entry, i) => <Slide key={entry.key} look={entry.look} onComment={setCommentsFor} muted={muted} setMuted={setMuted} index={i} onActive={handleActive} single={single} onClose={onClose} recruitAd={i % 4 === 1} realModelIds={realModelIds} onOpenModelSearch={() => setModelPickerOpen(true)} />)}
         </div>
       </div>
+      {/* Active model filter — a small dismissible chip, fixed above the scrolling feed. */}
+      {modelFilter && (
+        <button type="button" onClick={() => setModelFilter(null)}
+          className="fixed left-1/2 z-30 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-black/70 px-3.5 py-1.5 text-[12px] font-black text-white backdrop-blur"
+          style={{ top: "calc(env(safe-area-inset-top) + 0.6rem)" }}>
+          <Search className="h-3.5 w-3.5" /> {modelFilter.name} <X className="h-3.5 w-3.5 opacity-70" />
+        </button>
+      )}
+      {/* Model search/picker — opened from the Home rail, narrows the reel to one model. */}
+      {modelPickerOpen && (
+        <div className="fixed inset-0 z-[110] flex flex-col bg-black/80 backdrop-blur-sm" onClick={() => setModelPickerOpen(false)}>
+          <div className="mx-auto flex h-full w-full max-w-[440px] flex-col bg-[#0d0b0a]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
+              <Search className="h-4 w-4 text-white/40" />
+              <input autoFocus value={modelSearchQ} onChange={e => setModelSearchQ(e.target.value)} placeholder="Search a model…"
+                className="h-9 flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/30" />
+              <button type="button" onClick={() => setModelPickerOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto overscroll-contain px-2 py-2">
+              {modelsList.filter(m => m.name.toLowerCase().includes(modelSearchQ.trim().toLowerCase())).map(m => (
+                <button key={m.id} type="button"
+                  onClick={() => { setModelFilter(m); setModelPickerOpen(false); setModelSearchQ(""); }}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left active:bg-white/5">
+                  <span className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white/10">
+                    {m.photoUrl
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={m.photoUrl} alt={m.name} className="h-full w-full object-cover" />
+                      : null}
+                  </span>
+                  <span className="truncate text-sm font-black text-white">{m.name}</span>
+                </button>
+              ))}
+              {modelsList.filter(m => m.name.toLowerCase().includes(modelSearchQ.trim().toLowerCase())).length === 0 && (
+                <p className="py-8 text-center text-sm font-bold text-white/30">No models found.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {/* Slide-coupled feed soundtrack — shuffled /public mp3s, the track changes
           as you scroll and resumes where it left off. Only audio source (videos muted). */}
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
