@@ -150,6 +150,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
   const [infoData, setInfoData] = useState<Record<string, any> | null>(null);
   const [infoLoading, setInfoLoading] = useState(false);
   const openLookInfo = async () => {
+    // Card-Studio story slides aren't real "looks" — /api/try-this-look?postInfo has nothing
+    // for them (always "No info found"). Skip the fetch; the sheet shows her promo card instead.
+    if (String(look.id).startsWith("slide-")) { setInfoOpen(true); setInfoData(null); setInfoLoading(false); return; }
     setInfoOpen(true); setInfoData(null); setInfoLoading(true);
     try {
       const pin = (() => { try { return localStorage.getItem("luxurybandit-try-look-admin-pin") ?? ""; } catch { return ""; } })();
@@ -1289,6 +1292,29 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
             <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
               {infoLoading ? (
                 <div className="flex items-center justify-center py-10 text-black/40"><Loader2 className="h-5 w-5 animate-spin" /></div>
+              ) : String(look.id).startsWith("slide-") ? (
+                <div className="flex flex-col items-center gap-3 py-4 text-center">
+                  <span className="h-16 w-16 overflow-hidden rounded-full bg-black/10">
+                    {authorPhotoUrl
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={authorPhotoUrl} alt={authorName || ""} className="h-full w-full object-cover" />
+                      : null}
+                  </span>
+                  <p className="text-base font-black text-black">{authorName || "This model"}</p>
+                  <p className="max-w-xs text-[13px] font-semibold text-black/55">
+                    Subscribe to unlock all of {authorName || "her"}'s private posts, chat with her anytime, or book a journey together.
+                  </p>
+                  <div className="mt-1 flex w-full flex-col gap-2">
+                    <button type="button" onClick={() => { setInfoOpen(false); setShowSubscribe(true); }}
+                      className="w-full rounded-full bg-amber-400 py-2.5 text-sm font-black text-black active:opacity-80">Subscribe</button>
+                    <button type="button" onClick={() => { setInfoOpen(false); setShowChat(true); }}
+                      className="w-full rounded-full border border-black/15 py-2.5 text-sm font-black text-black active:opacity-80">Chat with {authorName || "her"}</button>
+                    {authorCuratorId && (
+                      <button type="button" onClick={() => { setInfoOpen(false); router.push(`/curator/${authorCuratorId}`); }}
+                        className="w-full rounded-full border border-black/15 py-2.5 text-sm font-black text-black active:opacity-80">Book a journey with {authorName || "her"}</button>
+                    )}
+                  </div>
+                </div>
               ) : !infoData ? (
                 <p className="py-8 text-center text-sm font-bold text-black/35">No info found.</p>
               ) : (() => {
