@@ -32,6 +32,7 @@ export async function GET(request: Request) {
     for (const s of slides) {
       if (s.customer) continue;                        // per-customer cards never hit the public feed
       if (s.pendingApproval) continue;                  // her own public upload, awaiting admin review
+      if (s.hidden === true) continue;                  // "Auf Card" turned off — blurred teaser, not the public feed
       if (privateOnly && s.private !== true) continue; // Private tab = only private slides
       raw.push({ s, c, name });
     }
