@@ -317,6 +317,9 @@ export type CuratorProfile = {
   creditsEarned?: number;       // lifetime earned via engagement
   awardedMilestones?: string[]; // earn-milestone keys already granted
   creditLog?: { at: string; credits: number; label: string }[];
+  // My Studio self-upload credits — separate pool from the AI-generation `credits` above.
+  // Each of HER OWN photo/video uploads spends one; admin-gifted content doesn't touch this.
+  studioUploadCredits?: number; // missing → STUDIO_UPLOAD_STARTER_CREDITS
 };
 
 // An affiliate partner store the admin maintains. Curators source looks from
@@ -481,6 +484,8 @@ export type BellaSlide = {
   customer?: string;     // customer email this slide is FOR; empty = the general (public) card
   order?: number;        // manual sort order within its scope (ascending); undefined = by createdAt
   createdAt?: string;
+  source?: "admin" | "model"; // who added it — "admin" = a gift from LuxuryBandit, "model" = she uploaded it herself
+  pendingApproval?: boolean;  // her own PUBLIC upload, awaiting admin review — not shown publicly yet
 };
 
 // A booked journey (from the /urlaub-mit-bella landing) — so the Card Studio can pick a customer

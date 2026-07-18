@@ -287,6 +287,24 @@ export default function AdminPage() {
   const [edit, setEdit] = useState<Curator | null>(null); // curator being edited
   const [editLook, setEditLook] = useState<Look | null>(null); // listing being edited
   const [creditsDraft, setCreditsDraft] = useState(""); // credits input in curator sheet
+  const [studioCreditsDraft, setStudioCreditsDraft] = useState(""); // her My-Studio upload credits
+  // Models' own PUBLIC My-Studio uploads awaiting approval before they go live anywhere public.
+  type PendingSlide = { modelId: string; modelName: string; id: string; kind: string; caption: string; createdAt: string; mediaUrl: string; posterUrl: string };
+  const [pendingSlides, setPendingSlides] = useState<PendingSlide[]>([]);
+  const [pendingOpen, setPendingOpen] = useState(false);
+  const [pendingBusy, setPendingBusy] = useState("");
+  const loadPending = () => {
+    fetch("/api/pending-slides", { headers: headers() }).then(r => r.json()).then(d => setPendingSlides(Array.isArray(d?.items) ? d.items : [])).catch(() => {});
+  };
+  useEffect(() => { loadPending(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const reviewSlide = async (s: PendingSlide, action: "approve" | "reject") => {
+    setPendingBusy(s.id);
+    try {
+      const r = await fetch("/api/pending-slides", { method: "POST", headers: headers(), body: JSON.stringify({ modelId: s.modelId, slideId: s.id, action }) });
+      if (r.ok) setPendingSlides(list => list.filter(x => x.id !== s.id));
+    } catch { /* ignore */ }
+    setPendingBusy("");
+  };
   const [saving, setSaving] = useState(false);
   const [tryonPaused, setTryonPaused] = useState(false); // global try-on kill-switch
   const [tryonBusy, setTryonBusy] = useState(false);
@@ -1133,6 +1151,20 @@ export default function AdminPage() {
     setBusy("");
   };
 
+  // Her My Studio self-upload credits (separate pool — gates only HER OWN photo/video uploads).
+  const saveStudioCredits = async () => {
+    if (!edit) return;
+    const n = Number(studioCreditsDraft);
+    if (!Number.isFinite(n)) { setError("Studio credits must be a number."); return; }
+    setBusy(edit.id); setError("");
+    try {
+      const r = await fetch("/api/curator", { method: "POST", headers: headers(), body: JSON.stringify({ action: "set-studio-credits", id: edit.id, studioUploadCredits: n }) });
+      if (r.ok) { setCurators(cs => cs.map(c => c.id === edit.id ? { ...c, studioUploadCredits: n } as any : c)); setEdit(e => e && ({ ...e, studioUploadCredits: n } as any)); }
+      else await fail(r, "Could not set studio credits");
+    } catch { setError("Network error."); }
+    setBusy("");
+  };
+
   // Toggle the "✓ Real model" badge (a real person vs our AI persona). Sets BOTH the carousel
   // badge (realModel) and the profile banner (realBadge), same as the profile-page button.
   const toggleRealModel = async (c: Curator) => {
@@ -1576,6 +1608,12 @@ export default function AdminPage() {
             <h1 className="text-3xl font-black leading-none">Admin</h1>
           </div>
           <div className="flex items-center gap-2">
+            {pendingSlides.length > 0 && (
+              <button type="button" onClick={() => setPendingOpen(true)} title="Models' public uploads awaiting your approval"
+                className="flex h-10 items-center gap-1.5 rounded-xl bg-amber-400 px-3 text-xs font-black text-black active:scale-95 transition">
+                <Eye className="h-4 w-4" /> Review {pendingSlides.length}
+              </button>
+            )}
             <button type="button" onClick={toggleDark} title={dark ? "Switch to light" : "Switch to dark"} className="grid h-10 w-10 place-items-center rounded-xl border border-black/10 bg-white active:scale-95 transition">
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
@@ -2681,8 +2719,8 @@ export default function AdminPage() {
               return (
                 <tr key={c.id}
                   role={house ? undefined : "button"} tabIndex={house ? undefined : 0}
-                  onClick={house ? undefined : () => { setEdit({ ...c }); setCreditsDraft(String(c.credits ?? "")); }}
-                  onKeyDown={house ? undefined : e => { if (e.key === "Enter") { setEdit({ ...c }); setCreditsDraft(String(c.credits ?? "")); } }}
+                  onClick={house ? undefined : () => { setEdit({ ...c }); setCreditsDraft(String(c.credits ?? "")); setStudioCreditsDraft(String((c as any).studioUploadCredits ?? 10)); }}
+                  onKeyDown={house ? undefined : e => { if (e.key === "Enter") { setEdit({ ...c }); setCreditsDraft(String(c.credits ?? "")); setStudioCreditsDraft(String((c as any).studioUploadCredits ?? 10)); } }}
                   className={`text-sm ${house ? "" : `cursor-pointer ${off ? "opacity-70" : ""}`}`}>
                   {/* Model — avatar + name + quick status/real toggles */}
                   <td className={`${td} border-l rounded-l-xl pl-3`}>
@@ -3079,6 +3117,49 @@ export default function AdminPage() {
         <PhotoCropper src={faceCropSrc} aspect="portrait" onCancel={() => setFaceCropSrc("")} onDone={d => void saveFaceCrop(d)} />
       )}
 
+      {/* ── Pending review: models' own PUBLIC uploads awaiting approval ── */}
+      {pendingOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" onClick={e => { if (e.target === e.currentTarget) setPendingOpen(false); }}>
+          <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl">
+            <div className="flex items-center justify-between border-b border-black/10 px-5 py-4">
+              <div>
+                <p className="text-base font-black">Pending review</p>
+                <p className="text-[12px] font-bold text-ink/45">Public uploads models made themselves — approve to publish, reject to remove.</p>
+              </div>
+              <button type="button" onClick={() => setPendingOpen(false)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="grid gap-3 overflow-y-auto p-4">
+              {pendingSlides.length === 0 ? (
+                <p className="py-10 text-center text-sm font-bold text-ink/40">Nothing pending.</p>
+              ) : pendingSlides.map(s => (
+                <div key={s.id} className="flex gap-3 rounded-xl border border-black/10 bg-panel p-3">
+                  <span className="h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-black/5">
+                    {(s.kind === "video" ? s.posterUrl : s.mediaUrl) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={s.kind === "video" ? s.posterUrl : s.mediaUrl} alt="" className="h-full w-full object-cover" />
+                    ) : null}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-black">{s.modelName}</p>
+                    <p className="line-clamp-2 text-[12px] font-semibold text-ink/55">{s.caption || "(no caption)"}</p>
+                    <div className="mt-2 flex gap-2">
+                      <button type="button" disabled={pendingBusy === s.id} onClick={() => void reviewSlide(s, "approve")}
+                        className="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-500 text-xs font-black text-black active:scale-95 transition disabled:opacity-50">
+                        <Check className="h-3.5 w-3.5" /> Approve
+                      </button>
+                      <button type="button" disabled={pendingBusy === s.id} onClick={() => void reviewSlide(s, "reject")}
+                        className="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-red-500 text-xs font-black text-white active:scale-95 transition disabled:opacity-50">
+                        <Trash2 className="h-3.5 w-3.5" /> Reject
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Curator edit sheet ── */}
       {edit && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" onClick={e => { if (e.target === e.currentTarget) setEdit(null); }}>
@@ -3126,6 +3207,17 @@ export default function AdminPage() {
                     className="h-10 w-full rounded-lg border border-black/10 bg-white px-3 text-sm font-black text-ink outline-none focus:border-cobalt" />
                 </label>
                 <button type="button" disabled={busy === edit.id || creditsDraft === String(edit.credits ?? "")} onClick={() => void saveCredits()}
+                  className="h-10 shrink-0 rounded-lg bg-black px-4 text-xs font-black text-white active:scale-95 transition disabled:opacity-40">
+                  {busy === edit.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Set credits"}
+                </button>
+              </div>
+              <div className="flex items-end gap-2 rounded-xl bg-panel p-3 lg:col-span-2">
+                <label className="grid flex-1 gap-1">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-ink/40">My Studio upload credits</span>
+                  <input type="number" value={studioCreditsDraft} onChange={e => setStudioCreditsDraft(e.target.value)}
+                    className="h-10 w-full rounded-lg border border-black/10 bg-white px-3 text-sm font-black text-ink outline-none focus:border-cobalt" />
+                </label>
+                <button type="button" disabled={busy === edit.id || studioCreditsDraft === String((edit as any).studioUploadCredits ?? "")} onClick={() => void saveStudioCredits()}
                   className="h-10 shrink-0 rounded-lg bg-black px-4 text-xs font-black text-white active:scale-95 transition disabled:opacity-40">
                   {busy === edit.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Set credits"}
                 </button>

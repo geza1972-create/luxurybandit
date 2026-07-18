@@ -1128,6 +1128,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, credits: info });
   }
 
+  // Admin: set how many of HER OWN My Studio uploads a model has left (separate pool from
+  // the AI-generation credits above — this one only gates her self-service photo/video uploads).
+  if (action === "set-studio-credits") {
+    if (!(await isAdminRequest(request))) return jsonError("Admin access required.", 401);
+    const id = String(payload.id ?? "").trim();
+    const n = Number((payload as any).studioUploadCredits);
+    if (!id || !Number.isFinite(n)) return jsonError("Missing curator id or credits.");
+    const state = await readTryThisLookState();
+    const c = (state.curators ?? []).find(x => x.id === id);
+    if (!c) return jsonError("Model not found.", 404);
+    (c as any).studioUploadCredits = n;
+    await saveTryThisLookState(state);
+    return NextResponse.json({ ok: true, studioUploadCredits: n });
+  }
+
   // Admin: give every curator a baseline follower count in one write. Varied so
   // they don't all read the same number. min/max optional (defaults 112k–620k).
   if (action === "boost-all-followers") {

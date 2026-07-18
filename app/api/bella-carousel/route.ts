@@ -3,6 +3,11 @@ import { readTryThisLookState, saveTryThisLookState, createSignedUploadUrl, getS
   readCardStudioSlides, writeCardStudioSlides, readCardStudioBackup, type BellaSlide } from "@/lib/try-this-look-store";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { getSellerFromRequest } from "@/lib/supabase-auth-server";
+import { sendEmail } from "@/lib/email-send";
+
+// A model's own upload starts with this many My-Studio credits (separate pool from AI-generation
+// credits) — she can't upload unlimited photos/videos; the admin tops her up from her profile.
+const STUDIO_UPLOAD_STARTER_CREDITS = 10;
 
 export const runtime = "nodejs";
 
@@ -33,6 +38,7 @@ async function signSlides(slides: BellaSlide[], includePaths = false) {
   return Promise.all([...slides].sort(slideSort).map(async (s) => ({
     id: s.id, kind: s.kind, title: s.title ?? "", caption: s.caption ?? "",
     hidden: s.hidden === true, private: s.private === true, pages: s.pages ?? null, customer: s.customer ?? "", order: s.order ?? null,
+    source: s.source ?? null, pendingApproval: s.pendingApproval === true,
     ...(includePaths ? { path: s.path ?? "", posterPath: s.posterPath ?? "", createdAt: s.createdAt ?? "" } : {}),
     mediaUrl: s.path ? await getSignedUrl(s.path).catch(() => "") : "",
     posterUrl: s.posterPath ? await getSignedUrl(s.posterPath).catch(() => "") : "",
@@ -62,6 +68,8 @@ function normalizeSlide(raw: any): BellaSlide | null {
     customer,
     order: Number.isFinite(raw?.order) ? Number(raw.order) : undefined,
     createdAt: String(raw?.createdAt ?? "").trim() || new Date().toISOString(),
+    source: raw?.source === "admin" || raw?.source === "model" ? raw.source : undefined,
+    pendingApproval: raw?.pendingApproval === true,
   };
 }
 
@@ -89,7 +97,8 @@ export async function GET(request: Request) {
   }
   const surface = url.searchParams.get("surface") || "lp-journey";
   // Include HIDDEN slides too — the card shows them as VERY blurred teasers (last), it doesn't drop them.
-  const visible = all.filter((s) => !s.customer && onSurface(s, surface));
+  // A model's own public upload awaiting admin review (pendingApproval) is NOT shown here yet.
+  const visible = all.filter((s) => !s.customer && onSurface(s, surface) && !s.pendingApproval);
   return NextResponse.json({ slides: await signSlides(visible) });
 }
 
@@ -124,6 +133,12 @@ export async function POST(request: Request) {
   }
 
   if (body.sign) {
+    if (isOwner) {
+      const state = await readTryThisLookState();
+      const curator = (state.curators ?? []).find(c => c.id === model);
+      const have = curator ? (curator.studioUploadCredits ?? STUDIO_UPLOAD_STARTER_CREDITS) : 0;
+      if (have <= 0) return NextResponse.json({ error: "No upload credits left. Contact LuxuryBandit for more." }, { status: 403 });
+    }
     const folder = body.kind === "video" ? "videos" : "uploads";
     const ext = (String(body.ext ?? "").replace(/[^a-z0-9]/gi, "").toLowerCase() || (body.kind === "video" ? "mp4" : "jpg"));
     const { path, uploadUrl } = await createSignedUploadUrl(folder, ext);
@@ -143,6 +158,50 @@ export async function POST(request: Request) {
     const slides = body.commit.map(normalizeSlide).filter(Boolean) as BellaSlide[];
     // A model manages ONLY her own public card — never per-customer slides.
     if (isOwner) for (const s of slides) s.customer = undefined;
+
+    // Figure out which slides are actually NEW in this commit (vs. edits to existing ones),
+    // so credits/attribution/pending-review only apply to genuinely new uploads.
+    const existing = await readCardStudioSlides(model);
+    const existingIds = new Set(existing.map(s => s.id));
+    const existingById = new Map(existing.map(s => [s.id, s]));
+    const newSlides = slides.filter(s => !existingIds.has(s.id));
+
+    // Safety net for EXISTING slides: a model can't sneak a slide public without review by
+    // flipping `private` client-side — going private→public re-enters the review queue
+    // (never trust the client's own pendingApproval for this transition).
+    if (isOwner) {
+      for (const s of slides) {
+        const before = existingById.get(s.id);
+        if (before && before.source === "model" && before.private === true && s.private === false) {
+          s.pendingApproval = true;
+        }
+      }
+    }
+
+    if (newSlides.length) {
+      if (admin) {
+        // PIN-mode = LuxuryBandit adding content FOR her — a gift. Goes live immediately,
+        // doesn't touch her upload credits, and she gets notified by email.
+        for (const s of newSlides) { s.source = "admin"; s.pendingApproval = false; }
+      } else if (isOwner) {
+        // Her own upload: mark it as hers. PUBLIC uploads need admin review before they're
+        // visible anywhere public — PRIVATE ones go live for her subscribers immediately.
+        for (const s of newSlides) { s.source = "model"; s.pendingApproval = !s.private; }
+
+        // Enforce her My Studio upload credits — one credit per new upload.
+        const state = await readTryThisLookState();
+        const curator = (state.curators ?? []).find(c => c.id === model);
+        const have = curator ? (curator.studioUploadCredits ?? STUDIO_UPLOAD_STARTER_CREDITS) : 0;
+        if (newSlides.length > have) {
+          return NextResponse.json({ error: `Not enough upload credits (you have ${have} left). Contact LuxuryBandit for more.` }, { status: 403 });
+        }
+        if (curator) {
+          curator.studioUploadCredits = have - newSlides.length;
+          await saveTryThisLookState(state);
+        }
+      }
+    }
+
     // Re-number order within each scope so the given array order is authoritative.
     const seen = new Map<string, number>();
     for (const s of slides) {
@@ -150,6 +209,24 @@ export async function POST(request: Request) {
       const n = (seen.get(scope) ?? -1) + 1; seen.set(scope, n); s.order = n;
     }
     await writeCardStudioSlides(slides, model);
+
+    // Notify her by email that LuxuryBandit gifted her new content (best-effort, never blocks the save).
+    if (admin && newSlides.length) {
+      try {
+        const state = await readTryThisLookState();
+        const curator = (state.curators ?? []).find(c => c.id === model);
+        const email = curator?.email?.trim();
+        const name = curator?.modelName?.trim() || [curator?.firstName, curator?.lastName].filter(Boolean).join(" ").trim() || "there";
+        if (email) {
+          await sendEmail({
+            to: email,
+            subject: "You received new photos/videos from LuxuryBandit 🎁",
+            html: `<p>Hi ${name},</p><p>LuxuryBandit just added ${newSlides.length} new ${newSlides.length === 1 ? "post" : "posts"} (photos/videos) to your profile — a gift for you.</p><p>Open My Studio to see and manage them.</p>`,
+          });
+        }
+      } catch { /* best-effort — never fail the save over a notification */ }
+    }
+
     return NextResponse.json({ ok: true, slides: await signSlides(slides, true) });
   }
 

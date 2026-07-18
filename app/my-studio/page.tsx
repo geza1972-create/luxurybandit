@@ -12,6 +12,7 @@ type Slide = {
   id: string; kind: "image" | "video"; title: string; caption: string;
   private: boolean; hidden: boolean; mediaUrl: string; posterUrl: string;
   path: string; posterPath: string; createdAt: string; order: number | null;
+  source: "admin" | "model" | null; pendingApproval: boolean;
 };
 
 const normFromServer = (s: any): Slide => ({
@@ -21,6 +22,8 @@ const normFromServer = (s: any): Slide => ({
   private: s?.private === true, hidden: s?.hidden === true,
   mediaUrl: s?.mediaUrl || "", posterUrl: s?.posterUrl || "",
   createdAt: s?.createdAt || "", order: typeof s?.order === "number" ? s.order : null,
+  source: s?.source === "admin" || s?.source === "model" ? s.source : null,
+  pendingApproval: s?.pendingApproval === true,
 });
 
 const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
@@ -38,6 +41,7 @@ export default function MyStudioPage() {
   const [busy, setBusy] = useState<"" | "image" | "video" | "save">("");
   const [savedAt, setSavedAt] = useState(0);   // bump to flash "Saved ✓"
   const [err, setErr] = useState("");
+  const [credits, setCredits] = useState<number | null>(null); // null = admin mode (unlimited gifts)
   const imgRef = useRef<HTMLInputElement>(null);
   const vidRef = useRef<HTMLInputElement>(null);
   const adminModeRef = useRef(false);
@@ -73,6 +77,7 @@ export default function MyStudioPage() {
         const isModel = c?.id && (c.realModel === true || c.imageSource === "own");
         if (!isModel) { setPhase("notmodel"); return; }
         setMe({ id: c.id, name: c.modelName || c.firstName || "Model" });
+        setCredits(typeof c.studioUploadCredits === "number" ? c.studioUploadCredits : 10);
         const s = await fetch(`/api/bella-carousel?model=${encodeURIComponent(c.id)}`, { headers: { Authorization: `Bearer ${t}` } }).then(r => r.json());
         setSlides((s.slides || []).map(normFromServer));
         setPhase("ready");
@@ -91,9 +96,18 @@ export default function MyStudioPage() {
         id: s.id, kind: s.kind, path: s.path, posterPath: s.posterPath || undefined,
         title: s.title || undefined, caption: s.caption || undefined,
         hidden: s.hidden, private: s.private, pages: null, order: i, createdAt: s.createdAt,
+        source: s.source ?? undefined, pendingApproval: s.pendingApproval,
       }));
       const res = await fetch("/api/bella-carousel", { method: "POST", headers: authHeaders(), body: JSON.stringify({ commit: payload, model: me.id }) }).then(r => r.json());
-      if (res?.ok) { setSlides((res.slides || []).map(normFromServer)); setSavedAt(Date.now()); }
+      if (res?.ok) {
+        setSlides((res.slides || []).map(normFromServer));
+        setSavedAt(Date.now());
+        // Re-check her remaining upload credits after a new upload was committed.
+        if (!adminModeRef.current) {
+          const d = await fetch("/api/curator?me=1", { headers: { Authorization: `Bearer ${token()}` } }).then(r => r.json()).catch(() => null);
+          if (typeof d?.curator?.studioUploadCredits === "number") setCredits(d.curator.studioUploadCredits);
+        }
+      }
       else setErr(res?.error || "Could not save.");
     } catch { setErr("Could not save."); }
     finally { setBusy(""); }
@@ -103,6 +117,10 @@ export default function MyStudioPage() {
   const addFile = async (file: File | undefined, kind: "image" | "video") => {
     if (!file || !me) return;
     setErr("");
+    if (!adminModeRef.current && credits !== null && credits <= 0) {
+      setErr("No upload credits left. Contact LuxuryBandit for more.");
+      return;
+    }
     const okType = kind === "video" ? file.type.startsWith("video/") : file.type.startsWith("image/");
     if (!okType) { setErr(`Please pick a ${kind === "video" ? "video" : "photo"} file.`); return; }
     if (file.size > 250 * 1024 * 1024) { setErr("File too large (max 250 MB)."); return; }
@@ -110,13 +128,14 @@ export default function MyStudioPage() {
     try {
       const ext = (file.name.split(".").pop() || (kind === "video" ? "mp4" : "jpg")).toLowerCase();
       const sign = await fetch("/api/bella-carousel", { method: "POST", headers: authHeaders(), body: JSON.stringify({ sign: true, kind, ext, model: me.id }) }).then(r => r.json());
-      if (!sign?.uploadUrl) throw new Error();
+      if (!sign?.uploadUrl) { setErr(sign?.error || "Upload failed. Please try again."); setBusy(""); return; }
       const put = await fetch(sign.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type || (kind === "video" ? "video/mp4" : "image/jpeg"), "x-upsert": "true" }, body: file });
       if (!put.ok) throw new Error();
       const fresh: Slide = {
         id: crypto.randomUUID(), kind, path: sign.path, posterPath: "", title: "", caption: "",
         private: false, hidden: false, mediaUrl: URL.createObjectURL(file), posterUrl: "",
         createdAt: new Date().toISOString(), order: null,
+        source: adminModeRef.current ? "admin" : "model", pendingApproval: !adminModeRef.current,
       };
       const merged = [...slides, fresh];
       setSlides(merged);        // optimistic — shows instantly
@@ -126,7 +145,11 @@ export default function MyStudioPage() {
   };
 
   const setPrivate = (id: string, priv: boolean) => {
-    const next = slides.map(s => s.id === id ? { ...s, private: priv } : s);
+    // Switching a slide to PUBLIC sends it back for admin review, unless it's an
+    // admin-gifted slide (already pre-approved). Going PRIVATE never needs review.
+    const next = slides.map(s => s.id === id
+      ? { ...s, private: priv, pendingApproval: priv ? false : s.source === "admin" ? false : true }
+      : s);
     setSlides(next); void save(next);
   };
   const setCaption = (id: string, caption: string) => setSlides(prev => prev.map(s => s.id === id ? { ...s, caption } : s));
@@ -178,22 +201,28 @@ export default function MyStudioPage() {
       </div>
 
       <div className="mx-auto max-w-md px-5 pt-5">
+        {/* Upload credits — she can't upload unlimited photos/videos. Not shown in admin mode (gifts are unlimited). */}
+        {credits !== null && (
+          <p className={`mb-3 text-center text-[12px] font-black ${credits <= 0 ? "text-red-400" : "text-white/50"}`}>
+            {credits} upload{credits === 1 ? "" : "s"} left
+          </p>
+        )}
         {/* Add buttons */}
         <div className="grid grid-cols-2 gap-2.5">
-          <button type="button" onClick={() => imgRef.current?.click()} disabled={busy === "image"}
-            className="flex h-24 flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-amber-400/40 bg-amber-400/[0.06] text-amber-300 active:scale-95 transition disabled:opacity-60">
+          <button type="button" onClick={() => imgRef.current?.click()} disabled={busy === "image" || (credits !== null && credits <= 0)}
+            className="flex h-24 flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-amber-400/40 bg-amber-400/[0.06] text-amber-300 active:scale-95 transition disabled:opacity-40">
             {busy === "image" ? <Loader2 className="h-6 w-6 animate-spin" /> : <ImagePlus className="h-6 w-6" />}
             <span className="text-[13px] font-black">Add photo</span>
           </button>
-          <button type="button" onClick={() => vidRef.current?.click()} disabled={busy === "video"}
-            className="flex h-24 flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-violet-400/40 bg-violet-400/[0.06] text-violet-300 active:scale-95 transition disabled:opacity-60">
+          <button type="button" onClick={() => vidRef.current?.click()} disabled={busy === "video" || (credits !== null && credits <= 0)}
+            className="flex h-24 flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-violet-400/40 bg-violet-400/[0.06] text-violet-300 active:scale-95 transition disabled:opacity-40">
             {busy === "video" ? <Loader2 className="h-6 w-6 animate-spin" /> : <Video className="h-6 w-6" />}
             <span className="text-[13px] font-black">Add video</span>
           </button>
         </div>
         <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={e => { void addFile(e.target.files?.[0], "image"); e.target.value = ""; }} />
         <input ref={vidRef} type="file" accept="video/*" className="hidden" onChange={e => { void addFile(e.target.files?.[0], "video"); e.target.value = ""; }} />
-        <p className="mt-2 text-center text-[11px] font-bold text-white/40"><Globe className="mr-1 inline h-3 w-3" /> Public = everyone · <Lock className="mx-1 inline h-3 w-3" /> Private = only your subscribers</p>
+        <p className="mt-2 text-center text-[11px] font-bold text-white/40"><Globe className="mr-1 inline h-3 w-3" /> Public = everyone (reviewed first) · <Lock className="mx-1 inline h-3 w-3" /> Private = only your subscribers, live instantly</p>
         {err && <p className="mt-3 text-center text-[13px] font-bold text-red-400">{err}</p>}
 
         {/* Slides */}
@@ -212,6 +241,12 @@ export default function MyStudioPage() {
                   <span className={`absolute left-2 top-2 rounded-full px-2.5 py-1 text-[10px] font-black backdrop-blur ${s.private ? "bg-black/60 text-amber-300 ring-1 ring-amber-300/40" : "bg-emerald-500/80 text-black"}`}>
                     {s.private ? <><Lock className="mr-1 inline h-3 w-3" />Private</> : <><Globe className="mr-1 inline h-3 w-3" />Public</>}
                   </span>
+                  {s.source === "admin" && (
+                    <span className="absolute right-2 top-2 rounded-full bg-amber-400 px-2.5 py-1 text-[10px] font-black text-black backdrop-blur">🎁 Gift from LuxuryBandit</span>
+                  )}
+                  {s.pendingApproval && (
+                    <span className="absolute inset-x-2 bottom-2 rounded-full bg-black/70 px-2.5 py-1 text-center text-[10px] font-black text-amber-300 backdrop-blur">⏳ Pending review — not public yet</span>
+                  )}
                 </div>
                 <div className="p-3">
                   <textarea rows={2} value={s.caption} onChange={e => setCaption(s.id, e.target.value)} onBlur={() => void save(slides)}
