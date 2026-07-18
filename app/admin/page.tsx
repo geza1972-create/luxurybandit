@@ -36,7 +36,7 @@ type Curator = {
   phone?: string; address?: string; country?: string; instagram?: string; verificationSelfieUrl?: string;
   brands?: string; style?: string; genderFocus?: string; ageFocus?: string;
   colors?: string; fabrics?: string; occasions?: string; priceTiers?: string; fitFocus?: string;
-  motto?: string; bio?: string;
+  motto?: string; bio?: string; title?: string; intro?: string; sponsor?: string;
   status?: "active" | "pending" | "deactivated";
   photoUrl?: string; credits?: number; creditsSpent?: number; createdAt?: string; priceCents?: number;
   // Server-computed engagement (curators=1): comments on her posts, total views
@@ -3331,6 +3331,9 @@ export default function AdminPage() {
               <Field label="Fit focus" v={edit.fitFocus} on={v => setEdit(e => e && { ...e, fitFocus: v })} />
               <Field label="Motto" v={edit.motto} on={v => setEdit(e => e && { ...e, motto: v })} />
               <Area label="Bio" v={edit.bio} on={v => setEdit(e => e && { ...e, bio: v })} />
+              <div className="my-1 flex items-center gap-2 text-[11px] font-black uppercase tracking-wider text-ink/35 lg:col-span-2"><Sparkles className="h-3.5 w-3.5" /> Journey / card content</div>
+              <Field2 label="Card title (e.g. 'Tenerife Influencer')" v={edit.title} on={v => setEdit(e => e && { ...e, title: v })} label2="Sponsor / brand tag" v2={edit.sponsor} on2={v => setEdit(e => e && { ...e, sponsor: v })} />
+              <Area label="Intro (shown on her collectible card)" v={edit.intro} on={v => setEdit(e => e && { ...e, intro: v })} />
             </div>
 
             <div className="flex items-center gap-2 border-t border-black/10 px-5 py-4">
