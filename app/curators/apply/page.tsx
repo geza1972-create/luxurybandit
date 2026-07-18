@@ -11,6 +11,7 @@ import ModelCard from "@/components/ModelCard";
 import PasswordInput from "@/components/PasswordInput";
 
 const COUNTRIES = countryOptions();
+const BELLA_ID = "curator-1783683672619-td4cy"; // the flagship example card shown to every new applicant
 
 // Elegant single names suggested (randomly) in the influencer-name field on load.
 const NAME_SUGGESTIONS = [
@@ -155,18 +156,21 @@ export default function CuratorApplyPage() {
     }).catch(() => {});
   }, []);
 
-  // Real posted SLIDES for the preview card (currently Bella's) — so the applicant sees how a card
-  // with actual posts looks, instead of wardrobe/lingerie thumbnails.
+  // Real posted SLIDES for the preview card — ALWAYS Bella's (the flagship example), pinned by
+  // id so it never drifts to whichever model happens to have the newest post in the general feed.
   useEffect(() => {
-    fetch("/api/slides-feed").then(r => r.json()).then((d: any) => {
+    fetch(`/api/bella-carousel?model=${BELLA_ID}&surface=profile`).then(r => r.json()).then((d: any) => {
       const arr = Array.isArray(d?.slides) ? d.slides : [];
-      if (arr[0]) setDemoModel({ name: String(arr[0].modelName || ""), photo: String(arr[0].modelPhoto || "") });
       const clips = arr.slice(0, 6).map((s: any) => s.kind === "video"
         // No posterUrl → leave poster EMPTY so the card shows the video's own first frame
         // (never the video URL as an <img>, which renders a broken image).
         ? { poster: s.posterUrl || "", video: s.mediaUrl || "", private: false }
         : { poster: s.mediaUrl || "", video: "", private: false });
       setDemoClips(clips.filter((c: any) => c.poster || c.video));
+    }).catch(() => {});
+    fetch(`/api/curator?profile=${BELLA_ID}`).then(r => r.json()).then((d: any) => {
+      const p = d?.profile;
+      if (p) setDemoModel({ name: String(p.firstName || "Bella"), photo: String(p.photoUrl || "") });
     }).catch(() => {});
   }, []);
 
