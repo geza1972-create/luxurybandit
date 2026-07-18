@@ -18,12 +18,12 @@ const LANGS = [
 ] as const;
 type Lang = (typeof LANGS)[number]["code"];
 const CHAT_T: Record<Lang, { who: string; name: string; msg: (f: string) => string; greet: (n: string) => string }> = {
-  en: { who: "Hi 💕 who are you?", name: "Type your name…", msg: f => `Message ${f}…`, greet: n => `Love that name, ${n}! 😍 I'm so happy you're here. Tell me a bit about you — where are you writing me from?` },
-  ro: { who: "Bună 💕 cine ești?", name: "Scrie numele tău…", msg: f => `Scrie-i lui ${f}…`, greet: n => `Îmi place numele, ${n}! 😍 Mă bucur că ești aici. Spune-mi câte ceva despre tine — de unde îmi scrii?` },
-  de: { who: "Hi 💕 wer bist du?", name: "Dein Name…", msg: f => `Nachricht an ${f}…`, greet: n => `Schöner Name, ${n}! 😍 Schön, dass du da bist. Erzähl mir was von dir — woher schreibst du mir?` },
-  fr: { who: "Coucou 💕 qui es-tu ?", name: "Ton prénom…", msg: f => `Message à ${f}…`, greet: n => `J'adore ce prénom, ${n} ! 😍 Contente que tu sois là. Parle-moi un peu de toi — d'où m'écris-tu ?` },
-  es: { who: "Hola 💕 ¿quién eres?", name: "Tu nombre…", msg: f => `Mensaje para ${f}…`, greet: n => `¡Me encanta ese nombre, ${n}! 😍 Me alegra que estés aquí. Cuéntame algo de ti — ¿desde dónde me escribes?` },
-  it: { who: "Ciao 💕 chi sei?", name: "Il tuo nome…", msg: f => `Messaggio a ${f}…`, greet: n => `Che bel nome, ${n}! 😍 Sono felice che tu sia qui. Raccontami un po' di te — da dove mi scrivi?` },
+  en: { who: "Aww, thank you for wanting to chat with me 💕 What's your name?", name: "Type your name…", msg: f => `Message ${f}…`, greet: n => `Lovely to meet you, ${n}! 😍 What do you want to talk about today?` },
+  ro: { who: "Aww, mulțumesc că vrei să vorbești cu mine 💕 Cum te cheamă?", name: "Scrie numele tău…", msg: f => `Scrie-i lui ${f}…`, greet: n => `Îmi pare bine, ${n}! 😍 Despre ce vrei să vorbim azi?` },
+  de: { who: "Aww, danke, dass du mit mir chatten möchtest 💕 Wie heißt du?", name: "Dein Name…", msg: f => `Nachricht an ${f}…`, greet: n => `Freut mich, ${n}! 😍 Worüber sprechen wir heute?` },
+  fr: { who: "Aww, merci de vouloir discuter avec moi 💕 Comment tu t'appelles ?", name: "Ton prénom…", msg: f => `Message à ${f}…`, greet: n => `Enchantée, ${n} ! 😍 De quoi veux-tu parler aujourd'hui ?` },
+  es: { who: "Aww, gracias por querer hablar conmigo 💕 ¿Cómo te llamas?", name: "Tu nombre…", msg: f => `Mensaje para ${f}…`, greet: n => `¡Encantada, ${n}! 😍 ¿De qué quieres hablar hoy?` },
+  it: { who: "Aww, grazie di voler chattare con me 💕 Come ti chiami?", name: "Il tuo nome…", msg: f => `Messaggio a ${f}…`, greet: n => `Piacere, ${n}! 😍 Di cosa vuoi parlare oggi?` },
 };
 
 // Free users get a few lines to try; after that the composer locks and we upsell.
@@ -83,9 +83,22 @@ export default function ModelChat({
   const [showEmoji, setShowEmoji] = useState(false);
   const [showGifts, setShowGifts] = useState(false);
   const [lingerieLooks, setLingerieLooks] = useState<{ id: string; img: string }[]>([]);
+  const [storySlides, setStorySlides] = useState<{ id: string; img: string; private: boolean }[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const first = modelFirstName || modelName || "She";
+
+  // Her Card-Studio story slides as a thumbnail strip up top — ALL of them, including
+  // private ones (shown blurred), so a visitor gets a taste of her whole story before chatting.
+  useEffect(() => {
+    if (!open || !curatorId) return;
+    fetch(`/api/bella-carousel?model=${encodeURIComponent(curatorId)}`).then(r => r.json()).then(d => {
+      const slides: Array<Record<string, unknown>> = Array.isArray(d?.slides) ? d.slides : [];
+      setStorySlides(slides
+        .filter(s => (s.mediaUrl || s.posterUrl))
+        .map(s => ({ id: String(s.id), img: String(s.kind === "video" ? (s.posterUrl || s.mediaUrl) : s.mediaUrl), private: s.private === true })));
+    }).catch(() => {});
+  }, [open, curatorId]);
 
   // Lazy-load a few lingerie looks the model can be tried on in — shown when she offers
   // to show herself "in something hot" (LINGERIE_TAG). No names/brands (licensing).
@@ -310,6 +323,16 @@ export default function ModelChat({
           </select>
           <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white active:scale-90 transition"><X className="h-5 w-5" /></button>
         </div>
+
+        {/* Her story slides — a thumbnail strip, all of them (private ones shown blurred). */}
+        {storySlides.length > 0 && (
+          <div className="flex gap-1.5 overflow-x-auto border-b border-white/10 px-3 py-2">
+            {storySlides.map(s => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={s.id} src={s.img} alt="" className={`aspect-[3/4] w-11 shrink-0 rounded-lg object-cover ${s.private ? "blur-md" : ""}`} />
+            ))}
+          </div>
+        )}
 
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4">
