@@ -2,11 +2,11 @@ import Link from "next/link";
 import { ArrowLeft, Coins, Video, Wallet, MessageCircle, TrendingUp, Check } from "lucide-react";
 
 export const metadata = {
-  title: "How LuxuryBandit Models earn — 50% of every video",
-  description: "Every LuxuryBandit Model keeps 50% (~$2.00) of every paid video a fan makes with her — it lands in her account automatically. Payouts via bank or PayPal. Chat earnings coming soon.",
+  title: "How LuxuryBandit Models earn — 50% of every subscription",
+  description: "Every LuxuryBandit Model keeps 50% of every subscription a fan pays to unlock her private world — it lands in her account automatically. Payouts via bank or PayPal. Chat earnings coming soon.",
   openGraph: {
     title: "Get paid for your looks — LuxuryBandit Model earnings",
-    description: "Keep 50% of every paid video made with you. Automatic. Withdraw anytime.",
+    description: "Keep 50% of every fan subscription. Automatic. Withdraw anytime.",
     url: "/earnings",
     type: "website",
   },
@@ -16,8 +16,8 @@ export const metadata = {
 // the onboarding email, and each model's private earnings box (/curators/profile).
 export default function EarningsPage() {
   const steps = [
-    { icon: Video, title: "A fan makes a video with you", body: "Anyone can turn your look into a paid AI try-on video ($3.99). It plays in your feed and gets you discovered." },
-    { icon: Coins, title: "You keep 50% — automatically", body: "≈ $2.00 lands in your account the moment the video is paid for. No invoices, no waiting, nothing to claim." },
+    { icon: Video, title: "A fan subscribes to you", body: "Fans pay a monthly subscription to unlock your private photos & videos and follow you closely." },
+    { icon: Coins, title: "You keep 50% — automatically", body: "Half of every subscription lands in your account the moment a fan pays. No invoices, no waiting, nothing to claim." },
     { icon: Wallet, title: "Withdraw anytime", body: "Add your IBAN or PayPal on your profile and request a payout once you reach the minimum. We transfer it to you." },
   ];
 
@@ -35,16 +35,16 @@ export default function EarningsPage() {
       <div className="mx-auto w-full max-w-md px-5 pb-24 pt-8">
         {/* Hero */}
         <p className="text-center text-[12px] font-black uppercase tracking-[0.2em] text-[#e7c877]">Model earnings</p>
-        <h1 className="mt-2 text-center text-[30px] font-black leading-[1.1]">Get paid every time a fan picks you</h1>
+        <h1 className="mt-2 text-center text-[30px] font-black leading-[1.1]">Get paid every time a fan subscribes to you</h1>
         <p className="mx-auto mt-3 max-w-sm text-center text-[14px] font-bold leading-relaxed text-white/75">
-          Every LuxuryBandit Model — including our newest faces — keeps <b className="text-[#e7c877]">50%</b> of every paid video made with her. It&apos;s automatic.
+          Every LuxuryBandit Model — including our newest faces — keeps <b className="text-[#e7c877]">50%</b> of every subscription a fan pays to unlock her private world. It&apos;s automatic.
         </p>
 
         {/* Big number */}
         <div className="mx-auto mt-7 max-w-sm rounded-3xl border border-[#c9a23f]/40 bg-gradient-to-b from-[#c9a23f]/[0.12] to-transparent p-6 text-center">
-          <p className="text-[12px] font-black uppercase tracking-wider text-[#e7c877]">Your cut per video</p>
-          <p className="mt-1 text-5xl font-black">~$2.00</p>
-          <p className="mt-1 text-[13px] font-bold text-white/85">= 50% of every $3.99 video</p>
+          <p className="text-[12px] font-black uppercase tracking-wider text-[#e7c877]">Your cut per subscriber</p>
+          <p className="mt-1 text-5xl font-black">50%</p>
+          <p className="mt-1 text-[13px] font-bold text-white/85">of every fan&apos;s subscription — every month, automatically</p>
         </div>
 
         {/* How it works */}
@@ -67,8 +67,8 @@ export default function EarningsPage() {
           <p className="text-[13px] font-black text-amber-300">Good to know</p>
           <ul className="mt-2 space-y-1.5">
             {[
-              "The more fans pick you, the more you earn — there's no cap.",
-              "Each video you make costs just $3.99 — serious creators pay their way, and it pays off.",
+              "The more fans subscribe to you, the more you earn — there's no cap.",
+              "More photos & videos in My Studio make your profile more interesting and win more subscribers.",
               "Earnings land in your account automatically — check them any time on your profile.",
             ].map((t, i) => (
               <li key={i} className="flex gap-2 text-[13px] font-bold leading-relaxed text-white/80">

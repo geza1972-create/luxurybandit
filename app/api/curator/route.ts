@@ -33,17 +33,11 @@ function modelOnboardingEmail(email: string, firstName?: string) {
     subject: "Complete your LuxuryBandit Model profile 💛",
     html: `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:0 auto;color:#111">
   <p style="font-size:16px">Hi${hi},</p>
-  <p>Thank you for applying to become a <b>LuxuryBandit Model</b>. 💛</p>
-  <p><b>Now complete your profile yourself</b> — open the link below, sign in with this email (<b>${email}</b>, "Continue with Google" is fastest) and fill in everything:</p>
-  <ul style="padding-left:18px;color:#333">
-    <li>your <b>face / portrait</b> photo and a <b>full-body, dressed</b> photo</li>
-    <li>your <b>verification selfie</b> (holding a paper with “LuxuryBandit” + today’s date)</li>
-    <li>your <b>WhatsApp number</b> (only for us — never shown publicly) and your details</li>
-  </ul>
-  <p>Please also <b>read and accept our <a href="${rulesUrl}" style="color:#b8860b">model rules &amp; terms</a></b>.</p>
+  <p>Thank you for applying to become a <b>LuxuryBandit Model</b>. 💛 We&apos;ve got your photos and details from your application — our team is <b>reviewing your profile now</b>.</p>
+  <p>Please also <b>read and accept our <a href="${rulesUrl}" style="color:#b8860b">model rules &amp; terms</a></b> if you haven&apos;t already.</p>
   <div style="background:#faf7f0;border:1px solid #eadfc6;border-radius:12px;padding:14px 16px;margin:16px 0">
-    <p style="margin:0 0 6px;font-size:14px"><b>💰 How you earn:</b> you keep <b>50%</b> (~$2.00) every time a fan makes a paid video with you — it lands in your account automatically. The more fans pick <b>you</b>, the more you earn. <a href="${site}/earnings" style="color:#b8860b">See how earnings work →</a></p>
-    <p style="margin:0 0 6px;font-size:14px"><b>🎬 Turn your photos into videos:</b> once you're approved, each video you create is just <b>$3.99</b> — serious creators only, no freeloading.</p>
+    <p style="margin:0 0 6px;font-size:14px"><b>💰 How you earn:</b> fans subscribe to unlock your private world, and you keep <b>50%</b> of every subscription — it lands in your account automatically. The more fans pick <b>you</b>, the more you earn. <a href="${site}/earnings" style="color:#b8860b">See how earnings work →</a></p>
+    <p style="margin:0 0 6px;font-size:14px"><b>📸 Make your profile irresistible:</b> once you&apos;re in, add more photos &amp; videos in <a href="${site}/my-studio" style="color:#b8860b">My Studio</a> — the more you post, the more fans discover and subscribe to you.</p>
     <p style="margin:0;font-size:14px"><b>⚠️ We review every profile.</b> Photos that are <b>blurry</b>, hide your face (hat/sunglasses), or don’t fit our <b>luxury concept</b> can be <b>rejected</b>. Please use clear, well-lit, high-quality photos.</p>
   </div>
   <div style="background:#2a2320;border:1px solid #4a3f33;border-radius:12px;padding:16px;margin:18px 0;color:#f0e9dc">
@@ -51,7 +45,7 @@ function modelOnboardingEmail(email: string, firstName?: string) {
     <p style="margin:0 0 12px;font-size:14px;line-height:1.55">LuxuryBandit is an <b>18+ platform</b>. By joining, you agree that users can view you wearing <b>lingerie</b> in AI try-on videos. Your profile stays <b>paused</b> until you confirm below <b>and</b> your photos are approved.</p>
     <p style="text-align:center;margin:0"><a href="${confirmUrl}" style="display:inline-block;background:#e7c877;color:#000;text-decoration:none;font-weight:800;padding:13px 26px;border-radius:999px">I’m 18+ &amp; I agree — confirm ✓</a></p>
   </div>
-  <p style="text-align:center;margin:18px 0"><a href="${profileUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;font-weight:800;padding:13px 26px;border-radius:999px">Complete my profile →</a></p>
+  <p style="text-align:center;margin:18px 0"><a href="${profileUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;font-weight:800;padding:13px 26px;border-radius:999px">Open my profile →</a></p>
   <p style="font-size:13px;color:#666">Once you’ve confirmed and your photos are approved, we activate your profile and you can start earning.</p>
   <p>Talk soon,<br/>The LuxuryBandit Team</p>
 </div>`,

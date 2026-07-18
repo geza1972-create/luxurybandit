@@ -387,7 +387,7 @@ export default function CuratorProfilePage() {
               <a href="/earnings" className="text-[11px] font-black text-amber-700 underline underline-offset-2">How it works →</a>
             </div>
             <p className="mt-1 text-3xl font-black text-black">€{(earningsCents / 100).toFixed(2)}</p>
-            <p className="mt-0.5 text-[12px] font-bold text-black/50">You earn <b className="text-black">50%</b> (~$2.00) every time a fan makes a paid video with you. Chat earnings are coming soon. 💬</p>
+            <p className="mt-0.5 text-[12px] font-bold text-black/50">You earn <b className="text-black">50%</b> of every fan subscription that unlocks your private world. Chat earnings are coming soon. 💬</p>
 
             <label className={`${label} mt-4`}>Payout details (IBAN or PayPal)</label>
             <input className={field} value={payoutMethod} onChange={e => setPayoutMethod(e.target.value)} placeholder="RO49 AAAA… or you@paypal.com" />
