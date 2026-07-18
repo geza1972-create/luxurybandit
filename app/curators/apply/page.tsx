@@ -24,6 +24,42 @@ export default function CuratorApplyPage() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Language — Romanian by default (this application page's primary audience), English optional.
+  const [lang, setLang] = useState<"ro" | "en">("ro");
+  const T = {
+    ro: {
+      heroTitle: "Devino model LuxuryBandit",
+      heroSubtitle: <>Aplici cu <b className="text-slate-900">propria ta poză</b>, încarci <b className="text-slate-900">videoclipuri private</b> și păstrezi <b className="text-slate-900">50% din fiecare abonament</b>. Trei pași rapizi — circa două minute.</>,
+      itsYouLabel: <>EȘTI TU — propria ta poză</>,
+      itsYouBody: <>Aplici cu <b>propria ta poză</b>. Vei încărca <b>videoclipurile tale private</b>, și păstrezi <b className="text-slate-900">50% din fiecare abonament</b> plătit de fani. Noi ne ocupăm de tehnologie &amp; plăți.</>,
+      cancel: "Anulează",
+      editModel: "Editează model",
+      saveChanges: "Salvează",
+      sending: "Se trimite…",
+      saving: "Se salvează…",
+      submitCta: "Trimite aplicația — este gratuit",
+      earnings: (link: string) => <>💰 Câștigi <b>50% din fiecare abonament</b> plătit de fanii tăi pentru a-ți debloca lumea privată — banii ajung automat în contul tău. Cu cât mai mulți fani se abonează, cu atât câștigi mai mult. <a href={link} className="underline underline-offset-2">Cum funcționează câștigurile →</a></>,
+      appliedTitle: (name: string) => `Aplicație primită${name ? `, ${name}` : ""}!`,
+      appliedBody: "Echipa noastră analizează personal fiecare model LuxuryBandit. Vei primi un email imediat ce ești aprobat(ă) — apoi te conectezi și începi să câștigi.",
+      backHome: "Înapoi la LuxuryBandit",
+    },
+    en: {
+      heroTitle: "Become a LuxuryBandit model",
+      heroSubtitle: <>Join with <b className="text-slate-900">your own photo</b>, upload your <b className="text-slate-900">private videos</b>, and keep <b className="text-slate-900">50% of every subscription</b>. Three quick steps — about two minutes.</>,
+      itsYouLabel: <>It&apos;s YOU — your own photo</>,
+      itsYouBody: <>You join with <b>your own photo</b>. You&apos;ll upload <b>your private videos</b>, and you keep <b className="text-slate-900">50% of every subscription</b> your fans pay. We handle the tech &amp; payments.</>,
+      cancel: "Cancel",
+      editModel: "Edit model",
+      saveChanges: "Save changes",
+      sending: "Sending…",
+      saving: "Saving…",
+      submitCta: "Send my application — it's free",
+      earnings: (link: string) => <>💰 You earn <b>50% of every subscription</b> your fans pay to unlock your private world — it lands in your account automatically. The more fans subscribe, the more you earn. <a href={link} className="underline underline-offset-2">How earnings work →</a></>,
+      appliedTitle: (name: string) => `Application received${name ? `, ${name}` : ""}!`,
+      appliedBody: "Our team reviews every LuxuryBandit Influencer personally. You'll get an email as soon as you're approved — then just sign in and start earning.",
+      backHome: "Back to LuxuryBandit",
+    },
+  }[lang];
   // Prices come from the admin-editable price list (change once there). Defaults until loaded.
   const [pricing, setPricing] = useState({ subscriptionMonthlyCents: 499, chatPassCents: 399, videoGenCents: 399 });
   useEffect(() => { fetch("/api/try-this-look?pricing=1").then(r => r.json()).then(d => { if (d.pricing) setPricing(p => ({ ...p, ...d.pricing })); }).catch(() => {}); }, []);
@@ -588,14 +624,13 @@ export default function CuratorApplyPage() {
       <div className="grid min-h-[100dvh] place-items-center bg-[#faf7f0] px-6 text-center text-slate-900">
         <div className="max-w-sm">
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-slate-800 text-2xl text-white">✓</div>
-          <h1 className="mt-4 text-xl font-black text-slate-900">Application received{firstName ? `, ${firstName}` : ""}!</h1>
+          <h1 className="mt-4 text-xl font-black text-slate-900">{T.appliedTitle(firstName)}</h1>
           <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">
-            Our team reviews every LuxuryBandit Influencer personally. You&apos;ll get an email as soon
-            as you&apos;re approved — then just sign in and start earning.
+            {T.appliedBody}
           </p>
           <button type="button" onClick={() => router.push("/stores")}
             className={`bg-slate-800 text-white mt-5 inline-flex h-12 items-center justify-center rounded-2xl px-6 text-sm font-black ${btn3d}`}>
-            Back to LuxuryBandit
+            {T.backHome}
           </button>
         </div>
       </div>
@@ -611,10 +646,10 @@ export default function CuratorApplyPage() {
             className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/15 text-slate-900 active:scale-90 transition-transform">
             <ArrowLeft className="h-4 w-4" />
           </button>
-          <p className="flex-1 text-sm font-black text-slate-900">Edit model{firstName ? ` — ${firstName}` : ""}</p>
+          <p className="flex-1 text-sm font-black text-slate-900">{T.editModel}{firstName ? ` — ${firstName}` : ""}</p>
           <button type="button" onClick={cancel}
             className="shrink-0 rounded-full border border-black/15 px-4 py-2 text-sm font-black text-slate-800 active:scale-95 transition-transform">
-            Cancel
+            {T.cancel}
           </button>
         </div>
       ) : (
@@ -629,17 +664,25 @@ export default function CuratorApplyPage() {
           </button>
           <button type="button" onClick={cancel}
             className="absolute right-3 top-3 rounded-full bg-black/45 px-4 py-1.5 text-sm font-black text-white backdrop-blur active:scale-95 transition-transform">
-            Cancel
+            {T.cancel}
           </button>
+          <div className="absolute right-3 bottom-3 flex gap-1 rounded-full bg-black/45 p-1 backdrop-blur">
+            {(["ro", "en"] as const).map(l => (
+              <button key={l} type="button" onClick={() => setLang(l)}
+                className={`rounded-full px-2.5 py-1 text-[11px] font-black transition ${lang === l ? "bg-white text-slate-900" : "text-white/80"}`}>
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
       <div className="px-5 pt-6">
         {/* Header for the applicant flow (replaces the old welcome copy). */}
         {!editId && <div className="text-center">
-          <h1 className="text-[26px] font-black leading-tight text-slate-900">Become a LuxuryBandit model</h1>
+          <h1 className="text-[26px] font-black leading-tight text-slate-900">{T.heroTitle}</h1>
           <p className="mx-auto mt-2 max-w-sm text-sm font-semibold leading-6 text-slate-700">
-            Join with <b className="text-slate-900">your own photo</b>, upload your <b className="text-slate-900">private videos</b>, and keep <b className="text-slate-900">50% of every subscription</b>. Three quick steps — about two minutes.
+            {T.heroSubtitle}
           </p>
         </div>}
 
@@ -738,8 +781,8 @@ export default function CuratorApplyPage() {
           onChange={e => { void onPickSlide(e.target.files?.[0]); e.target.value = ""; }} />
 
         <div className="mt-3 rounded-2xl border border-black/15 bg-black/[0.04] p-4">
-          <span className={label}>It&apos;s YOU — your own photo</span>
-          <p className="mt-0.5 text-[13px] font-bold text-slate-600">You join with <b>your own photo</b>. You&apos;ll upload <b>your private videos</b>, and you keep <b className="text-slate-900">50% of every subscription</b> your fans pay. We handle the tech &amp; payments.</p>
+          <span className={label}>{T.itsYouLabel}</span>
+          <p className="mt-0.5 text-[13px] font-bold text-slate-600">{T.itsYouBody}</p>
           <p className="mt-2 text-[11px] font-bold text-slate-500">To protect everyone, you can only use YOUR verified photo — never someone else&apos;s face.</p>
         </div>
 
@@ -964,7 +1007,7 @@ export default function CuratorApplyPage() {
         <button type="button" onClick={() => void submit()} disabled={submitting}
           className={`bg-slate-800 text-white flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black disabled:opacity-50 ${btn3d}`}>
           {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-          {submitting ? (editId ? "Saving…" : "Sending…") : (editId ? "Save changes" : "Send my application — it's free")}
+          {submitting ? (editId ? T.saving : T.sending) : (editId ? T.saveChanges : T.submitCta)}
         </button>
         <p className="mt-1.5 text-center text-[12px] font-bold text-slate-600">
           {editId ? "Changes go live immediately" : <>Free to apply · reviewed personally · you keep <b className="text-slate-900">50% of every subscription</b></>}
@@ -994,7 +1037,7 @@ export default function CuratorApplyPage() {
           <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-3xl bg-[#faf7f0] p-5 text-center">
             <p className="text-[16px] font-black text-slate-900">⚠️ You get one shot — send your very best photos.</p>
             <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-700">Photos that are blurry, hide your face (hat/sunglasses), fake, or don&apos;t fit our luxury concept are rejected — and a rejected application can&apos;t apply again. Sharp, well-lit, real photos only.</p>
-            <p className="mt-3 text-[13px] font-bold leading-relaxed text-slate-900">💰 You earn <b>50% of every subscription</b> your fans pay to unlock your private world — it lands in your account automatically. The more fans subscribe, the more you earn. <a href="/earnings" className="underline underline-offset-2">How earnings work →</a></p>
+            <p className="mt-3 text-[13px] font-bold leading-relaxed text-slate-900">{T.earnings("/earnings")}</p>
             <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-900">🎬 Once you&apos;re approved you upload your own <b>private photos &amp; videos</b> — your fans subscribe to see them. Applying is free. Serious creators only.</p>
             <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-800">💡 <b className="text-slate-900">You&apos;re never on your own.</b> Every single day we hand you fresh <b className="text-slate-900">outfits and video ideas</b> — you just post. No ideas needed, we do the creative work.</p>
             <p className="mt-2 text-[13px] font-bold leading-relaxed text-slate-800">🤖 <b className="text-slate-900">A free AI chat assistant for your fans</b> — it chats with them for you, day and night. You have <b className="text-slate-900">zero work</b> with it.</p>
