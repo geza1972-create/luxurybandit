@@ -1536,7 +1536,7 @@ function StoresPage() {
   const [communityItems, setCommunityItems] = useState<CommunityItem[]>([]);
   const [communityLoading, setCommunityLoading] = useState(false);
   // Card-Studio SLIDES (all models' posts) merged into the feed alongside the videos.
-  const [feedSlides, setFeedSlides] = useState<{ id: string; modelId: string; modelName: string; modelPhoto: string; kind: string; private: boolean; mediaUrl: string; posterUrl: string; createdAt: string }[]>([]);
+  const [feedSlides, setFeedSlides] = useState<{ id: string; modelId: string; modelName: string; modelPhoto: string; kind: string; private: boolean; title: string; caption: string; mediaUrl: string; posterUrl: string; createdAt: string }[]>([]);
   useEffect(() => { fetch("/api/slides-feed").then(r => r.json()).then(d => setFeedSlides(Array.isArray(d?.slides) ? d.slides : [])).catch(() => {}); }, []);
   const [communitySelectedIndex, setCommunitySelectedIndex] = useState<number | null>(null);
   // Items the full-screen scroll feed (reels) iterates over — set when opening it
@@ -2511,6 +2511,7 @@ function StoresPage() {
         curatorId: s.modelId,
         curatorName: s.modelName,
         curatorPhotoUrl: s.modelPhoto,
+        curatorNote: s.caption || s.title || "",
         communityTryOns: [{
           id: `slide-${s.id}`,
           imageUrl: s.kind === "video" ? (s.posterUrl || s.mediaUrl) : s.mediaUrl,

@@ -909,7 +909,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={m.url} alt={`${publicAuthorName(m.name)} try-on`} className="h-full w-full object-cover" />
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
-                    className={`${immersive ? "hidden " : ""}absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{m.name ? `${publicAuthorName(m.name)}'s try-on` : "Try-on photo"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
+                    className={`${immersive ? "hidden " : ""}absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex items-center gap-1 cursor-pointer rounded-full bg-black/60 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white backdrop-blur transition hover:bg-black/80 active:opacity-70`}>{m.name ? `${publicAuthorName(m.name)}'s ${m.id?.startsWith("slide-") ? "story" : "try-on"}` : "Try-on photo"}<Info className="ml-1 h-3.5 w-3.5 opacity-90" /></button>
+                  {/* Small LuxuryBandit watermark + model name — Card-Studio story slides only. */}
+                  {m.id?.startsWith("slide-") && !immersive && (
+                    <div className="absolute bottom-3 left-3 z-20 flex items-center gap-1.5 rounded-full bg-black/50 py-1 pl-1 pr-3 backdrop-blur">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src="/lb-logo.png" alt="LuxuryBandit" className="h-5 w-5 rounded-full object-contain" />
+                      <span className="text-[11px] font-black text-white">{publicAuthorName(m.name) || "LuxuryBandit"}</span>
+                    </div>
+                  )}
                 </div>
               ) : m.type === "refimage" ? (
                 // Curator-uploaded garment reference — the actual piece, shown whole
