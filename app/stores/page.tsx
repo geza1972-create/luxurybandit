@@ -2498,8 +2498,34 @@ function StoresPage() {
         category: c.category,
         communityTryOns: [{ id: c.id, imageUrl: c.imageUrl, videoUrl: c.videoUrl, userPhotoUrl: c.userPhotoUrl, name: c.customerName, hidden: false, pending: false, curatorId: c.curatorId, curatorPhotoUrl: c.curatorPhotoUrl, pinned: c.pinned, createdAt: (c as { createdAt?: string }).createdAt }],
       } as unknown as FeedLook));
-    return [...enriched, ...orphans];
-  }, [looks, communityItems]);
+    // Card-Studio story slides (model lifestyle photos) ride the reel too — one stub post
+    // per slide, same shape as the clip orphans above, so every Feeds-grid tile has a
+    // matching swipeable post. Video slides fall back to their poster as the imageUrl.
+    const slideOrphans = feedSlides
+      .filter(s => !s.hidden)
+      .map(s => ({
+        id: `slide-${s.id}`,
+        name: s.title || s.modelName || "Story",
+        createdAt: s.createdAt ?? "",
+        imageUrl: s.kind === "video" ? (s.posterUrl || s.mediaUrl) : s.mediaUrl,
+        curatorId: s.modelId,
+        curatorName: s.modelName,
+        curatorPhotoUrl: s.modelPhoto,
+        communityTryOns: [{
+          id: `slide-${s.id}`,
+          imageUrl: s.kind === "video" ? (s.posterUrl || s.mediaUrl) : s.mediaUrl,
+          videoUrl: s.kind === "video" ? s.mediaUrl : undefined,
+          name: s.modelName,
+          hidden: false,
+          pending: false,
+          curatorId: s.modelId,
+          curatorPhotoUrl: s.modelPhoto,
+          createdAt: s.createdAt,
+          slidePrivate: s.private,
+        } as unknown as NonNullable<FeedLook["communityTryOns"]>[number]],
+      } as unknown as FeedLook));
+    return [...enriched, ...orphans, ...slideOrphans];
+  }, [looks, communityItems, feedSlides]);
   // The MAIN reels feed is the PUBLIC feed: community/private try-ons stay out — a post
   // the admin demotes to Community disappears from the feed instantly. The grid overlay
   // keeps `looksForFeed` (full tier-gated set) so Community/Private tiles still open.
@@ -2507,11 +2533,11 @@ function StoresPage() {
     const publicIds = new Set(communityItems.filter(c => (c.visibility ?? (c.public ? "public" : "community")) === "public").map(c => c.id));
     return looksForFeed
       .map(l => l.communityTryOns?.length
-        ? { ...l, communityTryOns: l.communityTryOns.filter(t => publicIds.has(t.id)) }
+        ? { ...l, communityTryOns: l.communityTryOns.filter(t => String(t.id).startsWith("slide-") ? !(t as unknown as { slidePrivate?: boolean }).slidePrivate : publicIds.has(t.id)) }
         : l)
       // A stub clip-post whose try-on is not public has NO content left — drop it,
       // or it would surface its poster as a flat look post in the public feed.
-      .filter(l => !String(l.id).startsWith("clip-") || (l.communityTryOns?.length ?? 0) > 0);
+      .filter(l => !(String(l.id).startsWith("clip-") || String(l.id).startsWith("slide-")) || (l.communityTryOns?.length ?? 0) > 0);
   }, [looksForFeed, communityItems]);
   // Garderobe = every generated garment (all wardrobes), newest first, optionally by type.
   const garments = useMemo(() => {
@@ -3064,8 +3090,8 @@ function StoresPage() {
                         setTierSelected(prev => { const n = new Set(prev); if (n.has(it.id)) n.delete(it.id); else n.add(it.id); return n; });
                         return;
                       }
-                      // Card-Studio slide → her profile (the reel is for try-on/look generations).
-                      if (it.slide && it.modelId) { router.push(`/curator/${it.modelId}`); return; }
+                      // Card-Studio slide → opens as its own reel post (synthetic "slide-<id>" look).
+                      if (it.slide && it.modelId) { openFeedOverlay({ tryOnId: `slide-${it.id}`, lookId: `slide-${it.id}` }); return; }
                       openFeedOverlay({ tryOnId: it.kind === "tryon" ? it.id : undefined, lookId: it.lookId });
                     }}
                     className={`relative aspect-[9/16] overflow-hidden lb-media-bg transition-opacity active:opacity-80 ${
