@@ -45,28 +45,39 @@ export async function buildBellaCard(opts: { surface?: string; customer?: string
       flagshipTier: (gina as { flagshipTier?: number }).flagshipTier, flagshipBases,
     }) : 0;
 
+    // Bella's identity fallbacks (Tenerife/Gianna Bellucci) are HERS alone — this builder is
+    // reused for every model's card, so any OTHER model without her own title/intro/sponsor
+    // must fall back to her OWN values (or nothing), never impersonate Bella.
+    const isBella = modelId === BELLA_ID;
     const ginaSerial = (gina?.id ?? "").replace(/[^a-z0-9]/gi, "").slice(-6).toUpperCase() || "GINA01";
     const ginaIntro = String((gina as any)?.intro ?? "").trim()
-      || "Hi, I'm Bella — traveling Tenerife for you. I bring back fresh photos, videos and stories from the island every day, styled in the newest looks. Book a journey with me and follow along live.";
-    const ginaTitle = String((gina as any)?.title ?? "").trim() || "Tenerife Influencer";
-    const ginaSponsor = String((gina as any)?.sponsor ?? "").trim() || "Gianna Bellucci";
+      || (isBella ? "Hi, I'm Bella — traveling Tenerife for you. I bring back fresh photos, videos and stories from the island every day, styled in the newest looks. Book a journey with me and follow along live." : "");
+    const ginaTitle = String((gina as any)?.title ?? "").trim() || (isBella ? "Tenerife Influencer" : "");
+    const ginaSponsor = String((gina as any)?.sponsor ?? "").trim() || (isBella ? "Gianna Bellucci" : "");
+    // The public-facing card name = her stage name (modelName), else real name — the SAME rule
+    // the canonical /curator/[id] profile uses, so the card matches the model everywhere.
+    const ginaCardName = String((gina as any)?.modelName ?? "").trim()
+      || [gina?.firstName, gina?.lastName].filter(Boolean).join(" ").trim()
+      || (isBella ? "Bella" : "Model");
 
-    const LOCATIONS = ["Playa de las Américas, Tenerife", "Costa Adeje, Tenerife", "Mount Teide, Tenerife", "Los Cristianos, Tenerife", "Puerto de la Cruz, Tenerife", "Masca Village, Tenerife", "Los Gigantes, Tenerife", "Anaga Rural Park, Tenerife"];
-    const STORIES = [
+    const LOCATIONS = isBella
+      ? ["Playa de las Américas, Tenerife", "Costa Adeje, Tenerife", "Mount Teide, Tenerife", "Los Cristianos, Tenerife", "Puerto de la Cruz, Tenerife", "Masca Village, Tenerife", "Los Gigantes, Tenerife", "Anaga Rural Park, Tenerife"]
+      : [];
+    const STORIES = isBella ? [
       "Golden hour on the beach — testing this season's swimwear. Verdict: obsessed.",
       "Off-duty in the old town. Light linen is having a moment; here's how I'd wear it by day.",
       "Rooftop sunset over the ocean. This is the look everyone will copy next month.",
       "Poolside and unbothered. Reporting live from the island on today's outfit.",
       "Hiking Mount Teide at sunrise. New drop, first look — you saw it here before anyone else.",
       "A quiet island moment. Sometimes the simplest piece is the whole story.",
-    ];
+    ] : [];
     const fmtDate = (iso: string) => { try { return iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : ""; } catch { return ""; } };
     const story: ModelClip[] = ginaTiles.slice(0, 8).map((t, i) => ({
       poster: t.poster, video: t.video, private: false,
       date: fmtDate(t.createdAt),
-      location: LOCATIONS[i % LOCATIONS.length],
-      story: STORIES[i % STORIES.length],
-      brand: "Gianna Bellucci",
+      location: LOCATIONS.length ? LOCATIONS[i % LOCATIONS.length] : "",
+      story: STORIES.length ? STORIES[i % STORIES.length] : "",
+      brand: ginaSponsor,
       shopUrl: "/haine",
     }));
     const heroClip = ginaTiles[0] || { poster: "", video: "" };
@@ -112,7 +123,7 @@ export async function buildBellaCard(opts: { surface?: string; customer?: string
     const card: ModelCardProps = {
       id: (gina?.id ?? "") as string,
       serial: ginaSerial,
-      name: (gina?.firstName || "Bella") as string,
+      name: ginaCardName,
       title: ginaTitle,
       intro: ginaIntro,
       sponsor: ginaSponsor,
