@@ -46,12 +46,12 @@ export default function WelcomePage() {
         <Check className="h-8 w-8" />
       </span>
       <h1 className="mt-5 text-[30px] font-black leading-tight">You&apos;re in! 🎉</h1>
-      <p className="mt-2 max-w-sm text-[15px] font-semibold leading-relaxed text-white/70">
+      <p className="mt-2 max-w-sm text-[15px] font-semibold leading-relaxed text-white/85">
         Your AI influencer is ready. We&apos;ve emailed{email ? <> <span className="font-black text-white">{email}</span></> : " you"} your login and setup — set your password and you&apos;ll land straight on your dashboard.
       </p>
 
       <div className="mt-6 w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left">
-        <p className="text-[11px] font-black uppercase tracking-[0.14em] text-white/60">What happens next</p>
+        <p className="text-[11px] font-black uppercase tracking-[0.14em] text-white/80">What happens next</p>
         <ul className="mt-2.5 space-y-2 text-[13px] font-bold text-white/75">
           <li className="flex items-center gap-2.5"><Crown className="h-4 w-4 shrink-0 text-amber-400" /> We create her luxury content — every day.</li>
           <li className="flex items-center gap-2.5"><MessageCircle className="h-4 w-4 shrink-0 text-amber-400" /> Chat with her — and her fans chat with her too.</li>
@@ -63,7 +63,7 @@ export default function WelcomePage() {
         className="lb-gold mt-6 flex h-13 min-h-[52px] w-full max-w-sm items-center justify-center gap-2 rounded-full px-6 text-base font-black active:scale-95 transition">
         Open my dashboard →
       </Link>
-      <p className="mt-3 flex items-center gap-1.5 text-[12px] font-bold text-white/60">
+      <p className="mt-3 flex items-center gap-1.5 text-[12px] font-bold text-white/80">
         {confirming ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Setting up your influencer &amp; sending your email…</> : "Check your inbox for the login link."}
       </p>
     </main>

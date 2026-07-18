@@ -309,7 +309,7 @@ export default function ModelChat({
             {avatarUrl
               // eslint-disable-next-line @next/next/no-img-element
               ? <img src={avatarUrl} alt={first} className="h-full w-full object-cover" />
-              : <span className="grid h-full w-full place-items-center text-sm font-black text-white/60">{first.slice(0, 1)}</span>}
+              : <span className="grid h-full w-full place-items-center text-sm font-black text-white/80">{first.slice(0, 1)}</span>}
             <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#0d0b0a] bg-amber-400" />
           </div>
           <div className="min-w-0 flex-1">
@@ -395,17 +395,17 @@ export default function ModelChat({
                 {avatarUrl
                   // eslint-disable-next-line @next/next/no-img-element
                   ? <img src={avatarUrl} alt={first} className="h-full w-full object-cover" />
-                  : <span className="grid h-full w-full place-items-center text-xl font-black text-white/60">{first.slice(0, 1)}</span>}
+                  : <span className="grid h-full w-full place-items-center text-xl font-black text-white/80">{first.slice(0, 1)}</span>}
               </div>
               <p className="mt-2.5 text-center text-sm font-black text-white">I loved talking to you 💕</p>
-              <p className="mx-auto mt-1 max-w-xs text-center text-[12px] font-bold text-white/55">
+              <p className="mx-auto mt-1 max-w-xs text-center text-[12px] font-bold text-white/75">
                 We&apos;re just getting started. Subscribe to keep chatting with {first} — and see all her private posts &amp; videos.
               </p>
               <button type="button" onClick={onNeedPremium}
                 className="lb-gold mt-3 flex w-full items-center justify-center rounded-2xl px-4 py-3 text-[14px] font-black active:scale-95 transition">
                 💛 Subscribe to {first}
               </button>
-              <p className="mt-1.5 text-center text-[11px] font-bold text-white/55">Cancel anytime.</p>
+              <p className="mt-1.5 text-center text-[11px] font-bold text-white/75">Cancel anytime.</p>
             </div>
           )}
         </div>
@@ -437,7 +437,7 @@ export default function ModelChat({
                       <button key={g.name} type="button" onClick={() => sendGift(g)}
                         className="flex flex-col items-center gap-0.5 rounded-xl bg-white/5 py-2 active:scale-90 active:bg-white/10 transition">
                         <span className="text-2xl">{g.emoji}</span>
-                        <span className="text-[10px] font-black text-white/60">{g.name}</span>
+                        <span className="text-[10px] font-black text-white/80">{g.name}</span>
                       </button>
                     ))}
                   </div>
@@ -447,9 +447,9 @@ export default function ModelChat({
               {stage === "chat" && (
                 <>
                   <button type="button" onClick={() => { setShowEmoji(v => !v); setShowGifts(false); }}
-                    className={`grid h-11 w-9 shrink-0 place-items-center rounded-full transition active:scale-90 ${showEmoji ? "text-amber-400" : "text-white/65"}`}><Smile className="h-6 w-6" /></button>
+                    className={`grid h-11 w-9 shrink-0 place-items-center rounded-full transition active:scale-90 ${showEmoji ? "text-amber-400" : "text-white/85"}`}><Smile className="h-6 w-6" /></button>
                   <button type="button" onClick={() => { setShowGifts(v => !v); setShowEmoji(false); }}
-                    className={`grid h-11 w-9 shrink-0 place-items-center rounded-full transition active:scale-90 ${showGifts ? "text-amber-400" : "text-white/65"}`}><Gift className="h-6 w-6" /></button>
+                    className={`grid h-11 w-9 shrink-0 place-items-center rounded-full transition active:scale-90 ${showGifts ? "text-amber-400" : "text-white/85"}`}><Gift className="h-6 w-6" /></button>
                 </>
               )}
               <textarea
@@ -473,7 +473,7 @@ export default function ModelChat({
             <p className="mt-2 text-center text-[11px] font-bold text-white/50">{Math.max(0, FREE_USER_MESSAGES - userTurns)} free messages left</p>
           )}
           {/* AI transparency (EU AI Act) — users must be told they're chatting with an AI. */}
-          <p className="mt-1.5 text-center text-[11px] font-bold text-white/65">✨ You&apos;re chatting with {first}&apos;s AI Assistant — an AI persona, not the real person.</p>
+          <p className="mt-1.5 text-center text-[11px] font-bold text-white/85">✨ You&apos;re chatting with {first}&apos;s AI Assistant — an AI persona, not the real person.</p>
         </div>
       </div>
     </div>

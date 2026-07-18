@@ -36,7 +36,7 @@ export default function EarningsPage() {
         {/* Hero */}
         <p className="text-center text-[12px] font-black uppercase tracking-[0.2em] text-[#e7c877]">Model earnings</p>
         <h1 className="mt-2 text-center text-[30px] font-black leading-[1.1]">Get paid every time a fan picks you</h1>
-        <p className="mx-auto mt-3 max-w-sm text-center text-[14px] font-bold leading-relaxed text-white/55">
+        <p className="mx-auto mt-3 max-w-sm text-center text-[14px] font-bold leading-relaxed text-white/75">
           Every LuxuryBandit Model — including our newest faces — keeps <b className="text-[#e7c877]">30%</b> of every paid video made with her. It&apos;s automatic.
         </p>
 
@@ -44,7 +44,7 @@ export default function EarningsPage() {
         <div className="mx-auto mt-7 max-w-sm rounded-3xl border border-[#c9a23f]/40 bg-gradient-to-b from-[#c9a23f]/[0.12] to-transparent p-6 text-center">
           <p className="text-[12px] font-black uppercase tracking-wider text-[#e7c877]">Your cut per video</p>
           <p className="mt-1 text-5xl font-black">~$1.20</p>
-          <p className="mt-1 text-[13px] font-bold text-white/70">= 30% of every $3.99 video</p>
+          <p className="mt-1 text-[13px] font-bold text-white/85">= 30% of every $3.99 video</p>
         </div>
 
         {/* How it works */}
@@ -56,7 +56,7 @@ export default function EarningsPage() {
               </span>
               <div>
                 <p className="text-[15px] font-black leading-tight">{s.title}</p>
-                <p className="mt-1 text-[13px] font-bold leading-relaxed text-white/70">{s.body}</p>
+                <p className="mt-1 text-[13px] font-bold leading-relaxed text-white/85">{s.body}</p>
               </div>
             </div>
           ))}
@@ -71,7 +71,7 @@ export default function EarningsPage() {
               "Each video you make costs just $3.99 — serious creators pay their way, and it pays off.",
               "Earnings land in your account automatically — check them any time on your profile.",
             ].map((t, i) => (
-              <li key={i} className="flex gap-2 text-[13px] font-bold leading-relaxed text-white/60">
+              <li key={i} className="flex gap-2 text-[13px] font-bold leading-relaxed text-white/80">
                 <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> {t}
               </li>
             ))}
@@ -81,7 +81,7 @@ export default function EarningsPage() {
         {/* Coming soon */}
         <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/[0.06] text-[#e7c877]"><MessageCircle className="h-5 w-5" /></span>
-          <p className="text-[13px] font-bold leading-relaxed text-white/55"><b className="text-white">Coming soon:</b> paid chat with fans — your biggest earner yet. 💬</p>
+          <p className="text-[13px] font-bold leading-relaxed text-white/75"><b className="text-white">Coming soon:</b> paid chat with fans — your biggest earner yet. 💬</p>
         </div>
 
         {/* CTA */}
@@ -89,7 +89,7 @@ export default function EarningsPage() {
           className="lb-gold mt-9 flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition">
           <TrendingUp className="h-5 w-5" /> Become a Model &amp; start earning
         </Link>
-        <p className="mt-3 text-center text-[12px] font-bold text-white/55">Already a model? Your earnings are on your profile.</p>
+        <p className="mt-3 text-center text-[12px] font-bold text-white/75">Already a model? Your earnings are on your profile.</p>
       </div>
     </div>
   );

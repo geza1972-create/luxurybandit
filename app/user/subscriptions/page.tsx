@@ -34,17 +34,17 @@ export default function MySubscriptionsPage() {
 
       <div className="mx-auto max-w-md px-5 pt-5">
         {subs === null ? (
-          <p className="py-16 text-center text-sm font-bold text-white/60">Loading…</p>
+          <p className="py-16 text-center text-sm font-bold text-white/80">Loading…</p>
         ) : subs.length === 0 ? (
           <div className="py-16 text-center">
             <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-white/[0.06]"><Crown className="h-7 w-7 text-amber-400" /></span>
             <p className="mt-4 text-base font-black">No subscriptions yet</p>
-            <p className="mx-auto mt-1 max-w-xs text-[13px] font-semibold text-white/70">Subscribe to a model to see her private photos, videos and chat with her — each model is her own subscription.</p>
+            <p className="mx-auto mt-1 max-w-xs text-[13px] font-semibold text-white/85">Subscribe to a model to see her private photos, videos and chat with her — each model is her own subscription.</p>
             <button type="button" onClick={() => router.push("/stores?view=models")} className="lb-gold mt-5 rounded-full px-6 py-3 text-sm font-black active:scale-95">Browse models</button>
           </div>
         ) : (
           <>
-            <p className="text-[11px] font-black uppercase tracking-wide text-white/65">Active ({subs.length})</p>
+            <p className="text-[11px] font-black uppercase tracking-wide text-white/85">Active ({subs.length})</p>
             <div className="mt-2 grid gap-2">
               {subs.map(s => (
                 <button key={s.id} type="button" onClick={() => router.push(`/curator/${s.id}`)}
@@ -52,7 +52,7 @@ export default function MySubscriptionsPage() {
                   {s.photoUrl
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={s.photoUrl} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover object-top" />
-                    : <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white/10 text-base font-black text-white/60">{s.name.slice(0, 1)}</span>}
+                    : <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white/10 text-base font-black text-white/80">{s.name.slice(0, 1)}</span>}
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[15px] font-black text-white">{s.name}</span>
                     <span className="block text-[12px] font-bold text-amber-300/80">Active subscription · manage on her profile</span>
@@ -60,7 +60,7 @@ export default function MySubscriptionsPage() {
                 </button>
               ))}
             </div>
-            <p className="mt-4 text-center text-[11px] font-bold text-white/55">Each model is her own subscription. Cancel anytime on her profile.</p>
+            <p className="mt-4 text-center text-[11px] font-bold text-white/75">Each model is her own subscription. Cancel anytime on her profile.</p>
           </>
         )}
       </div>

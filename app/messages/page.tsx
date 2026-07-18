@@ -78,7 +78,7 @@ export default function MessagesPage() {
             <div className="grid h-16 w-16 place-items-center rounded-full bg-white/5"><MessageCircle className="h-7 w-7 text-white/50" /></div>
             <div>
               <p className="font-black">No chats yet</p>
-              <p className="mt-1 text-sm text-white/65">Start a chat with a model and it&apos;ll show up here.</p>
+              <p className="mt-1 text-sm text-white/85">Start a chat with a model and it&apos;ll show up here.</p>
             </div>
             <button type="button" onClick={() => router.push("/home")}
               className="lb-gold flex h-11 items-center justify-center rounded-full px-8 text-sm font-black active:scale-95 transition">Explore models</button>
@@ -92,7 +92,7 @@ export default function MessagesPage() {
                   {c.photoUrl
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={c.photoUrl} alt={c.name} className="h-full w-full object-cover" />
-                    : <span className="grid h-full w-full place-items-center text-sm font-black text-white/60">{c.name.slice(0, 1)}</span>}
+                    : <span className="grid h-full w-full place-items-center text-sm font-black text-white/80">{c.name.slice(0, 1)}</span>}
                   <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#0d0b0a] bg-amber-400" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -100,7 +100,7 @@ export default function MessagesPage() {
                     <p className="truncate text-sm font-black">{c.name}</p>
                     {c.unread && <span className="shrink-0 rounded-full bg-amber-400 px-1.5 py-0.5 text-[9px] font-black text-black">NEW</span>}
                   </div>
-                  <p className={`truncate text-[13px] ${c.unread ? "font-bold text-white/80" : "font-medium text-white/65"}`}>{c.last || "Tap to chat"}</p>
+                  <p className={`truncate text-[13px] ${c.unread ? "font-bold text-white/80" : "font-medium text-white/85"}`}>{c.last || "Tap to chat"}</p>
                 </div>
               </button>
             ))}

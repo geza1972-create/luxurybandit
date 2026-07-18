@@ -44,7 +44,7 @@ export function TagPicker({ title, all, selected, onToggle, onClose, dark }: {
         <button type="button" onClick={onClose} className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border ${dark ? "border-white/15 text-white" : "border-black/10 text-black"}`}><X className="h-4 w-4" /></button>
         <div className="min-w-0 flex-1">
           <p className={`text-sm font-black ${dark ? "text-white" : "text-black"}`}>{title}</p>
-          <p className={`text-[11px] font-bold ${dark ? "text-white/60" : "text-black/40"}`}>{all.length} in database · {selected.length} selected</p>
+          <p className={`text-[11px] font-bold ${dark ? "text-white/80" : "text-black/40"}`}>{all.length} in database · {selected.length} selected</p>
         </div>
       </div>
       <div className={`border-b px-4 py-2.5 ${dark ? "border-white/10" : "border-black/8"}`}>
@@ -59,12 +59,12 @@ export function TagPicker({ title, all, selected, onToggle, onClose, dark }: {
               <button key={t} type="button" onClick={() => onToggle(t)}
                 className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-black transition ${on
                   ? (dark ? "bg-amber-400 text-black" : "bg-black text-white")
-                  : (dark ? "border border-white/15 bg-white/[0.04] text-white/70 hover:border-amber-400" : "border border-black/12 bg-white text-black/70 hover:border-black")}`}>
+                  : (dark ? "border border-white/15 bg-white/[0.04] text-white/85 hover:border-amber-400" : "border border-black/12 bg-white text-black/70 hover:border-black")}`}>
                 {on && <Check className="h-3 w-3" />}{t}
               </button>
             );
           })}
-          {list.length === 0 && <p className={`py-8 text-center text-sm font-bold ${dark ? "text-white/60" : "text-black/40"}`}>Nothing matches “{q}”.</p>}
+          {list.length === 0 && <p className={`py-8 text-center text-sm font-bold ${dark ? "text-white/80" : "text-black/40"}`}>Nothing matches “{q}”.</p>}
         </div>
       </div>
       <div className={`border-t px-4 py-3 ${dark ? "border-white/10" : "border-black/8"}`}>
@@ -103,7 +103,7 @@ export function TagField({ label, list, value, onChange, placeholder, dark }: {
         <div className={`flex min-h-12 w-full flex-wrap items-center gap-1.5 rounded-xl border px-2.5 py-2 ${dark ? "border-amber-400/50 bg-white/[0.04] focus-within:border-amber-400" : "border-black/12 bg-black/[0.02] focus-within:border-black"}`}>
           {value.map(b => (
             <span key={b} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-black ${dark ? "bg-amber-400 text-black" : "bg-black text-white"}`}>
-              {b}<button type="button" onClick={() => remove(b)} className={dark ? "text-black/50 hover:text-black" : "text-white/60 hover:text-white"}>×</button>
+              {b}<button type="button" onClick={() => remove(b)} className={dark ? "text-black/50 hover:text-black" : "text-white/80 hover:text-white"}>×</button>
             </span>
           ))}
           <input value={query}
@@ -153,7 +153,7 @@ export function PillRow({ label, options, value, onChange, multi, dark }: {
           <button key={o} type="button" onClick={() => toggle(o)}
             className={`rounded-full px-3.5 py-2 text-xs font-black transition ${isOn(o)
               ? (dark ? "bg-amber-400 text-black" : "bg-black text-white")
-              : (dark ? "border border-white/15 bg-white/[0.04] text-white/60 hover:border-amber-400" : "border border-black/12 bg-white text-black/60 hover:border-black")}`}>{o}</button>
+              : (dark ? "border border-white/15 bg-white/[0.04] text-white/80 hover:border-amber-400" : "border border-black/12 bg-white text-black/60 hover:border-black")}`}>{o}</button>
         ))}
       </div>
     </div>

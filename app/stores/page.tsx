@@ -42,7 +42,7 @@ const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub
     h1a: "Discover influencers.", h1b: "Follow, chat & own them.",
     sub: "Browse a marketplace of AI & real influencers — watch their daily luxury looks, chat with them, and own the one you love. New faces and new looks every day.",
     b1t: "Follow & chat", b1x: "Message any influencer, get styled by her, and make her yours.",
-    b2t: "New looks daily", b2x: "Fresh luxury fashion videos from every influencer, every single day.",
+    b2t: "New looks/stories", b2x: "Fresh luxury fashion videos from every influencer, every single day.",
     cta: "Become an influencer",
   },
 };
@@ -480,7 +480,7 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
                       alt={publicAuthorName(creatorName)} className="w-9 aspect-[3/4] shrink-0 rounded-lg bg-white/10 object-cover" />}
                 <div className="min-w-0">
                   <p className="truncate text-sm font-black text-white">{publicAuthorName(creatorName)}</p>
-                  {it.lookTitle && <p className="truncate text-[11px] font-bold text-white/70">{it.lookTitle}</p>}
+                  {it.lookTitle && <p className="truncate text-[11px] font-bold text-white/85">{it.lookTitle}</p>}
                 </div>
               </a>
               <button type="button" onClick={toggleFollow}
@@ -492,11 +492,11 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
             <>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-black text-white">{it.lookTitle || "Luxury look"}</p>
-                {it.storeName && <p className="truncate text-[11px] font-bold text-white/70">{it.storeName}</p>}
+                {it.storeName && <p className="truncate text-[11px] font-bold text-white/85">{it.storeName}</p>}
               </div>
               {it.storeName && (
                 <a href={it.storeSlug ? `/store/${it.storeSlug}` : "#"}
-                  className="shrink-0 rounded-full border border-white/20 px-3 py-1.5 text-xs font-black text-white/70">
+                  className="shrink-0 rounded-full border border-white/20 px-3 py-1.5 text-xs font-black text-white/85">
                   {it.storeName}
                 </a>
               )}
@@ -1371,7 +1371,7 @@ function UserPanel({ onClose, openSaved = false }: { onClose: () => void; openSa
             className="mb-5 flex items-center justify-between gap-3 rounded-2xl bg-black px-4 py-3.5 text-white active:scale-[0.99] transition-transform">
             <span className="min-w-0">
               <span className="block text-sm font-black">Open your page{curator.firstName ? `, ${curator.firstName}` : ""}</span>
-              <span className="block text-[11px] font-bold text-white/55">Pick outfits · create your photos</span>
+              <span className="block text-[11px] font-bold text-white/75">Pick outfits · create your photos</span>
             </span>
             <span className="shrink-0 text-lg font-black">→</span>
           </a>
@@ -2677,7 +2677,7 @@ function StoresPage() {
     if (!looks.length) {
       return (
         <div className="grid min-h-dvh place-items-center bg-black" style={{ maxWidth: "100vw" }}>
-          <Loader2 className="h-7 w-7 animate-spin text-white/60" />
+          <Loader2 className="h-7 w-7 animate-spin text-white/80" />
         </div>
       );
     }
@@ -2719,7 +2719,7 @@ function StoresPage() {
           <button type="button"
             onClick={() => { setSearchOpen(v => !v); if (!searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50); else setQuery(""); }}
             className={`flex h-9 w-9 items-center justify-center rounded-full border transition ${
-              searchOpen ? "border-white bg-white text-black" : "border-white/15 bg-white/5 text-white/60 hover:text-white"
+              searchOpen ? "border-white bg-white text-black" : "border-white/15 bg-white/5 text-white/80 hover:text-white"
             }`}
             aria-label="Search">
             <Search className="h-4 w-4" />
@@ -2731,12 +2731,12 @@ function StoresPage() {
               if (typeof navigator !== "undefined" && navigator.share) { navigator.share({ title: "LuxuryBandit", url }).catch(() => {}); }
               else { navigator.clipboard?.writeText(url).then(() => { setShareCopied(true); setTimeout(() => setShareCopied(false), 1600); }).catch(() => {}); }
             }}
-            className={`flex h-9 w-9 items-center justify-center rounded-full border transition ${shareCopied ? "border-amber-400 bg-amber-400 text-black" : "border-white/15 bg-white/5 text-white/60 hover:text-white"}`}
+            className={`flex h-9 w-9 items-center justify-center rounded-full border transition ${shareCopied ? "border-amber-400 bg-amber-400 text-black" : "border-white/15 bg-white/5 text-white/80 hover:text-white"}`}
             aria-label="Share">
             <Send className="h-4 w-4" />
           </button>
           <a href={`https://instagram.com/${process.env.NEXT_PUBLIC_INSTAGRAM_HANDLE ?? "luxurybandit"}`} target="_blank" rel="noopener noreferrer"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/60 hover:text-white transition"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 hover:text-white transition"
             aria-label="Instagram">
             <Instagram className="h-4 w-4" />
           </a>
@@ -2758,7 +2758,7 @@ function StoresPage() {
             />
             {query && (
               <button type="button" onClick={() => setQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 grid h-5 w-5 place-items-center rounded-full bg-white/15 text-white/60 active:opacity-70">
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 grid h-5 w-5 place-items-center rounded-full bg-white/15 text-white/80 active:opacity-70">
                 <X className="h-3 w-3" />
               </button>
             )}
@@ -2808,7 +2808,7 @@ function StoresPage() {
                     <div className="flex shrink-0 items-center rounded-full bg-white/[0.07] p-0.5 ring-1 ring-white/10">
                       {(["ro", "en"] as const).map((l) => (
                         <button key={l} type="button" onClick={() => setHeroLangUrl(l)}
-                          className={`rounded-full px-2.5 py-1 text-[12px] font-black uppercase transition ${heroLang === l ? "bg-white text-black" : "text-white/55"}`}>
+                          className={`rounded-full px-2.5 py-1 text-[12px] font-black uppercase transition ${heroLang === l ? "bg-white text-black" : "text-white/75"}`}>
                           {l}
                         </button>
                       ))}
@@ -2818,7 +2818,7 @@ function StoresPage() {
                 <h1 className="mt-1.5 text-[1.8rem] font-black leading-[1.08] tracking-tight text-white">
                   {HERO[heroLang].h1a} <span className="text-amber-400">{HERO[heroLang].h1b}</span>
                 </h1>
-                <p className="mt-2 max-w-md text-sm font-medium leading-6 text-white/60">
+                <p className="mt-2 max-w-md text-sm font-medium leading-6 text-white/80">
                   {HERO[heroLang].sub}
                 </p>
                 <div className="mt-3 grid gap-1.5">
@@ -2828,7 +2828,7 @@ function StoresPage() {
                   ].map(([icon, title, text], i) => (
                     <div key={i} className="flex items-start gap-2.5">
                       <span className="mt-0.5 shrink-0">{icon as React.ReactNode}</span>
-                      <p className="text-[13px] leading-snug text-white/70">
+                      <p className="text-[13px] leading-snug text-white/85">
                         <span className="font-black text-white">{title as string}</span> — {text as string}
                       </p>
                     </div>
@@ -2848,13 +2848,13 @@ function StoresPage() {
                 gallery of models (browse a model, then see her in looks). */}
             <div className="flex items-center gap-2 overflow-x-auto px-3 pt-1 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <button type="button" onClick={() => setHomeTab("models")}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "models" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>Models{models.length ? ` · ${models.length}` : ""}</button>
+                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "models" ? "lb-black3d" : "bg-white/10 text-white/80"}`}>Models{models.length ? ` · ${models.length}` : ""}</button>
               {isAdmin && (
                 <button type="button" onClick={() => setHomeTab("garderobe")}
-                  className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "garderobe" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>Wardrobe{garments.length ? ` · ${garments.length}` : ""}</button>
+                  className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "garderobe" ? "lb-black3d" : "bg-white/10 text-white/80"}`}>Wardrobe{garments.length ? ` · ${garments.length}` : ""}</button>
               )}
               <button type="button" onClick={() => setHomeTab("feeds")}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>Reels</button>
+                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "lb-black3d" : "bg-white/10 text-white/80"}`}>Reels</button>
             </div>
 
             {homeTab === "models" ? (
@@ -2865,7 +2865,7 @@ function StoresPage() {
                 {isAdmin && (
                   <div className="px-3 pb-1 pt-1">
                     <button type="button" onClick={openModelAdd}
-                      className="flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-white/25 px-4 py-2.5 text-[13px] font-black text-white/70 active:scale-95 transition-transform">
+                      className="flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-white/25 px-4 py-2.5 text-[13px] font-black text-white/85 active:scale-95 transition-transform">
                       <UserPlus className="h-4 w-4" /> Add a new model
                     </button>
                   </div>
@@ -2873,18 +2873,18 @@ function StoresPage() {
                 {/* Sort (newest first = default) + hair-color filter */}
                 <div className="flex gap-2 overflow-x-auto px-3 pb-2 pt-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <button type="button" onClick={() => { setModelSort("new"); setHairFilter(""); }}
-                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${modelSort === "new" && !hairFilter ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>All</button>
+                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${modelSort === "new" && !hairFilter ? "bg-amber-400 text-black" : "bg-white/10 text-white/80"}`}>All</button>
                   <button type="button" onClick={() => { setModelSort("looks"); setHairFilter(""); }}
-                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${modelSort === "looks" && !hairFilter ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>Most looks</button>
+                    className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${modelSort === "looks" && !hairFilter ? "bg-amber-400 text-black" : "bg-white/10 text-white/80"}`}>Most looks</button>
                   {hairColorsPresent.map(h => (
                     <button key={h} type="button" onClick={() => setHairFilter(f => f === h ? "" : h)}
-                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${hairFilter === h ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>
+                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${hairFilter === h ? "bg-amber-400 text-black" : "bg-white/10 text-white/80"}`}>
                       {HAIR_LABELS[h] ?? h}
                     </button>
                   ))}
                   {isAdmin && (
                     <button type="button" onClick={() => { setModelSelect(v => !v); setModelSelected(new Set()); }}
-                      className={`ml-auto shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-black transition ${modelSelect ? "border-amber-400 bg-amber-400 text-black" : "border-white/20 bg-white/5 text-white/70"}`}>
+                      className={`ml-auto shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-black transition ${modelSelect ? "border-amber-400 bg-amber-400 text-black" : "border-white/20 bg-white/5 text-white/85"}`}>
                       {modelSelect ? "Done" : "Select"}
                     </button>
                   )}
@@ -2915,7 +2915,7 @@ function StoresPage() {
                       className={`flex flex-col overflow-hidden rounded-2xl bg-white/[0.04] active:opacity-80 transition-opacity ${modelSelect && isAdmin && modelSelected.has(m.id) ? "ring-2 ring-amber-400" : ""}`}>
                       <div className="relative aspect-[9/16] overflow-hidden lb-media-bg">
                         {modelSelect && isAdmin && (
-                          <span className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-full text-[13px] font-black ${modelSelected.has(m.id) ? "bg-amber-400 text-black" : "bg-black/60 text-white/60"}`}>✓</span>
+                          <span className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-full text-[13px] font-black ${modelSelected.has(m.id) ? "bg-amber-400 text-black" : "bg-black/60 text-white/80"}`}>✓</span>
                         )}
                         {isAdmin && m.featured && (
                           <span className="absolute left-2 top-2 z-10 rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-black text-black backdrop-blur">★</span>
@@ -2946,7 +2946,7 @@ function StoresPage() {
                       <div className="px-2.5 py-2">
                         <p className="truncate text-[13px] font-black text-white">{m.name}{m.realModel && <span className="ml-1 align-middle text-amber-400">✓</span>}</p>
                         {m.realModel && <p className="truncate text-[11px] font-black text-amber-400">✓ Real model</p>}
-                        {locked ? <p className="truncate text-[11px] font-black text-amber-400">Premium · Members only</p> : m.style && <p className="truncate text-[11px] font-bold text-white/60">{m.style}</p>}
+                        {locked ? <p className="truncate text-[11px] font-black text-amber-400">Premium · Members only</p> : m.style && <p className="truncate text-[11px] font-bold text-white/80">{m.style}</p>}
                         {!locked && (() => {
                           // Her favourite brands (+ our partner GiannaBellucci) as a tiny line.
                           const custom = (m.brands || "").split(",").map(b => b.trim()).filter(Boolean);
@@ -2973,17 +2973,17 @@ function StoresPage() {
                 {garmentTypes.length > 0 && (
                   <div className="flex gap-1.5 overflow-x-auto px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     <button type="button" onClick={() => setGarmentType(null)}
-                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${garmentType === null ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>Alle</button>
+                      className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${garmentType === null ? "bg-white text-black" : "bg-white/10 text-white/80"}`}>Alle</button>
                     {garmentTypes.map(c => (
                       <button key={c.slug} type="button" onClick={() => setGarmentType(c.slug)}
-                        className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${garmentType === c.slug ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>{c.slug === "boudoir" ? "Lingerie" : c.label}</button>
+                        className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${garmentType === c.slug ? "bg-white text-black" : "bg-white/10 text-white/80"}`}>{c.slug === "boudoir" ? "Lingerie" : c.label}</button>
                     ))}
                   </div>
                 )}
                 {isAdmin && (
                   <div className="px-3 pb-1">
                     <button type="button" onClick={() => { setAddOpen(true); setAgMsg(""); }}
-                      className="flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-white/25 px-4 py-2.5 text-[13px] font-black text-white/70 active:scale-95 transition-transform">
+                      className="flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-white/25 px-4 py-2.5 text-[13px] font-black text-white/85 active:scale-95 transition-transform">
                       <UserPlus className="h-4 w-4" /> Luxury-Bandi-Kleidungsstück hinzufügen
                     </button>
                     <p className="mt-1.5 px-1 text-[11px] font-bold text-amber-400/70">Tipp: Tippe das <span className="font-black">★</span> auf einem Stück, um es im „How it works"-Showcase (Schritt 2) zu zeigen.</p>
@@ -2994,7 +2994,7 @@ function StoresPage() {
                   if (items.length === 0) return (
                     <div className="flex flex-col items-center gap-2 py-16 text-center">
                       <ImageIcon className="h-8 w-8 text-white/15" />
-                      <p className="text-sm font-black text-white/60">Noch keine Kleidungsstücke — generiere eine Garderobe auf einer Model-Seite.</p>
+                      <p className="text-sm font-black text-white/80">Noch keine Kleidungsstücke — generiere eine Garderobe auf einer Model-Seite.</p>
                     </div>
                   );
                   return (
@@ -3032,7 +3032,7 @@ function StoresPage() {
                               <button type="button" disabled={lookFeatBusy === g.id}
                                 onClick={(e) => { e.stopPropagation(); void toggleLookFeatured(g.id, !g.featured); }}
                                 aria-label={g.featured ? "Aus Showcase entfernen" : "In Showcase (About) aufnehmen"}
-                                className={`absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full text-sm font-black backdrop-blur active:scale-90 transition disabled:opacity-40 ${g.featured ? "bg-amber-400 text-black" : "bg-black/70 text-white/70"}`}>
+                                className={`absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full text-sm font-black backdrop-blur active:scale-90 transition disabled:opacity-40 ${g.featured ? "bg-amber-400 text-black" : "bg-black/70 text-white/85"}`}>
                                 {lookFeatBusy === g.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "★"}
                               </button>
                             )}
@@ -3057,26 +3057,26 @@ function StoresPage() {
                 bulk-moving posts between tiers. */}
             <div className="flex items-center gap-1.5 overflow-x-auto px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <button type="button" onClick={() => setTierFilter("public")}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "public" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "public" ? "lb-black3d" : "bg-white/10 text-white/80"}`}>
                 All
               </button>
               {isAdmin && (
                 <button type="button"
                   onClick={() => setTierFilter("community")}
-                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "community" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
+                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "community" ? "bg-white text-black" : "bg-white/10 text-white/80"}`}>
                   🔒 Private
                 </button>
               )}
               {isAdmin && (
                 <button type="button" onClick={() => setTierFilter("private")}
-                  className={`flex shrink-0 items-center gap-1 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "private" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>
+                  className={`flex shrink-0 items-center gap-1 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "private" ? "lb-black3d" : "bg-white/10 text-white/80"}`}>
                   <EyeOff className="h-3.5 w-3.5" /> Hidden
                 </button>
               )}
               {isAdmin && (
                 <button type="button"
                   onClick={() => { setTierSelect(v => !v); setTierSelected(new Set()); }}
-                  className={`ml-auto shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-black transition ${tierSelect ? "border-amber-400 bg-amber-400 text-black" : "border-white/20 bg-white/5 text-white/70"}`}>
+                  className={`ml-auto shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-black transition ${tierSelect ? "border-amber-400 bg-amber-400 text-black" : "border-white/20 bg-white/5 text-white/85"}`}>
                   {tierSelect ? "Done" : "Select"}
                 </button>
               )}
@@ -3101,7 +3101,7 @@ function StoresPage() {
                       tierSelect && isAdmin && tierSelected.has(it.id) ? "ring-2 ring-inset ring-amber-400" : ""
                     }`}>
                     {tierSelect && isAdmin && (
-                      <span className={`absolute right-1.5 top-1.5 z-10 grid h-6 w-6 place-items-center rounded-full text-[13px] font-black ${tierSelected.has(it.id) ? "bg-amber-400 text-black" : "bg-black/60 text-white/60"}`}>✓</span>
+                      <span className={`absolute right-1.5 top-1.5 z-10 grid h-6 w-6 place-items-center rounded-full text-[13px] font-black ${tierSelected.has(it.id) ? "bg-amber-400 text-black" : "bg-black/60 text-white/80"}`}>✓</span>
                     )}
                     {isAdmin && it.pinned && (
                       <span className="absolute left-1.5 top-1.5 z-10 rounded-full bg-black/70 px-1.5 py-0.5 text-[11px] backdrop-blur">📌</span>
@@ -3163,7 +3163,7 @@ function StoresPage() {
                       </span>
                     )}
                     <span className="min-w-0 flex-1 truncate text-[11px] font-black text-white">{it.curatorName ? publicAuthorName(it.curatorName) : it.name}</span>
-                    {it.price && <span className="shrink-0 text-[10px] font-black text-white/60">{it.price}</span>}
+                    {it.price && <span className="shrink-0 text-[10px] font-black text-white/80">{it.price}</span>}
                   </div>
                 </div>
               ))}
@@ -3174,7 +3174,7 @@ function StoresPage() {
               </div>
             )}
             {tierFilter !== "public" && visibleHistory.length === 0 && (
-              <p className="py-16 text-center text-sm font-black text-white/60">Nothing here yet.</p>
+              <p className="py-16 text-center text-sm font-black text-white/80">Nothing here yet.</p>
             )}
             </>
             )}
@@ -3843,7 +3843,7 @@ function StoresPage() {
       {isAdmin && modelSelect && (
         <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[85] flex flex-wrap items-center gap-2 border-t border-white/10 bg-[#0d0b0a]/95 px-4 py-3 backdrop-blur"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}>
-          <span className="shrink-0 text-[12px] font-black text-white/70">{modelSelected.size} ausgewählt</span>
+          <span className="shrink-0 text-[12px] font-black text-white/85">{modelSelected.size} ausgewählt</span>
           {(() => {
             const allSel = shownModels.length > 0 && shownModels.every(m => modelSelected.has(m.id));
             return (
@@ -3871,7 +3871,7 @@ function StoresPage() {
               📌 Oben
             </button>
             <button type="button" disabled={modelPinBusy || !modelSelected.size} onClick={() => void pinSelectedModels(false)}
-              className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white/70 active:scale-95 transition disabled:opacity-40">
+              className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white/85 active:scale-95 transition disabled:opacity-40">
               Lösen
             </button>
           </div>
@@ -3882,7 +3882,7 @@ function StoresPage() {
       {isAdmin && tierSelect && (
         <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[85] flex flex-wrap items-center gap-2 border-t border-white/10 bg-[#0d0b0a]/95 px-4 py-3 backdrop-blur"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.75rem)" }}>
-          <span className="shrink-0 text-[12px] font-black text-white/70">{tierSelected.size} ausgewählt</span>
+          <span className="shrink-0 text-[12px] font-black text-white/85">{tierSelected.size} ausgewählt</span>
           {(() => {
             const allSelected = visibleHistory.length > 0 && visibleHistory.every(it => tierSelected.has(it.id));
             return (
@@ -3896,11 +3896,11 @@ function StoresPage() {
             <button type="button" disabled={tierBusy || !tierSelected.size} onClick={() => void animateSelected(true)}
               className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white active:scale-95 transition disabled:opacity-40">▶ Animieren</button>
             <button type="button" disabled={tierBusy || !tierSelected.size} onClick={() => void animateSelected(false)}
-              className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white/70 active:scale-95 transition disabled:opacity-40">⏸ Stopp</button>
+              className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white/85 active:scale-95 transition disabled:opacity-40">⏸ Stopp</button>
             <button type="button" disabled={tierBusy || !tierSelected.size} onClick={() => void pinSelected(true)}
               className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white active:scale-95 transition disabled:opacity-40">📌 Oben</button>
             <button type="button" disabled={tierBusy || !tierSelected.size} onClick={() => void pinSelected(false)}
-              className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white/70 active:scale-95 transition disabled:opacity-40">Lösen</button>
+              className="flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-[12px] font-black text-white/85 active:scale-95 transition disabled:opacity-40">Lösen</button>
             {tierFilter !== "public" && (
               <button type="button" disabled={tierBusy || !tierSelected.size} onClick={() => void moveSelectedTo("public")}
                 className="lb-gold flex items-center gap-1 rounded-full px-3.5 py-2 text-[12px] font-black active:scale-95 transition disabled:opacity-40">

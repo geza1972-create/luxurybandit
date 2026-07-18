@@ -132,7 +132,7 @@ export default function LuxbanditCutTool() {
                   <PantyIcon className={`h-5 w-5 ${activeTool === "extractor" ? "text-coral" : "text-ink/45"}`} />
                   <span>
                     <span className="block text-sm font-black">Apparel Extractor</span>
-                    <span className={`block text-xs font-semibold ${activeTool === "extractor" ? "text-white/65" : "text-ink/45"}`}>
+                    <span className={`block text-xs font-semibold ${activeTool === "extractor" ? "text-white/85" : "text-ink/45"}`}>
                       {activeTool === "extractor" ? "Active tool" : "Create apparel cutouts"}
                     </span>
                   </span>
@@ -152,7 +152,7 @@ export default function LuxbanditCutTool() {
                   />
                   <span>
                     <span className="block text-sm font-black">LuxbanditFit</span>
-                    <span className={`block text-xs font-semibold ${activeTool === "outfit" ? "text-white/65" : "text-ink/45"}`}>
+                    <span className={`block text-xs font-semibold ${activeTool === "outfit" ? "text-white/85" : "text-ink/45"}`}>
                       {activeTool === "outfit" ? "Active tool" : "Create fashion designs"}
                     </span>
                   </span>

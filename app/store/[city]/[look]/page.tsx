@@ -228,7 +228,7 @@ export default function LookDetailPage() {
             <span className="text-lg font-black text-white">{look.salePrice}</span>
           )}
           {look.price && (
-            <span className={`text-base font-black ${look.salePrice ? "text-white/60 line-through" : "text-white"}`}>{look.price}</span>
+            <span className={`text-base font-black ${look.salePrice ? "text-white/80 line-through" : "text-white"}`}>{look.price}</span>
           )}
         </div>
 
@@ -243,7 +243,7 @@ export default function LookDetailPage() {
 
         {/* Expandable notes */}
         {look.productNote && (
-          <button type="button" onClick={() => setShowInfo(v => !v)} className="mt-2 text-left text-xs font-bold text-white/60">
+          <button type="button" onClick={() => setShowInfo(v => !v)} className="mt-2 text-left text-xs font-bold text-white/80">
             {showInfo ? look.productNote : `${look.productNote.slice(0, 60)}${look.productNote.length > 60 ? "… more" : ""}`}
           </button>
         )}
@@ -261,7 +261,7 @@ export default function LookDetailPage() {
               Contact on WhatsApp
             </a>
           ) : (
-            <div className="flex h-14 w-full items-center justify-center rounded-2xl bg-white/10 text-base font-black text-white/60">
+            <div className="flex h-14 w-full items-center justify-center rounded-2xl bg-white/10 text-base font-black text-white/80">
               Sold out
             </div>
           )}

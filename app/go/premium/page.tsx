@@ -53,7 +53,7 @@ export default function GoPremiumPage() {
         {stuck ? (
           <>
             <p className="text-base font-black">Almost there</p>
-            <p className="max-w-xs text-sm font-semibold text-white/55">
+            <p className="max-w-xs text-sm font-semibold text-white/75">
               We couldn&apos;t confirm your sign-in. Please sign in again to continue to checkout.
             </p>
             <a href={"/login?returnTo=" + encodeURIComponent("/go/premium")}

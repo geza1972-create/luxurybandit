@@ -28,7 +28,7 @@ export default async function GrowCardPage() {
         <span className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-black"><Crown className="h-7 w-7" /></span>
         <p className="mt-4 text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Follow · Subscribe · Own</p>
         <h1 className="mt-1 text-3xl font-black leading-tight">Discover your influencer.<br />Follow, chat &amp; subscribe.</h1>
-        <p className="mt-3 text-[15px] font-semibold leading-7 text-white/65">
+        <p className="mt-3 text-[15px] font-semibold leading-7 text-white/85">
           Every influencer on LuxuryBandit is someone you can <strong className="text-white">follow for free</strong>,
           <strong className="text-white"> chat</strong> with, and <strong className="text-white">subscribe</strong> to —
           subscribing unlocks <strong className="text-white">her private photos &amp; videos</strong>. And you can
@@ -42,7 +42,7 @@ export default async function GrowCardPage() {
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-400/10 text-amber-300"><s.icon className="h-4.5 w-4.5" /></span>
               <div className="min-w-0">
                 <p className="text-[14px] font-black leading-tight text-white"><span className="text-amber-400">{i + 1}.</span> {s.title}</p>
-                <p className="mt-0.5 text-[12.5px] font-semibold leading-5 text-white/55">{s.detail}</p>
+                <p className="mt-0.5 text-[12.5px] font-semibold leading-5 text-white/75">{s.detail}</p>
               </div>
             </div>
           ))}

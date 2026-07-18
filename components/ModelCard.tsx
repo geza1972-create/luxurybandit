@@ -136,10 +136,10 @@ export default function ModelCard({
           </span>
         )}
         <span className="relative inline-flex items-center whitespace-nowrap rounded-full bg-black/40 px-3.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-amber-300/85 ring-1 ring-amber-300/20 backdrop-blur">
-          LuxuryBandit.com <span className="mx-1.5 text-amber-300/40">·</span> <span className="text-white/65">{hideOwner ? "Creator preview" : "Own an AI Influencer"}</span>
+          LuxuryBandit.com <span className="mx-1.5 text-amber-300/40">·</span> <span className="text-white/85">{hideOwner ? "Creator preview" : "Own an AI Influencer"}</span>
         </span>
         <button type="button" onClick={() => void share()} aria-label="Share this card"
-          className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white/70 transition active:scale-90 hover:text-white">
+          className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white/85 transition active:scale-90 hover:text-white">
           <Send className="h-3.5 w-3.5" />
         </button>
         {copied && (
@@ -182,7 +182,7 @@ export default function ModelCard({
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={c.poster || media} alt="" className="h-full w-full scale-110 object-cover object-top blur-2xl brightness-[0.55]" />
                     <div className="absolute inset-0 grid place-items-center">
-                      <span className="grid h-11 w-11 place-items-center rounded-full bg-black/45 ring-1 ring-white/20 backdrop-blur"><Lock className="h-5 w-5 text-white/70" /></span>
+                      <span className="grid h-11 w-11 place-items-center rounded-full bg-black/45 ring-1 ring-white/20 backdrop-blur"><Lock className="h-5 w-5 text-white/85" /></span>
                     </div>
                   </>
                 ) : locked ? (
@@ -192,7 +192,7 @@ export default function ModelCard({
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center">
                       <span className="grid h-11 w-11 place-items-center rounded-full bg-black/60 ring-1 ring-white/30 backdrop-blur"><Lock className="h-5 w-5 text-white" /></span>
                       <p className="text-[15px] font-black leading-tight text-white">Members only</p>
-                      <p className="max-w-[15rem] text-[12px] font-semibold leading-snug text-white/60">This look is for members. Join to watch her private clips.</p>
+                      <p className="max-w-[15rem] text-[12px] font-semibold leading-snug text-white/80">This look is for members. Join to watch her private clips.</p>
                       <button type="button" onClick={goMembership}
                         className="lb-gold mt-1 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-[13px] font-black active:scale-95 transition"><Crown className="h-4 w-4" /> Get membership</button>
                     </div>
@@ -233,7 +233,7 @@ export default function ModelCard({
                         {/* Her intro lives HERE on the card face (no separate ABOUT slide). */}
                         <p className={`font-semibold text-white/85 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)] ${intro ? "line-clamp-4 text-[12.5px] leading-snug" : "text-[13px]"}`}>{intro || tagline}</p>
                         {hideOwner ? null : isOwned ? (
-                          <p className="mt-1.5 text-[13px] font-black text-amber-300 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)]">Owned by {ownedName}{ownerSince ? <span className="font-bold text-white/70"> · since {ownerSince}</span> : null}</p>
+                          <p className="mt-1.5 text-[13px] font-black text-amber-300 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)]">Owned by {ownedName}{ownerSince ? <span className="font-bold text-white/85"> · since {ownerSince}</span> : null}</p>
                         ) : (
                           <p className="mt-1.5 text-[14px] font-black text-amber-300 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)]">No owner yet — be the first owner</p>
                         )}
@@ -332,8 +332,8 @@ export default function ModelCard({
 
       {/* Card info — her "profile data": serial, created date, description, brands */}
       <div className="border-b border-white/10 px-4 py-3">
-        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wide text-white/65">
-          <span className="font-mono normal-case tracking-wider text-white/55">Model Nº {serial}</span>
+        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wide text-white/85">
+          <span className="font-mono normal-case tracking-wider text-white/75">Model Nº {serial}</span>
           {created && <span>Created {created}</span>}
         </div>
         <p className="mt-2 text-[11px] font-black uppercase tracking-[0.12em] text-amber-400/80">{realModel ? "LB Real Influencer" : "AI LB Influencer"}</p>
@@ -343,9 +343,9 @@ export default function ModelCard({
             <Crown className="h-3.5 w-3.5 shrink-0" fill="currentColor" /> Wearing {sponsor}
           </p>
         )}
-        {bio && <p className="mt-1 text-[12.5px] font-semibold leading-5 text-white/70">{bio}</p>}
+        {bio && <p className="mt-1 text-[12.5px] font-semibold leading-5 text-white/85">{bio}</p>}
         {brandList.length > 0 && (
-          <p className="mt-1.5 text-[12.5px] font-semibold leading-5 text-white/55">
+          <p className="mt-1.5 text-[12.5px] font-semibold leading-5 text-white/75">
             Loves {brandList.join(", ")}.
           </p>
         )}
@@ -356,11 +356,11 @@ export default function ModelCard({
         <div className="border-b border-white/10 px-4 py-3">
           <p className="text-[9px] font-black uppercase tracking-[0.18em] text-amber-400/70">Ownership &amp; history</p>
           <div className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[11.5px]">
-            <span className="font-bold text-white/60">Created</span><span className="text-right font-black text-white/85">{created || "—"}</span>
-            <span className="font-bold text-white/60">Owner</span><span className={`text-right font-black ${isOwned ? "text-white/85" : "text-amber-400"}`}>{isOwned ? ownedName : "Available"}</span>
-            {ownerSince && (<><span className="font-bold text-white/60">Owned since</span><span className="text-right font-black text-white/85">{ownerSince}</span></>)}
-            <span className="font-bold text-white/60">Growth Score</span><span className="text-right font-black text-amber-300">{gsLabel}</span>
-            <span className="font-bold text-white/60">Peak Score</span><span className="text-right font-black text-amber-300">{gsLabel}</span>
+            <span className="font-bold text-white/80">Created</span><span className="text-right font-black text-white/85">{created || "—"}</span>
+            <span className="font-bold text-white/80">Owner</span><span className={`text-right font-black ${isOwned ? "text-white/85" : "text-amber-400"}`}>{isOwned ? ownedName : "Available"}</span>
+            {ownerSince && (<><span className="font-bold text-white/80">Owned since</span><span className="text-right font-black text-white/85">{ownerSince}</span></>)}
+            <span className="font-bold text-white/80">Growth Score</span><span className="text-right font-black text-amber-300">{gsLabel}</span>
+            <span className="font-bold text-white/80">Peak Score</span><span className="text-right font-black text-amber-300">{gsLabel}</span>
           </div>
         </div>
       )}
@@ -394,7 +394,7 @@ export default function ModelCard({
       {/* Brand footer — the domain (carried on any shared screenshot) + a link to how she grows. */}
       <Link href="/grow-card" className="relative z-[3] flex items-center justify-center gap-1.5 border-t border-white/10 py-2 text-center transition active:scale-95">
         <span className="text-[10px] font-black uppercase tracking-[0.24em] text-amber-300/80">luxurybandit.com</span>
-        <span className="text-[10px] font-black uppercase tracking-[0.24em] text-white/60">· AI Influencer</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.24em] text-white/80">· AI Influencer</span>
       </Link>
 
       {/* Fullscreen enlarged slide — any slide (photo, look or video). Tap the corner button (or
@@ -422,11 +422,11 @@ export default function ModelCard({
           <div className="w-full max-w-sm rounded-3xl border border-amber-400/25 bg-[#141210] p-6 text-center" onClick={e => e.stopPropagation()}>
             <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-black"><Crown className="h-6 w-6" /></span>
             <h3 className="mt-3 text-lg font-black text-white">Looking for owner</h3>
-            <p className="mt-2 text-[13px] font-semibold leading-6 text-white/70">
+            <p className="mt-2 text-[13px] font-semibold leading-6 text-white/85">
               Become {name}&apos;s <b className="text-white">owner</b> by paying her <b className="text-amber-300">monthly Growth-Score price</b> (currently GS {gsLabel}). You&apos;re then her <b className="text-white">sponsor</b> — she promotes <b className="text-white">YOUR products</b> to her fans.
             </p>
             <Link href="/contact?reason=own" className="lb-gold mt-4 inline-flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-black active:scale-95">Become her sponsor — get in touch</Link>
-            <button type="button" onClick={() => setOwnerInfo(false)} className="mt-2 w-full py-2 text-[13px] font-black text-white/65">Close</button>
+            <button type="button" onClick={() => setOwnerInfo(false)} className="mt-2 w-full py-2 text-[13px] font-black text-white/85">Close</button>
           </div>
         </div>
       )}

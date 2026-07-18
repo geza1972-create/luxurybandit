@@ -49,13 +49,13 @@ export default function OwnModelPage() {
       <main className="min-h-screen bg-[#0d0b0a] text-white">
         <LandingHeader />
         <div className="mx-auto flex max-w-[440px] flex-col items-center px-4 pb-24 pt-16 text-center">
-          <p className="text-sm font-bold text-white/70">This model isn&apos;t available.</p>
+          <p className="text-sm font-bold text-white/85">This model isn&apos;t available.</p>
         </div>
       </main>
     );
   }
   if (!profile) {
-    return <div className="flex h-[100dvh] items-center justify-center bg-[#0d0b0a] text-sm font-bold text-white/60">Loading…</div>;
+    return <div className="flex h-[100dvh] items-center justify-center bg-[#0d0b0a] text-sm font-bold text-white/80">Loading…</div>;
   }
 
   return (
@@ -89,12 +89,12 @@ export default function OwnModelPage() {
         </div>
 
         {profile.forSale === false ? (
-          <p className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-center text-[14px] font-bold text-white/60">
+          <p className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-center text-[14px] font-bold text-white/80">
             {name} already has an owner right now.
           </p>
         ) : (
           <div className="mt-6 rounded-2xl border border-[#c9a23f]/40 bg-black/30 p-5">
-            <p className="text-[13px] font-bold text-white/70">Enter your email to proceed to payment{profile.growPriceLabel ? ` (${profile.growPriceLabel})` : ""}.</p>
+            <p className="text-[13px] font-bold text-white/85">Enter your email to proceed to payment{profile.growPriceLabel ? ` (${profile.growPriceLabel})` : ""}.</p>
             <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Your email"
               className="mt-3 h-12 w-full rounded-xl border border-white/15 bg-white/5 px-4 text-[15px] font-semibold text-white outline-none focus:border-[#c9a23f] placeholder:text-white/50" />
             {err && <p className="mt-2 text-[12px] font-bold text-red-400">{err}</p>}
@@ -102,7 +102,7 @@ export default function OwnModelPage() {
               className="mt-4 flex h-13 min-h-[52px] w-full items-center justify-center rounded-full bg-[#c9a23f] px-6 text-base font-black text-black active:scale-95 transition disabled:opacity-50">
               {busy ? "…" : `Own ${name} — proceed to payment →`}
             </button>
-            <p className="mt-3 text-center text-[12px] font-bold text-white/60">🔒 Secure checkout via Stripe</p>
+            <p className="mt-3 text-center text-[12px] font-bold text-white/80">🔒 Secure checkout via Stripe</p>
           </div>
         )}
       </div>

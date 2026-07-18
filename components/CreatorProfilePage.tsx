@@ -400,7 +400,7 @@ export default function CreatorProfilePage({ creatorSlug }: { creatorSlug: strin
                       )}
                       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent p-2.5">
                         <p className="text-white text-[11px] font-black line-clamp-1">{item.lookName}</p>
-                        {item.storeName && <p className="text-white/70 text-[10px]">{item.storeName}</p>}
+                        {item.storeName && <p className="text-white/85 text-[10px]">{item.storeName}</p>}
                       </div>
                       <button type="button" onClick={e => { e.stopPropagation(); toggleLike(item.id); }}
                         className="absolute top-2 right-2 flex items-center gap-0.5">

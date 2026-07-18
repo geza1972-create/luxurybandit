@@ -741,12 +741,12 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         {isRealModel && (
           <span className="shrink-0 rounded-full bg-amber-500/90 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white shadow">✓ Real model</span>
         )}
-        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${look.aiCreated ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${look.aiCreated ? "bg-white text-black" : "bg-white/10 text-white/80"}`}>
           {look.aiCreated ? "✦ Original" : "Model"}
         </span>
         {creatorSlug && (
           <button type="button" onClick={toggleFollow}
-            className={`ml-auto shrink-0 rounded-full px-3.5 py-1 text-xs font-black transition active:scale-95 ${following ? "border border-white/25 text-white/60" : "lb-gold"}`}>
+            className={`ml-auto shrink-0 rounded-full px-3.5 py-1 text-xs font-black transition active:scale-95 ${following ? "border border-white/25 text-white/80" : "lb-gold"}`}>
             {following ? "Following" : "Follow"}
           </button>
         )}
@@ -756,7 +756,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         <>
           <p ref={captionRef} className={`mt-1 text-[13px] leading-snug text-white/85 ${expanded ? "" : "line-clamp-1"}`}>{caption}</p>
           {clamped && (
-            <button type="button" onClick={() => setExpanded(e => !e)} className="mt-0.5 text-[12px] font-bold text-white/65">
+            <button type="button" onClick={() => setExpanded(e => !e)} className="mt-0.5 text-[12px] font-bold text-white/85">
               {expanded ? "less" : "more"}
             </button>
           )}
@@ -946,8 +946,8 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                     // original, which we never show) and no video — nothing safe to display.
                     <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-neutral-900 px-8 text-center">
                       <ImageOff className="h-9 w-9 text-white/50" />
-                      <p className="text-sm font-black text-white/70">No preview yet</p>
-                      <p className="text-[12px] font-bold leading-snug text-white/60">Add a try-on or video for this look — the original brand photo can’t be shown.</p>
+                      <p className="text-sm font-black text-white/85">No preview yet</p>
+                      <p className="text-[12px] font-bold leading-snug text-white/80">Add a try-on or video for this look — the original brand photo can’t be shown.</p>
                     </div>
                   )}
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
@@ -1080,7 +1080,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
           </button>
         ) : (
           <button type="button" aria-label="Exit fullscreen" onClick={(e) => { e.stopPropagation(); setImmersive(false); }} onPointerDown={(e) => e.stopPropagation()}
-            className="absolute bottom-4 right-4 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white/70 opacity-70 backdrop-blur active:scale-90 transition">
+            className="absolute bottom-4 right-4 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/40 text-white/85 opacity-70 backdrop-blur active:scale-90 transition">
             <Minimize2 className="h-5 w-5" />
           </button>
         )}
@@ -1161,7 +1161,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         {single && isAdmin && (
           community.length > 0 ? (
             <div className="mt-2 rounded-2xl border border-white/10 bg-white/[0.04] p-2.5">
-              <p className="mb-2 px-0.5 text-[11px] font-black uppercase tracking-wide text-white/65">
+              <p className="mb-2 px-0.5 text-[11px] font-black uppercase tracking-wide text-white/85">
                 Admin · {community.length} {community.length === 1 ? "person tried this on" : "people tried this on"}
               </p>
               <div className="flex flex-col gap-1.5">
@@ -1174,7 +1174,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                         <img src={c.imageUrl} alt={c.name ? publicAuthorName(c.name) : "Member"} className="h-full w-full object-cover object-top" />
                       </span>
                       <span className="min-w-0 flex-1 truncate text-[13px] font-black text-white">{c.name ? publicAuthorName(c.name) : "Member"}</span>
-                      {c.videoUrl && <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white/70">Video</span>}
+                      {c.videoUrl && <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white/85">Video</span>}
                     </>
                   );
                   return slug ? (
@@ -1187,11 +1187,11 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               </div>
             </div>
           ) : (
-            <p className="mt-2 px-0.5 text-[12px] font-bold text-white/65">Admin · no try-ons yet</p>
+            <p className="mt-2 px-0.5 text-[12px] font-bold text-white/85">Admin · no try-ons yet</p>
           )
         )}
         <div className="mt-1 flex items-center gap-3">
-          <button type="button" onClick={() => setGate({ mode: "feedback" })} className="text-[12px] font-bold text-white/65">💬 Feedback / Contact</button>
+          <button type="button" onClick={() => setGate({ mode: "feedback" })} className="text-[12px] font-bold text-white/85">💬 Feedback / Contact</button>
         </div>
         {/* Slim recruiting ad — a GOLD BUTTON on every ~4th post (parent decides),
             scrolls with the caption so the snap feed stays untouched. */}
@@ -1621,7 +1621,7 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
 
   if (!feed.length) {
     return (
-      <div className="grid h-[100dvh] place-items-center bg-black text-center text-white/70">
+      <div className="grid h-[100dvh] place-items-center bg-black text-center text-white/85">
         <p className="text-sm font-black">{modelFilter ? `No posts from ${modelFilter.name} yet.` : "No looks yet."}</p>
         {modelFilter && (
           <button type="button" onClick={() => setModelFilter(null)} className="mt-3 rounded-full bg-white/10 px-4 py-2 text-xs font-black text-white">Clear filter</button>
@@ -1652,7 +1652,7 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
         <div className="fixed inset-0 z-[110] flex flex-col bg-black/80 backdrop-blur-sm" onClick={() => setModelPickerOpen(false)}>
           <div className="mx-auto flex h-full w-full max-w-[440px] flex-col bg-[#0d0b0a]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
-              <Search className="h-4 w-4 text-white/60" />
+              <Search className="h-4 w-4 text-white/80" />
               <input autoFocus value={modelSearchQ} onChange={e => setModelSearchQ(e.target.value)} placeholder="Search a model…"
                 className="h-9 flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/50" />
               <button type="button" onClick={() => setModelPickerOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white"><X className="h-4 w-4" /></button>

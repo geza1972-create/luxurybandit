@@ -32,7 +32,7 @@ export default function WardrobePeek() {
 
   return (
     <>
-      <p className="mt-6 text-[11px] font-black uppercase tracking-[0.18em] text-white/65">A peek at the wardrobe</p>
+      <p className="mt-6 text-[11px] font-black uppercase tracking-[0.18em] text-white/85">A peek at the wardrobe</p>
       <div className="mt-2 flex snap-x gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {imgs.map((src, i) => (
           <div key={i} className="relative aspect-[3/4] w-[30%] shrink-0 snap-start overflow-hidden rounded-xl bg-white">

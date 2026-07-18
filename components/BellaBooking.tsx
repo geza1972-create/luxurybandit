@@ -42,13 +42,13 @@ export default function BellaBooking({ firstName = "Bella" }: { firstName?: stri
       </div>
       <div className="mt-4 flex items-end gap-2">
         <span className="text-[40px] font-black leading-none text-white">$49</span>
-        <span className="mb-1 text-[13px] font-bold text-white/70">/ day · 6 pieces</span>
+        <span className="mb-1 text-[13px] font-bold text-white/85">/ day · 6 pieces</span>
       </div>
 
       {done ? (
         <div className="mt-4 rounded-xl border border-[#c9a23f]/40 bg-black/30 p-4 text-center">
           <p className="text-[15px] font-black text-[#c9a23f]">{done === "in" ? "Welcome aboard! 🌴" : "Almost done ✉️"}</p>
-          <p className="mt-1.5 text-[13px] font-medium leading-snug text-white/70">
+          <p className="mt-1.5 text-[13px] font-medium leading-snug text-white/85">
             {done === "in"
               ? `Your account is ready. We'll set up your journey with ${firstName} and get in touch with your first content.`
               : "We've sent you a confirmation email. Confirm it and you're in."}
@@ -56,7 +56,7 @@ export default function BellaBooking({ firstName = "Bella" }: { firstName?: stri
         </div>
       ) : (
         <div className="mt-4 space-y-2">
-          <p className="text-[12px] font-bold text-white/70">Booking = creating your account. After that we take care of your journey.</p>
+          <p className="text-[12px] font-bold text-white/85">Booking = creating your account. After that we take care of your journey.</p>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name"
             className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 text-sm font-bold text-white outline-none placeholder:text-white/50 focus:border-[#c9a23f]" />
           <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoComplete="email" placeholder="Your email"
@@ -68,7 +68,7 @@ export default function BellaBooking({ firstName = "Bella" }: { firstName?: stri
             className="mt-1 w-full rounded-xl bg-[#c9a23f] py-3.5 text-[15px] font-black text-black active:scale-[0.98] transition disabled:opacity-40">
             {busy ? "Creating account…" : "Create account & book for $49 →"}
           </button>
-          <p className="text-center text-[11px] font-medium text-white/55">Already have an account? <a href="/login" className="font-bold text-[#c9a23f]">Log in</a></p>
+          <p className="text-center text-[11px] font-medium text-white/75">Already have an account? <a href="/login" className="font-bold text-[#c9a23f]">Log in</a></p>
         </div>
       )}
     </div>

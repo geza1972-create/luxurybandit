@@ -42,12 +42,12 @@ export default async function InfluencerGrowthPage() {
       <div className="mx-auto max-w-lg px-5 pt-8">
         <span className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-black"><TrendingUp className="h-7 w-7" /></span>
         <h1 className="mt-4 text-3xl font-black leading-tight">How your influencer grows</h1>
-        <p className="mt-2 text-[15px] font-semibold leading-7 text-white/65">
+        <p className="mt-2 text-[15px] font-semibold leading-7 text-white/85">
           LuxuryBandit continuously helps your AI influencer evolve — with <strong className="text-white">fresh content</strong>, <strong className="text-white">premium experiences</strong> and <strong className="text-white">community engagement</strong>.
         </p>
         {/* The emotional hook — the one line worth highlighting. */}
         <p className="mt-5 border-l-2 border-amber-400 pl-4 text-[21px] font-black leading-snug text-amber-300">
-          She becomes more complete, more unique and more desirable<span className="text-white/65"> — not more expensive.</span>
+          She becomes more complete, more unique and more desirable<span className="text-white/85"> — not more expensive.</span>
         </p>
 
         {/* Growth mechanics — the qualitative ways she evolves. */}
@@ -57,7 +57,7 @@ export default async function InfluencerGrowthPage() {
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-amber-300/20 to-amber-500/10 text-amber-300"><f.icon className="h-5 w-5" /></span>
               <div className="min-w-0 flex-1">
                 <p className="text-[14px] font-black leading-tight text-white">{f.title}</p>
-                <p className="text-[12px] font-semibold leading-snug text-white/65">{f.detail}</p>
+                <p className="text-[12px] font-semibold leading-snug text-white/85">{f.detail}</p>
               </div>
             </div>
           ))}
@@ -66,13 +66,13 @@ export default async function InfluencerGrowthPage() {
         {/* Growth Score — a popularity score, explicitly NOT a price. Built by earning Growth Points. */}
         <div className="mt-8 rounded-2xl border border-amber-400/25 bg-amber-400/[0.05] p-5">
           <p className="text-[11px] font-black uppercase tracking-[0.16em] text-amber-300/80">Growth Score</p>
-          <p className="mt-1 text-[13px] font-semibold leading-6 text-white/55">A single number for how popular and developed she is. It rises as she earns <strong className="text-amber-200">Growth Points</strong> — it is <strong className="text-white">not money</strong> and not a price.</p>
+          <p className="mt-1 text-[13px] font-semibold leading-6 text-white/75">A single number for how popular and developed she is. It rises as she earns <strong className="text-amber-200">Growth Points</strong> — it is <strong className="text-white">not money</strong> and not a price.</p>
 
-          <p className="mt-4 mb-2 text-[11px] font-black uppercase tracking-[0.14em] text-white/60">Earn Growth Points</p>
+          <p className="mt-4 mb-2 text-[11px] font-black uppercase tracking-[0.14em] text-white/80">Earn Growth Points</p>
           <div className="overflow-hidden rounded-xl border border-white/10">
             {scoreRows.map((r, i) => (
               <div key={r.label} className={`flex items-center justify-between px-4 py-3 ${i > 0 ? "border-t border-white/10" : ""}`}>
-                <span className="text-[13px] font-bold text-white/70">{r.label}</span>
+                <span className="text-[13px] font-bold text-white/85">{r.label}</span>
                 <span className="flex shrink-0 items-center gap-1.5 text-[14px] font-black text-amber-300"><Star className="h-3.5 w-3.5" fill="currentColor" /> {r.value} GP</span>
               </div>
             ))}

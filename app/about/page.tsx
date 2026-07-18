@@ -65,7 +65,7 @@ export default async function AboutPage() {
         <h1 className="mt-2 text-[28px] font-black leading-tight">
           The influencer <span className="text-amber-400">marketplace.</span>
         </h1>
-        <p className="mt-3 text-[15px] font-semibold leading-7 text-white/60">
+        <p className="mt-3 text-[15px] font-semibold leading-7 text-white/80">
           LuxuryBandit is a marketplace of AI &amp; real influencers. Browse them, watch their daily
           luxury looks, <strong className="text-white">follow</strong> the ones you love,{" "}
           <strong className="text-white">chat</strong> with them, and{" "}
@@ -81,7 +81,7 @@ export default async function AboutPage() {
               <span className={step}>1</span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-black">Discover &amp; follow</p>
-                <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/55">Browse the marketplace and follow any influencer — free. See her new looks every day.</p>
+                <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/75">Browse the marketplace and follow any influencer — free. See her new looks every day.</p>
               </div>
             </div>
             {models.length > 0 && (
@@ -102,7 +102,7 @@ export default async function AboutPage() {
               <span className={step}>2</span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-black">Chat with her</p>
-                <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/55">
+                <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/75">
                   Send her a <MessageCircle className="-mt-0.5 inline h-3.5 w-3.5 text-amber-400" /> message,
                   get styled, and get to know her — she replies day and night.
                 </p>
@@ -115,7 +115,7 @@ export default async function AboutPage() {
               <span className={step}>3</span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-black">Subscribe — unlock her private world</p>
-                <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/55">
+                <p className="mt-0.5 text-[13px] font-semibold leading-6 text-white/75">
                   <Lock className="-mt-0.5 inline h-3.5 w-3.5 text-amber-400" /> {sub}/month (just $8 the
                   first month) unlocks her private photos &amp; videos. One subscription per influencer, cancel anytime.
                 </p>
@@ -126,14 +126,14 @@ export default async function AboutPage() {
 
         {/* Feeds */}
         <h2 className="mt-9 text-lg font-black">Feeds</h2>
-        <p className="mt-2 text-[14px] font-semibold leading-7 text-white/60">
+        <p className="mt-2 text-[14px] font-semibold leading-7 text-white/80">
           The best looks land in your <strong className="text-white">Feed</strong>.
           Follow your favorite influencers and never miss a new look.
         </p>
 
         {/* Money */}
         <h2 className="mt-9 text-lg font-black">How we make money</h2>
-        <p className="mt-2 text-[14px] font-semibold leading-7 text-white/60">
+        <p className="mt-2 text-[14px] font-semibold leading-7 text-white/80">
           <strong className="text-white">Subscriptions.</strong> When you subscribe to an influencer, we
           keep a share and <strong className="text-white">the model earns 50%</strong>. Some shop links also
           earn us a small commission. We hold no inventory and sell no products ourselves.
@@ -145,7 +145,7 @@ export default async function AboutPage() {
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-black"><Heart className="h-5 w-5" /></span>
           <span className="min-w-0">
             <span className="block text-sm font-black text-amber-400">Become a LuxuryBandit Model</span>
-            <span className="block text-[13px] font-semibold leading-6 text-white/55">
+            <span className="block text-[13px] font-semibold leading-6 text-white/75">
               Apply free with your own photo, upload your private videos, and earn 50% of every subscription. →
             </span>
           </span>
@@ -153,7 +153,7 @@ export default async function AboutPage() {
 
         {/* LuxuryBandit — no email exposed, just a link to the contact form. */}
         <h2 className="mt-9 text-lg font-black">LuxuryBandit</h2>
-        <p className="mt-2 text-[14px] font-semibold leading-7 text-white/60">
+        <p className="mt-2 text-[14px] font-semibold leading-7 text-white/80">
           LuxuryBandit · Timișoara, Romania<br />
           <Link href="/contact" className="font-black text-amber-400">Contact form →</Link>
         </p>

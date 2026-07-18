@@ -95,7 +95,7 @@ export default function UserDashboardPage() {
     <main className="min-h-[100dvh] bg-[#fafaf8] pb-24">
       <TopNav subtitle="Dashboard" actions={
         <button type="button" onClick={() => { signOut(); router.replace("/stores"); }}
-          className="flex items-center gap-1.5 text-xs font-black text-white/60 active:opacity-70">
+          className="flex items-center gap-1.5 text-xs font-black text-white/80 active:opacity-70">
           <LogOut className="h-4 w-4" /> Sign out
         </button>
       } />

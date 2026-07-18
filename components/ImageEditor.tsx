@@ -2595,7 +2595,7 @@ export function ImageEditor({ viewName, onContinueToLuxbanditFit }: ImageEditorP
                     }`}
                   >
                     <span className="block text-sm font-black">{mode.label}</span>
-                    <span className={`mt-1 block text-xs font-semibold leading-5 ${aiRetouchMode === mode.value ? "text-white/70" : "text-ink/55"}`}>
+                    <span className={`mt-1 block text-xs font-semibold leading-5 ${aiRetouchMode === mode.value ? "text-white/85" : "text-ink/55"}`}>
                       {mode.description}
                     </span>
                   </button>
@@ -2627,7 +2627,7 @@ export function ImageEditor({ viewName, onContinueToLuxbanditFit }: ImageEditorP
                       }`}
                     >
                       <span className="block text-sm font-black">{provider.label}</span>
-                      <span className={`mt-1 block text-xs font-semibold leading-5 ${selected && !disabled ? "text-white/70" : "text-ink/55"}`}>
+                      <span className={`mt-1 block text-xs font-semibold leading-5 ${selected && !disabled ? "text-white/85" : "text-ink/55"}`}>
                         {disabled ? "Only available for Preserve Cutout extraction." : provider.description}
                       </span>
                     </button>

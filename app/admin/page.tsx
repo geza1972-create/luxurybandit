@@ -295,7 +295,7 @@ export default function AdminPage() {
   const loadPending = () => {
     fetch("/api/pending-slides", { headers: headers() }).then(r => r.json()).then(d => setPendingSlides(Array.isArray(d?.items) ? d.items : [])).catch(() => {});
   };
-  useEffect(() => { loadPending(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (authed) loadPending(); }, [authed]); // eslint-disable-line react-hooks/exhaustive-deps
   const reviewSlide = async (s: PendingSlide, action: "approve" | "reject" | "set-private") => {
     setPendingBusy(s.id);
     try {
@@ -2538,7 +2538,7 @@ export default function AdminPage() {
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={f.imageUrl} alt="" loading="lazy" className="h-full w-full object-contain" />
                       </button>
-                      <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[9px] font-black ${f.sold ? "bg-red-600 text-white" : f.claimed ? "bg-black/70 text-white/70" : "bg-emerald-600 text-white"}`}>{f.sold ? "SOLD" : f.claimed ? "Booked" : "Free"}</span>
+                      <span className={`absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[9px] font-black ${f.sold ? "bg-red-600 text-white" : f.claimed ? "bg-black/70 text-white/85" : "bg-emerald-600 text-white"}`}>{f.sold ? "SOLD" : f.claimed ? "Booked" : "Free"}</span>
                       {f.promotedTo && <span className="absolute bottom-1 right-1 rounded-full bg-violet-600 px-1.5 py-0.5 text-[9px] font-black text-white" title="Already an influencer in the Models list">✦ Influencer</span>}
                       {isNewFace(f.createdAt) && !f.sold && !f.claimed && <span className="absolute left-1 top-1 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white">New</span>}
                       <button type="button" title={f.claimed ? "Booked — delete anyway" : "Delete face"}
@@ -3135,7 +3135,7 @@ export default function AdminPage() {
           <div className="flex max-h-[92dvh] w-full max-w-sm flex-col items-center overflow-y-auto rounded-2xl [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={bigFace.imageUrl} alt="" className="max-h-[42vh] w-auto shrink-0 rounded-2xl object-contain" />
-            <p className="mt-2 text-[12px] font-bold text-white/60">{bigFace.sold ? "🔴 Sold — hidden from the picker" : bigFace.claimed ? "Booked by an influencer" : "Free — available to claim"}</p>
+            <p className="mt-2 text-[12px] font-bold text-white/80">{bigFace.sold ? "🔴 Sold — hidden from the picker" : bigFace.claimed ? "Booked by an influencer" : "Free — available to claim"}</p>
             {faceErr && <p className="mt-1 text-[12px] font-bold text-red-400">{faceErr}</p>}
             {bigFace.videoUrl && (
               /* eslint-disable-next-line jsx-a11y/media-has-caption */

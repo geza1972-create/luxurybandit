@@ -75,7 +75,7 @@ export default function BuyerAccount() {
       <div className="flex items-center gap-3 border-b border-white/10 px-4 py-4">
         <button type="button" onClick={() => router.back()} className="grid h-9 w-9 place-items-center rounded-full border border-white/15 text-white/80 active:scale-90 transition"><ArrowLeft className="h-5 w-5" /></button>
         <p className="flex-1 text-center text-base font-black">My Account</p>
-        <button type="button" onClick={logout} className="flex items-center gap-1.5 text-[13px] font-black text-white/60 active:scale-95 transition"><LogOut className="h-4 w-4" /> Sign out</button>
+        <button type="button" onClick={logout} className="flex items-center gap-1.5 text-[13px] font-black text-white/80 active:scale-95 transition"><LogOut className="h-4 w-4" /> Sign out</button>
       </div>
 
       <div className="mx-auto max-w-[440px] px-4 py-5">
@@ -84,12 +84,12 @@ export default function BuyerAccount() {
           <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-white text-black text-lg font-black">{initial}</div>
           <div className="min-w-0">
             <p className="truncate text-sm font-black">{email}</p>
-            <span className="mt-1 inline-block rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-white/60">Member</span>
+            <span className="mt-1 inline-block rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-white/80">Member</span>
           </div>
         </div>
 
         {/* Display name */}
-        <p className="mt-6 text-[11px] font-black uppercase tracking-widest text-white/55">Display name</p>
+        <p className="mt-6 text-[11px] font-black uppercase tracking-widest text-white/75">Display name</p>
         <div className="mt-2 flex gap-2">
           <input value={name} onChange={e => setName(e.target.value)} placeholder="How should we call you?"
             className="h-12 flex-1 rounded-2xl border border-white/15 bg-white/5 px-4 text-sm font-bold text-white outline-none focus:border-amber-400 placeholder:text-white/50" />
@@ -103,18 +103,18 @@ export default function BuyerAccount() {
         <div className="mt-6 grid gap-2">
           <button type="button" onClick={() => router.push("/user/tryons")}
             className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-left active:scale-[0.99] transition">
-            <Shirt className="h-5 w-5 text-white/60" /><span className="text-sm font-black">My try-ons</span>
+            <Shirt className="h-5 w-5 text-white/80" /><span className="text-sm font-black">My try-ons</span>
           </button>
           <button type="button" onClick={() => router.push("/messages")}
             className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-left active:scale-[0.99] transition">
-            <MessageCircle className="h-5 w-5 text-white/60" /><span className="text-sm font-black">Messages</span>
+            <MessageCircle className="h-5 w-5 text-white/80" /><span className="text-sm font-black">Messages</span>
           </button>
         </div>
 
         {/* My subscriptions — one per model (each model is its own subscription). */}
         {subs.length > 0 && (
           <div className="mt-6">
-            <p className="text-[11px] font-black uppercase tracking-wide text-white/65">My subscriptions ({subs.length})</p>
+            <p className="text-[11px] font-black uppercase tracking-wide text-white/85">My subscriptions ({subs.length})</p>
             <div className="mt-2 grid gap-2">
               {subs.map(s => (
                 <button key={s.id} type="button" onClick={() => router.push(`/curator/${s.id}`)}
@@ -122,7 +122,7 @@ export default function BuyerAccount() {
                   {s.photoUrl
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={s.photoUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover object-top" />
-                    : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-sm font-black text-white/60">{s.name.slice(0, 1)}</span>}
+                    : <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-sm font-black text-white/80">{s.name.slice(0, 1)}</span>}
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-black text-white">{s.name}</span>
                     <span className="block text-[11px] font-bold text-amber-300/80">Active subscription</span>
@@ -145,7 +145,7 @@ export default function BuyerAccount() {
           ) : (
             <div className="text-center">
               <p className="text-sm font-black text-white">Delete your account?</p>
-              <p className="mt-1 text-[12px] font-bold text-white/55">This removes your account and your try-ons for good. This can&apos;t be undone.</p>
+              <p className="mt-1 text-[12px] font-bold text-white/75">This removes your account and your try-ons for good. This can&apos;t be undone.</p>
               <div className="mt-3 flex gap-2">
                 <button type="button" onClick={() => setConfirmDelete(false)} disabled={deleting}
                   className="h-11 flex-1 rounded-full bg-white/10 text-sm font-black text-white active:scale-95 transition">Cancel</button>

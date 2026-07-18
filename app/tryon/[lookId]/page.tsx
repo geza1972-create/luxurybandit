@@ -1064,7 +1064,7 @@ export default function TryonPage() {
               <img src={l.img} alt={l.name} loading="lazy" className="h-full w-full object-cover object-top" />
             </div>
             <p className={`mt-1 line-clamp-1 text-[11px] font-black ${dark ? "text-white" : "text-black"}`}>{l.name}</p>
-            <p className={`text-[10px] font-bold ${dark ? "text-white/70" : "text-black/45"}`}>{l.price || " "}</p>
+            <p className={`text-[10px] font-bold ${dark ? "text-white/85" : "text-black/45"}`}>{l.price || " "}</p>
           </button>
         ))}
       </div>
@@ -1267,7 +1267,7 @@ export default function TryonPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={garmentPreviewUrl} alt={look.name} className="h-full w-full object-cover object-top" onError={onGarmentError} />
           </div>
-          <ArrowRight className="h-8 w-8 text-white/60 shrink-0" />
+          <ArrowRight className="h-8 w-8 text-white/80 shrink-0" />
           <div className="flex-1 aspect-[3/4] rounded-2xl overflow-hidden border-2 border-white/30 relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {userPhoto && <img src={userPhoto} alt="Your photo" className="h-full w-full object-cover object-top blur-sm scale-110" />}
@@ -1287,7 +1287,7 @@ export default function TryonPage() {
         </div>
         <div className="text-center">
           <p className="text-lg font-black text-white">{genMessage}</p>
-          <p className="mt-1 text-sm font-bold text-white/60">{elapsedSec}s — please wait</p>
+          <p className="mt-1 text-sm font-bold text-white/80">{elapsedSec}s — please wait</p>
         </div>
         {/* Cross-sell while they wait */}
         <div className="mt-2 w-full max-w-md px-5">{crossSellRow(true)}</div>
@@ -1535,8 +1535,8 @@ export default function TryonPage() {
             <div className="rounded-2xl bg-gradient-to-br from-black to-black/80 p-3.5 text-white">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="flex items-center gap-1.5 text-sm font-black"><Film className="h-4 w-4" /> Want a video of this? <span className="font-bold text-white/55">· 5s</span></p>
-                  <p className="mt-0.5 text-[12px] font-bold text-white/55">Bring your look to life — a 5-second clip to post &amp; share.</p>
+                  <p className="flex items-center gap-1.5 text-sm font-black"><Film className="h-4 w-4" /> Want a video of this? <span className="font-bold text-white/75">· 5s</span></p>
+                  <p className="mt-0.5 text-[12px] font-bold text-white/75">Bring your look to life — a 5-second clip to post &amp; share.</p>
                 </div>
                 <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-black">{isStaff ? "Free" : effectiveLingerie ? "$4.90" : "$2.90"}</span>
               </div>
@@ -1545,7 +1545,7 @@ export default function TryonPage() {
                 className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-black text-black active:scale-95 transition-transform">
                 <Film className="h-4 w-4" /> Make it a video
               </button>
-              {paidSoon === "video" && !isStaff && <p className="mt-2 text-center text-[12px] font-bold text-white/70">Opening secure checkout…</p>}
+              {paidSoon === "video" && !isStaff && <p className="mt-2 text-center text-[12px] font-bold text-white/85">Opening secure checkout…</p>}
             </div>
           )}
 
@@ -1555,8 +1555,8 @@ export default function TryonPage() {
             <div className="rounded-2xl bg-gradient-to-br from-black to-black/80 p-3.5 text-white">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="flex items-center gap-1.5 text-sm font-black"><Sparkles className="h-4 w-4" /> 360° turnaround <span className="font-bold text-white/55">· 10s</span></p>
-                  <p className="mt-0.5 text-[12px] font-bold text-white/55">See the full look from every angle — front, sides &amp; back.</p>
+                  <p className="flex items-center gap-1.5 text-sm font-black"><Sparkles className="h-4 w-4" /> 360° turnaround <span className="font-bold text-white/75">· 10s</span></p>
+                  <p className="mt-0.5 text-[12px] font-bold text-white/75">See the full look from every angle — front, sides &amp; back.</p>
                 </div>
                 <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-black">{isStaff ? "Free" : "$7.90"}</span>
               </div>
@@ -1565,7 +1565,7 @@ export default function TryonPage() {
                 className="mt-2.5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-black text-black active:scale-95 transition-transform disabled:opacity-50">
                 {isStaff && videoStatus === "generating" ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Get the 360° video
               </button>
-              {show360Note && !isStaff && <p className="mt-2 text-center text-[12px] font-bold text-white/70">Opening secure checkout…</p>}
+              {show360Note && !isStaff && <p className="mt-2 text-center text-[12px] font-bold text-white/85">Opening secure checkout…</p>}
             </div>
           )}
 
@@ -1765,14 +1765,14 @@ export default function TryonPage() {
             <button type="button" onClick={() => { if (isStaff) { setPaidSoon(""); if (effectiveLingerie) void startReferenceVideo(false); else void handleGenerate(undefined, "video"); } else setPaidSoon("video"); }}
               className="flex h-14 w-full items-center gap-3 rounded-2xl bg-white/15 px-4 text-white backdrop-blur active:scale-95 transition-transform">
               <Film className="h-5 w-5 shrink-0" />
-              <span className="text-base font-black">Video <span className="font-bold text-white/55">· 5s</span></span>
+              <span className="text-base font-black">Video <span className="font-bold text-white/75">· 5s</span></span>
               <span className="ml-auto rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-black">{isStaff ? "Free" : effectiveLingerie ? "$4.90" : "$2.90"}</span>
             </button>
             {effectiveLingerie && (
               <button type="button" onClick={() => { if (isStaff) { setPaidSoon(""); void startReferenceVideo(true); } else setPaidSoon("360"); }}
                 className="flex h-14 w-full items-center gap-3 rounded-2xl bg-white/15 px-4 text-white backdrop-blur active:scale-95 transition-transform">
                 <RefreshCw className="h-5 w-5 shrink-0" />
-                <span className="text-base font-black">360° turnaround <span className="font-bold text-white/55">· 10s</span></span>
+                <span className="text-base font-black">360° turnaround <span className="font-bold text-white/75">· 10s</span></span>
                 <span className="ml-auto rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-black">{isStaff ? "Free" : "$7.90"}</span>
               </button>
             )}
@@ -1783,13 +1783,13 @@ export default function TryonPage() {
             )}
             {/* The publish/private choice is made at the next step (the gate); just point
                 to the Terms/Privacy here. */}
-            <p className="px-2 text-center text-[11px] leading-snug font-medium text-white/65">
+            <p className="px-2 text-center text-[11px] leading-snug font-medium text-white/85">
               Next you&apos;ll choose to keep it private or share it. You agree to our{" "}
               <a href="/terms" className="font-bold text-white/85 underline">Terms</a> &{" "}
               <a href="/privacy" className="font-bold text-white/85 underline">Privacy</a>.
             </p>
             <button onClick={() => router.push(lookBackPath)}
-              className="flex h-12 w-full items-center justify-center rounded-2xl bg-white/10 text-sm font-bold text-white/70 active:opacity-70">
+              className="flex h-12 w-full items-center justify-center rounded-2xl bg-white/10 text-sm font-bold text-white/85 active:opacity-70">
               No, cancel
             </button>
           </div>

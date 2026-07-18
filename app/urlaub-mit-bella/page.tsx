@@ -25,7 +25,7 @@ export default async function UrlaubMitBellaPage() {
         <h1 className="mt-2 text-[34px] font-black leading-[1.05]">
           Go on holiday with <span className="text-[#c9a23f]">{first}</span> in Tenerife 🌴
         </h1>
-        <p className="mt-3 text-[15px] font-medium leading-snug text-white/60">
+        <p className="mt-3 text-[15px] font-medium leading-snug text-white/80">
           Your own AI influencer travels for you — and every day you get fresh videos & stories from the island. Like you're right there.
         </p>
 

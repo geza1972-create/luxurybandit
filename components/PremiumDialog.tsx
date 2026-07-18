@@ -62,7 +62,7 @@ export default function PremiumDialog({ open, onClose, title = "Unlock her priva
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-black"><Crown className="h-7 w-7" /></span>
         <p className="mt-2.5 text-[12px] font-black uppercase tracking-[0.2em] text-amber-400">Subscription</p>
         <h3 className="mt-1 text-lg font-black text-white">{title}</h3>
-        <p className="mt-1.5 text-[13px] font-semibold leading-6 text-white/55">{subtitle}</p>
+        <p className="mt-1.5 text-[13px] font-semibold leading-6 text-white/75">{subtitle}</p>
 
         {/* Price — $8 first month, then the monthly price from the price list, shown BIG. */}
         <div className="mt-4 rounded-2xl border border-amber-400/25 bg-amber-400/[0.06] px-4 py-4">
@@ -70,7 +70,7 @@ export default function PremiumDialog({ open, onClose, title = "Unlock her priva
             <span className="text-6xl font-black leading-none text-white">$8</span>
             <span className="mb-1 text-left text-[13px] font-black leading-tight text-amber-300">first<br />month</span>
           </p>
-          <p className="mt-2 text-[12px] font-bold text-white/70">then {monthly}/mo · cancel anytime</p>
+          <p className="mt-2 text-[12px] font-bold text-white/85">then {monthly}/mo · cancel anytime</p>
         </div>
 
         {/* Perks */}
@@ -89,14 +89,14 @@ export default function PremiumDialog({ open, onClose, title = "Unlock her priva
         </button>
         {error && <p className="mt-2 text-[12px] font-bold text-red-400">{error}</p>}
         {signedIn ? (
-          <button type="button" onClick={close} className="mt-2 w-full py-2 text-[13px] font-black text-white/65">Maybe later</button>
+          <button type="button" onClick={close} className="mt-2 w-full py-2 text-[13px] font-black text-white/85">Maybe later</button>
         ) : (
           <>
             <button type="button" onClick={freeSignup} className="mt-3 flex w-full flex-col items-center justify-center rounded-full border-2 border-amber-400/60 px-5 py-2.5 active:scale-95 transition-transform">
               <span className="text-sm font-black text-amber-300">Create free account · $0</span>
               <span className="text-[11px] font-bold text-amber-300/70">Watch &amp; chat — free</span>
             </button>
-            <a href="/curators/apply" className="mt-2 block w-full py-1.5 text-center text-[12px] font-black text-white/65 underline underline-offset-2">
+            <a href="/curators/apply" className="mt-2 block w-full py-1.5 text-center text-[12px] font-black text-white/85 underline underline-offset-2">
               Register as a Model →
             </a>
           </>

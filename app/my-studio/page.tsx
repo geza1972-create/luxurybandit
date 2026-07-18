@@ -182,7 +182,7 @@ export default function MyStudioPage() {
   const view = [...slides].reverse();
   const saving = busy === "save";
 
-  if (phase === "loading") return <div className="grid min-h-[100dvh] place-items-center lb-bg text-white"><Loader2 className="h-6 w-6 animate-spin text-white/70" /></div>;
+  if (phase === "loading") return <div className="grid min-h-[100dvh] place-items-center lb-bg text-white"><Loader2 className="h-6 w-6 animate-spin text-white/85" /></div>;
 
   if (phase === "noauth" || phase === "notmodel") {
     return (
@@ -192,12 +192,12 @@ export default function MyStudioPage() {
           <h1 className="mt-4 text-xl font-black">My Studio</h1>
           {phase === "noauth" ? (
             <>
-              <p className="mx-auto mt-2 max-w-xs text-[13px] font-semibold text-white/60">Sign in with your model account to manage your photos & videos.</p>
+              <p className="mx-auto mt-2 max-w-xs text-[13px] font-semibold text-white/80">Sign in with your model account to manage your photos & videos.</p>
               <button type="button" onClick={() => router.push(`/login?returnTo=${encodeURIComponent("/my-studio")}`)} className="lb-gold mt-5 rounded-full px-6 py-3 text-sm font-black active:scale-95">Sign in</button>
             </>
           ) : (
             <>
-              <p className="mx-auto mt-2 max-w-xs text-[13px] font-semibold text-white/60">This studio is for LuxuryBandit models. Apply with your own photo — it&apos;s free, and you earn 50% of every subscription.</p>
+              <p className="mx-auto mt-2 max-w-xs text-[13px] font-semibold text-white/80">This studio is for LuxuryBandit models. Apply with your own photo — it&apos;s free, and you earn 50% of every subscription.</p>
               <button type="button" onClick={() => router.push("/curators/apply")} className="lb-gold mt-5 rounded-full px-6 py-3 text-sm font-black active:scale-95">Become a model</button>
             </>
           )}
@@ -212,7 +212,7 @@ export default function MyStudioPage() {
         <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15"><ArrowLeft className="h-4 w-4" /></button>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-black">My Studio</p>
-          <p className="truncate text-[11px] font-bold text-white/65">{me?.name} · {slides.length} {slides.length === 1 ? "post" : "posts"}</p>
+          <p className="truncate text-[11px] font-bold text-white/85">{me?.name} · {slides.length} {slides.length === 1 ? "post" : "posts"}</p>
         </div>
         {savedAt && !dirty ? <span className="text-[11px] font-black text-emerald-400">Saved ✓</span> : null}
         {me && <button type="button" onClick={() => router.push(`/curator/${me.id}`)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15" aria-label="View my profile"><ExternalLink className="h-4 w-4" /></button>}
@@ -221,7 +221,7 @@ export default function MyStudioPage() {
       <div className="mx-auto max-w-md px-5 pt-5">
         {/* Upload credits — she can't upload unlimited photos/videos. Not shown in admin mode (gifts are unlimited). */}
         {credits !== null && (
-          <p className={`mb-3 text-center text-[12px] font-black ${credits <= 0 ? "text-red-400" : "text-white/70"}`}>
+          <p className={`mb-3 text-center text-[12px] font-black ${credits <= 0 ? "text-red-400" : "text-white/85"}`}>
             {credits} upload{credits === 1 ? "" : "s"} left
           </p>
         )}
@@ -240,12 +240,12 @@ export default function MyStudioPage() {
         </div>
         <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={e => { void addFile(e.target.files?.[0], "image"); e.target.value = ""; }} />
         <input ref={vidRef} type="file" accept="video/*" className="hidden" onChange={e => { void addFile(e.target.files?.[0], "video"); e.target.value = ""; }} />
-        <p className="mt-2 text-center text-[11px] font-bold text-white/60"><Globe className="mr-1 inline h-3 w-3" /> Public = everyone (reviewed first) · <Lock className="mx-1 inline h-3 w-3" /> Private = only your subscribers, live instantly</p>
+        <p className="mt-2 text-center text-[11px] font-bold text-white/80"><Globe className="mr-1 inline h-3 w-3" /> Public = everyone (reviewed first) · <Lock className="mx-1 inline h-3 w-3" /> Private = only your subscribers, live instantly</p>
         {err && <p className="mt-3 text-center text-[13px] font-bold text-red-400">{err}</p>}
 
         {/* Slides */}
         {view.length === 0 ? (
-          <p className="py-16 text-center text-sm font-bold text-white/60">No posts yet — add your first photo or video above.</p>
+          <p className="py-16 text-center text-sm font-bold text-white/80">No posts yet — add your first photo or video above.</p>
         ) : (
           <div className="mt-4 grid gap-3">
             {view.map(s => (
@@ -269,14 +269,14 @@ export default function MyStudioPage() {
                 <div className="p-3">
                   <textarea rows={2} value={s.caption} onChange={e => setCaption(s.id, e.target.value)}
                     placeholder="Add a caption… (optional)"
-                    className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-[13px] font-semibold text-white outline-none placeholder:text-white/55 focus:border-white/25" />
+                    className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-[13px] font-semibold text-white outline-none placeholder:text-white/75 focus:border-white/25" />
                   <div className="mt-2.5 flex items-center gap-2">
                     <button type="button" onClick={() => requestPublic(s.id)}
-                      className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full text-[12px] font-black transition ${!s.private ? "bg-emerald-500 text-black" : "border border-white/15 text-white/60"}`}>
+                      className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full text-[12px] font-black transition ${!s.private ? "bg-emerald-500 text-black" : "border border-white/15 text-white/80"}`}>
                       <Globe className="h-3.5 w-3.5" /> Public
                     </button>
                     <button type="button" onClick={() => setPrivate(s.id)}
-                      className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full text-[12px] font-black transition ${s.private ? "bg-amber-400 text-black" : "border border-white/15 text-white/60"}`}>
+                      className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full text-[12px] font-black transition ${s.private ? "bg-amber-400 text-black" : "border border-white/15 text-white/80"}`}>
                       <Lock className="h-3.5 w-3.5" /> Private
                     </button>
                     <button type="button" onClick={() => remove(s.id)} aria-label="Delete"
@@ -306,7 +306,7 @@ export default function MyStudioPage() {
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4" onClick={() => setPublicConfirmId(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-[#161616] p-5 ring-1 ring-white/10" onClick={e => e.stopPropagation()}>
             <p className="text-base font-black text-white">Make this public?</p>
-            <p className="mt-2 text-[13px] font-semibold leading-relaxed text-white/60">
+            <p className="mt-2 text-[13px] font-semibold leading-relaxed text-white/80">
               This will first be reviewed by LuxuryBandit — once approved, it goes public for everyone to see.
             </p>
             <div className="mt-5 flex gap-2">

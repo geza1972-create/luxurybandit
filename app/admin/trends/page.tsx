@@ -1528,13 +1528,13 @@ export default function AdminTrends() {
             className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition active:scale-[0.99] ${mode === "web" ? "border-black bg-black text-white shadow-soft" : "border-black/12 bg-white text-ink hover:border-black/30"}`}>
             <Search className={`h-5 w-5 ${mode === "web" ? "text-white" : "text-ink/50"}`} />
             <span className="text-sm font-black">Find products online</span>
-            <span className={`text-[11px] font-bold ${mode === "web" ? "text-white/70" : "text-ink/40"}`}>Search the web by your taste</span>
+            <span className={`text-[11px] font-bold ${mode === "web" ? "text-white/85" : "text-ink/40"}`}>Search the web by your taste</span>
           </button>
           <button type="button" onClick={() => setMode(mode === "ai" ? null : "ai")}
             className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left transition active:scale-[0.99] ${mode === "ai" ? "border-black bg-black text-white shadow-soft" : "border-black/12 bg-white text-ink hover:border-black/30"}`}>
             <ImagePlus className={`h-5 w-5 ${mode === "ai" ? "text-white" : "text-ink/50"}`} />
             <span className="text-sm font-black">Create AI Fashion</span>
-            <span className={`text-[11px] font-bold ${mode === "ai" ? "text-white/70" : "text-ink/40"}`}>Your photo on a model + garment → try-on</span>
+            <span className={`text-[11px] font-bold ${mode === "ai" ? "text-white/85" : "text-ink/40"}`}>Your photo on a model + garment → try-on</span>
           </button>
           {/* Upload an own finished reel (e.g. from Pixverse) as a feed funnel post. */}
           <button type="button" onClick={() => setMode(mode === "reel" ? null : "reel")}
@@ -1542,7 +1542,7 @@ export default function AdminTrends() {
             <Upload className={`h-5 w-5 shrink-0 ${mode === "reel" ? "text-white" : "text-ink/50"}`} />
             <span className="min-w-0">
               <span className="block text-sm font-black">Reel hochladen</span>
-              <span className={`block text-[11px] font-bold ${mode === "reel" ? "text-white/70" : "text-ink/40"}`}>Eigenes Video (MP4) → Feed-Post mit Try-on / Bandit</span>
+              <span className={`block text-[11px] font-bold ${mode === "reel" ? "text-white/85" : "text-ink/40"}`}>Eigenes Video (MP4) → Feed-Post mit Try-on / Bandit</span>
             </span>
           </button>
         </section>
@@ -1680,7 +1680,7 @@ export default function AdminTrends() {
                 {pickedBrand ? (
                   <div className="mt-1 flex items-center justify-between rounded-md border border-black bg-black px-3 py-2">
                     <span className="text-xs font-black text-white">{pickedBrand}</span>
-                    <button type="button" onClick={() => { setPickedBrand(""); setBrandQuery(""); }} className="text-white/70 hover:text-white"><X className="h-4 w-4" /></button>
+                    <button type="button" onClick={() => { setPickedBrand(""); setBrandQuery(""); }} className="text-white/85 hover:text-white"><X className="h-4 w-4" /></button>
                   </div>
                 ) : (
                   <div className="relative mt-1">

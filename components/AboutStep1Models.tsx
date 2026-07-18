@@ -85,9 +85,9 @@ export default function AboutStep1Models({ featured, garment }: { featured: Feat
               <p className="text-sm font-black text-white">All models</p>
               <button type="button" onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white"><X className="h-4 w-4" /></button>
             </div>
-            <p className="px-4 pt-2 text-[11px] font-bold text-white/65">AI models are free — real models and your own photo are Premium (paying members).</p>
+            <p className="px-4 pt-2 text-[11px] font-bold text-white/85">AI models are free — real models and your own photo are Premium (paying members).</p>
             {loading ? (
-              <div className="grid place-items-center py-16"><Loader2 className="h-6 w-6 animate-spin text-white/60" /></div>
+              <div className="grid place-items-center py-16"><Loader2 className="h-6 w-6 animate-spin text-white/80" /></div>
             ) : (
               <div className="grid max-h-[calc(85dvh-92px)] grid-cols-3 gap-2 overflow-y-auto overscroll-contain p-3">
                 {(() => {

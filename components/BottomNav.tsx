@@ -285,11 +285,11 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                     {curator?.id ? "Signed in as model" : isPinAdmin ? "Admin (PIN)" : "Signed in"}{displayEmail ? ` · ${displayEmail}` : ""}
                   </p>
                 ) : (
-                  <p className="truncate text-[11px] font-bold text-white/60">Sign in to save & curate</p>
+                  <p className="truncate text-[11px] font-bold text-white/80">Sign in to save & curate</p>
                 )}
               </div>
               <button type="button" onClick={() => setShowProfileMenu(false)}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/10 text-white/60">
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/10 text-white/80">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -299,14 +299,14 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   single sign-in-gated entry; showing it logged-out made no sense.) */}
               <button type="button" onClick={() => navigate("/stores?view=models")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                <Home className="h-5 w-5 shrink-0 text-white/70" />
+                <Home className="h-5 w-5 shrink-0 text-white/85" />
                 <span className="text-sm font-black text-white">Home</span>
               </button>
               {/* Reels — the swipeable video/story feed. Not for a model (her Home covers her needs). */}
               {!isCurator && (
                 <button type="button" onClick={() => navigate("/stores?view=feeds")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <Play className="h-5 w-5 shrink-0 text-white/70" />
+                  <Play className="h-5 w-5 shrink-0 text-white/85" />
                   <span className="text-sm font-black text-white">Reels</span>
                 </button>
               )}
@@ -315,12 +315,12 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               {isStaff && (<>
               <button type="button" onClick={() => navigate("/stores")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                <Play className="h-5 w-5 shrink-0 text-white/70" />
+                <Play className="h-5 w-5 shrink-0 text-white/85" />
                 <span className="text-sm font-black text-white">Looks Feeds</span>
               </button>
               <button type="button" onClick={() => navigate("/stores?view=grid")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                <ImageIcon className="h-5 w-5 shrink-0 text-white/70" />
+                <ImageIcon className="h-5 w-5 shrink-0 text-white/85" />
                 <span className="text-sm font-black text-white">Looks - Gallery</span>
               </button>
               <button type="button" onClick={() => navigate("/wardrobe")}
@@ -333,7 +333,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               {!isCurator && (
                 <button type="button" onClick={() => navigate("/stores?view=models")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <User className="h-5 w-5 shrink-0 text-white/70" />
+                  <User className="h-5 w-5 shrink-0 text-white/85" />
                   <span className="text-sm font-black text-white">Models</span>
                 </button>
               )}
@@ -373,7 +373,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               {!!adminPin && !isCurator && (
                 <button type="button" onClick={() => { setShowProfileMenu(false); setPickerQuery(""); setShowModelPicker(true); }}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <Eye className="h-5 w-5 shrink-0 text-white/70" />
+                  <Eye className="h-5 w-5 shrink-0 text-white/85" />
                   <span className="text-sm font-black text-white">View as model…</span>
                 </button>
               )}
@@ -389,13 +389,13 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               {isCurator ? (
                 <button type="button" onClick={() => navigate(curatorId ? `/curator/${curatorId}` : "/stores")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <User className="h-5 w-5 text-white/70 shrink-0" />
+                  <User className="h-5 w-5 text-white/85 shrink-0" />
                   <span className="text-sm font-black text-white">My Influencer profile</span>
                 </button>
               ) : (
                 <button type="button" onClick={() => navigate(slug ? `/${slug}/myaccount` : "/user/myaccount")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <Settings className="h-5 w-5 text-white/70 shrink-0" />
+                  <Settings className="h-5 w-5 text-white/85 shrink-0" />
                   <span className="text-sm font-black text-white">Account</span>
                 </button>
               )}
@@ -411,7 +411,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               {signedIn && isStaff && (
                 <button type="button" onClick={() => navigate("/stores?panel=saved")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <Bookmark className="h-5 w-5 text-white/70 shrink-0" />
+                  <Bookmark className="h-5 w-5 text-white/85 shrink-0" />
                   <span className="text-sm font-black text-white">Saved</span>
                 </button>
               )}
@@ -421,7 +421,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               {signedIn && !curator?.id && isStaff && (
                 <button type="button" onClick={() => navigate("/user/tryons")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <Shirt className="h-5 w-5 text-white/70 shrink-0" />
+                  <Shirt className="h-5 w-5 text-white/85 shrink-0" />
                   <span className="text-sm font-black text-white">Try-Ons</span>
                 </button>
               )}
@@ -434,7 +434,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               ) : (
                 <button type="button" onClick={() => navigate("/stores?panel=account")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <User className="h-5 w-5 text-white/70 shrink-0" />
+                  <User className="h-5 w-5 text-white/85 shrink-0" />
                   <span className="text-sm font-black text-white">Sign in</span>
                 </button>
               )}
@@ -443,7 +443,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
             {/* Info & legal */}
             <div className="mt-4 border-t border-white/10 px-5 pt-3">
               <p className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/50">Info &amp; legal</p>
-              <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-bold text-white/65">
+              <div className="flex flex-wrap gap-x-4 gap-y-2 text-[12px] font-bold text-white/85">
                 <button type="button" onClick={() => navigate("/contact")} className="hover:text-white">Contact</button>
                 <button type="button" onClick={() => navigate("/about")} className="hover:text-white">About</button>
                 <button type="button" onClick={() => navigate("/terms")} className="hover:text-white">Terms</button>

@@ -71,9 +71,9 @@ export default function AboutVideoPicker() {
               <p className="text-sm font-black text-white">Showcase videos {count > 0 && <span className="text-amber-400">· {count} selected</span>}</p>
               <button type="button" onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white"><X className="h-4 w-4" /></button>
             </div>
-            <p className="shrink-0 px-4 pt-2 text-[11px] font-bold text-white/65">Tap the videos (multiple), then &ldquo;Apply selection&rdquo;. The chosen ones show in the marketing showcase (landing page + About); otherwise the featured models.</p>
+            <p className="shrink-0 px-4 pt-2 text-[11px] font-bold text-white/85">Tap the videos (multiple), then &ldquo;Apply selection&rdquo;. The chosen ones show in the marketing showcase (landing page + About); otherwise the featured models.</p>
             {loading ? (
-              <div className="grid flex-1 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/60" /></div>
+              <div className="grid flex-1 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/80" /></div>
             ) : (
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                 <div className="grid grid-cols-4 gap-1.5 p-3">

@@ -31,7 +31,7 @@ export default function OwnInfluencerCTA() {
       <div className="rounded-2xl border border-amber-400/40 bg-amber-400/[0.08] p-5 text-center">
         <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-amber-500 text-white"><Check className="h-6 w-6" /></span>
         <p className="mt-3 text-lg font-black text-white">You&apos;re in! 🎉</p>
-        <p className="mt-1 text-[14px] font-semibold leading-relaxed text-white/70">
+        <p className="mt-1 text-[14px] font-semibold leading-relaxed text-white/85">
           Your AI influencer is ready. Open your dashboard to meet her — and check your email for your login &amp; setup instructions.
         </p>
         <Link href="/login"
@@ -45,14 +45,14 @@ export default function OwnInfluencerCTA() {
   return (
     <div className="rounded-2xl border border-amber-400/40 bg-gradient-to-b from-amber-400/[0.12] to-transparent p-5 text-center">
       <h2 className="text-[24px] font-black leading-tight text-white">Own your AI influencer.<br /><span className="text-amber-400">We create her content.</span></h2>
-      <p className="mx-auto mt-2 max-w-sm text-[14px] font-semibold leading-relaxed text-white/65">
+      <p className="mx-auto mt-2 max-w-sm text-[14px] font-semibold leading-relaxed text-white/85">
         We add fresh clothes to her wardrobe daily — you generate her videos yourself in one tap. No prompts, no editing skills.
       </p>
       <Link href="/curators/apply"
         className="lb-gold mx-auto mt-4 flex h-13 min-h-[52px] w-full max-w-sm items-center justify-center gap-2 rounded-full px-6 text-base font-black active:scale-95 transition">
         <Sparkles className="h-5 w-5" /> Choose an Influencer
       </Link>
-      <p className="mt-3 text-[12px] font-bold text-white/60">{subLabel}/month · cancel anytime · 🔒 secure Stripe checkout</p>
+      <p className="mt-3 text-[12px] font-bold text-white/80">{subLabel}/month · cancel anytime · 🔒 secure Stripe checkout</p>
     </div>
   );
 }

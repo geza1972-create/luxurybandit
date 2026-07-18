@@ -23,7 +23,7 @@ export default function LandingHeader() {
         </Link>
         <nav className="ml-auto hidden items-center gap-6 md:flex">
           {NAV.map(n => (
-            <Link key={n.label} href={n.href} className="text-[13px] font-bold text-white/70 transition hover:text-white">{n.label}</Link>
+            <Link key={n.label} href={n.href} className="text-[13px] font-bold text-white/85 transition hover:text-white">{n.label}</Link>
           ))}
         </nav>
         <Link href="/stores?view=models" className="ml-auto shrink-0 rounded-full border border-amber-400 px-4 py-2 text-[13px] font-black text-amber-400 transition hover:bg-amber-400 hover:text-black md:ml-0">

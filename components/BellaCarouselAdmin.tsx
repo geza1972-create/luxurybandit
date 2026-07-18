@@ -32,7 +32,7 @@ function PromptLibrary({ kind, current, prompts, onSave, onPick, onDelete }: {
         </button>
         {list.length > 0 && (
           <button type="button" onClick={() => setOpen(v => !v)}
-            className="rounded-md border border-white/15 bg-white/[0.04] px-2.5 py-1 text-[11px] font-black text-white/70 active:scale-95">
+            className="rounded-md border border-white/15 bg-white/[0.04] px-2.5 py-1 text-[11px] font-black text-white/85 active:scale-95">
             📚 Bibliothek ({list.length}) {open ? "▲" : "▼"}
           </button>
         )}
@@ -41,7 +41,7 @@ function PromptLibrary({ kind, current, prompts, onSave, onPick, onDelete }: {
         <div className="mt-1.5 max-h-56 space-y-1 overflow-y-auto rounded-lg border border-white/10 bg-black/20 p-1.5">
           {list.map(p => (
             <div key={p.id} className={`flex items-start gap-1.5 rounded border bg-black/20 p-1.5 ${p.text === current.trim() ? "border-amber-400/50" : "border-white/10"}`}>
-              <button type="button" onClick={() => { onPick(p.text); setOpen(false); }} className="min-w-0 flex-1 whitespace-pre-wrap break-words text-left text-[11px] leading-snug text-white/70">{p.text}</button>
+              <button type="button" onClick={() => { onPick(p.text); setOpen(false); }} className="min-w-0 flex-1 whitespace-pre-wrap break-words text-left text-[11px] leading-snug text-white/85">{p.text}</button>
               <button type="button" onClick={() => onDelete(p.id)} aria-label="Löschen" className="shrink-0 rounded border border-red-400/40 px-1.5 text-[11px] font-black text-red-300 active:scale-95">✕</button>
             </div>
           ))}
@@ -409,7 +409,7 @@ export default function BellaCarouselAdmin() {
         <span className="rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-black">Admin</span>
         <p className="text-[15px] font-black text-white">🎴 Card Studio</p>
       </div>
-      <p className="mt-1 text-[12px] font-medium text-white/70">Model wählen → Foto/Video + Story hinzufügen → unten <b className="text-green-300">Übernehmen</b>. Nichts geht live, bis du übernimmst (+ automatisches Backup).</p>
+      <p className="mt-1 text-[12px] font-medium text-white/85">Model wählen → Foto/Video + Story hinzufügen → unten <b className="text-green-300">Übernehmen</b>. Nichts geht live, bis du übernimmst (+ automatisches Backup).</p>
 
       <button type="button" onClick={() => { const mn = models.find(m => m.id === modelId)?.name || "Bella"; setNlSubject(`A new look from ${mn} 💛`); setNlResult(""); setShowNewsletter(true); }}
         className="mt-3 w-full rounded-xl border border-sky-400/40 bg-sky-500/10 py-2.5 text-[13px] font-black text-sky-200 active:scale-[0.98]">
@@ -423,22 +423,22 @@ export default function BellaCarouselAdmin() {
           {(() => { const m = models.find(x => x.id === modelId); return m?.photoUrl
             // eslint-disable-next-line @next/next/no-img-element
             ? <img src={m.photoUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
-            : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-[13px] font-black text-white/60">{(m?.name || "B").slice(0, 1)}</span>; })()}
+            : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-[13px] font-black text-white/80">{(m?.name || "B").slice(0, 1)}</span>; })()}
           <select value={modelId} onChange={e => { if (dirty && !confirm("Ungespeicherte Änderungen verwerfen und Model wechseln?")) return; setModelId(e.target.value); }}
             className="h-10 flex-1 rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[13px] font-bold text-white outline-none focus:border-violet-400">
             <option value={BELLA_ID}>Bella{models.some(m => m.id === BELLA_ID) ? "" : " (Standard)"}</option>
             {models.filter(m => m.id !== BELLA_ID).map(m => <option key={m.id} value={m.id}>{m.name || m.id}</option>)}
           </select>
         </div>
-        <p className="mt-1 text-[11px] font-medium text-white/60">Du bearbeitest die Card/Slides von <b className="text-white/70">{models.find(m => m.id === modelId)?.name || "Bella"}</b>.</p>
+        <p className="mt-1 text-[11px] font-medium text-white/80">Du bearbeitest die Card/Slides von <b className="text-white/85">{models.find(m => m.id === modelId)?.name || "Bella"}</b>.</p>
       </div>
 
       {/* Live preview of the selected model's card — right under the model so you see what you build. */}
       <div className="mt-3">
         <button type="button" onClick={() => setShowPreview(v => !v)}
           className="flex w-full items-center justify-between rounded-lg bg-white/[0.03] px-3 py-2 text-left active:scale-[0.99]">
-          <span className="text-[11px] font-black uppercase tracking-wide text-white/70">👁 Vorschau — {models.find(m => m.id === modelId)?.name || "Bella"}{customer ? ` · ${customer}` : ""}</span>
-          <span className="text-[12px] font-black text-white/60">{showPreview ? "▲" : "▼"}</span>
+          <span className="text-[11px] font-black uppercase tracking-wide text-white/85">👁 Vorschau — {models.find(m => m.id === modelId)?.name || "Bella"}{customer ? ` · ${customer}` : ""}</span>
+          <span className="text-[12px] font-black text-white/80">{showPreview ? "▲" : "▼"}</span>
         </button>
         {/* ✏️ Profil edit → opens the "My model profile" form (/curators/profile) for THIS model,
             via the same impersonation the menu's "View as model…" uses (exit via the yellow banner). */}
@@ -458,12 +458,12 @@ export default function BellaCarouselAdmin() {
 
         {showPreview && (preview
           ? <div className="mt-2 rounded-2xl bg-black/20 p-2"><ModelCard {...preview} isMember canDownload showDates /></div>
-          : <p className="mt-2 rounded-lg border border-dashed border-white/10 py-3 text-center text-[12px] text-white/55">Keine Vorschau verfügbar.</p>)}
+          : <p className="mt-2 rounded-lg border border-dashed border-white/10 py-3 text-center text-[12px] text-white/75">Keine Vorschau verfügbar.</p>)}
       </div>
       <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-2.5">
         <button type="button" onClick={() => setShowCustomer(v => !v)} className="flex w-full items-center justify-between text-left active:scale-[0.99]">
-          <span className="text-[11px] font-black uppercase tracking-wide text-white/65">⚙ Erweitert · Persönliche Kunden-Karte{customer ? ` · ${customer}` : ""}</span>
-          <span className="text-[12px] font-black text-white/60">{showCustomer ? "▲" : "▼"}</span>
+          <span className="text-[11px] font-black uppercase tracking-wide text-white/85">⚙ Erweitert · Persönliche Kunden-Karte{customer ? ` · ${customer}` : ""}</span>
+          <span className="text-[12px] font-black text-white/80">{showCustomer ? "▲" : "▼"}</span>
         </button>
         {showCustomer && (<>
         <select value={customer} onChange={e => setCustomer(e.target.value)}
@@ -475,17 +475,17 @@ export default function BellaCarouselAdmin() {
         </select>
         {(() => {
           const c = customers.find(x => x.email === customer);
-          if (!customer) return <p className="mt-1 text-[11px] font-medium text-white/60">{customers.length} User. Slides hier gelten für alle (öffentlich).</p>;
+          if (!customer) return <p className="mt-1 text-[11px] font-medium text-white/80">{customers.length} User. Slides hier gelten für alle (öffentlich).</p>;
           return (
             <div className="mt-2 rounded-lg border border-white/10 bg-black/20 p-2.5 text-[12px]">
-              <p className="font-black text-white">{c?.name || "(kein Name)"} <span className="font-medium text-white/65">· {c?.provider || "?"}</span></p>
-              <p className="text-white/55">{customer}{c?.createdAt ? ` · registriert ${new Date(c.createdAt).toLocaleDateString("de-DE")}` : ""}</p>
+              <p className="font-black text-white">{c?.name || "(kein Name)"} <span className="font-medium text-white/85">· {c?.provider || "?"}</span></p>
+              <p className="text-white/75">{customer}{c?.createdAt ? ` · registriert ${new Date(c.createdAt).toLocaleDateString("de-DE")}` : ""}</p>
               <p className="mt-1 font-bold text-amber-300">🎬 {c?.videoNote || "—"}</p>
               {(c?.purchases?.length ?? 0) > 0 ? (
-                <ul className="mt-1 space-y-0.5 text-white/60">
+                <ul className="mt-1 space-y-0.5 text-white/80">
                   {c!.purchases.map((p, i) => <li key={i}>• {p.label}{p.date ? ` (${new Date(p.date).toLocaleDateString("de-DE")})` : ""}</li>)}
                 </ul>
-              ) : <p className="mt-1 text-white/55">Noch nichts gekauft.</p>}
+              ) : <p className="mt-1 text-white/75">Noch nichts gekauft.</p>}
             </div>
           );
         })()}
@@ -503,18 +503,18 @@ export default function BellaCarouselAdmin() {
               return (
                 <div className="mt-2">
                   <button type="button" onClick={() => setShowEmails(v => !v)}
-                    className="text-[12px] font-black text-white/70 active:scale-95">📋 Gesendete E-Mails ({em.length}) {showEmails ? "▲" : "▼"}</button>
+                    className="text-[12px] font-black text-white/85 active:scale-95">📋 Gesendete E-Mails ({em.length}) {showEmails ? "▲" : "▼"}</button>
                   {showEmails && (
                     em.length ? (
                       <ul className="mt-1 space-y-1 rounded-lg border border-white/10 bg-black/20 p-2 text-[12px]">
                         {em.map((m, i) => (
                           <li key={i} className="flex items-center justify-between gap-2">
                             <span className="min-w-0 truncate text-white/80">{m.subject}</span>
-                            <span className="shrink-0 text-white/60">{new Date(m.sentAt).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" })}</span>
+                            <span className="shrink-0 text-white/80">{new Date(m.sentAt).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" })}</span>
                           </li>
                         ))}
                       </ul>
-                    ) : <p className="mt-1 text-[12px] text-white/55">Noch keine E-Mails gesendet.</p>
+                    ) : <p className="mt-1 text-[12px] text-white/75">Noch keine E-Mails gesendet.</p>
                   )}
                 </div>
               );
@@ -531,10 +531,10 @@ export default function BellaCarouselAdmin() {
       <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3">
         <button type="button" onClick={() => setShowGen(v => !v)} className="flex w-full items-center justify-between text-left active:scale-[0.99]">
           <span className="text-[12px] font-black text-white/80">⚙ Erweitert · KI-Bild generieren (Lingerie try-on)</span>
-          <span className="text-[12px] font-black text-white/60">{showGen ? "▲" : "▼"}</span>
+          <span className="text-[12px] font-black text-white/80">{showGen ? "▲" : "▼"}</span>
         </button>
         {showGen && (<>
-        <p className="mt-1 text-[11px] text-white/65">Teil wählen → generieren. Download, oder in die Bibliothek (dann Video/Card).</p>
+        <p className="mt-1 text-[11px] text-white/85">Teil wählen → generieren. Download, oder in die Bibliothek (dann Video/Card).</p>
         <button type="button" onClick={() => setPickerOpen(true)} disabled={garments.length === 0}
           className="mt-2 flex w-full items-center gap-3 rounded-lg border border-white/15 bg-white/[0.04] p-2 text-left transition active:scale-[0.99] disabled:opacity-40">
           {chosen ? (
@@ -545,10 +545,10 @@ export default function BellaCarouselAdmin() {
               <span className="shrink-0 text-[12px] font-black text-amber-300">ändern</span>
             </>
           ) : (
-            <span className="flex-1 text-[13px] font-bold text-white/70">📂 Teil aus Galerie wählen{garments.length ? ` (${garments.length})` : "…"}</span>
+            <span className="flex-1 text-[13px] font-bold text-white/85">📂 Teil aus Galerie wählen{garments.length ? ` (${garments.length})` : "…"}</span>
           )}
         </button>
-        <label className="mt-2 block text-[11px] font-black uppercase tracking-wide text-white/60">Prompt (editierbar)</label>
+        <label className="mt-2 block text-[11px] font-black uppercase tracking-wide text-white/80">Prompt (editierbar)</label>
         <textarea value={imgPrompt} onChange={e => setImgPrompt(e.target.value)}
           className="mt-1 h-16 w-full rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1.5 text-[12px] text-white outline-none focus:border-amber-400" />
         <PromptLibrary kind="image" current={imgPrompt} prompts={prompts} onSave={t => void savePrompt("image", t)} onPick={setImgPrompt} onDelete={id => void deletePrompt(id)} />
@@ -559,10 +559,10 @@ export default function BellaCarouselAdmin() {
         {genErr && <p className="mt-1 text-[12px] font-bold text-red-400">{genErr}</p>}
         {gen?.imageUrl && (
           <div className="mt-3">
-            <p className="text-[11px] font-black uppercase tracking-wide text-white/60">Vorschau · {gen.garmentName}</p>
+            <p className="text-[11px] font-black uppercase tracking-wide text-white/80">Vorschau · {gen.garmentName}</p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={gen.imageUrl} alt="Bella Lingerie" className="mt-1.5 w-full rounded-lg" />
-            <label className="mt-2 block text-[11px] font-black uppercase tracking-wide text-white/60">Video-Prompt (editierbar)</label>
+            <label className="mt-2 block text-[11px] font-black uppercase tracking-wide text-white/80">Video-Prompt (editierbar)</label>
             <textarea value={vidPrompt} onChange={e => setVidPrompt(e.target.value)}
               className="mt-1 h-14 w-full rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1.5 text-[12px] text-white outline-none focus:border-amber-400" />
             <PromptLibrary kind="video" current={vidPrompt} prompts={prompts} onSave={t => void savePrompt("video", t)} onPick={setVidPrompt} onDelete={id => void deletePrompt(id)} />
@@ -594,7 +594,7 @@ export default function BellaCarouselAdmin() {
 
       {/* ── Neuen Beitrag hinzufügen — the main action ── */}
       <p className="mt-5 text-[14px] font-black text-white">➕ Neuen Beitrag</p>
-      <p className="mt-0.5 mb-1 text-[11px] font-medium text-white/65">Foto oder Video hochladen, Story dazu (leer = KI schreibt sie).</p>
+      <p className="mt-0.5 mb-1 text-[11px] font-medium text-white/85">Foto oder Video hochladen, Story dazu (leer = KI schreibt sie).</p>
 
       {/* Upload image */}
       <div className="mt-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.04] p-3">
@@ -612,7 +612,7 @@ export default function BellaCarouselAdmin() {
                 className="flex-1 rounded-lg bg-amber-400 py-2.5 text-[13px] font-black text-black active:scale-95 disabled:opacity-40">{busy === "commit-image" ? "…" : "✓ Zum Entwurf hinzufügen"}</button>
               <label className="cursor-pointer rounded-lg border border-white/20 px-3 py-2.5 text-[12px] font-black text-white/80 active:scale-95">Anderes
                 <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) void stageFile(f, "image"); }} /></label>
-              <button type="button" onClick={() => setStagedImg(null)} className="rounded-lg border border-white/20 px-3 py-2.5 text-[12px] font-black text-white/60 active:scale-95">Verwerfen</button>
+              <button type="button" onClick={() => setStagedImg(null)} className="rounded-lg border border-white/20 px-3 py-2.5 text-[12px] font-black text-white/80 active:scale-95">Verwerfen</button>
             </div>
           </div>
         ) : (
@@ -637,11 +637,11 @@ export default function BellaCarouselAdmin() {
                 className="flex-1 rounded-lg bg-violet-500 py-2.5 text-[13px] font-black text-white active:scale-95 disabled:opacity-40">{busy === "commit-video" ? "…" : "✓ Zum Entwurf hinzufügen"}</button>
               <label className="cursor-pointer rounded-lg border border-white/20 px-3 py-2.5 text-[12px] font-black text-white/80 active:scale-95">Anderes
                 <input type="file" accept="video/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) void stageFile(f, "video"); }} /></label>
-              <button type="button" onClick={() => setStagedVid(null)} className="rounded-lg border border-white/20 px-3 py-2.5 text-[12px] font-black text-white/60 active:scale-95">Verwerfen</button>
+              <button type="button" onClick={() => setStagedVid(null)} className="rounded-lg border border-white/20 px-3 py-2.5 text-[12px] font-black text-white/80 active:scale-95">Verwerfen</button>
             </div>
           </div>
         ) : (
-          <label className={`mt-2 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg py-2.5 text-[13px] font-black transition active:scale-[0.98] ${busy === "video" ? "bg-violet-500/50 text-white/60" : "bg-violet-500 text-white"}`}>
+          <label className={`mt-2 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg py-2.5 text-[13px] font-black transition active:scale-[0.98] ${busy === "video" ? "bg-violet-500/50 text-white/80" : "bg-violet-500 text-white"}`}>
             {busy === "video" ? "Lädt hoch… (etwas Geduld)" : "🎬 Video auswählen & hochladen"}
             <input type="file" accept="video/*" disabled={!!busy} className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) void stageFile(f, "video"); }} />
           </label>
@@ -653,7 +653,7 @@ export default function BellaCarouselAdmin() {
       {/* Media library (current scope) */}
       <div className="mt-4">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-[11px] font-black uppercase tracking-wide text-white/60">
+          <p className="text-[11px] font-black uppercase tracking-wide text-white/80">
             Bibliothek — {customer || "General Card"} ({scoped.length})
           </p>
           {scoped.length > 0 && (
@@ -663,14 +663,14 @@ export default function BellaCarouselAdmin() {
                 Alle zeigen
               </button>
               <button type="button" onClick={() => setAllHidden(true)}
-                className="rounded-full border border-white/20 px-2.5 py-1 text-[11px] font-black text-white/60 active:scale-95">
+                className="rounded-full border border-white/20 px-2.5 py-1 text-[11px] font-black text-white/80 active:scale-95">
                 Alle ausblenden
               </button>
             </span>
           )}
         </div>
         {scoped.length === 0 ? (
-          <p className="mt-2 rounded-lg border border-dashed border-white/10 py-4 text-center text-[12px] text-white/55">Noch keine Slides für {customer ? "diesen Kunden" : "die General Card"}. Oben generieren/hochladen.</p>
+          <p className="mt-2 rounded-lg border border-dashed border-white/10 py-4 text-center text-[12px] text-white/75">Noch keine Slides für {customer ? "diesen Kunden" : "die General Card"}. Oben generieren/hochladen.</p>
         ) : (
           <div className="mt-2 space-y-3">
             {scoped.map((s, i) => (
@@ -700,11 +700,11 @@ export default function BellaCarouselAdmin() {
             </button>
             <button type="button" onClick={() => void restoreBackup()} disabled={busy === "restore" || backup.count === 0}
               title={backup.savedAt ? `Backup: ${backup.count} Slides · ${new Date(backup.savedAt).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" })}` : "Kein Backup"}
-              className="shrink-0 rounded-xl border border-white/20 px-3 py-3.5 text-[12px] font-black text-white/70 active:scale-95 disabled:opacity-30">
+              className="shrink-0 rounded-xl border border-white/20 px-3 py-3.5 text-[12px] font-black text-white/85 active:scale-95 disabled:opacity-30">
               {busy === "restore" ? "…" : "↩ Backup"}
             </button>
           </div>
-          <p className="mt-1.5 text-center text-[11px] font-medium text-white/70">
+          <p className="mt-1.5 text-center text-[11px] font-medium text-white/85">
             {dirty ? "Es gibt ungespeicherte Änderungen. Nichts ist live, bis du unten Übernehmen drückst." : `Alles gespeichert.${backup.count ? ` Letztes Backup: ${backup.count} Slides.` : ""}`}
           </p>
         </div>
@@ -719,23 +719,23 @@ export default function BellaCarouselAdmin() {
               className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-lg font-black text-white active:scale-90">✕</button>
           </div>
           <div className="flex-1 overflow-y-auto p-4">
-            <label className="text-[11px] font-black uppercase tracking-wide text-white/65">Betreff</label>
+            <label className="text-[11px] font-black uppercase tracking-wide text-white/85">Betreff</label>
             <input value={nlSubject} onChange={e => setNlSubject(e.target.value)}
               className="mt-1 h-10 w-full rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[13px] font-bold text-white outline-none focus:border-sky-400" />
-            <label className="mt-3 block text-[11px] font-black uppercase tracking-wide text-white/65">Nachricht</label>
+            <label className="mt-3 block text-[11px] font-black uppercase tracking-wide text-white/85">Nachricht</label>
             <textarea value={nlMessage} onChange={e => setNlMessage(e.target.value)} placeholder="Hi! Es gibt einen neuen Look von Bella … schau vorbei 💛"
               className="mt-1 h-28 w-full resize-y rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1.5 text-[13px] text-white outline-none placeholder:text-white/50 focus:border-sky-400" />
-            <label className="mt-3 block text-[11px] font-black uppercase tracking-wide text-white/65">Link (leer lassen = Link zu {models.find(m => m.id === modelId)?.name || "Bella"}s Profil)</label>
+            <label className="mt-3 block text-[11px] font-black uppercase tracking-wide text-white/85">Link (leer lassen = Link zu {models.find(m => m.id === modelId)?.name || "Bella"}s Profil)</label>
             <input value={nlLink} onChange={e => setNlLink(e.target.value)} placeholder={`Standard: ihr Profil (/curator/…)`}
               className="mt-1 h-10 w-full rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[13px] text-white outline-none placeholder:text-white/50 focus:border-sky-400" />
 
             <div className="mt-4 flex items-center justify-between">
-              <p className="text-[11px] font-black uppercase tracking-wide text-white/65">Empfänger ({nlRecipients().length}/{customers.length})</p>
+              <p className="text-[11px] font-black uppercase tracking-wide text-white/85">Empfänger ({nlRecipients().length}/{customers.length})</p>
               <span className="flex gap-2">
                 <button type="button" onClick={() => setNlSel(Object.fromEntries(customers.map(c => [c.email, true])))}
                   className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-black text-white/80 active:scale-95">Alle</button>
                 <button type="button" onClick={() => setNlSel({})}
-                  className="rounded-full border border-white/20 px-3 py-1 text-[11px] font-black text-white/60 active:scale-95">Keine</button>
+                  className="rounded-full border border-white/20 px-3 py-1 text-[11px] font-black text-white/80 active:scale-95">Keine</button>
               </span>
             </div>
             <div className="mt-2 space-y-1">
@@ -744,11 +744,11 @@ export default function BellaCarouselAdmin() {
                   <input type="checkbox" checked={!!nlSel[c.email]} onChange={e => setNlSel(s => ({ ...s, [c.email]: e.target.checked }))} className="h-4 w-4 accent-sky-400" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13px] font-bold text-white">{c.name || "(kein Name)"}</span>
-                    <span className="block truncate text-[11px] text-white/65">{c.email}</span>
+                    <span className="block truncate text-[11px] text-white/85">{c.email}</span>
                   </span>
                 </label>
               ))}
-              {customers.length === 0 && <p className="rounded-lg border border-dashed border-white/10 py-4 text-center text-[12px] text-white/55">Noch keine User.</p>}
+              {customers.length === 0 && <p className="rounded-lg border border-dashed border-white/10 py-4 text-center text-[12px] text-white/75">Noch keine User.</p>}
             </div>
           </div>
           <div className="border-t border-white/10 p-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1rem)" }}>
@@ -757,7 +757,7 @@ export default function BellaCarouselAdmin() {
               className="w-full rounded-xl bg-sky-500 py-3.5 text-[15px] font-black text-white shadow ring-1 ring-sky-300/40 active:scale-[0.98] disabled:opacity-40">
               {nlBusy ? "Sendet…" : `📧 An ${nlRecipients().length} User senden`}
             </button>
-            <p className="mt-1.5 text-center text-[10px] font-medium text-white/60">Jede E-Mail enthält einen Abmelde-Link. Abgemeldete werden automatisch übersprungen.</p>
+            <p className="mt-1.5 text-center text-[10px] font-medium text-white/80">Jede E-Mail enthält einen Abmelde-Link. Abgemeldete werden automatisch übersprungen.</p>
           </div>
         </div>
       )}
@@ -785,7 +785,7 @@ export default function BellaCarouselAdmin() {
       {pickerOpen && (
         <div className="fixed inset-0 z-[90] flex flex-col bg-[#0d0b0a]">
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-            <p className="text-[15px] font-black text-white">Lingerie-Teil wählen <span className="text-white/60">({garments.length})</span></p>
+            <p className="text-[15px] font-black text-white">Lingerie-Teil wählen <span className="text-white/80">({garments.length})</span></p>
             <button type="button" onClick={() => setPickerOpen(false)} aria-label="Schließen"
               className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-lg font-black text-white active:scale-90">✕</button>
           </div>
@@ -866,9 +866,9 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
       <div className="flex gap-3">
         <div className="flex flex-col justify-center gap-1">
           <button type="button" onClick={() => onMove("up")} disabled={first || busy === "order-" + slide.id} aria-label="Nach oben"
-            className="grid h-7 w-7 place-items-center rounded border border-white/15 text-white/70 active:scale-90 disabled:opacity-25">↑</button>
+            className="grid h-7 w-7 place-items-center rounded border border-white/15 text-white/85 active:scale-90 disabled:opacity-25">↑</button>
           <button type="button" onClick={() => onMove("down")} disabled={last || busy === "order-" + slide.id} aria-label="Nach unten"
-            className="grid h-7 w-7 place-items-center rounded border border-white/15 text-white/70 active:scale-90 disabled:opacity-25">↓</button>
+            className="grid h-7 w-7 place-items-center rounded border border-white/15 text-white/85 active:scale-90 disabled:opacity-25">↓</button>
         </div>
         <button type="button" onClick={onOpen} aria-label="Vergrößern"
           className="group relative h-20 w-16 shrink-0 overflow-hidden rounded-md bg-white/10 active:scale-95">
@@ -897,15 +897,15 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         <button type="button" onClick={() => onUpdate({ hidden: !slide.hidden })}
           title={slide.hidden ? "Erscheint als stark verblurrter Teaser am Ende der Card" : "Normal sichtbar auf der Card"}
-          className={`rounded-full px-2.5 py-1 text-[11px] font-black active:scale-95 ${slide.hidden ? "bg-white/10 text-white/70" : "bg-amber-400 text-black"}`}>
+          className={`rounded-full px-2.5 py-1 text-[11px] font-black active:scale-95 ${slide.hidden ? "bg-white/10 text-white/85" : "bg-amber-400 text-black"}`}>
           {slide.hidden ? "🌫 Verblurrt (Teaser)" : "✓ Auf Card"}
         </button>
         <button type="button" onClick={() => onUpdate({ private: !slide.private })}
           title={slide.private ? "Privat — nur Super-Follower/Mitglieder sehen es (sonst gesperrt)" : "Öffentlich sichtbar"}
-          className={`rounded-full px-2.5 py-1 text-[11px] font-black active:scale-95 ${slide.private ? "bg-fuchsia-500/25 text-fuchsia-200 ring-1 ring-fuchsia-400/40" : "bg-white/10 text-white/70"}`}>
+          className={`rounded-full px-2.5 py-1 text-[11px] font-black active:scale-95 ${slide.private ? "bg-fuchsia-500/25 text-fuchsia-200 ring-1 ring-fuchsia-400/40" : "bg-white/10 text-white/85"}`}>
           {slide.private ? "🔒 Privat" : "🔓 Öffentlich"}
         </button>
-        {dateLabel && <span className="text-[10px] font-bold text-white/55" title="Zeitstempel (bestimmt die Reihenfolge)">🕒 {dateLabel}</span>}
+        {dateLabel && <span className="text-[10px] font-bold text-white/75" title="Zeitstempel (bestimmt die Reihenfolge)">🕒 {dateLabel}</span>}
         <span className="ml-auto flex gap-1.5">
           {slide.kind === "image" && (
             <button type="button" onClick={() => setVidOpen(v => !v)} disabled={rowBusy}
@@ -918,7 +918,7 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
           </button>
           <button type="button" onClick={onReplace} disabled={rowBusy}
             title="Foto/Video austauschen — Datum & Position bleiben (nicht löschen)"
-            className="rounded border border-white/20 px-2 py-1 text-[11px] font-black text-white/70 active:scale-95 disabled:opacity-40">🔄 Tauschen</button>
+            className="rounded border border-white/20 px-2 py-1 text-[11px] font-black text-white/85 active:scale-95 disabled:opacity-40">🔄 Tauschen</button>
           <button type="button" onClick={onRemove} disabled={rowBusy}
             title="Diesen Slide löschen (danach Übernehmen)"
             className="rounded border border-red-400/50 bg-red-500/10 px-2 py-1 text-[11px] font-black text-red-300 active:scale-95 disabled:opacity-40">🗑 Löschen</button>
@@ -928,14 +928,14 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
       {/* Seiten (surface targeting) — advanced, collapsed per row. */}
       <div className="mt-1.5">
         <button type="button" onClick={() => setShowPages(v => !v)}
-          className="text-[10px] font-black uppercase tracking-wide text-white/55 active:scale-95">Seiten {showPages ? "▲" : "▾"}</button>
+          className="text-[10px] font-black uppercase tracking-wide text-white/75 active:scale-95">Seiten {showPages ? "▲" : "▾"}</button>
         {showPages && (
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             {SURFACES.map(su => {
               const on = slide.pages == null ? true : slide.pages.includes(su.key);
               return (
                 <button key={su.key} type="button" onClick={() => togglePage(su.key)}
-                  className={`rounded-full px-2 py-1 text-[11px] font-black active:scale-95 ${on ? "bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/40" : "bg-white/5 text-white/60"}`}>
+                  className={`rounded-full px-2 py-1 text-[11px] font-black active:scale-95 ${on ? "bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/40" : "bg-white/5 text-white/80"}`}>
                   {su.label}
                 </button>
               );
@@ -959,7 +959,7 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
           {/* Human voice — she SPEAKS your lines (PixVerse lip-sync). */}
           <div className="mt-3 border-t border-white/10 pt-2">
             <label className="block text-[11px] font-black uppercase tracking-wide text-fuchsia-200/80">🗣 Sprech-Video · sie spricht deinen Text (mit Stimme)</label>
-            <p className="mt-0.5 text-[10px] text-white/55">Pausen mit Satzzeichen: Komma = kurz, Punkt = länger, „…" = deutliche Pause.</p>
+            <p className="mt-0.5 text-[10px] text-white/75">Pausen mit Satzzeichen: Komma = kurz, Punkt = länger, „…" = deutliche Pause.</p>
             <textarea value={lines} onChange={e => setLines(e.target.value)} placeholder="Zeilen eingeben, z.B. „Hi… I love traveling the world. Would you like to come with me?“"
               className="mt-1 h-16 w-full rounded border border-white/15 bg-white/[0.04] px-2 py-1 text-[12px] text-white outline-none placeholder:text-white/50 focus:border-fuchsia-400" />
             <PromptLibrary kind="voice" current={lines} prompts={prompts} onSave={onSaveVoice} onPick={setLines} onDelete={onDeletePrompt} />

@@ -163,7 +163,7 @@ export default function MyTryOnsPage() {
   return (
     <main className="min-h-[100dvh] bg-[#fafaf8] pb-24">
       <TopNav subtitle="My try-ons" actions={
-        tryOns.length > 0 ? <span className="text-xs font-black text-white/70">{tryOns.length}</span> : undefined
+        tryOns.length > 0 ? <span className="text-xs font-black text-white/85">{tryOns.length}</span> : undefined
       } />
 
       {loading ? (
