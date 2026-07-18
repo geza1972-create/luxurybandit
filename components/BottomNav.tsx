@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid, Crown } from "lucide-react";
+import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid, Crown, UserPlus } from "lucide-react";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -302,6 +302,12 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <Home className="h-5 w-5 shrink-0 text-white/50" />
                 <span className="text-sm font-black text-white">Home</span>
               </button>
+              {/* Reels — the swipeable video/story feed (everyone, not just staff). */}
+              <button type="button" onClick={() => navigate("/stores?view=feeds")}
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                <Play className="h-5 w-5 shrink-0 text-white/50" />
+                <span className="text-sm font-black text-white">Reels</span>
+              </button>
               {/* Explore group — STAFF only (admin/creator). Members get a clean menu:
                   just Home, Models, My subscriptions, Account. */}
               {isStaff && (<>
@@ -327,6 +333,14 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <User className="h-5 w-5 shrink-0 text-white/50" />
                   <span className="text-sm font-black text-white">Models</span>
+                </button>
+              )}
+              {/* Models Wanted — recruiting CTA → the free real-model application form. */}
+              {!isCurator && (
+                <button type="button" onClick={() => navigate("/curators/apply")}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                  <UserPlus className="h-5 w-5 shrink-0 text-amber-400" />
+                  <span className="text-sm font-black text-white">Models Wanted</span>
                 </button>
               )}
               {/* Găsește-l mai ieftin — the Dupe-style price-finder funnel (staff only in the trimmed member menu). */}

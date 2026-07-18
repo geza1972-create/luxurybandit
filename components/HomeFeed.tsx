@@ -9,6 +9,7 @@ import { isAdminEmail } from "@/lib/is-admin-email";
 import { safeLookImage } from "@/lib/look-image";
 import { publicAuthorName } from "@/lib/display-name";
 import { cleanEscapes } from "@/lib/reel-audit";
+import { journeyLandingHref } from "@/lib/journey-curators";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 import { FeedGate } from "@/components/FeedGate";
 import ModelChat from "@/components/ModelChat";
@@ -1303,15 +1304,15 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                   </span>
                   <p className="text-base font-black text-black">{authorName || "This model"}</p>
                   <p className="max-w-xs text-[13px] font-semibold text-black/55">
-                    Subscribe to unlock all of {authorName || "her"}'s private posts, chat with her anytime, or book a journey together.
+                    Subscribe to unlock all of {authorName || "her"}'s private posts{journeyLandingHref(authorCuratorId) ? ", chat with her anytime, or book a journey together." : " or chat with her anytime."}
                   </p>
                   <div className="mt-1 flex w-full flex-col gap-2">
                     <button type="button" onClick={() => { setInfoOpen(false); setShowSubscribe(true); }}
                       className="w-full rounded-full bg-amber-400 py-2.5 text-sm font-black text-black active:opacity-80">Subscribe</button>
                     <button type="button" onClick={() => { setInfoOpen(false); setShowChat(true); }}
                       className="w-full rounded-full border border-black/15 py-2.5 text-sm font-black text-black active:opacity-80">Chat with {authorName || "her"}</button>
-                    {authorCuratorId && (
-                      <button type="button" onClick={() => { setInfoOpen(false); router.push(`/curator/${authorCuratorId}`); }}
+                    {journeyLandingHref(authorCuratorId) && (
+                      <button type="button" onClick={() => { setInfoOpen(false); router.push(journeyLandingHref(authorCuratorId)!); }}
                         className="w-full rounded-full border border-black/15 py-2.5 text-sm font-black text-black active:opacity-80">Book a journey with {authorName || "her"}</button>
                     )}
                   </div>
