@@ -18,7 +18,7 @@ export default async function GrowCardPage() {
     { icon: UserPlus, title: "Follow — free", detail: "Follow any influencer and watch her daily luxury looks in your feed. Costs nothing." },
     { icon: MessageCircle, title: "Chat with her", detail: "Message her, get styled, get to know her — she replies day and night." },
     { icon: Lock, title: "Subscribe — unlock her private world", detail: `${sub}/month (just $8 the first month) unlocks her private photos & videos. One subscription per influencer.` },
-    { icon: Crown, title: "Own her exclusively", detail: "Want an influencer all to yourself? Exclusive ownership is arranged personally — get in touch and we'll walk you through it." },
+    { icon: Crown, title: "Own her — become her sponsor", detail: "Pay her monthly Growth-Score price to become her owner. You're then her sponsor — she promotes YOUR products to her fans. Get in touch to start." },
   ];
 
   return (
@@ -31,8 +31,9 @@ export default async function GrowCardPage() {
         <p className="mt-3 text-[15px] font-semibold leading-7 text-white/65">
           Every influencer on LuxuryBandit is someone you can <strong className="text-white">follow for free</strong>,
           <strong className="text-white"> chat</strong> with, and <strong className="text-white">subscribe</strong> to —
-          subscribing unlocks <strong className="text-white">her private photos &amp; videos</strong>. And if you want an
-          influencer <strong className="text-amber-300">all to yourself</strong>, exclusive ownership is arranged personally — just get in touch.
+          subscribing unlocks <strong className="text-white">her private photos &amp; videos</strong>. And you can
+          <strong className="text-amber-300"> own</strong> an influencer — pay her monthly Growth-Score price to become her
+          <strong className="text-white"> sponsor</strong>, and she promotes <strong className="text-white">your products</strong>.
         </p>
 
         <div className="mt-6 grid gap-2.5">
@@ -50,7 +51,7 @@ export default async function GrowCardPage() {
         <div className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/[0.06] p-4">
           <p className="flex items-center gap-1.5 text-[13px] font-black text-white"><Check className="h-4 w-4 text-amber-400" /> Follow &amp; see her daily looks — free.</p>
           <p className="mt-1.5 flex items-center gap-1.5 text-[13px] font-black text-white"><Check className="h-4 w-4 text-amber-400" /> Subscribe to unlock her private world.</p>
-          <p className="mt-1.5 flex items-center gap-1.5 text-[13px] font-black text-white"><Check className="h-4 w-4 text-amber-400" /> Want her exclusively? Own her — get in touch.</p>
+          <p className="mt-1.5 flex items-center gap-1.5 text-[13px] font-black text-white"><Check className="h-4 w-4 text-amber-400" /> Own her = sponsor her monthly; she promotes your products.</p>
         </div>
 
         <div className="mt-6 flex flex-col gap-2">

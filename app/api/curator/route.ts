@@ -4,8 +4,10 @@ import {
   readTryThisLookState,
   saveTryThisLookState,
   uploadTryThisLookImage,
+  writeCardStudioSlides,
   getPricingConfig,
   type CuratorProfile,
+  type BellaSlide,
 } from "@/lib/try-this-look-store";
 import { setCuratorCredits, grantCredits, awardEngagementCredits, getCuratorCredits, STARTER_CREDITS, TRYON_CREDITS, SEARCH_CREDITS, VIDEO_CREDITS } from "@/lib/curator-budget";
 import { notifyAdminWhatsApp, ADMIN_URL } from "@/lib/notify-admin";
@@ -653,6 +655,21 @@ export async function POST(request: Request) {
         });
       } catch { /* email is best-effort */ }
     }
+
+    // Her 4 card-slide photos (last two private) → write them straight into HER Card-Studio blob,
+    // so her card has content the moment she's approved. Best-effort; the application still succeeds.
+    try {
+      const rawSlides = Array.isArray((payload as any).slides) ? (payload as any).slides : [];
+      const imgs = rawSlides.filter((s: any) => typeof s?.image === "string" && s.image.startsWith("data:image/")).slice(0, 4);
+      if (imgs.length) {
+        const built: BellaSlide[] = [];
+        for (let i = 0; i < imgs.length; i++) {
+          const path = await uploadTryThisLookImage("uploads", imgs[i].image);
+          built.push({ id: crypto.randomUUID(), kind: "image", path, private: imgs[i].private === true, order: i, createdAt: new Date(Date.now() + i).toISOString() });
+        }
+        await writeCardStudioSlides(built, curator.id);
+      }
+    } catch { /* slides are best-effort */ }
 
     // Pending review → NO session is returned (she cannot act until the admin
     // approves her via the Models list; signin blocks "pending" too).

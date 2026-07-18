@@ -1445,20 +1445,9 @@ export default function CuratorPublicPage() {
           </div>
         )}
 
-        {/* Generate AI Video — the owner/model management flow: her profile photo + a
-            chosen garment → an AI try-on video (first free, then $3.99; admin free).
-            Chat still lives on the card itself. */}
-        {(isAdmin || isOwn) && (
-          <div className="mt-3 flex w-full max-w-sm items-stretch gap-2">
-            <button type="button" onClick={() => !genVidBusy && setGenVidOpen(true)} disabled={genVidBusy}
-              className="lb-gold flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-black leading-tight active:scale-95 transition disabled:opacity-60">
-              {genVidBusy ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" /> : <Video className="h-4 w-4 shrink-0" />}
-              {genVidBusy ? "Generating video …" : "Generate AI Video"}
-            </button>
-          </div>
-        )}
+        {/* Generate AI Video removed — models now post their own content via My Studio. */}
 
-        {/* Garment picker for "Generate AI Video" → her profile photo in the chosen look. */}
+        {/* Garment picker modal — inert now that the Generate button is gone (kept to avoid churn). */}
         {genVidOpen && (
           <div className="fixed inset-0 z-[95] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => !genVidBusy && setGenVidOpen(false)}>
             <div className="w-full max-w-[440px] rounded-t-3xl bg-[#111] p-5 ring-1 ring-white/10" onClick={e => e.stopPropagation()} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)" }}>
@@ -1552,11 +1541,7 @@ export default function CuratorPublicPage() {
         {isAdmin && (
           <>
             <div className="mt-2 flex items-center gap-2">
-              <button type="button" onClick={() => !vidBusy && setVideoPickerOpen(true)} disabled={vidBusy}
-                className="flex items-center justify-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2 text-[11px] font-black text-white active:scale-95 transition disabled:opacity-50">
-                {vidBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
-                {vidBusy ? "Lade hoch …" : "Upload video"}
-              </button>
+              {/* Upload video removed — models post their own content via My Studio. */}
               <button type="button" onClick={() => {
                 // Enter HER session (preview): lb_curator = her + the preview flag that
                 // suppresses the admin PIN on her pages. Exit via the floating banner.

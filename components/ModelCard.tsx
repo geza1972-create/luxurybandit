@@ -59,6 +59,8 @@ export default function ModelCard({
   const gsLabel = Math.round(parseFloat(String(valueLabel).replace(/[^0-9.]/g, "")) || 0).toLocaleString("en-US");
   const router = useRouter();
   const [zoomIdx, setZoomIdx] = useState(-1);        // which slide is open fullscreen (-1 = none)
+  const [ownerInfo, setOwnerInfo] = useState(false); // "Looking for owner ?" → explainer popup
+  const [copied, setCopied] = useState(false);       // "Link copied!" feedback on the share button
   const [activeSlide, setActiveSlide] = useState(0);  // which slide is centred (0 = her card face)
   const [playingIdx, setPlayingIdx] = useState(-1);   // which look slide is playing its video (-1 = none)
   const slidesRef = useRef<HTMLDivElement>(null);
@@ -79,11 +81,26 @@ export default function ModelCard({
 
   // Share the card AS AN IMAGE. Fetches a server-rendered PNG of her card and shares the file via
   // the Web Share API (native sheet → Save Image / send anywhere). Falls back to sharing the link.
+  // Copy the link — clipboard API with a legacy textarea fallback — and flash "Copied!".
+  const copyLink = async (url: string) => {
+    let ok = false;
+    try { await navigator.clipboard.writeText(url); ok = true; } catch { /* fall through */ }
+    if (!ok && typeof document !== "undefined") {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = url; ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        ok = document.execCommand("copy"); ta.remove();
+      } catch { /* give up silently */ }
+    }
+    setCopied(true); setTimeout(() => setCopied(false), 1800);
+  };
   const share = async () => {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     const url = `${origin}${profile}`;
     const title = `${name} · LuxuryBandit Model Card`;
     const text = `${name} — Growth Score ${gsLabel} · luxurybandit.com`;
+    // Native share sheet where available (mobile) — a real profile can share its card IMAGE.
     try {
       if (id && typeof navigator !== "undefined" && (navigator as any).canShare) {
         const res = await fetch(`${origin}/api/model-card-image?id=${encodeURIComponent(id)}`);
@@ -94,12 +111,16 @@ export default function ModelCard({
         }
       }
       if (typeof navigator !== "undefined" && navigator.share) { await navigator.share({ title, text, url }); return; }
-      await navigator.clipboard?.writeText(url);
-    } catch { /* user cancelled or unsupported → nothing to do */ }
+    } catch (e) {
+      // User dismissed the native sheet → don't fall through to copy.
+      if (e && (e as { name?: string }).name === "AbortError") return;
+    }
+    // No native share (desktop / in-app browser) → copy the link + show feedback.
+    await copyLink(url);
   };
 
   return (
-    <div className="relative mx-auto w-full max-w-[380px] overflow-hidden rounded-[26px] border-[3px] border-amber-400/80 lb-bg text-white shadow-[0_20px_60px_rgba(0,0,0,0.5)] ring-1 ring-amber-400/20">
+    <div className="relative mx-auto w-full max-w-[380px] overflow-hidden rounded-none border-2 border-amber-400/80 lb-bg text-white shadow-[0_20px_60px_rgba(0,0,0,0.5)] ring-1 ring-amber-400/20">
       {/* Header — HER NAME lives here (not over the video) + the collectible brand line + share.
           The monogram watermark tiles behind it. */}
       <div className="relative flex flex-col items-center justify-center gap-2 overflow-hidden border-b border-amber-400/20 bg-gradient-to-r from-amber-400/[0.1] via-amber-300/[0.16] to-amber-400/[0.1] px-6 py-4 text-center">
@@ -121,6 +142,9 @@ export default function ModelCard({
           className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white/70 transition active:scale-90 hover:text-white">
           <Send className="h-3.5 w-3.5" />
         </button>
+        {copied && (
+          <span className="absolute right-2 top-12 z-30 rounded-full bg-black/85 px-2.5 py-1 text-[10px] font-black text-white shadow ring-1 ring-white/25">✓ Link copied!</span>
+        )}
       </div>
 
       {/* SWIPE CAROUSEL — the media area is a horizontal slider. Slide 0 = her card face
@@ -179,9 +203,10 @@ export default function ModelCard({
                   /* eslint-disable-next-line jsx-a11y/media-has-caption */
                   <video src={c.video} poster={c.poster} autoPlay playsInline controls preload="metadata" controlsList={canDownload ? undefined : "nodownload"} onContextMenu={canDownload ? undefined : (e) => e.preventDefault()} className="h-full w-full bg-black object-contain" />
                 ) : isLook && c.video && !c.poster ? (
-                  /* Posterless video → show the video's OWN first frame (muted), not a fallback image. */
+                  /* Posterless video → seek to 0.1s so the browser PAINTS the first frame (a plain
+                     preload="metadata" video renders black until played). */
                   /* eslint-disable-next-line jsx-a11y/media-has-caption */
-                  <video src={c.video} muted playsInline preload="metadata" onClick={() => setPlayingIdx(i)}
+                  <video src={`${c.video}#t=0.1`} muted playsInline preload="metadata" onClick={() => setPlayingIdx(i)}
                     onContextMenu={canDownload ? undefined : (e) => e.preventDefault()}
                     className="h-full w-full cursor-pointer bg-black object-cover" />
                 ) : (
@@ -245,10 +270,11 @@ export default function ModelCard({
         <div className="pointer-events-none absolute left-3 top-3 z-[5] flex flex-col items-start gap-1.5">
           <div className="rounded-full bg-black/55 px-2.5 py-1 backdrop-blur"><p className="font-mono text-[11px] font-black tracking-wider text-white/85">Nº {serial}</p></div>
           {forSale && (
-            <Link href="/grow-card" aria-label="How owning works"
-              className="pointer-events-auto inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-black text-white shadow ring-1 ring-amber-300/40 transition active:scale-95">
-              For sale <span className="grid h-3 w-3 place-items-center rounded-full border border-white/60 text-[7px] leading-none">?</span>
-            </Link>
+            <button type="button" onClick={() => setOwnerInfo(true)} aria-label="What does looking for owner mean?"
+              className="pointer-events-auto inline-flex flex-col items-center rounded-2xl bg-amber-500 px-3 py-1 text-[10px] font-black leading-tight text-white shadow ring-1 ring-amber-300/40 transition active:scale-95">
+              <span>Looking for</span>
+              <span className="inline-flex items-center gap-1">owner <span className="grid h-3 w-3 place-items-center rounded-full border border-white/60 text-[7px] leading-none">?</span></span>
+            </button>
           )}
           {realModel && <span className="inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-black text-amber-700 shadow">✓ Real</span>}
         </div>
@@ -288,9 +314,9 @@ export default function ModelCard({
                     </div>
                   </div>
                 ) : c.video && !c.poster ? (
-                  /* Posterless video → show the video's own frame in the thumb too. */
+                  /* Posterless video → seek to 0.1s so the thumb PAINTS the first frame (not black). */
                   /* eslint-disable-next-line jsx-a11y/media-has-caption */
-                  <video src={c.video} muted playsInline preload="metadata" className={`h-full w-full object-cover ${c.blurred ? "blur-md brightness-[0.55]" : locked ? "blur-[3px] brightness-75" : ""}`} />
+                  <video src={`${c.video}#t=0.1`} muted playsInline preload="metadata" className={`h-full w-full object-cover ${c.blurred ? "blur-md brightness-[0.55]" : locked ? "blur-[3px] brightness-75" : ""}`} />
                 ) : (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={c.poster || media} alt="" loading="lazy" className={`h-full w-full object-cover ${c.blurred ? "blur-md brightness-[0.55]" : locked ? "blur-[3px] brightness-75" : ""}`} />
@@ -387,6 +413,21 @@ export default function ModelCard({
           )}
           <button type="button" onClick={() => setZoomIdx(-1)} aria-label="Close"
             className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/12 text-lg font-black text-white ring-1 ring-white/25 backdrop-blur active:scale-90">✕</button>
+        </div>
+      )}
+
+      {/* "Looking for owner ?" explainer — owning = a monthly sponsorship at her Growth-Score price. */}
+      {ownerInfo && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-6 backdrop-blur-sm" onClick={() => setOwnerInfo(false)}>
+          <div className="w-full max-w-sm rounded-3xl border border-amber-400/25 bg-[#141210] p-6 text-center" onClick={e => e.stopPropagation()}>
+            <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-black"><Crown className="h-6 w-6" /></span>
+            <h3 className="mt-3 text-lg font-black text-white">Looking for owner</h3>
+            <p className="mt-2 text-[13px] font-semibold leading-6 text-white/70">
+              Become {name}&apos;s <b className="text-white">owner</b> by paying her <b className="text-amber-300">monthly Growth-Score price</b> (currently GS {gsLabel}). You&apos;re then her <b className="text-white">sponsor</b> — she promotes <b className="text-white">YOUR products</b> to her fans.
+            </p>
+            <Link href="/contact?reason=own" className="lb-gold mt-4 inline-flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-black active:scale-95">Become her sponsor — get in touch</Link>
+            <button type="button" onClick={() => setOwnerInfo(false)} className="mt-2 w-full py-2 text-[13px] font-black text-white/45">Close</button>
+          </div>
         </div>
       )}
     </div>

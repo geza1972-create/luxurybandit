@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Menu } from "lucide-react";
 
 /**
  * The ONE shared top bar for every page. Left: LB logo + wordmark → home (root
@@ -49,9 +50,14 @@ export default function TopNav({
           </span>
         </button>
 
-        {/* Right: optional page actions */}
+        {/* Right: optional page actions, then the ☰ menu (opens BottomNav's global sheet). */}
         <div className="flex shrink-0 items-center gap-2">
           {actions}
+          <button type="button" aria-label="Menu"
+            onClick={() => { try { window.dispatchEvent(new Event("lb-open-account")); } catch { /**/ } }}
+            className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white/80 transition active:scale-90 hover:text-white">
+            <Menu className="h-5 w-5" />
+          </button>
         </div>
       </div>
     </header>

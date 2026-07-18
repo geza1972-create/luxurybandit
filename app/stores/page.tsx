@@ -1535,6 +1535,9 @@ function StoresPage() {
   const [typeFilter, setTypeFilter] = useState<"all" | "community">("all");
   const [communityItems, setCommunityItems] = useState<CommunityItem[]>([]);
   const [communityLoading, setCommunityLoading] = useState(false);
+  // Card-Studio SLIDES (all models' posts) merged into the feed alongside the videos.
+  const [feedSlides, setFeedSlides] = useState<{ id: string; modelId: string; modelName: string; modelPhoto: string; kind: string; private: boolean; mediaUrl: string; posterUrl: string; createdAt: string }[]>([]);
+  useEffect(() => { fetch("/api/slides-feed").then(r => r.json()).then(d => setFeedSlides(Array.isArray(d?.slides) ? d.slides : [])).catch(() => {}); }, []);
   const [communitySelectedIndex, setCommunitySelectedIndex] = useState<number | null>(null);
   // Items the full-screen scroll feed (reels) iterates over — set when opening it
   // from a grid (so the same overlay works for both the history grid and community).
@@ -1593,15 +1596,15 @@ function StoresPage() {
   const hasFeatured = useMemo(() => models.some(m => m.featured), [models]);
   const hairColorsPresent = useMemo(() => [...new Set(models.map(m => m.hairColor || "").filter(Boolean))], [models]);
   // Models is the default grid tab — home is the curated Featured-models showcase.
-  // Home/start page (/stores?view=grid) opens on the "Let's Play Big" feeds grid — NOT Models.
-  // Initial tab from the URL so a shared link opens the right section (?view=models
-  // / ?view=garderobe). Everything else lands on the feeds tab.
-  // /wardrobe is the clean-URL alias for the Wardrobe (garderobe) gallery.
+  // The HOME is the Models marketplace — Feed is NEVER the homepage. So bare /stores (no ?view)
+  // opens on MODELS; only an explicit ?view=grid opens the "Let's Play Big" feeds grid, and
+  // ?view=garderobe / /wardrobe the Wardrobe. This is why every "Back"/"OK" button that lands
+  // on /stores now shows Models, not the feeds.
   const onWardrobe = pathname.endsWith("/wardrobe");
   const [homeTab, setHomeTab] = useState<"feeds" | "models" | "garderobe">(() => {
     if (onWardrobe) return "garderobe";
     const v = searchParams.get("view");
-    return v === "models" ? "models" : v === "garderobe" ? "garderobe" : "feeds";
+    return v === "grid" || v === "feeds" ? "feeds" : v === "garderobe" ? "garderobe" : "models";
   });
   // IDs of REAL models → the feed tags their try-on videos with a "Real model" badge.
   const realModelIds = useMemo(() => models.filter(m => m.realModel).map(m => m.id), [models]);
@@ -1851,7 +1854,8 @@ function StoresPage() {
   const showAList = false; // The A List was removed — one feed now (legacy ?view=alist → grid)
   // /home (the start page, its own clean URL) always shows the grid — same as ?view=grid.
   const onHome = pathname.endsWith("/home");
-  const showGrid = view === "grid" || view === "alist" || view === "models" || view === "garderobe" || onHome || onWardrobe;
+  // Bare /stores (no ?view, no panel) is the HOME → show the grid (Models tab), never the reels feed.
+  const showGrid = view === "grid" || view === "alist" || view === "models" || view === "garderobe" || onHome || onWardrobe || (!view && !searchParams.get("panel"));
   // Account/Saved deep links open over the grid, not the immersive reels.
   const showReels = !showAList && !showGrid && !searchParams.get("panel"); // default
   // Keep ?view in sync with the active home tab so the address bar is always
@@ -2079,8 +2083,10 @@ function StoresPage() {
   // If the filter is on it and the viewer isn't a subscriber, snap back to "All".
   useEffect(() => {
     if (categoryFilter === "boudoir" && !isSubscriber) setCategoryFilter(null);
-    if (tierFilter !== "public" && !isSubscriber) setTierFilter("public");
-  }, [categoryFilter, tierFilter, isSubscriber]);
+    // The "Private" teaser (community) is viewable by EVERYONE (blurred, to entice subscribing);
+    // only the admin-only "Hidden" tier (private) snaps back for non-admins.
+    if (tierFilter === "private" && !isAdmin) setTierFilter("public");
+  }, [categoryFilter, tierFilter, isSubscriber, isAdmin]);
 
   // React to bottom-nav deep links whenever search params change
   useEffect(() => {
@@ -2390,7 +2396,7 @@ function StoresPage() {
   // videos the feed shows), PLUS a look-video tile for looks that have a video but no
   // try-on yet. Nothing else — no separately-filtered "curated" list.
   const historyItems = useMemo(() => {
-    type HItem = { key: string; kind: "look" | "tryon"; id: string; lookId: string; thumb: string; videoUrl?: string; videoPoster?: string; hasBefore?: boolean; aiCreated?: boolean; brand?: string; category?: LookCategory; location?: string; editorialTitle?: string; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string; visibility: "public" | "community" | "private"; pinned?: boolean; animated?: boolean };
+    type HItem = { key: string; kind: "look" | "tryon"; id: string; lookId: string; thumb: string; videoUrl?: string; videoPoster?: string; hasBefore?: boolean; aiCreated?: boolean; brand?: string; category?: LookCategory; location?: string; editorialTitle?: string; createdAt: string; name: string; price?: string | null; curatorName?: string; curatorPhoto?: string; visibility: "public" | "community" | "private"; pinned?: boolean; animated?: boolean; slide?: boolean; modelId?: string; blurred?: boolean };
     const lookById = new Map(looks.map(l => [l.id, l]));
     const items: HItem[] = [];
     const looksWithTryOn = new Set<string>();
@@ -2411,8 +2417,20 @@ function StoresPage() {
       const when = videoTs > (l.createdAt ?? "") ? videoTs : (l.createdAt ?? "");
       items.push({ key: `look-${l.id}`, kind: "look", id: l.id, lookId: l.id, thumb: safeLookImage(l), videoUrl: l.videoUrl, videoPoster: l.videoPosterUrl || l.tryOnImageUrl || undefined, aiCreated: l.aiCreated, brand: l.brand, category: l.category, createdAt: when, name: publicLookLabel(l), price: feedPrice(l), curatorName: l.curatorName, curatorPhoto: l.curatorPhotoUrl, visibility: "public", pinned: (l as { pinned?: boolean }).pinned, animated: (l as { animated?: boolean }).animated });
     }
+    // Card-Studio SLIDES → feed tiles. Public → "All"; private → the "Private" tier, blurred.
+    for (const s of feedSlides) {
+      const isVideo = s.kind === "video";
+      items.push({
+        key: `slide-${s.id}`, kind: "look", slide: true, modelId: s.modelId, id: s.id, lookId: s.modelId,
+        // For a posterless VIDEO slide, leave thumb empty → the grid renders the video's first
+        // frame (#t=0.1), never the video URL as a broken <img>. Image slides use their own image.
+        thumb: isVideo ? (s.posterUrl || "") : s.mediaUrl, videoUrl: isVideo ? s.mediaUrl : undefined, videoPoster: s.posterUrl || undefined,
+        createdAt: s.createdAt || "", name: s.modelName, curatorName: s.modelName, curatorPhoto: s.modelPhoto,
+        visibility: s.private ? "community" : "public", blurred: s.private === true,
+      });
+    }
     return items.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [looks, communityItems]);
+  }, [looks, communityItems, feedSlides]);
 
   // Distinct curators with content (looks or try-ons) — for the header count.
   const curatorCount = useMemo(() => {
@@ -2804,10 +2822,12 @@ function StoresPage() {
             <div className="flex items-center gap-2 overflow-x-auto px-3 pt-1 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <button type="button" onClick={() => setHomeTab("models")}
                 className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "models" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>Models{models.length ? ` · ${models.length}` : ""}</button>
-              <button type="button" onClick={() => setHomeTab("garderobe")}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "garderobe" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>Wardrobe{garments.length ? ` · ${garments.length}` : ""}</button>
+              {isAdmin && (
+                <button type="button" onClick={() => setHomeTab("garderobe")}
+                  className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "garderobe" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>Wardrobe{garments.length ? ` · ${garments.length}` : ""}</button>
+              )}
               <button type="button" onClick={() => setHomeTab("feeds")}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>Let&apos;s Play Big</button>
+                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>Feeds</button>
             </div>
 
             {homeTab === "models" ? (
@@ -2850,7 +2870,9 @@ function StoresPage() {
                   // protected: anonymous visitors see a blurred teaser + "Free sign in",
                   // and only a (free) sign-in reveals them. EXCEPTION: a FEATURED real model
                   // is part of the free showcase → unlocked for everyone. Admins see everything.
-                  const locked = !!m.realModel && !m.featured && !isSignedIn && !isAdmin;
+                  // Models are FREELY browsable now (discover & follow free) — no blur/paywall on the
+                  // gallery; only her PRIVATE content is gated (per-model subscription).
+                  const locked = false;
                   return (
                   <div key={m.id} className="relative">
                     {/* No light border — bright photo edges made it flash white on dark. */}
@@ -3012,14 +3034,14 @@ function StoresPage() {
                 All
               </button>
               <button type="button"
-                onClick={() => { if (!isSubscriber) { setShowSubscribe(true); return; } setTierFilter("community"); }}
+                onClick={() => setTierFilter("community")}
                 className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "community" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
-                {isSubscriber ? "🔓 " : "🔒 "}Community
+                🔒 Private
               </button>
               {isAdmin && (
                 <button type="button" onClick={() => setTierFilter("private")}
                   className={`flex shrink-0 items-center gap-1 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "private" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>
-                  <EyeOff className="h-3.5 w-3.5" /> Private
+                  <EyeOff className="h-3.5 w-3.5" /> Hidden
                 </button>
               )}
               {isAdmin && (
@@ -3042,6 +3064,8 @@ function StoresPage() {
                         setTierSelected(prev => { const n = new Set(prev); if (n.has(it.id)) n.delete(it.id); else n.add(it.id); return n; });
                         return;
                       }
+                      // Card-Studio slide → her profile (the reel is for try-on/look generations).
+                      if (it.slide && it.modelId) { router.push(`/curator/${it.modelId}`); return; }
                       openFeedOverlay({ tryOnId: it.kind === "tryon" ? it.id : undefined, lookId: it.lookId });
                     }}
                     className={`relative aspect-[9/16] overflow-hidden lb-media-bg transition-opacity active:opacity-80 ${
@@ -3087,7 +3111,11 @@ function StoresPage() {
                       // which makes the browser re-request the whole page).
                       <div className="h-full w-full bg-black/[0.06]" />
                     )}
-                    {it.videoUrl && !it.animated && (it.videoPoster || it.thumb) && (
+                    {it.blurred && (
+                      // Private slide → a very-blurred teaser (unrecognizable) + lock.
+                      <span className="pointer-events-none absolute inset-0 grid place-items-center bg-black/30 backdrop-blur-2xl"><Lock className="h-6 w-6 text-white/90" /></span>
+                    )}
+                    {!it.blurred && it.videoUrl && !it.animated && (it.videoPoster || it.thumb) && (
                       <span className="pointer-events-none absolute inset-0 grid place-items-center"><Play className="h-7 w-7 fill-white text-white opacity-25 drop-shadow-[0_1px_3px_rgba(0,0,0,0.25)]" /></span>
                     )}
                     {/* Label at the BOTTOM — the face is usually at the top of the crop.

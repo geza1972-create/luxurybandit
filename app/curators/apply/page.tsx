@@ -74,6 +74,12 @@ export default function CuratorApplyPage() {
   const [roleModels, setRoleModels] = useState<{ id: string; name: string; photoUrl?: string; style?: string }[]>([]);
   const [avatarFaces, setAvatarFaces] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean; sold?: boolean; createdAt?: string }[]>([]);
   const [outfitThumbs, setOutfitThumbs] = useState<string[]>([]); // small wardrobe preview on her card: 1 dress + 4 lingerie
+  const [demoClips, setDemoClips] = useState<{ poster: string; video: string; private: boolean }[]>([]); // real posted SLIDES (Bella's) shown in the preview card — NOT wardrobe thumbnails
+  const [demoModel, setDemoModel] = useState<{ name: string; photo: string }>({ name: "", photo: "" }); // the example card = Bella (name + photo), so the preview shows a REAL finished card
+  const [mySlides, setMySlides] = useState<string[]>(["", "", "", ""]); // 4 own photos for her card — the LAST TWO are private; shown as her card slides once the main photo is up
+  const [slideCropSrc, setSlideCropSrc] = useState(""); // a slide photo waiting to be cropped
+  const slideFileRef = useRef<HTMLInputElement>(null);
+  const slideIdxRef = useRef(0); // which of the 4 slots is being filled
   const [heroVideoOn, setHeroVideoOn] = useState(false); // play the selected face's video on the big card
   const [faceDialog, setFaceDialog] = useState<{ id: string; imageUrl: string; videoUrl?: string; claimed: boolean; sold?: boolean; createdAt?: string } | null>(null); // preview + take a face
   const [rulesOpen, setRulesOpen] = useState(false); // "You get one shot" rules → link under the photo opens this dialog
@@ -113,8 +119,24 @@ export default function CuratorApplyPage() {
     }).catch(() => {});
   }, []);
 
+  // Real posted SLIDES for the preview card (currently Bella's) — so the applicant sees how a card
+  // with actual posts looks, instead of wardrobe/lingerie thumbnails.
+  useEffect(() => {
+    fetch("/api/slides-feed").then(r => r.json()).then((d: any) => {
+      const arr = Array.isArray(d?.slides) ? d.slides : [];
+      if (arr[0]) setDemoModel({ name: String(arr[0].modelName || ""), photo: String(arr[0].modelPhoto || "") });
+      const clips = arr.slice(0, 6).map((s: any) => s.kind === "video"
+        // No posterUrl → leave poster EMPTY so the card shows the video's own first frame
+        // (never the video URL as an <img>, which renders a broken image).
+        ? { poster: s.posterUrl || "", video: s.mediaUrl || "", private: false }
+        : { poster: s.mediaUrl || "", video: "", private: false });
+      setDemoClips(clips.filter((c: any) => c.poster || c.video));
+    }).catch(() => {});
+  }, []);
+
   const brands = brandChips.join(", ");
   const style = styleChips.join(", ");
+  const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim()); // real email format required
 
   const [motto, setMotto] = useState("");
   const [bio, setBio] = useState("");
@@ -128,6 +150,7 @@ export default function CuratorApplyPage() {
   const [submitting, setSubmitting] = useState(false);
   const [agreed, setAgreed] = useState(false); // 18+, real me, accepts the model rules
   const [agreeError, setAgreeError] = useState(false); // turn the consent box red if they submit without ticking it
+  const [showErrors, setShowErrors] = useState(false); // on Send: highlight EVERY empty required field (+ missing photos) red
   const [applied, setApplied] = useState(false);
   const [error, setError] = useState("");
 
@@ -362,6 +385,17 @@ export default function CuratorApplyPage() {
     if (src) setProfileCropSrc(src); // crop it first, then it's added
   };
 
+  // Her 4 card-slide photos (last 2 private). Tap a slot → pick → crop → fill it.
+  const pickSlide = (i: number) => { slideIdxRef.current = i; slideFileRef.current?.click(); };
+  const onPickSlide = async (file?: File) => {
+    if (!file) return;
+    setPhotoError("");
+    const { src, error } = await readPhotoFile(file);
+    if (error) { setPhotoError(error); return; }
+    if (src) setSlideCropSrc(src);
+  };
+  const deleteSlide = (i: number) => setMySlides(prev => { const n = [...prev]; n[i] = ""; return n; });
+
   const suggest = async () => {
     setError(""); setSuggesting(true);
     try {
@@ -385,8 +419,15 @@ export default function CuratorApplyPage() {
 
   const submit = async () => {
     setAgreeError(!agreed); // any submit attempt reflects the consent state (red box if unticked)
+    setShowErrors(true);    // highlight every empty required field red
     if (!modelName.trim() || !firstName.trim() || !lastName.trim() || !email.trim()) {
-      setError("Model name, your name and email are required."); return;
+      setError("Please fill in all the required fields — they're highlighted in red."); return;
+    }
+    if (!emailOk) { setError("Please enter a valid email address."); return; }
+    // Photos are REQUIRED for a real application: her main photo + all 4 card photos.
+    if (!editId) {
+      if (!photo) { setError("Please upload your main photo first (tap “Your own photo”)."); return; }
+      if (mySlides.filter(Boolean).length < 4) { setError("Please upload all 4 photos of yourself — they’re required."); return; }
     }
     if (nameStatus === "taken") { setError("That model name is taken — please choose another."); return; }
     if (!agreed) { setError("Please confirm you're 18+, the photos are really you, and you accept the Terms & Conditions."); return; }
@@ -429,7 +470,7 @@ export default function CuratorApplyPage() {
       const res = await fetch("/api/curator", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "apply", ...shared, ...(profilePhotos.length ? { profilePhotos } : {}), ...(photo.startsWith("data:image/") ? { photo, ...(photoFull.startsWith("data:image/") ? { photoFull } : {}) } : {}), ...(bodyPhotos.length ? { bodyPhotos } : {}) }),
+        body: JSON.stringify({ action: "apply", ...shared, ...(profilePhotos.length ? { profilePhotos } : {}), ...(photo.startsWith("data:image/") ? { photo, ...(photoFull.startsWith("data:image/") ? { photoFull } : {}) } : {}), ...(bodyPhotos.length ? { bodyPhotos } : {}), ...(mySlides.some(Boolean) ? { slides: mySlides.map((u, i) => u ? { image: u, private: i >= 2 } : null).filter(Boolean) } : {}) }),
       });
       const data = await res.json();
       if (!res.ok || data.error) { setError(data.error || "Could not submit."); return; }
@@ -603,6 +644,31 @@ export default function CuratorApplyPage() {
         </div>}
 
 
+        {/* Your own photo — ABOVE the card (upload here → it appears on the card below). */}
+        <div className="mt-4 flex justify-center">
+          <div className={`relative aspect-[3/4] w-[52%] max-w-[220px] shrink-0 overflow-hidden rounded-2xl border-2 bg-black/[0.04] ${showErrors && !photo ? "border-red-500 ring-2 ring-red-500/30" : "border-slate-800"}`}>
+            {photo ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photo} alt="" className="h-full w-full object-cover" />
+                <button type="button" onClick={() => { setImageSource("own"); fileRef.current?.click(); }}
+                  className="absolute inset-0 transition active:scale-95" aria-label="Change photo">
+                  <span className="absolute inset-x-0 bottom-0 bg-black/60 py-1 text-center text-[10px] font-black uppercase tracking-wide text-white">Tap to change / re-crop</span>
+                </button>
+                <button type="button" onClick={() => { setPhoto(""); setPhotoFull(""); }} aria-label="Delete photo"
+                  className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-red-600 text-[14px] font-black text-white shadow ring-2 ring-white/70 active:scale-90 transition">✕</button>
+              </>
+            ) : (
+              <button type="button" onClick={() => { setImageSource("own"); fileRef.current?.click(); }}
+                className="flex h-full w-full flex-col items-center justify-center gap-1.5 px-2 text-center text-slate-600 transition active:scale-95">
+                <span className="text-[28px]">📸</span>
+                <span className="text-[12px] font-black uppercase leading-tight">Your own photo</span>
+                <span className="text-[10px] font-bold text-slate-400">upload + crop (3:4)</span>
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Big influencer profile card — the selected face shown exactly as her public
             profile will look (name, motto, stats, Follow/Message). Updates live as she's
             picked from the gallery below. */}
@@ -613,15 +679,26 @@ export default function CuratorApplyPage() {
           const heroSrc = imageSource === "own"
             ? (photo || profileExisting[0] || gina?.photoUrl || firstFree?.imageUrl || "")
             : (sel?.imageUrl || firstFree?.imageUrl || gina?.photoUrl || "");
-          if (!heroSrc) return null;
           const heroVideo = imageSource === "own" ? "" : (sel?.videoUrl || firstFree?.videoUrl || "");
           const nm = modelName.trim() || "Your influencer";
           const tag = motto.trim() || "Your vibe, every day 💛";
+          // The preview STARTS as Bella's example card and becomes HERS as she fills the form:
+          // her uploaded photo → card face, her name → card name, GS jumps to 10 once she's named.
+          const hasName = !!modelName.trim();
+          const cardName = modelName.trim() || demoModel.name || "Your influencer";
+          const cardPhoto = photo || demoModel.photo || heroSrc;
+          if (!cardPhoto) return null;
+          // Her 4 slide photos → card clips (LAST TWO private). Once she's uploaded her main photo
+          // the card shows HER slides (empty until she adds them); before that, Bella's demo.
+          const myClips = mySlides
+            .map((url, i) => url ? { poster: url, video: "", private: i >= 2 } : null)
+            .filter(Boolean) as { poster: string; video: string; private: boolean }[];
+          const cardClips = photo ? myClips : demoClips;
           return (
-            <div className="mt-5">
+            <div id="lb-preview-card" className="mt-5 scroll-mt-4">
               <ModelCard
-                id="" serial="PREVIEW" name={nm} photo={heroSrc} video={heroVideo} poster={heroSrc}
-                thumbs={outfitThumbs} valueLabel="1" looks={24} bio={bio.trim()}
+                id="" serial="PREVIEW" name={cardName} photo={cardPhoto} video="" poster={cardPhoto}
+                clips={cardClips} valueLabel={hasName ? "10" : "1"} looks={24} bio={bio.trim()}
                 brands={brandChips.join(", ")} tagline={tag} realModel={imageSource === "own"}
                 country={country} hideOwner
               />
@@ -629,26 +706,37 @@ export default function CuratorApplyPage() {
           );
         })()}
 
-        {/* Your own photo — real models apply with their OWN photo (no AI-face selection). */}
-        <div className="mt-4 flex justify-center">
-          <button type="button" onClick={() => { setImageSource("own"); fileRef.current?.click(); }}
-            className="relative aspect-[3/4] w-[52%] max-w-[220px] shrink-0 overflow-hidden rounded-2xl border-2 border-slate-800 bg-black/[0.04] transition active:scale-95">
-            {photo ? (
-              <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photo} alt="" className="h-full w-full object-cover" />
-                <span className="absolute inset-x-0 bottom-0 bg-black/60 py-1 text-center text-[10px] font-black uppercase tracking-wide text-white">Tap to change / re-crop</span>
-                <span className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-slate-800 text-[14px] font-black text-white">✓</span>
-              </>
-            ) : (
-              <span className="flex h-full w-full flex-col items-center justify-center gap-1.5 px-2 text-center text-slate-600">
-                <span className="text-[28px]">📸</span>
-                <span className="text-[12px] font-black uppercase leading-tight">Your own photo</span>
-                <span className="text-[10px] font-bold text-slate-400">upload + crop (3:4)</span>
-              </span>
-            )}
-          </button>
-        </div>
+        {/* 4 photos for her CARD — shown once the main photo is up. Last two are PRIVATE. */}
+        {photo && (
+          <div className="mt-4">
+            <p className="text-center text-[13px] font-black text-slate-900">Upload 4 photos of yourself <span className="text-red-500">*</span></p>
+            <p className="mx-auto mt-0.5 max-w-xs text-center text-[11px] font-bold text-slate-500">They become your card. The last two are <b className="text-amber-600">private</b> — only your subscribers see them.</p>
+            <div className="mx-auto mt-2.5 grid max-w-sm grid-cols-4 gap-2">
+              {[0, 1, 2, 3].map(i => (
+                <div key={i} className={`relative aspect-[3/4] overflow-hidden rounded-xl border-2 bg-black/[0.04] ${showErrors && !mySlides[i] ? "border-red-500 ring-2 ring-red-500/30" : "border-slate-300"}`}>
+                  {mySlides[i] ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={mySlides[i]} alt="" className="h-full w-full object-cover" />
+                      <button type="button" onClick={() => deleteSlide(i)} aria-label="Delete photo"
+                        className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-red-600 text-[10px] font-black text-white shadow ring-1 ring-white/70 active:scale-90">✕</button>
+                    </>
+                  ) : (
+                    <button type="button" onClick={() => pickSlide(i)}
+                      className="flex h-full w-full flex-col items-center justify-center gap-1 text-slate-500 active:scale-95 transition">
+                      <span className="text-[20px] leading-none">＋</span>
+                      <span className="text-center text-[8px] font-black uppercase leading-tight">Photo<br />Upload</span>
+                    </button>
+                  )}
+                  {i >= 2 && <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-amber-500/90 py-px text-center text-[7px] font-black uppercase tracking-wide text-white">Private</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <input ref={slideFileRef} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif" className="hidden"
+          onChange={e => { void onPickSlide(e.target.files?.[0]); e.target.value = ""; }} />
+
         <div className="mt-3 rounded-2xl border border-black/15 bg-black/[0.04] p-4">
           <span className={label}>It&apos;s YOU — your own photo</span>
           <p className="mt-0.5 text-[13px] font-bold text-slate-600">You join with <b>your own photo</b>. You&apos;ll upload <b>your private videos</b>, and you keep <b className="text-slate-900">50% of every subscription</b> your fans pay. We handle the tech &amp; payments.</p>
@@ -745,7 +833,7 @@ export default function CuratorApplyPage() {
           <div>
             <span className={label}>Your model name</span>
             <div className="relative">
-              <input className={`${field} ${nameStatus === "taken" ? "ring-2 ring-red-400" : nameStatus === "available" ? "ring-2 ring-amber-500" : ""}`}
+              <input className={`${field} ${(showErrors && !modelName.trim()) || nameStatus === "taken" ? "ring-2 ring-red-500" : nameStatus === "available" ? "ring-2 ring-amber-500" : ""}`}
                 value={modelName} onChange={e => setModelName(e.target.value)} placeholder="e.g. Bella Rose — your public influencer name" />
               {nameStatus === "checking" && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-slate-400" />}
               {nameStatus === "available" && <Check className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-amber-600" />}
@@ -755,12 +843,17 @@ export default function CuratorApplyPage() {
               : nameStatus === "available"
                 ? <p className="mt-1 text-[12px] font-bold text-amber-600">✓ Available — this name is yours.</p>
                 : <p className="mt-1 text-[12px] font-bold text-slate-600">This is the name fans see. Your real name below stays private.</p>}
+            <p className="mt-1 text-[11px] font-black text-slate-500">⚠ Choose carefully — your model name <b className="text-slate-700">can&apos;t be changed later</b>.</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><span className={label}>Your first name</span><input className={field} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Maria" /></div>
-            <div><span className={label}>Your last name</span><input className={field} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Popescu" /></div>
+            <div><span className={label}>Your first name</span><input className={`${field} ${showErrors && !firstName.trim() ? "ring-2 ring-red-500" : ""}`} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Maria" /></div>
+            <div><span className={label}>Your last name</span><input className={`${field} ${showErrors && !lastName.trim() ? "ring-2 ring-red-500" : ""}`} value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Popescu" /></div>
           </div>
-          <div><span className={label}>Email</span><input type="email" className={field} value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" /></div>
+          <div>
+            <span className={label}>Email</span>
+            <input type="email" inputMode="email" autoComplete="email" className={`${field} ${(showErrors && !email.trim()) || (email.trim() && !emailOk) ? "ring-2 ring-red-500" : ""}`} value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" />
+            {email.trim() && !emailOk && <p className="mt-1 text-[12px] font-bold text-red-500">Please enter a valid email address.</p>}
+          </div>
           <div>
             <span className={label}>WhatsApp 🔒 <span className="font-bold normal-case text-slate-400">· optional</span></span>
             <input type="tel" className={field} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+40 7xx… (WhatsApp)" />
@@ -843,6 +936,12 @@ export default function CuratorApplyPage() {
               {SPONSORS.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
+          {/* Jump back up to the live preview card. */}
+          <button type="button" onClick={() => document.getElementById("lb-preview-card")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className="lb-gold mt-1 flex w-full items-center justify-center gap-1.5 rounded-full px-5 py-3 text-sm font-black active:scale-95 transition">
+            👁 Preview card
+          </button>
+          <p className="mt-2 text-center text-[12px] font-bold text-slate-500">Nothing goes public yet — every application is reviewed first before your card goes live.</p>
         </div>
 
         {/* Consent — required. She confirms she's real + accepts the rules (T&C). */}
@@ -883,6 +982,10 @@ export default function CuratorApplyPage() {
       {profileCropSrc && (
         <PhotoCropper src={profileCropSrc} aspect="portrait" onCancel={() => setProfileCropSrc("")}
           onDone={(dataUrl) => { setProfilePhotos(prev => [...prev, dataUrl].slice(0, 4)); setProfileCropSrc(""); }} />
+      )}
+      {slideCropSrc && (
+        <PhotoCropper src={slideCropSrc} aspect="portrait" onCancel={() => setSlideCropSrc("")}
+          onDone={(dataUrl) => { setMySlides(prev => { const n = [...prev]; n[slideIdxRef.current] = dataUrl; return n; }); setSlideCropSrc(""); }} />
       )}
 
       {/* "You get one shot" rules — opened from the link under the photo. */}

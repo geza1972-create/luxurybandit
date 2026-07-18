@@ -124,10 +124,10 @@ export default async function AboutPage() {
           </div>
         </div>
 
-        {/* Let's Play Big */}
-        <h2 className="mt-9 text-lg font-black">Let&apos;s Play Big</h2>
+        {/* Feeds */}
+        <h2 className="mt-9 text-lg font-black">Feeds</h2>
         <p className="mt-2 text-[14px] font-semibold leading-7 text-white/60">
-          The best looks land in <strong className="text-white">Let&apos;s Play Big</strong> — our feed.
+          The best looks land in your <strong className="text-white">Feed</strong>.
           Follow your favorite influencers and never miss a new look.
         </p>
 
