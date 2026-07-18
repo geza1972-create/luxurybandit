@@ -6,6 +6,7 @@ import { ArrowLeft, BadgeCheck, Instagram, Loader2, Lock, ShoppingBag, UserPlus,
 import { TagField } from "../../curators/taste-form";
 import { SPONSORS } from "@/lib/sponsors";
 import TopNav from "@/components/TopNav";
+import { logFunnelEvent } from "@/lib/track-funnel";
 import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
@@ -87,6 +88,7 @@ export default function CuratorPublicPage() {
   const router = useRouter();
   const id = String(params?.id ?? "");
   const [profile, setProfile] = useState<Profile | null>(null);
+  const clickTracked = useRef(""); // guard: fire the model_click Insights event once per model
   // Admin-uploaded carousel slides (e.g. Bella's Peter intro + example videos) — shown on her
   // real card too, not just the /urlaub-mit-bella landing.
   const [carouselSlides, setCarouselSlides] = useState<{ kind: string; mediaUrl: string; posterUrl: string; title: string; caption: string; private?: boolean; hidden?: boolean }[]>([]);
@@ -345,6 +347,13 @@ export default function CuratorPublicPage() {
         const all = (tl?.looks ?? []) as Look[];
         if (!active) return;
         setProfile(p);
+        // Insights: count which model profiles get opened (fires once per model per mount).
+        // Admin/preview sessions are auto-flagged internal by logFunnelEvent and never counted.
+        if (p && clickTracked.current !== id) {
+          clickTracked.current = id;
+          const nm = (p.modelName ?? "").trim() || [p.firstName, p.lastName].filter(Boolean).join(" ").trim() || "Model";
+          void logFunnelEvent("model_click", { lookId: id, lookName: nm });
+        }
         setCollections(Array.isArray(tl?.collections) ? tl.collections : []);
         setAllLooks(all.filter(l => l.published !== false));
         setLooks(all.filter(l => l.curatorId === id));

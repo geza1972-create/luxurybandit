@@ -82,6 +82,17 @@ export default function InsightsPro({
     const topLooks = [...lookMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6)
       .map(([id, n]) => ({ id, n, name: thumbById.get(id)?.name || "Look", thumb: thumbById.get(id)?.thumb || "" }));
 
+    // Top models: which model profiles get opened most (model_click fires on /curator/[id]).
+    const modelMap = new Map<string, { n: number; name: string }>();
+    for (const e of evs) {
+      if (e.name !== "model_click" || !e.lookId) continue;
+      const cur = modelMap.get(e.lookId) ?? { n: 0, name: e.lookName || "Model" };
+      cur.n++; if (e.lookName) cur.name = e.lookName;
+      modelMap.set(e.lookId, cur);
+    }
+    const topModels = [...modelMap.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 8)
+      .map(([id, v]) => ({ id, n: v.n, name: v.name }));
+
     // Daily trend (accurate from per-day tallies), last N days.
     const days = range === "today" ? 1 : range === "7d" ? 7 : 30;
     const trend: { day: string; visits: number; views: number }[] = [];
@@ -114,7 +125,7 @@ export default function InsightsPro({
       { label: "Subscribed", n: countOf("subscribe_success") },
     ];
 
-    return { visits, views, funnel, sources, countries, topLooks, trend, recruit, chatFunnel, payment,
+    return { visits, views, funnel, sources, countries, topLooks, topModels, trend, recruit, chatFunnel, payment,
       tryons: countOf("tryon_click"), generated: countOf("tryon_generated"), likes: countOf("like_click"),
       subscribed: countOf("subscribe_success") };
   }, [feedEvents, viewsByDay, visitsByDay, looks, range]);
@@ -249,6 +260,26 @@ export default function InsightsPro({
                   <span className="absolute right-1 top-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-black text-white">{fmt(l.n)}</span>
                 </div>
                 <p className="truncate px-1.5 py-1 text-[10px] font-bold text-ink/60">{l.name}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Top models — which model profiles get opened most */}
+      <div className={card}>
+        <p className="flex items-center gap-1.5 text-sm font-black text-ink"><Flame className="h-4 w-4 text-ink/40" /> Most-clicked models</p>
+        <p className="mt-0.5 text-[11px] font-bold text-ink/40">Which model profiles visitors open the most.</p>
+        {data.topModels.length === 0 ? (
+          <p className="py-4 text-center text-[11px] font-bold text-ink/35">No model clicks in this range.</p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {data.topModels.map((m, i) => (
+              <div key={m.id} className="flex items-center gap-2">
+                <span className="w-4 shrink-0 text-[11px] font-black text-ink/35">{i + 1}</span>
+                <span className="flex-1 truncate text-[12px] font-bold text-ink">{m.name}</span>
+                <div className="h-2.5 w-24 overflow-hidden rounded-full bg-black/[0.06]"><div className="h-full rounded-full bg-amber-400" style={{ width: `${Math.max(pct(m.n, data.topModels[0].n), 4)}%` }} /></div>
+                <span className="w-8 shrink-0 text-right text-[12px] font-black text-ink">{fmt(m.n)}</span>
               </div>
             ))}
           </div>
