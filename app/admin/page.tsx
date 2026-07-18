@@ -1876,6 +1876,11 @@ export default function AdminPage() {
                             <Trash2 className="h-3.5 w-3.5" /> Delete
                           </button>
                         </div>
+                        <button type="button"
+                          onClick={() => loginAs(curators.find(c => c.id === s.modelId) ?? ({ id: s.modelId, firstName: s.modelName } as Curator), "studio")}
+                          className="mt-2 flex h-8 w-full items-center justify-center gap-1 rounded-lg bg-cobalt text-xs font-black text-white active:scale-95 transition">
+                          <LogIn className="h-3.5 w-3.5" /> Log in as {s.modelName} — see everything
+                        </button>
                       </div>
                     </div>
                   ))}
