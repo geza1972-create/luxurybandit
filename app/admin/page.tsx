@@ -291,7 +291,6 @@ export default function AdminPage() {
   // Models' own PUBLIC My-Studio uploads awaiting approval before they go live anywhere public.
   type PendingSlide = { modelId: string; modelName: string; id: string; kind: string; caption: string; createdAt: string; mediaUrl: string; posterUrl: string };
   const [pendingSlides, setPendingSlides] = useState<PendingSlide[]>([]);
-  const [pendingOpen, setPendingOpen] = useState(false);
   const [pendingBusy, setPendingBusy] = useState("");
   const loadPending = () => {
     fetch("/api/pending-slides", { headers: headers() }).then(r => r.json()).then(d => setPendingSlides(Array.isArray(d?.items) ? d.items : [])).catch(() => {});
@@ -1608,12 +1607,6 @@ export default function AdminPage() {
             <h1 className="text-3xl font-black leading-none">Admin</h1>
           </div>
           <div className="flex items-center gap-2">
-            {pendingSlides.length > 0 && (
-              <button type="button" onClick={() => setPendingOpen(true)} title="Models' public uploads awaiting your approval"
-                className="flex h-10 items-center gap-1.5 rounded-xl bg-amber-400 px-3 text-xs font-black text-black active:scale-95 transition">
-                <Eye className="h-4 w-4" /> Review {pendingSlides.length}
-              </button>
-            )}
             <button type="button" onClick={toggleDark} title={dark ? "Switch to light" : "Switch to dark"} className="grid h-10 w-10 place-items-center rounded-xl border border-black/10 bg-white active:scale-95 transition">
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
@@ -1640,8 +1633,11 @@ export default function AdminPage() {
             <UserPlus className="h-4 w-4" /> Users {usersLoaded && <span className="opacity-60">{users.length}</span>}
           </button>
           <button type="button" onClick={() => setTab("posts")}
-            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "posts" ? "bg-black text-white" : "text-ink/50"}`}>
+            className={`relative flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "posts" ? "bg-black text-white" : "text-ink/50"}`}>
             <PlayCircle className="h-4 w-4" /> Posts {postsLoaded && <span className="opacity-60">{posts.length}</span>}
+            {pendingSlides.length > 0 && (
+              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-emerald-500" title={`${pendingSlides.length} pending review`} />
+            )}
           </button>
           <button type="button" onClick={() => setTab("inbox")}
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "inbox" ? "bg-black text-white" : "text-ink/50"}`}>
@@ -1808,6 +1804,40 @@ export default function AdminPage() {
         {/* ── Posts (all generations, incl. hidden) ── */}
         {tab === "posts" && (
           <div className="mt-3 pb-16">
+            {/* Models' own PUBLIC My-Studio uploads awaiting approval before they go live. */}
+            {pendingSlides.length > 0 && (
+              <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.05] p-3">
+                <p className="mb-2 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wide text-emerald-700">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" /> Pending review — {pendingSlides.length}
+                </p>
+                <div className="grid gap-2">
+                  {pendingSlides.map(s => (
+                    <div key={s.id} className="flex gap-3 rounded-xl border border-black/10 bg-white p-3">
+                      <span className="h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-black/5">
+                        {(s.kind === "video" ? s.posterUrl : s.mediaUrl) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={s.kind === "video" ? s.posterUrl : s.mediaUrl} alt="" className="h-full w-full object-cover" />
+                        ) : null}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-black">{s.modelName}</p>
+                        <p className="line-clamp-2 text-[12px] font-semibold text-ink/55">{s.caption || "(no caption)"}</p>
+                        <div className="mt-2 flex gap-2">
+                          <button type="button" disabled={pendingBusy === s.id} onClick={() => void reviewSlide(s, "approve")}
+                            className="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-500 text-xs font-black text-black active:scale-95 transition disabled:opacity-50">
+                            <Check className="h-3.5 w-3.5" /> Approve
+                          </button>
+                          <button type="button" disabled={pendingBusy === s.id} onClick={() => void reviewSlide(s, "reject")}
+                            className="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-red-500 text-xs font-black text-white active:scale-95 transition disabled:opacity-50">
+                            <Trash2 className="h-3.5 w-3.5" /> Reject
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Visibility-tier filter chips — All / Private / Community (the moderation tiers). */}
             {(() => {
               const tierOf = (p: AdminPost) => (p.public ? "public" : p.feed ? "community" : "private");
@@ -3115,49 +3145,6 @@ export default function AdminPage() {
       )}
       {faceCropSrc && (
         <PhotoCropper src={faceCropSrc} aspect="portrait" onCancel={() => setFaceCropSrc("")} onDone={d => void saveFaceCrop(d)} />
-      )}
-
-      {/* ── Pending review: models' own PUBLIC uploads awaiting approval ── */}
-      {pendingOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4" onClick={e => { if (e.target === e.currentTarget) setPendingOpen(false); }}>
-          <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white sm:rounded-3xl">
-            <div className="flex items-center justify-between border-b border-black/10 px-5 py-4">
-              <div>
-                <p className="text-base font-black">Pending review</p>
-                <p className="text-[12px] font-bold text-ink/45">Public uploads models made themselves — approve to publish, reject to remove.</p>
-              </div>
-              <button type="button" onClick={() => setPendingOpen(false)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-black/10"><X className="h-4 w-4" /></button>
-            </div>
-            <div className="grid gap-3 overflow-y-auto p-4">
-              {pendingSlides.length === 0 ? (
-                <p className="py-10 text-center text-sm font-bold text-ink/40">Nothing pending.</p>
-              ) : pendingSlides.map(s => (
-                <div key={s.id} className="flex gap-3 rounded-xl border border-black/10 bg-panel p-3">
-                  <span className="h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-black/5">
-                    {(s.kind === "video" ? s.posterUrl : s.mediaUrl) ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={s.kind === "video" ? s.posterUrl : s.mediaUrl} alt="" className="h-full w-full object-cover" />
-                    ) : null}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-black">{s.modelName}</p>
-                    <p className="line-clamp-2 text-[12px] font-semibold text-ink/55">{s.caption || "(no caption)"}</p>
-                    <div className="mt-2 flex gap-2">
-                      <button type="button" disabled={pendingBusy === s.id} onClick={() => void reviewSlide(s, "approve")}
-                        className="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-500 text-xs font-black text-black active:scale-95 transition disabled:opacity-50">
-                        <Check className="h-3.5 w-3.5" /> Approve
-                      </button>
-                      <button type="button" disabled={pendingBusy === s.id} onClick={() => void reviewSlide(s, "reject")}
-                        className="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-red-500 text-xs font-black text-white active:scale-95 transition disabled:opacity-50">
-                        <Trash2 className="h-3.5 w-3.5" /> Reject
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
       )}
 
       {/* ── Curator edit sheet ── */}
