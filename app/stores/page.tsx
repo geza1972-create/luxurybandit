@@ -2853,7 +2853,7 @@ function StoresPage() {
                   className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "garderobe" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>Wardrobe{garments.length ? ` · ${garments.length}` : ""}</button>
               )}
               <button type="button" onClick={() => setHomeTab("feeds")}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>Feeds</button>
+                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>Reels</button>
             </div>
 
             {homeTab === "models" ? (
