@@ -11,7 +11,7 @@ const NAV = [
 
 export default function LandingHeader() {
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0d0b0a]/90 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-white/10 bg-[#0d0b0a]">
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
         <Link href="/stores?view=models" className="flex min-w-0 items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
