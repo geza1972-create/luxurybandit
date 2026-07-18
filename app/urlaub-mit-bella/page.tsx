@@ -34,7 +34,7 @@ export default async function UrlaubMitBellaPage() {
           {card ? (
             <ModelCard {...card} showProfileLink />
           ) : (
-            <div className="grid aspect-[3/4] w-full place-items-center rounded-3xl border border-white/10 bg-white/5 text-white/30">
+            <div className="grid aspect-[3/4] w-full place-items-center rounded-3xl border border-white/10 bg-white/5 text-white/50">
               Bella lädt…
             </div>
           )}

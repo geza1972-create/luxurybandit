@@ -42,7 +42,7 @@ export default function BellaBooking({ firstName = "Bella" }: { firstName?: stri
       </div>
       <div className="mt-4 flex items-end gap-2">
         <span className="text-[40px] font-black leading-none text-white">$49</span>
-        <span className="mb-1 text-[13px] font-bold text-white/50">/ day · 6 pieces</span>
+        <span className="mb-1 text-[13px] font-bold text-white/70">/ day · 6 pieces</span>
       </div>
 
       {done ? (
@@ -56,19 +56,19 @@ export default function BellaBooking({ firstName = "Bella" }: { firstName?: stri
         </div>
       ) : (
         <div className="mt-4 space-y-2">
-          <p className="text-[12px] font-bold text-white/50">Booking = creating your account. After that we take care of your journey.</p>
+          <p className="text-[12px] font-bold text-white/70">Booking = creating your account. After that we take care of your journey.</p>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name"
-            className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 text-sm font-bold text-white outline-none placeholder:text-white/30 focus:border-[#c9a23f]" />
+            className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 text-sm font-bold text-white outline-none placeholder:text-white/50 focus:border-[#c9a23f]" />
           <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoComplete="email" placeholder="Your email"
-            className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 text-sm font-bold text-white outline-none placeholder:text-white/30 focus:border-[#c9a23f]" />
+            className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 text-sm font-bold text-white outline-none placeholder:text-white/50 focus:border-[#c9a23f]" />
           <input value={pw} onChange={(e) => setPw(e.target.value)} type="password" autoComplete="new-password" placeholder="Password (min. 6 characters)"
-            className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 text-sm font-bold text-white outline-none placeholder:text-white/30 focus:border-[#c9a23f]" />
+            className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 text-sm font-bold text-white outline-none placeholder:text-white/50 focus:border-[#c9a23f]" />
           {err && <p className="text-[12px] font-bold text-red-400">{err}</p>}
           <button type="button" onClick={() => void register()} disabled={busy}
             className="mt-1 w-full rounded-xl bg-[#c9a23f] py-3.5 text-[15px] font-black text-black active:scale-[0.98] transition disabled:opacity-40">
             {busy ? "Creating account…" : "Create account & book for $49 →"}
           </button>
-          <p className="text-center text-[11px] font-medium text-white/35">Already have an account? <a href="/login" className="font-bold text-[#c9a23f]">Log in</a></p>
+          <p className="text-center text-[11px] font-medium text-white/55">Already have an account? <a href="/login" className="font-bold text-[#c9a23f]">Log in</a></p>
         </div>
       )}
     </div>

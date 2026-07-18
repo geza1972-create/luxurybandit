@@ -405,7 +405,7 @@ export default function ModelChat({
                 className="lb-gold mt-3 flex w-full items-center justify-center rounded-2xl px-4 py-3 text-[14px] font-black active:scale-95 transition">
                 💛 Subscribe to {first}
               </button>
-              <p className="mt-1.5 text-center text-[11px] font-bold text-white/35">Cancel anytime.</p>
+              <p className="mt-1.5 text-center text-[11px] font-bold text-white/55">Cancel anytime.</p>
             </div>
           )}
         </div>
@@ -447,9 +447,9 @@ export default function ModelChat({
               {stage === "chat" && (
                 <>
                   <button type="button" onClick={() => { setShowEmoji(v => !v); setShowGifts(false); }}
-                    className={`grid h-11 w-9 shrink-0 place-items-center rounded-full transition active:scale-90 ${showEmoji ? "text-amber-400" : "text-white/45"}`}><Smile className="h-6 w-6" /></button>
+                    className={`grid h-11 w-9 shrink-0 place-items-center rounded-full transition active:scale-90 ${showEmoji ? "text-amber-400" : "text-white/65"}`}><Smile className="h-6 w-6" /></button>
                   <button type="button" onClick={() => { setShowGifts(v => !v); setShowEmoji(false); }}
-                    className={`grid h-11 w-9 shrink-0 place-items-center rounded-full transition active:scale-90 ${showGifts ? "text-amber-400" : "text-white/45"}`}><Gift className="h-6 w-6" /></button>
+                    className={`grid h-11 w-9 shrink-0 place-items-center rounded-full transition active:scale-90 ${showGifts ? "text-amber-400" : "text-white/65"}`}><Gift className="h-6 w-6" /></button>
                 </>
               )}
               <textarea
@@ -459,7 +459,7 @@ export default function ModelChat({
                 onFocus={() => { setShowEmoji(false); setShowGifts(false); }}
                 rows={1}
                 placeholder={stage === "name" ? t.name : t.msg(first)}
-                className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium text-white outline-none focus:border-amber-400 placeholder:text-white/30" />
+                className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium text-white outline-none focus:border-amber-400 placeholder:text-white/50" />
               <button type="button"
                 onClick={() => (stage === "name" ? submitName() : void sendMessage())}
                 disabled={sending || !input.trim()}
@@ -470,10 +470,10 @@ export default function ModelChat({
             </>
           )}
           {!isOwn && !isPaid && !hasPass && stage === "chat" && !locked && (
-            <p className="mt-2 text-center text-[11px] font-bold text-white/30">{Math.max(0, FREE_USER_MESSAGES - userTurns)} free messages left</p>
+            <p className="mt-2 text-center text-[11px] font-bold text-white/50">{Math.max(0, FREE_USER_MESSAGES - userTurns)} free messages left</p>
           )}
           {/* AI transparency (EU AI Act) — users must be told they're chatting with an AI. */}
-          <p className="mt-1.5 text-center text-[11px] font-bold text-white/45">✨ You&apos;re chatting with {first}&apos;s AI Assistant — an AI persona, not the real person.</p>
+          <p className="mt-1.5 text-center text-[11px] font-bold text-white/65">✨ You&apos;re chatting with {first}&apos;s AI Assistant — an AI persona, not the real person.</p>
         </div>
       </div>
     </div>

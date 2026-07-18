@@ -756,7 +756,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         <>
           <p ref={captionRef} className={`mt-1 text-[13px] leading-snug text-white/85 ${expanded ? "" : "line-clamp-1"}`}>{caption}</p>
           {clamped && (
-            <button type="button" onClick={() => setExpanded(e => !e)} className="mt-0.5 text-[12px] font-bold text-white/45">
+            <button type="button" onClick={() => setExpanded(e => !e)} className="mt-0.5 text-[12px] font-bold text-white/65">
               {expanded ? "less" : "more"}
             </button>
           )}
@@ -945,9 +945,9 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                     // No license-clear still (curated find whose only image is the brand's
                     // original, which we never show) and no video — nothing safe to display.
                     <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-neutral-900 px-8 text-center">
-                      <ImageOff className="h-9 w-9 text-white/30" />
+                      <ImageOff className="h-9 w-9 text-white/50" />
                       <p className="text-sm font-black text-white/70">No preview yet</p>
-                      <p className="text-[12px] font-bold leading-snug text-white/40">Add a try-on or video for this look — the original brand photo can’t be shown.</p>
+                      <p className="text-[12px] font-bold leading-snug text-white/60">Add a try-on or video for this look — the original brand photo can’t be shown.</p>
                     </div>
                   )}
                   <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
@@ -990,7 +990,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                 // onLoad hides sub-100px images (favicons), onError proxies then hides.
                 <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-neutral-600 to-neutral-900">
                   {/* Placeholder base — visible only when no real photo (the photo covers it). */}
-                  <div className="absolute inset-0 grid place-items-center text-white/25"><MapPin className="h-20 w-20" strokeWidth={1.5} /></div>
+                  <div className="absolute inset-0 grid place-items-center text-white/45"><MapPin className="h-20 w-20" strokeWidth={1.5} /></div>
                   {/* Only render the photo when it's a real image — skip favicons (which come back
                       as tiny google.com/s2/favicons icons and look broken). onLoad also hides any
                       other sub-100px image; onError proxies then hides. */}
@@ -1161,7 +1161,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
         {single && isAdmin && (
           community.length > 0 ? (
             <div className="mt-2 rounded-2xl border border-white/10 bg-white/[0.04] p-2.5">
-              <p className="mb-2 px-0.5 text-[11px] font-black uppercase tracking-wide text-white/45">
+              <p className="mb-2 px-0.5 text-[11px] font-black uppercase tracking-wide text-white/65">
                 Admin · {community.length} {community.length === 1 ? "person tried this on" : "people tried this on"}
               </p>
               <div className="flex flex-col gap-1.5">
@@ -1174,7 +1174,7 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                         <img src={c.imageUrl} alt={c.name ? publicAuthorName(c.name) : "Member"} className="h-full w-full object-cover object-top" />
                       </span>
                       <span className="min-w-0 flex-1 truncate text-[13px] font-black text-white">{c.name ? publicAuthorName(c.name) : "Member"}</span>
-                      {c.videoUrl && <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white/50">Video</span>}
+                      {c.videoUrl && <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white/70">Video</span>}
                     </>
                   );
                   return slug ? (
@@ -1187,11 +1187,11 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
               </div>
             </div>
           ) : (
-            <p className="mt-2 px-0.5 text-[12px] font-bold text-white/45">Admin · no try-ons yet</p>
+            <p className="mt-2 px-0.5 text-[12px] font-bold text-white/65">Admin · no try-ons yet</p>
           )
         )}
         <div className="mt-1 flex items-center gap-3">
-          <button type="button" onClick={() => setGate({ mode: "feedback" })} className="text-[12px] font-bold text-white/45">💬 Feedback / Contact</button>
+          <button type="button" onClick={() => setGate({ mode: "feedback" })} className="text-[12px] font-bold text-white/65">💬 Feedback / Contact</button>
         </div>
         {/* Slim recruiting ad — a GOLD BUTTON on every ~4th post (parent decides),
             scrolls with the caption so the snap feed stays untouched. */}
@@ -1621,7 +1621,7 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
 
   if (!feed.length) {
     return (
-      <div className="grid h-[100dvh] place-items-center bg-black text-center text-white/50">
+      <div className="grid h-[100dvh] place-items-center bg-black text-center text-white/70">
         <p className="text-sm font-black">{modelFilter ? `No posts from ${modelFilter.name} yet.` : "No looks yet."}</p>
         {modelFilter && (
           <button type="button" onClick={() => setModelFilter(null)} className="mt-3 rounded-full bg-white/10 px-4 py-2 text-xs font-black text-white">Clear filter</button>
@@ -1652,9 +1652,9 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
         <div className="fixed inset-0 z-[110] flex flex-col bg-black/80 backdrop-blur-sm" onClick={() => setModelPickerOpen(false)}>
           <div className="mx-auto flex h-full w-full max-w-[440px] flex-col bg-[#0d0b0a]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
-              <Search className="h-4 w-4 text-white/40" />
+              <Search className="h-4 w-4 text-white/60" />
               <input autoFocus value={modelSearchQ} onChange={e => setModelSearchQ(e.target.value)} placeholder="Search a model…"
-                className="h-9 flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/30" />
+                className="h-9 flex-1 bg-transparent text-sm font-bold text-white outline-none placeholder:text-white/50" />
               <button type="button" onClick={() => setModelPickerOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white"><X className="h-4 w-4" /></button>
             </div>
             <div className="flex-1 overflow-y-auto overscroll-contain px-2 py-2">
@@ -1672,7 +1672,7 @@ export default function HomeFeed({ looks, single = false, initialLookId, initial
                 </button>
               ))}
               {modelsList.filter(m => m.name.toLowerCase().includes(modelSearchQ.trim().toLowerCase())).length === 0 && (
-                <p className="py-8 text-center text-sm font-bold text-white/30">No models found.</p>
+                <p className="py-8 text-center text-sm font-bold text-white/50">No models found.</p>
               )}
             </div>
           </div>

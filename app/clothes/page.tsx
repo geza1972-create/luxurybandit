@@ -61,7 +61,7 @@ export default function HainePage() {
 
       <main className="mx-auto max-w-md px-4 pb-24 pt-2">
         <p className="mb-1 mt-3 text-center text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Clothes</p>
-        <p className="mb-5 text-center text-[13px] font-semibold text-white/45">Clothes & luxury pieces — our collection and Bellucci</p>
+        <p className="mb-5 text-center text-[13px] font-semibold text-white/65">Clothes & luxury pieces — our collection and Bellucci</p>
 
         {loading ? (
           <div className="flex justify-center py-20">
@@ -88,7 +88,7 @@ export default function HainePage() {
               </section>
             )}
             {bellucci.length === 0 && own.length === 0 && (
-              <p className="py-20 text-center text-[14px] font-semibold text-white/40">Momentan nu sunt piese de afișat.</p>
+              <p className="py-20 text-center text-[14px] font-semibold text-white/60">Momentan nu sunt piese de afișat.</p>
             )}
           </>
         )}
@@ -116,7 +116,7 @@ export default function HainePage() {
                 Vezi în magazin <ArrowUpRight className="h-4 w-4" />
               </a>
               <button type="button" onClick={() => setOpenProduct(null)}
-                className="mt-2 flex w-full items-center justify-center rounded-full py-3 text-[14px] font-bold text-white/50 active:scale-[0.98] transition">
+                className="mt-2 flex w-full items-center justify-center rounded-full py-3 text-[14px] font-bold text-white/70 active:scale-[0.98] transition">
                 Rămân aici
               </button>
             </div>

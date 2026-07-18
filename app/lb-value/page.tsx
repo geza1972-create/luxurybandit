@@ -47,7 +47,7 @@ export default async function InfluencerGrowthPage() {
         </p>
         {/* The emotional hook — the one line worth highlighting. */}
         <p className="mt-5 border-l-2 border-amber-400 pl-4 text-[21px] font-black leading-snug text-amber-300">
-          She becomes more complete, more unique and more desirable<span className="text-white/45"> — not more expensive.</span>
+          She becomes more complete, more unique and more desirable<span className="text-white/65"> — not more expensive.</span>
         </p>
 
         {/* Growth mechanics — the qualitative ways she evolves. */}
@@ -57,7 +57,7 @@ export default async function InfluencerGrowthPage() {
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-amber-300/20 to-amber-500/10 text-amber-300"><f.icon className="h-5 w-5" /></span>
               <div className="min-w-0 flex-1">
                 <p className="text-[14px] font-black leading-tight text-white">{f.title}</p>
-                <p className="text-[12px] font-semibold leading-snug text-white/45">{f.detail}</p>
+                <p className="text-[12px] font-semibold leading-snug text-white/65">{f.detail}</p>
               </div>
             </div>
           ))}
@@ -68,7 +68,7 @@ export default async function InfluencerGrowthPage() {
           <p className="text-[11px] font-black uppercase tracking-[0.16em] text-amber-300/80">Growth Score</p>
           <p className="mt-1 text-[13px] font-semibold leading-6 text-white/55">A single number for how popular and developed she is. It rises as she earns <strong className="text-amber-200">Growth Points</strong> — it is <strong className="text-white">not money</strong> and not a price.</p>
 
-          <p className="mt-4 mb-2 text-[11px] font-black uppercase tracking-[0.14em] text-white/40">Earn Growth Points</p>
+          <p className="mt-4 mb-2 text-[11px] font-black uppercase tracking-[0.14em] text-white/60">Earn Growth Points</p>
           <div className="overflow-hidden rounded-xl border border-white/10">
             {scoreRows.map((r, i) => (
               <div key={r.label} className={`flex items-center justify-between px-4 py-3 ${i > 0 ? "border-t border-white/10" : ""}`}>
@@ -77,7 +77,7 @@ export default async function InfluencerGrowthPage() {
               </div>
             ))}
           </div>
-          <p className="mt-3 text-[11px] font-medium text-white/30">Growth Points are set by LuxuryBandit and represent development inside the marketplace — never a financial value.</p>
+          <p className="mt-3 text-[11px] font-medium text-white/50">Growth Points are set by LuxuryBandit and represent development inside the marketplace — never a financial value.</p>
         </div>
 
         <div className="mt-7 flex flex-col gap-2">

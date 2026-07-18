@@ -44,7 +44,7 @@ export default function EarningsPage() {
         <div className="mx-auto mt-7 max-w-sm rounded-3xl border border-[#c9a23f]/40 bg-gradient-to-b from-[#c9a23f]/[0.12] to-transparent p-6 text-center">
           <p className="text-[12px] font-black uppercase tracking-wider text-[#e7c877]">Your cut per video</p>
           <p className="mt-1 text-5xl font-black">~$1.20</p>
-          <p className="mt-1 text-[13px] font-bold text-white/50">= 30% of every $3.99 video</p>
+          <p className="mt-1 text-[13px] font-bold text-white/70">= 30% of every $3.99 video</p>
         </div>
 
         {/* How it works */}
@@ -56,7 +56,7 @@ export default function EarningsPage() {
               </span>
               <div>
                 <p className="text-[15px] font-black leading-tight">{s.title}</p>
-                <p className="mt-1 text-[13px] font-bold leading-relaxed text-white/50">{s.body}</p>
+                <p className="mt-1 text-[13px] font-bold leading-relaxed text-white/70">{s.body}</p>
               </div>
             </div>
           ))}
@@ -89,7 +89,7 @@ export default function EarningsPage() {
           className="lb-gold mt-9 flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition">
           <TrendingUp className="h-5 w-5" /> Become a Model &amp; start earning
         </Link>
-        <p className="mt-3 text-center text-[12px] font-bold text-white/35">Already a model? Your earnings are on your profile.</p>
+        <p className="mt-3 text-center text-[12px] font-bold text-white/55">Already a model? Your earnings are on your profile.</p>
       </div>
     </div>
   );

@@ -181,7 +181,7 @@ export default function MyStudioPage() {
   const view = [...slides].reverse();
   const saving = busy === "save";
 
-  if (phase === "loading") return <div className="grid min-h-[100dvh] place-items-center lb-bg text-white"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>;
+  if (phase === "loading") return <div className="grid min-h-[100dvh] place-items-center lb-bg text-white"><Loader2 className="h-6 w-6 animate-spin text-white/70" /></div>;
 
   if (phase === "noauth" || phase === "notmodel") {
     return (
@@ -211,7 +211,7 @@ export default function MyStudioPage() {
         <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15"><ArrowLeft className="h-4 w-4" /></button>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-black">My Studio</p>
-          <p className="truncate text-[11px] font-bold text-white/45">{me?.name} · {slides.length} {slides.length === 1 ? "post" : "posts"}</p>
+          <p className="truncate text-[11px] font-bold text-white/65">{me?.name} · {slides.length} {slides.length === 1 ? "post" : "posts"}</p>
         </div>
         {savedAt && !dirty ? <span className="text-[11px] font-black text-emerald-400">Saved ✓</span> : null}
         {me && <button type="button" onClick={() => router.push(`/curator/${me.id}`)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15" aria-label="View my profile"><ExternalLink className="h-4 w-4" /></button>}
@@ -220,7 +220,7 @@ export default function MyStudioPage() {
       <div className="mx-auto max-w-md px-5 pt-5">
         {/* Upload credits — she can't upload unlimited photos/videos. Not shown in admin mode (gifts are unlimited). */}
         {credits !== null && (
-          <p className={`mb-3 text-center text-[12px] font-black ${credits <= 0 ? "text-red-400" : "text-white/50"}`}>
+          <p className={`mb-3 text-center text-[12px] font-black ${credits <= 0 ? "text-red-400" : "text-white/70"}`}>
             {credits} upload{credits === 1 ? "" : "s"} left
           </p>
         )}
@@ -239,12 +239,12 @@ export default function MyStudioPage() {
         </div>
         <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={e => { void addFile(e.target.files?.[0], "image"); e.target.value = ""; }} />
         <input ref={vidRef} type="file" accept="video/*" className="hidden" onChange={e => { void addFile(e.target.files?.[0], "video"); e.target.value = ""; }} />
-        <p className="mt-2 text-center text-[11px] font-bold text-white/40"><Globe className="mr-1 inline h-3 w-3" /> Public = everyone (reviewed first) · <Lock className="mx-1 inline h-3 w-3" /> Private = only your subscribers, live instantly</p>
+        <p className="mt-2 text-center text-[11px] font-bold text-white/60"><Globe className="mr-1 inline h-3 w-3" /> Public = everyone (reviewed first) · <Lock className="mx-1 inline h-3 w-3" /> Private = only your subscribers, live instantly</p>
         {err && <p className="mt-3 text-center text-[13px] font-bold text-red-400">{err}</p>}
 
         {/* Slides */}
         {view.length === 0 ? (
-          <p className="py-16 text-center text-sm font-bold text-white/40">No posts yet — add your first photo or video above.</p>
+          <p className="py-16 text-center text-sm font-bold text-white/60">No posts yet — add your first photo or video above.</p>
         ) : (
           <div className="mt-4 grid gap-3">
             {view.map(s => (
@@ -268,7 +268,7 @@ export default function MyStudioPage() {
                 <div className="p-3">
                   <textarea rows={2} value={s.caption} onChange={e => setCaption(s.id, e.target.value)}
                     placeholder="Add a caption… (optional)"
-                    className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-[13px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-white/25" />
+                    className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-[13px] font-semibold text-white outline-none placeholder:text-white/55 focus:border-white/25" />
                   <div className="mt-2.5 flex items-center gap-2">
                     <button type="button" onClick={() => requestPublic(s.id)}
                       className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full text-[12px] font-black transition ${!s.private ? "bg-emerald-500 text-black" : "border border-white/15 text-white/60"}`}>

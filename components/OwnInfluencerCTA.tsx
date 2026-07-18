@@ -52,7 +52,7 @@ export default function OwnInfluencerCTA() {
         className="lb-gold mx-auto mt-4 flex h-13 min-h-[52px] w-full max-w-sm items-center justify-center gap-2 rounded-full px-6 text-base font-black active:scale-95 transition">
         <Sparkles className="h-5 w-5" /> Choose an Influencer
       </Link>
-      <p className="mt-3 text-[12px] font-bold text-white/40">{subLabel}/month · cancel anytime · 🔒 secure Stripe checkout</p>
+      <p className="mt-3 text-[12px] font-bold text-white/60">{subLabel}/month · cancel anytime · 🔒 secure Stripe checkout</p>
     </div>
   );
 }

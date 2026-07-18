@@ -70,7 +70,7 @@ export default function PremiumDialog({ open, onClose, title = "Unlock her priva
             <span className="text-6xl font-black leading-none text-white">$8</span>
             <span className="mb-1 text-left text-[13px] font-black leading-tight text-amber-300">first<br />month</span>
           </p>
-          <p className="mt-2 text-[12px] font-bold text-white/50">then {monthly}/mo · cancel anytime</p>
+          <p className="mt-2 text-[12px] font-bold text-white/70">then {monthly}/mo · cancel anytime</p>
         </div>
 
         {/* Perks */}
@@ -89,14 +89,14 @@ export default function PremiumDialog({ open, onClose, title = "Unlock her priva
         </button>
         {error && <p className="mt-2 text-[12px] font-bold text-red-400">{error}</p>}
         {signedIn ? (
-          <button type="button" onClick={close} className="mt-2 w-full py-2 text-[13px] font-black text-white/45">Maybe later</button>
+          <button type="button" onClick={close} className="mt-2 w-full py-2 text-[13px] font-black text-white/65">Maybe later</button>
         ) : (
           <>
             <button type="button" onClick={freeSignup} className="mt-3 flex w-full flex-col items-center justify-center rounded-full border-2 border-amber-400/60 px-5 py-2.5 active:scale-95 transition-transform">
               <span className="text-sm font-black text-amber-300">Create free account · $0</span>
               <span className="text-[11px] font-bold text-amber-300/70">Watch &amp; chat — free</span>
             </button>
-            <a href="/curators/apply" className="mt-2 block w-full py-1.5 text-center text-[12px] font-black text-white/45 underline underline-offset-2">
+            <a href="/curators/apply" className="mt-2 block w-full py-1.5 text-center text-[12px] font-black text-white/65 underline underline-offset-2">
               Register as a Model →
             </a>
           </>

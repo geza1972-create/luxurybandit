@@ -228,7 +228,7 @@ export default function LookDetailPage() {
             <span className="text-lg font-black text-white">{look.salePrice}</span>
           )}
           {look.price && (
-            <span className={`text-base font-black ${look.salePrice ? "text-white/40 line-through" : "text-white"}`}>{look.price}</span>
+            <span className={`text-base font-black ${look.salePrice ? "text-white/60 line-through" : "text-white"}`}>{look.price}</span>
           )}
         </div>
 
@@ -261,7 +261,7 @@ export default function LookDetailPage() {
               Contact on WhatsApp
             </a>
           ) : (
-            <div className="flex h-14 w-full items-center justify-center rounded-2xl bg-white/10 text-base font-black text-white/40">
+            <div className="flex h-14 w-full items-center justify-center rounded-2xl bg-white/10 text-base font-black text-white/60">
               Sold out
             </div>
           )}

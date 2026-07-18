@@ -343,11 +343,11 @@ export default async function OwnInfluencerLanding() {
               ].map(x => (
                 <div key={x.d} className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
                   <p className="text-[15px] font-black text-amber-300">{x.v}</p>
-                  <p className="text-[12px] font-bold text-white/50">{x.d}</p>
+                  <p className="text-[12px] font-bold text-white/70">{x.d}</p>
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-[12px] font-bold text-white/40">Fans <span className="font-black text-white/70">Super Follow her for {superFollowLabel}/month</span> to unlock her <span className="font-black text-white/70">private videos</span> — <span className="font-black text-white/70">you earn from it</span>, and every super-follower lifts her <span className="font-black text-amber-300">Growth Score</span>. Mark any video private when you generate it — only Super Followers see it.</p>
+            <p className="mt-3 text-[12px] font-bold text-white/60">Fans <span className="font-black text-white/70">Super Follow her for {superFollowLabel}/month</span> to unlock her <span className="font-black text-white/70">private videos</span> — <span className="font-black text-white/70">you earn from it</span>, and every super-follower lifts her <span className="font-black text-amber-300">Growth Score</span>. Mark any video private when you generate it — only Super Followers see it.</p>
             <Link href="/lb-value" className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 px-4 py-2 text-[12px] font-black text-amber-300 transition hover:bg-amber-400/10">How she grows →</Link>
           </div>
         </div>
@@ -430,7 +430,7 @@ export default async function OwnInfluencerLanding() {
                 <span className="mx-auto grid h-8 w-8 place-items-center rounded-full bg-amber-400 text-[14px] font-black text-black">{i + 1}</span>
                 <s.icon className="mx-auto mt-3 h-7 w-7 text-amber-400" />
                 <p className="mt-2 text-[13px] font-black uppercase tracking-wide">{s.t}</p>
-                <p className="mx-auto mt-1 max-w-[180px] text-[12px] font-semibold leading-5 text-white/50">{s.d}</p>
+                <p className="mx-auto mt-1 max-w-[180px] text-[12px] font-semibold leading-5 text-white/70">{s.d}</p>
               </div>
             ))}
           </div>
@@ -460,10 +460,10 @@ export default async function OwnInfluencerLanding() {
             <p className="text-[12px] font-black uppercase tracking-[0.15em] text-amber-400">Start your journey today</p>
             <p className="mt-2 max-w-sm text-[14px] font-semibold leading-6 text-white/65">Join the first creators building their AI influencer business on LuxuryBandit.</p>
             <div className="mt-5 flex items-end gap-1">
-              <span className="text-[12px] font-bold text-white/50">Membership</span>
+              <span className="text-[12px] font-bold text-white/70">Membership</span>
             </div>
             <p className="-mt-1"><span className="text-[48px] font-black leading-none text-amber-400">{subLabel}</span><span className="text-[14px] font-bold text-white/60"> / month</span></p>
-            <p className="mt-1 text-[12px] font-bold text-white/45">cancel anytime · your influencer &amp; her videos are yours</p>
+            <p className="mt-1 text-[12px] font-bold text-white/65">cancel anytime · your influencer &amp; her videos are yours</p>
             <ul className="mt-4 space-y-1.5 text-[13px] font-bold text-white/70">
               <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> Become a model&apos;s owner — monthly</li>
               <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> She&apos;s yours to direct</li>
@@ -480,7 +480,7 @@ export default async function OwnInfluencerLanding() {
         <div className="flex flex-col items-center gap-3 text-center">
           <img src="/lb-logo.png" alt="LuxuryBandit" className="h-11 w-11 rounded-full object-contain" />
           <span className="text-[15px] font-black tracking-wide">LUXURYBANDIT</span>
-          <p className="text-[12px] font-bold text-white/45">The Influencer Marketplace. Own. Grow. Earn.</p>
+          <p className="text-[12px] font-bold text-white/65">The Influencer Marketplace. Own. Grow. Earn.</p>
           <div className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] font-bold text-white/55">
             <Link href="/stores?view=grid" className="hover:text-white">Marketplace</Link>
             <Link href="#pricing" className="hover:text-white">Pricing</Link>
@@ -489,7 +489,7 @@ export default async function OwnInfluencerLanding() {
             <Link href="/contact" className="hover:text-white">Contact</Link>
             <Link href="/privacy" className="hover:text-white">Privacy</Link>
           </div>
-          <p className="mt-3 text-[11px] font-bold text-white/30">© 2026 LuxuryBandit. All rights reserved.</p>
+          <p className="mt-3 text-[11px] font-bold text-white/50">© 2026 LuxuryBandit. All rights reserved.</p>
         </div>
       </footer>
     </main>

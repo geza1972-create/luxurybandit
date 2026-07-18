@@ -89,10 +89,10 @@ export default function BuyerAccount() {
         </div>
 
         {/* Display name */}
-        <p className="mt-6 text-[11px] font-black uppercase tracking-widest text-white/35">Display name</p>
+        <p className="mt-6 text-[11px] font-black uppercase tracking-widest text-white/55">Display name</p>
         <div className="mt-2 flex gap-2">
           <input value={name} onChange={e => setName(e.target.value)} placeholder="How should we call you?"
-            className="h-12 flex-1 rounded-2xl border border-white/15 bg-white/5 px-4 text-sm font-bold text-white outline-none focus:border-amber-400 placeholder:text-white/30" />
+            className="h-12 flex-1 rounded-2xl border border-white/15 bg-white/5 px-4 text-sm font-bold text-white outline-none focus:border-amber-400 placeholder:text-white/50" />
           <button type="button" onClick={() => void saveName()} disabled={saving}
             className="lb-gold grid h-12 w-14 place-items-center rounded-2xl text-sm font-black disabled:opacity-50 active:scale-95 transition">
             {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : saved ? <Check className="h-5 w-5" /> : "Save"}
@@ -114,7 +114,7 @@ export default function BuyerAccount() {
         {/* My subscriptions — one per model (each model is its own subscription). */}
         {subs.length > 0 && (
           <div className="mt-6">
-            <p className="text-[11px] font-black uppercase tracking-wide text-white/45">My subscriptions ({subs.length})</p>
+            <p className="text-[11px] font-black uppercase tracking-wide text-white/65">My subscriptions ({subs.length})</p>
             <div className="mt-2 grid gap-2">
               {subs.map(s => (
                 <button key={s.id} type="button" onClick={() => router.push(`/curator/${s.id}`)}

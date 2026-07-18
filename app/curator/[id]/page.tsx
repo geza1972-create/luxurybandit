@@ -1140,11 +1140,11 @@ export default function CuratorPublicPage() {
     } catch { setMMsg("Delete error"); setMBusy(false); }
   };
 
-  if (loading) return <main className="grid min-h-[100dvh] place-items-center lb-bg"><Loader2 className="h-6 w-6 animate-spin text-white/30" /></main>;
+  if (loading) return <main className="grid min-h-[100dvh] place-items-center lb-bg"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></main>;
   if (!profile) return (
     <main className="grid min-h-[100dvh] place-items-center gap-3 lb-bg text-white">
-      <p className="text-sm font-black text-white/50">Model not found</p>
-      <button type="button" onClick={() => router.back()} className="text-xs font-black text-white/50 underline">Go back</button>
+      <p className="text-sm font-black text-white/70">Model not found</p>
+      <button type="button" onClick={() => router.back()} className="text-xs font-black text-white/70 underline">Go back</button>
     </main>
   );
 
@@ -1267,7 +1267,7 @@ export default function CuratorPublicPage() {
             <button type="button" onClick={() => void toggleRealBadge()} disabled={badgeBusy}
               title={(profile.realModel || profile.realBadge) ? "Real-Model-Verifizierung entfernen" : "Als Real Model verifizieren & freigeben"}
               className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border active:scale-90 transition disabled:opacity-50 ${
-                (profile.realModel || profile.realBadge) ? "border-amber-400 bg-amber-400 text-black" : "border-white/20 bg-white/5 text-white/40"
+                (profile.realModel || profile.realBadge) ? "border-amber-400 bg-amber-400 text-black" : "border-white/20 bg-white/5 text-white/60"
               }`}>
               {badgeBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BadgeCheck className="h-3.5 w-3.5" />}
             </button>
@@ -1281,7 +1281,7 @@ export default function CuratorPublicPage() {
               className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-black transition active:scale-95 disabled:opacity-50 ${profile.forSale ? "bg-amber-500 text-white" : "border border-white/20 bg-white/5 text-white/60"}`}>
               {saleBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : profile.forSale ? "✓ Open to ownership — tap to close" : "Closed to ownership — tap to open"}
             </button>
-            <p className="mt-1 text-[11px] font-bold text-white/40">{profile.forSale ? "ON — her profile shows a “Get in touch to own her” button." : "OFF — no ownership button on her profile."}</p>
+            <p className="mt-1 text-[11px] font-bold text-white/60">{profile.forSale ? "ON — her profile shows a “Get in touch to own her” button." : "OFF — no ownership button on her profile."}</p>
           </div>
         )}
         {/* Owner privacy — the OWNER (or admin) can hide their name on the card, keep only the ID. */}
@@ -1298,12 +1298,12 @@ export default function CuratorPublicPage() {
               className="lb-gold inline-flex items-center justify-center rounded-full px-6 py-3 text-[14px] font-black shadow active:scale-95 transition">
               Own {name} — get in touch
             </a>
-            <p className="max-w-xs text-center text-[12px] font-semibold leading-relaxed text-white/50">
+            <p className="max-w-xs text-center text-[12px] font-semibold leading-relaxed text-white/70">
               You sponsor her monthly Growth Score{profile.growPriceLabel ? ` (${profile.growPriceLabel})` : ""} — in return she promotes your products and you can direct her looks.
             </p>
           </div>
         )}
-        <div className="mt-2 flex items-center gap-3 text-[11px] font-bold text-white/40">
+        <div className="mt-2 flex items-center gap-3 text-[11px] font-bold text-white/60">
           {profile.genderFocus && <span className="rounded-full bg-white/10 px-2.5 py-1">{profile.genderFocus}</span>}
           {profile.instagram && (
             <a href={`https://instagram.com/${profile.instagram}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-amber-400">
@@ -1318,7 +1318,7 @@ export default function CuratorPublicPage() {
         {/* Admin: pick her main profile photo from the candidates she uploaded. */}
         {isAdmin && (profile.profilePhotoUrls?.length ?? 0) > 0 && (
           <div className="mt-3 w-full max-w-sm rounded-2xl border border-white/12 bg-white/[0.03] p-3 text-left">
-            <p className="text-[11px] font-black uppercase tracking-wide text-white/45">Profile photo · pick her best</p>
+            <p className="text-[11px] font-black uppercase tracking-wide text-white/65">Profile photo · pick her best</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {profile.profilePhotoUrls!.map((url, i) => {
                 const isMain = url === profile.photoUrl;
@@ -1332,7 +1332,7 @@ export default function CuratorPublicPage() {
                 );
               })}
             </div>
-            <p className="mt-1.5 text-[11px] font-bold text-white/40">Tap a photo to make it her profile picture.</p>
+            <p className="mt-1.5 text-[11px] font-bold text-white/60">Tap a photo to make it her profile picture.</p>
           </div>
         )}
 
@@ -1356,7 +1356,7 @@ export default function CuratorPublicPage() {
             <div className="w-full max-w-[440px] rounded-t-3xl bg-[#111] p-5 ring-1 ring-white/10" onClick={e => e.stopPropagation()} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)" }}>
               <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/15" />
               <p className="text-base font-black text-white">Change her photo</p>
-              <p className="mb-3 text-[12px] font-bold text-white/45">Upload a new photo, or enhance her current one to HD — her face always stays the same.</p>
+              <p className="mb-3 text-[12px] font-bold text-white/65">Upload a new photo, or enhance her current one to HD — her face always stays the same.</p>
 
               <button type="button" disabled={cpBusy} onClick={() => cpFileRef.current?.click()}
                 className="lb-gold flex w-full items-center justify-center gap-2 rounded-full py-3 text-[13px] font-black active:scale-95 transition disabled:opacity-60">
@@ -1377,7 +1377,7 @@ export default function CuratorPublicPage() {
                   <div className="mt-3">
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <p className="mb-1 text-center text-[10px] font-black uppercase tracking-wide text-white/45">Before</p>
+                        <p className="mb-1 text-center text-[10px] font-black uppercase tracking-wide text-white/65">Before</p>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={cpBefore} alt="" className="aspect-[3/4] w-full rounded-lg object-cover object-top ring-1 ring-white/10" />
                       </div>
@@ -1387,7 +1387,7 @@ export default function CuratorPublicPage() {
                         <img src={cpAfter} alt="" className="aspect-[3/4] w-full rounded-lg object-cover object-top ring-2 ring-amber-400/70" />
                       </div>
                     </div>
-                    <p className="mt-2 text-center text-[11px] font-bold text-white/45">Preview only — not saved yet.</p>
+                    <p className="mt-2 text-center text-[11px] font-bold text-white/65">Preview only — not saved yet.</p>
                     <div className="mt-2 flex gap-2">
                       <button type="button" disabled={cpBusy} onClick={() => void cpEnhance()}
                         className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-white/20 py-2.5 text-[12px] font-black text-white/80 active:scale-95 transition disabled:opacity-50">
@@ -1500,7 +1500,7 @@ export default function CuratorPublicPage() {
             <div className="w-full max-w-[440px] rounded-t-3xl bg-[#111] p-5 ring-1 ring-white/10" onClick={e => e.stopPropagation()} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)" }}>
               <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/15" />
               <p className="text-base font-black text-white">Pick a garment for her video</p>
-              <p className="mb-2 text-[12px] font-bold text-white/45">Tap a piece — we generate a video of {displayName.split(" ")[0]} wearing it. First video free, then $3.99.</p>
+              <p className="mb-2 text-[12px] font-bold text-white/65">Tap a piece — we generate a video of {displayName.split(" ")[0]} wearing it. First video free, then $3.99.</p>
               {/* Collection filter — she only sees collections RELEASED to her (admin sees
                   all). "Alle" + one chip per released collection. */}
               {(() => {
@@ -1532,7 +1532,7 @@ export default function CuratorPublicPage() {
                   .filter(l => gvCol === null || l.collectionId === gvCol)
                   .map(l => ({ l, brand: brandOf(l) }));
                 if (items.length === 0) {
-                  return <p className="py-8 text-center text-[12px] font-bold text-white/40">Noch keine Teile in dieser Collection.</p>;
+                  return <p className="py-8 text-center text-[12px] font-bold text-white/60">Noch keine Teile in dieser Collection.</p>;
                 }
                 return (
                   <div className="grid max-h-[52vh] grid-cols-3 gap-2 overflow-y-auto">
@@ -1565,7 +1565,7 @@ export default function CuratorPublicPage() {
         {/* Report — any visitor can flag a profile for review. */}
         {!isOwn && (
           <button type="button" onClick={() => void reportProfile()}
-            className="mt-2 text-[11px] font-bold text-white/30 underline underline-offset-2 active:opacity-70">⚠ Report this profile</button>
+            className="mt-2 text-[11px] font-bold text-white/50 underline underline-offset-2 active:opacity-70">⚠ Report this profile</button>
         )}
 
         {/* Trust badge in gold (~every 2nd visit): the models are REAL people.
@@ -1610,7 +1610,7 @@ export default function CuratorPublicPage() {
                 <div className="w-full max-w-[440px] rounded-t-3xl bg-[#111] p-5 ring-1 ring-white/10" onClick={e => e.stopPropagation()} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)" }}>
                   <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/15" />
                   <p className="text-base font-black text-white">Which garment does the video show?</p>
-                  <p className="mb-3 text-[12px] font-bold text-white/45">Tap the piece — then pick the video file. It links automatically.</p>
+                  <p className="mb-3 text-[12px] font-bold text-white/65">Tap the piece — then pick the video file. It links automatically.</p>
                   <div className="grid max-h-[52vh] grid-cols-3 gap-2 overflow-y-auto">
                     {allLooks.filter(l => (l.productType === "ai" || (l as any).wardrobe === true) && ((l as any).frontImageUrl || l.imageUrl)).map(l => {
                       const img = (l as any).frontImageUrl || l.imageUrl;
@@ -1693,12 +1693,12 @@ export default function CuratorPublicPage() {
                   </button>
                 )}
               </div>
-              {isAdmin && genMsg && <p className="mb-2 text-[11px] font-bold text-white/50">{genMsg}</p>}
+              {isAdmin && genMsg && <p className="mb-2 text-[11px] font-bold text-white/70">{genMsg}</p>}
 
               {wardrobe.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-16 text-center">
                   <ShoppingBag className="h-8 w-8 text-white/15" />
-                  <p className="text-sm font-black text-white/40">{wardrobeAll.length === 0 ? (isAdmin ? "No looks yet — tap “Generate”." : "Looks coming soon.") : "Nothing in this category."}</p>
+                  <p className="text-sm font-black text-white/60">{wardrobeAll.length === 0 ? (isAdmin ? "No looks yet — tap “Generate”." : "Looks coming soon.") : "Nothing in this category."}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
@@ -1793,7 +1793,7 @@ export default function CuratorPublicPage() {
               className="lb-gold mt-5 flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-60">
               {followLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Continue — subscribe"}
             </button>
-            <p className="mt-2 text-[11px] font-bold text-white/35">Start with $8 the first month, then {superFollowLabel}/mo · cancel anytime · 🔒 secure Stripe</p>
+            <p className="mt-2 text-[11px] font-bold text-white/55">Start with $8 the first month, then {superFollowLabel}/mo · cancel anytime · 🔒 secure Stripe</p>
           </div>
         </div>
       )}
@@ -1951,7 +1951,7 @@ export default function CuratorPublicPage() {
               <p className="text-base font-black">Generate garments</p>
               <button type="button" onClick={() => setGenOpen(false)} className="grid h-8 w-8 place-items-center rounded-full bg-white/10"><X className="h-4 w-4" /></button>
             </div>
-            <p className="mb-2 text-[12px] font-bold text-white/50">Beschreibe was du willst — ein Stück pro Komma. Leer lassen = automatisch aus ihren Vorlieben (Anzahl unten).</p>
+            <p className="mb-2 text-[12px] font-bold text-white/70">Beschreibe was du willst — ein Stück pro Komma. Leer lassen = automatisch aus ihren Vorlieben (Anzahl unten).</p>
 
             {/* How many pieces to auto-generate (editable). */}
             <div className="mb-2.5 flex items-center gap-3">
@@ -1982,10 +1982,10 @@ export default function CuratorPublicPage() {
                 </div>
               ))}
               <button type="button" onClick={() => genRefFileRef.current?.click()}
-                className="flex h-16 w-12 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-white/25 text-white/50 active:scale-95 transition">
+                className="flex h-16 w-12 shrink-0 flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-white/25 text-white/70 active:scale-95 transition">
                 <ImageUp className="h-4 w-4" />
               </button>
-              <span className="text-[11px] font-bold text-white/35">Paste a reference image (screenshot ⌘V) or upload</span>
+              <span className="text-[11px] font-bold text-white/55">Paste a reference image (screenshot ⌘V) or upload</span>
             </div>
             <input ref={genRefFileRef} type="file" accept="image/*" multiple className="hidden"
               onChange={e => { if (e.target.files?.length) void addGenRefs(e.target.files); e.currentTarget.value = ""; }} />
@@ -2056,7 +2056,7 @@ export default function CuratorPublicPage() {
             </div>
 
             {/* Move to another category */}
-            <p className="mb-2 mt-4 text-[11px] font-black uppercase tracking-wide text-white/40">Category</p>
+            <p className="mb-2 mt-4 text-[11px] font-black uppercase tracking-wide text-white/60">Category</p>
             <div className="flex flex-wrap gap-2">
               {LOOK_CATEGORIES.map(c => (
                 <button key={c.slug} type="button" onClick={() => setMCat(c.slug)}
@@ -2067,9 +2067,9 @@ export default function CuratorPublicPage() {
             </div>
 
             {/* Shop link — powers the "Shop now" button on the tile */}
-            <p className="mb-2 mt-4 text-[11px] font-black uppercase tracking-wide text-white/40">Shop link</p>
+            <p className="mb-2 mt-4 text-[11px] font-black uppercase tracking-wide text-white/60">Shop link</p>
             <input value={mBuy} onChange={e => setMBuy(e.target.value)} type="url" inputMode="url" placeholder="https://shop.example.com/product…"
-              className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[13px] font-bold text-white outline-none focus:border-white/40 placeholder:text-white/25" />
+              className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[13px] font-bold text-white outline-none focus:border-white/40 placeholder:text-white/45" />
 
             {/* Replace / hide / delete */}
             <div className="mt-4 grid grid-cols-3 gap-2">

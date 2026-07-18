@@ -1064,7 +1064,7 @@ export default function TryonPage() {
               <img src={l.img} alt={l.name} loading="lazy" className="h-full w-full object-cover object-top" />
             </div>
             <p className={`mt-1 line-clamp-1 text-[11px] font-black ${dark ? "text-white" : "text-black"}`}>{l.name}</p>
-            <p className={`text-[10px] font-bold ${dark ? "text-white/50" : "text-black/45"}`}>{l.price || " "}</p>
+            <p className={`text-[10px] font-bold ${dark ? "text-white/70" : "text-black/45"}`}>{l.price || " "}</p>
           </button>
         ))}
       </div>

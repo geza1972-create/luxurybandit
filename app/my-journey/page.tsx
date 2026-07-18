@@ -28,7 +28,7 @@ export default function MyJourneyPage() {
         <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Your Journey</p>
         <h1 className="mt-2 text-[30px] font-black leading-[1.05]">Your feed with <span className="text-[#c9a23f]">Bella</span> 🌴</h1>
 
-        {state === "loading" && <p className="mt-8 text-center text-white/40">Loading…</p>}
+        {state === "loading" && <p className="mt-8 text-center text-white/60">Loading…</p>}
 
         {state === "guest" && (
           <div className="mt-8 rounded-2xl border border-[#c9a23f]/40 bg-[#c9a23f]/[0.06] p-6 text-center">

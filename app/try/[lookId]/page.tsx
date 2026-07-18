@@ -726,7 +726,7 @@ export default function TryFunnelPage() {
         <span className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wide text-amber-400">
           <Sparkles className="h-3.5 w-3.5" /> Admin · Video-Prompt
         </span>
-        <span className="text-[11px] font-bold text-white/40">{promptOpen ? "hide" : "preview / edit"}</span>
+        <span className="text-[11px] font-bold text-white/60">{promptOpen ? "hide" : "preview / edit"}</span>
       </button>
       {promptOpen && (
         <div className="mt-3">
@@ -747,7 +747,7 @@ export default function TryFunnelPage() {
               <span className="text-[12px] font-black">@Bild2</span>
             </div>
           </div>
-          <p className="mt-2 text-[11px] font-bold text-white/35">@Bild1 = model / avatar · @Bild2 = chosen outfit</p>
+          <p className="mt-2 text-[11px] font-bold text-white/55">@Bild1 = model / avatar · @Bild2 = chosen outfit</p>
           <textarea value={prompt} onChange={e => { setPrompt(e.target.value); setPromptSaved(false); }} rows={4}
             className="mt-2 w-full resize-none rounded-xl border border-white/15 bg-black/40 p-3 text-[13px] font-semibold leading-snug text-white outline-none focus:border-amber-400" />
           <div className="mt-2 flex items-center gap-2">
@@ -757,7 +757,7 @@ export default function TryFunnelPage() {
               {promptSaved ? "Saved" : "Save prompt"}
             </button>
             <button type="button" onClick={() => { setPrompt(DEFAULT_HINT); setPromptSaved(false); }}
-              className="text-[12px] font-bold text-white/40 active:opacity-70">Reset text</button>
+              className="text-[12px] font-bold text-white/60 active:opacity-70">Reset text</button>
           </div>
           {/* Per-video slow motion — baked in at generation so the music stays in sync. */}
           <button type="button" onClick={() => setSlowmo(s => !s)}
@@ -767,7 +767,7 @@ export default function TryFunnelPage() {
               <span className={`h-4 w-4 rounded-full bg-white transition-transform ${slowmo ? "translate-x-4" : ""}`} />
             </span>
           </button>
-          <p className="mt-1.5 text-[11px] font-bold text-white/35">Ad mode: slower 10s clip, straight to HD (1080p), matching music. Costs more — for this video only.</p>
+          <p className="mt-1.5 text-[11px] font-bold text-white/55">Ad mode: slower 10s clip, straight to HD (1080p), matching music. Costs more — for this video only.</p>
         </div>
       )}
     </div>
@@ -851,7 +851,7 @@ export default function TryFunnelPage() {
       {/* ── Step 1 is skipped (the garment is already chosen) — brief loader ── */}
       {step === 1 && (
         <div className="grid place-items-center px-4 py-28">
-          <Loader2 className="h-6 w-6 animate-spin text-white/30" />
+          <Loader2 className="h-6 w-6 animate-spin text-white/50" />
         </div>
       )}
 
@@ -862,7 +862,7 @@ export default function TryFunnelPage() {
           <h1 className="text-[22px] font-black leading-tight">{!avatar && chosenModelName && !((pickModel || chooseModel) && !pickedModel) ? L(`Vezi-o pe ${chosenModelName.split(/\s+/)[0]} în cele mai tari ținute 🔥`, `Watch ${chosenModelName.split(/\s+/)[0]} in her hottest looks 🔥`) : L("Cine s-o poarte?", "Who should wear it?")}</h1>
           {(pickModel || chooseModel) && !pickedModel && !avatar ? (
             <>
-              <p className="mt-2 text-[13px] font-bold text-white/50">Pick a model to wear this piece.</p>
+              <p className="mt-2 text-[13px] font-bold text-white/70">Pick a model to wear this piece.</p>
               <div className="mt-4 grid grid-cols-3 gap-2">
                 {(() => {
                   // Every generation costs 1 credit (new users get free welcome credits;
@@ -904,7 +904,7 @@ export default function TryFunnelPage() {
             </>
           ) : avatar ? (
             <>
-              <p className="mt-2 text-[13px] font-bold text-white/50">{!avatar && chosenModelName ? `Tap “Start” to see ${chosenModelName.split(/\s+/)[0]} wear it — free. Or switch the look / use your own photo.` : (pickedModel ? "Great pick — or replace her with your own photo." : "The model from the video is ready. Keep her, or replace her with your own photo.")}</p>
+              <p className="mt-2 text-[13px] font-bold text-white/70">{!avatar && chosenModelName ? `Tap “Start” to see ${chosenModelName.split(/\s+/)[0]} wear it — free. Or switch the look / use your own photo.` : (pickedModel ? "Great pick — or replace her with your own photo." : "The model from the video is ready. Keep her, or replace her with your own photo.")}</p>
               <div className="mx-auto mt-3 w-fit overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04]">
                 {/* Height-constrained so 'Choose other model' + the outfit stay on screen. */}
                 <div className="relative aspect-[9/16] h-[38vh] max-w-[78vw]">
@@ -928,7 +928,7 @@ export default function TryFunnelPage() {
             // Outfit chosen → confirm view: the OUTFIT (left) + the chosen MODEL (right),
             // with Cancel to reopen the picker.
             <>
-              <p className="mt-1 text-[13px] font-bold text-white/50">{chosenModelLocked ? L("Acest model e Premium — deblocheaz-o sau alege un model gratuit mai jos.", "This model is Premium — unlock her, or pick a free model below.") : L("Ținuta e gata — apasă „GO” mai jos ca s-o vezi, gratuit.", "Your look is set — tap “GO” below to watch it, free.")}</p>
+              <p className="mt-1 text-[13px] font-bold text-white/70">{chosenModelLocked ? L("Acest model e Premium — deblocheaz-o sau alege un model gratuit mai jos.", "This model is Premium — unlock her, or pick a free model below.") : L("Ținuta e gata — apasă „GO” mai jos ca s-o vezi, gratuit.", "Your look is set — tap “GO” below to watch it, free.")}</p>
               <div className="mx-auto mt-3 flex items-stretch justify-center gap-3">
                 <div className="w-[42%] max-w-[160px]">
                   <button type="button" onClick={() => { setZoomSrc(look?.frontImageUrl || look?.imageUrl || garmentParam || outfit?.imageUrl || ""); setZoomName(outfit?.name || ""); setOutfitZoom(true); }} className="block w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-95 transition">
@@ -959,10 +959,10 @@ export default function TryFunnelPage() {
                 </div>
               </div>
               {/* Subtle secondary options — the GO button is the star; these stay grey. */}
-              <div className="mx-auto mt-3 flex items-center justify-center gap-4 text-[12px] font-black text-white/40">
+              <div className="mx-auto mt-3 flex items-center justify-center gap-4 text-[12px] font-black text-white/60">
                 <button type="button" onClick={() => setChooseLook(true)}
                   className="underline decoration-white/20 underline-offset-4 active:opacity-70">{L("Schimbă ținuta", "Change outfit")}</button>
-                <span className="text-white/20">·</span>
+                <span className="text-white/40">·</span>
                 <button type="button" onClick={() => { setComboCancelled(true); setYourPhotoFront(false); setAvatar(""); setPickedModel(""); setChooseModel(true); }}
                   className="underline decoration-white/20 underline-offset-4 active:opacity-70">{L("Schimbă modelul", "Change model")}</button>
               </div>
@@ -982,10 +982,10 @@ export default function TryFunnelPage() {
             // her neighbours angle back on both sides. Tap a side card (or an arrow) to bring
             // her forward — that selects her. Locked models (not Gina) show a padlock.
             <>
-              <p className="mt-2 text-[13px] font-bold text-white/50">Swipe the models — your pick stands up front. Tap “Start” to see her wear it, free.</p>
+              <p className="mt-2 text-[13px] font-bold text-white/70">Swipe the models — your pick stands up front. Tap “Start” to see her wear it, free.</p>
               {(() => {
                 const om = [...gModels].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
-                if (om.length === 0) return <div className="grid h-[46vh] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/30" /></div>;
+                if (om.length === 0) return <div className="grid h-[46vh] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>;
                 // "Use your own photo" lives IN the carousel as a card (3rd position), not a
                 // separate button. It uploads (paid/admin) or opens the paywall.
                 const YOURPHOTO = { id: "__yourphoto", name: "Your photo", photoUrl: "", featured: false } as typeof om[number];
@@ -1075,10 +1075,10 @@ export default function TryFunnelPage() {
           {!showConfirm && (
             <>
               <div className="mt-4">
-                <p className="mb-2 flex items-center text-[11px] font-black uppercase tracking-wide text-white/40">Outfits<span className="ml-auto text-[10px] font-bold normal-case text-white/35">swipe →</span></p>
+                <p className="mb-2 flex items-center text-[11px] font-black uppercase tracking-wide text-white/60">Outfits<span className="ml-auto text-[10px] font-bold normal-case text-white/55">swipe →</span></p>
                 <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {gGarments.length === 0 ? (
-                    <div className="grid h-24 w-full place-items-center"><Loader2 className="h-5 w-5 animate-spin text-white/40" /></div>
+                    <div className="grid h-24 w-full place-items-center"><Loader2 className="h-5 w-5 animate-spin text-white/60" /></div>
                   ) : gGarments.map(g => (
                     <button key={g.id} type="button"
                       onClick={() => {
@@ -1107,7 +1107,7 @@ export default function TryFunnelPage() {
           {/* Admin: the videos already generated for this model — right under the outfits. */}
           {!showConfirm && adminProduce && galleryVideos.length > 0 && (
             <div className="mt-5">
-              <p className="mb-2 text-[13px] font-black">My Gallery <span className="text-white/40">{galleryVideos.length}</span></p>
+              <p className="mb-2 text-[13px] font-black">My Gallery <span className="text-white/60">{galleryVideos.length}</span></p>
               <div className="grid grid-cols-3 gap-2">
                 {galleryVideos.map(v => (
                   <a key={v.id} href={v.curatorId ? `/curator/${v.curatorId}` : "#"} className="relative block aspect-[9/16] overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] active:opacity-80">
@@ -1214,7 +1214,7 @@ export default function TryFunnelPage() {
           {!rendering && !revealing && (
             <>
               <h1 className="mt-6 text-center text-[22px] font-black leading-tight">{!guest ? L("Videoul tău e gata 🎉", "Your video is ready 🎉") : hasLead ? L("Ești înăuntru! 💛", "You're in! 💛") : L("Vrei să vezi mai mult? 🔥", "Want to see more? 🔥")}</h1>
-              <p className="mt-2 text-center text-[13px] font-bold text-white/50">{!guest ? (previewVideoUrl ? L("E gratis — apasă 🔊 pentru sunet.", "It's free — tap 🔊 for sound.") : L("Vezi-l și descarcă-l la calitate maximă.", "Watch and download it in full quality.")) : hasLead ? L("Îți trimitem look-uri noi în fiecare zi pe email. Apasă 🔊 pentru sunet.", "New looks land in your inbox every day. Tap 🔊 for sound.") : L("Autentifică-te gratis pentru sunet, salvare și mai multe ținute.", "Sign in free to unlock sound, save it, and watch more looks.")}</p>
+              <p className="mt-2 text-center text-[13px] font-bold text-white/70">{!guest ? (previewVideoUrl ? L("E gratis — apasă 🔊 pentru sunet.", "It's free — tap 🔊 for sound.") : L("Vezi-l și descarcă-l la calitate maximă.", "Watch and download it in full quality.")) : hasLead ? L("Îți trimitem look-uri noi în fiecare zi pe email. Apasă 🔊 pentru sunet.", "New looks land in your inbox every day. Tap 🔊 for sound.") : L("Autentifică-te gratis pentru sunet, salvare și mai multe ținute.", "Sign in free to unlock sound, save it, and watch more looks.")}</p>
               {/* Motion was chosen before generating — no picker on the ready step. */}
               {adminPromptPanel}
               {/* CTA — inline right under the video (NOT sticky). */}
@@ -1267,20 +1267,20 @@ export default function TryFunnelPage() {
       {step === 4 && (
         <div className="px-4 pb-28 pt-2">
           <h1 className="text-center text-[26px] font-black">Create your video</h1>
-          <p className="mt-1 text-center text-[13px] font-bold text-white/50">{(packCredits ?? 0) > 0 ? "Ready to go — this uses 1 video credit." : "Go Premium — first month just $8, then $49/month."}</p>
+          <p className="mt-1 text-center text-[13px] font-bold text-white/70">{(packCredits ?? 0) > 0 ? "Ready to go — this uses 1 video credit." : "Go Premium — first month just $8, then $49/month."}</p>
 
           {(packCredits ?? 0) > 0 ? (
             /* Has credits → just generate. */
             <div className="mx-auto mt-6 max-w-sm rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] p-5 text-center">
-              <p className="text-3xl font-black text-white">{packCredits} <span className="text-base font-bold text-white/50">videos left</span></p>
-              <p className="mt-1 text-[12px] font-bold text-white/45">Generating this video uses 1 credit.</p>
+              <p className="text-3xl font-black text-white">{packCredits} <span className="text-base font-bold text-white/70">videos left</span></p>
+              <p className="mt-1 text-[12px] font-bold text-white/65">Generating this video uses 1 credit.</p>
             </div>
           ) : (
             /* No credits → Premium subscription (first month $8, then $49/mo → 40 videos). */
             <div className="mx-auto mt-6 max-w-sm rounded-3xl border border-amber-400/30 bg-amber-400/[0.06] p-6 text-center">
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Premium</p>
-              <p className="mt-1.5 flex items-end justify-center gap-1.5"><span className="text-4xl font-black text-white">$8</span><span className="mb-1 text-sm font-bold text-white/50">first month</span></p>
-              <p className="mt-0.5 text-[12px] font-bold text-white/45">then $49/month · 40 try-on videos every month</p>
+              <p className="mt-1.5 flex items-end justify-center gap-1.5"><span className="text-4xl font-black text-white">$8</span><span className="mb-1 text-sm font-bold text-white/70">first month</span></p>
+              <p className="mt-0.5 text-[12px] font-bold text-white/65">then $49/month · 40 try-on videos every month</p>
               <div className="mt-4 grid gap-2 text-left">
                 {["40 try-on videos every month", "Every model, look & full video unlocked", "First month $8 · cancel anytime"].map(perk => (
                   <div key={perk} className="flex items-center gap-2.5"><Check className="h-4 w-4 shrink-0 text-amber-400" /><span className="text-[13px] font-bold text-white/80">{perk}</span></div>
@@ -1293,7 +1293,7 @@ export default function TryFunnelPage() {
 
           {/* Escape hatch — not ready to pay? Browse the free models gallery instead. */}
           <button type="button" onClick={() => router.push("/home")}
-            className="mx-auto mt-6 block text-center text-[13px] font-black text-white/45 underline underline-offset-4 active:scale-95 transition">
+            className="mx-auto mt-6 block text-center text-[13px] font-black text-white/65 underline underline-offset-4 active:scale-95 transition">
             Visit the models gallery →
           </button>
 
@@ -1369,7 +1369,7 @@ export default function TryFunnelPage() {
                     ) : genStatus === "error" ? (
                       <div className="flex flex-col items-center gap-2 px-6 text-center">
                         <span className="text-sm font-black text-red-300">Generation failed</span>
-                        <span className="text-[12px] font-bold text-white/50">{genError}</span>
+                        <span className="text-[12px] font-bold text-white/70">{genError}</span>
                         <button type="button" onClick={() => { genStartedRef.current = false; void generateReal(); }}
                           className="mt-1 rounded-full bg-white/15 px-4 py-1.5 text-[12px] font-black text-white active:opacity-70">Try again</button>
                       </div>
@@ -1390,7 +1390,7 @@ export default function TryFunnelPage() {
           <h1 className="mt-6 text-center text-[22px] font-black leading-tight">
             {genStatus === "done" ? (genPhotoUrl ? "Your photo is ready 🎉" : "Enjoy your video 🎉") : isModelSession ? "Conjuring your photo…" : "Conjuring your video…"}
           </h1>
-          <p className="mt-2 text-center text-[13px] font-bold text-white/50">
+          <p className="mt-2 text-center text-[13px] font-bold text-white/70">
             {genStatus === "done"
               ? (genPhotoUrl ? "Saved. The team turns your best photos into videos for your profile." : "Saved to your gallery — view & manage under Account.")
               : "Your try-on is being created in full quality."}
@@ -1421,7 +1421,7 @@ export default function TryFunnelPage() {
                 {hdBusyId === genId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 {hdBusyId === genId ? "Making it HD…" : (adminPin || isSubscribed) ? "Get it in HD (1080p)" : "Get it in HD (1080p) · Premium"}
               </button>
-              {hdMsg && <span className="text-[12px] font-bold text-white/50">{hdMsg}</span>}
+              {hdMsg && <span className="text-[12px] font-bold text-white/70">{hdMsg}</span>}
             </div>
           )}
 
@@ -1476,18 +1476,18 @@ export default function TryFunnelPage() {
       {step !== 5 && step !== 3 && !inConfirm && (
         <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[#0d0b0a] via-[#0d0b0a] to-transparent px-4 pb-5 pt-8 lb-phone-col">
           {step === 1 && (
-            <p className="text-center text-[12px] font-bold text-white/35">Pick an outfit above to continue</p>
+            <p className="text-center text-[12px] font-bold text-white/55">Pick an outfit above to continue</p>
           )}
           {step === 2 && (
             (pickModel || chooseModel) && !pickedModel && !avatar ? (
-              <p className="text-center text-[12px] font-bold text-white/35">Pick a model above to continue</p>
+              <p className="text-center text-[12px] font-bold text-white/55">Pick a model above to continue</p>
             ) : (
               <>
                 {motionPicker && <div className="mb-3 -mt-2">{motionPicker}</div>}
                 {/* Free-credit meter: 1 free video, 1 credit each. Not signed in → show the
                     offer, not a wrong "0 left" (anonymous has no balance yet). */}
                 {!adminProduce && !chosenModelLocked && (
-                  <p className="mb-2 text-center text-[12px] font-black text-white/50">
+                  <p className="mb-2 text-center text-[12px] font-black text-white/70">
                     {!isAuthed()
                       ? L("🎟️ 1 video gratuit, apoi Premium", "🎟️ 1 free video, then Premium")
                       : packCredits == null
@@ -1603,7 +1603,7 @@ export default function TryFunnelPage() {
           </div>
           {adminPin ? (
             <div className="px-4 pb-2">
-              <p className="text-[12px] font-bold text-white/45">Production: pick a look for {chosenModelName?.split(" ")[0] || "the model"}, then Generate. <span className="text-amber-400">🎬 = already has a video.</span></p>
+              <p className="text-[12px] font-bold text-white/65">Production: pick a look for {chosenModelName?.split(" ")[0] || "the model"}, then Generate. <span className="text-amber-400">🎬 = already has a video.</span></p>
               <div className="mt-2 flex gap-1.5">
                 {([["all", "All"], ["novideo", "To do"], ["video", "🎬 With video"]] as const).map(([k, label]) => (
                   <button key={k} type="button" onClick={() => setLookVideoFilter(k)}
@@ -1612,12 +1612,12 @@ export default function TryFunnelPage() {
               </div>
             </div>
           ) : (
-            <p className="px-4 pb-2 text-[12px] font-bold text-white/45">Pick any look — your first 3 videos are free.</p>
+            <p className="px-4 pb-2 text-[12px] font-bold text-white/65">Pick any look — your first 3 videos are free.</p>
           )}
           <div className="flex-1 overflow-y-auto overscroll-contain px-3 pb-8" onClick={(e) => e.stopPropagation()}>
            <div className="grid grid-cols-3 gap-2">
             {gGarments.length === 0 ? (
-              <div className="col-span-3 grid place-items-center py-16"><Loader2 className="h-6 w-6 animate-spin text-white/40" /></div>
+              <div className="col-span-3 grid place-items-center py-16"><Loader2 className="h-6 w-6 animate-spin text-white/60" /></div>
             ) : (() => {
               const anyFeatured = gGarments.some(g => g.featured);
               return gGarments

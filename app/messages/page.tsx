@@ -72,13 +72,13 @@ export default function MessagesPage() {
 
       <main className="mx-auto max-w-[440px] px-4 py-4 pb-28">
         {loading ? (
-          <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-white/25" /></div>
+          <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-white/45" /></div>
         ) : convos.length === 0 ? (
           <div className="flex flex-col items-center gap-4 px-8 py-24 text-center">
-            <div className="grid h-16 w-16 place-items-center rounded-full bg-white/5"><MessageCircle className="h-7 w-7 text-white/30" /></div>
+            <div className="grid h-16 w-16 place-items-center rounded-full bg-white/5"><MessageCircle className="h-7 w-7 text-white/50" /></div>
             <div>
               <p className="font-black">No chats yet</p>
-              <p className="mt-1 text-sm text-white/45">Start a chat with a model and it&apos;ll show up here.</p>
+              <p className="mt-1 text-sm text-white/65">Start a chat with a model and it&apos;ll show up here.</p>
             </div>
             <button type="button" onClick={() => router.push("/home")}
               className="lb-gold flex h-11 items-center justify-center rounded-full px-8 text-sm font-black active:scale-95 transition">Explore models</button>
@@ -100,7 +100,7 @@ export default function MessagesPage() {
                     <p className="truncate text-sm font-black">{c.name}</p>
                     {c.unread && <span className="shrink-0 rounded-full bg-amber-400 px-1.5 py-0.5 text-[9px] font-black text-black">NEW</span>}
                   </div>
-                  <p className={`truncate text-[13px] ${c.unread ? "font-bold text-white/80" : "font-medium text-white/45"}`}>{c.last || "Tap to chat"}</p>
+                  <p className={`truncate text-[13px] ${c.unread ? "font-bold text-white/80" : "font-medium text-white/65"}`}>{c.last || "Tap to chat"}</p>
                 </div>
               </button>
             ))}

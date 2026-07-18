@@ -44,12 +44,12 @@ export function TagPicker({ title, all, selected, onToggle, onClose, dark }: {
         <button type="button" onClick={onClose} className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border ${dark ? "border-white/15 text-white" : "border-black/10 text-black"}`}><X className="h-4 w-4" /></button>
         <div className="min-w-0 flex-1">
           <p className={`text-sm font-black ${dark ? "text-white" : "text-black"}`}>{title}</p>
-          <p className={`text-[11px] font-bold ${dark ? "text-white/40" : "text-black/40"}`}>{all.length} in database · {selected.length} selected</p>
+          <p className={`text-[11px] font-bold ${dark ? "text-white/60" : "text-black/40"}`}>{all.length} in database · {selected.length} selected</p>
         </div>
       </div>
       <div className={`border-b px-4 py-2.5 ${dark ? "border-white/10" : "border-black/8"}`}>
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Filter…" autoFocus
-          className={`h-10 w-full rounded-xl border px-3.5 text-sm font-bold outline-none ${dark ? "border-white/12 bg-white/[0.05] text-white focus:border-amber-400 placeholder:text-white/30" : "border-black/10 bg-black/[0.03] text-black focus:border-black placeholder:text-black/30"}`} />
+          className={`h-10 w-full rounded-xl border px-3.5 text-sm font-bold outline-none ${dark ? "border-white/12 bg-white/[0.05] text-white focus:border-amber-400 placeholder:text-white/50" : "border-black/10 bg-black/[0.03] text-black focus:border-black placeholder:text-black/30"}`} />
       </div>
       <div className="flex-1 overflow-y-auto p-4">
         <div className="flex flex-wrap gap-2">
@@ -64,7 +64,7 @@ export function TagPicker({ title, all, selected, onToggle, onClose, dark }: {
               </button>
             );
           })}
-          {list.length === 0 && <p className={`py-8 text-center text-sm font-bold ${dark ? "text-white/40" : "text-black/40"}`}>Nothing matches “{q}”.</p>}
+          {list.length === 0 && <p className={`py-8 text-center text-sm font-bold ${dark ? "text-white/60" : "text-black/40"}`}>Nothing matches “{q}”.</p>}
         </div>
       </div>
       <div className={`border-t px-4 py-3 ${dark ? "border-white/10" : "border-black/8"}`}>
@@ -114,7 +114,7 @@ export function TagField({ label, list, value, onChange, placeholder, dark }: {
               else if (e.key === "Backspace" && !query && value.length) remove(value[value.length - 1]);
             }}
             placeholder={value.length ? "" : placeholder}
-            className={`min-w-[8rem] flex-1 bg-transparent text-sm font-bold outline-none ${dark ? "text-white placeholder:text-white/30" : "text-black placeholder:text-black/30"}`} />
+            className={`min-w-[8rem] flex-1 bg-transparent text-sm font-bold outline-none ${dark ? "text-white placeholder:text-white/50" : "text-black placeholder:text-black/30"}`} />
         </div>
         {open && (matches.length > 0 || query.trim()) && (
           <div className={`absolute z-10 mt-1 w-full overflow-hidden rounded-xl border shadow-lg ${dark ? "border-white/12 bg-[#1a1715]" : "border-black/10 bg-white"}`}>

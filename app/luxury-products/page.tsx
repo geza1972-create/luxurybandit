@@ -419,14 +419,14 @@ function MaiIeftinInner() {
         onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
         rows={2}
         placeholder={t.ph}
-        className="w-full resize-none bg-transparent px-2 pt-1 text-[16px] font-semibold text-white placeholder:text-white/40 outline-none"
+        className="w-full resize-none bg-transparent px-2 pt-1 text-[16px] font-semibold text-white placeholder:text-white/60 outline-none"
       />
       <div className="mt-1 flex items-center justify-between px-1">
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => pickFile(e.target.files?.[0])} />
         <button type="button" onClick={() => fileRef.current?.click()} aria-label="Adaugă o poză"
           className="grid h-9 w-9 place-items-center rounded-full text-white/70 hover:bg-white/10 active:scale-90 transition"><Plus className="h-5 w-5" /></button>
         <button type="button" onClick={() => void send()} disabled={!canSend} aria-label="Trimite"
-          className="grid h-9 w-9 place-items-center rounded-full bg-white text-black disabled:bg-white/15 disabled:text-white/40 active:scale-90 transition"><ArrowUp className="h-5 w-5" strokeWidth={2.5} /></button>
+          className="grid h-9 w-9 place-items-center rounded-full bg-white text-black disabled:bg-white/15 disabled:text-white/60 active:scale-90 transition"><ArrowUp className="h-5 w-5" strokeWidth={2.5} /></button>
       </div>
     </div>
   );
@@ -447,7 +447,7 @@ function MaiIeftinInner() {
           <div className="relative">
             <button type="button" onClick={() => setNavOpen((v) => !v)}
               className="flex items-center gap-1.5 rounded-full bg-white/[0.07] px-3 py-1.5 text-[13px] font-black text-white/85 ring-1 ring-white/10 active:scale-95 transition">
-              <LayoutGrid className="h-4 w-4 text-white/60" /> {t.inspo_btn} <ChevronDown className="h-3.5 w-3.5 text-white/50" />
+              <LayoutGrid className="h-4 w-4 text-white/60" /> {t.inspo_btn} <ChevronDown className="h-3.5 w-3.5 text-white/70" />
             </button>
             {navOpen && (
               <>
@@ -456,7 +456,7 @@ function MaiIeftinInner() {
                   {[{ href: "/stores", label: "Looks", Icon: Play }, { href: "/stores?view=grid", label: t.gallery, Icon: LayoutGrid }, { href: "/stores?view=models", label: t.models, Icon: Users }].map((n) => (
                     <Link key={n.href} href={withLang(n.href)} onClick={() => setNavOpen(false)}
                       className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[14px] font-bold text-white/85 hover:bg-white/10 active:scale-[0.98] transition">
-                      <n.Icon className="h-4 w-4 text-white/45" /> {n.label}
+                      <n.Icon className="h-4 w-4 text-white/65" /> {n.label}
                     </Link>
                   ))}
                 </div>
@@ -507,7 +507,7 @@ function MaiIeftinInner() {
                   className="rounded-full bg-white/[0.07] px-3 py-1.5 text-[13px] font-semibold text-white/70 ring-1 ring-white/10 active:scale-95 transition">{s}</button>
               ))}
             </div>
-            <p className="mt-4 text-center text-[13px] font-semibold text-white/40">{t.free}</p>
+            <p className="mt-4 text-center text-[13px] font-semibold text-white/60">{t.free}</p>
           </div>
         </main>
       ) : (
@@ -629,8 +629,8 @@ function MaiIeftinInner() {
                   {/* Designer original — the inspiration, credited (not cheaper). */}
                   {m.original && m.original.length > 0 && (
                     <>
-                      <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-white/45">
-                        {t.original}{m.brand ? ` · ${m.brand}` : ""} <span className="font-semibold normal-case tracking-normal text-white/30">— {t.inspo}</span>
+                      <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-white/65">
+                        {t.original}{m.brand ? ` · ${m.brand}` : ""} <span className="font-semibold normal-case tracking-normal text-white/50">— {t.inspo}</span>
                       </p>
                       <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
                         {m.original.map((p, idx) => (
@@ -643,7 +643,7 @@ function MaiIeftinInner() {
                             <div className="p-2">
                               {p.price && <p className="text-[14px] font-black text-white/90">{p.price}</p>}
                               <p className="mt-0.5 line-clamp-2 text-[11px] font-semibold leading-tight text-white/60">{p.title}</p>
-                              <p className="mt-1 truncate text-[10px] font-bold text-white/35">Original{p.source ? ` · ${p.source}` : ""}</p>
+                              <p className="mt-1 truncate text-[10px] font-bold text-white/55">Original{p.source ? ` · ${p.source}` : ""}</p>
                             </div>
                           </button>
                         ))}
@@ -665,7 +665,7 @@ function MaiIeftinInner() {
                             <div className="p-2">
                               {p.price && <p className="text-[14px] font-black text-white">{p.price}</p>}
                               <p className="mt-0.5 line-clamp-2 text-[11px] font-semibold leading-tight text-white/65">{p.title}</p>
-                              {p.source && <p className="mt-1 truncate text-[10px] font-bold text-white/35">{p.source}</p>}
+                              {p.source && <p className="mt-1 truncate text-[10px] font-bold text-white/55">{p.source}</p>}
                             </div>
                           </button>
                         ))}
@@ -722,7 +722,7 @@ function MaiIeftinInner() {
                 </a>
               )}
               <button type="button" onClick={() => setOpenProduct(null)}
-                className="mt-2 flex w-full items-center justify-center rounded-full py-3 text-[14px] font-bold text-white/50 active:scale-[0.98] transition">
+                className="mt-2 flex w-full items-center justify-center rounded-full py-3 text-[14px] font-bold text-white/70 active:scale-[0.98] transition">
                 {lang === "en" ? "Stay here" : "Rămân aici"}
               </button>
             </div>

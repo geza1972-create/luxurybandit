@@ -18,15 +18,15 @@ export default function PricingPage() {
         </div>
 
         <h1 className="text-3xl font-black leading-tight">Simple pricing</h1>
-        <p className="mt-1.5 text-sm font-bold text-white/50">Browsing & watching is free — plus 1 free try-on video. Go Premium to keep creating.</p>
+        <p className="mt-1.5 text-sm font-bold text-white/70">Browsing & watching is free — plus 1 free try-on video. Go Premium to keep creating.</p>
 
         {/* Free */}
         <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
-          <p className="text-[12px] font-black uppercase tracking-wide text-white/45">Free</p>
+          <p className="text-[12px] font-black uppercase tracking-wide text-white/65">Free</p>
           <p className="mt-1 text-3xl font-black">$0</p>
           <div className="mt-4 grid gap-2">
             {["Watch every runway try-on video", "Browse all looks & models", "Chat with the models (a few messages free)"].map(f => (
-              <div key={f} className="flex items-center gap-2.5"><Check className="h-4 w-4 shrink-0 text-white/40" /><span className="text-[13px] font-bold text-white/70">{f}</span></div>
+              <div key={f} className="flex items-center gap-2.5"><Check className="h-4 w-4 shrink-0 text-white/60" /><span className="text-[13px] font-bold text-white/70">{f}</span></div>
             ))}
           </div>
         </div>
@@ -37,7 +37,7 @@ export default function PricingPage() {
             <p className="text-[12px] font-black uppercase tracking-wide text-amber-400">Premium</p>
             <span className="rounded-full bg-amber-400 px-2.5 py-0.5 text-[11px] font-black text-black">First month $8</span>
           </div>
-          <p className="mt-1 flex items-end gap-1.5"><span className="text-4xl font-black">$8</span><span className="mb-1 text-sm font-bold text-white/50">first month, then $49/mo</span></p>
+          <p className="mt-1 flex items-end gap-1.5"><span className="text-4xl font-black">$8</span><span className="mb-1 text-sm font-bold text-white/70">first month, then $49/mo</span></p>
           <p className="text-[12px] font-black text-amber-400/90">40 try-on videos every month · cancel anytime</p>
           <div className="mt-4 grid gap-2">
             {["40 try-on videos every month", "Put any model in any look", "Every model, look & full video unlocked", "Keep, share & download your videos"].map(f => (
@@ -55,7 +55,7 @@ export default function PricingPage() {
           <p className="text-[13px] font-bold text-white/60">Chat with the models is free to try. Tap the message icon on any model to start.</p>
         </div>
 
-        <p className="mt-6 text-center text-[11px] font-bold text-white/30">Payments are handled securely by Stripe. Cancel anytime.</p>
+        <p className="mt-6 text-center text-[11px] font-bold text-white/50">Payments are handled securely by Stripe. Cancel anytime.</p>
       </div>
     </div>
   );

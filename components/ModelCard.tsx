@@ -136,7 +136,7 @@ export default function ModelCard({
           </span>
         )}
         <span className="relative inline-flex items-center whitespace-nowrap rounded-full bg-black/40 px-3.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-amber-300/85 ring-1 ring-amber-300/20 backdrop-blur">
-          LuxuryBandit.com <span className="mx-1.5 text-amber-300/40">·</span> <span className="text-white/45">{hideOwner ? "Creator preview" : "Own an AI Influencer"}</span>
+          LuxuryBandit.com <span className="mx-1.5 text-amber-300/40">·</span> <span className="text-white/65">{hideOwner ? "Creator preview" : "Own an AI Influencer"}</span>
         </span>
         <button type="button" onClick={() => void share()} aria-label="Share this card"
           className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white/70 transition active:scale-90 hover:text-white">
@@ -332,7 +332,7 @@ export default function ModelCard({
 
       {/* Card info — her "profile data": serial, created date, description, brands */}
       <div className="border-b border-white/10 px-4 py-3">
-        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wide text-white/45">
+        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wide text-white/65">
           <span className="font-mono normal-case tracking-wider text-white/55">Model Nº {serial}</span>
           {created && <span>Created {created}</span>}
         </div>
@@ -356,11 +356,11 @@ export default function ModelCard({
         <div className="border-b border-white/10 px-4 py-3">
           <p className="text-[9px] font-black uppercase tracking-[0.18em] text-amber-400/70">Ownership &amp; history</p>
           <div className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[11.5px]">
-            <span className="font-bold text-white/40">Created</span><span className="text-right font-black text-white/85">{created || "—"}</span>
-            <span className="font-bold text-white/40">Owner</span><span className={`text-right font-black ${isOwned ? "text-white/85" : "text-amber-400"}`}>{isOwned ? ownedName : "Available"}</span>
-            {ownerSince && (<><span className="font-bold text-white/40">Owned since</span><span className="text-right font-black text-white/85">{ownerSince}</span></>)}
-            <span className="font-bold text-white/40">Growth Score</span><span className="text-right font-black text-amber-300">{gsLabel}</span>
-            <span className="font-bold text-white/40">Peak Score</span><span className="text-right font-black text-amber-300">{gsLabel}</span>
+            <span className="font-bold text-white/60">Created</span><span className="text-right font-black text-white/85">{created || "—"}</span>
+            <span className="font-bold text-white/60">Owner</span><span className={`text-right font-black ${isOwned ? "text-white/85" : "text-amber-400"}`}>{isOwned ? ownedName : "Available"}</span>
+            {ownerSince && (<><span className="font-bold text-white/60">Owned since</span><span className="text-right font-black text-white/85">{ownerSince}</span></>)}
+            <span className="font-bold text-white/60">Growth Score</span><span className="text-right font-black text-amber-300">{gsLabel}</span>
+            <span className="font-bold text-white/60">Peak Score</span><span className="text-right font-black text-amber-300">{gsLabel}</span>
           </div>
         </div>
       )}
@@ -394,7 +394,7 @@ export default function ModelCard({
       {/* Brand footer — the domain (carried on any shared screenshot) + a link to how she grows. */}
       <Link href="/grow-card" className="relative z-[3] flex items-center justify-center gap-1.5 border-t border-white/10 py-2 text-center transition active:scale-95">
         <span className="text-[10px] font-black uppercase tracking-[0.24em] text-amber-300/80">luxurybandit.com</span>
-        <span className="text-[10px] font-black uppercase tracking-[0.24em] text-white/40">· AI Influencer</span>
+        <span className="text-[10px] font-black uppercase tracking-[0.24em] text-white/60">· AI Influencer</span>
       </Link>
 
       {/* Fullscreen enlarged slide — any slide (photo, look or video). Tap the corner button (or
@@ -426,7 +426,7 @@ export default function ModelCard({
               Become {name}&apos;s <b className="text-white">owner</b> by paying her <b className="text-amber-300">monthly Growth-Score price</b> (currently GS {gsLabel}). You&apos;re then her <b className="text-white">sponsor</b> — she promotes <b className="text-white">YOUR products</b> to her fans.
             </p>
             <Link href="/contact?reason=own" className="lb-gold mt-4 inline-flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-black active:scale-95">Become her sponsor — get in touch</Link>
-            <button type="button" onClick={() => setOwnerInfo(false)} className="mt-2 w-full py-2 text-[13px] font-black text-white/45">Close</button>
+            <button type="button" onClick={() => setOwnerInfo(false)} className="mt-2 w-full py-2 text-[13px] font-black text-white/65">Close</button>
           </div>
         </div>
       )}

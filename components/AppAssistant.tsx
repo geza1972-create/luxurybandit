@@ -115,7 +115,7 @@ export default function AppAssistant() {
               <div className="flex items-end gap-2">
                 <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={onKey} rows={1}
                   placeholder="Ask about LuxuryBandit…"
-                  className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium text-white outline-none focus:border-amber-400 placeholder:text-white/30" />
+                  className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium text-white outline-none focus:border-amber-400 placeholder:text-white/50" />
                 <button type="button" onClick={() => void send()} disabled={sending || !input.trim()}
                   className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-amber-400 text-black disabled:opacity-40 active:scale-90 transition">
                   {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}

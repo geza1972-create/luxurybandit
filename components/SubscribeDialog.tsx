@@ -78,10 +78,10 @@ export default function SubscribeDialog({ open, onClose, modelName, avatarUrl }:
           className="lb-gold mt-5 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-black active:scale-95 transition-transform disabled:opacity-60">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Continue — subscribe</>}
         </button>
-        <p className="mt-1.5 text-center text-[11px] font-bold text-white/40">Start with $8 the first month, then {monthly}/mo · one subscription per model</p>
+        <p className="mt-1.5 text-center text-[11px] font-bold text-white/60">Start with $8 the first month, then {monthly}/mo · one subscription per model</p>
         {error && <p className="mt-2 text-[12px] font-bold text-red-400">{error}</p>}
         {signedIn ? (
-          <button type="button" onClick={close} className="mt-2 w-full py-2 text-[13px] font-black text-white/45">Maybe later</button>
+          <button type="button" onClick={close} className="mt-2 w-full py-2 text-[13px] font-black text-white/65">Maybe later</button>
         ) : (
           <button type="button" onClick={freeSignup} className="mt-3 flex w-full flex-col items-center justify-center rounded-full border-2 border-amber-400/60 px-5 py-2.5 active:scale-95 transition-transform">
             <span className="text-sm font-black text-amber-300">Create free account · $0</span>

@@ -480,7 +480,7 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
                       alt={publicAuthorName(creatorName)} className="w-9 aspect-[3/4] shrink-0 rounded-lg bg-white/10 object-cover" />}
                 <div className="min-w-0">
                   <p className="truncate text-sm font-black text-white">{publicAuthorName(creatorName)}</p>
-                  {it.lookTitle && <p className="truncate text-[11px] font-bold text-white/50">{it.lookTitle}</p>}
+                  {it.lookTitle && <p className="truncate text-[11px] font-bold text-white/70">{it.lookTitle}</p>}
                 </div>
               </a>
               <button type="button" onClick={toggleFollow}
@@ -492,7 +492,7 @@ function CommunitySlide({ it, offset, verticalDrag, transition, muted, onToggleM
             <>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-black text-white">{it.lookTitle || "Luxury look"}</p>
-                {it.storeName && <p className="truncate text-[11px] font-bold text-white/50">{it.storeName}</p>}
+                {it.storeName && <p className="truncate text-[11px] font-bold text-white/70">{it.storeName}</p>}
               </div>
               {it.storeName && (
                 <a href={it.storeSlug ? `/store/${it.storeSlug}` : "#"}
@@ -2677,7 +2677,7 @@ function StoresPage() {
     if (!looks.length) {
       return (
         <div className="grid min-h-dvh place-items-center bg-black" style={{ maxWidth: "100vw" }}>
-          <Loader2 className="h-7 w-7 animate-spin text-white/40" />
+          <Loader2 className="h-7 w-7 animate-spin text-white/60" />
         </div>
       );
     }
@@ -2747,14 +2747,14 @@ function StoresPage() {
       {searchOpen && (
         <div className="sticky top-14 z-20 flex items-center gap-2 border-b border-white/10 bg-[#0d0b0a]/95 px-3 py-3 backdrop-blur">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/30 pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/50 pointer-events-none" />
             <input
               ref={searchInputRef}
               type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder={typeFilter === "community" ? "User, look or store…" : "Look, store or price…"}
-              className="h-9 w-full rounded-full border border-white/15 bg-white/5 pl-8 pr-8 text-sm font-bold text-white outline-none focus:border-white/40 placeholder:text-white/25"
+              className="h-9 w-full rounded-full border border-white/15 bg-white/5 pl-8 pr-8 text-sm font-bold text-white outline-none focus:border-white/40 placeholder:text-white/45"
             />
             {query && (
               <button type="button" onClick={() => setQuery("")}
@@ -2859,7 +2859,7 @@ function StoresPage() {
 
             {homeTab === "models" ? (
               models.length === 0 ? (
-                <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-white/30" /></div>
+                <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>
               ) : (
               <>
                 {isAdmin && (
@@ -2946,7 +2946,7 @@ function StoresPage() {
                       <div className="px-2.5 py-2">
                         <p className="truncate text-[13px] font-black text-white">{m.name}{m.realModel && <span className="ml-1 align-middle text-amber-400">✓</span>}</p>
                         {m.realModel && <p className="truncate text-[11px] font-black text-amber-400">✓ Real model</p>}
-                        {locked ? <p className="truncate text-[11px] font-black text-amber-400">Premium · Members only</p> : m.style && <p className="truncate text-[11px] font-bold text-white/40">{m.style}</p>}
+                        {locked ? <p className="truncate text-[11px] font-black text-amber-400">Premium · Members only</p> : m.style && <p className="truncate text-[11px] font-bold text-white/60">{m.style}</p>}
                         {!locked && (() => {
                           // Her favourite brands (+ our partner GiannaBellucci) as a tiny line.
                           const custom = (m.brands || "").split(",").map(b => b.trim()).filter(Boolean);
@@ -2994,7 +2994,7 @@ function StoresPage() {
                   if (items.length === 0) return (
                     <div className="flex flex-col items-center gap-2 py-16 text-center">
                       <ImageIcon className="h-8 w-8 text-white/15" />
-                      <p className="text-sm font-black text-white/40">Noch keine Kleidungsstücke — generiere eine Garderobe auf einer Model-Seite.</p>
+                      <p className="text-sm font-black text-white/60">Noch keine Kleidungsstücke — generiere eine Garderobe auf einer Model-Seite.</p>
                     </div>
                   );
                   return (
@@ -3174,7 +3174,7 @@ function StoresPage() {
               </div>
             )}
             {tierFilter !== "public" && visibleHistory.length === 0 && (
-              <p className="py-16 text-center text-sm font-black text-white/40">Nothing here yet.</p>
+              <p className="py-16 text-center text-sm font-black text-white/60">Nothing here yet.</p>
             )}
             </>
             )}

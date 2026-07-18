@@ -183,9 +183,9 @@ function YouInVideoInner() {
             <h1 className="text-center text-[24px] font-black leading-tight">{L("Tu, într-un video 🎬", "You, in a video 🎬")}</h1>
             <p className="mx-auto mt-2 max-w-xs text-center text-[13px] font-bold text-white/55">{L("Alege un look și pune-ți fața pe el. Primești videoul tău în câteva secunde.", "Pick a look, add your face — get your own video in seconds.")}</p>
             {loadingClips ? (
-              <div className="mt-10 flex justify-center"><Loader2 className="h-7 w-7 animate-spin text-white/40" /></div>
+              <div className="mt-10 flex justify-center"><Loader2 className="h-7 w-7 animate-spin text-white/60" /></div>
             ) : clips.length === 0 ? (
-              <p className="mt-10 text-center text-[13px] font-bold text-white/40">{L("Momentan nu sunt look-uri disponibile.", "No looks available right now.")}</p>
+              <p className="mt-10 text-center text-[13px] font-bold text-white/60">{L("Momentan nu sunt look-uri disponibile.", "No looks available right now.")}</p>
             ) : (
               <div className="mt-6 grid grid-cols-2 gap-3">
                 {clips.map((c) => (
@@ -245,11 +245,11 @@ function YouInVideoInner() {
 
                 {/* zoom */}
                 <div className="mx-auto mt-4 flex w-full max-w-[280px] items-center gap-3">
-                  <span className="text-[11px] font-black text-white/40">–</span>
+                  <span className="text-[11px] font-black text-white/60">–</span>
                   <input type="range" min={1} max={3} step={0.01} value={zoom}
                     onChange={(e) => setZoom(parseFloat(e.target.value))}
                     className="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-white/15 accent-[#e7c877]" />
-                  <span className="text-[13px] font-black text-white/40">+</span>
+                  <span className="text-[13px] font-black text-white/60">+</span>
                 </div>
 
                 <button type="button" onClick={confirmCrop}
@@ -257,7 +257,7 @@ function YouInVideoInner() {
                   <Sparkles className="h-5 w-5" /> {L("Creează videoul meu", "Create my video")}
                 </button>
                 <button type="button" onClick={() => fileRef.current?.click()}
-                  className="mx-auto mt-3 block text-[12px] font-bold text-white/40 underline underline-offset-2">
+                  className="mx-auto mt-3 block text-[12px] font-bold text-white/60 underline underline-offset-2">
                   {L("Alege altă poză", "Choose another photo")}
                 </button>
               </>
@@ -281,7 +281,7 @@ function YouInVideoInner() {
             <div className="mx-auto mt-3 h-2 w-full max-w-[220px] overflow-hidden rounded-full bg-white/10">
               <div className="h-full rounded-full bg-[#e7c877] transition-[width] duration-150" style={{ width: `${progress}%` }} />
             </div>
-            <p className="mt-2 text-[12px] font-bold text-white/40">{progress}%</p>
+            <p className="mt-2 text-[12px] font-bold text-white/60">{progress}%</p>
             <style>{`@keyframes yivscan{0%{top:-25%}100%{top:100%}}`}</style>
           </div>
         )}
@@ -302,11 +302,11 @@ function YouInVideoInner() {
               className="lb-gold mx-auto mt-6 flex h-14 w-full max-w-xs items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition">
               <Lock className="h-5 w-5" /> {L(`Deblochează videoul — ${PRICE_LABEL}`, `Unlock your video — ${PRICE_LABEL}`)}
             </button>
-            <div className="mx-auto mt-3 flex max-w-xs items-center justify-center gap-1.5 text-[11px] font-bold text-white/40">
+            <div className="mx-auto mt-3 flex max-w-xs items-center justify-center gap-1.5 text-[11px] font-bold text-white/60">
               <Check className="h-3.5 w-3.5 text-amber-400" /> {L("Plată securizată prin Stripe", "Secure checkout by Stripe")}
             </div>
             <button type="button" onClick={() => setStep("unlocked")}
-              className="mx-auto mt-4 block text-[11px] font-bold text-white/35 underline underline-offset-2">
+              className="mx-auto mt-4 block text-[11px] font-bold text-white/55 underline underline-offset-2">
               {L("Am plătit deja — vezi videoul", "Already paid? View my video")}
             </button>
           </div>
