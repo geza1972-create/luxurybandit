@@ -912,13 +912,10 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                     // Card-Studio story slides: small LuxuryBandit logo + her name, stacked,
                     // instead of the generic "X's story" info chip.
                     <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
-                      className={`${immersive ? "hidden " : ""}absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex flex-col items-start gap-0.5 cursor-pointer rounded-2xl bg-black/50 px-2.5 py-1.5 backdrop-blur transition hover:bg-black/70 active:opacity-70`}>
-                      <span className="flex items-center gap-1">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/lb-logo.png" alt="LuxuryBandit" className="h-4 w-4 rounded-full object-contain" />
-                        <span className="text-[9px] font-black uppercase leading-none tracking-wide text-white">LuxuryBandit</span>
-                      </span>
-                      <span className="text-[10px] font-black leading-none text-white/90">{publicAuthorName(m.name) || "LuxuryBandit"}</span>
+                      className={`${immersive ? "hidden " : ""}absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex flex-col items-center gap-0.5 cursor-pointer rounded-2xl bg-black/50 px-2.5 py-1.5 backdrop-blur transition hover:bg-black/70 active:opacity-70`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src="/lb-logo.png" alt="LuxuryBandit" className="h-6 w-6 rounded-full object-contain" />
+                      <span className="text-[10px] font-black leading-none text-white">{publicAuthorName(m.name) || "LuxuryBandit"}</span>
                     </button>
                   ) : (
                     <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
