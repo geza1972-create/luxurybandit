@@ -1278,10 +1278,10 @@ export default function CuratorPublicPage() {
             {hideBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : profile.ownerHideName ? "🙈 Name hidden — only ID" : "Hide my owner name"}
           </button>
         )}
-        {/* Want her exclusively? Owning an influencer is handled personally — get in touch. */}
+        {/* Want her exclusively? → her dedicated "Own her" landing + booking page. */}
         {profile.forSale && !isOwn && (
           <div className="mt-1 flex flex-col items-center gap-2">
-            <a href={`/contact?reason=own&about=${encodeURIComponent(name)}`} title={`Own ${name}`}
+            <a href={`/own/${id}`} title={`Own ${name}`}
               className="lb-gold inline-flex items-center justify-center rounded-full px-6 py-3 text-[14px] font-black shadow active:scale-95 transition">
               Own {name} — get in touch
             </a>
