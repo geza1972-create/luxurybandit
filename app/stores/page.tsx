@@ -3060,11 +3060,13 @@ function StoresPage() {
                 className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "public" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>
                 All
               </button>
-              <button type="button"
-                onClick={() => setTierFilter("community")}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "community" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
-                🔒 Private
-              </button>
+              {isAdmin && (
+                <button type="button"
+                  onClick={() => setTierFilter("community")}
+                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "community" ? "bg-white text-black" : "bg-white/10 text-white/60"}`}>
+                  🔒 Private
+                </button>
+              )}
               {isAdmin && (
                 <button type="button" onClick={() => setTierFilter("private")}
                   className={`flex shrink-0 items-center gap-1 rounded-full px-3.5 py-1.5 text-[12px] font-black transition ${tierFilter === "private" ? "lb-black3d" : "bg-white/10 text-white/60"}`}>
