@@ -912,10 +912,10 @@ function Slide({ look, onComment, muted, setMuted, index, onActive, single = fal
                     // Card-Studio story slides: small LuxuryBandit logo + her name, stacked,
                     // instead of the generic "X's story" info chip.
                     <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
-                      className={`${immersive ? "hidden " : ""}absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex flex-col items-center gap-0.5 cursor-pointer rounded-2xl bg-black/50 px-2.5 py-1.5 backdrop-blur transition hover:bg-black/70 active:opacity-70`}>
+                      className={`${immersive ? "hidden " : ""}absolute ${single ? "left-14" : "left-3"} top-3 z-20 flex flex-col items-center gap-0.5 cursor-pointer transition active:opacity-70`}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src="/lb-logo.png" alt="LuxuryBandit" className="h-6 w-6 rounded-full object-contain" />
-                      <span className="text-[10px] font-black leading-none text-white">{publicAuthorName(m.name) || "LuxuryBandit"}</span>
+                      <img src="/lb-logo.png" alt="LuxuryBandit" className="h-8 w-8 rounded-full object-contain drop-shadow-[0_1px_4px_rgba(0,0,0,0.8)]" />
+                      <span className="text-[10px] font-black leading-none text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">LuxuryBandit Model</span>
                     </button>
                   ) : (
                     <button type="button" onClick={openLookInfo} onPointerDown={(e) => e.stopPropagation()} title="Info / history" style={{ touchAction: "manipulation" }}
