@@ -3055,12 +3055,17 @@ export default function AdminPage() {
             </button>
             {showEmailTemplates && (
               <div className="mt-3 space-y-1.5">
+                <p className="text-[11px] font-bold text-ink/45">Auf eine Vorlage tippen → Betreff wird unten übernommen, zum Senden bereit.</p>
                 {EMAIL_TEMPLATES.map((t, i) => (
-                  <div key={i} className="rounded-lg border border-black/10 bg-panel px-3 py-2">
+                  <button key={i} type="button" onClick={() => {
+                    setEmailSubject(t.subject.replace(/\{[^}]+\}/g, "").replace(/\s{2,}/g, " ").trim());
+                    setEmailMessage(`(Vorlage: ${t.trigger})\n\n`);
+                    setEmailSendMsg("");
+                  }} className="block w-full rounded-lg border border-black/10 bg-panel px-3 py-2 text-left transition active:scale-[0.99] hover:border-amber-400/60">
                     <p className="text-[12px] font-black text-ink">{t.trigger}</p>
                     <p className="text-[12px] font-semibold text-ink/60">&ldquo;{t.subject}&rdquo;</p>
                     <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-ink/35">{t.file}</p>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
