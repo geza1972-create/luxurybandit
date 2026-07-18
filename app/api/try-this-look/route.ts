@@ -1487,17 +1487,17 @@ export async function POST(request: Request) {
 
       // ── Pay the model her cut ────────────────────────────────────────────
       // EVERY model — real people AND our AI personas — earns a SHARE of each PAID video
-      // made with her (default 30% of the $3.99 price ≈ $1.20). When a genuine USER (not
+      // made with her (default 50% of the $3.99 price ≈ $2.00). When a genuine USER (not
       // admin) makes a VIDEO try-on with her photo, credit her. Photos never earn (no
       // self-farm), and a paid video credit was spent, so it can't be farmed for free.
-      // Rate via MODEL_EARNING_SHARE_PCT (default 30) of MODEL_VIDEO_PRICE_CENTS (default 399).
+      // Rate via MODEL_EARNING_SHARE_PCT (default 50) of MODEL_VIDEO_PRICE_CENTS (default 399).
       try {
         const cid = String(payload.curatorId ?? "").trim();
         const isVideo = ["video", "video360"].includes(String(payload.genKind));
         if (cid && isVideo && !creatorIsAdmin) {
           const m = (state.curators ?? []).find(c => c.id === cid) as any;
           if (m) {
-            const pct = Math.max(0, Math.min(100, Number(process.env.MODEL_EARNING_SHARE_PCT ?? 30)));
+            const pct = Math.max(0, Math.min(100, Number(process.env.MODEL_EARNING_SHARE_PCT ?? 50)));
             const priceCents = Math.max(0, Number(process.env.MODEL_VIDEO_PRICE_CENTS ?? 399));
             const cents = Math.round((priceCents * pct) / 100);
             m.earningsCents = Math.max(0, Number(m.earningsCents ?? 0)) + cents;

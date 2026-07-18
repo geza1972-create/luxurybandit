@@ -55,7 +55,7 @@ export default function WelcomePage() {
         <ul className="mt-2.5 space-y-2 text-[13px] font-bold text-white/75">
           <li className="flex items-center gap-2.5"><Crown className="h-4 w-4 shrink-0 text-amber-400" /> We create her luxury content — every day.</li>
           <li className="flex items-center gap-2.5"><MessageCircle className="h-4 w-4 shrink-0 text-amber-400" /> Chat with her — and her fans chat with her too.</li>
-          <li className="flex items-center gap-2.5"><Video className="h-4 w-4 shrink-0 text-amber-400" /> Earn 30% in credits on every try-on with her.</li>
+          <li className="flex items-center gap-2.5"><Video className="h-4 w-4 shrink-0 text-amber-400" /> Earn 50% in credits on every try-on with her.</li>
         </ul>
       </div>
 

@@ -42,7 +42,7 @@ type Curator = {
   // Server-computed engagement (curators=1): comments on her posts, total views
   // (boost + real), and "See her in other looks" taps.
   commentCount?: number; viewTotal?: number; tryonClicks?: number;
-  // Earnings + payouts (model keeps 30% of each paid video).
+  // Earnings + payouts (model keeps 50% of each paid video).
   earningsCents?: number; payoutMethod?: string;
   payouts?: { id: string; amountCents: number; method: string; status: string; requestedAt?: string; paidAt?: string }[];
   // "✓ Real model" carousel badge (realModel) + profile banner (realBadge) — a real person, not an AI persona.
