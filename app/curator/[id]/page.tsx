@@ -1416,52 +1416,52 @@ export default function CuratorPublicPage() {
         {/* Edit profile sheet — model name, motto, bio, brands, style. Saves in place. */}
         {epOpen && (
           <div className="fixed inset-0 z-[95] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => !epBusy && setEpOpen(false)}>
-            <div className="max-h-[88dvh] w-full max-w-[440px] overflow-y-auto rounded-t-3xl bg-[#111] p-5 ring-1 ring-white/10" onClick={e => e.stopPropagation()} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)" }}>
-              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/15" />
-              <p className="text-base font-black text-white">Edit profile</p>
-              <p className="mb-4 text-[12px] font-bold text-white/45">Changes go live immediately. Photo &amp; videos are managed below on her page.</p>
-              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-white/45">Model name</label>
+            <div className="max-h-[88dvh] w-full max-w-[440px] overflow-y-auto rounded-t-3xl bg-white p-5 ring-1 ring-black/10" onClick={e => e.stopPropagation()} style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)" }}>
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-black/15" />
+              <p className="text-base font-black text-black">Edit profile</p>
+              <p className="mb-4 text-[12px] font-bold text-black/50">Changes go live immediately. Photo &amp; videos are managed below on her page.</p>
+              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-black/50">Model name</label>
               {/* Her name is FIXED — part of her collectible identity (renames would break
                   URLs, links and her history). Shown locked, never editable here. */}
-              <div className="mb-1 flex h-11 w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-3">
-                <span className="text-sm font-bold text-white/60">{epName}</span>
-                <Lock className="h-3.5 w-3.5 shrink-0 text-white/35" />
+              <div className="mb-1 flex h-11 w-full items-center justify-between rounded-xl border border-black/15 bg-black/[0.03] px-3">
+                <span className="text-sm font-bold text-black/70">{epName}</span>
+                <Lock className="h-3.5 w-3.5 shrink-0 text-black/35" />
               </div>
-              <p className="mb-3 text-[10px] font-bold text-white/35">Fixed — her name is part of her identity and can&apos;t be changed.</p>
-              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-white/45">Title / role</label>
+              <p className="mb-3 text-[10px] font-bold text-black/40">Fixed — her name is part of her identity and can&apos;t be changed.</p>
+              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-black/50">Title / role</label>
               <input value={epTitle} onChange={e => setEpTitle(e.target.value)} placeholder="e.g. Monaco Influencer"
-                className="mb-3 h-11 w-full rounded-xl border border-white/15 bg-black/30 px-3 text-sm font-bold text-white placeholder:text-white/35 outline-none focus:border-amber-400/50" />
-              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-white/45">About / introduction <span className="normal-case text-white/30">(her ABOUT slide)</span></label>
+                className="mb-3 h-11 w-full rounded-xl border border-black/20 bg-white px-3 text-sm font-bold text-black placeholder:text-black/35 outline-none focus:border-amber-500" />
+              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-black/50">About / introduction <span className="normal-case text-black/35">(her ABOUT slide)</span></label>
               <textarea value={epIntro} onChange={e => setEpIntro(e.target.value)} rows={3} placeholder="Hi, I'm … — I travel the world, test the newest trends…"
-                className="mb-3 w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-sm font-bold text-white placeholder:text-white/35 outline-none focus:border-amber-400/50" />
-              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-white/45">Sponsor</label>
+                className="mb-3 w-full rounded-xl border border-black/20 bg-white px-3 py-2.5 text-sm font-bold text-black placeholder:text-black/35 outline-none focus:border-amber-500" />
+              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-black/50">Sponsor</label>
               {/* Picked from the admin-provided sponsor list (lib/sponsors) — never free text. */}
               <select value={epSponsor} onChange={e => setEpSponsor(e.target.value)}
-                className="mb-3 h-11 w-full rounded-xl border border-white/15 bg-black/30 px-3 text-sm font-bold text-white outline-none focus:border-amber-400/50">
+                className="mb-3 h-11 w-full rounded-xl border border-black/20 bg-white px-3 text-sm font-bold text-black outline-none focus:border-amber-500">
                 <option value="">No sponsor</option>
                 {SPONSORS.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
-              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-white/45">Tagline / motto</label>
+              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-black/50">Tagline / motto</label>
               <input value={epMotto} onChange={e => setEpMotto(e.target.value)} placeholder="e.g. Elegance travels light, lives loud"
-                className="mb-3 h-11 w-full rounded-xl border border-white/15 bg-black/30 px-3 text-sm font-bold text-white placeholder:text-white/35 outline-none focus:border-amber-400/50" />
-              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-white/45">Bio / description</label>
+                className="mb-3 h-11 w-full rounded-xl border border-black/20 bg-white px-3 text-sm font-bold text-black placeholder:text-black/35 outline-none focus:border-amber-500" />
+              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-black/50">Bio / description</label>
               <textarea value={epBio} onChange={e => setEpBio(e.target.value)} rows={3} placeholder="Who is she? What does she represent?"
-                className="mb-3 w-full rounded-xl border border-white/15 bg-black/30 px-3 py-2.5 text-sm font-bold text-white placeholder:text-white/35 outline-none focus:border-amber-400/50" />
+                className="mb-3 w-full rounded-xl border border-black/20 bg-white px-3 py-2.5 text-sm font-bold text-black placeholder:text-black/35 outline-none focus:border-amber-500" />
               {/* Brands as chips — the SAME curated picker as the apply form, so the brand
                   filters & display never see free-text variants. */}
               <div className="mb-3">
-                <TagField label="Favorite brands" list={epBrandsDb} value={epBrandChips} onChange={setEpBrandChips} placeholder="Start typing… Chanel, Dior…" dark />
+                <TagField label="Favorite brands" list={epBrandsDb} value={epBrandChips} onChange={setEpBrandChips} placeholder="Start typing… Chanel, Dior…" />
               </div>
-              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-white/45">Style</label>
+              <label className="mb-1 block text-[11px] font-black uppercase tracking-wide text-black/50">Style</label>
               <input value={epStyle} onChange={e => setEpStyle(e.target.value)} placeholder="e.g. Quiet luxury, timeless"
-                className="mb-4 h-11 w-full rounded-xl border border-white/15 bg-black/30 px-3 text-sm font-bold text-white placeholder:text-white/35 outline-none focus:border-amber-400/50" />
+                className="mb-4 h-11 w-full rounded-xl border border-black/20 bg-white px-3 text-sm font-bold text-black placeholder:text-black/35 outline-none focus:border-amber-500" />
               <button type="button" disabled={epBusy} onClick={() => void saveEditProfile()}
                 className="lb-gold flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition disabled:opacity-60">
                 {epBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Save changes
               </button>
               {isOwn && (
                 <button type="button" onClick={() => setDeleteConfirmOpen(true)}
-                  className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-full border border-red-500/30 text-[13px] font-black text-red-400 active:scale-95 transition">
+                  className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-full border border-red-500/40 text-[13px] font-black text-red-600 active:scale-95 transition">
                   Delete account
                 </button>
               )}
