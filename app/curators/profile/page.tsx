@@ -104,6 +104,20 @@ export default function CuratorProfilePage() {
         const c = d.curator;
         if (c) {
           setCuratorId(c.id); setEmail(c.email ?? "");
+          // Recruiting funnel — last step: an applicant who signed in to complete/manage her
+          // model profile ("Applied → Signed in"). Once per browser session so reloads don't
+          // inflate it; admin/preview sessions are flagged internal and never counted.
+          try {
+            if (!sessionStorage.getItem("lb_recruit_signin_fired")) {
+              sessionStorage.setItem("lb_recruit_signin_fired", "1");
+              const internal = !!localStorage.getItem("luxurybandit-try-look-admin-pin") && localStorage.getItem("lb_preview_model") !== "1";
+              const sp = new URLSearchParams(window.location.search);
+              fetch("/api/try-this-look", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "event", event: "recruit_signin", lookId: "recruiting", lookName: "Recruiting", utmSource: sp.get("utm_source") || sp.get("source") || "", referrer: document.referrer || "", internal }),
+              }).catch(() => {});
+            }
+          } catch { /**/ }
           setPhoto(c.photoUrl ?? "");
           setBodyExisting(Array.isArray(c.photoBodyUrls) ? c.photoBodyUrls : []);
           setProfileExisting(Array.isArray(c.profilePhotoUrls) && c.profilePhotoUrls.length

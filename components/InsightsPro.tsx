@@ -95,6 +95,7 @@ export default function InsightsPro({
       { label: "Saw the model ad", n: countOf("recruit_view") },
       { label: "Opened the form", n: countOf("apply_view") },
       { label: "Applied", n: countOf("apply_submit") },
+      { label: "Signed in", n: countOf("recruit_signin") },
     ];
 
     // Chat funnel (/luxury-products) — the target of the "…Chat" ads.
