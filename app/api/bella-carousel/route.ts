@@ -166,23 +166,22 @@ export async function POST(request: Request) {
     const existingById = new Map(existing.map(s => [s.id, s]));
     const newSlides = slides.filter(s => !existingIds.has(s.id));
 
-    // Safety net for EXISTING slides: a model can't sneak a slide public without review by
-    // flipping `private` client-side — going private→public re-enters the review queue
-    // (never trust the client's own pendingApproval for this transition).
-    if (isOwner) {
-      for (const s of slides) {
-        const before = existingById.get(s.id);
-        if (before && before.source === "model" && before.private === true && s.private === false) {
-          s.pendingApproval = true;
-        }
+    // Safety net for EXISTING slides — regardless of who added them: nobody can sneak a slide
+    // public without review by flipping `private` client-side. Going private→public always
+    // re-enters the review queue (never trust the client's own pendingApproval for this).
+    for (const s of slides) {
+      const before = existingById.get(s.id);
+      if (before && before.private === true && s.private === false) {
+        s.pendingApproval = true;
       }
     }
 
     if (newSlides.length) {
       if (admin) {
-        // PIN-mode = LuxuryBandit adding content FOR her — a gift. Goes live immediately,
-        // doesn't touch her upload credits, and she gets notified by email.
-        for (const s of newSlides) { s.source = "admin"; s.pendingApproval = false; }
+        // PIN-mode = LuxuryBandit adding content FOR her — a gift. Doesn't touch her upload
+        // credits and she gets notified by email. Same review rule as everyone: only PUBLIC
+        // needs admin approval — a private gift is visible to her subscribers immediately.
+        for (const s of newSlides) { s.source = "admin"; s.pendingApproval = !s.private; }
       } else if (isOwner) {
         // Her own upload: mark it as hers. PUBLIC uploads need admin review before they're
         // visible anywhere public — PRIVATE ones go live for her subscribers immediately.

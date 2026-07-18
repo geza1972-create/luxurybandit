@@ -29,19 +29,21 @@ const normFromServer = (s: any): Slide => ({
 const ADMIN_PIN_KEY = "luxurybandit-try-look-admin-pin";
 
 // The real model's OWN upload studio: add photos/videos to her card and mark each public or private
-// (private = only her subscribers see it). Very simple, self-serve. Everything saves immediately.
-// Access is enforced server-side (/api/bella-carousel) — she can only ever touch her own card.
-// Admin can also open this AS a curator (via admin → "Act as" → Open Studio) — the admin PIN +
-// impersonated id (set in localStorage by the admin panel's loginAs) substitute for her own login.
+// (private = only her subscribers see it). Nothing auto-saves — every change (caption, privacy,
+// delete, new upload) stays local until she taps "Save changes". Access is enforced server-side
+// (/api/bella-carousel) — she can only ever touch her own card. Admin can also open this AS a
+// curator (via admin → "Act as" → Open Studio) — the admin PIN + impersonated id substitute for login.
 export default function MyStudioPage() {
   const router = useRouter();
   const [phase, setPhase] = useState<"loading" | "noauth" | "notmodel" | "ready">("loading");
   const [me, setMe] = useState<{ id: string; name: string } | null>(null);
   const [slides, setSlides] = useState<Slide[]>([]);
+  const [dirty, setDirty] = useState(false); // unsaved local changes
   const [busy, setBusy] = useState<"" | "image" | "video" | "save">("");
   const [savedAt, setSavedAt] = useState(0);   // bump to flash "Saved ✓"
   const [err, setErr] = useState("");
   const [credits, setCredits] = useState<number | null>(null); // null = admin mode (unlimited gifts)
+  const [publicConfirmId, setPublicConfirmId] = useState<string | null>(null); // slide about to go public
   const imgRef = useRef<HTMLInputElement>(null);
   const vidRef = useRef<HTMLInputElement>(null);
   const adminModeRef = useRef(false);
@@ -86,13 +88,13 @@ export default function MyStudioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Persist the WHOLE library (the only save path). `next` is in stored order (oldest→newest);
-  // the server re-numbers `order` by array position, so the public card stays newest-first.
-  const save = async (next: Slide[]) => {
+  // Persist the WHOLE library — the ONLY persistence path, only fired when SHE taps "Save changes".
+  // `next` is in stored order (oldest→newest); the server re-numbers `order` by array position.
+  const save = async () => {
     if (!me) return;
     setBusy("save"); setErr("");
     try {
-      const payload = next.map((s, i) => ({
+      const payload = slides.map((s, i) => ({
         id: s.id, kind: s.kind, path: s.path, posterPath: s.posterPath || undefined,
         title: s.title || undefined, caption: s.caption || undefined,
         hidden: s.hidden, private: s.private, pages: null, order: i, createdAt: s.createdAt,
@@ -101,6 +103,7 @@ export default function MyStudioPage() {
       const res = await fetch("/api/bella-carousel", { method: "POST", headers: authHeaders(), body: JSON.stringify({ commit: payload, model: me.id }) }).then(r => r.json());
       if (res?.ok) {
         setSlides((res.slides || []).map(normFromServer));
+        setDirty(false);
         setSavedAt(Date.now());
         // Re-check her remaining upload credits after a new upload was committed.
         if (!adminModeRef.current) {
@@ -113,7 +116,8 @@ export default function MyStudioPage() {
     finally { setBusy(""); }
   };
 
-  // Upload a file straight to storage (signed PUT), then append it as a new slide and save.
+  // Upload a file straight to storage (signed PUT), suggest a caption for a photo, then add it
+  // as a new LOCAL slide — nothing is persisted until she taps "Save changes".
   const addFile = async (file: File | undefined, kind: "image" | "video") => {
     if (!file || !me) return;
     setErr("");
@@ -131,32 +135,46 @@ export default function MyStudioPage() {
       if (!sign?.uploadUrl) { setErr(sign?.error || "Upload failed. Please try again."); setBusy(""); return; }
       const put = await fetch(sign.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type || (kind === "video" ? "video/mp4" : "image/jpeg"), "x-upsert": "true" }, body: file });
       if (!put.ok) throw new Error();
+      const id = crypto.randomUUID();
       const fresh: Slide = {
-        id: crypto.randomUUID(), kind, path: sign.path, posterPath: "", title: "", caption: "",
-        private: false, hidden: false, mediaUrl: URL.createObjectURL(file), posterUrl: "",
+        id, kind, path: sign.path, posterPath: "", title: "", caption: "",
+        // Always starts PRIVATE — she (or admin) must deliberately choose Public, which then
+        // needs admin review. pendingApproval stays false while private.
+        private: true, hidden: false, mediaUrl: URL.createObjectURL(file), posterUrl: "",
         createdAt: new Date().toISOString(), order: null,
-        source: adminModeRef.current ? "admin" : "model", pendingApproval: !adminModeRef.current,
+        source: adminModeRef.current ? "admin" : "model", pendingApproval: false,
       };
-      const merged = [...slides, fresh];
-      setSlides(merged);        // optimistic — shows instantly
-      await save(merged);       // persist + swap in the signed URL
+      setSlides(prev => [...prev, fresh]);
+      setDirty(true);
+      // Best-effort auto-caption for a photo — she can edit or clear it before saving.
+      if (kind === "image") {
+        fetch("/api/caption-suggest", { method: "POST", headers: authHeaders(), body: JSON.stringify({ path: sign.path }) })
+          .then(r => r.json())
+          .then(d => { if (d?.caption) setSlides(prev => prev.map(s => s.id === id ? { ...s, caption: d.caption } : s)); })
+          .catch(() => {});
+      }
     } catch { setErr("Upload failed. Please try again."); }
     finally { setBusy(""); }
   };
 
-  const setPrivate = (id: string, priv: boolean) => {
-    // Switching a slide to PUBLIC sends it back for admin review, unless it's an
-    // admin-gifted slide (already pre-approved). Going PRIVATE never needs review.
-    const next = slides.map(s => s.id === id
-      ? { ...s, private: priv, pendingApproval: priv ? false : s.source === "admin" ? false : true }
-      : s);
-    setSlides(next); void save(next);
+  // Going PRIVATE is immediate (no review needed). Going PUBLIC asks for confirmation first —
+  // she must acknowledge that admin reviews it before it's actually public.
+  const requestPublic = (id: string) => setPublicConfirmId(id);
+  const confirmPublic = () => {
+    if (!publicConfirmId) return;
+    setSlides(prev => prev.map(s => s.id === publicConfirmId ? { ...s, private: false, pendingApproval: true } : s));
+    setDirty(true);
+    setPublicConfirmId(null);
   };
-  const setCaption = (id: string, caption: string) => setSlides(prev => prev.map(s => s.id === id ? { ...s, caption } : s));
+  const setPrivate = (id: string) => {
+    setSlides(prev => prev.map(s => s.id === id ? { ...s, private: true, pendingApproval: false } : s));
+    setDirty(true);
+  };
+  const setCaption = (id: string, caption: string) => { setSlides(prev => prev.map(s => s.id === id ? { ...s, caption } : s)); setDirty(true); };
   const remove = (id: string) => {
     if (!confirm("Delete this post?")) return;
-    const next = slides.filter(s => s.id !== id);
-    setSlides(next); void save(next);
+    setSlides(prev => prev.filter(s => s.id !== id));
+    setDirty(true);
   };
 
   // Newest first for the model's view (server stores oldest→newest).
@@ -188,15 +206,14 @@ export default function MyStudioPage() {
   }
 
   return (
-    <div className="min-h-[100dvh] lb-bg text-white" style={{ paddingBottom: "calc(40px + env(safe-area-inset-bottom))" }}>
+    <div className="min-h-[100dvh] lb-bg text-white" style={{ paddingBottom: "calc(90px + env(safe-area-inset-bottom))" }}>
       <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-white/10 bg-black/70 px-4 py-3 backdrop-blur">
         <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15"><ArrowLeft className="h-4 w-4" /></button>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-black">My Studio</p>
           <p className="truncate text-[11px] font-bold text-white/45">{me?.name} · {slides.length} {slides.length === 1 ? "post" : "posts"}</p>
         </div>
-        {saving ? <span className="flex items-center gap-1 text-[11px] font-black text-white/50"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</span>
-          : savedAt ? <span className="text-[11px] font-black text-emerald-400">Saved ✓</span> : null}
+        {savedAt && !dirty ? <span className="text-[11px] font-black text-emerald-400">Saved ✓</span> : null}
         {me && <button type="button" onClick={() => router.push(`/curator/${me.id}`)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/15" aria-label="View my profile"><ExternalLink className="h-4 w-4" /></button>}
       </div>
 
@@ -249,15 +266,15 @@ export default function MyStudioPage() {
                   )}
                 </div>
                 <div className="p-3">
-                  <textarea rows={2} value={s.caption} onChange={e => setCaption(s.id, e.target.value)} onBlur={() => void save(slides)}
+                  <textarea rows={2} value={s.caption} onChange={e => setCaption(s.id, e.target.value)}
                     placeholder="Add a caption… (optional)"
                     className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-[13px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-white/25" />
                   <div className="mt-2.5 flex items-center gap-2">
-                    <button type="button" onClick={() => setPrivate(s.id, false)}
+                    <button type="button" onClick={() => requestPublic(s.id)}
                       className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full text-[12px] font-black transition ${!s.private ? "bg-emerald-500 text-black" : "border border-white/15 text-white/60"}`}>
                       <Globe className="h-3.5 w-3.5" /> Public
                     </button>
-                    <button type="button" onClick={() => setPrivate(s.id, true)}
+                    <button type="button" onClick={() => setPrivate(s.id)}
                       className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full text-[12px] font-black transition ${s.private ? "bg-amber-400 text-black" : "border border-white/15 text-white/60"}`}>
                       <Lock className="h-3.5 w-3.5" /> Private
                     </button>
@@ -272,6 +289,38 @@ export default function MyStudioPage() {
           </div>
         )}
       </div>
+
+      {/* Sticky Save bar — nothing persists until she taps this. */}
+      {dirty && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-black/90 p-4 backdrop-blur" style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}>
+          <button type="button" disabled={saving} onClick={() => void save()}
+            className="lb-gold mx-auto flex h-12 w-full max-w-md items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition disabled:opacity-60">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Save changes
+          </button>
+        </div>
+      )}
+
+      {/* Confirm before going Public — she must acknowledge it's reviewed first. */}
+      {publicConfirmId && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4" onClick={() => setPublicConfirmId(null)}>
+          <div className="w-full max-w-sm rounded-2xl bg-[#161616] p-5 ring-1 ring-white/10" onClick={e => e.stopPropagation()}>
+            <p className="text-base font-black text-white">Make this public?</p>
+            <p className="mt-2 text-[13px] font-semibold leading-relaxed text-white/60">
+              This will first be reviewed by LuxuryBandit — once approved, it goes public for everyone to see.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button type="button" onClick={() => setPublicConfirmId(null)}
+                className="h-11 flex-1 rounded-full border border-white/15 text-[13px] font-black text-white active:scale-95 transition">
+                Cancel
+              </button>
+              <button type="button" onClick={confirmPublic}
+                className="lb-gold h-11 flex-1 rounded-full text-[13px] font-black active:scale-95 transition">
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
