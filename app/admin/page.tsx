@@ -128,17 +128,17 @@ export default function AdminPage() {
   }, []);
   const toggleDark = () => setDark(d => { const next = !d; try { localStorage.setItem("lb-admin-dark", next ? "1" : "0"); } catch { /**/ } return next; });
   // Deep-linkable tab: /admin?tab=curators opens the Models list directly.
-  const [tab, setTab] = useState<"looks" | "curators" | "users" | "inbox" | "posts" | "insights" | "chats" | "meta">(() => {
+  const [tab, setTab] = useState<"looks" | "curators" | "users" | "inbox" | "posts" | "insights" | "chats" | "meta" | "emails">(() => {
     if (typeof window !== "undefined") {
       const t = new URLSearchParams(window.location.search).get("tab");
-      if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats" || t === "meta") return t;
+      if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats" || t === "meta" || t === "emails") return t;
     }
     return "looks";
   });
   // Client-side navigations can mount before the state initializer sees the new URL — re-sync.
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats" || t === "meta") setTab(t);
+    if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats" || t === "meta" || t === "emails") setTab(t);
   }, []);
   // "Users" tab: everyone who signed up — email-gate leads + Google/FB/password (Supabase auth).
   type AdminUser = { email: string; name: string; provider: string; status?: string; createdAt?: string; lookName?: string; leadId?: string; authId?: string };
@@ -963,6 +963,50 @@ export default function AdminPage() {
     { trigger: "Newsletter — admin bulk send", subject: "A new look from {model} 💛 (or custom)", file: "api/newsletter" },
   ];
   const [showEmailTemplates, setShowEmailTemplates] = useState(false);
+  // ── Emails tab: compose + send a test to yourself, or broadcast to selected users. ──
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [testEmailTo, setTestEmailTo] = useState("");
+  const [emailRecipientQuery, setEmailRecipientQuery] = useState("");
+  const [emailSelected, setEmailSelected] = useState<Set<string>>(new Set());
+  const [emailSendBusy, setEmailSendBusy] = useState<"test" | "broadcast" | "">("");
+  const [emailSendMsg, setEmailSendMsg] = useState("");
+  const emailAllRecipients = useMemo(() => {
+    const byEmail = new Map<string, { email: string; name: string; source: string }>();
+    for (const u of users) { if (u.email && !byEmail.has(u.email)) byEmail.set(u.email, { email: u.email, name: u.name || "", source: "user" }); }
+    for (const c of curators) { const e = (c.email ?? "").trim().toLowerCase(); if (e && !byEmail.has(e)) byEmail.set(e, { email: e, name: [c.firstName, c.lastName].filter(Boolean).join(" ") || c.modelName || "", source: "model" }); }
+    return [...byEmail.values()].sort((a, b) => a.email.localeCompare(b.email));
+  }, [users, curators]);
+  const emailFilteredRecipients = useMemo(() => {
+    const q = emailRecipientQuery.trim().toLowerCase();
+    if (!q) return emailAllRecipients;
+    return emailAllRecipients.filter(r => r.email.toLowerCase().includes(q) || r.name.toLowerCase().includes(q));
+  }, [emailAllRecipients, emailRecipientQuery]);
+  const toggleEmailRecipient = (email: string) => setEmailSelected(s => { const n = new Set(s); n.has(email) ? n.delete(email) : n.add(email); return n; });
+  const sendTestEmail = async () => {
+    const to = testEmailTo.trim();
+    if (!to || !emailSubject.trim() || !emailMessage.trim()) return;
+    setEmailSendBusy("test"); setEmailSendMsg("");
+    try {
+      const r = await fetch("/api/admin-email", { method: "POST", headers: headers(), body: JSON.stringify({ subject: emailSubject, message: emailMessage, emails: [to] }) });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) setEmailSendMsg(`✓ Test gesendet an ${to}`); else setEmailSendMsg(d.error ?? "Fehler beim Senden.");
+    } catch { setEmailSendMsg("Netzwerkfehler."); }
+    setEmailSendBusy("");
+  };
+  const sendBroadcastEmail = async () => {
+    const emails = [...emailSelected];
+    if (!emails.length || !emailSubject.trim() || !emailMessage.trim()) return;
+    if (!window.confirm(`E-Mail an ${emails.length} ausgewählte Nutzer senden?`)) return;
+    setEmailSendBusy("broadcast"); setEmailSendMsg("");
+    try {
+      const r = await fetch("/api/admin-email", { method: "POST", headers: headers(), body: JSON.stringify({ subject: emailSubject, message: emailMessage, emails }) });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) setEmailSendMsg(`✓ Gesendet: ${d.sent ?? 0} / ${emails.length}${d.failed?.length ? ` (fehlgeschlagen: ${d.failed.length})` : ""}`);
+      else setEmailSendMsg(d.error ?? "Fehler beim Senden.");
+    } catch { setEmailSendMsg("Netzwerkfehler."); }
+    setEmailSendBusy("");
+  };
   // Duplicate wardrobe items — detect (client-side, by normalized name) + merge.
   const [showDupes, setShowDupes] = useState(false);
   const [dupeThreshold, setDupeThreshold] = useState(1); // max mean per-channel color distance; true dups sit at ~0 (≤1 avoids similar-but-distinct false positives)
@@ -1377,7 +1421,7 @@ export default function AdminPage() {
       .finally(() => setUsersLoading(false));
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (tab === "users" && !usersLoaded) loadUsers(); }, [tab, usersLoaded]);
+  useEffect(() => { if ((tab === "users" || tab === "emails") && !usersLoaded) loadUsers(); }, [tab, usersLoaded]);
   // Premium subscribers (from Stripe) — who is actually paying.
   useEffect(() => {
     if (tab !== "users" || subscribers !== null) return;
@@ -1681,6 +1725,10 @@ export default function AdminPage() {
           <button type="button" onClick={() => setTab("meta")}
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "meta" ? "bg-black text-white" : "text-ink/50"}`}>
             🗺 Meta {programs.length ? <span className="opacity-60">{programs.length}</span> : null}
+          </button>
+          <button type="button" onClick={() => setTab("emails")}
+            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "emails" ? "bg-black text-white" : "text-ink/50"}`}>
+            ✉️ Emails
           </button>
         </div>
 
@@ -2994,30 +3042,86 @@ export default function AdminPage() {
         )}
       </div>
 
+      {/* ── Emails tab — templates reference + compose/send (test to yourself, or to selected users) ── */}
+      {tab === "emails" && (
+        <div className="mt-3 space-y-3 pb-16">
+          <div className="rounded-2xl border border-black/10 bg-white p-3">
+            <button type="button" onClick={() => setShowEmailTemplates(v => !v)} className="flex w-full items-center justify-between gap-2">
+              <div className="text-left">
+                <p className="text-sm font-black text-ink">✉️ Email templates ({EMAIL_TEMPLATES.length})</p>
+                <p className="mt-0.5 text-[12px] font-bold text-ink/50">Every transactional email the platform sends, and what triggers it.</p>
+              </div>
+              <span className="shrink-0 text-ink/40">{showEmailTemplates ? "▲" : "▼"}</span>
+            </button>
+            {showEmailTemplates && (
+              <div className="mt-3 space-y-1.5">
+                {EMAIL_TEMPLATES.map((t, i) => (
+                  <div key={i} className="rounded-lg border border-black/10 bg-panel px-3 py-2">
+                    <p className="text-[12px] font-black text-ink">{t.trigger}</p>
+                    <p className="text-[12px] font-semibold text-ink/60">&ldquo;{t.subject}&rdquo;</p>
+                    <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-ink/35">{t.file}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-black/10 bg-white p-3">
+            <p className="text-sm font-black text-ink">📝 Neue E-Mail verfassen</p>
+            <p className="mt-0.5 text-[12px] font-bold text-ink/50">Betreff + Nachricht schreiben, dann als Test an dich selbst senden oder an ausgewählte Nutzer.</p>
+            <input value={emailSubject} onChange={e => setEmailSubject(e.target.value)} placeholder="Betreff"
+              className="mt-3 h-10 w-full rounded-lg border border-black/15 bg-panel px-3 text-[13px] font-medium text-ink outline-none focus:border-amber-500" />
+            <textarea value={emailMessage} onChange={e => setEmailMessage(e.target.value)} placeholder="Nachricht…"
+              className="mt-2 h-28 w-full rounded-lg border border-black/15 bg-panel px-3 py-2 text-[13px] font-medium text-ink outline-none focus:border-amber-500" />
+
+            <div className="mt-3 flex gap-2">
+              <input value={testEmailTo} onChange={e => setTestEmailTo(e.target.value)} placeholder="deine@email.com"
+                className="h-10 flex-1 rounded-lg border border-black/15 bg-panel px-3 text-[13px] font-medium text-ink outline-none focus:border-amber-500" />
+              <button type="button" onClick={() => void sendTestEmail()} disabled={emailSendBusy !== "" || !testEmailTo.trim() || !emailSubject.trim() || !emailMessage.trim()}
+                className="shrink-0 rounded-lg bg-black px-4 text-[13px] font-black text-white active:scale-95 disabled:opacity-40">
+                {emailSendBusy === "test" ? "Sendet…" : "Test an mich senden"}
+              </button>
+            </div>
+
+            <div className="mt-4 border-t border-black/10 pt-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[12px] font-black uppercase tracking-wide text-ink/60">Empfänger auswählen ({emailSelected.size} / {emailAllRecipients.length})</p>
+                <div className="flex gap-1.5">
+                  <button type="button" onClick={() => setEmailSelected(new Set(emailFilteredRecipients.map(r => r.email)))}
+                    className="rounded-full bg-black/5 px-2.5 py-1 text-[11px] font-black text-ink/70 active:scale-95">Alle</button>
+                  <button type="button" onClick={() => setEmailSelected(new Set())}
+                    className="rounded-full bg-black/5 px-2.5 py-1 text-[11px] font-black text-ink/70 active:scale-95">Keine</button>
+                </div>
+              </div>
+              <input value={emailRecipientQuery} onChange={e => setEmailRecipientQuery(e.target.value)} placeholder="Nach Name oder E-Mail suchen…"
+                className="mt-2 h-9 w-full rounded-lg border border-black/15 bg-panel px-3 text-[13px] font-medium text-ink outline-none focus:border-amber-500" />
+              <div className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-black/10">
+                {emailFilteredRecipients.length === 0 ? (
+                  <p className="p-3 text-center text-[12px] text-ink/50">Keine Nutzer gefunden.</p>
+                ) : emailFilteredRecipients.map(r => (
+                  <label key={r.email} className="flex cursor-pointer items-center gap-2 border-b border-black/5 px-3 py-2 last:border-0">
+                    <input type="checkbox" checked={emailSelected.has(r.email)} onChange={() => toggleEmailRecipient(r.email)} className="h-4 w-4 shrink-0" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[12px] font-bold text-ink">{r.name || r.email}</span>
+                      <span className="block truncate text-[11px] text-ink/50">{r.email} · {r.source === "model" ? "Model" : "User"}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <button type="button" onClick={() => void sendBroadcastEmail()}
+                disabled={emailSendBusy !== "" || emailSelected.size === 0 || !emailSubject.trim() || !emailMessage.trim()}
+                className="mt-3 w-full rounded-lg bg-amber-400 py-2.5 text-[13px] font-black text-black active:scale-95 disabled:opacity-40">
+                {emailSendBusy === "broadcast" ? "Sendet…" : `An ${emailSelected.size} ausgewählte Nutzer senden`}
+              </button>
+            </div>
+            {emailSendMsg && <p className="mt-2 text-[12px] font-bold text-ink/70">{emailSendMsg}</p>}
+          </div>
+        </div>
+      )}
+
       {/* ── Insights tab — professional analytics dashboard (components/InsightsPro) ── */}
       {tab === "meta" && (
         <div className="mt-3 pb-16">
-              {/* Reference list of every automated email the platform sends. */}
-              <div className="mb-3 rounded-2xl border border-black/10 bg-white p-3">
-                <button type="button" onClick={() => setShowEmailTemplates(v => !v)} className="flex w-full items-center justify-between gap-2">
-                  <div className="text-left">
-                    <p className="text-sm font-black text-ink">✉️ Email templates ({EMAIL_TEMPLATES.length})</p>
-                    <p className="mt-0.5 text-[12px] font-bold text-ink/50">Every transactional email the platform sends, and what triggers it.</p>
-                  </div>
-                  <span className="shrink-0 text-ink/40">{showEmailTemplates ? "▲" : "▼"}</span>
-                </button>
-                {showEmailTemplates && (
-                  <div className="mt-3 space-y-1.5">
-                    {EMAIL_TEMPLATES.map((t, i) => (
-                      <div key={i} className="rounded-lg border border-black/10 bg-panel px-3 py-2">
-                        <p className="text-[12px] font-black text-ink">{t.trigger}</p>
-                        <p className="text-[12px] font-semibold text-ink/60">&ldquo;{t.subject}&rdquo;</p>
-                        <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-ink/35">{t.file}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
               {/* Travel programs — one destination = one monthly program owners subscribe to. */}
                 <div className="mt-3 rounded-2xl border border-teal-300/60 bg-teal-50/40 p-3">
                   <div className="flex items-center justify-between gap-2">
