@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus, Video, BarChart3, Eye, MousePointerClick, Check, ImagePlus, Crop, Moon, Sun } from "lucide-react";
+import { Loader2, RefreshCw, Search, Trash2, Power, PlayCircle, Users, LayoutGrid, ExternalLink, X, Sparkles, Pencil, Clock, ArrowUp, ArrowDown, LogOut, LogIn, Inbox, MessageCircle, Send, Heart, UserPlus, Video, BarChart3, Eye, MousePointerClick, Check, ImagePlus, Crop, Moon, Sun, Lock } from "lucide-react";
 import { readPhotoFile, PhotoCropper } from "../curators/taste-form";
 import { signInWithPassword, getStoredAuthSession, saveAuthSession, signOut, resetPassword } from "@/lib/supabase-auth-client";
 import { isAdminEmail } from "@/lib/is-admin-email";
@@ -128,17 +128,17 @@ export default function AdminPage() {
   }, []);
   const toggleDark = () => setDark(d => { const next = !d; try { localStorage.setItem("lb-admin-dark", next ? "1" : "0"); } catch { /**/ } return next; });
   // Deep-linkable tab: /admin?tab=curators opens the Models list directly.
-  const [tab, setTab] = useState<"looks" | "curators" | "users" | "inbox" | "posts" | "insights" | "chats">(() => {
+  const [tab, setTab] = useState<"looks" | "curators" | "users" | "inbox" | "posts" | "insights" | "chats" | "meta">(() => {
     if (typeof window !== "undefined") {
       const t = new URLSearchParams(window.location.search).get("tab");
-      if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats") return t;
+      if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats" || t === "meta") return t;
     }
     return "looks";
   });
   // Client-side navigations can mount before the state initializer sees the new URL — re-sync.
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats") setTab(t);
+    if (t === "curators" || t === "users" || t === "inbox" || t === "posts" || t === "insights" || t === "chats" || t === "meta") setTab(t);
   }, []);
   // "Users" tab: everyone who signed up — email-gate leads + Google/FB/password (Supabase auth).
   type AdminUser = { email: string; name: string; provider: string; status?: string; createdAt?: string; lookName?: string; leadId?: string; authId?: string };
@@ -258,7 +258,6 @@ export default function AdminPage() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [vocab, setVocab] = useState<WardrobeVocab>({ locations: [], themes: [], occasions: [], styles: [], garmentCategories: [] });
   const [programs, setPrograms] = useState<Program[]>([]);
-  const [showPrograms, setShowPrograms] = useState(false);
   const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
   const [feedBusy, setFeedBusy] = useState<string>(""); // programId being generated
   const [feedMsg, setFeedMsg] = useState("");
@@ -288,19 +287,23 @@ export default function AdminPage() {
   const [editLook, setEditLook] = useState<Look | null>(null); // listing being edited
   const [creditsDraft, setCreditsDraft] = useState(""); // credits input in curator sheet
   const [studioCreditsDraft, setStudioCreditsDraft] = useState(""); // her My-Studio upload credits
-  // Models' own PUBLIC My-Studio uploads awaiting approval before they go live anywhere public.
-  type PendingSlide = { modelId: string; modelName: string; id: string; kind: string; caption: string; createdAt: string; mediaUrl: string; posterUrl: string };
+  // Models' own PUBLIC/PENDING My-Studio uploads — stays listed even after approval, so admin
+  // can revisit it later (delete or send back to private), not just a one-shot review queue.
+  type PendingSlide = { modelId: string; modelName: string; id: string; kind: string; caption: string; createdAt: string; mediaUrl: string; posterUrl: string; status: "pending" | "public" };
   const [pendingSlides, setPendingSlides] = useState<PendingSlide[]>([]);
   const [pendingBusy, setPendingBusy] = useState("");
   const loadPending = () => {
     fetch("/api/pending-slides", { headers: headers() }).then(r => r.json()).then(d => setPendingSlides(Array.isArray(d?.items) ? d.items : [])).catch(() => {});
   };
   useEffect(() => { loadPending(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const reviewSlide = async (s: PendingSlide, action: "approve" | "reject") => {
+  const reviewSlide = async (s: PendingSlide, action: "approve" | "reject" | "set-private") => {
     setPendingBusy(s.id);
     try {
       const r = await fetch("/api/pending-slides", { method: "POST", headers: headers(), body: JSON.stringify({ modelId: s.modelId, slideId: s.id, action }) });
-      if (r.ok) setPendingSlides(list => list.filter(x => x.id !== s.id));
+      if (r.ok) {
+        if (action === "approve") setPendingSlides(list => list.map(x => x.id === s.id ? { ...x, status: "public" } : x));
+        else setPendingSlides(list => list.filter(x => x.id !== s.id)); // reject/set-private both drop off this public/pending list
+      }
     } catch { /* ignore */ }
     setPendingBusy("");
   };
@@ -1635,8 +1638,8 @@ export default function AdminPage() {
           <button type="button" onClick={() => setTab("posts")}
             className={`relative flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "posts" ? "bg-black text-white" : "text-ink/50"}`}>
             <PlayCircle className="h-4 w-4" /> Posts {postsLoaded && <span className="opacity-60">{posts.length}</span>}
-            {pendingSlides.length > 0 && (
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-emerald-500" title={`${pendingSlides.length} pending review`} />
+            {pendingSlides.some(s => s.status === "pending") && (
+              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-emerald-500" title="New posts awaiting review" />
             )}
           </button>
           <button type="button" onClick={() => setTab("inbox")}
@@ -1650,6 +1653,10 @@ export default function AdminPage() {
           <button type="button" onClick={() => setTab("chats")}
             className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "chats" ? "bg-black text-white" : "text-ink/50"}`}>
             <MessageCircle className="h-4 w-4" /> Chats {chatsLoaded && <span className="opacity-60">{modelChats.length}</span>}
+          </button>
+          <button type="button" onClick={() => setTab("meta")}
+            className={`flex h-10 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-black transition ${tab === "meta" ? "bg-black text-white" : "text-ink/50"}`}>
+            🗺 Meta {programs.length ? <span className="opacity-60">{programs.length}</span> : null}
           </button>
         </div>
 
@@ -1804,11 +1811,12 @@ export default function AdminPage() {
         {/* ── Posts (all generations, incl. hidden) ── */}
         {tab === "posts" && (
           <div className="mt-3 pb-16">
-            {/* Models' own PUBLIC My-Studio uploads awaiting approval before they go live. */}
+            {/* Models' own PUBLIC/PENDING My-Studio uploads — approved ones stay listed here too,
+                so admin can always come back to delete or send one back to private. */}
             {pendingSlides.length > 0 && (
               <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.05] p-3">
                 <p className="mb-2 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wide text-emerald-700">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" /> Pending review — {pendingSlides.length}
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" /> Model public posts — {pendingSlides.length}
                 </p>
                 <div className="grid gap-2">
                   {pendingSlides.map(s => (
@@ -1820,16 +1828,27 @@ export default function AdminPage() {
                         ) : null}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] font-black">{s.modelName}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-[13px] font-black">{s.modelName}</p>
+                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${s.status === "pending" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
+                            {s.status === "pending" ? "⏳ Pending" : "🌐 Public"}
+                          </span>
+                        </div>
                         <p className="line-clamp-2 text-[12px] font-semibold text-ink/55">{s.caption || "(no caption)"}</p>
                         <div className="mt-2 flex gap-2">
-                          <button type="button" disabled={pendingBusy === s.id} onClick={() => void reviewSlide(s, "approve")}
-                            className="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-500 text-xs font-black text-black active:scale-95 transition disabled:opacity-50">
-                            <Check className="h-3.5 w-3.5" /> Approve
+                          {s.status === "pending" && (
+                            <button type="button" disabled={pendingBusy === s.id} onClick={() => void reviewSlide(s, "approve")}
+                              className="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-500 text-xs font-black text-black active:scale-95 transition disabled:opacity-50">
+                              <Check className="h-3.5 w-3.5" /> Approve
+                            </button>
+                          )}
+                          <button type="button" disabled={pendingBusy === s.id} onClick={() => void reviewSlide(s, "set-private")}
+                            className="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg border border-black/15 text-xs font-black text-ink active:scale-95 transition disabled:opacity-50">
+                            <Lock className="h-3.5 w-3.5" /> Set private
                           </button>
                           <button type="button" disabled={pendingBusy === s.id} onClick={() => void reviewSlide(s, "reject")}
                             className="flex h-8 flex-1 items-center justify-center gap-1 rounded-lg bg-red-500 text-xs font-black text-white active:scale-95 transition disabled:opacity-50">
-                            <Trash2 className="h-3.5 w-3.5" /> Reject
+                            <Trash2 className="h-3.5 w-3.5" /> Delete
                           </button>
                         </div>
                       </div>
@@ -2035,10 +2054,6 @@ export default function AdminPage() {
                   className={`rounded-full px-3 py-1 text-[11px] font-black transition ${showDupes ? "bg-amber-500 text-white" : "border border-amber-400 text-amber-600 hover:bg-amber-50"}`}>
                   🔀 Duplikate{duplicateGroups.length ? ` ${duplicateGroups.length}` : ""}
                 </button>
-                <button type="button" onClick={() => setShowPrograms(v => !v)}
-                  className={`rounded-full px-3 py-1 text-[11px] font-black transition ${showPrograms ? "bg-teal-600 text-white" : "border border-teal-500 text-teal-600 hover:bg-teal-50"}`}>
-                  🗺 Programme{programs.length ? ` ${programs.length}` : ""}
-                </button>
               </div>
               {/* Duplicate wardrobe items — one outfit should be ONE wardrobe item. */}
               {showDupes && (
@@ -2098,167 +2113,6 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {/* Travel programs — one destination = one monthly program owners subscribe to. */}
-              {showPrograms && (
-                <div className="mt-3 rounded-2xl border border-teal-300/60 bg-teal-50/40 p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-black text-ink">🗺 Reise-Programme</p>
-                      <p className="mt-0.5 text-[12px] font-bold text-ink/50">Ein Ort = ein Monats-Programm. Der Owner abonniert es; die Influencerin „reist" hin und postet täglich einen Look von dort.</p>
-                    </div>
-                    <button type="button" onClick={() => void addProgram()} className="shrink-0 rounded-lg bg-teal-600 px-3 py-2 text-[11px] font-black text-white active:scale-95">+ Neues Programm</button>
-                  </div>
-                  {programs.length === 0 ? (
-                    <p className="mt-2 text-[12px] font-bold text-ink/45">Noch keine Programme. „+ Neues Programm" wählt einen Ort und baut daraus ein Monats-Paket.</p>
-                  ) : (
-                    <div className="mt-2 space-y-2">
-                      {programs.map(p => {
-                        // Route = fixed stops the admin curates. Fall back to a 1-stop route for legacy programs.
-                        const stops: ProgramStop[] = (p.stops && p.stops.length) ? p.stops : (p.location ? [{ location: p.location, days: p.days ?? 30 }] : []);
-                        const setStops = (next: ProgramStop[]) => void updateProgram(p.id, { stops: next, location: next[0]?.location ?? "" });
-                        const totalDays = stops.reduce((a, s) => a + (s.days || 0), 0);
-                        const stopLocs = new Set(stops.map(s => s.location).filter(Boolean));
-                        const pool = wardrobeLooks.filter(l => l.location && stopLocs.has(l.location));
-                        const routeLabel = stops.map(s => s.location || "—").join(" → ");
-                        return (
-                          <div key={p.id} className="rounded-xl border border-black/10 bg-white p-2.5">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <input defaultValue={p.name} onBlur={e => { const v = e.target.value.trim(); if (v && v !== p.name) void updateProgram(p.id, { name: v }); }}
-                                className="min-w-[8rem] flex-1 rounded-md border border-black/15 px-2 py-1 text-[13px] font-black text-ink outline-none focus:border-teal-500" />
-                              <button type="button" onClick={() => void updateProgram(p.id, { surprise: !p.surprise })}
-                                className={`rounded-full px-2.5 py-1 text-[10px] font-black ${p.surprise ? "bg-fuchsia-100 text-fuchsia-700" : "bg-black/5 text-ink/50"}`}>
-                                {p.surprise ? "🎁 Überraschung" : "Route sichtbar"}
-                              </button>
-                              <button type="button" onClick={() => void updateProgram(p.id, { published: !p.published })}
-                                className={`rounded-full px-2.5 py-1 text-[10px] font-black ${p.published ? "bg-emerald-100 text-emerald-700" : "bg-black/5 text-ink/50"}`}>
-                                {p.published ? "🌐 Live" : "Entwurf"}
-                              </button>
-                              <button type="button" onClick={() => void deleteProgram(p.id, p.name)} className="grid h-7 w-7 place-items-center rounded-lg border border-black/10 text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
-                            </div>
-
-                            {/* Route editor — fixed stops (a package). */}
-                            <div className="mt-2">
-                              <div className="mb-1 flex items-center gap-2">
-                                <span className="text-[10px] font-black uppercase tracking-wide text-ink/40">Route (Stops)</span>
-                                <button type="button" onClick={() => setStops([...stops, { location: vocab.locations[0] ?? "", days: 7 }])}
-                                  className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/60 hover:bg-black/10">+ Stop</button>
-                              </div>
-                              <div className="space-y-1">
-                                {stops.length === 0 && <span className="text-[11px] font-bold text-ink/30">Noch kein Stop — „+ Stop".</span>}
-                                {stops.map((s, i) => (
-                                  <div key={i} className="flex items-center gap-1.5 text-[11px] font-bold text-ink/60">
-                                    <span className="w-4 text-ink/30">{i + 1}.</span>
-                                    <select value={s.location} onChange={e => setStops(stops.map((x, j) => j === i ? { ...x, location: e.target.value } : x))}
-                                      className="rounded-md border border-black/15 px-1.5 py-1 font-black text-ink outline-none focus:border-teal-500">
-                                      <option value="">—</option>
-                                      {vocab.locations.map(x => <option key={x} value={x}>{x}</option>)}
-                                    </select>
-                                    <input type="number" min={1} max={90} value={s.days} onChange={e => setStops(stops.map((x, j) => j === i ? { ...x, days: Number(e.target.value) || 1 } : x))}
-                                      className="w-14 rounded-md border border-black/15 px-1.5 py-1 font-black text-ink outline-none focus:border-teal-500" />
-                                    <span className="text-ink/40">Tage · {wardrobeLooks.filter(l => l.location === s.location).length} Looks</span>
-                                    <button type="button" onClick={() => setStops(stops.filter((_, j) => j !== i))} className="ml-auto text-red-400 hover:text-red-600">✕</button>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold text-ink/60">
-                              <label className="flex items-center gap-1">Preis/Monat
-                                <input defaultValue={p.price ?? ""} placeholder="€49" onBlur={e => void updateProgram(p.id, { price: e.target.value.trim() })} className="w-20 rounded-md border border-black/15 px-1.5 py-1 font-black text-ink outline-none focus:border-teal-500" />
-                              </label>
-                            </div>
-
-                            {/* "Was ist drin" — the package summary the owner sees. */}
-                            <div className="mt-2 rounded-lg bg-teal-50 px-2.5 py-1.5 text-[11px] font-black text-teal-800">
-                              📦 {stops.length} Stop{stops.length === 1 ? "" : "s"} · {totalDays} Tage · {pool.length} Looks{p.price ? ` · ${p.price}/Monat` : ""}
-                              <div className="mt-0.5 font-bold text-teal-700">{p.surprise ? "🎁 Überraschungsreise — Orte werden Tag für Tag enthüllt" : (routeLabel || "—")}</div>
-                            </div>
-
-                            <textarea defaultValue={p.description ?? ""} placeholder="Was ist drin? Angebotstext fürs Owner-Paket…" onBlur={e => void updateProgram(p.id, { description: e.target.value.trim() })}
-                              className="mt-2 h-14 w-full rounded-md border border-black/15 px-2 py-1 text-[12px] text-ink outline-none focus:border-teal-500" />
-                            {pool.length > 0 && (
-                              <div className="mt-2 flex gap-1 overflow-x-auto">
-                                {pool.slice(0, 14).map(l => (
-                                  <img key={l.id} src={safeLookImage(l)} alt="" className="h-14 w-11 shrink-0 rounded-md object-cover" onError={e => { e.currentTarget.style.display = "none"; }} />
-                                ))}
-                                {pool.length > 14 && <span className="grid h-14 w-11 shrink-0 place-items-center rounded-md bg-black/5 text-[10px] font-black text-ink/50">+{pool.length - 14}</span>}
-                              </div>
-                            )}
-                            {stops.length > 0 && pool.length === 0 && <p className="mt-1 text-[11px] font-bold text-amber-600">Noch keine Looks mit diesen Orten — Looks klassifizieren/taggen.</p>}
-
-                            {/* Test-Feed: generate image+caption posts up front, preview & approve. */}
-                            <div className="mt-3 rounded-lg border border-violet-200 bg-violet-50/50 p-2">
-                              <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-ink/60">
-                                <span className="font-black text-violet-700">🎬 Test-Feed</span>
-                                <select value={feedModel[p.id] ?? ""} onChange={e => setFeedModel(m => ({ ...m, [p.id]: e.target.value }))}
-                                  className="rounded-md border border-black/15 px-1.5 py-1 font-black text-ink outline-none focus:border-violet-500">
-                                  <option value="">Modell…</option>
-                                  {curators.filter(c => c.id !== "house" && (c as any).photoUrl).map(c => <option key={c.id} value={c.id}>{((c as any).firstName ?? "") + " " + ((c as any).lastName ?? "")}</option>)}
-                                </select>
-                                <label className="flex items-center gap-1"><input type="checkbox" checked={!!feedLingerie[p.id]} onChange={e => setFeedLingerie(m => ({ ...m, [p.id]: e.target.checked }))} /> Lingerie</label>
-                                <label className="flex items-center gap-1">Tage
-                                  <input type="number" min={1} max={10} value={feedCount[p.id] ?? Math.min(totalDays, 3)} onChange={e => setFeedCount(m => ({ ...m, [p.id]: Number(e.target.value) || 1 }))} className="w-12 rounded-md border border-black/15 px-1 py-1 font-black text-ink outline-none focus:border-violet-500" />
-                                </label>
-                                <button type="button" onClick={() => void generateFeed(p)} disabled={feedBusy === p.id}
-                                  className="rounded-lg bg-violet-600 px-2.5 py-1 text-[11px] font-black text-white active:scale-95 disabled:opacity-60">
-                                  {feedBusy === p.id ? "Generiere…" : "Feed generieren"}
-                                </button>
-                                {feedBusy === p.id && feedMsg && <span className="text-[11px] font-black text-violet-600">{feedMsg}</span>}
-                              </div>
-                              {/* Owner joins the trip: upload your photo + name → you appear WITH her. */}
-                              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] font-bold text-ink/60">
-                                <span className="font-black text-ink/50">👤 Mit mir im Bild:</span>
-                                <input value={feedOwnerName[p.id] ?? ""} onChange={e => setFeedOwnerName(m => ({ ...m, [p.id]: e.target.value }))} placeholder="Dein Name"
-                                  className="w-28 rounded-md border border-black/15 px-1.5 py-1 font-black text-ink outline-none focus:border-violet-500" />
-                                <label className="cursor-pointer rounded-md border border-black/15 px-2 py-1 font-black text-ink/70 hover:bg-black/5">
-                                  {feedOwnerImage[p.id] ? "Foto ✓" : "Foto hochladen"}
-                                  <input type="file" accept="image/*,.heic,.heif" className="hidden" onChange={async e => {
-                                    const f = e.target.files?.[0]; if (!f) return;
-                                    const url = await downscalePhoto(f); setFeedOwnerImage(m => ({ ...m, [p.id]: url }));
-                                  }} />
-                                </label>
-                                {feedOwnerImage[p.id] && (
-                                  <>
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={feedOwnerImage[p.id]} alt="" className="h-8 w-8 rounded-full object-cover" />
-                                    <button type="button" onClick={() => setFeedOwnerImage(m => ({ ...m, [p.id]: "" }))} className="text-red-400 hover:text-red-600">✕</button>
-                                  </>
-                                )}
-                                <span className="text-[10px] text-ink/40">(nur ohne Lingerie)</span>
-                              </div>
-                              {(() => {
-                                const posts = feedPosts.filter(f => f.programId === p.id).sort((a, b) => a.day - b.day);
-                                if (posts.length === 0) return <p className="mt-1.5 text-[11px] font-bold text-ink/40">Noch kein Feed generiert.</p>;
-                                return (
-                                  <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                                    {posts.map(f => (
-                                      <div key={f.id} className={`overflow-hidden rounded-lg border bg-white ${f.approved ? "border-emerald-400" : "border-black/10"}`}>
-                                        <div className="relative aspect-[3/4] w-full bg-black/5">
-                                          {f.imageUrl && <img src={f.imageUrl} alt="" className="h-full w-full object-cover" onError={e => { e.currentTarget.style.display = "none"; }} />}
-                                          <span className="absolute left-1 top-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-black text-white">Tag {f.day} · {f.location}</span>
-                                          {f.lingerie && <span className="absolute right-1 top-1 rounded-full bg-fuchsia-500 px-1.5 py-0.5 text-[8px] font-black text-white">Lingerie</span>}
-                                        </div>
-                                        <p className="px-1.5 py-1 text-[10px] font-medium leading-snug text-ink/70 line-clamp-4">{f.caption}</p>
-                                        <div className="flex items-center gap-1 border-t border-black/5 px-1.5 py-1">
-                                          <button type="button" onClick={() => void setFeedApproved(f.id, !f.approved)}
-                                            className={`flex-1 rounded-md px-1 py-1 text-[10px] font-black ${f.approved ? "bg-emerald-100 text-emerald-700" : "bg-black/5 text-ink/50"}`}>
-                                            {f.approved ? "✓ Freigegeben" : "Freigeben"}
-                                          </button>
-                                          <button type="button" onClick={() => void deleteFeedPost(f.id)} className="grid h-6 w-6 place-items-center rounded-md text-red-500"><Trash2 className="h-3 w-3" /></button>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
               </>
             );
           })()}
@@ -3098,6 +2952,170 @@ export default function AdminPage() {
       </div>
 
       {/* ── Insights tab — professional analytics dashboard (components/InsightsPro) ── */}
+      {tab === "meta" && (
+        <div className="mt-3 pb-16">
+              {/* Travel programs — one destination = one monthly program owners subscribe to. */}
+                <div className="mt-3 rounded-2xl border border-teal-300/60 bg-teal-50/40 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-black text-ink">🗺 Reise-Programme</p>
+                      <p className="mt-0.5 text-[12px] font-bold text-ink/50">Ein Ort = ein Monats-Programm. Der Owner abonniert es; die Influencerin „reist" hin und postet täglich einen Look von dort.</p>
+                    </div>
+                    <button type="button" onClick={() => void addProgram()} className="shrink-0 rounded-lg bg-teal-600 px-3 py-2 text-[11px] font-black text-white active:scale-95">+ Neues Programm</button>
+                  </div>
+                  {programs.length === 0 ? (
+                    <p className="mt-2 text-[12px] font-bold text-ink/45">Noch keine Programme. „+ Neues Programm" wählt einen Ort und baut daraus ein Monats-Paket.</p>
+                  ) : (
+                    <div className="mt-2 space-y-2">
+                      {programs.map(p => {
+                        // Route = fixed stops the admin curates. Fall back to a 1-stop route for legacy programs.
+                        const stops: ProgramStop[] = (p.stops && p.stops.length) ? p.stops : (p.location ? [{ location: p.location, days: p.days ?? 30 }] : []);
+                        const setStops = (next: ProgramStop[]) => void updateProgram(p.id, { stops: next, location: next[0]?.location ?? "" });
+                        const totalDays = stops.reduce((a, s) => a + (s.days || 0), 0);
+                        const stopLocs = new Set(stops.map(s => s.location).filter(Boolean));
+                        const pool = wardrobeLooks.filter(l => l.location && stopLocs.has(l.location));
+                        const routeLabel = stops.map(s => s.location || "—").join(" → ");
+                        return (
+                          <div key={p.id} className="rounded-xl border border-black/10 bg-white p-2.5">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <input defaultValue={p.name} onBlur={e => { const v = e.target.value.trim(); if (v && v !== p.name) void updateProgram(p.id, { name: v }); }}
+                                className="min-w-[8rem] flex-1 rounded-md border border-black/15 px-2 py-1 text-[13px] font-black text-ink outline-none focus:border-teal-500" />
+                              <button type="button" onClick={() => void updateProgram(p.id, { surprise: !p.surprise })}
+                                className={`rounded-full px-2.5 py-1 text-[10px] font-black ${p.surprise ? "bg-fuchsia-100 text-fuchsia-700" : "bg-black/5 text-ink/50"}`}>
+                                {p.surprise ? "🎁 Überraschung" : "Route sichtbar"}
+                              </button>
+                              <button type="button" onClick={() => void updateProgram(p.id, { published: !p.published })}
+                                className={`rounded-full px-2.5 py-1 text-[10px] font-black ${p.published ? "bg-emerald-100 text-emerald-700" : "bg-black/5 text-ink/50"}`}>
+                                {p.published ? "🌐 Live" : "Entwurf"}
+                              </button>
+                              <button type="button" onClick={() => void deleteProgram(p.id, p.name)} className="grid h-7 w-7 place-items-center rounded-lg border border-black/10 text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
+                            </div>
+
+                            {/* Route editor — fixed stops (a package). */}
+                            <div className="mt-2">
+                              <div className="mb-1 flex items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-wide text-ink/40">Route (Stops)</span>
+                                <button type="button" onClick={() => setStops([...stops, { location: vocab.locations[0] ?? "", days: 7 }])}
+                                  className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-black text-ink/60 hover:bg-black/10">+ Stop</button>
+                              </div>
+                              <div className="space-y-1">
+                                {stops.length === 0 && <span className="text-[11px] font-bold text-ink/30">Noch kein Stop — „+ Stop".</span>}
+                                {stops.map((s, i) => (
+                                  <div key={i} className="flex items-center gap-1.5 text-[11px] font-bold text-ink/60">
+                                    <span className="w-4 text-ink/30">{i + 1}.</span>
+                                    <select value={s.location} onChange={e => setStops(stops.map((x, j) => j === i ? { ...x, location: e.target.value } : x))}
+                                      className="rounded-md border border-black/15 px-1.5 py-1 font-black text-ink outline-none focus:border-teal-500">
+                                      <option value="">—</option>
+                                      {vocab.locations.map(x => <option key={x} value={x}>{x}</option>)}
+                                    </select>
+                                    <input type="number" min={1} max={90} value={s.days} onChange={e => setStops(stops.map((x, j) => j === i ? { ...x, days: Number(e.target.value) || 1 } : x))}
+                                      className="w-14 rounded-md border border-black/15 px-1.5 py-1 font-black text-ink outline-none focus:border-teal-500" />
+                                    <span className="text-ink/40">Tage · {wardrobeLooks.filter(l => l.location === s.location).length} Looks</span>
+                                    <button type="button" onClick={() => setStops(stops.filter((_, j) => j !== i))} className="ml-auto text-red-400 hover:text-red-600">✕</button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-bold text-ink/60">
+                              <label className="flex items-center gap-1">Preis/Monat
+                                <input defaultValue={p.price ?? ""} placeholder="€49" onBlur={e => void updateProgram(p.id, { price: e.target.value.trim() })} className="w-20 rounded-md border border-black/15 px-1.5 py-1 font-black text-ink outline-none focus:border-teal-500" />
+                              </label>
+                            </div>
+
+                            {/* "Was ist drin" — the package summary the owner sees. */}
+                            <div className="mt-2 rounded-lg bg-teal-50 px-2.5 py-1.5 text-[11px] font-black text-teal-800">
+                              📦 {stops.length} Stop{stops.length === 1 ? "" : "s"} · {totalDays} Tage · {pool.length} Looks{p.price ? ` · ${p.price}/Monat` : ""}
+                              <div className="mt-0.5 font-bold text-teal-700">{p.surprise ? "🎁 Überraschungsreise — Orte werden Tag für Tag enthüllt" : (routeLabel || "—")}</div>
+                            </div>
+
+                            <textarea defaultValue={p.description ?? ""} placeholder="Was ist drin? Angebotstext fürs Owner-Paket…" onBlur={e => void updateProgram(p.id, { description: e.target.value.trim() })}
+                              className="mt-2 h-14 w-full rounded-md border border-black/15 px-2 py-1 text-[12px] text-ink outline-none focus:border-teal-500" />
+                            {pool.length > 0 && (
+                              <div className="mt-2 flex gap-1 overflow-x-auto">
+                                {pool.slice(0, 14).map(l => (
+                                  <img key={l.id} src={safeLookImage(l)} alt="" className="h-14 w-11 shrink-0 rounded-md object-cover" onError={e => { e.currentTarget.style.display = "none"; }} />
+                                ))}
+                                {pool.length > 14 && <span className="grid h-14 w-11 shrink-0 place-items-center rounded-md bg-black/5 text-[10px] font-black text-ink/50">+{pool.length - 14}</span>}
+                              </div>
+                            )}
+                            {stops.length > 0 && pool.length === 0 && <p className="mt-1 text-[11px] font-bold text-amber-600">Noch keine Looks mit diesen Orten — Looks klassifizieren/taggen.</p>}
+
+                            {/* Test-Feed: generate image+caption posts up front, preview & approve. */}
+                            <div className="mt-3 rounded-lg border border-violet-200 bg-violet-50/50 p-2">
+                              <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold text-ink/60">
+                                <span className="font-black text-violet-700">🎬 Test-Feed</span>
+                                <select value={feedModel[p.id] ?? ""} onChange={e => setFeedModel(m => ({ ...m, [p.id]: e.target.value }))}
+                                  className="rounded-md border border-black/15 px-1.5 py-1 font-black text-ink outline-none focus:border-violet-500">
+                                  <option value="">Modell…</option>
+                                  {curators.filter(c => c.id !== "house" && (c as any).photoUrl).map(c => <option key={c.id} value={c.id}>{((c as any).firstName ?? "") + " " + ((c as any).lastName ?? "")}</option>)}
+                                </select>
+                                <label className="flex items-center gap-1"><input type="checkbox" checked={!!feedLingerie[p.id]} onChange={e => setFeedLingerie(m => ({ ...m, [p.id]: e.target.checked }))} /> Lingerie</label>
+                                <label className="flex items-center gap-1">Tage
+                                  <input type="number" min={1} max={10} value={feedCount[p.id] ?? Math.min(totalDays, 3)} onChange={e => setFeedCount(m => ({ ...m, [p.id]: Number(e.target.value) || 1 }))} className="w-12 rounded-md border border-black/15 px-1 py-1 font-black text-ink outline-none focus:border-violet-500" />
+                                </label>
+                                <button type="button" onClick={() => void generateFeed(p)} disabled={feedBusy === p.id}
+                                  className="rounded-lg bg-violet-600 px-2.5 py-1 text-[11px] font-black text-white active:scale-95 disabled:opacity-60">
+                                  {feedBusy === p.id ? "Generiere…" : "Feed generieren"}
+                                </button>
+                                {feedBusy === p.id && feedMsg && <span className="text-[11px] font-black text-violet-600">{feedMsg}</span>}
+                              </div>
+                              {/* Owner joins the trip: upload your photo + name → you appear WITH her. */}
+                              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] font-bold text-ink/60">
+                                <span className="font-black text-ink/50">👤 Mit mir im Bild:</span>
+                                <input value={feedOwnerName[p.id] ?? ""} onChange={e => setFeedOwnerName(m => ({ ...m, [p.id]: e.target.value }))} placeholder="Dein Name"
+                                  className="w-28 rounded-md border border-black/15 px-1.5 py-1 font-black text-ink outline-none focus:border-violet-500" />
+                                <label className="cursor-pointer rounded-md border border-black/15 px-2 py-1 font-black text-ink/70 hover:bg-black/5">
+                                  {feedOwnerImage[p.id] ? "Foto ✓" : "Foto hochladen"}
+                                  <input type="file" accept="image/*,.heic,.heif" className="hidden" onChange={async e => {
+                                    const f = e.target.files?.[0]; if (!f) return;
+                                    const url = await downscalePhoto(f); setFeedOwnerImage(m => ({ ...m, [p.id]: url }));
+                                  }} />
+                                </label>
+                                {feedOwnerImage[p.id] && (
+                                  <>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={feedOwnerImage[p.id]} alt="" className="h-8 w-8 rounded-full object-cover" />
+                                    <button type="button" onClick={() => setFeedOwnerImage(m => ({ ...m, [p.id]: "" }))} className="text-red-400 hover:text-red-600">✕</button>
+                                  </>
+                                )}
+                                <span className="text-[10px] text-ink/40">(nur ohne Lingerie)</span>
+                              </div>
+                              {(() => {
+                                const posts = feedPosts.filter(f => f.programId === p.id).sort((a, b) => a.day - b.day);
+                                if (posts.length === 0) return <p className="mt-1.5 text-[11px] font-bold text-ink/40">Noch kein Feed generiert.</p>;
+                                return (
+                                  <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                    {posts.map(f => (
+                                      <div key={f.id} className={`overflow-hidden rounded-lg border bg-white ${f.approved ? "border-emerald-400" : "border-black/10"}`}>
+                                        <div className="relative aspect-[3/4] w-full bg-black/5">
+                                          {f.imageUrl && <img src={f.imageUrl} alt="" className="h-full w-full object-cover" onError={e => { e.currentTarget.style.display = "none"; }} />}
+                                          <span className="absolute left-1 top-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-black text-white">Tag {f.day} · {f.location}</span>
+                                          {f.lingerie && <span className="absolute right-1 top-1 rounded-full bg-fuchsia-500 px-1.5 py-0.5 text-[8px] font-black text-white">Lingerie</span>}
+                                        </div>
+                                        <p className="px-1.5 py-1 text-[10px] font-medium leading-snug text-ink/70 line-clamp-4">{f.caption}</p>
+                                        <div className="flex items-center gap-1 border-t border-black/5 px-1.5 py-1">
+                                          <button type="button" onClick={() => void setFeedApproved(f.id, !f.approved)}
+                                            className={`flex-1 rounded-md px-1 py-1 text-[10px] font-black ${f.approved ? "bg-emerald-100 text-emerald-700" : "bg-black/5 text-ink/50"}`}>
+                                            {f.approved ? "✓ Freigegeben" : "Freigeben"}
+                                          </button>
+                                          <button type="button" onClick={() => void deleteFeedPost(f.id)} className="grid h-6 w-6 place-items-center rounded-md text-red-500"><Trash2 className="h-3 w-3" /></button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+        </div>
+      )}
+
       {tab === "insights" && (
         <InsightsPro
           feedEvents={feedEvents}

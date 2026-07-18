@@ -66,6 +66,7 @@ export default function MyStudioPage() {
           const s = await fetch(`/api/bella-carousel?model=${encodeURIComponent(impersonate.id)}`, { headers: { "x-try-look-admin-pin": pin } }).then(r => r.json());
           setMe({ id: impersonate.id, name: impersonate.firstName || "Model" });
           setSlides((s.slides || []).map(normFromServer));
+          if (typeof s.studioUploadCredits === "number") setCredits(s.studioUploadCredits);
           setPhase("ready");
         } catch { setErr("Could not load her studio."); setPhase("ready"); }
         return;

@@ -82,10 +82,12 @@ export async function GET(request: Request) {
   if (await isAdminRequest(request)) {
     const state = await readTryThisLookState();
     const backup = await readCardStudioBackup(model);
+    const curator = (state.curators ?? []).find(c => c.id === model);
     return NextResponse.json({
       slides: await signSlides(all, true),
       bookings: state.tripBookings ?? [],
       backup: { count: backup.slides.length, savedAt: backup.savedAt },
+      studioUploadCredits: typeof curator?.studioUploadCredits === "number" ? curator.studioUploadCredits : 10,
     });
   }
   // A real model editing her OWN card gets the full library (incl. private/hidden + raw paths),
