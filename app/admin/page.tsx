@@ -941,26 +941,45 @@ export default function AdminPage() {
   // Vocab management (add/rename/delete a value in a list) + seed defaults.
   const seedVocab = () => postCollection({ action: "seed-wardrobe-vocab" }, "Could not seed vocab");
   // Reference list of every transactional email the platform sends — Meta tab, admin-only overview.
-  const EMAIL_TEMPLATES: { trigger: string; subject: string; file: string }[] = [
-    { trigger: "Contact form — notifies admin", subject: "Contact ({reason}) from {name}", file: "api/contact" },
-    { trigger: "Contact form — auto-reply to sender", subject: "We received your message – LuxuryBandit", file: "api/contact" },
-    { trigger: "Subscription payment confirmed", subject: "Payment confirmed — your {model} subscription", file: "api/subscription-email" },
-    { trigger: "Model application — follow-up to finish profile", subject: "Complete your LuxuryBandit Model profile 💛", file: "api/curator" },
-    { trigger: "Model application — approved", subject: "You're approved on LuxuryBandit 🎉", file: "api/curator" },
-    { trigger: "Model application — needs a fix", subject: "Your LuxuryBandit application — one thing to fix", file: "api/curator" },
-    { trigger: "Travel booking — notifies admin", subject: "Neue Buchung: Urlaub mit {model} ({program}) — {email}", file: "api/book-trip" },
-    { trigger: "Mai-ieftin AI chat — notifies admin", subject: "💬 New chat with {who}", file: "api/mai-ieftin-chat" },
-    { trigger: "My Studio gift — admin added content for her", subject: "You received new photos/videos from LuxuryBandit 🎁", file: "api/bella-carousel" },
-    { trigger: "Welcome email (general)", subject: "Welcome to LuxuryBandit 🖤", file: "api/welcome-email" },
-    { trigger: "Try-on funnel — first-time welcome", subject: "Welcome to LuxuryBandit 💛 New looks every day", file: "api/try-this-look" },
-    { trigger: "Model persona chat — new message", subject: "{model} sent you a message 💕", file: "api/model-chat" },
-    { trigger: "Curator invite — after styling a look", subject: "You just styled a look — become a LuxuryBandit curator 🖤", file: "lib/curator-invite-email" },
-    { trigger: "Onboarding — her dashboard is ready", subject: "{influencer} is ready — open your dashboard 🎉", file: "lib/onboarding-email" },
-    { trigger: "Magic link — sign in", subject: "Sign in to LuxuryBandit", file: "api/send-look-link" },
-    { trigger: "Magic link — look ready", subject: "Your look is ready ✨ — sign in to see it", file: "api/send-look-link" },
-    { trigger: "Customer feed ready (journey)", subject: "Your new feed is online 🌴", file: "api/notify-customer" },
-    { trigger: "Password reset", subject: "Reset your LuxuryBandit password", file: "api/send-reset-link" },
-    { trigger: "Newsletter — admin bulk send", subject: "A new look from {model} 💛 (or custom)", file: "api/newsletter" },
+  const EMAIL_TEMPLATES: { trigger: string; subject: string; file: string; body: string }[] = [
+    { trigger: "Contact form — notifies admin", subject: "Contact ({reason}) from {name}", file: "api/contact",
+      body: "Heading \"New contact message · {reason}\". Shows From: {name} <{email}>, Reason, and the visitor's message in a gray box. Footer: sent from the contact form, reply directly to answer the visitor. No CTA button." },
+    { trigger: "Contact form — auto-reply to sender", subject: "We received your message – LuxuryBandit", file: "api/contact",
+      body: "Heading \"Thanks for your message, {name}!\". Confirms the message was received and support will reply ASAP. Repeats the reason and the visitor's message text in a gray box. Note: automatic confirmation, no need to reply." },
+    { trigger: "Subscription payment confirmed", subject: "Payment confirmed — your {model} subscription", file: "api/subscription-email",
+      body: "Header \"Payment confirmed 💛\". Body: \"You're subscribed to {model} 🎉\" — unlimited chat + private photos/videos with that model. Receipt table: model, amount/mo, date, billed-to email. CTA \"Open {model}'s profile →\". Footer: renews monthly, cancel anytime." },
+    { trigger: "Model application — follow-up to finish profile", subject: "Complete your LuxuryBandit Model profile 💛", file: "api/curator",
+      body: "Greeting \"Hi {firstName}\". Thanks her for applying, asks her to complete her own profile (sign in with same email, Google fastest): face + full-body photo, verification selfie holding paper with \"LuxuryBandit\" + date, WhatsApp number, accept model rules & terms. Earnings box: keeps 50% (~$2.00) per paid video, $3.99/video once approved, profiles reviewed for photo quality. Consent box: 18+ platform, agrees fans see her in lingerie try-ons, profile paused until confirmed + approved — CTA \"I'm 18+ & I agree — confirm ✓\". Second CTA \"Complete my profile →\"." },
+    { trigger: "Model application — approved", subject: "You're approved on LuxuryBandit 🎉", file: "api/curator",
+      body: "Greeting \"Hi {firstName}\". \"Great news — your LuxuryBandit Model profile has been approved!\" — sign in with her email to her own model page, check looks, keep profile updated, start earning from chats & try-ons. CTA \"Sign in to my page →\"." },
+    { trigger: "Model application — needs a fix", subject: "Your LuxuryBandit application — one thing to fix", file: "api/curator",
+      body: "Greeting \"Hi {firstName}\". \"Thanks for applying... we couldn't approve your profile just yet:\" followed by the admin's specific rejection reason in a blockquote. Asks her to fix it and re-apply with the same email. CTA \"Re-apply →\"." },
+    { trigger: "Travel booking — notifies admin", subject: "Neue Buchung: Urlaub mit {model} ({program}) — {email}", file: "api/book-trip",
+      body: "(German, admin-only) Header \"Neue Reise-Buchung\" / \"Urlaub mit {model} · {program}\". Table: Name, E-Mail, Paket (program + \"3 Videos + 3 Stories/Tag\"), Preis ($X/Tag). Note: customer created an account — set up the trip manually and deliver first content." },
+    { trigger: "Mai-ieftin AI chat — notifies admin", subject: "💬 New chat with {who}", file: "api/mai-ieftin-chat",
+      body: "Admin-only. Plain single paragraph containing the chat note/summary text — no styling, no CTA, no branding header." },
+    { trigger: "My Studio gift — admin added content for her", subject: "You received new photos/videos from LuxuryBandit 🎁", file: "api/bella-carousel",
+      body: "Plain body: \"Hi {name}, LuxuryBandit just added {n} new post(s) (photos/videos) to your profile — a gift for you.\" Tells her to open My Studio to see/manage them. Minimal HTML, no CTA button." },
+    { trigger: "Welcome email (general)", subject: "Welcome to LuxuryBandit 🖤", file: "api/welcome-email",
+      body: "Header \"Your account is ready.\" Greeting \"Hi {name} 👋\". Welcomes them: discover fashion, try on looks, connect with sellers. \"What you can do\" box: try on any look with AI, discover stores, message sellers, open your own store. CTA \"Go to LuxuryBandit →\"." },
+    { trigger: "Try-on funnel — first-time welcome", subject: "Welcome to LuxuryBandit 💛 New looks every day", file: "api/try-this-look",
+      body: "Dark header \"LUXURYBANDIT\", hero image of the look watched. Heading \"Welcome, {firstName} 💛\". \"You're in. Every day we drop new luxury looks — worn by your models in runway-quality videos. Try them on, watch them, shop them.\" CTA \"See today's looks →\". Footer: reply 'stop' to unsubscribe." },
+    { trigger: "Model persona chat — new message", subject: "{model} sent you a message 💕", file: "api/model-chat",
+      body: "\"{model} just messaged you on LuxuryBandit:\" followed by the message text in a blockquote. CTA \"Reply to {model} →\" linking to her profile chat. Minimal styling, no branded header." },
+    { trigger: "Curator invite — after styling a look", subject: "You just styled a look — become a LuxuryBandit curator 🖤", file: "lib/curator-invite-email",
+      body: "Header \"Loved your try-on? Get paid for your taste.\" Greeting \"Hi {name}\". Pitches becoming a paid curator: affiliate commission on looks, free AI try-ons/videos, her own profile, free to start. CTA \"Become a curator →\"." },
+    { trigger: "Onboarding — her dashboard is ready", subject: "{influencer} is ready — open your dashboard 🎉", file: "lib/onboarding-email",
+      body: "Header \"{influencer} is ready 🎉\". Greeting \"Hi {name} 👋\". Her AI influencer is set up and ready to grow. CTA \"Set your password & open your dashboard →\" (magic link). \"What happens next\" box: we create her content daily, chat with her yourself (fans too), she grows in value over time, fans subscribe & Super Follow. Footer: link is single-use, expires soon." },
+    { trigger: "Magic link — sign in", subject: "Sign in to LuxuryBandit", file: "api/send-look-link",
+      body: "Header \"Sign in to LuxuryBandit\". \"Here's your sign-in link.\" — tap below, no password needed. CTA \"Sign in →\". Footer: link expires soon, don't share." },
+    { trigger: "Magic link — look ready", subject: "Your look is ready ✨ — sign in to see it", file: "api/send-look-link",
+      body: "Header \"Your look is ready ✨\", hero image of the try-on. \"Here's you in {lookName}.\" Saved to your free account, sign in to view/download/delete try-ons and try more looks. CTA \"Sign in & see my look →\". Footer: link expires soon." },
+    { trigger: "Customer feed ready (journey)", subject: "Your new feed is online 🌴", file: "api/notify-customer",
+      body: "Header \"Your new feed is online 🌴\". Greeting \"{name},\". Custom admin message or default \"your new videos are here. Check them out in your dashboard.\" CTA \"Click here → your feed\" (links to /my-journey)." },
+    { trigger: "Password reset", subject: "Reset your LuxuryBandit password", file: "api/send-reset-link",
+      body: "Header \"Reset your password\". \"Forgot your password? Tap below to set a new password... if you didn't request this, ignore this email, your password stays the same.\" CTA \"Set a new password →\" (recovery link). Footer: link single-use, expires soon." },
+    { trigger: "Newsletter — admin bulk send", subject: "A new look from {model} 💛 (or custom)", file: "api/newsletter",
+      body: "Admin bulk \"New Look\" email. Header \"New Look from {model} 💛\" (or generic). Body: the admin-authored free-text message. CTA (if a link given) \"See {model}'s new look →\". Footer: received because you signed up, plus a one-click \"Unsubscribe from this newsletter\" link." },
   ];
   const [showEmailTemplates, setShowEmailTemplates] = useState(false);
   // ── Emails tab: compose + send a test to yourself, or broadcast to selected users. ──
@@ -3055,16 +3074,17 @@ export default function AdminPage() {
             </button>
             {showEmailTemplates && (
               <div className="mt-3 space-y-1.5">
-                <p className="text-[11px] font-bold text-ink/45">Auf eine Vorlage tippen → Betreff wird unten übernommen, zum Senden bereit.</p>
+                <p className="text-[11px] font-bold text-ink/45">Auf eine Vorlage tippen → Betreff + Inhalt werden unten übernommen, zum Senden bereit.</p>
                 {EMAIL_TEMPLATES.map((t, i) => (
                   <button key={i} type="button" onClick={() => {
                     setEmailSubject(t.subject.replace(/\{[^}]+\}/g, "").replace(/\s{2,}/g, " ").trim());
-                    setEmailMessage(`(Vorlage: ${t.trigger})\n\n`);
+                    setEmailMessage(t.body);
                     setEmailSendMsg("");
                   }} className="block w-full rounded-lg border border-black/10 bg-panel px-3 py-2 text-left transition active:scale-[0.99] hover:border-amber-400/60">
                     <p className="text-[12px] font-black text-ink">{t.trigger}</p>
                     <p className="text-[12px] font-semibold text-ink/60">&ldquo;{t.subject}&rdquo;</p>
-                    <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-ink/35">{t.file}</p>
+                    <p className="mt-1 text-[11px] font-medium leading-relaxed text-ink/70">{t.body}</p>
+                    <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-ink/35">{t.file}</p>
                   </button>
                 ))}
               </div>
