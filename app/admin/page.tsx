@@ -292,6 +292,7 @@ export default function AdminPage() {
   type PendingSlide = { modelId: string; modelName: string; id: string; kind: string; caption: string; createdAt: string; mediaUrl: string; posterUrl: string; status: "pending" | "public" };
   const [pendingSlides, setPendingSlides] = useState<PendingSlide[]>([]);
   const [pendingBusy, setPendingBusy] = useState("");
+  const [pendingLightbox, setPendingLightbox] = useState<{ url: string; isVideo: boolean } | null>(null);
   const loadPending = () => {
     fetch("/api/pending-slides", { headers: headers() }).then(r => r.json()).then(d => setPendingSlides(Array.isArray(d?.items) ? d.items : [])).catch(() => {});
   };
@@ -939,6 +940,29 @@ export default function AdminPage() {
   };
   // Vocab management (add/rename/delete a value in a list) + seed defaults.
   const seedVocab = () => postCollection({ action: "seed-wardrobe-vocab" }, "Could not seed vocab");
+  // Reference list of every transactional email the platform sends — Meta tab, admin-only overview.
+  const EMAIL_TEMPLATES: { trigger: string; subject: string; file: string }[] = [
+    { trigger: "Contact form — notifies admin", subject: "Contact ({reason}) from {name}", file: "api/contact" },
+    { trigger: "Contact form — auto-reply to sender", subject: "We received your message – LuxuryBandit", file: "api/contact" },
+    { trigger: "Subscription payment confirmed", subject: "Payment confirmed — your {model} subscription", file: "api/subscription-email" },
+    { trigger: "Model application — follow-up to finish profile", subject: "Complete your LuxuryBandit Model profile 💛", file: "api/curator" },
+    { trigger: "Model application — approved", subject: "You're approved on LuxuryBandit 🎉", file: "api/curator" },
+    { trigger: "Model application — needs a fix", subject: "Your LuxuryBandit application — one thing to fix", file: "api/curator" },
+    { trigger: "Travel booking — notifies admin", subject: "Neue Buchung: Urlaub mit {model} ({program}) — {email}", file: "api/book-trip" },
+    { trigger: "Mai-ieftin AI chat — notifies admin", subject: "💬 New chat with {who}", file: "api/mai-ieftin-chat" },
+    { trigger: "My Studio gift — admin added content for her", subject: "You received new photos/videos from LuxuryBandit 🎁", file: "api/bella-carousel" },
+    { trigger: "Welcome email (general)", subject: "Welcome to LuxuryBandit 🖤", file: "api/welcome-email" },
+    { trigger: "Try-on funnel — first-time welcome", subject: "Welcome to LuxuryBandit 💛 New looks every day", file: "api/try-this-look" },
+    { trigger: "Model persona chat — new message", subject: "{model} sent you a message 💕", file: "api/model-chat" },
+    { trigger: "Curator invite — after styling a look", subject: "You just styled a look — become a LuxuryBandit curator 🖤", file: "lib/curator-invite-email" },
+    { trigger: "Onboarding — her dashboard is ready", subject: "{influencer} is ready — open your dashboard 🎉", file: "lib/onboarding-email" },
+    { trigger: "Magic link — sign in", subject: "Sign in to LuxuryBandit", file: "api/send-look-link" },
+    { trigger: "Magic link — look ready", subject: "Your look is ready ✨ — sign in to see it", file: "api/send-look-link" },
+    { trigger: "Customer feed ready (journey)", subject: "Your new feed is online 🌴", file: "api/notify-customer" },
+    { trigger: "Password reset", subject: "Reset your LuxuryBandit password", file: "api/send-reset-link" },
+    { trigger: "Newsletter — admin bulk send", subject: "A new look from {model} 💛 (or custom)", file: "api/newsletter" },
+  ];
+  const [showEmailTemplates, setShowEmailTemplates] = useState(false);
   // Duplicate wardrobe items — detect (client-side, by normalized name) + merge.
   const [showDupes, setShowDupes] = useState(false);
   const [dupeThreshold, setDupeThreshold] = useState(1); // max mean per-channel color distance; true dups sit at ~0 (≤1 avoids similar-but-distinct false positives)
@@ -1821,12 +1845,13 @@ export default function AdminPage() {
                 <div className="grid gap-2">
                   {pendingSlides.map(s => (
                     <div key={s.id} className="flex gap-3 rounded-xl border border-black/10 bg-white p-3">
-                      <span className="h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-black/5">
+                      <button type="button" onClick={() => setPendingLightbox({ url: s.kind === "video" ? s.mediaUrl : s.mediaUrl, isVideo: s.kind === "video" })}
+                        className="h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-black/5">
                         {(s.kind === "video" ? s.posterUrl : s.mediaUrl) ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={s.kind === "video" ? s.posterUrl : s.mediaUrl} alt="" className="h-full w-full object-cover" />
                         ) : null}
-                      </span>
+                      </button>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <p className="truncate text-[13px] font-black">{s.modelName}</p>
@@ -1855,6 +1880,19 @@ export default function AdminPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+            {/* Lightbox — see a pending/public post's photo or video full-size. */}
+            {pendingLightbox && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4" onClick={() => setPendingLightbox(null)}>
+                <button type="button" onClick={() => setPendingLightbox(null)} className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white"><X className="h-5 w-5" /></button>
+                {pendingLightbox.isVideo ? (
+                  // eslint-disable-next-line jsx-a11y/media-has-caption
+                  <video src={pendingLightbox.url} controls autoPlay playsInline className="max-h-[90vh] max-w-full rounded-xl" onClick={e => e.stopPropagation()} />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={pendingLightbox.url} alt="" className="max-h-[90vh] max-w-full rounded-xl object-contain" onClick={e => e.stopPropagation()} />
+                )}
               </div>
             )}
             {/* Visibility-tier filter chips — All / Private / Community (the moderation tiers). */}
@@ -2954,6 +2992,27 @@ export default function AdminPage() {
       {/* ── Insights tab — professional analytics dashboard (components/InsightsPro) ── */}
       {tab === "meta" && (
         <div className="mt-3 pb-16">
+              {/* Reference list of every automated email the platform sends. */}
+              <div className="mb-3 rounded-2xl border border-black/10 bg-white p-3">
+                <button type="button" onClick={() => setShowEmailTemplates(v => !v)} className="flex w-full items-center justify-between gap-2">
+                  <div className="text-left">
+                    <p className="text-sm font-black text-ink">✉️ Email templates ({EMAIL_TEMPLATES.length})</p>
+                    <p className="mt-0.5 text-[12px] font-bold text-ink/50">Every transactional email the platform sends, and what triggers it.</p>
+                  </div>
+                  <span className="shrink-0 text-ink/40">{showEmailTemplates ? "▲" : "▼"}</span>
+                </button>
+                {showEmailTemplates && (
+                  <div className="mt-3 space-y-1.5">
+                    {EMAIL_TEMPLATES.map((t, i) => (
+                      <div key={i} className="rounded-lg border border-black/10 bg-panel px-3 py-2">
+                        <p className="text-[12px] font-black text-ink">{t.trigger}</p>
+                        <p className="text-[12px] font-semibold text-ink/60">&ldquo;{t.subject}&rdquo;</p>
+                        <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-ink/35">{t.file}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               {/* Travel programs — one destination = one monthly program owners subscribe to. */}
                 <div className="mt-3 rounded-2xl border border-teal-300/60 bg-teal-50/40 p-3">
                   <div className="flex items-center justify-between gap-2">
