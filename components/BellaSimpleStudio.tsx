@@ -8,7 +8,7 @@ import { Loader2, Plus, Trash2, Check } from "lucide-react";
 // keine Entwurfs-/Übernehmen-Logik. Beiträge gehen sofort live.
 // Blendet sich für alle außer dem Admin aus.
 
-type Post = { id: string; kind: "image" | "video"; caption: string; mediaUrl: string };
+type Post = { id: string; kind: "image" | "video"; title: string; caption: string; mediaUrl: string };
 
 export default function BellaSimpleStudio() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -54,7 +54,7 @@ export default function BellaSimpleStudio() {
         body: file,
       });
       if (!put.ok) { setError("Hochladen fehlgeschlagen."); return; }
-      const res = await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ add: { kind, path: sign.path, caption: "" } }) }).then(r => r.json());
+      const res = await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ add: { kind, path: sign.path, title: "", caption: "" } }) }).then(r => r.json());
       if (!res?.ok) { setError(res?.error ?? "Speichern fehlgeschlagen."); return; }
       await load();
     } catch { setError("Hochladen fehlgeschlagen."); }
@@ -64,7 +64,7 @@ export default function BellaSimpleStudio() {
   const saveCaption = async (p: Post) => {
     setSavingId(p.id); setError("");
     try {
-      const r = await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ posts: [{ id: p.id, caption: p.caption }] }) });
+      const r = await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ posts: [{ id: p.id, title: p.title, caption: p.caption }] }) });
       if (!r.ok) { setError("Speichern fehlgeschlagen."); return; }
       setSavedId(p.id); setTimeout(() => setSavedId(""), 2000);
     } catch { setError("Netzwerkfehler."); }
@@ -110,8 +110,13 @@ export default function BellaSimpleStudio() {
                   // eslint-disable-next-line @next/next/no-img-element
                   : <img src={p.mediaUrl} alt="" className="h-full w-full object-cover" />}
               </div>
-              <div className="flex min-w-0 flex-1 flex-col">
-                <textarea value={p.caption} rows={3} placeholder="Text zum Beitrag…"
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                {/* Titel — erscheint GROSS im Bild, z. B. „Bella ist dein Wecker" */}
+                <input value={p.title} placeholder="Titel im Bild, z. B. Bella ist dein Wecker"
+                  onChange={e => setPosts(ps => ps.map(x => x.id === p.id ? { ...x, title: e.target.value } : x))}
+                  onBlur={() => void saveCaption(p)}
+                  className="w-full rounded-lg border border-[#c9a23f]/40 bg-[#c9a23f]/10 px-2.5 py-2 text-[13px] font-black text-white outline-none placeholder:font-semibold placeholder:text-white/35 focus:border-[#c9a23f]" />
+                <textarea value={p.caption} rows={2} placeholder="Text darunter (optional)…"
                   onChange={e => setPosts(ps => ps.map(x => x.id === p.id ? { ...x, caption: e.target.value } : x))}
                   onBlur={() => void saveCaption(p)}
                   className="w-full flex-1 resize-none rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-2 text-[13px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]" />

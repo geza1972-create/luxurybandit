@@ -9,6 +9,7 @@ import { useRef, useState } from "react";
 export type BellaPost = {
   id: string;
   kind: "image" | "video";
+  title: string;
   caption: string;
   mediaUrl: string;
   posterUrl?: string;
@@ -39,7 +40,7 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
         className="flex snap-x snap-mandatory overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {posts.map((p, i) => (
           <article key={p.id} className="w-full shrink-0 snap-center">
-            <div className="w-full bg-black">
+            <div className="relative w-full bg-black">
               {p.kind === "video" ? (
                 // eslint-disable-next-line jsx-a11y/media-has-caption
                 <video src={p.mediaUrl} poster={p.posterUrl || undefined} controls playsInline preload="metadata"
@@ -48,6 +49,17 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={p.mediaUrl} alt={`${name} ${i + 1}`} loading={i < 2 ? "eager" : "lazy"}
                   className="block max-h-[70vh] w-full object-contain" />
+              )}
+              {/* Titel im Bild. Bei VIDEOS oben — unten sitzen die Abspiel-Regler,
+                  dort würde der Titel sie verdecken. */}
+              {p.title && (
+                <div className={`pointer-events-none absolute inset-x-0 px-5 ${
+                  p.kind === "video"
+                    ? "top-0 bg-gradient-to-b from-black/90 via-black/40 to-transparent pb-16 pt-4"
+                    : "bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pb-4 pt-16"
+                }`}>
+                  <p className="text-[28px] font-black leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">{p.title}</p>
+                </div>
               )}
             </div>
             {p.caption && (

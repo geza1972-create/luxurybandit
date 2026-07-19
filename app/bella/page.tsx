@@ -46,6 +46,7 @@ export default async function BellaPage() {
   const posts = (await Promise.all(ordered.map(async s => ({
     id: s.id,
     kind: s.kind,
+    title: s.title ?? "",
     caption: s.caption ?? "",
     mediaUrl: await getSignedUrl(s.path).catch(() => ""),
     posterUrl: s.posterPath ? await getSignedUrl(s.posterPath).catch(() => "") : "",
@@ -54,16 +55,6 @@ export default async function BellaPage() {
   return (
     <main className="min-h-[100dvh] lb-bg pb-16 text-white">
       <TopNav />
-
-      {/* Kein Profilbild — es sah aus wie ein zusätzlicher Slide. Nur Name + ein Satz,
-          das eigentliche Bildmaterial sind ihre Beiträge im Karussell darunter. */}
-      <div className="px-5 pt-6">
-        <h1 className="text-[34px] font-black leading-none">{name}</h1>
-        <p className="mt-1.5 text-[12px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Every day, for you</p>
-        {intro && (
-          <p className="mt-3 text-[15px] font-semibold leading-relaxed text-white/85">{intro}</p>
-        )}
-      </div>
 
       {/* Ihre Beiträge — seitlich durchblätterbar */}
       {posts.length === 0 ? (

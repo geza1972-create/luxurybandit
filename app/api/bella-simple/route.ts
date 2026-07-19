@@ -27,6 +27,7 @@ export async function GET(request: Request) {
   const posts = await Promise.all(mine.map(async s => ({
     id: s.id,
     kind: s.kind,
+    title: s.title ?? "",
     caption: s.caption ?? "",
     mediaUrl: await getSignedUrl(s.path).catch(() => ""),
   })));
@@ -41,8 +42,8 @@ export async function POST(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
   const body = (await request.json().catch(() => ({}))) as {
     sign?: boolean; kind?: string; ext?: string;
-    add?: { kind?: string; path?: string; caption?: string };
-    posts?: { id?: string; caption?: string }[];
+    add?: { kind?: string; path?: string; caption?: string; title?: string };
+    posts?: { id?: string; caption?: string; title?: string }[];
     remove?: string;
   };
 
@@ -66,6 +67,7 @@ export async function POST(request: Request) {
       id: `post-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
       kind,
       path: String(body.add.path),
+      title: String(body.add.title ?? "").slice(0, 120),
       caption: String(body.add.caption ?? "").slice(0, 3000),
       private: false,
       hidden: false,
@@ -91,8 +93,11 @@ export async function POST(request: Request) {
 
   if (Array.isArray(body.posts)) {
     // Nur die Texte der uebergebenen Beitraege aendern — alles andere bleibt unangetastet.
-    const byId = new Map(body.posts.filter(p => p?.id).map(p => [String(p.id), String(p.caption ?? "").slice(0, 3000)]));
-    const next = all.map(s => byId.has(s.id) ? { ...s, caption: byId.get(s.id)! } : s);
+    const byId = new Map(body.posts.filter(p => p?.id).map(p => [String(p.id), {
+      title: String(p.title ?? "").slice(0, 120),
+      caption: String(p.caption ?? "").slice(0, 3000),
+    }]));
+    const next = all.map(s => byId.has(s.id) ? { ...s, ...byId.get(s.id)! } : s);
     try { await writeCardStudioSlides(next, BELLA_ID); } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "Speichern fehlgeschlagen." }, { status: 502 });
     }
