@@ -96,12 +96,12 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
                   Bild — jetzt sitzt er direkt unter dem Titel, mit wenig Abstand.
                   Das Overlay ist durchklickbar, sonst käme das Video nicht an den Tipp. */}
               {(p.title || p.caption) && (
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/70 to-transparent px-5 pb-5 pt-24">
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/70 to-transparent px-5 pb-2 pt-24">
                   {p.title && (
                     <p className="text-[28px] font-black leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">{p.title}</p>
                   )}
                   {p.caption && (
-                    <p className="mt-1 whitespace-pre-line text-[14px] font-semibold leading-snug text-white/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
+                    <p className="mt-1 whitespace-pre-line text-[13px] font-semibold leading-snug text-white/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
                       {p.caption}
                     </p>
                   )}
