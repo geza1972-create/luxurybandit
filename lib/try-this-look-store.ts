@@ -486,9 +486,6 @@ export type BellaSlide = {
   createdAt?: string;
   source?: "admin" | "model"; // who added it — "admin" = a gift from LuxuryBandit, "model" = she uploaded it herself
   pendingApproval?: boolean;  // her own PUBLIC upload, awaiting admin review — not shown publicly yet
-  // Title/caption in every language we serve. Written on save (German in, RO + EN
-  // translated automatically); `title`/`caption` above stay the German original.
-  i18n?: Partial<Record<"de" | "ro" | "en", { title?: string; caption?: string }>>;
 };
 
 // Zeigt /bella diesen Beitrag? DIE EINE Regel — Seite und Werkzeug fragen beide hier.

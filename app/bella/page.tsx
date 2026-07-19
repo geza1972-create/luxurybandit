@@ -2,9 +2,7 @@ import TopNav from "@/components/TopNav";
 import BellaSimpleStudio from "@/components/BellaSimpleStudio";
 import BellaPostsCarousel from "@/components/BellaPostsCarousel";
 import { BELLA_ID } from "@/lib/bella-card";
-import { headers } from "next/headers";
 import { readTryThisLookState, readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
-import { langFromAcceptLanguage, normalizeLang, pickPostText } from "@/lib/translate-post";
 
 // Bellas Seite — BEWUSST MINIMAL: ihr Bild, ihr Name, ihre Beiträge. Sonst nichts.
 // Keine Sammelkarte mit Growth Score, Seriennummer, Sponsor-Historie, Super-Follow,
@@ -25,17 +23,11 @@ export const metadata = {
 // Signierte Medien-Adressen laufen ab → pro Aufruf frisch rendern.
 export const dynamic = "force-dynamic";
 
-export default async function BellaPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const [state, slides, sp, h] = await Promise.all([
+export default async function BellaPage() {
+  const [state, slides] = await Promise.all([
     readTryThisLookState(),
     readCardStudioSlides(BELLA_ID).catch(() => [] as BellaSlide[]),
-    searchParams,
-    headers(),
   ]);
-
-  // Sprache: ?lang= schlägt alles (zum Nachschauen), sonst die Browsersprache des
-  // Besuchers, sonst Englisch. Kein Umschalter — die Seite soll leer bleiben.
-  const lang = normalizeLang(sp.lang) ?? langFromAcceptLanguage(h.get("accept-language"));
 
   const bella = (state.curators ?? []).find(c => c.id === BELLA_ID) as
     | { firstName?: string; modelName?: string; intro?: string } | undefined;
@@ -43,18 +35,14 @@ export default async function BellaPage({ searchParams }: { searchParams: Promis
   const intro = String(bella?.intro ?? "").trim();
 
   const ordered = slides.filter(isPublicBellaPost).sort(sortBellaPosts);
-  const posts = (await Promise.all(ordered.map(async s => {
-    // Text in der Sprache des Besuchers; fehlt die Übersetzung, kommt das Original.
-    const text = pickPostText(s.i18n, lang, { title: s.title ?? "", caption: s.caption ?? "" });
-    return {
-      id: s.id,
-      kind: s.kind,
-      title: text.title ?? "",
-      caption: text.caption ?? "",
-      mediaUrl: await getSignedUrl(s.path).catch(() => ""),
-      posterUrl: s.posterPath ? await getSignedUrl(s.posterPath).catch(() => "") : "",
-    };
-  }))).filter(p => p.mediaUrl);
+  const posts = (await Promise.all(ordered.map(async s => ({
+    id: s.id,
+    kind: s.kind,
+    title: s.title ?? "",
+    caption: s.caption ?? "",
+    mediaUrl: await getSignedUrl(s.path).catch(() => ""),
+    posterUrl: s.posterPath ? await getSignedUrl(s.posterPath).catch(() => "") : "",
+  })))).filter(p => p.mediaUrl);
 
   return (
     <main className="min-h-[100dvh] lb-bg pb-16 text-white">

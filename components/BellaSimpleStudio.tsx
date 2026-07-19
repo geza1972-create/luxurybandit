@@ -10,11 +10,7 @@ import { Loader2, Plus, Trash2, Check } from "lucide-react";
 // Hochladen und Löschen wirken sofort (die Datei muss ohnehin gespeichert werden).
 // Blendet sich für alle außer dem Admin aus.
 
-type Text = { title?: string; caption?: string } | null;
-type Post = {
-  id: string; kind: "image" | "video"; title: string; caption: string; mediaUrl: string;
-  ro?: Text; en?: Text;   // automatisch uebersetzt, nur zur Anzeige
-};
+type Post = { id: string; kind: "image" | "video"; title: string; caption: string; mediaUrl: string };
 
 export default function BellaSimpleStudio() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -91,8 +87,6 @@ export default function BellaSimpleStudio() {
       });
       if (!r.ok) { setError("Übernehmen fehlgeschlagen."); return; }
       setDirty(false); setApplied(true); setTimeout(() => setApplied(false), 2500);
-      await load();   // holt die frisch erzeugten Übersetzungen
-
     } catch { setError("Netzwerkfehler."); }
     finally { setApplying(false); }
   };
@@ -144,18 +138,6 @@ export default function BellaSimpleStudio() {
                 <textarea value={p.caption} rows={2} placeholder="Text darunter (optional)…"
                   onChange={e => edit(p.id, { caption: e.target.value })}
                   className="w-full flex-1 resize-none rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-2 text-[13px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]" />
-                {/* Was der Übersetzer daraus gemacht hat — nur zur Kontrolle. */}
-                {(p.ro?.title || p.ro?.caption || p.en?.title || p.en?.caption) && (
-                  <div className="mt-1 grid gap-1 rounded-lg bg-white/[0.03] px-2.5 py-1.5">
-                    {([["RO", p.ro], ["EN", p.en]] as const).map(([label, t]) => (t?.title || t?.caption) ? (
-                      <p key={label} className="text-[11px] font-semibold leading-snug text-white/45">
-                        <span className="font-black text-[#c9a23f]">{label}</span>{" "}
-                        {[t?.title, t?.caption].filter(Boolean).join(" — ").slice(0, 110)}
-                      </p>
-                    ) : null)}
-                  </div>
-                )}
-
                 <div className="mt-1.5 flex items-center gap-2">
                   <button type="button" onClick={() => void remove(p.id)}
                     className="ml-auto flex h-7 items-center gap-1 rounded-lg border border-red-400/40 px-2.5 text-[11px] font-black text-red-300 active:scale-95 transition">
