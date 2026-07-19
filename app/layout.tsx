@@ -22,6 +22,9 @@ export const metadata: Metadata = {
   },
   // fb:app_id on EVERY page — the "luxurybandit" Meta app (also powers FB login).
   facebook: { appId: process.env.NEXT_PUBLIC_FB_APP_ID ?? "1385612150051040" },
+  // Google Search Console verification — set GOOGLE_SITE_VERIFICATION in Vercel to the code
+  // Google gives you (the "meta tag" verification method), then hit Verify. Renders nothing if unset.
+  ...(process.env.GOOGLE_SITE_VERIFICATION ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } } : {}),
   icons: { icon: "/lb-logo.png", shortcut: "/lb-logo.png", apple: "/lb-logo.png" },
   // Alibaba.com / AliExpress affiliate domain verification (public token, meta-tag method).
   other: {
