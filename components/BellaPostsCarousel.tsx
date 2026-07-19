@@ -100,8 +100,10 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
                 an derselben Stelle: 55 % der Bildhöhe. Ein langer Text läuft nach unten
                 über das Bild hinaus weiter — der Verlauf endet in der Seitenfarbe, damit
                 das nahtlos aussieht. Durchklickbar, sonst käme das Video nicht an den Tipp. */}
+            {/* -mt in Prozent der BREITE: 49,3 % statt 60 % setzt den Text 40 px tiefer
+                (bei 375 px Bildschirm) und skaliert auf größeren Geräten mit. */}
             {(p.title || p.caption) && (
-              <div className="pointer-events-none relative -mt-[60%] bg-gradient-to-b from-transparent via-[#0d0b0a]/85 to-[#0d0b0a] px-5 pb-4 pt-10">
+              <div className="pointer-events-none relative -mt-[49.3%] bg-gradient-to-b from-transparent via-[#0d0b0a]/85 to-[#0d0b0a] px-5 pb-4 pt-10">
                 {p.title && (
                   <p className="text-[28px] font-black leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">{p.title}</p>
                 )}
