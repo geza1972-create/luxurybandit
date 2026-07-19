@@ -1254,7 +1254,7 @@ export default function CuratorPublicPage() {
       </div>
 
       {/* Shareable collectible — THE reusable LuxuryBandit Model Card */}
-      <div className="px-4 pt-4">
+      <div className="pt-4">
         <ModelCard {...cardData} isMember={isMember} showDates={isAdmin} onLockedClick={() => setShowSubscribe(true)}
           following={following} onSuperFollow={() => void handleFollow()}
           onChat={() => router.push(`/chat/${id}`)} />

@@ -742,7 +742,7 @@ export default function CuratorApplyPage() {
             .filter(Boolean) as { poster: string; video: string; private: boolean }[];
           const cardClips = photo ? myClips : demoClips;
           return (
-            <div id="lb-preview-card" className="mt-5 scroll-mt-4">
+            <div id="lb-preview-card" className="-mx-5 mt-5 scroll-mt-4">
               <ModelCard
                 id="" serial="PREVIEW" name={cardName} photo={cardPhoto} video="" poster={cardPhoto}
                 clips={cardClips} valueLabel={hasName ? "10" : "1"} looks={24} bio={bio.trim()}

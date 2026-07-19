@@ -228,7 +228,9 @@ export default async function OwnInfluencerLanding() {
       <section className="relative overflow-hidden border-b border-white/10">
         <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-10">
           {/* Collectible card — Gina, the flagship, with her live Growth Score */}
-          <div className="relative order-1 mx-auto w-full min-w-0 max-w-md">
+          {/* Karte randlos: bricht aus dem px-4/py-10 der Sektion aus, damit sie bis an die
+              Kanten und bis an den Header laeuft. Der uebrige Hero-Text behaelt sein Padding. */}
+          <div className="relative order-1 -mx-4 -mt-10 min-w-0">
             {ginaCard && ginaCard.photo ? (
               <ModelCard {...ginaCard} showProfileLink />
             ) : heroPhoto ? (

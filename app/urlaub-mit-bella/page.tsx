@@ -29,8 +29,8 @@ export default async function UrlaubMitBellaPage() {
           Your own AI influencer travels for you — and every day you get fresh videos & stories from the island. Like you're right there.
         </p>
 
-        {/* Her REAL collectible card */}
-        <div className="mt-6">
+        {/* Her REAL collectible card — randlos (hebt das px-4 des Containers auf) */}
+        <div className="-mx-4 mt-6">
           {card ? (
             <ModelCard {...card} showProfileLink />
           ) : (

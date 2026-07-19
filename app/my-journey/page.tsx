@@ -45,7 +45,7 @@ export default function MyJourneyPage() {
         )}
 
         {state === "ready" && card && (
-          <div className="mt-6">
+          <div className="-mx-4 mt-6">
             <ModelCard {...card} isMember canDownload />
           </div>
         )}

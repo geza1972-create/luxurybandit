@@ -120,7 +120,7 @@ export default function ModelCard({
   };
 
   return (
-    <div className="relative mx-auto w-full max-w-[380px] overflow-hidden rounded-none border-2 border-amber-400/80 lb-bg text-white shadow-[0_20px_60px_rgba(0,0,0,0.5)] ring-1 ring-amber-400/20">
+    <div className="relative mx-auto w-full overflow-hidden rounded-none lb-bg text-white">
       {/* Header — HER NAME lives here (not over the video) + the collectible brand line + share.
           The monogram watermark tiles behind it. */}
       <div className="relative flex flex-col items-center justify-center gap-2 overflow-hidden border-b border-amber-400/20 bg-gradient-to-r from-amber-400/[0.1] via-amber-300/[0.16] to-amber-400/[0.1] px-6 py-4 text-center">
