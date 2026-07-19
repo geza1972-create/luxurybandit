@@ -188,20 +188,29 @@ Bilder kosten echtes Geld → **dafür das teure Abo**.
 
 ### Die Stufen
 
+**Die Trennlinie ist nicht die Zeit, sondern die ABWECHSLUNG.**
+
 | Stufe | Was er bekommt | Unsere Kosten |
 |---|---|---|
-| **Test (7 Tage gratis)** | Sie **einmal** anziehen + tägliche Textnachrichten | 1 Bild einmalig |
-| **Basis (günstig)** | Tägliche Textnachrichten, Outfit bleibt wie es ist | ~0 |
-| **Premium (teuer)** | **Er zieht sie an, wann er will** — und die Morgennachricht kommt **mit frischem Bild** | 1 Bild/Tag |
+| **Gratis — dauerhaft** | **Ein** Look. Sie weckt ihn jeden Morgen — immer mit **demselben** Bild. | 1 Bild **einmalig** (~3–7 ct), danach ~0 |
+| **Bezahlt** | **Jeden Tag ein anderer Look.** Jeden Morgen ein frisches Bild. | ~30 Bilder/Monat ≈ **1–2 €** |
+
+Kein Zeitlimit, keine Testphase, die abläuft. Gratis bleibt gratis — nur eben immer dasselbe Bild.
+
+### Warum das so gut funktioniert
+
+Der Unterschied ist **sichtbar, nicht erklärt**. Der Gratis-Nutzer sieht jeden Morgen dasselbe
+Foto und merkt von allein, was ihm fehlt. Der Zahler sieht jeden Morgen ein neues — und damit
+täglich, wofür er zahlt. Das ist gleichzeitig der stärkste Kündigungsschutz.
 
 ### Der Paywall-Moment
 
-Nicht nach Tagen, sondern **beim zweiten Outfit-Wechsel**. Er hat sie gerade einmal angezogen,
-das Ergebnis gesehen, will sie umziehen — genau da kommt:
+Nicht nach Ablauf einer Frist, sondern **wenn er Abwechslung will**:
+- Im Produkt: ein „Neuer Look für morgen"-Knopf → beim Antippen kommt das Angebot.
+- In der Nachricht selbst: nach ein paar Tagen ein dezenter Hinweis
+  („Soll ich mich morgen für dich neu anziehen?").
 
-> „Zieh sie an, so oft du willst. Und jeden Morgen zeigt sie sich dir neu." → Premium
-
-Das ist der Moment der größten Lust, nicht ein willkürliches Zeitlimit.
+Beides trifft ihn im Moment des Wunsches, nicht im Moment des Entzugs.
 
 ### Kostenrechnung (Providerpreise ≈, **vor dem Preis-Festlegen selbst messen!**)
 
