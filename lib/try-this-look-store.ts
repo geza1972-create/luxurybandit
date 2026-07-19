@@ -491,6 +491,18 @@ export type BellaSlide = {
   i18n?: Partial<Record<"de" | "ro" | "en", { title?: string; caption?: string }>>;
 };
 
+// Zeigt /bella diesen Beitrag? DIE EINE Regel — Seite und Werkzeug fragen beide hier.
+// Vorher stand sie zweimal im Code; laufen die Kopien auseinander, zeigt die Seite
+// etwas an, das im Werkzeug nicht auftaucht und dort auch nicht gelöscht werden kann.
+export const isPublicBellaPost = (s: BellaSlide): boolean =>
+  !s.customer && s.hidden !== true && s.private !== true && !s.pendingApproval
+  && (!s.pages || s.pages.length === 0 || s.pages.includes("profile"))
+  && !!s.path;
+
+// Reihenfolge auf der Seite: neueste zuerst. Ebenfalls nur EINMAL definiert.
+export const sortBellaPosts = (a: BellaSlide, b: BellaSlide): number =>
+  (a.order ?? 1e9) - (b.order ?? 1e9) || String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""));
+
 // A booked journey (from the /urlaub-mit-bella landing) — so the Card Studio can pick a customer
 // and build a personalised card for them.
 export type TripBooking = {

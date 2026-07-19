@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readCardStudioSlides, writeCardStudioSlides, createSignedUploadUrl, getSignedUrl, type BellaSlide } from "@/lib/try-this-look-store";
+import { readCardStudioSlides, writeCardStudioSlides, createSignedUploadUrl, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
 import { isAdminRequest } from "@/lib/admin-auth";
 import { translatePost } from "@/lib/translate-post";
 
@@ -15,17 +15,11 @@ const BELLA_ID = "curator-1783683672619-td4cy";
 // unsichtbar (Pruef-Warteschlange aus dem Model-Self-Upload). Hier ist der Admin selbst
 // der Pruefer — Beitraege gehen sofort live.
 
-// Zeigt /bella diesen Slide? (gleiche Regel wie die Seite)
-const isPublicProfileSlide = (s: BellaSlide) =>
-  !s.customer && s.hidden !== true && s.private !== true && !s.pendingApproval
-  && (!s.pages || s.pages.length === 0 || s.pages.includes("profile"))
-  && !!s.path;
-
 export async function GET(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
   const all = await readCardStudioSlides(BELLA_ID).catch(() => [] as BellaSlide[]);
-  const mine = all.filter(isPublicProfileSlide)
-    .sort((a, b) => (a.order ?? 1e9) - (b.order ?? 1e9) || String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
+  // Exakt dieselbe Regel und Reihenfolge wie die Seite — deshalb aus dem Store.
+  const mine = all.filter(isPublicBellaPost).sort(sortBellaPosts);
   const posts = await Promise.all(mine.map(async s => ({
     id: s.id,
     kind: s.kind,

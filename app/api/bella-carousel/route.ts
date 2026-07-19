@@ -29,7 +29,8 @@ async function resolveModelOwner(request: Request): Promise<string | null> {
 }
 
 // Canonical slide order: manual `order` first (ascending), then creation time.
-export const slideSort = (a: BellaSlide, b: BellaSlide) =>
+// Nicht exportieren: Next.js erlaubt in einer Route nur GET/POST/runtime/… als Export.
+const slideSort = (a: BellaSlide, b: BellaSlide) =>
   (a.order ?? 1e9) - (b.order ?? 1e9) || String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? ""));
 
 // `includePaths` → also return the raw storage paths (admin only) so the browser draft is

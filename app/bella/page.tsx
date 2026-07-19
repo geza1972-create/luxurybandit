@@ -3,7 +3,7 @@ import BellaSimpleStudio from "@/components/BellaSimpleStudio";
 import BellaPostsCarousel from "@/components/BellaPostsCarousel";
 import { BELLA_ID } from "@/lib/bella-card";
 import { headers } from "next/headers";
-import { readTryThisLookState, readCardStudioSlides, getSignedUrl, type BellaSlide } from "@/lib/try-this-look-store";
+import { readTryThisLookState, readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
 import { langFromAcceptLanguage, normalizeLang, pickPostText } from "@/lib/translate-post";
 
 // Bellas Seite — BEWUSST MINIMAL: ihr Bild, ihr Name, ihre Beiträge. Sonst nichts.
@@ -25,12 +25,6 @@ export const metadata = {
 // Signierte Medien-Adressen laufen ab → pro Aufruf frisch rendern.
 export const dynamic = "force-dynamic";
 
-// Zeigt die Seite diesen Beitrag? (gleiche Regel wie das Werkzeug)
-const isPublicPost = (s: BellaSlide) =>
-  !s.customer && s.hidden !== true && s.private !== true && !s.pendingApproval
-  && (!s.pages || s.pages.length === 0 || s.pages.includes("profile"))
-  && !!s.path;
-
 export default async function BellaPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const [state, slides, sp, h] = await Promise.all([
     readTryThisLookState(),
@@ -48,9 +42,7 @@ export default async function BellaPage({ searchParams }: { searchParams: Promis
   const name = (bella?.modelName || bella?.firstName || "Bella").split(" ")[0];
   const intro = String(bella?.intro ?? "").trim();
 
-  const ordered = slides.filter(isPublicPost).sort(
-    (a, b) => (a.order ?? 1e9) - (b.order ?? 1e9) || String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")),
-  );
+  const ordered = slides.filter(isPublicBellaPost).sort(sortBellaPosts);
   const posts = (await Promise.all(ordered.map(async s => {
     // Text in der Sprache des Besuchers; fehlt die Übersetzung, kommt das Original.
     const text = pickPostText(s.i18n, lang, { title: s.title ?? "", caption: s.caption ?? "" });
