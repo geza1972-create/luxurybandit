@@ -1297,7 +1297,7 @@ export default function CuratorPublicPage() {
         {(profile.youOwnHer || isAdmin) && profile.owned && (
           <button type="button" onClick={() => void toggleOwnerHideName(!profile.ownerHideName)} disabled={hideBusy}
             className={`mt-1 ml-2 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-black transition active:scale-95 disabled:opacity-50 ${profile.ownerHideName ? "bg-white/15 text-white" : "border border-white/20 bg-white/5 text-white/80"}`}>
-            {hideBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : profile.ownerHideName ? "🙈 Name hidden — only ID" : "Hide my owner name"}
+            {hideBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : profile.ownerHideName ? "🙈 Name hidden — only ID" : "Hide my sponsor name"}
           </button>
         )}
         {/* Want her exclusively? → her dedicated "Own her" landing + booking page. */}
@@ -1666,7 +1666,7 @@ export default function CuratorPublicPage() {
                 {profile.forSale && (
                   <button type="button" onClick={() => void buyInfluencer()} disabled={buying}
                     className="lb-gold mt-3 inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[13px] font-black active:scale-95 transition disabled:opacity-60">
-                    {buying ? "…" : `Claim Ownership${profile.growPriceLabel ? ` · ${profile.growPriceLabel}` : ""}`}
+                    {buying ? "…" : `Become her sponsor${profile.growPriceLabel ? ` · ${profile.growPriceLabel}` : ""}`}
                   </button>
                 )}
               </div>

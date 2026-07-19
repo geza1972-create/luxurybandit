@@ -16,7 +16,7 @@ export const metadata = {
   description: "Sponsor an AI influencer on LuxuryBandit — she's yours, one of a kind. Generate her videos in one tap, use them anywhere, and watch her Growth Score grow. Membership $4.99/month.",
   openGraph: {
     title: "Sponsor an AI Influencer — We'll help her grow | LuxuryBandit",
-    description: "Own your AI influencer — a one-of-a-kind digital collectible. Generate her videos yourself, grow her Growth Score every day. Membership $4.99/month.",
+    description: "Sponsor your AI influencer — a one-of-a-kind digital collectible. Generate her videos yourself, grow her Growth Score every day. Membership $4.99/month.",
     images: [{ url: "/become-a-model-banner.jpg?v=3", width: 1280, height: 720 }],
     url: "/own-influencer",
     type: "website",
@@ -166,7 +166,7 @@ export default async function OwnInfluencerLanding() {
 
   const NAV = [
     { label: "For Creators", href: "#creators" },
-    { label: "Who Owns Her", href: "#fans" },
+    { label: "Who Sponsors Her", href: "#fans" },
     { label: "Marketplace", href: "/stores?view=grid" },
     { label: "Pricing", href: "#pricing" },
     { label: "How It Works", href: "#how" },
@@ -188,11 +188,11 @@ export default async function OwnInfluencerLanding() {
     { icon: Video, t: "Use her everywhere", d: "Post her videos on your shop, Facebook & Instagram — she's yours to use." },
   ];
   const WHY = [
-    { icon: Crown, t: "Own your influencer", d: "You own your AI influencer and your brand." },
+    { icon: Crown, t: "Sponsor your influencer", d: "You sponsor your AI influencer and your brand." },
     { icon: TrendingUp, t: "Her Growth Score grows", d: "More looks, more videos, more fans — she grows more complete and desirable every day." },
     { icon: Users, t: "A loyal fanbase", d: "Build an audience that follows her every single day." },
     { icon: Camera, t: "Daily luxury content", d: "We create high-quality content every single day." },
-    { icon: Gem, t: "One of a kind", d: "Fixed name, one owner — nobody else can have her. Yours alone." },
+    { icon: Gem, t: "One of a kind", d: "Fixed name, one sponsor — nobody else can have her. Yours alone." },
     { icon: BarChart3, t: "Earn from her", d: "Fans pay to chat with her and to super-follow her — you earn from it." },
     { icon: Wand2, t: "One-tap generation", d: "You generate her videos yourself — no prompts, no editing skills." },
   ];
@@ -244,7 +244,7 @@ export default async function OwnInfluencerLanding() {
           {/* Copy */}
           <div className="order-2 text-center">
             <h1 className="text-[30px] font-black leading-[0.98] tracking-tight">
-              OWN AN<br /><span className="text-amber-400">AI INFLUENCER.</span>
+              SPONSOR AN<br /><span className="text-amber-400">AI INFLUENCER.</span>
             </h1>
             <p className="mt-3 text-[20px] font-black leading-tight">We&apos;ll help her grow every single day!</p>
             <p className="mx-auto mt-4 max-w-md text-[15px] font-semibold leading-7 text-white/85">
@@ -315,10 +315,10 @@ export default async function OwnInfluencerLanding() {
               Learn more for creators
             </Link>
           </div>
-          {/* Who owns her? — one-of-a-kind influencers, claim before taken */}
-          <div id="fans" className="scroll-mt-24 rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+          {/* Who sponsors her? — one-of-a-kind influencers, claim before taken */}
+          <div id="fans" className="scroll-mt-24 -mx-4 border-y border-white/10 bg-white/[0.03] px-4 py-6">
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">The Influencer Marketplace</p>
-            <h2 className="mt-2 text-[30px] font-black uppercase leading-none tracking-tight">Who owns her?</h2>
+            <h2 className="mt-2 text-[30px] font-black uppercase leading-none tracking-tight">Who sponsors her?</h2>
             <p className="mt-3 text-[14px] font-semibold leading-relaxed text-white/85">
               Every AI influencer is one-of-a-kind — and only <span className="font-black text-white">one person</span> can sponsor her: her daily content, her chats, her whole audience. These are <span className="font-black text-amber-400">still free</span>. Claim one before someone else does — or <BuyFormLink className="font-black text-amber-400 underline decoration-amber-400/40 underline-offset-2">create your own</BuyFormLink>.
             </p>
@@ -467,7 +467,7 @@ export default async function OwnInfluencerLanding() {
             <p className="-mt-1"><span className="text-[48px] font-black leading-none text-amber-400">{subLabel}</span><span className="text-[14px] font-bold text-white/80"> / month</span></p>
             <p className="mt-1 text-[12px] font-bold text-white/85">cancel anytime · your influencer &amp; her videos are yours</p>
             <ul className="mt-4 space-y-1.5 text-[13px] font-bold text-white/85">
-              <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> Become a model&apos;s owner — monthly</li>
+              <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> Become a model&apos;s sponsor — monthly</li>
               <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> She&apos;s yours to direct</li>
               <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> All her private photos &amp; videos</li>
               <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /> Unlimited chat with her</li>
@@ -482,7 +482,7 @@ export default async function OwnInfluencerLanding() {
         <div className="flex flex-col items-center gap-3 text-center">
           <img src="/lb-logo.png" alt="LuxuryBandit" className="h-11 w-11 rounded-full object-contain" />
           <span className="text-[15px] font-black tracking-wide">LUXURYBANDIT</span>
-          <p className="text-[12px] font-bold text-white/85">The Influencer Marketplace. Own. Grow. Earn.</p>
+          <p className="text-[12px] font-bold text-white/85">The Influencer Marketplace. Sponsor. Grow. Earn.</p>
           <div className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] font-bold text-white/75">
             <Link href="/stores?view=grid" className="hover:text-white">Marketplace</Link>
             <Link href="#pricing" className="hover:text-white">Pricing</Link>

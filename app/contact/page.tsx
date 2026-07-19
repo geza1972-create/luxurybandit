@@ -6,7 +6,7 @@ import { Loader2, Mail, CheckCircle2, ChevronDown } from "lucide-react";
 import TopNav from "@/components/TopNav";
 
 const REASONS = [
-  { value: "own", label: "Own an influencer" },
+  { value: "own", label: "Sponsor an influencer" },
   { value: "support", label: "Support" },
   { value: "complaint", label: "Complaint" },
   { value: "general", label: "General" },
@@ -34,7 +34,7 @@ export default function ContactPage() {
     const r = q.get("reason");
     if (r && REASONS.some(x => x.value === r)) setReason(r);
     const about = (q.get("about") || "").trim().slice(0, 60);
-    if (r === "own") setMessage(m => m || `Hi, I'd like to own ${about ? `${about} ` : "an influencer "}exclusively on LuxuryBandit. Please tell me how it works and what it costs.`);
+    if (r === "own") setMessage(m => m || `Hi, I'd like to sponsor ${about ? `${about} ` : "an influencer "}exclusively on LuxuryBandit. Please tell me how it works and what it costs.`);
   }, []);
 
   // Per-field validation → error message ("" = valid).

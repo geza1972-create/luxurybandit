@@ -427,8 +427,8 @@ export default function CuratorProfilePage() {
         {/* Identity */}
         <div className="mt-5 grid gap-3">
           <div className="grid grid-cols-2 gap-3">
-            <div><span className={label}>Owner first name</span><input className={field} value={firstName} onChange={e => setFirstName(e.target.value)} /></div>
-            <div><span className={label}>Owner last name</span><input className={field} value={lastName} onChange={e => setLastName(e.target.value)} /></div>
+            <div><span className={label}>Your first name</span><input className={field} value={firstName} onChange={e => setFirstName(e.target.value)} /></div>
+            <div><span className={label}>Your last name</span><input className={field} value={lastName} onChange={e => setLastName(e.target.value)} /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><span className={label}>WhatsApp <span className="ml-1 rounded bg-black/5 px-1.5 py-0.5 text-[9px] font-bold normal-case tracking-normal text-black/45">🔒 for chat notifications</span></span><input type="tel" className={field} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+40 7xx… (WhatsApp)" /></div>

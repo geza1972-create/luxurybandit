@@ -18,7 +18,7 @@ export default async function GrowCardPage() {
     { icon: UserPlus, title: "Follow — free", detail: "Follow any influencer and watch her daily luxury looks in your feed. Costs nothing." },
     { icon: MessageCircle, title: "Chat with her", detail: "Message her, get styled, get to know her — she replies day and night." },
     { icon: Lock, title: "Subscribe — unlock her private world", detail: `${sub}/month (just $8 the first month) unlocks her private photos & videos. One subscription per influencer.` },
-    { icon: Crown, title: "Become her sponsor", detail: "Pay her monthly Growth-Score price to become her owner. You're then her sponsor — she promotes YOUR products to her fans. Get in touch to start." },
+    { icon: Crown, title: "Become her sponsor", detail: "Pay her monthly Growth-Score price to become her sponsor — she promotes YOUR products to her fans. Get in touch to start." },
   ];
 
   return (
@@ -55,7 +55,7 @@ export default async function GrowCardPage() {
         </div>
 
         <div className="mt-6 flex flex-col gap-2">
-          <Link href="/contact?reason=own" className="flex items-center justify-center rounded-full border border-white/20 px-5 py-3 text-sm font-black text-white/80 active:scale-95 transition">Contact us to own an influencer →</Link>
+          <Link href="/contact?reason=own" className="flex items-center justify-center rounded-full border border-white/20 px-5 py-3 text-sm font-black text-white/80 active:scale-95 transition">Contact us to sponsor an influencer →</Link>
           <Link href="/stores?view=models" className="lb-gold flex items-center justify-center rounded-full px-5 py-3.5 text-sm font-black active:scale-95 transition">Explore the marketplace</Link>
         </div>
       </div>
