@@ -1,7 +1,7 @@
 import Link from "next/link";
 import ModelCard from "@/components/ModelCard";
 import TopNav from "@/components/TopNav";
-import BellaCarouselAdmin from "@/components/BellaCarouselAdmin";
+import BellaSimpleStudio from "@/components/BellaSimpleStudio";
 import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
 import { readCardStudioSlides, getSignedUrl } from "@/lib/try-this-look-store";
 
@@ -110,10 +110,9 @@ export default async function BellaPage() {
         </Link>
       </div>
 
-      {/* Das Card-Tool — legt genau die Szenen an, die oben erscheinen.
-          Blendet sich für alle ausser dem Admin selbst aus. */}
+      {/* Das einfache Werkzeug — hochladen, Text, fertig. Nur für den Admin sichtbar. */}
       <div className="px-4 pt-10">
-        <BellaCarouselAdmin />
+        <BellaSimpleStudio />
       </div>
     </main>
   );
