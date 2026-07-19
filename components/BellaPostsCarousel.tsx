@@ -92,20 +92,22 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
                   className="block max-h-[78vh] w-full object-contain" />
               )}
 
-              {/* Titel im Bild — unten, da Videos keine Regler mehr haben. Das Overlay
-                  ist durchklickbar, sonst käme das Video nicht mehr an den Tipp. */}
-              {p.title && (
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent px-5 pb-4 pt-16">
-                  <p className="text-[28px] font-black leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">{p.title}</p>
+              {/* Titel UND Text liegen im Bild, unten. Der Text sass vorher unter dem
+                  Bild — jetzt sitzt er direkt unter dem Titel, mit wenig Abstand.
+                  Das Overlay ist durchklickbar, sonst käme das Video nicht an den Tipp. */}
+              {(p.title || p.caption) && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/70 to-transparent px-5 pb-5 pt-24">
+                  {p.title && (
+                    <p className="text-[28px] font-black leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">{p.title}</p>
+                  )}
+                  {p.caption && (
+                    <p className="mt-1 whitespace-pre-line text-[14px] font-semibold leading-snug text-white/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
+                      {p.caption}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
-
-            {p.caption && (
-              <p className="whitespace-pre-line px-5 pt-3 text-[14px] font-semibold leading-relaxed text-white/85">
-                {p.caption}
-              </p>
-            )}
           </article>
         ))}
       </div>
