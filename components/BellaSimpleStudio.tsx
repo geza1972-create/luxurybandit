@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Plus, Trash2, Check, ImageUp } from "lucide-react";
 
 // Das EINFACHE Bella-Werkzeug. Bewusst nur drei Dinge:
@@ -23,6 +24,10 @@ type Post = {
 const MAX_MB = 50;
 
 export default function BellaSimpleStudio() {
+  // Das Karussell oben wird auf dem Server gebaut. Nach jeder Änderung muss die Seite
+  // neu gerendert werden — sonst zeigt die Slide weiter den alten Stand, obwohl
+  // gespeichert wurde. Genau das sah aus wie „das Bild wird nicht übernommen".
+  const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
   const [pin, setPin] = useState("");
   const [posts, setPosts] = useState<Post[]>([]);
@@ -107,6 +112,7 @@ export default function BellaSimpleStudio() {
       const res = await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ add: { ...up, title: "", caption: "" } }) }).then(r => r.json());
       if (!res?.ok) { setError(res?.error ?? "Speichern fehlgeschlagen."); return; }
       await load(true);   // getippte, noch nicht übernommene Texte behalten
+      router.refresh();   // Karussell oben neu bauen
     } catch { setError("Hochladen fehlgeschlagen."); }
     finally { setUploading(false); setBusyNote(""); }
   };
@@ -157,6 +163,7 @@ export default function BellaSimpleStudio() {
         URL.revokeObjectURL(post.pending.previewUrl);
         await load(true);   // frisch signierte Adresse des neuen Bildes holen
       }
+      router.refresh();     // Karussell oben zeigt sofort den neuen Stand
     } catch { setError("Netzwerkfehler."); }
     finally { setApplyingId(""); }
   };
@@ -164,8 +171,10 @@ export default function BellaSimpleStudio() {
   const remove = async (id: string) => {
     if (!window.confirm("Den GANZEN Beitrag löschen — Bild und Text?\n\nNur ein neues Bild? Dann „Bild tauschen“ nehmen.")) return;
     setPosts(ps => ps.filter(p => p.id !== id));
-    try { await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ remove: id }) }); }
-    catch { setError("Löschen fehlgeschlagen."); void load(); }
+    try {
+      await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ remove: id }) });
+      router.refresh();
+    } catch { setError("Löschen fehlgeschlagen."); void load(); }
   };
 
   if (!isAdmin) return null;
