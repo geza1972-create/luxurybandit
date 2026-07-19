@@ -30,16 +30,15 @@ export async function GET(request: Request) {
 
 // POST { sign: true, kind, ext }              → signierte Upload-Adresse
 // POST { add: { kind, path, caption } }       → neuen Beitrag anlegen (sofort live)
-// POST { posts: [{ id, caption }] }           → Texte speichern
-// POST { replace: { id, kind, path } }        → NUR das Bild/Video tauschen, Text bleibt
+// POST { posts: [{ id, title, caption, kind?, path? }] }
+//        → Texte speichern; mit kind+path zusätzlich das Bild/Video tauschen
 // POST { remove: "<id>" }                     → ganzen Beitrag entfernen
 export async function POST(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
   const body = (await request.json().catch(() => ({}))) as {
     sign?: boolean; kind?: string; ext?: string;
     add?: { kind?: string; path?: string; caption?: string; title?: string };
-    replace?: { id?: string; kind?: string; path?: string };
-    posts?: { id?: string; caption?: string; title?: string }[];
+    posts?: { id?: string; caption?: string; title?: string; kind?: string; path?: string }[];
     remove?: string;
   };
 
@@ -79,23 +78,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, id: slide.id });
   }
 
-  if (body.replace?.id && body.replace.path) {
-    // Nur die Datei tauschen. Titel, Text, Reihenfolge und Datum bleiben, wie sie sind —
-    // sonst muesste man fuer ein neues Bild den ganzen Beitrag wegwerfen.
-    const kind: BellaSlide["kind"] = body.replace.kind === "video" ? "video" : "image";
-    let found = false;
-    const next = all.map(s => {
-      if (s.id !== body.replace!.id) return s;
-      found = true;
-      return { ...s, kind, path: String(body.replace!.path), posterPath: "" };
-    });
-    if (!found) return NextResponse.json({ error: "Beitrag nicht gefunden." }, { status: 404 });
-    try { await writeCardStudioSlides(next, BELLA_ID); } catch (e) {
-      return NextResponse.json({ error: e instanceof Error ? e.message : "Speichern fehlgeschlagen." }, { status: 502 });
-    }
-    return NextResponse.json({ ok: true });
-  }
-
   if (body.remove) {
     const next = all.filter(s => s.id !== body.remove);
     try { await writeCardStudioSlides(next, BELLA_ID); } catch (e) {
@@ -106,9 +88,16 @@ export async function POST(request: Request) {
 
   if (Array.isArray(body.posts)) {
     // Nur die Texte der uebergebenen Beitraege aendern — alles andere bleibt unangetastet.
+    // Text — und optional ein getauschtes Bild/Video, das der Admin mit demselben
+    // Klick auf „Übernehmen" live schaltet.
     const byId = new Map(body.posts.filter(p => p?.id).map(p => [String(p.id), {
       title: String(p.title ?? "").slice(0, 120),
       caption: String(p.caption ?? "").slice(0, 3000),
+      ...(p.path ? {
+        kind: (p.kind === "video" ? "video" : "image") as BellaSlide["kind"],
+        path: String(p.path),
+        posterPath: "",
+      } : {}),
     }]));
     const next = all.map(s => byId.has(s.id) ? { ...s, ...byId.get(s.id)! } : s);
     try { await writeCardStudioSlides(next, BELLA_ID); } catch (e) {

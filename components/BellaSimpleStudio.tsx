@@ -10,7 +10,13 @@ import { Loader2, Plus, Trash2, Check, ImageUp } from "lucide-react";
 // Hochladen und Löschen wirken sofort (die Datei muss ohnehin gespeichert werden).
 // Blendet sich für alle außer dem Admin aus.
 
-type Post = { id: string; kind: "image" | "video"; title: string; caption: string; mediaUrl: string };
+type Post = {
+  id: string; kind: "image" | "video"; title: string; caption: string; mediaUrl: string;
+  // Ein getauschtes Bild/Video, das noch NICHT live ist. Die Datei liegt schon im
+  // Speicher (anders geht Hochladen nicht), aber der Beitrag zeigt sie erst nach
+  // „Übernehmen". `previewUrl` ist die lokale Vorschau aus der gewählten Datei.
+  pending?: { kind: "image" | "video"; path: string; previewUrl: string };
+};
 
 // Supabase nimmt pro Datei standardmäßig 50 MB. Lieber vorher sauber melden,
 // als den Nutzer minutenlang hochladen lassen und dann abbrechen.
@@ -105,15 +111,21 @@ export default function BellaSimpleStudio() {
     finally { setUploading(false); setBusyNote(""); }
   };
 
-  // NUR das Bild/Video eines Beitrags tauschen — Titel und Text bleiben stehen.
+  // Bild/Video tauschen: die Datei wandert sofort in den Speicher (anders lässt sie
+  // sich nicht hochladen), der BEITRAG bleibt aber unverändert, bis „Übernehmen"
+  // gedrückt wird. Bis dahin siehst du nur eine Vorschau.
   const replaceFile = async (id: string, file: File) => {
     setReplacingId(id); setError("");
     try {
       const up = await uploadFile(file);
       if (!up) return;
-      const res = await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ replace: { id, ...up } }) }).then(r => r.json());
-      if (!res?.ok) { setError(res?.error ?? "Tauschen fehlgeschlagen."); return; }
-      await load(true);   // ungespeicherte Texte behalten
+      const previewUrl = URL.createObjectURL(file);
+      setPosts(ps => ps.map(p => {
+        if (p.id !== id) return p;
+        if (p.pending) URL.revokeObjectURL(p.pending.previewUrl);   // alte Vorschau freigeben
+        return { ...p, pending: { ...up, previewUrl } };
+      }));
+      setDirtyIds(ids => ids.includes(id) ? ids : [...ids, id]);
     } catch { setError("Tauschen fehlgeschlagen."); }
     finally { setReplacingId(""); setBusyNote(""); }
   };
@@ -132,11 +144,19 @@ export default function BellaSimpleStudio() {
     try {
       const r = await fetch("/api/bella-simple", {
         method: "POST", headers: headers(),
-        body: JSON.stringify({ posts: [{ id: post.id, title: post.title, caption: post.caption }] }),
+        // Text UND — falls getauscht — das neue Bild/Video in einem Rutsch.
+        body: JSON.stringify({ posts: [{
+          id: post.id, title: post.title, caption: post.caption,
+          ...(post.pending ? { kind: post.pending.kind, path: post.pending.path } : {}),
+        }] }),
       });
       if (!r.ok) { setError("Übernehmen fehlgeschlagen."); return; }
       setDirtyIds(ids => ids.filter(x => x !== id));
       setAppliedId(id); setTimeout(() => setAppliedId(x => (x === id ? "" : x)), 2500);
+      if (post.pending) {
+        URL.revokeObjectURL(post.pending.previewUrl);
+        await load(true);   // frisch signierte Adresse des neuen Bildes holen
+      }
     } catch { setError("Netzwerkfehler."); }
     finally { setApplyingId(""); }
   };
@@ -185,15 +205,17 @@ export default function BellaSimpleStudio() {
               <div className="shrink-0">
                 <button type="button" disabled={replacingId === p.id}
                   onClick={() => { replaceTarget.current = p.id; replaceRef.current?.click(); }}
-                  className="relative block h-24 w-[72px] overflow-hidden rounded-lg bg-black active:scale-95 transition">
-                  {p.kind === "video"
+                  className={`relative block h-24 w-[72px] overflow-hidden rounded-lg bg-black transition active:scale-95 ${p.pending ? "ring-2 ring-[#c9a23f]" : ""}`}>
+                  {/* Nach dem Tauschen die VORSCHAU zeigen — live ist sie erst nach Übernehmen. */}
+                  {(p.pending?.kind ?? p.kind) === "video"
                     // eslint-disable-next-line jsx-a11y/media-has-caption
-                    ? <video src={p.mediaUrl} className="h-full w-full object-cover" muted playsInline />
+                    ? <video src={p.pending?.previewUrl ?? p.mediaUrl} className="h-full w-full object-cover" muted playsInline />
                     // eslint-disable-next-line @next/next/no-img-element
-                    : <img src={p.mediaUrl} alt="" className="h-full w-full object-cover" />}
-                  <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/70 py-1 text-[9px] font-black uppercase tracking-wide text-white">
+                    : <img src={p.pending?.previewUrl ?? p.mediaUrl} alt="" className="h-full w-full object-cover" />}
+                  <span className={`absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 py-1 text-[9px] font-black uppercase tracking-wide ${p.pending ? "bg-[#c9a23f] text-black" : "bg-black/70 text-white"}`}>
                     {replacingId === p.id
                       ? <Loader2 className="h-3 w-3 animate-spin" />
+                      : p.pending ? "Neu — noch nicht live"
                       : <><ImageUp className="h-3 w-3" /> Tauschen</>}
                   </span>
                 </button>
@@ -221,7 +243,9 @@ export default function BellaSimpleStudio() {
                   </button>
                 </div>
                 {dirtyIds.includes(p.id) && (
-                  <p className="text-[11px] font-bold text-[#c9a23f]/80">Noch nicht übernommen.</p>
+                  <p className="text-[11px] font-bold text-[#c9a23f]/80">
+                    {p.pending ? "Neues Bild und Text — noch nicht übernommen." : "Noch nicht übernommen."}
+                  </p>
                 )}
               </div>
             </div>

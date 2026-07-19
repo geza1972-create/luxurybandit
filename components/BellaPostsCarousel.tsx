@@ -55,7 +55,9 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
   if (posts.length === 0) return null;
 
   return (
-    <div>
+    // `relative`, damit die Punkte ÜBER dem Karussell liegen statt darin: sonst
+    // stecken sie in jedem Beitrag und wandern beim Wischen mit.
+    <div className="relative">
       <div ref={trackRef} onScroll={onScroll}
         className="flex snap-x snap-mandatory overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {posts.map((p, i) => (
@@ -90,17 +92,6 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
                   className="block max-h-[78vh] w-full object-contain" />
               )}
 
-              {/* Punkte oben, mittig im Bild — mit leichtem Schleier, damit sie auf
-                  hellen Bildern nicht verschwinden. */}
-              {posts.length > 1 && (
-                <div className="absolute inset-x-0 top-3 z-10 flex items-center justify-center gap-1.5">
-                  {posts.map((dot, j) => (
-                    <button key={dot.id} type="button" onClick={() => goTo(j)} aria-label={`Beitrag ${j + 1}`}
-                      className={`h-1.5 rounded-full shadow-[0_1px_4px_rgba(0,0,0,0.8)] transition-all ${j === active ? "w-5 bg-[#c9a23f]" : "w-1.5 bg-white/60"}`} />
-                  ))}
-                </div>
-              )}
-
               {/* Titel im Bild — unten, da Videos keine Regler mehr haben. Das Overlay
                   ist durchklickbar, sonst käme das Video nicht mehr an den Tipp. */}
               {p.title && (
@@ -119,6 +110,16 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
         ))}
       </div>
 
+      {/* Punkte: liegen fest oben mittig über dem Bild und bleiben beim Wischen stehen.
+          Der Streifen selbst ist durchklickbar, nur die Punkte fangen den Tipp ab. */}
+      {posts.length > 1 && (
+        <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex items-center justify-center gap-1.5">
+          {posts.map((dot, j) => (
+            <button key={dot.id} type="button" onClick={() => goTo(j)} aria-label={`Beitrag ${j + 1}`}
+              className={`pointer-events-auto h-1.5 rounded-full shadow-[0_1px_4px_rgba(0,0,0,0.8)] transition-all ${j === active ? "w-5 bg-[#c9a23f]" : "w-1.5 bg-white/60"}`} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
