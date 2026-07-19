@@ -36,11 +36,8 @@ export default async function BellaPage() {
   ]);
 
   const bella = (state.curators ?? []).find(c => c.id === BELLA_ID) as
-    | { firstName?: string; modelName?: string; photoUrl?: string; intro?: string } | undefined;
+    | { firstName?: string; modelName?: string; intro?: string } | undefined;
   const name = (bella?.modelName || bella?.firstName || "Bella").split(" ")[0];
-  const heroUrl = bella?.photoUrl
-    ? (bella.photoUrl.startsWith("http") ? bella.photoUrl : await getSignedUrl(bella.photoUrl).catch(() => ""))
-    : "";
   const intro = String(bella?.intro ?? "").trim();
 
   const ordered = slides.filter(isPublicPost).sort(
@@ -58,25 +55,15 @@ export default async function BellaPage() {
     <main className="min-h-[100dvh] lb-bg pb-16 text-white">
       <TopNav />
 
-      {/* Sie — randlos direkt unter dem Header, Name im Bild */}
-      <div className="relative">
-        {heroUrl ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={heroUrl} alt={name} className="block w-full" />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent px-5 pb-5 pt-16">
-              <h1 className="text-[34px] font-black leading-none">{name}</h1>
-              <p className="mt-1 text-[12px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Every day, for you</p>
-            </div>
-          </>
-        ) : (
-          <div className="grid aspect-[3/4] w-full place-items-center bg-white/5 text-white/50">Bella lädt…</div>
+      {/* Kein Profilbild — es sah aus wie ein zusätzlicher Slide. Nur Name + ein Satz,
+          das eigentliche Bildmaterial sind ihre Beiträge im Karussell darunter. */}
+      <div className="px-5 pt-6">
+        <h1 className="text-[34px] font-black leading-none">{name}</h1>
+        <p className="mt-1.5 text-[12px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Every day, for you</p>
+        {intro && (
+          <p className="mt-3 text-[15px] font-semibold leading-relaxed text-white/85">{intro}</p>
         )}
       </div>
-
-      {intro && (
-        <p className="px-5 pt-5 text-[15px] font-semibold leading-relaxed text-white/85">{intro}</p>
-      )}
 
       {/* Ihre Beiträge — seitlich durchblätterbar */}
       {posts.length === 0 ? (
