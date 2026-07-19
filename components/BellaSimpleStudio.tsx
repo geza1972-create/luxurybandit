@@ -23,6 +23,11 @@ type Post = {
 // als den Nutzer minutenlang hochladen lassen und dann abbrechen.
 const MAX_MB = 50;
 
+// Ein Beitrag, den es auf der Seite noch NICHT gibt: Bild ist hochgeladen, Text wird
+// gerade getippt. Erst „Übernehmen" legt ihn an.
+const DRAFT = "entwurf-";
+const istEntwurf = (id: string) => id.startsWith(DRAFT);
+
 export default function BellaSimpleStudio() {
   // Das Karussell oben wird auf dem Server gebaut. Nach jeder Änderung muss die Seite
   // neu gerendert werden — sonst zeigt die Slide weiter den alten Stand, obwohl
@@ -104,15 +109,22 @@ export default function BellaSimpleStudio() {
     return { kind, path: sign.path as string };
   };
 
+  // Neuer Beitrag: die Datei wandert in den Speicher, der BEITRAG entsteht aber noch
+  // nicht. Er liegt als Entwurf oben in der Liste, bis Titel und Text dranstehen —
+  // dann geht mit EINEM „Übernehmen" alles zusammen live. Vorher entstand hier sofort
+  // ein leerer Beitrag auf der Seite und man musste zweimal speichern.
   const addFile = async (file: File) => {
     setUploading(true); setError("");
     try {
       const up = await uploadFile(file);
       if (!up) return;
-      const res = await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ add: { ...up, title: "", caption: "" } }) }).then(r => r.json());
-      if (!res?.ok) { setError(res?.error ?? "Speichern fehlgeschlagen."); return; }
-      await load(true);   // getippte, noch nicht übernommene Texte behalten
-      router.refresh();   // Karussell oben neu bauen
+      const entwurf: Post = {
+        id: `${DRAFT}${Date.now()}`,
+        kind: up.kind, title: "", caption: "", mediaUrl: "",
+        pending: { ...up, previewUrl: URL.createObjectURL(file) },
+      };
+      setPosts(ps => [entwurf, ...ps]);
+      setDirtyIds(ids => [...ids, entwurf.id]);
     } catch { setError("Hochladen fehlgeschlagen."); }
     finally { setUploading(false); setBusyNote(""); }
   };
@@ -148,19 +160,22 @@ export default function BellaSimpleStudio() {
     if (!post) return;
     setApplyingId(id); setError("");
     try {
-      const r = await fetch("/api/bella-simple", {
-        method: "POST", headers: headers(),
-        // Text UND — falls getauscht — das neue Bild/Video in einem Rutsch.
-        body: JSON.stringify({ posts: [{
-          id: post.id, title: post.title, caption: post.caption,
-          ...(post.pending ? { kind: post.pending.kind, path: post.pending.path } : {}),
-        }] }),
-      });
+      // Entwurf → Beitrag ANLEGEN (Bild und Text in einem Rutsch).
+      // Bestehender Beitrag → Text speichern, plus getauschtes Bild, falls vorhanden.
+      const body = istEntwurf(id)
+        ? { add: { kind: post.pending!.kind, path: post.pending!.path, title: post.title, caption: post.caption } }
+        : { posts: [{
+            id: post.id, title: post.title, caption: post.caption,
+            ...(post.pending ? { kind: post.pending.kind, path: post.pending.path } : {}),
+          }] };
+      const r = await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify(body) });
       if (!r.ok) { setError("Übernehmen fehlgeschlagen."); return; }
       setDirtyIds(ids => ids.filter(x => x !== id));
       setAppliedId(id); setTimeout(() => setAppliedId(x => (x === id ? "" : x)), 2500);
       if (post.pending) {
         URL.revokeObjectURL(post.pending.previewUrl);
+        // Entwurf raus — er kommt gleich als echter Beitrag aus dem Speicher zurück.
+        if (istEntwurf(id)) setPosts(ps => ps.filter(x => x.id !== id));
         await load(true);   // frisch signierte Adresse des neuen Bildes holen
       }
       router.refresh();     // Karussell oben zeigt sofort den neuen Stand
@@ -169,6 +184,14 @@ export default function BellaSimpleStudio() {
   };
 
   const remove = async (id: string) => {
+    // Ein Entwurf steht noch nirgends — einfach verwerfen, ohne Nachfrage an den Server.
+    if (istEntwurf(id)) {
+      const p = posts.find(x => x.id === id);
+      if (p?.pending) URL.revokeObjectURL(p.pending.previewUrl);
+      setPosts(ps => ps.filter(x => x.id !== id));
+      setDirtyIds(ids => ids.filter(x => x !== id));
+      return;
+    }
     if (!window.confirm("Den GANZEN Beitrag löschen — Bild und Text?\n\nNur ein neues Bild? Dann „Bild tauschen“ nehmen.")) return;
     setPosts(ps => ps.filter(p => p.id !== id));
     try {
@@ -211,7 +234,7 @@ export default function BellaSimpleStudio() {
           {posts.map(p => (
             // Bild oben, Textfelder darunter über die volle Breite — nebeneinander
             // waren die Felder auf dem Handy zu schmal zum Schreiben.
-            <div key={p.id} className="grid gap-2 rounded-xl border border-white/10 bg-black/30 p-2">
+            <div key={p.id} className={`grid gap-2 rounded-xl border bg-black/30 p-2 ${istEntwurf(p.id) ? "border-[#c9a23f]/60" : "border-white/10"}`}>
               {/* Aufs Bild tippen = neues Bild/Video für DIESEN Beitrag. Text bleibt. */}
               <div>
                 <button type="button" disabled={replacingId === p.id}
@@ -226,7 +249,7 @@ export default function BellaSimpleStudio() {
                   <span className={`absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 py-1 text-[9px] font-black uppercase tracking-wide ${p.pending ? "bg-[#c9a23f] text-black" : "bg-black/70 text-white"}`}>
                     {replacingId === p.id
                       ? <Loader2 className="h-3 w-3 animate-spin" />
-                      : p.pending ? "Neu — noch nicht live"
+                      : p.pending ? (istEntwurf(p.id) ? "Neuer Beitrag" : "Neu — noch nicht live")
                       : <><ImageUp className="h-3 w-3" /> Tauschen</>}
                   </span>
                 </button>
@@ -242,7 +265,7 @@ export default function BellaSimpleStudio() {
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={() => void remove(p.id)}
                     className="flex h-10 items-center gap-1.5 rounded-lg border border-red-400/40 px-3 text-[12px] font-black text-red-300 active:scale-95 transition">
-                    <Trash2 className="h-3.5 w-3.5" /> Beitrag löschen
+                    <Trash2 className="h-3.5 w-3.5" /> {istEntwurf(p.id) ? "Verwerfen" : "Beitrag löschen"}
                   </button>
                   {/* Speichern gilt NUR für diesen Beitrag. */}
                   {/* Solange das Bild noch hochlädt, darf hier NICHT gespeichert werden —
@@ -258,7 +281,9 @@ export default function BellaSimpleStudio() {
                 </div>
                 {dirtyIds.includes(p.id) && (
                   <p className="text-[11px] font-bold text-[#c9a23f]/80">
-                    {p.pending ? "Neues Bild und Text — noch nicht übernommen." : "Noch nicht übernommen."}
+                    {istEntwurf(p.id) ? "Neu — Text schreiben, dann Übernehmen. Erst dann steht er auf der Seite."
+                      : p.pending ? "Neues Bild und Text — noch nicht übernommen."
+                      : "Noch nicht übernommen."}
                   </p>
                 )}
               </div>
