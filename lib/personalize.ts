@@ -25,10 +25,11 @@ const FALLBACK: Required<PersonVars> = {
 
 // Mehrere Schreibweisen pro Wert, damit ein Tippfehler im Admin nicht sofort
 // einen rohen Platzhalter auf der Seite hinterlässt.
+// Deutsch UND Englisch, weil Gerrys Vorlagen englisch geschrieben sind.
 const ALIASES: Record<keyof PersonVars, string[]> = {
-  name: ["name", "vorname"],
-  ort: ["ort", "stadt", "city"],
-  grad: ["grad", "grade", "temperatur", "temp"],
+  name: ["name", "vorname", "firstname", "first name"],
+  ort: ["ort", "stadt", "city", "location", "place", "town"],
+  grad: ["grad", "grade", "temperatur", "temperature", "temp", "degrees"],
   wetter: ["wetter", "weather"],
   sonnenaufgang: ["sonnenaufgang", "sunrise"],
   sonnenuntergang: ["sonnenuntergang", "sunset"],
