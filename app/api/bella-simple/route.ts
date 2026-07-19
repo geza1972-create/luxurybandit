@@ -82,7 +82,7 @@ export async function POST(request: Request) {
   if (body.replace?.id && body.replace.path) {
     // Nur die Datei tauschen. Titel, Text, Reihenfolge und Datum bleiben, wie sie sind —
     // sonst muesste man fuer ein neues Bild den ganzen Beitrag wegwerfen.
-    const kind = body.replace.kind === "video" ? "video" : "image";
+    const kind: BellaSlide["kind"] = body.replace.kind === "video" ? "video" : "image";
     let found = false;
     const next = all.map(s => {
       if (s.id !== body.replace!.id) return s;

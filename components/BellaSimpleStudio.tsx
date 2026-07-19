@@ -19,9 +19,11 @@ export default function BellaSimpleStudio() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [replacingId, setReplacingId] = useState("");
-  const [dirty, setDirty] = useState(false);
-  const [applying, setApplying] = useState(false);
-  const [applied, setApplied] = useState(false);
+  // Gespeichert wird PRO BEITRAG. Deshalb merken wir uns je Beitrag, ob er geändert
+  // wurde, welcher gerade speichert und welcher eben gespeichert hat.
+  const [dirtyIds, setDirtyIds] = useState<string[]>([]);
+  const [applyingId, setApplyingId] = useState("");
+  const [appliedId, setAppliedId] = useState("");
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
@@ -99,20 +101,24 @@ export default function BellaSimpleStudio() {
   // Texte werden NICHT automatisch gespeichert — erst „Übernehmen" macht sie live.
   const edit = (id: string, patch: Partial<Post>) => {
     setPosts(ps => ps.map(x => x.id === id ? { ...x, ...patch } : x));
-    setDirty(true);
+    setDirtyIds(ids => ids.includes(id) ? ids : [...ids, id]);
   };
 
-  const applyAll = async () => {
-    setApplying(true); setError("");
+  // Nur DIESEN einen Beitrag speichern — die anderen bleiben unangetastet.
+  const apply = async (id: string) => {
+    const post = posts.find(p => p.id === id);
+    if (!post) return;
+    setApplyingId(id); setError("");
     try {
       const r = await fetch("/api/bella-simple", {
         method: "POST", headers: headers(),
-        body: JSON.stringify({ posts: posts.map(p => ({ id: p.id, title: p.title, caption: p.caption })) }),
+        body: JSON.stringify({ posts: [{ id: post.id, title: post.title, caption: post.caption }] }),
       });
       if (!r.ok) { setError("Übernehmen fehlgeschlagen."); return; }
-      setDirty(false); setApplied(true); setTimeout(() => setApplied(false), 2500);
+      setDirtyIds(ids => ids.filter(x => x !== id));
+      setAppliedId(id); setTimeout(() => setAppliedId(x => (x === id ? "" : x)), 2500);
     } catch { setError("Netzwerkfehler."); }
-    finally { setApplying(false); }
+    finally { setApplyingId(""); }
   };
 
   const remove = async (id: string) => {
@@ -128,7 +134,7 @@ export default function BellaSimpleStudio() {
     <div className="rounded-2xl border border-white/15 bg-white/[0.04] p-4">
       <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Nur für dich sichtbar</p>
       <h2 className="mt-1 text-[18px] font-black text-white">Beiträge</h2>
-      <p className="mt-0.5 text-[12px] font-semibold text-white/60">Bild oder Video hochladen, Titel und Text dazuschreiben — dann <b className="text-white/80">Übernehmen</b>.</p>
+      <p className="mt-0.5 text-[12px] font-semibold text-white/60">Bild oder Video hochladen, Titel und Text dazuschreiben — dann bei dem Beitrag auf <b className="text-white/80">Übernehmen</b>.</p>
 
       <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden"
         onChange={e => { const f = e.target.files?.[0]; if (f) void addFile(f); e.target.value = ""; }} />
@@ -181,31 +187,27 @@ export default function BellaSimpleStudio() {
                   className="w-full flex-1 resize-none rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-2 text-[13px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]" />
                 <div className="mt-1.5 flex items-center gap-2">
                   <button type="button" onClick={() => void remove(p.id)}
-                    className="ml-auto flex h-7 items-center gap-1 rounded-lg border border-red-400/40 px-2.5 text-[11px] font-black text-red-300 active:scale-95 transition">
+                    className="flex h-8 items-center gap-1 rounded-lg border border-red-400/40 px-2.5 text-[11px] font-black text-red-300 active:scale-95 transition">
                     <Trash2 className="h-3 w-3" /> Beitrag löschen
                   </button>
+                  {/* Speichern gilt NUR für diesen Beitrag. */}
+                  <button type="button" onClick={() => void apply(p.id)}
+                    disabled={!dirtyIds.includes(p.id) || applyingId === p.id}
+                    className="ml-auto flex h-8 items-center gap-1.5 rounded-lg bg-[#c9a23f] px-3.5 text-[12px] font-black text-black transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-30">
+                    {applyingId === p.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> …</>
+                      : appliedId === p.id ? <><Check className="h-3.5 w-3.5" /> Übernommen</>
+                      : <><Check className="h-3.5 w-3.5" /> Übernehmen</>}
+                  </button>
                 </div>
+                {dirtyIds.includes(p.id) && (
+                  <p className="text-[11px] font-bold text-[#c9a23f]/80">Noch nicht übernommen.</p>
+                )}
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Übernehmen — nichts an den Texten geht live, bevor du hier tippst. */}
-      {posts.length > 0 && (
-        <div className="mt-4 border-t border-white/10 pt-3">
-          <button type="button" onClick={() => void applyAll()} disabled={!dirty || applying}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#c9a23f] text-[15px] font-black text-black transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-35">
-            {applying ? <><Loader2 className="h-4 w-4 animate-spin" /> Übernimmt…</>
-              : applied ? <><Check className="h-4 w-4" /> Übernommen</>
-              : <><Check className="h-4 w-4" /> Übernehmen</>}
-          </button>
-          <p className="mt-1.5 text-center text-[11px] font-bold text-white/40">
-            {dirty ? "Ungespeicherte Änderungen — erst mit Übernehmen sind sie live."
-              : "Alles übernommen."}
-          </p>
-        </div>
-      )}
     </div>
   );
 }
