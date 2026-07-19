@@ -141,8 +141,8 @@ export default async function ModelsWantedPage({ searchParams }: { searchParams:
         {/* Language switch (also gives Google two indexable URLs) */}
         <div className="mb-4 flex justify-end">
           <div className="flex gap-1 rounded-full border border-black/10 bg-white p-1 text-[12px] font-black">
-            <span className={`rounded-full px-3 py-1 ${lang === "ro" ? "bg-slate-900 text-white" : "text-slate-500"}`}>{lang === "ro" ? "RO" : <Link href="/models-wanted">RO</Link>}</span>
-            <span className={`rounded-full px-3 py-1 ${lang === "en" ? "bg-slate-900 text-white" : "text-slate-500"}`}>{lang === "en" ? "EN" : <Link href="/models-wanted?lang=en">EN</Link>}</span>
+            <span className={`rounded-full px-3 py-1 ${lang === "ro" ? "bg-slate-800 text-white" : "text-slate-500"}`}>{lang === "ro" ? "RO" : <Link href="/models-wanted">RO</Link>}</span>
+            <span className={`rounded-full px-3 py-1 ${lang === "en" ? "bg-slate-800 text-white" : "text-slate-500"}`}>{lang === "en" ? "EN" : <Link href="/models-wanted?lang=en">EN</Link>}</span>
           </div>
         </div>
 
@@ -154,7 +154,7 @@ export default async function ModelsWantedPage({ searchParams }: { searchParams:
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/become-a-model-banner.jpg?v=3" alt={t.metaTitle} className="mt-5 w-full rounded-2xl" width={1280} height={720} />
 
-        <Link href="/curators/apply" className="mt-5 flex h-14 w-full items-center justify-center rounded-2xl bg-slate-900 text-base font-black text-white shadow-[0_3px_0_#0f172a,0_6px_14px_rgba(15,23,42,0.28)] active:translate-y-[3px] transition">
+        <Link href="/curators/apply" className="mt-5 flex h-14 w-full items-center justify-center rounded-2xl bg-slate-800 text-base font-black text-white shadow-[0_3px_0_#0f172a,0_6px_14px_rgba(15,23,42,0.28)] active:translate-y-[3px] transition">
           {t.cta}
         </Link>
         <p className="mt-2 text-center text-[12px] font-bold text-slate-500">{t.ctaNote}</p>
@@ -198,7 +198,7 @@ export default async function ModelsWantedPage({ searchParams }: { searchParams:
         </div>
 
         {/* Final CTA */}
-        <Link href="/curators/apply" className="mt-10 flex h-14 w-full items-center justify-center rounded-2xl bg-slate-900 text-base font-black text-white shadow-[0_3px_0_#0f172a,0_6px_14px_rgba(15,23,42,0.28)] active:translate-y-[3px] transition">
+        <Link href="/curators/apply" className="mt-10 flex h-14 w-full items-center justify-center rounded-2xl bg-slate-800 text-base font-black text-white shadow-[0_3px_0_#0f172a,0_6px_14px_rgba(15,23,42,0.28)] active:translate-y-[3px] transition">
           {t.finalCta}
         </Link>
         <p className="mt-6 text-center text-[12px] font-semibold text-slate-400">© LuxuryBandit · <Link href={`/models-wanted?lang=${otherLang}`} className="underline">{otherLang.toUpperCase()}</Link></p>
