@@ -234,10 +234,13 @@ export default function BellaSimpleStudio() {
                     <Trash2 className="h-3 w-3" /> Beitrag löschen
                   </button>
                   {/* Speichern gilt NUR für diesen Beitrag. */}
+                  {/* Solange das Bild noch hochlädt, darf hier NICHT gespeichert werden —
+                      sonst ginge nur der Text live und das Bild wäre verloren. */}
                   <button type="button" onClick={() => void apply(p.id)}
-                    disabled={!dirtyIds.includes(p.id) || applyingId === p.id}
+                    disabled={!dirtyIds.includes(p.id) || applyingId === p.id || replacingId === p.id}
                     className="ml-auto flex h-8 items-center gap-1.5 rounded-lg bg-[#c9a23f] px-3.5 text-[12px] font-black text-black transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-30">
-                    {applyingId === p.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> …</>
+                    {replacingId === p.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Bild lädt…</>
+                      : applyingId === p.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> …</>
                       : appliedId === p.id ? <><Check className="h-3.5 w-3.5" /> Übernommen</>
                       : <><Check className="h-3.5 w-3.5" /> Übernehmen</>}
                   </button>
