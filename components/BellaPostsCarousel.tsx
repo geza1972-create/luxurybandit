@@ -64,7 +64,9 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
           <article key={p.id} className="w-full shrink-0 snap-center">
             {/* Feste Höhe für JEDE Slide (3:4). Sonst ist eine Slide hoch, die nächste
                 flach — und der Text beginnt jedes Mal woanders. `contain` statt `cover`,
-                damit nichts vom Bild abgeschnitten wird (in den Bildern steht Text). */}
+                damit nichts vom Bild abgeschnitten wird (in den Bildern steht Text).
+                `object-top`: passt ein Bild nicht genau, liegt der schwarze Rest UNTEN
+                unter dem Text — oben bleibt es bündig am Header. */}
             <div className="relative aspect-[3/4] w-full bg-black">
               {p.kind === "video" ? (
                 <>
@@ -78,7 +80,7 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
                     onEnded={() => setPlayingId("")}
                     onPause={() => setPlayingId(id => (id === p.id ? "" : id))}
                     onClick={() => toggle(p.id)}
-                    className="absolute inset-0 h-full w-full cursor-pointer object-contain"
+                    className="absolute inset-0 h-full w-full cursor-pointer object-contain object-top"
                   />
                   {playingId !== p.id && (
                     <button type="button" onClick={() => toggle(p.id)} aria-label="Video abspielen"
@@ -92,7 +94,7 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={p.mediaUrl} alt={`${name} ${i + 1}`} loading={i < 2 ? "eager" : "lazy"}
-                  className="absolute inset-0 h-full w-full object-contain" />
+                  className="absolute inset-0 h-full w-full object-contain object-top" />
               )}
             </div>
 
@@ -100,10 +102,10 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
                 an derselben Stelle: 55 % der Bildhöhe. Ein langer Text läuft nach unten
                 über das Bild hinaus weiter — der Verlauf endet in der Seitenfarbe, damit
                 das nahtlos aussieht. Durchklickbar, sonst käme das Video nicht an den Tipp. */}
-            {/* -mt in Prozent der BREITE: 49,3 % statt 60 % setzt den Text 40 px tiefer
-                (bei 375 px Bildschirm) und skaliert auf größeren Geräten mit. */}
+            {/* -mt in Prozent der BREITE. 60 % → 49,3 % → 33,3 %: der Text sitzt damit
+                100 px tiefer als anfangs (bei 375 px Bildschirm) und skaliert mit. */}
             {(p.title || p.caption) && (
-              <div className="pointer-events-none relative -mt-[49.3%] bg-gradient-to-b from-transparent via-[#0d0b0a]/85 to-[#0d0b0a] px-5 pb-4 pt-10">
+              <div className="pointer-events-none relative -mt-[33.3%] bg-gradient-to-b from-transparent via-[#0d0b0a]/85 to-[#0d0b0a] px-5 pb-4 pt-10">
                 {p.title && (
                   <p className="text-[28px] font-black leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">{p.title}</p>
                 )}
