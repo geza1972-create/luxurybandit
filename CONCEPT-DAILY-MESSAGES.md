@@ -56,7 +56,7 @@ Es wird niemand angeworben, es wird etwas erschaffen.
 | 8 | Bestätigung | „Morgen um 7:15 hörst du von ihr." | — | — |
 | 9 | **Nächster Morgen** | Erste echte Nachricht | Aha-Moment | `daily_msg_sent` |
 | 10 | Antwort | Er antwortet → sie antwortet | Bindung | `daily_reply` |
-| 11 | Nach 7 Tagen | Paywall | Abo | `daily_paywall` / `subscribe_success` |
+| 11 | **Will sie umziehen** | Paywall: „Zieh sie an, so oft du willst" | Abo | `daily_paywall` / `subscribe_success` |
 
 **Warum die Kontaktabfrage erst bei Schritt 7 kommt:** Erst Wert liefern (er hat sein Bild schon
 gesehen), dann fragen. Vorher gefragt = Absprung.
@@ -181,13 +181,52 @@ Bot anlegen, Deeplink-Verknüpfung, `telegramChatId` speichern, Versand + Antwor
 **Etappe 5 — WhatsApp (nur nach Validierung)**
 Meta-Business-Verifizierung, WABA, Nummer, Template-Genehmigung, Versand + 24h-Fenster.
 
-## 9. Monetarisierung
+## 9. Monetarisierung — der Preis folgt dem Kostentreiber
 
-- **7 Tage gratis** (genug, um die Gewohnheit zu spüren)
-- Danach **Abo** über die vorhandene Premium-Strecke
-- Preis-Logik: Bei nahezu null Grenzkosten ist selbst ein kleiner Monatspreis profitabel.
-  Erst den Preis testen, wenn die Nutzung stimmt.
-- Später möglich: „Neues Outfit" / „Neuer Ort" als Einzelkauf (dann entsteht wieder ein Bild).
+**Das Grundprinzip:** Text kostet fast nichts → billig/gratis.
+Bilder kosten echtes Geld → **dafür das teure Abo**.
+
+### Die Stufen
+
+| Stufe | Was er bekommt | Unsere Kosten |
+|---|---|---|
+| **Test (7 Tage gratis)** | Sie **einmal** anziehen + tägliche Textnachrichten | 1 Bild einmalig |
+| **Basis (günstig)** | Tägliche Textnachrichten, Outfit bleibt wie es ist | ~0 |
+| **Premium (teuer)** | **Er zieht sie an, wann er will** — und die Morgennachricht kommt **mit frischem Bild** | 1 Bild/Tag |
+
+### Der Paywall-Moment
+
+Nicht nach Tagen, sondern **beim zweiten Outfit-Wechsel**. Er hat sie gerade einmal angezogen,
+das Ergebnis gesehen, will sie umziehen — genau da kommt:
+
+> „Zieh sie an, so oft du willst. Und jeden Morgen zeigt sie sich dir neu." → Premium
+
+Das ist der Moment der größten Lust, nicht ein willkürliches Zeitlimit.
+
+### Kostenrechnung (Providerpreise ≈, **vor dem Preis-Festlegen selbst messen!**)
+
+| Posten | Kosten |
+|---|---|
+| Ein Outfit-Bild (`gpt-image-1` „medium", FASHN, fal/Qwen) | ~**0,03–0,07 €** |
+| Dasselbe bei Qualität „high" | ~0,15–0,20 € |
+| Tagestext (Claude Haiku) + Wetter + Versand | ~0 |
+| **Premium-Nutzer mit 1 Bild/Tag** | **~1–2 € / Monat** |
+
+→ Bei einem Premium-Preis im zweistelligen Bereich bleibt sehr hohe Marge.
+
+### ⚠️ Wichtig: Unbegrenzt wäre ein Fehler
+
+„So oft er will" auf einem Pauschalpreis ist ein offenes Kostenrisiko — ein Power-User, der
+500 Bilder erzeugt, kostet dich 15–35 € und frisst die Marge auf.
+
+**Empfehlung: „Jeden Tag ein neues Outfit" als Inklusiv-Grenze** (30/Monat).
+Das klingt großzügig, passt perfekt zum täglichen Rhythmus des Produkts, und deckelt die
+Kosten planbar. Wer mehr will: Einzelkauf pro Extra-Outfit.
+
+### Warum Premium wenig Kündigungen hat
+
+Der Premium-Nutzer bekommt **jeden Morgen ein neues Bild von ihr** — er sieht also täglich,
+wofür er zahlt. Genau das fehlt bei Abos, die man vergisst.
 
 ## 10. Risiken & Recht
 
@@ -229,3 +268,10 @@ dann lieber Konzept ändern als Kanal.
 4. **Wie viele Orte zum Start?**
    *Empfehlung: drei* (Monaco, Teneriffa, Paris). Mehr Auswahl bringt nichts, kostet nur Arbeit.
 5. **Vercel-Tarif** — erlaubt er stündliche Crons? Muss vor Etappe 2 geklärt sein.
+6. **Wie viele Outfit-Wechsel sind im Premium inklusive?**
+   *Empfehlung: 1 pro Tag (30/Monat).* Nicht „unbegrenzt" — das ist ein offenes Kostenrisiko.
+   Klingt großzügig, passt zum Tagesrhythmus, bleibt planbar.
+7. **Bekommt Premium das Bild in der Morgennachricht mitgeschickt?**
+   *Empfehlung: ja.* Das ist der sichtbare Gegenwert jeden Tag — der stärkste Schutz vor Kündigung.
+8. **Preis für Premium?** Erst festlegen, wenn die echten Bildkosten gemessen sind
+   (5–10 Testbilder erzeugen und die Provider-Abrechnung prüfen).
