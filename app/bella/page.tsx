@@ -1,12 +1,13 @@
 import TopNav from "@/components/TopNav";
+import ModelCardHeader from "@/components/ModelCardHeader";
 import BellaSimpleStudio from "@/components/BellaSimpleStudio";
 import BellaPersonal from "@/components/BellaPersonal";
-import { BELLA_ID } from "@/lib/bella-card";
+import { BELLA_ID, buildBellaCard } from "@/lib/bella-card";
 import { readTryThisLookState, readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
 
-// Bellas Seite — BEWUSST MINIMAL: ihr Bild, ihr Name, ihre Beiträge. Sonst nichts.
-// Keine Sammelkarte mit Growth Score, Seriennummer, Sponsor-Historie, Super-Follow,
-// Chat oder Profil-Link — das lenkt hier nur ab.
+// Bellas Seite: oben ihre Model Card wie auf dem Profil (dieselbe Komponente, damit
+// beide Seiten nie auseinanderlaufen), darunter die Features — je eine Slide pro
+// Sache, die sie kann, mit einer BEISPIEL-Nachricht auf den Besucher personalisiert.
 // Beiträge kommen aus dem einfachen Werkzeug unten auf dieser Seite.
 
 export const metadata = {
@@ -24,9 +25,10 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function BellaPage() {
-  const [state, slides] = await Promise.all([
+  const [state, slides, bellaCard] = await Promise.all([
     readTryThisLookState(),
     readCardStudioSlides(BELLA_ID).catch(() => [] as BellaSlide[]),
+    buildBellaCard({ surface: "profile" }).catch(() => ({ card: null })),
   ]);
 
   const bella = (state.curators ?? []).find(c => c.id === BELLA_ID) as
@@ -48,7 +50,16 @@ export default async function BellaPage() {
     <main className="min-h-[100dvh] lb-bg pb-16 text-white">
       <TopNav />
 
-      {/* Ihre Beiträge — seitlich durchblätterbar, bündig am Header (kein Abstand). */}
+      {/* Ihr Profil-Kopf — derselbe Baustein wie auf der Model Card: Name auf dem
+          goldenen LB-Muster, Rolle, Status. Ohne den Rest der Sammelkarte (Growth
+          Score, Seriennummer, Sponsor-Block) — hier geht es um ihre Features. */}
+      {bellaCard.card && (
+        <ModelCardHeader name={bellaCard.card.name} title={bellaCard.card.title}
+          ownedName={bellaCard.card.owner || bellaCard.card.ownerId || ""}
+          isOwned={!!(bellaCard.card.owner || bellaCard.card.ownerId)} />
+      )}
+
+      {/* Ihre Features — seitlich durchblätterbar. */}
       {posts.length === 0 ? (
         <p className="px-5 pt-8 text-[13px] font-bold text-white/45">Noch keine Beiträge.</p>
       ) : (

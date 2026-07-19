@@ -4,12 +4,10 @@ import { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserPlus, MessageCircle, Send, Lock, Crown, Maximize2, MapPin } from "lucide-react";
+import ModelCardHeader, { MONO_URL } from "./ModelCardHeader";
 
-// Small tiled "LB" monogram (letters + 4-point florets in a diamond lattice) — the luxury
-// watermark used behind the header + the LB-Value badge.
-const FLORET = "M0 -6 C1.4 -3.4 1.4 -3.4 6 0 C1.4 3.4 1.4 3.4 0 6 C-1.4 3.4 -1.4 3.4 -6 0 C-1.4 -3.4 -1.4 -3.4 0 -6 Z";
-const MONO_SVG = `<svg xmlns='http://www.w3.org/2000/svg' width='58' height='58' viewBox='0 0 58 58'><g fill='#d0a848'><text x='29' y='37' font-family='Georgia,\"Times New Roman\",serif' font-size='22' font-weight='700' text-anchor='middle'>LB</text><path d='${FLORET}'/><path transform='translate(58,0)' d='${FLORET}'/><path transform='translate(0,58)' d='${FLORET}'/><path transform='translate(58,58)' d='${FLORET}'/></g></svg>`;
-const MONO_URL = `url("data:image/svg+xml,${encodeURIComponent(MONO_SVG)}")`;
+// Kopf und LB-Monogramm liegen jetzt in ModelCardHeader — Bellas Seite benutzt
+// denselben Baustein, damit Profil und Landingpage nie auseinanderlaufen.
 
 // THE single, reusable "LuxuryBandit Model Card" — a collectible trading card used everywhere
 // a model is shown (landing hero + the LuxuryBandit Marketplace gallery). Change it here and it
@@ -121,31 +119,9 @@ export default function ModelCard({
 
   return (
     <div className="relative mx-auto w-full overflow-hidden rounded-none lb-bg text-white">
-      {/* Header — HER NAME lives here (not over the video) + the collectible brand line + share.
-          The monogram watermark tiles behind it. */}
-      <div className="relative flex flex-col items-center justify-center gap-2 overflow-hidden border-b border-amber-400/20 bg-gradient-to-r from-amber-400/[0.1] via-amber-300/[0.16] to-amber-400/[0.1] px-6 py-4 text-center">
-        {/* "LB" monogram watermark — small tiled luxury pattern behind the header */}
-        <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundImage: MONO_URL, backgroundSize: "30px 30px", opacity: 0.4 }} />
-        <p className="relative max-w-full truncate px-6 text-[26px] font-black leading-none tracking-tight text-white">{name}</p>
-        {/* Brand title / role — she's a brand (e.g. "Monaco Influencer"). */}
-        {title && <p className="relative -mt-0.5 max-w-full truncate text-[10px] font-black uppercase tracking-[0.22em] text-amber-300">{title}</p>}
-        {/* Status directly under the name — the first thing the eye lands on. */}
-        {!hideOwner && (
-          <span className={`relative inline-flex max-w-full items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-[12px] font-black leading-none shadow backdrop-blur ${isOwned ? "bg-amber-400 text-black ring-1 ring-amber-300" : "bg-black/50 text-amber-200 ring-1 ring-amber-300/45"}`}>
-            {isOwned ? <><Crown className="h-3.5 w-3.5 shrink-0" fill="currentColor" /> <span className="min-w-0 truncate">Sponsored by {ownedName}</span></> : <><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300" /> Available</>}
-          </span>
-        )}
-        <span className="relative inline-flex items-center whitespace-nowrap rounded-full bg-black/40 px-3.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-amber-300/85 ring-1 ring-amber-300/20 backdrop-blur">
-          LuxuryBandit.com <span className="mx-1.5 text-amber-300/40">·</span> <span className="text-white/85">{hideOwner ? "Creator preview" : "Sponsor an AI Influencer"}</span>
-        </span>
-        <button type="button" onClick={() => void share()} aria-label="Share this card"
-          className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white/85 transition active:scale-90 hover:text-white">
-          <Send className="h-3.5 w-3.5" />
-        </button>
-        {copied && (
-          <span className="absolute right-2 top-12 z-30 rounded-full bg-black/85 px-2.5 py-1 text-[10px] font-black text-white shadow ring-1 ring-white/25">✓ Link copied!</span>
-        )}
-      </div>
+      {/* Kopf — ihr Name (nicht über dem Video), Markenzeile und Teilen-Knopf. */}
+      <ModelCardHeader name={name} title={title} isOwned={isOwned} ownedName={ownedName}
+        hideOwner={hideOwner} onShare={() => void share()} copied={copied} />
 
       {/* SWIPE CAROUSEL — the media area is a horizontal slider. Slide 0 = her card face
           (photo + tagline/owner); each look slide = its video with the story (date · location +
