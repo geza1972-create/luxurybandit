@@ -24,6 +24,10 @@ const SYSTEM =
   "You translate short social-media posts for a fashion influencer brand. " +
   "Keep the tone, the emojis and the hashtags exactly as they are — translate hashtag words only if they are ordinary words. " +
   "Keep it the same length and just as punchy; this is marketing copy, not a document. " +
+  // Platzhalter wie {Name} oder {Ort} werden spaeter durch echte Werte ersetzt —
+  // uebersetzt der Uebersetzer sie mit, passt nichts mehr zusammen.
+  "Placeholders in curly braces such as {Name} or {Ort} are variables: copy them through " +
+  "EXACTLY as written, never translate or rename what is inside the braces. " +
   "Never add commentary. Reply with JSON only.";
 
 /** Ist überhaupt etwas zu übersetzen? */
