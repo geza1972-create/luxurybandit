@@ -209,12 +209,14 @@ export default function BellaSimpleStudio() {
       ) : (
         <div className="mt-4 grid gap-3">
           {posts.map(p => (
-            <div key={p.id} className="flex gap-3 rounded-xl border border-white/10 bg-black/30 p-2">
+            // Bild oben, Textfelder darunter über die volle Breite — nebeneinander
+            // waren die Felder auf dem Handy zu schmal zum Schreiben.
+            <div key={p.id} className="grid gap-2 rounded-xl border border-white/10 bg-black/30 p-2">
               {/* Aufs Bild tippen = neues Bild/Video für DIESEN Beitrag. Text bleibt. */}
-              <div className="shrink-0">
+              <div>
                 <button type="button" disabled={replacingId === p.id}
                   onClick={() => { replaceTarget.current = p.id; replaceRef.current?.click(); }}
-                  className={`relative block h-24 w-[72px] overflow-hidden rounded-lg bg-black transition active:scale-95 ${p.pending ? "ring-2 ring-[#c9a23f]" : ""}`}>
+                  className={`relative block h-28 w-[84px] overflow-hidden rounded-lg bg-black transition active:scale-95 ${p.pending ? "ring-2 ring-[#c9a23f]" : ""}`}>
                   {/* Nach dem Tauschen die VORSCHAU zeigen — live ist sie erst nach Übernehmen. */}
                   {(p.pending?.kind ?? p.kind) === "video"
                     // eslint-disable-next-line jsx-a11y/media-has-caption
@@ -229,25 +231,25 @@ export default function BellaSimpleStudio() {
                   </span>
                 </button>
               </div>
-              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <div className="grid min-w-0 gap-2">
                 {/* Titel — erscheint GROSS im Bild, z. B. „Bella ist dein Wecker" */}
                 <input value={p.title} placeholder="Titel im Bild, z. B. Bella ist dein Wecker"
                   onChange={e => edit(p.id, { title: e.target.value })}
-                  className="w-full rounded-lg border border-[#c9a23f]/40 bg-[#c9a23f]/10 px-2.5 py-2 text-[13px] font-black text-white outline-none placeholder:font-semibold placeholder:text-white/35 focus:border-[#c9a23f]" />
-                <textarea value={p.caption} rows={2} placeholder="Text darunter (optional)…"
+                  className="h-12 w-full rounded-lg border border-[#c9a23f]/40 bg-[#c9a23f]/10 px-3 text-[15px] font-black text-white outline-none placeholder:text-[13px] placeholder:font-semibold placeholder:text-white/35 focus:border-[#c9a23f]" />
+                <textarea value={p.caption} rows={7} placeholder="Text darunter (optional)…"
                   onChange={e => edit(p.id, { caption: e.target.value })}
-                  className="w-full flex-1 resize-none rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-2 text-[13px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]" />
-                <div className="mt-1.5 flex items-center gap-2">
+                  className="w-full resize-y rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2.5 text-[15px] font-semibold leading-relaxed text-white outline-none placeholder:text-[13px] placeholder:text-white/35 focus:border-[#c9a23f]" />
+                <div className="flex items-center gap-2">
                   <button type="button" onClick={() => void remove(p.id)}
-                    className="flex h-8 items-center gap-1 rounded-lg border border-red-400/40 px-2.5 text-[11px] font-black text-red-300 active:scale-95 transition">
-                    <Trash2 className="h-3 w-3" /> Beitrag löschen
+                    className="flex h-10 items-center gap-1.5 rounded-lg border border-red-400/40 px-3 text-[12px] font-black text-red-300 active:scale-95 transition">
+                    <Trash2 className="h-3.5 w-3.5" /> Beitrag löschen
                   </button>
                   {/* Speichern gilt NUR für diesen Beitrag. */}
                   {/* Solange das Bild noch hochlädt, darf hier NICHT gespeichert werden —
                       sonst ginge nur der Text live und das Bild wäre verloren. */}
                   <button type="button" onClick={() => void apply(p.id)}
                     disabled={!dirtyIds.includes(p.id) || applyingId === p.id || replacingId === p.id}
-                    className="ml-auto flex h-8 items-center gap-1.5 rounded-lg bg-[#c9a23f] px-3.5 text-[12px] font-black text-black transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-30">
+                    className="ml-auto flex h-10 items-center gap-1.5 rounded-lg bg-[#c9a23f] px-4 text-[13px] font-black text-black transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-30">
                     {replacingId === p.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Bild lädt…</>
                       : applyingId === p.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> …</>
                       : appliedId === p.id ? <><Check className="h-3.5 w-3.5" /> Übernommen</>
