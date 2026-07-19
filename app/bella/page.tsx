@@ -56,13 +56,11 @@ export default async function BellaPage() {
     <main className="min-h-[100dvh] lb-bg pb-16 text-white">
       <TopNav />
 
-      {/* Ihre Beiträge — seitlich durchblätterbar */}
+      {/* Ihre Beiträge — seitlich durchblätterbar, bündig am Header (kein Abstand). */}
       {posts.length === 0 ? (
         <p className="px-5 pt-8 text-[13px] font-bold text-white/45">Noch keine Beiträge.</p>
       ) : (
-        <div className="mt-8">
-          <BellaPostsCarousel posts={posts} name={name} />
-        </div>
+        <BellaPostsCarousel posts={posts} name={name} />
       )}
 
       {/* Werkzeug — nur für den Admin sichtbar */}

@@ -1,10 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Play } from "lucide-react";
 
 // Bellas Beiträge als Karussell: seitlich durchblättern statt untereinander.
 // Nutzt natives Scroll-Snapping (auf dem Handy also echtes Wischen), der Index wird
 // nur für die Punkte-Anzeige mitgeführt.
+//
+// Videos sehen aus wie Bilder: KEINE nativen Regler, nur ein Play-Knopf in der Mitte.
+// Tippen schaltet zwischen Abspielen und Pause um und setzt dort fort, wo es stand.
 
 export type BellaPost = {
   id: string;
@@ -17,7 +21,9 @@ export type BellaPost = {
 
 export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]; name: string }) {
   const trackRef = useRef<HTMLDivElement>(null);
+  const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
   const [active, setActive] = useState(0);
+  const [playingId, setPlayingId] = useState("");
 
   const onScroll = () => {
     const el = trackRef.current;
@@ -32,6 +38,20 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
     el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
   };
 
+  // Tippen = abspielen/pausieren. Fortsetzen statt neu starten.
+  const toggle = (id: string) => {
+    const v = videoRefs.current[id];
+    if (!v) return;
+    if (v.paused) {
+      // Andere Videos anhalten, damit nie zwei gleichzeitig laufen.
+      Object.entries(videoRefs.current).forEach(([k, other]) => { if (k !== id && other) other.pause(); });
+      void v.play().then(() => setPlayingId(id)).catch(() => {});
+    } else {
+      v.pause();
+      setPlayingId("");
+    }
+  };
+
   if (posts.length === 0) return null;
 
   return (
@@ -42,26 +62,42 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
           <article key={p.id} className="w-full shrink-0 snap-center">
             <div className="relative w-full bg-black">
               {p.kind === "video" ? (
-                // eslint-disable-next-line jsx-a11y/media-has-caption
-                <video src={p.mediaUrl} poster={p.posterUrl || undefined} controls playsInline preload="metadata"
-                  className="block max-h-[70vh] w-full object-contain" />
+                <>
+                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                  <video
+                    ref={el => { videoRefs.current[p.id] = el; }}
+                    src={p.mediaUrl}
+                    poster={p.posterUrl || undefined}
+                    playsInline
+                    preload="metadata"
+                    onEnded={() => setPlayingId("")}
+                    onPause={() => setPlayingId(id => (id === p.id ? "" : id))}
+                    onClick={() => toggle(p.id)}
+                    className="block max-h-[78vh] w-full cursor-pointer object-contain"
+                  />
+                  {playingId !== p.id && (
+                    <button type="button" onClick={() => toggle(p.id)} aria-label="Video abspielen"
+                      className="absolute inset-0 grid place-items-center">
+                      <span className="grid h-16 w-16 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/40 backdrop-blur-sm transition active:scale-95">
+                        <Play className="ml-0.5 h-7 w-7" fill="currentColor" />
+                      </span>
+                    </button>
+                  )}
+                </>
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={p.mediaUrl} alt={`${name} ${i + 1}`} loading={i < 2 ? "eager" : "lazy"}
-                  className="block max-h-[70vh] w-full object-contain" />
+                  className="block max-h-[78vh] w-full object-contain" />
               )}
-              {/* Titel im Bild. Bei VIDEOS oben — unten sitzen die Abspiel-Regler,
-                  dort würde der Titel sie verdecken. */}
+
+              {/* Titel im Bild — immer unten, da Videos keine Regler mehr haben. */}
               {p.title && (
-                <div className={`pointer-events-none absolute inset-x-0 px-5 ${
-                  p.kind === "video"
-                    ? "top-0 bg-gradient-to-b from-black/90 via-black/40 to-transparent pb-16 pt-4"
-                    : "bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pb-4 pt-16"
-                }`}>
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent px-5 pb-4 pt-16">
                   <p className="text-[28px] font-black leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">{p.title}</p>
                 </div>
               )}
             </div>
+
             {p.caption && (
               <p className="whitespace-pre-line px-5 pt-3 text-[14px] font-semibold leading-relaxed text-white/85">
                 {p.caption}
