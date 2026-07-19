@@ -1,15 +1,12 @@
-import Link from "next/link";
-import ModelCard from "@/components/ModelCard";
 import TopNav from "@/components/TopNav";
 import BellaSimpleStudio from "@/components/BellaSimpleStudio";
-import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
-import { readCardStudioSlides, getSignedUrl } from "@/lib/try-this-look-store";
+import { BELLA_ID } from "@/lib/bella-card";
+import { readTryThisLookState, readCardStudioSlides, getSignedUrl, type BellaSlide } from "@/lib/try-this-look-store";
 
-// Bellas eigene Seite — im GLEICHEN Aufbau wie ein Model-Profil (/curator/[id]):
-// Karte randlos direkt unter dem Header, darunter die Inhalte.
-//
-// QUELLE der Inhalte: die Card-Studio-Slides — also GENAU das, was das Card-Tool unten
-// auf dieser Seite erstellt. Eine Quelle, ein Werkzeug: was du unten anlegst, steht oben.
+// Bellas Seite — BEWUSST MINIMAL: ihr Bild, ihr Name, ihre Beiträge. Sonst nichts.
+// Keine Sammelkarte mit Growth Score, Seriennummer, Sponsor-Historie, Super-Follow,
+// Chat oder Profil-Link — das lenkt hier nur ab.
+// Beiträge kommen aus dem einfachen Werkzeug unten auf dieser Seite.
 
 export const metadata = {
   title: "Bella — what she does for you | LuxuryBandit",
@@ -25,93 +22,87 @@ export const metadata = {
 // Signierte Medien-Adressen laufen ab → pro Aufruf frisch rendern.
 export const dynamic = "force-dynamic";
 
+// Zeigt die Seite diesen Beitrag? (gleiche Regel wie das Werkzeug)
+const isPublicPost = (s: BellaSlide) =>
+  !s.customer && s.hidden !== true && s.private !== true && !s.pendingApproval
+  && (!s.pages || s.pages.length === 0 || s.pages.includes("profile"))
+  && !!s.path;
+
 export default async function BellaPage() {
-  const [{ card }, slides] = await Promise.all([
-    buildBellaCard({ surface: "profile" }),
-    readCardStudioSlides(BELLA_ID).catch(() => []),
+  const [state, slides] = await Promise.all([
+    readTryThisLookState(),
+    readCardStudioSlides(BELLA_ID).catch(() => [] as BellaSlide[]),
   ]);
 
-  // Öffentlich zeigen: keine Kunden-Slides, nichts Verstecktes, nichts in Prüfung,
-  // nichts Privates — und nur, was für die Profilfläche vorgesehen ist.
-  const publicSlides = slides.filter(s =>
-    !s.customer && s.hidden !== true && s.private !== true && !s.pendingApproval
-    && (!s.pages || s.pages.length === 0 || s.pages.includes("profile"))
-    && s.path,
-  );
-  const ordered = [...publicSlides].sort(
+  const bella = (state.curators ?? []).find(c => c.id === BELLA_ID) as
+    | { firstName?: string; modelName?: string; photoUrl?: string; intro?: string } | undefined;
+  const name = (bella?.modelName || bella?.firstName || "Bella").split(" ")[0];
+  const heroUrl = bella?.photoUrl
+    ? (bella.photoUrl.startsWith("http") ? bella.photoUrl : await getSignedUrl(bella.photoUrl).catch(() => ""))
+    : "";
+  const intro = String(bella?.intro ?? "").trim();
+
+  const ordered = slides.filter(isPublicPost).sort(
     (a, b) => (a.order ?? 1e9) - (b.order ?? 1e9) || String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")),
   );
-  const scenes = await Promise.all(ordered.map(async s => ({
+  const posts = (await Promise.all(ordered.map(async s => ({
     id: s.id,
     kind: s.kind,
-    title: s.title ?? "",
     caption: s.caption ?? "",
     mediaUrl: await getSignedUrl(s.path).catch(() => ""),
     posterUrl: s.posterPath ? await getSignedUrl(s.posterPath).catch(() => "") : "",
-  })));
-  const visible = scenes.filter(s => s.mediaUrl);
-  const first = (card?.name || "Bella").split(" ")[0];
+  })))).filter(p => p.mediaUrl);
 
   return (
     <main className="min-h-[100dvh] lb-bg pb-16 text-white">
       <TopNav />
 
-      {/* Karte — randlos, direkt unter dem Header (wie auf ihrem Profil) */}
+      {/* Sie — randlos direkt unter dem Header, Name im Bild */}
       <div className="relative">
-        {card ? (
-          <ModelCard {...card} showProfileLink />
+        {heroUrl ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={heroUrl} alt={name} className="block w-full" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent px-5 pb-5 pt-16">
+              <h1 className="text-[34px] font-black leading-none">{name}</h1>
+              <p className="mt-1 text-[12px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Every day, for you</p>
+            </div>
+          </>
         ) : (
           <div className="grid aspect-[3/4] w-full place-items-center bg-white/5 text-white/50">Bella lädt…</div>
         )}
       </div>
 
-      {/* Was sie für dich macht */}
-      <section className="px-5 pt-8">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Every day</p>
-        <h1 className="mt-1.5 text-[26px] font-black leading-tight">What {first} does for you</h1>
-        <p className="mt-2 text-[14px] font-semibold leading-relaxed text-white/75">
-          She wakes you up, tells you the weather where she is — and where you are — and shows you her day.
-        </p>
-      </section>
+      {intro && (
+        <p className="px-5 pt-5 text-[15px] font-semibold leading-relaxed text-white/85">{intro}</p>
+      )}
 
-      {visible.length === 0 ? (
-        <p className="px-5 pt-6 text-[13px] font-bold text-white/45">
-          Noch keine Szenen — unten im Card-Tool anlegen.
-        </p>
+      {/* Ihre Beiträge */}
+      {posts.length === 0 ? (
+        <p className="px-5 pt-8 text-[13px] font-bold text-white/45">Noch keine Beiträge.</p>
       ) : (
-        <div className="mt-6 grid gap-8">
-          {visible.map((s, i) => (
-            <article key={s.id}>
-              <div className="relative w-full bg-black">
-                {s.kind === "video" ? (
+        <div className="mt-8 grid gap-8">
+          {posts.map((p, i) => (
+            <article key={p.id}>
+              <div className="w-full bg-black">
+                {p.kind === "video" ? (
                   // eslint-disable-next-line jsx-a11y/media-has-caption
-                  <video src={s.mediaUrl} poster={s.posterUrl || undefined} controls playsInline preload="metadata" className="block w-full" />
+                  <video src={p.mediaUrl} poster={p.posterUrl || undefined} controls playsInline preload="metadata" className="block w-full" />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={s.mediaUrl} alt={s.title || `${first} — scene ${i + 1}`} className="block w-full" loading={i < 2 ? "eager" : "lazy"} />
+                  <img src={p.mediaUrl} alt={`${name} ${i + 1}`} className="block w-full" loading={i < 2 ? "eager" : "lazy"} />
                 )}
               </div>
-              {(s.title || s.caption) && (
-                <div className="px-5 pt-3">
-                  {s.title && <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#c9a23f]">{s.title}</p>}
-                  {s.caption && <p className="mt-1.5 whitespace-pre-line text-[14px] font-semibold leading-relaxed text-white/85">{s.caption}</p>}
-                </div>
+              {p.caption && (
+                <p className="whitespace-pre-line px-5 pt-3 text-[14px] font-semibold leading-relaxed text-white/85">{p.caption}</p>
               )}
             </article>
           ))}
         </div>
       )}
 
-      {/* Abschluss — zurück in den Marktplatz, wie am Ende eines Profils */}
-      <div className="px-5 pt-10">
-        <Link href="/stores?view=models"
-          className="flex h-13 w-full items-center justify-center rounded-2xl border border-white/20 py-3.5 text-[15px] font-black text-white/85 active:scale-95 transition">
-          See all influencers →
-        </Link>
-      </div>
-
-      {/* Das einfache Werkzeug — hochladen, Text, fertig. Nur für den Admin sichtbar. */}
-      <div className="px-4 pt-10">
+      {/* Werkzeug — nur für den Admin sichtbar */}
+      <div className="px-4 pt-12">
         <BellaSimpleStudio />
       </div>
     </main>
