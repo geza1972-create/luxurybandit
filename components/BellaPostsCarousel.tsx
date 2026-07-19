@@ -62,7 +62,10 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
         className="flex snap-x snap-mandatory overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {posts.map((p, i) => (
           <article key={p.id} className="w-full shrink-0 snap-center">
-            <div className="relative w-full bg-black">
+            {/* Feste Höhe für JEDE Slide (3:4). Sonst ist eine Slide hoch, die nächste
+                flach — und der Text beginnt jedes Mal woanders. `contain` statt `cover`,
+                damit nichts vom Bild abgeschnitten wird (in den Bildern steht Text). */}
+            <div className="relative aspect-[3/4] w-full bg-black">
               {p.kind === "video" ? (
                 <>
                   {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
@@ -75,7 +78,7 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
                     onEnded={() => setPlayingId("")}
                     onPause={() => setPlayingId(id => (id === p.id ? "" : id))}
                     onClick={() => toggle(p.id)}
-                    className="block max-h-[78vh] w-full cursor-pointer object-contain"
+                    className="absolute inset-0 h-full w-full cursor-pointer object-contain"
                   />
                   {playingId !== p.id && (
                     <button type="button" onClick={() => toggle(p.id)} aria-label="Video abspielen"
@@ -89,25 +92,26 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={p.mediaUrl} alt={`${name} ${i + 1}`} loading={i < 2 ? "eager" : "lazy"}
-                  className="block max-h-[78vh] w-full object-contain" />
-              )}
-
-              {/* Titel UND Text liegen im Bild, unten. Der Text sass vorher unter dem
-                  Bild — jetzt sitzt er direkt unter dem Titel, mit wenig Abstand.
-                  Das Overlay ist durchklickbar, sonst käme das Video nicht an den Tipp. */}
-              {(p.title || p.caption) && (
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/70 to-transparent px-5 pb-2 pt-24">
-                  {p.title && (
-                    <p className="text-[28px] font-black leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">{p.title}</p>
-                  )}
-                  {p.caption && (
-                    <p className="mt-1 whitespace-pre-line text-[13px] font-semibold leading-snug text-white/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)]">
-                      {p.caption}
-                    </p>
-                  )}
-                </div>
+                  className="absolute inset-0 h-full w-full object-contain" />
               )}
             </div>
+
+            {/* Der Text hängt NICHT mehr unten am Bild, sondern beginnt bei jeder Slide
+                an derselben Stelle: 55 % der Bildhöhe. Ein langer Text läuft nach unten
+                über das Bild hinaus weiter — der Verlauf endet in der Seitenfarbe, damit
+                das nahtlos aussieht. Durchklickbar, sonst käme das Video nicht an den Tipp. */}
+            {(p.title || p.caption) && (
+              <div className="pointer-events-none relative -mt-[60%] bg-gradient-to-b from-transparent via-[#0d0b0a]/85 to-[#0d0b0a] px-5 pb-4 pt-10">
+                {p.title && (
+                  <p className="text-[28px] font-black leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">{p.title}</p>
+                )}
+                {p.caption && (
+                  <p className="mt-1 whitespace-pre-line text-[13px] font-semibold leading-snug text-white/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">
+                    {p.caption}
+                  </p>
+                )}
+              </div>
+            )}
           </article>
         ))}
       </div>
