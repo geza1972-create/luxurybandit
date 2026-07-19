@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Copy, Check, Loader2, Save, Upload, Download, Plus, Trash2, Play } from "lucide-react";
+import { ArrowLeft, Copy, Check, Loader2, Save, Upload, Download, Plus, Trash2, Play, Eye } from "lucide-react";
 
 // „Was Bella für dich macht" — eine Szene = ein Instagram-Beitrag.
 // Ablauf: Bild/Video hochladen → fertigen Text kopieren → Karte als PNG herunterladen → posten.
@@ -27,7 +27,13 @@ export default function BellaSlidesPage() {
   const [busyId, setBusyId] = useState("");
   const [copiedId, setCopiedId] = useState("");
   const [error, setError] = useState("");
+  // Kartenvorschau oben: leer = ihre normale Karte, sonst die Karte MIT diesem Szenenbild.
+  const [previewPath, setPreviewPath] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(true);
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const previewSrc = `/api/model-card-image?id=${encodeURIComponent(BELLA_ID)}${previewPath ? `&img=${encodeURIComponent(previewPath)}` : ""}`;
+  const showPreview = (path: string) => { if (path === previewPath) return; setPreviewLoading(true); setPreviewPath(path); };
 
   useEffect(() => { try { setPin(localStorage.getItem(PIN_KEY) ?? ""); } catch { /**/ } }, []);
 
@@ -82,6 +88,7 @@ export default function BellaSlidesPage() {
       const next = scenes.map(x => x.id === scene.id
         ? { ...x, kind, path: sign.path, mediaUrl: URL.createObjectURL(file) } : x);
       setScenes(next);
+      if (kind === "image") showPreview(sign.path); // frisch Hochgeladenes sofort oben zeigen
       await save(next); // sofort sichern, damit ein Upload nie verloren geht
     } catch { setError("Hochladen fehlgeschlagen."); }
     finally { setBusyId(""); }
@@ -160,7 +167,32 @@ export default function BellaSlidesPage() {
       </div>
 
       <div className="mx-auto w-full max-w-2xl px-4 pt-4">
-        <p className="rounded-xl border border-black/10 bg-white px-3 py-2 text-[12px] font-semibold text-slate-600">
+        {/* Kartenvorschau — genau das Bild, das der Herunterladen-Knopf liefert. */}
+        <div className="rounded-2xl border border-black/10 bg-white p-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[12px] font-black uppercase tracking-wide text-slate-500">Vorschau der Karte</p>
+            {previewPath
+              ? <button type="button" onClick={() => showPreview("")}
+                  className="rounded-full border border-black/15 px-2.5 py-1 text-[11px] font-black text-slate-600 active:scale-95">Standardkarte</button>
+              : <span className="text-[11px] font-bold text-slate-400">ohne Szene</span>}
+          </div>
+          <div className="relative mt-2 overflow-hidden rounded-xl bg-slate-100">
+            {previewLoading && (
+              <div className="absolute inset-0 z-10 grid place-items-center bg-slate-100/80">
+                <span className="flex items-center gap-2 text-[12px] font-black text-slate-500">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Karte wird erzeugt…
+                </span>
+              </div>
+            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img key={previewSrc} src={previewSrc} alt="Kartenvorschau" className="mx-auto block w-full max-w-[320px]"
+              onLoad={() => setPreviewLoading(false)}
+              onError={() => { setPreviewLoading(false); setError("Vorschau konnte nicht erzeugt werden."); }} />
+          </div>
+          <p className="mt-1.5 text-center text-[11px] font-bold text-slate-400">Genau dieses Bild lädst du herunter.</p>
+        </div>
+
+        <p className="mt-3 rounded-xl border border-black/10 bg-white px-3 py-2 text-[12px] font-semibold text-slate-600">
           Ablauf je Szene: <b>Bild hochladen</b> → <b>Text kopieren</b> → <b>Karte herunterladen</b> → auf Instagram posten.
         </p>
         {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-[13px] font-bold text-red-600">{error}</p>}
@@ -209,6 +241,10 @@ export default function BellaSlidesPage() {
                   <button type="button" onClick={() => void copy(s)}
                     className="flex h-9 items-center gap-1.5 rounded-lg bg-slate-800 px-3 text-[12px] font-black text-white active:scale-95 transition">
                     {copiedId === s.id ? <><Check className="h-3.5 w-3.5" /> Kopiert</> : <><Copy className="h-3.5 w-3.5" /> Text kopieren</>}
+                  </button>
+                  <button type="button" onClick={() => showPreview(s.path)} disabled={!s.path || s.kind === "video"}
+                    className={`flex h-9 items-center gap-1.5 rounded-lg px-3 text-[12px] font-black active:scale-95 transition disabled:opacity-40 ${previewPath && previewPath === s.path ? "bg-slate-900 text-white" : "border border-black/15 text-slate-700"}`}>
+                    <Eye className="h-3.5 w-3.5" /> {previewPath && previewPath === s.path ? "Oben zu sehen" : "Vorschau"}
                   </button>
                   <button type="button" onClick={() => void downloadCard(s)} disabled={!s.path || busyId === s.id + "-dl"}
                     className="flex h-9 items-center gap-1.5 rounded-lg bg-amber-400 px-3 text-[12px] font-black text-black active:scale-95 transition disabled:opacity-40">
