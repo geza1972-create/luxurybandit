@@ -32,7 +32,7 @@ export default async function InfluencerGrowthPage() {
     { label: "Every video you create", value: pts(p.videoValueCents) },
     { label: "Every 10 videos milestone", value: pts(p.videoMilestoneBonusCents) },
     { label: "Every super-follower", value: pts(p.followerValueCents) },
-    { label: "Every day you own her", value: pts(p.dayValueCents) },
+    { label: "Every day you sponsor her", value: pts(p.dayValueCents) },
   ];
   if ((p.lookValueCents ?? 0) > 0) scoreRows.push({ label: "Every look in her wardrobe", value: pts(p.lookValueCents) });
 
@@ -81,7 +81,7 @@ export default async function InfluencerGrowthPage() {
         </div>
 
         <div className="mt-7 flex flex-col gap-2">
-          <Link href="/own-influencer" className="lb-gold flex items-center justify-center rounded-full px-5 py-3.5 text-sm font-black active:scale-95 transition">Own an AI influencer →</Link>
+          <Link href="/own-influencer" className="lb-gold flex items-center justify-center rounded-full px-5 py-3.5 text-sm font-black active:scale-95 transition">Sponsor an AI influencer →</Link>
           <Link href="/stores?view=models" className="flex items-center justify-center rounded-full border border-white/20 px-5 py-3 text-sm font-black text-white/80 active:scale-95 transition">Explore the marketplace</Link>
         </div>
       </div>

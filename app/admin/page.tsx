@@ -2765,7 +2765,7 @@ export default function AdminPage() {
                           <span className="block truncate text-xs font-black text-ink/75">{fullName(c)}</span>
                           <span className="block truncate text-[10px] font-bold text-ink/40">{c.email}</span>
                         </span>)
-                      : <span className="inline-block rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-black text-amber-700 ring-1 ring-amber-400/30">Looking for owner</span>}
+                      : <span className="inline-block rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-black text-amber-700 ring-1 ring-amber-400/30">Looking for sponsor</span>}
                   </td>
                   {/* Price (base) — tap to change */}
                   <td className={td}>

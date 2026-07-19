@@ -62,8 +62,8 @@ export default function OwnModelPage() {
     <main className="min-h-screen bg-[#0d0b0a] text-white">
       <LandingHeader />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Own an AI Influencer</p>
-        <h1 className="mt-2 text-[30px] font-black leading-[1.05]">Own <span className="text-[#c9a23f]">{name}</span> 👑</h1>
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Sponsor an AI Influencer</p>
+        <h1 className="mt-2 text-[30px] font-black leading-[1.05]">Sponsor <span className="text-[#c9a23f]">{name}</span> 👑</h1>
 
         <div className="mt-6 flex items-center gap-4">
           <span className="h-20 w-16 shrink-0 overflow-hidden rounded-2xl bg-white/10">
@@ -79,9 +79,9 @@ export default function OwnModelPage() {
         </div>
 
         <div className="mt-6 rounded-2xl border border-[#c9a23f]/30 bg-[#c9a23f]/[0.06] p-5">
-          <p className="text-[14px] font-bold uppercase tracking-wide text-[#c9a23f]">What ownership means</p>
+          <p className="text-[14px] font-bold uppercase tracking-wide text-[#c9a23f]">What sponsoring means</p>
           <ul className="mt-3 space-y-2 text-[14px] font-semibold leading-relaxed text-white/75">
-            <li>👑 She&apos;s exclusively yours — no one else can own her</li>
+            <li>👑 She&apos;s exclusively yours — no one else can sponsor her</li>
             <li>📈 You sponsor her monthly Growth Score, which keeps rising</li>
             <li>🛍️ She promotes your products to her followers</li>
             <li>🎬 You direct her looks and content</li>

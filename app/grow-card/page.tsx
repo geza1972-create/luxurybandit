@@ -5,7 +5,7 @@ import { getPricingConfig, fmtCents } from "@/lib/try-this-look-store";
 
 export const metadata = {
   title: "Follow, chat & subscribe to influencers | LuxuryBandit",
-  description: "Follow any influencer on LuxuryBandit for free, chat with her, and subscribe to unlock her private photos & videos. Want her all to yourself? Exclusive ownership is arranged personally — get in touch.",
+  description: "Follow any influencer on LuxuryBandit for free, chat with her, and subscribe to unlock her private photos & videos. Want her all to yourself? Exclusive sponsorship is arranged personally — get in touch.",
 };
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export default async function GrowCardPage() {
     { icon: UserPlus, title: "Follow — free", detail: "Follow any influencer and watch her daily luxury looks in your feed. Costs nothing." },
     { icon: MessageCircle, title: "Chat with her", detail: "Message her, get styled, get to know her — she replies day and night." },
     { icon: Lock, title: "Subscribe — unlock her private world", detail: `${sub}/month (just $8 the first month) unlocks her private photos & videos. One subscription per influencer.` },
-    { icon: Crown, title: "Own her — become her sponsor", detail: "Pay her monthly Growth-Score price to become her owner. You're then her sponsor — she promotes YOUR products to her fans. Get in touch to start." },
+    { icon: Crown, title: "Become her sponsor", detail: "Pay her monthly Growth-Score price to become her owner. You're then her sponsor — she promotes YOUR products to her fans. Get in touch to start." },
   ];
 
   return (
@@ -51,7 +51,7 @@ export default async function GrowCardPage() {
         <div className="mt-5 rounded-2xl border border-amber-400/25 bg-amber-400/[0.06] p-4">
           <p className="flex items-center gap-1.5 text-[13px] font-black text-white"><Check className="h-4 w-4 text-amber-400" /> Follow &amp; see her daily looks — free.</p>
           <p className="mt-1.5 flex items-center gap-1.5 text-[13px] font-black text-white"><Check className="h-4 w-4 text-amber-400" /> Subscribe to unlock her private world.</p>
-          <p className="mt-1.5 flex items-center gap-1.5 text-[13px] font-black text-white"><Check className="h-4 w-4 text-amber-400" /> Own her = sponsor her monthly; she promotes your products.</p>
+          <p className="mt-1.5 flex items-center gap-1.5 text-[13px] font-black text-white"><Check className="h-4 w-4 text-amber-400" /> Sponsoring = pay monthly; she promotes your products.</p>
         </div>
 
         <div className="mt-6 flex flex-col gap-2">

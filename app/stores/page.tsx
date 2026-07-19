@@ -39,8 +39,8 @@ const HERO: Record<"ro" | "en", { eyebrow: string; h1a: string; h1b: string; sub
   },
   en: {
     eyebrow: "LuxuryBandit Marketplace",
-    h1a: "Discover influencers.", h1b: "Follow, chat & own them.",
-    sub: "Browse a marketplace of AI & real influencers — watch their daily luxury looks, chat with them, and own the one you love. New faces and new looks every day.",
+    h1a: "Discover influencers.", h1b: "Follow, chat & sponsor them.",
+    sub: "Browse a marketplace of AI & real influencers — watch their daily luxury looks, chat with them, and sponsor the one you love. New faces and new looks every day.",
     b1t: "Follow & chat", b1x: "Message any influencer, get styled by her, and make her yours.",
     b2t: "New looks/stories", b2x: "Fresh luxury fashion videos from every influencer, every single day.",
     cta: "Become an influencer",

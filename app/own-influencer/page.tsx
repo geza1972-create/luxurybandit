@@ -12,10 +12,10 @@ import BuyFormLink from "@/components/BuyFormLink";
 import WardrobePeek from "@/components/WardrobePeek";
 
 export const metadata = {
-  title: "LuxuryBandit — Own an AI Influencer. We'll help her grow.",
-  description: "Own an AI influencer on LuxuryBandit — she's yours, one of a kind. Generate her videos in one tap, use them anywhere, and watch her Growth Score grow. Membership $4.99/month.",
+  title: "LuxuryBandit — Sponsor an AI Influencer. We'll help her grow.",
+  description: "Sponsor an AI influencer on LuxuryBandit — she's yours, one of a kind. Generate her videos in one tap, use them anywhere, and watch her Growth Score grow. Membership $4.99/month.",
   openGraph: {
-    title: "Own an AI Influencer — We'll help her grow | LuxuryBandit",
+    title: "Sponsor an AI Influencer — We'll help her grow | LuxuryBandit",
     description: "Own your AI influencer — a one-of-a-kind digital collectible. Generate her videos yourself, grow her Growth Score every day. Membership $4.99/month.",
     images: [{ url: "/become-a-model-banner.jpg?v=3", width: 1280, height: 720 }],
     url: "/own-influencer",
@@ -236,7 +236,7 @@ export default async function OwnInfluencerLanding() {
               <img src={heroPhoto} alt="Your AI influencer" className="aspect-[4/5] w-full rounded-3xl object-cover" />
             ) : (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img src="/become-a-model-banner.jpg?v=3" alt="Own an AI Influencer on LuxuryBandit" className="w-full rounded-3xl" />
+              <img src="/become-a-model-banner.jpg?v=3" alt="Sponsor an AI Influencer on LuxuryBandit" className="w-full rounded-3xl" />
             )}
           </div>
           {/* Copy */}
@@ -246,7 +246,7 @@ export default async function OwnInfluencerLanding() {
             </h1>
             <p className="mt-3 text-[20px] font-black leading-tight">We&apos;ll help her grow every single day!</p>
             <p className="mx-auto mt-4 max-w-md text-[15px] font-semibold leading-7 text-white/85">
-              Own a one-of-a-kind <strong className="text-white">AI influencer</strong> on LuxuryBandit. Generate her videos in one tap, use them anywhere — and her <strong className="text-white">Growth Score</strong> grows every single day.
+              Sponsor a one-of-a-kind <strong className="text-white">AI influencer</strong> on LuxuryBandit. Generate her videos in one tap, use them anywhere — and her <strong className="text-white">Growth Score</strong> grows every single day.
             </p>
             <div className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-4">
               {HERO_FEATURES.map(f => (
@@ -273,7 +273,7 @@ export default async function OwnInfluencerLanding() {
                 { icon: "💬", t: "Free unlimited chat", d: "Message any influencer, as much as you like." },
                 { icon: "🔒", t: "Her private videos", d: "See her private photos & videos — subscribe per model." },
                 { icon: "➕", t: "Super Follow her", d: "Back your favorites — they grow in value." },
-                { icon: "👑", t: "Become her owner", d: "Own a model monthly — she's yours to direct." },
+                { icon: "👑", t: "Become her sponsor", d: "Sponsor a model monthly — she's yours to direct." },
               ].map(x => (
                 <div key={x.t} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-2xl leading-none">{x.icon}</p>
@@ -318,7 +318,7 @@ export default async function OwnInfluencerLanding() {
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">The Influencer Marketplace</p>
             <h2 className="mt-2 text-[30px] font-black uppercase leading-none tracking-tight">Who owns her?</h2>
             <p className="mt-3 text-[14px] font-semibold leading-relaxed text-white/85">
-              Every AI influencer is one-of-a-kind — and only <span className="font-black text-white">one person</span> can own her: her daily content, her chats, her whole audience. These are <span className="font-black text-amber-400">still free</span>. Claim one before someone else does — or <BuyFormLink className="font-black text-amber-400 underline decoration-amber-400/40 underline-offset-2">create your own</BuyFormLink>.
+              Every AI influencer is one-of-a-kind — and only <span className="font-black text-white">one person</span> can sponsor her: her daily content, her chats, her whole audience. These are <span className="font-black text-amber-400">still free</span>. Claim one before someone else does — or <BuyFormLink className="font-black text-amber-400 underline decoration-amber-400/40 underline-offset-2">create your own</BuyFormLink>.
             </p>
             {models.length >= 1 && <BuyModelGrid models={models.slice(0, 12)} />}
           </div>

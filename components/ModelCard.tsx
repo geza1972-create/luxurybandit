@@ -59,7 +59,7 @@ export default function ModelCard({
   const gsLabel = Math.round(parseFloat(String(valueLabel).replace(/[^0-9.]/g, "")) || 0).toLocaleString("en-US");
   const router = useRouter();
   const [zoomIdx, setZoomIdx] = useState(-1);        // which slide is open fullscreen (-1 = none)
-  const [ownerInfo, setOwnerInfo] = useState(false); // "Looking for owner ?" → explainer popup
+  const [ownerInfo, setOwnerInfo] = useState(false); // "Looking for sponsor ?" → explainer popup
   const [copied, setCopied] = useState(false);       // "Link copied!" feedback on the share button
   const [activeSlide, setActiveSlide] = useState(0);  // which slide is centred (0 = her card face)
   const [playingIdx, setPlayingIdx] = useState(-1);   // which look slide is playing its video (-1 = none)
@@ -132,11 +132,11 @@ export default function ModelCard({
         {/* Status directly under the name — the first thing the eye lands on. */}
         {!hideOwner && (
           <span className={`relative inline-flex max-w-full items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-[12px] font-black leading-none shadow backdrop-blur ${isOwned ? "bg-amber-400 text-black ring-1 ring-amber-300" : "bg-black/50 text-amber-200 ring-1 ring-amber-300/45"}`}>
-            {isOwned ? <><Crown className="h-3.5 w-3.5 shrink-0" fill="currentColor" /> <span className="min-w-0 truncate">Owned by {ownedName}</span></> : <><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300" /> Available</>}
+            {isOwned ? <><Crown className="h-3.5 w-3.5 shrink-0" fill="currentColor" /> <span className="min-w-0 truncate">Sponsored by {ownedName}</span></> : <><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300" /> Available</>}
           </span>
         )}
         <span className="relative inline-flex items-center whitespace-nowrap rounded-full bg-black/40 px-3.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-amber-300/85 ring-1 ring-amber-300/20 backdrop-blur">
-          LuxuryBandit.com <span className="mx-1.5 text-amber-300/40">·</span> <span className="text-white/85">{hideOwner ? "Creator preview" : "Own an AI Influencer"}</span>
+          LuxuryBandit.com <span className="mx-1.5 text-amber-300/40">·</span> <span className="text-white/85">{hideOwner ? "Creator preview" : "Sponsor an AI Influencer"}</span>
         </span>
         <button type="button" onClick={() => void share()} aria-label="Share this card"
           className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white/85 transition active:scale-90 hover:text-white">
@@ -233,9 +233,9 @@ export default function ModelCard({
                         {/* Her intro lives HERE on the card face (no separate ABOUT slide). */}
                         <p className={`font-semibold text-white/85 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)] ${intro ? "line-clamp-4 text-[12.5px] leading-snug" : "text-[13px]"}`}>{intro || tagline}</p>
                         {hideOwner ? null : isOwned ? (
-                          <p className="mt-1.5 text-[13px] font-black text-amber-300 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)]">Owned by {ownedName}{ownerSince ? <span className="font-bold text-white/85"> · since {ownerSince}</span> : null}</p>
+                          <p className="mt-1.5 text-[13px] font-black text-amber-300 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)]">Sponsored by {ownedName}{ownerSince ? <span className="font-bold text-white/85"> · since {ownerSince}</span> : null}</p>
                         ) : (
-                          <p className="mt-1.5 text-[14px] font-black text-amber-300 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)]">No owner yet — be the first owner</p>
+                          <p className="mt-1.5 text-[14px] font-black text-amber-300 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)]">No sponsor yet — be the first sponsor</p>
                         )}
                       </>
                     ) : (
@@ -270,10 +270,10 @@ export default function ModelCard({
         <div className="pointer-events-none absolute left-3 top-3 z-[5] flex flex-col items-start gap-1.5">
           <div className="rounded-full bg-black/55 px-2.5 py-1 backdrop-blur"><p className="font-mono text-[11px] font-black tracking-wider text-white/85">Nº {serial}</p></div>
           {forSale && (
-            <button type="button" onClick={() => setOwnerInfo(true)} aria-label="What does looking for owner mean?"
+            <button type="button" onClick={() => setOwnerInfo(true)} aria-label="What does looking for sponsor mean?"
               className="pointer-events-auto inline-flex flex-col items-center rounded-2xl bg-amber-500 px-3 py-1 text-[10px] font-black leading-tight text-white shadow ring-1 ring-amber-300/40 transition active:scale-95">
               <span>Looking for</span>
-              <span className="inline-flex items-center gap-1">owner <span className="grid h-3 w-3 place-items-center rounded-full border border-white/60 text-[7px] leading-none">?</span></span>
+              <span className="inline-flex items-center gap-1">sponsor <span className="grid h-3 w-3 place-items-center rounded-full border border-white/60 text-[7px] leading-none">?</span></span>
             </button>
           )}
           {realModel && <span className="inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-black text-amber-700 shadow">✓ Real</span>}
@@ -354,10 +354,10 @@ export default function ModelCard({
       {/* Ownership & history — the collectible's provenance (creates emotional attachment). */}
       {!hideOwner && (
         <div className="border-b border-white/10 px-4 py-3">
-          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-amber-400/70">Ownership &amp; history</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-amber-400/70">Sponsorship &amp; history</p>
           <div className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[11.5px]">
             <span className="font-bold text-white/80">Created</span><span className="text-right font-black text-white/85">{created || "—"}</span>
-            <span className="font-bold text-white/80">Owner</span><span className={`text-right font-black ${isOwned ? "text-white/85" : "text-amber-400"}`}>{isOwned ? ownedName : "Available"}</span>
+            <span className="font-bold text-white/80">Sponsor</span><span className={`text-right font-black ${isOwned ? "text-white/85" : "text-amber-400"}`}>{isOwned ? ownedName : "Available"}</span>
             {ownerSince && (<><span className="font-bold text-white/80">Owned since</span><span className="text-right font-black text-white/85">{ownerSince}</span></>)}
             <span className="font-bold text-white/80">Growth Score</span><span className="text-right font-black text-amber-300">{gsLabel}</span>
             <span className="font-bold text-white/80">Peak Score</span><span className="text-right font-black text-amber-300">{gsLabel}</span>
@@ -416,12 +416,12 @@ export default function ModelCard({
         </div>
       )}
 
-      {/* "Looking for owner ?" explainer — owning = a monthly sponsorship at her Growth-Score price. */}
+      {/* "Looking for sponsor ?" explainer — owning = a monthly sponsorship at her Growth-Score price. */}
       {ownerInfo && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-6 backdrop-blur-sm" onClick={() => setOwnerInfo(false)}>
           <div className="w-full max-w-sm rounded-3xl border border-amber-400/25 bg-[#141210] p-6 text-center" onClick={e => e.stopPropagation()}>
             <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-black"><Crown className="h-6 w-6" /></span>
-            <h3 className="mt-3 text-lg font-black text-white">Looking for owner</h3>
+            <h3 className="mt-3 text-lg font-black text-white">Looking for sponsor</h3>
             <p className="mt-2 text-[13px] font-semibold leading-6 text-white/85">
               Become {name}&apos;s <b className="text-white">owner</b> by paying her <b className="text-amber-300">monthly Growth-Score price</b> (currently GS {gsLabel}). You&apos;re then her <b className="text-white">sponsor</b> — she promotes <b className="text-white">YOUR products</b> to her fans.
             </p>

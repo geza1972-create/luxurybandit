@@ -1283,14 +1283,14 @@ export default function CuratorPublicPage() {
           </div>
         )}
         {/* Open to ownership — a TOGGLE (admin or the model herself). When ON, her public profile
-            shows the "Get in touch to own her" button; when OFF, no ownership button appears. */}
+            shows the "Get in touch to sponsor her" button; when OFF, no ownership button appears. */}
         {(isAdmin || isOwn) && (
           <div className="mt-1">
             <button type="button" onClick={() => void toggleForSale(!profile.forSale)} disabled={saleBusy}
               className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-black transition active:scale-95 disabled:opacity-50 ${profile.forSale ? "bg-amber-500 text-white" : "border border-white/20 bg-white/5 text-white/80"}`}>
-              {saleBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : profile.forSale ? "✓ Open to ownership — tap to close" : "Closed to ownership — tap to open"}
+              {saleBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : profile.forSale ? "✓ Open to sponsorship — tap to close" : "Closed to sponsorship — tap to open"}
             </button>
-            <p className="mt-1 text-[11px] font-bold text-white/80">{profile.forSale ? "ON — her profile shows a “Get in touch to own her” button." : "OFF — no ownership button on her profile."}</p>
+            <p className="mt-1 text-[11px] font-bold text-white/80">{profile.forSale ? "ON — her profile shows a “Get in touch to sponsor her” button." : "OFF — no sponsor button on her profile."}</p>
           </div>
         )}
         {/* Owner privacy — the OWNER (or admin) can hide their name on the card, keep only the ID. */}
@@ -1305,7 +1305,7 @@ export default function CuratorPublicPage() {
           <div className="mt-1 flex flex-col items-center gap-2">
             <a href={`/own/${id}`} title={`Own ${name}`}
               className="lb-gold inline-flex items-center justify-center rounded-full px-6 py-3 text-[14px] font-black shadow active:scale-95 transition">
-              Own {name} — get in touch
+              Sponsor {name} — get in touch
             </a>
             <p className="max-w-xs text-center text-[12px] font-semibold leading-relaxed text-white/85">
               You sponsor her monthly Growth Score{profile.growPriceLabel ? ` (${profile.growPriceLabel})` : ""} — in return she promotes your products and you can direct her looks.
@@ -1661,8 +1661,8 @@ export default function CuratorPublicPage() {
           if (!(profile.youOwnHer || isAdmin || isOwn)) {
             return (
               <div className="mx-auto max-w-sm rounded-2xl border border-amber-400/20 bg-amber-400/[0.05] p-5 text-center">
-                <p className="text-sm font-black text-white">Try-ons are for your own influencers</p>
-                <p className="mt-1 text-[13px] font-semibold leading-relaxed text-white/75">Own {profile.firstName || "her"} to dress her in any look — one tap, videos are yours.</p>
+                <p className="text-sm font-black text-white">Try-ons are for the influencers you sponsor</p>
+                <p className="mt-1 text-[13px] font-semibold leading-relaxed text-white/75">Sponsor {profile.firstName || "her"} to dress her in any look — one tap, videos are yours.</p>
                 {profile.forSale && (
                   <button type="button" onClick={() => void buyInfluencer()} disabled={buying}
                     className="lb-gold mt-3 inline-flex items-center justify-center rounded-full px-5 py-2.5 text-[13px] font-black active:scale-95 transition disabled:opacity-60">

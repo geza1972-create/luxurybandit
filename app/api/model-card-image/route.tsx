@@ -111,7 +111,7 @@ export async function GET(request: Request) {
               </div>
             )}
             <div style={{ display: "flex", alignItems: "center", marginTop: 5, background: "rgba(0,0,0,0.45)", border: "1px solid rgba(252,211,77,0.3)", borderRadius: 999, padding: "3px 14px", zIndex: 1 }}>
-              <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: 1, color: "#fbbf24" }}>LuxuryBandit.com <span style={{ color: "rgba(255,255,255,0.5)" }}>· Own an AI Influencer</span></span>
+              <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: 1, color: "#fbbf24" }}>LuxuryBandit.com <span style={{ color: "rgba(255,255,255,0.5)" }}>· Sponsor an AI Influencer</span></span>
             </div>
           </div>
           {/* photo + overlays */}
@@ -133,9 +133,9 @@ export async function GET(request: Request) {
             <div style={{ position: "absolute", left: 26, bottom: 22, display: "flex", flexDirection: "column" }}>
               {tagline ? <span style={{ fontSize: 26, fontWeight: 700, color: "rgba(255,255,255,0.95)", textShadow: "0 2px 14px rgba(0,0,0,1)" }}>{tagline}</span> : <span />}
               {owner ? (
-                <span style={{ marginTop: 6, fontSize: 18, fontWeight: 800, color: "#fcd34d", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>Owned by {owner}</span>
+                <span style={{ marginTop: 6, fontSize: 18, fontWeight: 800, color: "#fcd34d", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>Sponsored by {owner}</span>
               ) : (
-                <span style={{ marginTop: 6, fontSize: 18, fontWeight: 800, color: "#fbbf24", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>No owner yet — be the first owner</span>
+                <span style={{ marginTop: 6, fontSize: 18, fontWeight: 800, color: "#fbbf24", textShadow: "0 1px 6px rgba(0,0,0,0.9)" }}>No sponsor yet — be the first sponsor</span>
               )}
             </div>
           </div>
