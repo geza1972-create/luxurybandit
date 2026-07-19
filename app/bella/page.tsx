@@ -1,5 +1,6 @@
 import TopNav from "@/components/TopNav";
 import BellaSimpleStudio from "@/components/BellaSimpleStudio";
+import BellaPostsCarousel from "@/components/BellaPostsCarousel";
 import { BELLA_ID } from "@/lib/bella-card";
 import { readTryThisLookState, readCardStudioSlides, getSignedUrl, type BellaSlide } from "@/lib/try-this-look-store";
 
@@ -77,27 +78,12 @@ export default async function BellaPage() {
         <p className="px-5 pt-5 text-[15px] font-semibold leading-relaxed text-white/85">{intro}</p>
       )}
 
-      {/* Ihre Beiträge */}
+      {/* Ihre Beiträge — seitlich durchblätterbar */}
       {posts.length === 0 ? (
         <p className="px-5 pt-8 text-[13px] font-bold text-white/45">Noch keine Beiträge.</p>
       ) : (
-        <div className="mt-8 grid gap-8">
-          {posts.map((p, i) => (
-            <article key={p.id}>
-              <div className="w-full bg-black">
-                {p.kind === "video" ? (
-                  // eslint-disable-next-line jsx-a11y/media-has-caption
-                  <video src={p.mediaUrl} poster={p.posterUrl || undefined} controls playsInline preload="metadata" className="block w-full" />
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.mediaUrl} alt={`${name} ${i + 1}`} className="block w-full" loading={i < 2 ? "eager" : "lazy"} />
-                )}
-              </div>
-              {p.caption && (
-                <p className="whitespace-pre-line px-5 pt-3 text-[14px] font-semibold leading-relaxed text-white/85">{p.caption}</p>
-              )}
-            </article>
-          ))}
+        <div className="mt-8">
+          <BellaPostsCarousel posts={posts} name={name} />
         </div>
       )}
 
