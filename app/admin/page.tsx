@@ -3147,6 +3147,15 @@ export default function AdminPage() {
       {/* ── Insights tab — professional analytics dashboard (components/InsightsPro) ── */}
       {tab === "meta" && (
         <div className="mt-3 pb-16">
+              {/* Werbetexte & Bella-Sätze — eigene Seite (dauerhaft gespeichert). */}
+              <a href="/admin/ads"
+                className="mb-3 flex items-center justify-between gap-2 rounded-2xl border border-amber-300 bg-amber-50 p-3 active:scale-[0.99] transition">
+                <div className="min-w-0">
+                  <p className="text-sm font-black text-ink">📣 Werbetexte &amp; Bella-Sätze</p>
+                  <p className="mt-0.5 text-[12px] font-bold text-ink/50">Anzeigentexte, Sprech-Skripte und Beispiel-Nachrichten — bearbeiten &amp; kopieren.</p>
+                </div>
+                <span className="shrink-0 text-ink/40">→</span>
+              </a>
               {/* Travel programs — one destination = one monthly program owners subscribe to. */}
                 <div className="mt-3 rounded-2xl border border-teal-300/60 bg-teal-50/40 p-3">
                   <div className="flex items-center justify-between gap-2">

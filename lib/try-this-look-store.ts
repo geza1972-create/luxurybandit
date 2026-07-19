@@ -1288,6 +1288,89 @@ export async function addNewsletterOptOut(email: string): Promise<void> {
   });
 }
 
+// ── „Bella meldet sich" — Warteliste (Smoke-Test) ───────────────────────────
+// Anmeldungen für Bellas tägliche Reise-Nachrichten. Eigenes Blob (clobber-sicher),
+// damit parallele state.json-Schreibvorgänge nichts überschreiben.
+const DAILY_SIGNUP_PATH = "try-this-look/daily-signups.json";
+
+export type DailySignup = {
+  id: string;
+  email: string;
+  firstName?: string;
+  city?: string;          // für „bei dir wird es heute …"
+  lang?: string;          // "de" | "en"
+  source?: string;        // utm_source / referrer
+  createdAt: string;
+};
+
+export async function readDailySignups(): Promise<DailySignup[]> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(DAILY_SIGNUP_PATH)}`);
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => null);
+    return Array.isArray(data?.signups) ? (data.signups as DailySignup[]) : [];
+  } catch { return []; }
+}
+
+// Legt eine Anmeldung an. Gibt `false` zurück, wenn die E-Mail schon eingetragen war
+// (doppelte Anmeldungen sollen die Zahlen des Tests nicht verfälschen).
+export async function addDailySignup(entry: Omit<DailySignup, "id" | "createdAt">): Promise<boolean> {
+  const email = String(entry.email || "").trim().toLowerCase();
+  if (!email) return false;
+  await ensureBucket();
+  const current = await readDailySignups();
+  if (current.some(s => s.email === email)) return false;
+  const next: DailySignup = {
+    ...entry,
+    email,
+    id: `signup-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
+    createdAt: new Date().toISOString(),
+  };
+  const body = JSON.stringify({ signups: [next, ...current].slice(0, 20000), updatedAt: new Date().toISOString() });
+  const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(DAILY_SIGNUP_PATH)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body,
+  });
+  if (!res.ok) throw new Error("Anmeldung konnte nicht gespeichert werden.");
+  return true;
+}
+
+// ── Werbetexte & Bella-Sätze ────────────────────────────────────────────────
+// Die Sammlung der Anzeigentexte, der Sätze die Bella im Werbevideo spricht, und der
+// Beispiel-Nachrichten. Eigenes Blob (clobber-sicher) — diese Texte sind Arbeitsergebnis
+// und dürfen nicht durch parallele state.json-Schreibvorgänge verloren gehen.
+const AD_SCRIPT_PATH = "try-this-look/ad-scripts.json";
+
+export type AdScript = {
+  id: string;
+  kind: "ad" | "spoken" | "message"; // Anzeigentext | Bella spricht | Beispiel-Nachricht
+  title: string;
+  text: string;
+  createdAt: string;
+};
+
+// Gibt `null` zurück, wenn noch nie etwas gespeichert wurde (dann sät die API die Vorlagen).
+export async function readAdScripts(): Promise<AdScript[] | null> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(AD_SCRIPT_PATH)}`);
+    if (!res.ok) return null;
+    const data = await res.json().catch(() => null);
+    return Array.isArray(data?.scripts) ? (data.scripts as AdScript[]) : null;
+  } catch { return null; }
+}
+
+export async function writeAdScripts(scripts: AdScript[]): Promise<void> {
+  await ensureBucket();
+  const body = JSON.stringify({ scripts: scripts.slice(0, 500), updatedAt: new Date().toISOString() });
+  const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(AD_SCRIPT_PATH)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body,
+  });
+  if (!res.ok) throw new Error("Werbetexte konnten nicht gespeichert werden.");
+}
+
 async function dataUrlToBytes(dataUrl: string) {
   const [header, base64] = dataUrl.split(",");
   const rawMime = header.match(/data:(.*);base64/)?.[1] ?? "image/png";
