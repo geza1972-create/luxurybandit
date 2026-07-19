@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { readCardStudioSlides, writeCardStudioSlides, createSignedUploadUrl, getSignedUrl, type BellaSlide } from "@/lib/try-this-look-store";
 import { isAdminRequest } from "@/lib/admin-auth";
+import { translatePost } from "@/lib/translate-post";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;   // die Uebersetzung braucht ein paar Sekunden
 
 const BELLA_ID = "curator-1783683672619-td4cy";
 
@@ -29,6 +31,9 @@ export async function GET(request: Request) {
     kind: s.kind,
     title: s.title ?? "",
     caption: s.caption ?? "",
+    // Damit das Werkzeug zeigen kann, was der Uebersetzer daraus gemacht hat.
+    ro: s.i18n?.ro ?? null,
+    en: s.i18n?.en ?? null,
     mediaUrl: await getSignedUrl(s.path).catch(() => ""),
   })));
   return NextResponse.json({ posts });
@@ -97,7 +102,35 @@ export async function POST(request: Request) {
       title: String(p.title ?? "").slice(0, 120),
       caption: String(p.caption ?? "").slice(0, 3000),
     }]));
-    const next = all.map(s => byId.has(s.id) ? { ...s, ...byId.get(s.id)! } : s);
+
+    // Uebersetzen: Gerry schreibt Deutsch, RO + EN entstehen automatisch.
+    // NUR fuer Beitraege, deren deutscher Text sich wirklich geaendert hat (oder denen
+    // die Uebersetzung noch fehlt) — sonst kostet jeder Klick auf „Uebernehmen" Geld.
+    const needsTranslation = all.filter(s => {
+      const t = byId.get(s.id);
+      if (!t) return false;
+      if (!t.title && !t.caption) return false;
+      const changed = t.title !== (s.title ?? "") || t.caption !== (s.caption ?? "");
+      const missing = !s.i18n?.ro?.title && !s.i18n?.ro?.caption;
+      return changed || missing;
+    });
+    const translations = new Map<string, Awaited<ReturnType<typeof translatePost>>>();
+    await Promise.all(needsTranslation.map(async s => {
+      const t = byId.get(s.id)!;
+      translations.set(s.id, await translatePost({ title: t.title, caption: t.caption }, "de"));
+    }));
+
+    const next = all.map(s => {
+      const t = byId.get(s.id);
+      if (!t) return s;
+      const i18n = translations.get(s.id)
+        // Text geleert → alte Uebersetzungen MUESSEN weg, sonst zeigt die Seite weiter
+        // den geloeschten Text in RO/EN an.
+        ?? (!t.title && !t.caption ? undefined
+          // Text unveraendert → alte Uebersetzung behalten, deutsche Fassung nachziehen.
+          : { ...(s.i18n ?? {}), de: { title: t.title, caption: t.caption } });
+      return { ...s, ...t, i18n };
+    });
     try { await writeCardStudioSlides(next, BELLA_ID); } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "Speichern fehlgeschlagen." }, { status: 502 });
     }

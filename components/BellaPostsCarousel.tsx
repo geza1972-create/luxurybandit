@@ -90,10 +90,23 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
                   className="block max-h-[78vh] w-full object-contain" />
               )}
 
-              {/* Titel im Bild — immer unten, da Videos keine Regler mehr haben. */}
-              {p.title && (
+              {/* Titel im Bild — immer unten, da Videos keine Regler mehr haben.
+                  Direkt darunter die Punkte, damit man sofort sieht, dass es weitergeht.
+                  Overlay selbst ist durchklickbar (sonst käme das Video nicht mehr an
+                  den Tipp), nur die Punkte fangen den Klick ab. */}
+              {(p.title || posts.length > 1) && (
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent px-5 pb-4 pt-16">
-                  <p className="text-[28px] font-black leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">{p.title}</p>
+                  {p.title && (
+                    <p className="text-[28px] font-black leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">{p.title}</p>
+                  )}
+                  {posts.length > 1 && (
+                    <div className="pointer-events-auto mt-3 flex items-center gap-1.5">
+                      {posts.map((dot, j) => (
+                        <button key={dot.id} type="button" onClick={() => goTo(j)} aria-label={`Beitrag ${j + 1}`}
+                          className={`h-1.5 rounded-full transition-all ${j === active ? "w-5 bg-[#c9a23f]" : "w-1.5 bg-white/40"}`} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -107,14 +120,6 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
         ))}
       </div>
 
-      {posts.length > 1 && (
-        <div className="flex items-center justify-center gap-1.5 pt-4">
-          {posts.map((p, i) => (
-            <button key={p.id} type="button" onClick={() => goTo(i)} aria-label={`Beitrag ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all ${i === active ? "w-5 bg-[#c9a23f]" : "w-1.5 bg-white/25"}`} />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
