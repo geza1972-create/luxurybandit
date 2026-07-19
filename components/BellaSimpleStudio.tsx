@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Plus, Trash2, Check } from "lucide-react";
+import { Loader2, Plus, Trash2, Check, ImageUp } from "lucide-react";
 
 // Das EINFACHE Bella-Werkzeug. Bewusst nur drei Dinge:
 // hochladen · Text schreiben · löschen. Kein Modell-Wähler, keine KI, keine Flächen.
@@ -18,11 +18,14 @@ export default function BellaSimpleStudio() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [replacingId, setReplacingId] = useState("");
   const [dirty, setDirty] = useState(false);
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const replaceRef = useRef<HTMLInputElement>(null);
+  const replaceTarget = useRef("");   // welcher Beitrag getauscht wird
 
   useEffect(() => {
     try {
@@ -52,24 +55,45 @@ export default function BellaSimpleStudio() {
   };
   useEffect(() => { if (isAdmin && pin) void load(); else setLoading(false); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [isAdmin, pin]);
 
+  // Datei zu Supabase schaufeln (Vercel nimmt keine grossen Bodys an, deshalb direkt
+  // per signierter Adresse). Gibt den Speicherpfad zurück — oder null bei einem Fehler.
+  const uploadFile = async (file: File): Promise<{ kind: "image" | "video"; path: string } | null> => {
+    const kind: "image" | "video" = file.type.startsWith("video") ? "video" : "image";
+    const ext = (file.name.split(".").pop() || (kind === "video" ? "mp4" : "jpg")).toLowerCase();
+    const sign = await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ sign: true, kind, ext }) }).then(r => r.json());
+    if (!sign?.uploadUrl) { setError(sign?.error ?? "Upload nicht möglich."); return null; }
+    const put = await fetch(sign.uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type || (kind === "video" ? "video/mp4" : "image/jpeg"), "x-upsert": "true" },
+      body: file,
+    });
+    if (!put.ok) { setError("Hochladen fehlgeschlagen."); return null; }
+    return { kind, path: sign.path as string };
+  };
+
   const addFile = async (file: File) => {
     setUploading(true); setError("");
     try {
-      const kind: "image" | "video" = file.type.startsWith("video") ? "video" : "image";
-      const ext = (file.name.split(".").pop() || (kind === "video" ? "mp4" : "jpg")).toLowerCase();
-      const sign = await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ sign: true, kind, ext }) }).then(r => r.json());
-      if (!sign?.uploadUrl) { setError(sign?.error ?? "Upload nicht möglich."); return; }
-      const put = await fetch(sign.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type || (kind === "video" ? "video/mp4" : "image/jpeg"), "x-upsert": "true" },
-        body: file,
-      });
-      if (!put.ok) { setError("Hochladen fehlgeschlagen."); return; }
-      const res = await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ add: { kind, path: sign.path, title: "", caption: "" } }) }).then(r => r.json());
+      const up = await uploadFile(file);
+      if (!up) return;
+      const res = await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ add: { ...up, title: "", caption: "" } }) }).then(r => r.json());
       if (!res?.ok) { setError(res?.error ?? "Speichern fehlgeschlagen."); return; }
       await load(true);   // getippte, noch nicht übernommene Texte behalten
     } catch { setError("Hochladen fehlgeschlagen."); }
     finally { setUploading(false); }
+  };
+
+  // NUR das Bild/Video eines Beitrags tauschen — Titel und Text bleiben stehen.
+  const replaceFile = async (id: string, file: File) => {
+    setReplacingId(id); setError("");
+    try {
+      const up = await uploadFile(file);
+      if (!up) return;
+      const res = await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ replace: { id, ...up } }) }).then(r => r.json());
+      if (!res?.ok) { setError(res?.error ?? "Tauschen fehlgeschlagen."); return; }
+      await load(true);   // ungespeicherte Texte behalten
+    } catch { setError("Tauschen fehlgeschlagen."); }
+    finally { setReplacingId(""); }
   };
 
   // Texte werden NICHT automatisch gespeichert — erst „Übernehmen" macht sie live.
@@ -92,7 +116,7 @@ export default function BellaSimpleStudio() {
   };
 
   const remove = async (id: string) => {
-    if (!window.confirm("Diesen Beitrag löschen?")) return;
+    if (!window.confirm("Den GANZEN Beitrag löschen — Bild und Text?\n\nNur ein neues Bild? Dann „Bild tauschen“ nehmen.")) return;
     setPosts(ps => ps.filter(p => p.id !== id));
     try { await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ remove: id }) }); }
     catch { setError("Löschen fehlgeschlagen."); void load(); }
@@ -108,6 +132,13 @@ export default function BellaSimpleStudio() {
 
       <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden"
         onChange={e => { const f = e.target.files?.[0]; if (f) void addFile(f); e.target.value = ""; }} />
+      {/* Eine gemeinsame Dateiauswahl fürs Tauschen — welcher Beitrag, steht in replaceTarget. */}
+      <input ref={replaceRef} type="file" accept="image/*,video/*" className="hidden"
+        onChange={e => {
+          const f = e.target.files?.[0], id = replaceTarget.current;
+          if (f && id) void replaceFile(id, f);
+          e.target.value = ""; replaceTarget.current = "";
+        }} />
       <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
         className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#c9a23f] text-[15px] font-black text-black active:scale-95 transition disabled:opacity-50">
         {uploading ? <><Loader2 className="h-4 w-4 animate-spin" /> Lädt hoch…</> : <><Plus className="h-4 w-4" /> Beitrag hinzufügen</>}
@@ -123,12 +154,22 @@ export default function BellaSimpleStudio() {
         <div className="mt-4 grid gap-3">
           {posts.map(p => (
             <div key={p.id} className="flex gap-3 rounded-xl border border-white/10 bg-black/30 p-2">
-              <div className="h-24 w-[72px] shrink-0 overflow-hidden rounded-lg bg-black">
-                {p.kind === "video"
-                  // eslint-disable-next-line jsx-a11y/media-has-caption
-                  ? <video src={p.mediaUrl} className="h-full w-full object-cover" muted playsInline />
-                  // eslint-disable-next-line @next/next/no-img-element
-                  : <img src={p.mediaUrl} alt="" className="h-full w-full object-cover" />}
+              {/* Aufs Bild tippen = neues Bild/Video für DIESEN Beitrag. Text bleibt. */}
+              <div className="shrink-0">
+                <button type="button" disabled={replacingId === p.id}
+                  onClick={() => { replaceTarget.current = p.id; replaceRef.current?.click(); }}
+                  className="relative block h-24 w-[72px] overflow-hidden rounded-lg bg-black active:scale-95 transition">
+                  {p.kind === "video"
+                    // eslint-disable-next-line jsx-a11y/media-has-caption
+                    ? <video src={p.mediaUrl} className="h-full w-full object-cover" muted playsInline />
+                    // eslint-disable-next-line @next/next/no-img-element
+                    : <img src={p.mediaUrl} alt="" className="h-full w-full object-cover" />}
+                  <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/70 py-1 text-[9px] font-black uppercase tracking-wide text-white">
+                    {replacingId === p.id
+                      ? <Loader2 className="h-3 w-3 animate-spin" />
+                      : <><ImageUp className="h-3 w-3" /> Tauschen</>}
+                  </span>
+                </button>
               </div>
               <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                 {/* Titel — erscheint GROSS im Bild, z. B. „Bella ist dein Wecker" */}
@@ -141,7 +182,7 @@ export default function BellaSimpleStudio() {
                 <div className="mt-1.5 flex items-center gap-2">
                   <button type="button" onClick={() => void remove(p.id)}
                     className="ml-auto flex h-7 items-center gap-1 rounded-lg border border-red-400/40 px-2.5 text-[11px] font-black text-red-300 active:scale-95 transition">
-                    <Trash2 className="h-3 w-3" /> Löschen
+                    <Trash2 className="h-3 w-3" /> Beitrag löschen
                   </button>
                 </div>
               </div>
