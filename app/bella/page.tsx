@@ -1,6 +1,6 @@
 import TopNav from "@/components/TopNav";
 import BellaSimpleStudio from "@/components/BellaSimpleStudio";
-import BellaPostsCarousel from "@/components/BellaPostsCarousel";
+import BellaPersonal from "@/components/BellaPersonal";
 import { BELLA_ID } from "@/lib/bella-card";
 import { readTryThisLookState, readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
 
@@ -52,7 +52,7 @@ export default async function BellaPage() {
       {posts.length === 0 ? (
         <p className="px-5 pt-8 text-[13px] font-bold text-white/45">Noch keine Beiträge.</p>
       ) : (
-        <BellaPostsCarousel posts={posts} name={name} />
+        <BellaPersonal posts={posts} name={name} />
       )}
 
       {/* Werkzeug — nur für den Admin sichtbar */}
