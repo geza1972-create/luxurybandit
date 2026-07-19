@@ -12,6 +12,10 @@ import { Loader2, Plus, Trash2, Check, ImageUp } from "lucide-react";
 
 type Post = { id: string; kind: "image" | "video"; title: string; caption: string; mediaUrl: string };
 
+// Supabase nimmt pro Datei standardmäßig 50 MB. Lieber vorher sauber melden,
+// als den Nutzer minutenlang hochladen lassen und dann abbrechen.
+const MAX_MB = 50;
+
 export default function BellaSimpleStudio() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [pin, setPin] = useState("");
@@ -19,6 +23,7 @@ export default function BellaSimpleStudio() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [replacingId, setReplacingId] = useState("");
+  const [busyNote, setBusyNote] = useState("");   // „video.mp4 · 12,4 MB wird hochgeladen…"
   // Gespeichert wird PRO BEITRAG. Deshalb merken wir uns je Beitrag, ob er geändert
   // wurde, welcher gerade speichert und welcher eben gespeichert hat.
   const [dirtyIds, setDirtyIds] = useState<string[]>([]);
@@ -60,16 +65,31 @@ export default function BellaSimpleStudio() {
   // Datei zu Supabase schaufeln (Vercel nimmt keine grossen Bodys an, deshalb direkt
   // per signierter Adresse). Gibt den Speicherpfad zurück — oder null bei einem Fehler.
   const uploadFile = async (file: File): Promise<{ kind: "image" | "video"; path: string } | null> => {
-    const kind: "image" | "video" = file.type.startsWith("video") ? "video" : "image";
-    const ext = (file.name.split(".").pop() || (kind === "video" ? "mp4" : "jpg")).toLowerCase();
-    const sign = await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ sign: true, kind, ext }) }).then(r => r.json());
+    // Manche Handys melden bei Videos gar keinen Typ — dann nach der Endung gehen.
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    const isVideo = file.type.startsWith("video") || ["mp4", "mov", "webm", "m4v", "avi", "hevc"].includes(ext);
+    const kind: "image" | "video" = isVideo ? "video" : "image";
+
+    const mb = file.size / 1024 / 1024;
+    if (mb > MAX_MB) {
+      setError(`Die Datei ist ${mb.toFixed(0)} MB groß — mehr als ${MAX_MB} MB nimmt der Speicher nicht an. Bitte das Video kürzen oder kleiner exportieren.`);
+      return null;
+    }
+
+    setBusyNote(`${file.name} · ${mb < 1 ? "<1" : mb.toFixed(1)} MB wird hochgeladen…`);
+    const sign = await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ sign: true, kind, ext: ext || (isVideo ? "mp4" : "jpg") }) }).then(r => r.json());
     if (!sign?.uploadUrl) { setError(sign?.error ?? "Upload nicht möglich."); return null; }
     const put = await fetch(sign.uploadUrl, {
       method: "PUT",
-      headers: { "Content-Type": file.type || (kind === "video" ? "video/mp4" : "image/jpeg"), "x-upsert": "true" },
+      headers: { "Content-Type": file.type || (isVideo ? "video/mp4" : "image/jpeg"), "x-upsert": "true" },
       body: file,
     });
-    if (!put.ok) { setError("Hochladen fehlgeschlagen."); return null; }
+    if (!put.ok) {
+      // Den ECHTEN Grund zeigen — „Hochladen fehlgeschlagen" allein hilft niemandem.
+      const detail = await put.text().catch(() => "");
+      setError(`Hochladen fehlgeschlagen (${put.status}). ${detail.slice(0, 200)}`);
+      return null;
+    }
     return { kind, path: sign.path as string };
   };
 
@@ -82,7 +102,7 @@ export default function BellaSimpleStudio() {
       if (!res?.ok) { setError(res?.error ?? "Speichern fehlgeschlagen."); return; }
       await load(true);   // getippte, noch nicht übernommene Texte behalten
     } catch { setError("Hochladen fehlgeschlagen."); }
-    finally { setUploading(false); }
+    finally { setUploading(false); setBusyNote(""); }
   };
 
   // NUR das Bild/Video eines Beitrags tauschen — Titel und Text bleiben stehen.
@@ -95,7 +115,7 @@ export default function BellaSimpleStudio() {
       if (!res?.ok) { setError(res?.error ?? "Tauschen fehlgeschlagen."); return; }
       await load(true);   // ungespeicherte Texte behalten
     } catch { setError("Tauschen fehlgeschlagen."); }
-    finally { setReplacingId(""); }
+    finally { setReplacingId(""); setBusyNote(""); }
   };
 
   // Texte werden NICHT automatisch gespeichert — erst „Übernehmen" macht sie live.
@@ -150,7 +170,8 @@ export default function BellaSimpleStudio() {
         {uploading ? <><Loader2 className="h-4 w-4 animate-spin" /> Lädt hoch…</> : <><Plus className="h-4 w-4" /> Beitrag hinzufügen</>}
       </button>
 
-      {error && <p className="mt-2 rounded-lg bg-red-500/15 px-3 py-2 text-[12px] font-bold text-red-300">{error}</p>}
+      {error && <p className="mt-2 whitespace-pre-line rounded-lg bg-red-500/15 px-3 py-2 text-[12px] font-bold text-red-300">{error}</p>}
+      {busyNote && <p className="mt-2 rounded-lg bg-white/[0.06] px-3 py-2 text-[12px] font-bold text-white/70">{busyNote}</p>}
 
       {loading ? (
         <p className="py-6 text-center text-[12px] font-bold text-white/40">Lädt…</p>
