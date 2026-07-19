@@ -5,22 +5,18 @@ import { useEffect, useState } from "react";
 // GDPR/ePrivacy cookie banner. Essential cookies (login/session) always run; the marketing
 // pixel (Meta) loads ONLY after "Accept". Choice is stored per device (lb_cookie_consent) and
 // broadcast via the "lb-cookie-consent" event so MetaPixel can react without a reload.
+//
+// Bewusst KOMPAKT (ein schmaler Streifen, eine Zeile): Der Banner steht bei kalter
+// Werbe-Zielgruppe zwischen Klick und Anmeldung — jede Zeile mehr kostet Anmeldungen.
+// „Reject" bleibt gleichwertig sichtbar: Die Ablehnung muss so leicht sein wie die
+// Zustimmung, sonst ist die Einwilligung nicht wirksam.
 export default function CookieConsent() {
   const [show, setShow] = useState(false);
 
+  // Erscheint sofort beim ersten Besuch. (Wartete frueher auf die 18+-Abfrage — die ist
+  // am 19.07.2026 entfernt worden, dadurch waere der Banner nie mehr aufgetaucht.)
   useEffect(() => {
-    // Only show AFTER the 18+ age gate is passed (or admin) — otherwise the banner overlaps it.
-    const check = () => {
-      try {
-        if (localStorage.getItem("lb_cookie_consent")) { setShow(false); return; }
-        const ageOk = localStorage.getItem("lb_age_verified") === "1"
-          || !!localStorage.getItem("luxurybandit-try-look-admin-pin");
-        setShow(ageOk);
-      } catch { /**/ }
-    };
-    check();
-    window.addEventListener("lb-age-ok", check); // appear right after they confirm 18+
-    return () => window.removeEventListener("lb-age-ok", check);
+    try { setShow(!localStorage.getItem("lb_cookie_consent")); } catch { /**/ }
   }, []);
 
   const choose = (v: "accepted" | "rejected") => {
@@ -32,22 +28,19 @@ export default function CookieConsent() {
   if (!show) return null;
 
   return (
-    <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[180] border-t border-white/10 bg-[#0d0b0a]/98 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 text-white backdrop-blur">
-      <p className="text-[12px] font-bold leading-relaxed text-white/85">
-        We use essential cookies to run the app. With your consent we also use marketing cookies
-        (Meta Pixel) to measure our ads. See our{" "}
-        <a href="/privacy" className="text-amber-400 underline underline-offset-2">Privacy Policy</a>.
+    <div className="lb-phone-col fixed inset-x-0 bottom-0 z-[180] flex items-center gap-2 border-t border-white/10 bg-[#0d0b0a]/98 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 text-white backdrop-blur">
+      <p className="min-w-0 flex-1 text-[11px] font-semibold leading-snug text-white/80">
+        Cookies to measure our ads.{" "}
+        <a href="/privacy" className="text-amber-400 underline underline-offset-2">Details</a>
       </p>
-      <div className="mt-2.5 flex gap-2">
-        <button type="button" onClick={() => choose("rejected")}
-          className="h-10 flex-1 rounded-full border border-white/15 text-[13px] font-black text-white/85 active:scale-95 transition">
-          Reject
-        </button>
-        <button type="button" onClick={() => choose("accepted")}
-          className="lb-gold h-10 flex-1 rounded-full text-[13px] font-black active:scale-95 transition">
-          Accept
-        </button>
-      </div>
+      <button type="button" onClick={() => choose("rejected")}
+        className="h-8 shrink-0 rounded-full border border-white/20 px-3 text-[12px] font-black text-white/80 active:scale-95 transition">
+        Reject
+      </button>
+      <button type="button" onClick={() => choose("accepted")}
+        className="lb-gold h-8 shrink-0 rounded-full px-4 text-[12px] font-black active:scale-95 transition">
+        Accept
+      </button>
     </div>
   );
 }

@@ -4,7 +4,6 @@ import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import MetaPixel from "@/components/MetaPixel";
 import AdminUrlMirror from "@/components/AdminUrlMirror";
-import AgeGate from "@/components/AgeGate";
 import CookieConsent from "@/components/CookieConsent";
 import PremiumSync from "@/components/PremiumSync";
 import AuthRefresh from "@/components/AuthRefresh";
@@ -70,10 +69,14 @@ export default function RootLayout({
         <PremiumSync />
         <div className="lb-frame">
           {children}
-          {/* The whole portal is 18+ — blocks every page until the visitor confirms a
-              date of birth ≥ 18 (admins bypass). */}
-          <AgeGate />
-          {/* Cookie consent — gates the Meta Pixel (marketing) until the visitor accepts. */}
+          {/* Altersabfrage entfernt (19.07.2026): Der oeffentliche Inhalt ist Katalog-Niveau
+              (Mode-/Dessous-Produktbilder wie im normalen Handel), kein Erwachsenen-Inhalt.
+              Die Vollbild-Abfrage kostete bei kalter Werbe-Zielgruppe Anmeldungen.
+              Komponente bleibt im Repo, falls sie zurueckkommen soll. */}
+          {/* Cookie consent — gates the Meta Pixel (marketing) until the visitor accepts.
+              MUSS bleiben, solange der Pixel laeuft: Tracking ohne vorherige Einwilligung
+              ist in DE (DSGVO/TTDSG) abmahnfaehig. Ist jetzt ein schmaler Streifen statt
+              Vollbild, damit er kaum noch Reibung erzeugt. */}
           <CookieConsent />
           {/* Suspense so BottomNav's useSearchParams doesn't force CSR bailout on
               statically-prerendered pages (e.g. 404) — required for the prod build. */}
