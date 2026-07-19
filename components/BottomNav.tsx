@@ -337,9 +337,11 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-sm font-black text-white">Models</span>
                 </button>
               )}
-              {/* Models Wanted — recruiting CTA → the free real-model application form. */}
+              {/* Models Wanted — recruiting CTA → the indexable recruiting landing (it explains the
+                  deal, then CTAs into the free application form). Also gives that SEO page a real
+                  internal link from every screen, so Google can discover and rank it. */}
               {!isCurator && (
-                <button type="button" onClick={() => navigate("/curators/apply")}
+                <button type="button" onClick={() => navigate("/models-wanted")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <UserPlus className="h-5 w-5 shrink-0 text-amber-400" />
                   <span className="text-sm font-black text-white">Models Wanted</span>
