@@ -14,7 +14,13 @@ async function toJpeg(origin: string, url: string, w = 828): Promise<string> {
     const r = await fetch(`${origin}/_next/image?url=${encodeURIComponent(url)}&w=${w}&q=70`, { headers: { Accept: "image/jpeg" } });
     if (!r.ok) return "";
     const buf = Buffer.from(await r.arrayBuffer());
-    return `data:image/jpeg;base64,${buf.toString("base64")}`;
+    // WICHTIG: den TATSAECHLICHEN Typ verwenden. Frueher war "image/jpeg" fest verdrahtet —
+    // liefert der Optimierer ein PNG (z.B. bei hochgeladenen Szenenbildern), bekam Satori
+    // PNG-Bytes als JPEG angekuendigt und brach mit "Offset is outside the bounds of the
+    // DataView" ab. Webp kann Satori nicht, daher darauf zurueckfallen und lieber nichts liefern.
+    const ct = (r.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+    if (ct === "image/webp" || !ct.startsWith("image/")) return "";
+    return `data:${ct};base64,${buf.toString("base64")}`;
   } catch { return ""; }
 }
 
@@ -57,7 +63,11 @@ export async function GET(request: Request) {
       flagshipTier: c.flagshipTier, flagshipBases: [p.flagshipBase1Cents, p.flagshipBase2Cents, p.flagshipBase3Cents],
     }));
     const serial = (id || "").replace(/[^a-z0-9]/gi, "").slice(-6).toUpperCase() || "LB0001";
-    const photoUrl = c.photoUrl?.startsWith("http") ? c.photoUrl : (c.photoUrl ? await getSignedUrl(c.photoUrl).catch(() => "") : "");
+    // ?img=<Speicherpfad> ersetzt ihr Profilfoto durch ein Szenenbild — so laesst sich die
+    // fertige Karte pro Bella-Szene als Instagram-Beitrag herunterladen.
+    const overrideImg = new URL(request.url).searchParams.get("img")?.trim() || "";
+    const heroPath = overrideImg || c.photoUrl || "";
+    const photoUrl = heroPath.startsWith("http") ? heroPath : (heroPath ? await getSignedUrl(heroPath).catch(() => "") : "");
     // Transcode the photo + all thumbnails to JPEG in parallel.
     const [photo, ...thumbs] = await Promise.all([toJpeg(origin, photoUrl, 828), ...thumbUrls.map(u => toJpeg(origin, u, 256))]);
     const forSale = typeof c.forSale === "boolean" ? c.forSale : !c.ownerEmail;
@@ -119,7 +129,7 @@ export async function GET(request: Request) {
             {photo ? <img src={photo} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ display: "flex", width: "100%", height: "100%" }} />}
             <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 320, display: "flex", backgroundImage: "linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.4) 45%, rgba(0,0,0,0))" }} />
             <div style={{ position: "absolute", top: 22, left: 22, display: "flex", background: "rgba(0,0,0,0.55)", borderRadius: 999, padding: "7px 15px", fontSize: 21, fontWeight: 800, letterSpacing: 2 }}>Nº {serial}</div>
-            {forSale && <div style={{ position: "absolute", top: 70, left: 22, display: "flex", background: "#f59e0b", borderRadius: 999, padding: "5px 15px", fontSize: 19, fontWeight: 800 }}>For sale</div>}
+            {forSale && <div style={{ position: "absolute", top: 70, left: 22, display: "flex", background: "#f59e0b", borderRadius: 999, padding: "5px 15px", fontSize: 19, fontWeight: 800 }}>Looking for sponsor</div>}
             {realModel && <div style={{ position: "absolute", top: forSale ? 112 : 70, left: 22, display: "flex", background: "rgba(255,255,255,0.9)", color: "#b45309", borderRadius: 999, padding: "5px 15px", fontSize: 19, fontWeight: 800 }}>Real</div>}
             <div style={{ position: "absolute", top: 22, right: 22, display: "flex", flexDirection: "column", alignItems: "center", background: "rgba(0,0,0,0.55)", border: "1px solid rgba(252,211,77,0.7)", borderRadius: 999, padding: "9px 22px", overflow: "hidden" }}>
               <div style={{ position: "absolute", top: -30, left: -30, right: -30, bottom: -30, display: "flex", flexWrap: "wrap", justifyContent: "center", alignContent: "center", gap: "0 4px", transform: "rotate(-24deg)", color: "rgba(253,224,120,0.14)", fontSize: 8, fontWeight: 800, lineHeight: 1 }}>{Array.from({ length: 80 }).map((_, i) => <span key={i}>LB</span>)}</div>

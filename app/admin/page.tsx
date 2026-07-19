@@ -3147,6 +3147,15 @@ export default function AdminPage() {
       {/* ── Insights tab — professional analytics dashboard (components/InsightsPro) ── */}
       {tab === "meta" && (
         <div className="mt-3 pb-16">
+              {/* Bella-Szenen — Bild hochladen, Text kopieren, Karte als Instagram-Beitrag laden. */}
+              <a href="/admin/bella-slides"
+                className="mb-3 flex items-center justify-between gap-2 rounded-2xl border border-violet-300 bg-violet-50 p-3 active:scale-[0.99] transition">
+                <div className="min-w-0">
+                  <p className="text-sm font-black text-ink">🎬 Bella-Szenen</p>
+                  <p className="mt-0.5 text-[12px] font-bold text-ink/50">„Was Bella für dich macht" — Bild hochladen, Text kopieren, fertige Karte für Instagram herunterladen.</p>
+                </div>
+                <span className="shrink-0 text-ink/40">→</span>
+              </a>
               {/* Werbetexte & Bella-Sätze — eigene Seite (dauerhaft gespeichert). */}
               <a href="/admin/ads"
                 className="mb-3 flex items-center justify-between gap-2 rounded-2xl border border-amber-300 bg-amber-50 p-3 active:scale-[0.99] transition">

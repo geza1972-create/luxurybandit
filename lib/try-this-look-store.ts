@@ -1371,6 +1371,42 @@ export async function writeAdScripts(scripts: AdScript[]): Promise<void> {
   if (!res.ok) throw new Error("Werbetexte konnten nicht gespeichert werden.");
 }
 
+// ── Bella-Szenen ────────────────────────────────────────────────────────────
+// „Was Bella fuer dich macht" — eine Szene = ein Instagram-Beitrag: Bild/Video +
+// fertiger Text. Eigenes Blob (clobber-sicher), unabhaengig vom Card Studio.
+const BELLA_SCENE_PATH = "try-this-look/bella-scenes.json";
+
+export type BellaScene = {
+  id: string;
+  order: number;
+  title: string;          // interne Bezeichnung der Szene ("Bella weckt dich auf")
+  caption: string;        // der fertige Text fuer Instagram
+  kind: "image" | "video";
+  path: string;           // Speicherpfad des hochgeladenen Mediums ("" = noch keins)
+  createdAt: string;
+};
+
+// `null` = noch nie gespeichert (dann legt die API die 10 Vorlagen an).
+export async function readBellaScenes(): Promise<BellaScene[] | null> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(BELLA_SCENE_PATH)}`);
+    if (!res.ok) return null;
+    const data = await res.json().catch(() => null);
+    return Array.isArray(data?.scenes) ? (data.scenes as BellaScene[]) : null;
+  } catch { return null; }
+}
+
+export async function writeBellaScenes(scenes: BellaScene[]): Promise<void> {
+  await ensureBucket();
+  const body = JSON.stringify({ scenes: scenes.slice(0, 200), updatedAt: new Date().toISOString() });
+  const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(BELLA_SCENE_PATH)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body,
+  });
+  if (!res.ok) throw new Error("Szenen konnten nicht gespeichert werden.");
+}
+
 async function dataUrlToBytes(dataUrl: string) {
   const [header, base64] = dataUrl.split(",");
   const rawMime = header.match(/data:(.*);base64/)?.[1] ?? "image/png";
