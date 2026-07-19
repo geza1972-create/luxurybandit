@@ -1229,16 +1229,11 @@ export default function CuratorPublicPage() {
   return (
     <main className="min-h-[100dvh] lb-bg text-white pb-16">
       <TopNav />
-      {/* Profile-context bar sits just under the shared TopNav (name/photo/follow stay in view). */}
-      <div className="sticky top-14 z-20 bg-[#0d0b0a]/90 px-4 py-3 backdrop-blur">
-        {/* Super Follow + Share now live on the Model Card below — sticky bar keeps only Back. */}
-        {!isOwn && (
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 active:opacity-70"><ArrowLeft className="h-4 w-4" /></button>
-          </div>
-        )}
-        {/* Owner strip: her video credits (from the subscription) + quick account access. */}
-        {isOwn && (
+      {/* Nur der SPONSOR bekommt hier einen Streifen (Guthaben + Konto). Fuer Besucher gab es
+          frueher denselben Balken nur fuer den Zurueck-Pfeil — der schwebt jetzt ueber der
+          Karte, damit sie direkt unter dem Header beginnt. */}
+      {isOwn && (
+        <div className="sticky top-14 z-20 bg-[#0d0b0a]/90 px-4 py-3 backdrop-blur">
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => router.back()} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 active:opacity-70"><ArrowLeft className="h-4 w-4" /></button>
             <div className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-amber-400/10 px-4 py-2 ring-1 ring-amber-400/25">
@@ -1250,11 +1245,18 @@ export default function CuratorPublicPage() {
               Account
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Shareable collectible — THE reusable LuxuryBandit Model Card */}
-      <div className="pt-4">
+      <div className="relative">
+        {/* Zurueck schwebt ueber der Karte statt in einem eigenen schwarzen Balken. */}
+        {!isOwn && (
+          <button type="button" onClick={() => router.back()} aria-label="Back"
+            className="absolute left-3 top-3 z-20 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white backdrop-blur transition active:scale-90">
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+        )}
         <ModelCard {...cardData} isMember={isMember} showDates={isAdmin} onLockedClick={() => setShowSubscribe(true)}
           following={following} onSuperFollow={() => void handleFollow()}
           onChat={() => router.push(`/chat/${id}`)} />
