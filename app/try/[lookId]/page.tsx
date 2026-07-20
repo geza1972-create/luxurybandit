@@ -1323,7 +1323,8 @@ export default function TryFunnelPage() {
           </button>
           {genStatus === "idle" && motionPicker && <div className="mb-3">{motionPicker}</div>}
           <div className="relative mx-auto mt-2 max-w-[78vw] overflow-hidden rounded-3xl border border-amber-400/30 bg-black">
-            <div className="relative aspect-[9/16] w-full">
+            {/* 3:4 — passt zum 3:4-Video (vorher 9:16). */}
+            <div className="relative aspect-[3/4] w-full">
               {genStatus === "done" && genVideoUrl ? (
                 // Both motions carry Pixverse's generated sound (the prompt asks for music),
                 // so play unmuted. Native controls include a mute button; autoplay may need a
