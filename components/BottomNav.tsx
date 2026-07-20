@@ -323,11 +323,6 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <ImageIcon className="h-5 w-5 shrink-0 text-white/85" />
                 <span className="text-sm font-black text-white">Looks - Gallery</span>
               </button>
-              <button type="button" onClick={() => navigate("/wardrobe")}
-                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                <Shirt className="h-5 w-5 shrink-0 text-[#b8912f]" />
-                <span className="text-sm font-black text-white">Wardrobe</span>
-              </button>
               </>)}
               {/* Members browse models; a model doesn't need it — her Home already opens the models page. */}
               {!isCurator && (
@@ -335,6 +330,14 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <User className="h-5 w-5 shrink-0 text-white/85" />
                   <span className="text-sm font-black text-white">Models</span>
+                </button>
+              )}
+              {/* Wardrobe — die Kleider-Galerie, jetzt für alle sichtbar (nicht mehr nur Staff). */}
+              {!isCurator && (
+                <button type="button" onClick={() => navigate("/wardrobe")}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                  <Shirt className="h-5 w-5 shrink-0 text-[#b8912f]" />
+                  <span className="text-sm font-black text-white">Wardrobe</span>
                 </button>
               )}
               {/* Models Wanted — recruiting CTA → the indexable recruiting landing (it explains the
