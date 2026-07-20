@@ -24,7 +24,7 @@ import { trackMetaPixel } from "@/lib/meta-pixel";
 // Bellas Model-Id — lokal, weil @/lib/bella-card Server-Code (try-this-look-store)
 // mitzieht und diese Datei eine Client-Komponente ist. Gleicher Wert wie dort.
 const BELLA_ID = "curator-1783683672619-td4cy";
-import { Bookmark, Crop, Crown, Download, Eye, EyeOff, Heart, Home, Image as ImageIcon, ImageUp, Info, Instagram, LayoutGrid, Loader2, Lock, LogOut, Menu, MessageCircle, Play, Search, Send, ShoppingBag, SlidersHorizontal, Sparkles, Trash2, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
+import { Bookmark, Crop, Crown, Download, Eye, EyeOff, Heart, Home, Image as ImageIcon, ImageUp, Info, Instagram, LayoutGrid, Loader2, Lock, LogOut, Maximize2, Menu, MessageCircle, Play, Search, Send, ShoppingBag, SlidersHorizontal, Sparkles, Trash2, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
 import TopNav from "@/components/TopNav";
 import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
@@ -1642,6 +1642,8 @@ function StoresPage() {
   const realModelIds = useMemo(() => models.filter(m => m.realModel).map(m => m.id), [models]);
   // Garderobe = every generated garment (all models' wardrobes), browsable by type.
   const [garmentType, setGarmentType] = useState<LookCategory | null>(null);
+  // Kleidungsstück groß ansehen (Lupe auf der Karte → Vollbild-Lightbox).
+  const [zoomGarment, setZoomGarment] = useState<{ id: string; img: string; name: string; buyUrl?: string } | null>(null);
   // Admin: add a real Luxury Bandi garment (from a photo) into the Garderobe.
   const [addOpen, setAddOpen] = useState(false);
   const [agImage, setAgImage] = useState("");
@@ -3038,6 +3040,13 @@ function StoresPage() {
                         const hidden = g.published === false;
                         return (
                           <div key={g.id} className="relative flex flex-col overflow-hidden rounded-2xl border border-black/8 bg-white">
+                            {/* Vergrößern — zeigt das Stück groß im Vollbild. Eigener Knopf,
+                                damit das Antippen des Bildes weiter „Create video" bleibt. */}
+                            <button type="button" aria-label="Vergrößern"
+                              onClick={(e) => { e.stopPropagation(); setZoomGarment({ id: g.id, img, name: g.name ?? "", buyUrl: g.buyUrl }); }}
+                              className="absolute left-2 top-2 z-10 grid h-8 w-8 place-items-center rounded-full bg-black/55 text-white backdrop-blur active:scale-90 transition">
+                              <Maximize2 className="h-4 w-4" />
+                            </button>
                             <button type="button"
                               onClick={() => router.push(`/try/${g.id}?garment=${encodeURIComponent(img)}&pick=1`)}
                               className="relative aspect-[3/4] w-full bg-neutral-50 active:opacity-80 transition-opacity">
@@ -3795,6 +3804,33 @@ function StoresPage() {
       })()}
 
       {/* ── Admin: manage a Garderobe garment (edit text / move category / replace / hide / delete) ── */}
+      {/* Kleidungsstück groß ansehen — Vollbild-Lightbox mit „Create video" + „Shop now". */}
+      {zoomGarment && (
+        <div className="fixed inset-0 z-[130] flex flex-col items-center justify-center bg-black/92 p-4" onClick={() => setZoomGarment(null)}>
+          <button type="button" aria-label="Schließen" onClick={() => setZoomGarment(null)}
+            className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/12 text-white backdrop-blur active:scale-90 transition">
+            <X className="h-5 w-5" />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={zoomGarment.img} alt={zoomGarment.name} onClick={e => e.stopPropagation()}
+            className="max-h-[74vh] max-w-full rounded-2xl bg-white object-contain" />
+          {zoomGarment.name && <p className="mt-4 text-center text-[15px] font-black text-white">{zoomGarment.name}</p>}
+          <div className="mt-4 flex w-full max-w-[420px] items-center gap-2" onClick={e => e.stopPropagation()}>
+            <button type="button"
+              onClick={() => { const z = zoomGarment; setZoomGarment(null); router.push(`/try/${z.id}?garment=${encodeURIComponent(z.img)}&pick=1`); }}
+              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-white text-[14px] font-black text-black active:scale-95 transition">
+              <Play className="h-4 w-4" fill="currentColor" /> Create video
+            </button>
+            {zoomGarment.buyUrl && (
+              <a href={zoomGarment.buyUrl} target="_blank" rel="noopener noreferrer sponsored"
+                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-white/25 bg-white/10 text-[14px] font-black text-white active:scale-95 transition">
+                <ShoppingBag className="h-4 w-4" /> Shop now
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
       {isAdmin && gManageId && (() => {
         const gm = garments.find(g => g.id === gManageId);
         if (!gm) return null;
