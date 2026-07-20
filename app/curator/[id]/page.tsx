@@ -1737,7 +1737,7 @@ export default function CuratorPublicPage() {
                             <span className="absolute inset-0 z-10 grid place-items-center bg-black/20">
                               <span className="grid h-10 w-10 place-items-center rounded-full bg-black/70 backdrop-blur"><Lock className="h-5 w-5 text-white" /></span>
                             </span>
-                          ) : (!hidden && <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur"><Play className="h-2.5 w-2.5" fill="currentColor" /> Create video</span>)}
+                          ) : (!hidden && <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur"><Play className="h-2.5 w-2.5" fill="currentColor" /> Try on</span>)}
                         </button>
                         <div className="flex items-center gap-1.5 px-2 py-1.5">
                           <span className={`block min-w-0 flex-1 truncate text-[11px] font-black ${locked ? "text-amber-500" : "text-black/70"}`}>{locked ? "Premium" : l.name}</span>

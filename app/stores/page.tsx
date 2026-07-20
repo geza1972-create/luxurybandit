@@ -3058,6 +3058,11 @@ function StoresPage() {
                             </button>
                             <div className="px-2 py-1.5">
                               <span className="block truncate text-[11px] font-black text-black/70">{g.name}</span>
+                              {/* Try on — führt in den Funnel (Model wählen → Video). */}
+                              <button type="button" onClick={() => router.push(`/try/${g.id}?garment=${encodeURIComponent(img)}&pick=1`)}
+                                className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-full bg-[#c9a23f] px-3 py-1.5 text-[11px] font-black text-black active:scale-95 transition">
+                                <Play className="h-3 w-3" fill="currentColor" /> Try on
+                              </button>
                               {g.buyUrl && (
                                 <a href={g.buyUrl} target="_blank" rel="noopener noreferrer sponsored" onClick={e => e.stopPropagation()}
                                   className="mt-1.5 flex items-center justify-center gap-1.5 rounded-full bg-black px-3 py-1.5 text-[11px] font-black text-white active:scale-95 transition">
@@ -3814,7 +3819,7 @@ function StoresPage() {
             <button type="button"
               onClick={() => { const z = zoomGarment; setZoomGarment(null); router.push(`/try/${z.id}?garment=${encodeURIComponent(z.img)}&pick=1`); }}
               className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-white text-[14px] font-black text-black active:scale-95 transition">
-              <Play className="h-4 w-4" fill="currentColor" /> Create video
+              <Play className="h-4 w-4" fill="currentColor" /> Try on
             </button>
             {zoomGarment.buyUrl && (
               <a href={zoomGarment.buyUrl} target="_blank" rel="noopener noreferrer sponsored"
