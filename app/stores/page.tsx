@@ -2883,10 +2883,9 @@ function StoresPage() {
             <div className="flex items-center gap-2 overflow-x-auto px-3 pt-1 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <button type="button" onClick={() => setHomeTab("models")}
                 className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "models" ? "lb-black3d" : "bg-white/10 text-white/80"}`}>Models{models.length ? ` · ${models.length}` : ""}</button>
-              {isAdmin && (
-                <button type="button" onClick={() => setHomeTab("garderobe")}
-                  className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "garderobe" ? "lb-black3d" : "bg-white/10 text-white/80"}`}>Wardrobe{garments.length ? ` · ${garments.length}` : ""}</button>
-              )}
+              {/* Wardrobe-Tab jetzt für ALLE (vorher isAdmin) — der Kleiderschrank ist öffentlich. */}
+              <button type="button" onClick={() => setHomeTab("garderobe")}
+                className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "garderobe" ? "lb-black3d" : "bg-white/10 text-white/80"}`}>Wardrobe{garments.length ? ` · ${garments.length}` : ""}</button>
               <button type="button" onClick={() => setHomeTab("feeds")}
                 className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-black transition ${homeTab === "feeds" ? "lb-black3d" : "bg-white/10 text-white/80"}`}>Reels</button>
             </div>

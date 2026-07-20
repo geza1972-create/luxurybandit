@@ -6,6 +6,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession, signOut } from "@/lib/supabase-auth-client";
 
+// Der Try-on-Funnel im Menü: ein stabiler Look; /try lädt dessen Garment selbst
+// (kein ablaufender Token in der URL). Bei Bedarf hier den Standard-Look ändern.
+const TRYON_FUNNEL = "/try/look-1782905276734?pick=1";
+
 type Tab = "home" | "community" | "messages" | "account";
 
 function getActiveTab(pathname: string): Tab {
@@ -330,6 +334,15 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <User className="h-5 w-5 shrink-0 text-white/85" />
                   <span className="text-sm font-black text-white">Models</span>
+                </button>
+              )}
+              {/* Try on — DER Funnel: ein Kleidungsstück auf ein Model + Video. Führt direkt
+                  in die Try-on-Seite (die das Garment des Looks selbst lädt, kein Token nötig). */}
+              {!isCurator && (
+                <button type="button" onClick={() => navigate(TRYON_FUNNEL)}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                  <Play className="h-5 w-5 shrink-0 text-[#c9a23f]" fill="currentColor" />
+                  <span className="text-sm font-black text-white">Try on</span>
                 </button>
               )}
               {/* Wardrobe — die Kleider-Galerie, jetzt für alle sichtbar (nicht mehr nur Staff). */}
