@@ -6,9 +6,11 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getStoredAuthSession, signOut } from "@/lib/supabase-auth-client";
 
-// Der Try-on-Funnel im Menü: ein stabiler Look; /try lädt dessen Garment selbst
-// (kein ablaufender Token in der URL). Bei Bedarf hier den Standard-Look ändern.
-const TRYON_FUNNEL = "/try/look-1782905276734?pick=1";
+// Der Try-on-Funnel im Menü: MUSS ein Kleidungsstück (Wardrobe-Garment) sein, damit
+// die linke Karte das Produktbild zeigt — ein voller Look zeigt sonst das Model-Bild.
+// /try lädt das Garment-Bild des Looks selbst (kein ablaufender Token nötig).
+// Standard = „Renata Lingerie Set"; bei Bedarf hier eine andere Garment-ID setzen.
+const TRYON_FUNNEL = "/try/look-1784191032626-70e3608b?pick=1";
 
 type Tab = "home" | "community" | "messages" | "account";
 
