@@ -20,6 +20,10 @@ import { publicLookLabel } from "@/lib/look-title";
 import { publicAuthorName } from "@/lib/display-name";
 import { safeLookImage } from "@/lib/look-image";
 import { trackMetaPixel } from "@/lib/meta-pixel";
+
+// Bellas Model-Id — lokal, weil @/lib/bella-card Server-Code (try-this-look-store)
+// mitzieht und diese Datei eine Client-Komponente ist. Gleicher Wert wie dort.
+const BELLA_ID = "curator-1783683672619-td4cy";
 import { Bookmark, Crop, Crown, Download, Eye, EyeOff, Heart, Home, Image as ImageIcon, ImageUp, Info, Instagram, LayoutGrid, Loader2, Lock, LogOut, Menu, MessageCircle, Play, Search, Send, ShoppingBag, SlidersHorizontal, Sparkles, Trash2, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
 import TopNav from "@/components/TopNav";
 import Image from "next/image";
@@ -2931,7 +2935,9 @@ function StoresPage() {
                   return (
                   <div key={m.id} className="relative">
                     {/* No light border — bright photo edges made it flash white on dark. */}
-                    <a href={`/curator/${m.id}`}
+                    {/* Bella führt auf ihre neue Seite (/bella) statt aufs alte Profil.
+                        Andere Models vorerst weiter aufs Profil, bis sie eigene Inhalte haben. */}
+                    <a href={m.id === BELLA_ID ? "/bella" : `/curator/${m.id}`}
                       onClick={(e) => {
                         if (modelSelect && isAdmin) {
                           e.preventDefault();

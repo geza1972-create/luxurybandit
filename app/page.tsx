@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 export default function Home() {
-  // The start page IS the Models marketplace. Both a full load of "/" (no rewrite anymore)
-  // and client-side nav to "/" land here and redirect to the models gallery, so ?view=models
-  // is always present in the URL (the Models tab reads it on the client).
-  redirect("/stores?view=models");
+  // Die Startseite IST jetzt Bella — das Aushängeschild. Wer luxurybandit.com öffnet,
+  // landet sofort bei ihr (tägliche Nachrichten + Anmeldung). Die Models-Galerie bleibt
+  // über das Menü / das Logo erreichbar (/stores?view=models).
+  redirect("/bella");
 }
