@@ -293,6 +293,9 @@ export default function AdminPage() {
   const [pendingSlides, setPendingSlides] = useState<PendingSlide[]>([]);
   const [pendingBusy, setPendingBusy] = useState("");
   const [pendingLightbox, setPendingLightbox] = useState<{ url: string; isVideo: boolean } | null>(null);
+  // Eigene, GLOBAL gerenderte Lightbox für die Looks-Liste (pendingLightbox liegt im
+  // „posts"-Tab und wäre auf dem Looks-Tab gar nicht im DOM).
+  const [garmentZoom, setGarmentZoom] = useState<{ url: string; isVideo: boolean } | null>(null);
   const loadPending = () => {
     fetch("/api/pending-slides", { headers: headers() }).then(r => r.json()).then(d => setPendingSlides(Array.isArray(d?.items) ? d.items : [])).catch(() => {});
   };
@@ -2370,20 +2373,26 @@ export default function AdminPage() {
               const img = safeLookImage(l);
               return (
                 <div key={l.id} className={`flex min-w-0 gap-3 rounded-xl border bg-white p-2.5 ${live ? "border-black/10" : "border-black/10 opacity-70"}`}>
-                  <a href={`/look/${l.id}`} target="_blank" rel="noreferrer" title="View live in the frontend"
-                    className="group relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-black/[0.04] to-black/[0.10] active:scale-95 transition">
+                  <div className="group relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-black/[0.04] to-black/[0.10]">
                     {/* Soft branded placeholder behind — shown if there's no media or the
                         signed URL has expired (media hides itself on error, never a broken icon). */}
                     <span className="pointer-events-none absolute inset-0 grid place-items-center text-[11px] font-black tracking-wide text-ink/25">LB</span>
-                    {img
-                      ? <img src={img} alt="" onError={e => { e.currentTarget.style.display = "none"; }} className="relative h-full w-full object-cover object-top" />
-                      : l.videoUrl
-                        ? <video src={l.videoUrl} muted playsInline preload="metadata" onError={e => { e.currentTarget.style.display = "none"; }} className="relative h-full w-full object-cover object-top" />
-                        : null}
-                    {l.videoUrl
-                      ? <PlayCircle className="absolute bottom-1 right-1 h-4 w-4 text-white drop-shadow" />
-                      : <ExternalLink className="absolute bottom-1 right-1 h-4 w-4 text-white opacity-0 drop-shadow transition group-hover:opacity-100" />}
-                  </a>
+                    {/* Klick aufs Bild = groß ansehen (globale Lightbox unten). */}
+                    <button type="button" onClick={() => setGarmentZoom({ url: img || l.videoUrl || "", isVideo: !img && !!l.videoUrl })}
+                      className="relative block h-full w-full active:scale-95 transition" title="Groß ansehen">
+                      {img
+                        ? <img src={img} alt="" onError={e => { e.currentTarget.style.display = "none"; }} className="h-full w-full object-cover object-top" />
+                        : l.videoUrl
+                          ? <video src={l.videoUrl} muted playsInline preload="metadata" onError={e => { e.currentTarget.style.display = "none"; }} className="h-full w-full object-cover object-top" />
+                          : null}
+                      {l.videoUrl && <PlayCircle className="absolute bottom-1 right-1 h-4 w-4 text-white drop-shadow" />}
+                    </button>
+                    {/* „Live ansehen" bleibt erreichbar — kleiner Link oben rechts. */}
+                    <a href={`/look/${l.id}`} target="_blank" rel="noreferrer" title="Live ansehen"
+                      className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/55 text-white opacity-0 backdrop-blur transition group-hover:opacity-100">
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
                   <div className="min-w-0 flex-1">
                     {/* Admin sees the REAL internal name (kept for admin tools); the public
                         licensing-safe label is only for customers. */}
@@ -3338,6 +3347,18 @@ export default function AdminPage() {
           onReset={() => void resetAnalytics(false)}
           resetting={resetting}
         />
+      )}
+
+      {/* ── Looks-Liste: Kleidungsstück groß ansehen (global, funktioniert in jedem Tab) ── */}
+      {garmentZoom && (
+        <div className="fixed inset-0 z-[115] flex items-center justify-center bg-black/90 p-4" onClick={() => setGarmentZoom(null)}>
+          <button type="button" aria-label="Schließen" onClick={() => setGarmentZoom(null)}
+            className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/12 text-white backdrop-blur active:scale-90 transition"><X className="h-5 w-5" /></button>
+          {garmentZoom.isVideo
+            ? <video src={garmentZoom.url} controls autoPlay loop playsInline className="max-h-[88vh] max-w-full rounded-2xl bg-black object-contain" onClick={e => e.stopPropagation()} />
+            // eslint-disable-next-line @next/next/no-img-element
+            : <img src={garmentZoom.url} alt="" className="max-h-[88vh] max-w-full rounded-2xl bg-white object-contain" onClick={e => e.stopPropagation()} />}
+        </div>
       )}
 
       {/* ── AI-face big view: enlarge, crop (in-place, keeps booking), or delete ── */}
