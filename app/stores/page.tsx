@@ -3040,24 +3040,19 @@ function StoresPage() {
                         const hidden = g.published === false;
                         return (
                           <div key={g.id} className="relative flex flex-col overflow-hidden rounded-2xl border border-black/8 bg-white">
-                            {/* Vergrößern — zeigt das Stück groß im Vollbild. Eigener Knopf,
-                                damit das Antippen des Bildes weiter „Create video" bleibt. */}
-                            <button type="button" aria-label="Vergrößern"
-                              onClick={(e) => { e.stopPropagation(); setZoomGarment({ id: g.id, img, name: g.name ?? "", buyUrl: g.buyUrl }); }}
-                              className="absolute left-2 top-2 z-10 grid h-8 w-8 place-items-center rounded-full bg-black/55 text-white backdrop-blur active:scale-90 transition">
-                              <Maximize2 className="h-4 w-4" />
-                            </button>
+                            {/* Bild antippen = Stück groß ansehen (Vollbild). „Create video"
+                                und „Shop now" liegen in der großen Ansicht. */}
                             <button type="button"
-                              onClick={() => router.push(`/try/${g.id}?garment=${encodeURIComponent(img)}&pick=1`)}
+                              onClick={() => setZoomGarment({ id: g.id, img, name: g.name ?? "", buyUrl: g.buyUrl })}
                               className="relative aspect-[3/4] w-full bg-neutral-50 active:opacity-80 transition-opacity">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={optImg(img, 500)} alt={g.name} loading="lazy" decoding="async"
                                 onError={(e) => { const im = e.currentTarget; if (img && im.src !== img) im.src = img; }}
                                 className={`h-full w-full object-contain ${hidden ? "opacity-40" : ""}`} />
-                              {/* Make it obvious that tapping this piece generates a try-on VIDEO. */}
+                              {/* Kleiner Lupe-Hinweis, dass sich das Bild vergrößern lässt. */}
                               {!hidden && (
-                                <span className="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur">
-                                  <Play className="h-2.5 w-2.5" fill="currentColor" /> Create video
+                                <span className="absolute bottom-2 right-2 grid h-7 w-7 place-items-center rounded-full bg-black/60 text-white backdrop-blur">
+                                  <Maximize2 className="h-3.5 w-3.5" />
                                 </span>
                               )}
                             </button>

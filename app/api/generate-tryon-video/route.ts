@@ -146,7 +146,7 @@ async function pixverseStartReference(key: string, garment: string, person: stri
     // Slow-mo is "ad mode": render straight to 1080p HD (no 360p→upscale step). Normal
     // clips stay 360p (cheap previews for the free reuse cache).
     quality: turnaround ? "720p" : (slowmo ? "1080p" : "360p"),
-    aspect_ratio: "9:16",            // full vertical (reels), same as the 360° turnaround
+    aspect_ratio: "3:4",             // 3:4 (passt zu den Wardrobe-Karten); Pixverse V6 unterstützt 16:9/9:16/1:1/3:4/4:3
     // MUSIC: V6 generates native, prompt-matched audio when generate_audio_switch=true
     // (the V6 param — the OLD sound_effect_switch is v5-only and V6 rejects it with 400017,
     // which is why our videos were silent). Confirmed in the platform docs: generate_audio_
