@@ -200,6 +200,39 @@ async function pixverseUpscale(key: string, mediaId: number): Promise<{ videoId?
   return { videoId: String(d.Resp.video_id) };
 }
 
+// ── FASHN Image-to-Video (Test) ──────────────────────────────────────────────
+// FASHN legt das Kleidungsstück PIXELGENAU aufs Bild (tryon-max). Image-to-Video
+// animiert GENAU dieses Bild — statt das Garment neu zu interpretieren wie Pixverse-
+// Fusion (die die Lingerie verändert). Gleicher /v1/run-Endpunkt + FASHN_API_KEY.
+async function fashnStartVideo(image: string): Promise<{ videoId?: string; error?: string }> {
+  const key = process.env.FASHN_API_KEY?.trim();
+  if (!key) return { error: "FASHN_API_KEY fehlt." };
+  const res = await fetch("https://api.fashn.ai/v1/run", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model_name: "image-to-video", inputs: { image, duration: 5, resolution: "720p" } }),
+  });
+  const d = await res.json().catch(() => null);
+  if (!res.ok || !d?.id) return { error: d?.error?.message ?? d?.error ?? d?.detail ?? `FASHN ${res.status}` };
+  return { videoId: String(d.id) };
+}
+async function fashnPollVideo(id: string): Promise<{ status: "done" | "failed" | "processing"; videoUrl?: string; error?: string }> {
+  const key = process.env.FASHN_API_KEY?.trim();
+  if (!key) return { status: "failed", error: "FASHN_API_KEY fehlt." };
+  const res = await fetch(`https://api.fashn.ai/v1/status/${id}`, { headers: { Authorization: `Bearer ${key}` } });
+  const d = await res.json().catch(() => null);
+  const s = String(d?.status ?? "");
+  if (s === "completed") {
+    const out = Array.isArray(d?.output) ? d.output[0] : d?.output;
+    if (!out) return { status: "failed", error: "FASHN: kein Video zurückgegeben." };
+    let url = String(out);
+    try { url = await persistVideo(url); } catch (e) { console.error("[video] fashn persist failed:", e); }
+    return { status: "done", videoUrl: url };
+  }
+  if (s === "failed") return { status: "failed", error: d?.error?.message ?? d?.error ?? "FASHN generation failed." };
+  return { status: "processing" };
+}
+
 async function pixversePoll(key: string, id: string): Promise<{ status: "done" | "failed" | "processing"; videoUrl?: string; error?: string }> {
   const res = await fetch(`${PV_BASE}/video/result/${id}`, { headers: pvHeaders(key) });
   const d = await res.json().catch(() => null);
@@ -356,6 +389,16 @@ export async function POST(request: Request) {
   }
   const refund = () => { if (chargeOwner) void refundCredits(curatorId, VIDEO_CREDITS, "try-on video refund"); };
 
+  // TEST: provider=fashn (admin-only) → animiere das fertige Try-on-Bild mit FASHN
+  // Image-to-Video statt Pixverse. Prefix "fashn:" für den GET-Poll.
+  if (String((body as { provider?: string }).provider ?? "") === "fashn") {
+    if (!staff) { refund(); return NextResponse.json({ error: "FASHN-Video ist nur für Admin (Test)." }, { status: 403 }); }
+    if (!image) { refund(); return NextResponse.json({ error: "FASHN-Video braucht ein Try-on-Bild (image)." }, { status: 400 }); }
+    const f = await fashnStartVideo(image);
+    if (!f.videoId) { refund(); return NextResponse.json({ error: f.error ?? "FASHN-Video-Start fehlgeschlagen." }, { status: 502 }); }
+    return NextResponse.json({ ok: true, videoId: `fashn:${f.videoId}`, curatorId, status: "processing" });
+  }
+
   try {
     const r = reference
       ? await pixverseStartReference(key, garment, person, turnaround, promptWithScene, slowmo)
@@ -377,6 +420,18 @@ export async function GET(request: Request) {
   if (!raw) return NextResponse.json({ error: "videoId required." }, { status: 400 });
 
   const id = raw.includes(":") ? raw.slice(raw.indexOf(":") + 1) : raw; // tolerate "pv:" prefix and legacy unprefixed
+
+  // FASHN-Test-Video pollen.
+  if (raw.startsWith("fashn:")) {
+    try {
+      const r = await fashnPollVideo(id);
+      if (r.status === "failed" && curatorId) void refundCredits(curatorId, VIDEO_CREDITS, "try-on video refund");
+      return NextResponse.json(r);
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : "FASHN poll failed." }, { status: 500 });
+    }
+  }
+
   const key = process.env.PIXVERSE_API_KEY?.trim();
   if (!key) return NextResponse.json({ error: "PIXVERSE_API_KEY missing." }, { status: 400 });
 
