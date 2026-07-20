@@ -64,7 +64,7 @@ export default function BellaSimpleStudio() {
   // behalten — sonst wären getippte, aber nicht übernommene Änderungen weg.
   const load = async (keepEdits = false) => {
     try {
-      const r = await fetch("/api/bella-simple", { headers: { "x-try-look-admin-pin": pin } });
+      const r = await fetch("/api/bella-simple", { headers: { "x-try-look-admin-pin": pin }, cache: "no-store" });
       if (!r.ok) return;
       const d = await r.json();
       const fresh: Post[] = d.posts ?? [];

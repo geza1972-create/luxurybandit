@@ -3,6 +3,9 @@ import { readCardStudioSlides, writeCardStudioSlides, createSignedUploadUrl, get
 import { isAdminRequest } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
+// NIE cachen: sonst liest das Werkzeug nach dem Speichern eine alte, gecachte Liste
+// zurück und es sieht aus, als hätte „Übernehmen" nicht funktioniert.
+export const dynamic = "force-dynamic";
 
 const BELLA_ID = "curator-1783683672619-td4cy";
 
@@ -25,7 +28,7 @@ export async function GET(request: Request) {
     caption: s.caption ?? "",
     mediaUrl: await getSignedUrl(s.path).catch(() => ""),
   })));
-  return NextResponse.json({ posts });
+  return NextResponse.json({ posts }, { headers: { "Cache-Control": "no-store, max-age=0" } });
 }
 
 // POST { sign: true, kind, ext }              → signierte Upload-Adresse
