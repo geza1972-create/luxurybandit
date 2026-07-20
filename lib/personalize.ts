@@ -12,16 +12,17 @@ export type PersonVars = {
   sonnenuntergang?: string;
 };
 
-// Was eingesetzt wird, solange der Besucher noch nichts eingetragen hat. Bewusst
-// freundliche Wörter statt leerer Lücken — ein Text mit „{Name}" darin sieht kaputt aus.
-// Rumänisch, weil das Publikum rumänisch ist (kein deutsches „deiner Stadt" durchlecken).
+// Was eingesetzt wird, wenn kein persönlicher Wert vorliegt (z. B. auf der öffentlichen
+// Bella-Seite ohne Anmeldung). Bewusst natürliche BEISPIELWERTE statt leerer Lücken —
+// so liest sich der Beispieltext vollständig ("in your city it's sunny and 24°"), nie kaputt.
+// Englisch, weil die Beiträge zurzeit englisch sind; bei rumänischen Texten anpassen.
 const FALLBACK: Required<PersonVars> = {
-  name: "dragă",
-  ort: "orașul tău",
-  grad: "—",
-  wetter: "—",
-  sonnenaufgang: "—",
-  sonnenuntergang: "—",
+  name: "darling",
+  ort: "your city",
+  grad: "24",
+  wetter: "sunny",
+  sonnenaufgang: "06:30",
+  sonnenuntergang: "21:15",
 };
 
 // Mehrere Schreibweisen pro Wert, damit ein Tippfehler im Admin nicht sofort

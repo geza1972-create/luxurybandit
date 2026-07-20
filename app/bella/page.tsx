@@ -1,9 +1,10 @@
 import TopNav from "@/components/TopNav";
 import ModelCardHeader from "@/components/ModelCardHeader";
 import BellaSimpleStudio from "@/components/BellaSimpleStudio";
-import BellaPersonal from "@/components/BellaPersonal";
+import BellaPostsCarousel from "@/components/BellaPostsCarousel";
 import DailySignupForm from "@/components/DailySignupForm";
 import { BELLA_ID, buildBellaCard } from "@/lib/bella-card";
+import { personalize } from "@/lib/personalize";
 import { readTryThisLookState, readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
 
 // Bellas Seite: oben ihre Model Card wie auf dem Profil (dieselbe Komponente, damit
@@ -37,12 +38,15 @@ export default async function BellaPage() {
   const name = (bella?.modelName || bella?.firstName || "Bella").split(" ")[0];
   const intro = String(bella?.intro ?? "").trim();
 
+  // Platzhalter ({Name}/{Location}/{Weather}…) durch natürliche Beispielwerte ersetzen —
+  // die echte Personalisierung passiert in der Nachricht, die der Besucher NACH der
+  // Anmeldung bekommt. Hier ist es nur ein Beispiel, kein Formular mehr.
   const ordered = slides.filter(isPublicBellaPost).sort(sortBellaPosts);
   const posts = (await Promise.all(ordered.map(async s => ({
     id: s.id,
     kind: s.kind,
-    title: s.title ?? "",
-    caption: s.caption ?? "",
+    title: personalize(s.title ?? "", {}),
+    caption: personalize(s.caption ?? "", {}),
     mediaUrl: await getSignedUrl(s.path).catch(() => ""),
     posterUrl: s.posterPath ? await getSignedUrl(s.posterPath).catch(() => "") : "",
   })))).filter(p => p.mediaUrl);
@@ -60,11 +64,12 @@ export default async function BellaPage() {
           isOwned={!!(bellaCard.card.owner || bellaCard.card.ownerId)} />
       )}
 
-      {/* Ihre Features — seitlich durchblätterbar. */}
+      {/* Ihre Features — seitlich durchblätterbar. Kein Personalisierungs-Formular mehr
+          hier oben (war doppelt zum Anmelde-Formular unten). */}
       {posts.length === 0 ? (
         <p className="px-5 pt-8 text-[13px] font-bold text-white/45">Noch keine Beiträge.</p>
       ) : (
-        <BellaPersonal posts={posts} name={name} />
+        <BellaPostsCarousel posts={posts} name={name} />
       )}
 
       {/* KOSTENLOSE Anmeldung — das eigentliche Ziel: aus einem Besucher eine E-Mail
