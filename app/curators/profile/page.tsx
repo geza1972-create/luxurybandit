@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { trackMetaPixel } from "@/lib/meta-pixel";
 import { ArrowLeft, Camera, Loader2, Check, Sparkles, LogOut, X } from "lucide-react";
 import { getStoredAuthSession, sendMagicLink, signOut } from "@/lib/supabase-auth-client";
 import { TagField, PillRow, PhotoCropper, readPhotoFile } from "../taste-form";
@@ -116,6 +117,8 @@ export default function CuratorProfilePage() {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ action: "event", event: "recruit_signin", lookId: "recruiting", lookName: "Recruiting", utmSource: sp.get("utm_source") || sp.get("source") || "", referrer: document.referrer || "", internal }),
               }).catch(() => {});
+              // The completed application from Meta's view — she signed in and is now a real lead.
+              if (!internal) trackMetaPixel("CompleteRegistration", { content_category: "model-recruiting" });
             }
           } catch { /**/ }
           setPhoto(c.photoUrl ?? "");

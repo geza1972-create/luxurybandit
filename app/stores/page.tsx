@@ -19,6 +19,7 @@ import { LOOK_CATEGORIES, isHiddenFromAll, isLookCategory, type LookCategory } f
 import { publicLookLabel } from "@/lib/look-title";
 import { publicAuthorName } from "@/lib/display-name";
 import { safeLookImage } from "@/lib/look-image";
+import { trackMetaPixel } from "@/lib/meta-pixel";
 import { Bookmark, Crop, Crown, Download, Eye, EyeOff, Heart, Home, Image as ImageIcon, ImageUp, Info, Instagram, LayoutGrid, Loader2, Lock, LogOut, Menu, MessageCircle, Play, Search, Send, ShoppingBag, SlidersHorizontal, Sparkles, Trash2, User, UserPlus, Volume2, VolumeX, X } from "lucide-react";
 import TopNav from "@/components/TopNav";
 import Image from "next/image";
@@ -1606,6 +1607,33 @@ function StoresPage() {
     const v = searchParams.get("view");
     return v === "grid" || v === "feeds" ? "feeds" : v === "garderobe" ? "garderobe" : "models";
   });
+
+  // Ad landing: the model-recruiting ads point to the homepage (→ /stores, models view).
+  // Count that arrival as the top funnel step ("Saw the model ad" = recruit_view) and fire
+  // Meta's ViewContent so the pixel has a real signal to optimise on. ONLY for genuine ad
+  // traffic (utm_source set, or referred from FB/IG) — otherwise every organic homepage
+  // visit would inflate the funnel. Once per session; admin/preview never counted.
+  const adViewFired = useRef(false);
+  useEffect(() => {
+    if (adViewFired.current || homeTab !== "models") return;
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const utm = sp.get("utm_source") || sp.get("source") || sp.get("ref") || "";
+      const ref = document.referrer || "";
+      const fromAd = !!utm || /facebook|instagram|fbclid|igsh|\bfb\b/i.test(ref + " " + window.location.search);
+      if (!fromAd) return;
+      adViewFired.current = true;
+      if (sessionStorage.getItem("lb_recruit_view_fired")) return;
+      sessionStorage.setItem("lb_recruit_view_fired", "1");
+      const internal = !!localStorage.getItem("luxurybandit-try-look-admin-pin") && localStorage.getItem("lb_preview_model") !== "1";
+      fetch("/api/try-this-look", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "event", event: "recruit_view", lookId: "recruiting", lookName: "Recruiting", utmSource: utm, referrer: ref, internal }),
+      }).catch(() => {});
+      if (!internal) trackMetaPixel("ViewContent", { content_category: "model-recruiting" });
+    } catch { /**/ }
+  }, [homeTab]);
+
   // IDs of REAL models → the feed tags their try-on videos with a "Real model" badge.
   const realModelIds = useMemo(() => models.filter(m => m.realModel).map(m => m.id), [models]);
   // Garderobe = every generated garment (all models' wardrobes), browsable by type.

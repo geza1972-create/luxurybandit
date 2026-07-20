@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { trackMetaPixel } from "@/lib/meta-pixel";
 import { ArrowLeft, Camera, Sparkles, Loader2, Check, Coins } from "lucide-react";
 import { TagField, PhotoCropper, readPhotoFile } from "../taste-form";
 import { getStoredAuthSession, signInWithPassword, signUpWithPassword, signInWithOAuth, type SupabaseAuthSession } from "@/lib/supabase-auth-client";
@@ -521,6 +522,9 @@ export default function CuratorApplyPage() {
         try { window.dispatchEvent(new Event("luxurybandit-auth-updated")); } catch { /**/ }
       }
       trackRecruit("apply_submit");
+      // Meta's conversion signal for the model campaigns — without it the ads cannot
+      // optimise toward applications and Ads Manager shows no cost-per-application.
+      trackMetaPixel("Lead", { content_category: "model-recruiting" });
       setAppliedCuratorId(data.curatorId || "");
       // Applying is FREE — no payment. Real models are reviewed personally, then invited by
       // email to sign in and start uploading. They earn 50% of every subscription their fans pay.
