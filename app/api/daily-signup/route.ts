@@ -20,6 +20,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
     email?: string; firstName?: string; city?: string; lang?: string; source?: string;
+    country?: string; whatsapp?: string;
   };
   const email = String(body.email ?? "").trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
@@ -27,11 +28,13 @@ export async function POST(request: Request) {
   }
   const firstName = String(body.firstName ?? "").trim().slice(0, 60);
   const city = String(body.city ?? "").trim().slice(0, 80);
+  const country = String(body.country ?? "").trim().toUpperCase().slice(0, 2);
+  const whatsapp = String(body.whatsapp ?? "").trim().replace(/[^0-9+\s]/g, "").slice(0, 30);
   const lang = body.lang === "en" ? "en" : body.lang === "ro" ? "ro" : "de";
 
   let isNew = true;
   try {
-    isNew = await addDailySignup({ email, firstName, city, lang, source: String(body.source ?? "").slice(0, 200) });
+    isNew = await addDailySignup({ email, firstName, city, country, whatsapp, lang, source: String(body.source ?? "").slice(0, 200) });
   } catch {
     return NextResponse.json({ error: "Speichern fehlgeschlagen. Bitte nochmal versuchen." }, { status: 502 });
   }
@@ -41,7 +44,8 @@ export async function POST(request: Request) {
     const t = lang === "en" ? EN : lang === "ro" ? RO : DE;
     void sendEmail({ to: email, subject: t.subject, html: t.html(firstName) }).catch(() => {});
     try {
-      notifyAdminWhatsApp(`🌍 Neue Anmeldung „Bella meldet sich": ${firstName || "(ohne Namen)"} · ${email}${city ? ` · ${city}` : ""}`);
+      const loc = [city, country].filter(Boolean).join(", ");
+      notifyAdminWhatsApp(`🌍 Neue Anmeldung „Bella meldet sich": ${firstName || "(ohne Namen)"} · ${email}${whatsapp ? ` · 📱 ${whatsapp}` : ""}${loc ? ` · ${loc}` : ""}`);
     } catch { /* egal */ }
   }
 

@@ -1310,7 +1310,9 @@ export type DailySignup = {
   email: string;
   firstName?: string;
   city?: string;          // für „bei dir wird es heute …"
-  lang?: string;          // "de" | "en"
+  country?: string;       // ISO-2, z. B. "RO"
+  whatsapp?: string;      // Lieferkanal für die tägliche Nachricht (mit Vorwahl)
+  lang?: string;          // "de" | "en" | "ro"
   source?: string;        // utm_source / referrer
   createdAt: string;
 };
