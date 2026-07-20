@@ -14,9 +14,10 @@ export type PersonVars = {
 
 // Was eingesetzt wird, solange der Besucher noch nichts eingetragen hat. Bewusst
 // freundliche Wörter statt leerer Lücken — ein Text mit „{Name}" darin sieht kaputt aus.
+// Rumänisch, weil das Publikum rumänisch ist (kein deutsches „deiner Stadt" durchlecken).
 const FALLBACK: Required<PersonVars> = {
-  name: "Darling",
-  ort: "deiner Stadt",
+  name: "dragă",
+  ort: "orașul tău",
   grad: "—",
   wetter: "—",
   sonnenaufgang: "—",

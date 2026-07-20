@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   }
   const firstName = String(body.firstName ?? "").trim().slice(0, 60);
   const city = String(body.city ?? "").trim().slice(0, 80);
-  const lang = body.lang === "en" ? "en" : "de";
+  const lang = body.lang === "en" ? "en" : body.lang === "ro" ? "ro" : "de";
 
   let isNew = true;
   try {
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 
   // Bestätigungsmail + Admin-Alarm nur beim ERSTEN Mal (best effort, blockiert nie die Antwort).
   if (isNew) {
-    const t = lang === "en" ? EN : DE;
+    const t = lang === "en" ? EN : lang === "ro" ? RO : DE;
     void sendEmail({ to: email, subject: t.subject, html: t.html(firstName) }).catch(() => {});
     try {
       notifyAdminWhatsApp(`🌍 Neue Anmeldung „Bella meldet sich": ${firstName || "(ohne Namen)"} · ${email}${city ? ` · ${city}` : ""}`);
@@ -67,6 +67,16 @@ const EN = {
     `Bella is planning her trip right now. Once she sets off, she'll message you every morning — the weather where she is, and the weather where you are. In the evening she'll tell you what she got up to.`,
     `We'll let you know as soon as it starts. You're among the first.`,
     "See you soon,<br/>Bella & the LuxuryBandit team",
+  ),
+};
+const RO = {
+  subject: "Ești pe lista Bellei 🌍",
+  html: (name: string) => wrap(
+    `Salut${name ? ` ${esc(name)}` : ""},`,
+    `ești pe lista pentru mesajele zilnice de la Bella.`,
+    `Bella tocmai își pregătește călătoria. De îndată ce pornește, îți scrie în fiecare dimineață — vremea de unde e ea și vremea de la tine. Seara îți povestește ce a făcut.`,
+    `Te anunțăm imediat ce începe. Ești printre primii.`,
+    "Pe curând,<br/>Bella & echipa LuxuryBandit",
   ),
 };
 

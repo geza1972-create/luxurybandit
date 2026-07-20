@@ -58,7 +58,7 @@ export default function BellaPersonal({ posts, name }: { posts: BellaPost[]; nam
       setLoadingWeather(true);
       const d = await fetch(`/api/weather?city=${encodeURIComponent(ort)}`).then(r => r.json()).catch(() => null);
       setLoadingWeather(false);
-      if (d?.error) { setOrtFehler("Diesen Ort kenne ich nicht — schreib ihn bitte anders."); return; }
+      if (d?.error) { setOrtFehler("Nu găsesc orașul ăsta — scrie-l altfel, te rog."); return; }
       setWeather(d ?? {});
     }
     const p = { name: formName.trim(), ort };
@@ -91,15 +91,15 @@ export default function BellaPersonal({ posts, name }: { posts: BellaPost[]; nam
     <div className="px-5 pt-5">
         {zeigeFormular ? (
           <div className="rounded-2xl border border-[#c9a23f]/30 bg-[#c9a23f]/[0.07] p-4">
-            <p className="text-[15px] font-black text-white">Wie heißt du? Wo wohnst du?</p>
+            <p className="text-[15px] font-black text-white">Cum te cheamă? Din ce oraș ești?</p>
             <p className="mt-0.5 text-[12px] font-semibold text-white/55">
-              Dann spricht {name} dich mit Namen an und weiß, wie das Wetter bei dir ist.
+              Atunci {name} ți se adresează pe nume și știe ce vreme e la tine.
             </p>
             <div className="mt-3 grid gap-2">
-              <input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Dein Name"
+              <input value={formName} onChange={e => setFormName(e.target.value)} placeholder="Numele tău"
                 autoComplete="given-name"
                 className="h-11 w-full rounded-xl border border-white/15 bg-black/40 px-3 text-[14px] font-bold text-white outline-none placeholder:font-semibold placeholder:text-white/35 focus:border-[#c9a23f]" />
-              <input value={formOrt} onChange={e => setFormOrt(e.target.value)} placeholder="Deine Stadt"
+              <input value={formOrt} onChange={e => setFormOrt(e.target.value)} placeholder="Orașul tău"
                 autoComplete="address-level2"
                 onKeyDown={e => { if (e.key === "Enter") void speichern(); }}
                 className="h-11 w-full rounded-xl border border-white/15 bg-black/40 px-3 text-[14px] font-bold text-white outline-none placeholder:font-semibold placeholder:text-white/35 focus:border-[#c9a23f]" />
@@ -107,17 +107,17 @@ export default function BellaPersonal({ posts, name }: { posts: BellaPost[]; nam
             {ortFehler && <p className="mt-2 text-[12px] font-bold text-red-300">{ortFehler}</p>}
             <button type="button" onClick={() => void speichern()} disabled={loadingWeather}
               className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#c9a23f] text-[15px] font-black text-black transition active:scale-95 disabled:opacity-50">
-              {loadingWeather ? <><Loader2 className="h-4 w-4 animate-spin" /> Einen Moment…</> : "Fertig"}
+              {loadingWeather ? <><Loader2 className="h-4 w-4 animate-spin" /> O clipă…</> : "Gata"}
             </button>
             <p className="mt-2 text-center text-[11px] font-semibold text-white/35">
-              Bleibt auf deinem Gerät. Keine Anmeldung.
+              Rămâne pe dispozitivul tău. Fără cont.
             </p>
           </div>
         ) : (
           <button type="button" onClick={() => setOpen(true)}
             className="flex items-center gap-1.5 text-[12px] font-bold text-white/40 transition active:scale-95">
             <Pencil className="h-3 w-3" />
-            {[person?.name, person?.ort].filter(Boolean).join(" · ") || "Name und Ort"} — ändern
+            {[person?.name, person?.ort].filter(Boolean).join(" · ") || "Nume și oraș"} — schimbă
           </button>
         )}
     </div>

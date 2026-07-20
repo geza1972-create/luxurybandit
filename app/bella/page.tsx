@@ -2,6 +2,7 @@ import TopNav from "@/components/TopNav";
 import ModelCardHeader from "@/components/ModelCardHeader";
 import BellaSimpleStudio from "@/components/BellaSimpleStudio";
 import BellaPersonal from "@/components/BellaPersonal";
+import DailySignupForm from "@/components/DailySignupForm";
 import { BELLA_ID, buildBellaCard } from "@/lib/bella-card";
 import { readTryThisLookState, readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
 
@@ -65,6 +66,22 @@ export default async function BellaPage() {
       ) : (
         <BellaPersonal posts={posts} name={name} />
       )}
+
+      {/* KOSTENLOSE Anmeldung — das eigentliche Ziel: aus einem Besucher eine E-Mail
+          in Gerrys eigener Liste machen (Instagram gibt die Adressen nie her). Auf
+          Rumänisch, weil ~94 % der Besucher Rumänen sind. */}
+      <section className="mx-auto mt-10 max-w-md px-5">
+        <p className="text-[22px] font-black leading-tight text-white">
+          Vrei ca {name} să te trezească în fiecare dimineață? 💛
+        </p>
+        <p className="mt-1.5 text-[14px] font-semibold leading-relaxed text-white/65">
+          În fiecare dimineață îți scrie — vremea de unde e ea, vremea de la tine, și ce face azi.
+          Lasă-ți numele și emailul, restul îl face ea.
+        </p>
+        <div className="mt-4">
+          <DailySignupForm lang="ro" dark />
+        </div>
+      </section>
 
       {/* Werkzeug — nur für den Admin sichtbar */}
       <div className="px-4 pt-12">
