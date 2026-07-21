@@ -1407,6 +1407,34 @@ export async function writeWetterSubscribers(subscribers: WetterSubscriber[], mo
   if (!res.ok) throw new Error("Abonnenten konnten nicht gespeichert werden.");
 }
 
+// ── Übersetzungs-Cache ──────────────────────────────────────────────────────
+// Beitrags-Texte werden EINMAL pro Sprache übersetzt und hier gespeichert, damit
+// nicht jeder Seitenaufruf eine (kostenpflichtige) Übersetzung auslöst. Key = "<lang>::<text>".
+const TRANSLATE_CACHE_PATH = "try-this-look/translations.json";
+
+export async function readTranslationCache(): Promise<Record<string, string>> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(TRANSLATE_CACHE_PATH)}`);
+    if (!res.ok) return {};
+    const data = await res.json().catch(() => null);
+    return data && typeof data === "object" ? (data as Record<string, string>) : {};
+  } catch { return {}; }
+}
+
+export async function writeTranslationCache(map: Record<string, string>): Promise<void> {
+  try {
+    await ensureBucket();
+    // Cap: nur die letzten ~5000 Einträge behalten (Blob klein halten).
+    const entries = Object.entries(map).slice(-5000);
+    const body = JSON.stringify(Object.fromEntries(entries));
+    await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(TRANSLATE_CACHE_PATH)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+      body,
+    });
+  } catch { /* Cache ist best-effort */ }
+}
+
 // ── Werbetexte & Bella-Sätze ────────────────────────────────────────────────
 // Die Sammlung der Anzeigentexte, der Sätze die Bella im Werbevideo spricht, und der
 // Beispiel-Nachrichten. Eigenes Blob (clobber-sicher) — diese Texte sind Arbeitsergebnis

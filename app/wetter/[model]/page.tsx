@@ -9,6 +9,7 @@ import WetterSubscriberView from "@/components/WetterSubscriberView";
 import WetterGate from "@/components/WetterGate";
 import { buildBellaCard } from "@/lib/bella-card";
 import { personalize } from "@/lib/personalize";
+import { translateMany } from "@/lib/translate";
 import { readTryThisLookState, readCardStudioSlides, readWetterSubscribers, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
 
 // THEMA „Wetter am Morgen" — MODEL-AGNOSTISCH über /wetter/<model> (dieses Mal bella, kann jede sein).
@@ -81,7 +82,7 @@ export default async function WetterModelPage({ params, searchParams }: {
   ]);
 
   const ordered = slides.filter(isPublicBellaPost).sort(sortBellaPosts);
-  const posts = (await Promise.all(ordered.map(async s => ({
+  const rawPosts = (await Promise.all(ordered.map(async s => ({
     id: s.id,
     kind: s.kind,
     title: personalize(s.title ?? "", {}),
@@ -91,6 +92,14 @@ export default async function WetterModelPage({ params, searchParams }: {
     mediaUrl: await getSignedUrl(s.path).catch(() => ""),
     posterUrl: s.posterPath ? await getSignedUrl(s.posterPath).catch(() => "") : "",
   })))).filter(p => p.mediaUrl);
+
+  // Beitrags-Texte in die Sprache des Besuchers übersetzen (einmal pro Sprache gecacht),
+  // damit die Seite nicht halb rumänisch / halb deutsch ist. Original bleibt bei Fehler.
+  const [txTitles, txCaptions] = await Promise.all([
+    translateMany(rawPosts.map(p => p.title), subLang),
+    translateMany(rawPosts.map(p => p.caption), subLang),
+  ]);
+  const posts = rawPosts.map((p, i) => ({ ...p, title: txTitles[i], caption: txCaptions[i] }));
 
   return (
     // Seite: DUNKLER Kopfbereich (TopNav + Header mit weißem Namen), darunter HELLER Inhalt.
