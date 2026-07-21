@@ -16,7 +16,7 @@ export const metadata = {
   openGraph: { title: "LuxuryBandit Topics", description: "Daily content from your favorite influencer — pick a topic." },
 };
 
-type Theme = { icon: LucideIcon; title: string; tagline: string; href?: string; cover?: string; video?: string; poster?: string; grad: string };
+type Theme = { icon: LucideIcon; title: string; tagline: string; href?: string; cover?: string; video?: string; poster?: string };
 
 export default async function ThemesCatalog() {
   // Cover fürs aktive „Wetter"-Thema: das WERBEVIDEO (ad-Slide) — genau das, was der
@@ -34,11 +34,11 @@ export default async function ThemesCatalog() {
   } catch { /**/ }
 
   const THEMES: Theme[] = [
-    { icon: CloudSun, title: "Morning Weather", tagline: "Your weather, a new look & a chat — every morning.", href: "/themes/wetter/bella", cover: wetterCover, video: wetterVideo, poster: wetterPoster, grad: "from-amber-900" },
-    { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every single day.", grad: "from-amber-800" },
-    { icon: Flame, title: "Lingerie Looks", tagline: "A daily intimate look — tasteful, private.", grad: "from-rose-950" },
-    { icon: MapPin, title: "City Secrets", tagline: "Learn a city every day — hidden gems & stories.", grad: "from-sky-950" },
-    { icon: KeyRound, title: "Secrets", tagline: "A little secret she shares only with you.", grad: "from-violet-950" },
+    { icon: CloudSun, title: "Morning Weather", tagline: "Your weather, a new look & a chat — every morning.", href: "/themes/wetter/bella", cover: wetterCover, video: wetterVideo, poster: wetterPoster },
+    { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every single day." },
+    { icon: Flame, title: "Lingerie Looks", tagline: "A daily intimate look — tasteful, private." },
+    { icon: MapPin, title: "City Secrets", tagline: "Learn a city every day — hidden gems & stories." },
+    { icon: KeyRound, title: "Secrets", tagline: "A little secret she shares only with you." },
   ];
 
   return (
@@ -60,7 +60,7 @@ export default async function ThemesCatalog() {
             const Icon = t.icon;
             const active = !!t.href;
             const face = (
-              <div className={`relative aspect-[9/16] w-full overflow-hidden rounded-2xl bg-gradient-to-b ${t.grad} via-black to-black ring-2 ${active ? "ring-amber-400" : "ring-white/10"}`}>
+              <div className={`relative aspect-[9/16] w-full overflow-hidden rounded-2xl bg-black ring-1 ${active ? "ring-amber-400" : "ring-white/10"}`}>
                 {/* Cover: Werbevideo (aktiv, autoplay stumm) → Foto → großes Icon-Wasserzeichen */}
                 {t.video ? (
                   // eslint-disable-next-line jsx-a11y/media-has-caption
