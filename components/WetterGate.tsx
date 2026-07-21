@@ -76,6 +76,25 @@ function ageFrom(bd: string): number {
   return age;
 }
 
+// Jugendstil-Ornamente (feine schwarze Linienkunst, S/W-CI): Eck-Ranke + Zierlinie.
+const CornerOrnament = ({ className = "" }: { className?: string }) => (
+  <svg viewBox="0 0 46 46" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round"
+    aria-hidden className={`pointer-events-none absolute h-9 w-9 text-black/30 ${className}`}>
+    <path d="M3 43 C3 23 23 3 43 3" />
+    <path d="M3 43 C17 36 22 27 20 16" />
+    <path d="M20 16 c-3 -1.5 -7 0.5 -7 4 c0 3 4 4.5 6 2 c1.5 -2 0 -5.5 -2.5 -5.5" />
+  </svg>
+);
+const DividerOrnament = () => (
+  <svg viewBox="0 0 170 12" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round"
+    aria-hidden className="mx-auto mt-3 h-3 w-44 text-black/25">
+    <path d="M4 6 H66" /><path d="M166 6 H104" />
+    <circle cx="74" cy="6" r="1.2" fill="currentColor" stroke="none" />
+    <path d="M85 1 l5 5 l-5 5 l-5 -5 z" />
+    <circle cx="96" cy="6" r="1.2" fill="currentColor" stroke="none" />
+  </svg>
+);
+
 // Floating-Label-Feld: leer = grau + großer Platzhalter; getippt/Fokus = WEISS mit schwarzem
 // Rand, und der Feldname rutscht klein nach oben, damit man immer weiß, was es ist.
 function LabeledInput({ label, value, onChange, invalid = false, type = "text", inputMode, autoComplete }: {
@@ -185,9 +204,15 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
 
   return (
     <section className="mx-auto mt-8 max-w-md px-5">
-      <div className="rounded-2xl border border-black/10 bg-white p-5">
-        <p className="text-[20px] font-black leading-tight text-white">{t.title(modelName)}</p>
-        <p className="mt-1.5 text-[14px] font-semibold leading-relaxed text-white/65">{t.sub}</p>
+      <div className="relative overflow-hidden rounded-2xl border border-black/10 bg-white p-6">
+        {/* Jugendstil-Eckornamente */}
+        <CornerOrnament className="left-1.5 top-1.5" />
+        <CornerOrnament className="right-1.5 top-1.5 -scale-x-100" />
+        <CornerOrnament className="bottom-1.5 left-1.5 -scale-y-100" />
+        <CornerOrnament className="bottom-1.5 right-1.5 -scale-100" />
+        <p className="text-center text-[20px] font-black leading-tight text-white">{t.title(modelName)}</p>
+        <DividerOrnament />
+        <p className="mt-2 text-center text-[14px] font-semibold leading-relaxed text-white/65">{t.sub}</p>
 
         <div className="mt-4 grid grid-cols-1 gap-2">
           <LabeledInput label={t.name} value={name} onChange={setName} autoComplete="name" />
