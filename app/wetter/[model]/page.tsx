@@ -132,6 +132,14 @@ export default async function WetterModelPage({ params, searchParams }: {
   const visitorPosts = adPosts.length ? adPosts : posts;
   const dayLook = posts.find(p => !p.ad) ?? posts[0];
 
+  // Sprach-Umschalter: setzt ?lang=, behält alle anderen Parameter (s, admin, preview, …).
+  const langHref = (l: string) => {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(sp)) if (v && k !== "lang") q.set(k, String(v));
+    q.set("lang", l);
+    return `?${q.toString()}`;
+  };
+
   return (
     // Seite: DUNKLER Kopfbereich (TopNav + Header mit weißem Namen), darunter HELLER Inhalt.
     <main className="lb-bg text-white">
@@ -148,6 +156,13 @@ export default async function WetterModelPage({ params, searchParams }: {
       {/* Inhalt (Kunde): HELL (Tageslicht-lesbar). lb-theme + lb-bg auf demselben Element.
           Volle Höhe nur ohne Admin — mit Admin folgt gleich der dunkle Werkzeug-Block. */}
       <div className={`lb-theme lb-bg pb-16 text-white ${showAdmin ? "" : "min-h-[100dvh]"}`}>
+        {/* Sprach-Umschalter — RO · DE · EN (Test + mehrsprachige Besucher). */}
+        <div className="mx-auto flex max-w-md justify-center gap-1.5 px-4 pt-3">
+          {["ro", "de", "en"].map(l => (
+            <a key={l} href={langHref(l)}
+              className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wide transition ${subLang === l ? "bg-[#111] text-white" : "border border-black/15 text-black/50"}`}>{l}</a>
+          ))}
+        </div>
         {recognized ? (
           /* EINGELOGGTER ABONNENT: Gruß + Wetter + Look + Chat. subId → Gerät merkt sich den Login. */
           <>
