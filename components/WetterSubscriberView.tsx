@@ -261,7 +261,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[82%] whitespace-pre-wrap px-3.5 py-2.5 text-sm font-medium ${m.role === "user"
-                ? "rounded-2xl rounded-tr-sm bg-[#111] text-white"
+                ? "rounded-2xl rounded-tr-sm bg-[#c9a23f] text-black"
                 : "rounded-2xl rounded-tl-sm bg-white/10 text-white/90"}`}>{m.content}</div>
             </div>
           ))}
@@ -281,9 +281,9 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           <textarea value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
             rows={1} placeholder={t.placeholder(modelName)}
-            className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-white/15 bg-white px-4 py-3 text-sm font-medium text-white outline-none focus:border-black/70 placeholder:text-white/50" />
+            className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium text-white outline-none focus:border-[#c9a23f] placeholder:text-white/50" />
           <button type="button" onClick={() => void send()} disabled={sending || !input.trim()}
-            className="lb-onmedia grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#1a160f] text-white disabled:opacity-40 active:scale-90 transition">
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#c9a23f] text-black disabled:opacity-40 active:scale-90 transition">
             {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
           </button>
         </div>
@@ -294,12 +294,12 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
       {subId && (
         <div className="mb-8 text-center">
           {unsubbed ? (
-            <p className="text-[12px] font-black text-black/50">
+            <p className="text-[12px] font-black text-white/50">
               {L === "de" ? "✓ Du bist abgemeldet — keine Nachrichten mehr." : L === "en" ? "✓ You're unsubscribed — no more messages." : "✓ Te-ai dezabonat — gata cu mesajele."}
             </p>
           ) : (
             <button type="button" onClick={() => void unsubscribe()} disabled={unsubbing}
-              className="text-[12px] font-bold text-black/40 underline underline-offset-2 disabled:opacity-50">
+              className="text-[12px] font-bold text-white/40 underline underline-offset-2 disabled:opacity-50">
               {L === "de" ? "Abmelden" : L === "en" ? "Unsubscribe" : "Dezabonează-te"}
             </button>
           )}

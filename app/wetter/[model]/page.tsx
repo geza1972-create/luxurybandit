@@ -164,12 +164,12 @@ export default async function WetterModelPage({ params, searchParams }: {
 
       {/* Inhalt (Kunde): HELL (Tageslicht-lesbar). lb-theme + lb-bg auf demselben Element.
           Volle Höhe nur ohne Admin — mit Admin folgt gleich der dunkle Werkzeug-Block. */}
-      <div className={`lb-theme lb-bg pb-16 text-white ${showAdmin ? "" : "min-h-[100dvh]"}`}>
+      <div className={`lb-bg pb-16 text-white ${showAdmin ? "" : "min-h-[100dvh]"}`}>
         {recognized ? (
           /* EINGELOGGTER ABONNENT: Gruß + Wetter + Look + Chat. subId → Gerät merkt sich den Login. */
           <>
           {justConfirmed && (
-            <p className="mx-auto max-w-md px-4 pt-4 text-center text-[13px] font-black text-emerald-600">{CONFIRMED_TEXT[subLang] ?? CONFIRMED_TEXT.ro}</p>
+            <p className="mx-auto max-w-md px-4 pt-4 text-center text-[13px] font-black text-emerald-400">{CONFIRMED_TEXT[subLang] ?? CONFIRMED_TEXT.ro}</p>
           )}
           <WetterSubscriberView name={subName} city={subCity} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken}
             day={dayLook?.day || ""} time={dayLook?.time || ""}
@@ -180,11 +180,11 @@ export default async function WetterModelPage({ params, searchParams }: {
              Beispiel-Name/-Stadt; nichts wird auf dem Gerät eingeloggt. */
           <>
             {/* Umschalter — genau das, was der User in beiden Zuständen sieht. */}
-            <div className="mx-auto mt-3 flex max-w-md gap-1.5 rounded-full border border-black/10 bg-white p-1 text-center text-[12px] font-black">
-              <a href="?admin=1&preview=visitor" className={`flex-1 rounded-full py-2 transition ${previewMode === "visitor" ? "bg-black text-white" : "text-black/60"}`}>👤 Besucher</a>
-              <a href="?admin=1&preview=subscriber" className={`flex-1 rounded-full py-2 transition ${previewMode === "subscriber" ? "bg-black text-white" : "text-black/60"}`}>🔔 Abonnent</a>
+            <div className="mx-auto mt-3 flex max-w-md gap-1.5 rounded-full border border-white/10 bg-white/[0.04] p-1 text-center text-[12px] font-black">
+              <a href="?admin=1&preview=visitor" className={`flex-1 rounded-full py-2 transition ${previewMode === "visitor" ? "bg-[#c9a23f] text-black" : "text-white/60"}`}>👤 Besucher</a>
+              <a href="?admin=1&preview=subscriber" className={`flex-1 rounded-full py-2 transition ${previewMode === "subscriber" ? "bg-[#c9a23f] text-black" : "text-white/60"}`}>🔔 Abonnent</a>
             </div>
-            <p className="mx-auto max-w-md px-4 pt-3 text-[11px] font-black uppercase tracking-[0.14em] text-black/45">
+            <p className="mx-auto max-w-md px-4 pt-3 text-[11px] font-black uppercase tracking-[0.14em] text-white/45">
               👁 Vorschau — so sieht es der {previewMode === "visitor" ? "neue Besucher" : "Kunde jeden Morgen"}
             </p>
             {previewMode === "visitor" ? (
