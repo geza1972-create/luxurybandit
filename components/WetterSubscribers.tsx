@@ -156,10 +156,11 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
           {subs.map(s => {
             const wa = waLink(s);
             return (
-              <div key={s.id} className={`flex min-w-0 items-center gap-2 overflow-hidden rounded-xl border p-2.5 ${s.unsubscribed ? "border-red-500/20 bg-red-500/[0.04] opacity-60" : sent[s.id] ? "border-emerald-400/30 bg-emerald-400/[0.06]" : "border-white/10 bg-black/30"}`}>
+              <div key={s.id} className={`min-w-0 overflow-hidden rounded-xl border p-2.5 ${s.unsubscribed ? "border-red-500/20 bg-red-500/[0.04] opacity-60" : sent[s.id] ? "border-emerald-400/30 bg-emerald-400/[0.06]" : "border-white/10 bg-black/30"}`}>
+              <div className="flex items-start gap-2">
                 {/* Abhaken = „heute gesendet" (lokal). */}
                 <button type="button" onClick={() => setSent(m => ({ ...m, [s.id]: !m[s.id] }))} aria-label="Als gesendet markieren"
-                  className={`grid h-7 w-7 shrink-0 place-items-center rounded-md border-2 transition ${sent[s.id] ? "border-emerald-400 bg-emerald-400 text-black" : "border-white/30 text-transparent"}`}>
+                  className={`mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md border-2 transition ${sent[s.id] ? "border-emerald-400 bg-emerald-400 text-black" : "border-white/30 text-transparent"}`}>
                   <Check className="h-4 w-4" />
                 </button>
                 <div className="min-w-0 flex-1 space-y-0.5">
@@ -182,33 +183,33 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
                     <p className="break-words text-[12px] font-semibold text-white/45">{[s.city, s.country, s.note].filter(Boolean).join(" · ")}</p>
                   )}
                 </div>
-                {/* Aktionen als kompakter Icon-Block — schrumpft nicht, läuft nie aus dem Bild. */}
-                <div className="flex shrink-0 items-center gap-1.5">
-                  {/* Persönlichen Link kopieren — für jeden Kanal (WhatsApp, SMS, überall). */}
-                  <button type="button" onClick={() => void copyLink(s)} aria-label="Link kopieren"
-                    className="grid h-9 w-9 place-items-center rounded-lg border border-white/15 text-white/75 active:scale-95 transition">
-                    {copiedId === s.id ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
-                  </button>
-                  {/* Manuell senden — für Abgemeldete gesperrt (nicht weiter senden!). */}
-                  {s.unsubscribed ? (
-                    <span aria-label="Abgemeldet — nicht senden" title="Abgemeldet"
-                      className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 text-white/20">
-                      <MessageCircle className="h-4 w-4" />
-                    </span>
-                  ) : wa ? (
-                    <a href={wa} target="_blank" rel="noopener noreferrer" aria-label="Per WhatsApp senden"
-                      onClick={() => setSent(m => ({ ...m, [s.id]: true }))}
-                      className="grid h-9 w-9 place-items-center rounded-lg bg-[#25D366] text-black active:scale-95 transition">
-                      <MessageCircle className="h-4 w-4" />
-                    </a>
-                  ) : (
-                    <span className="grid h-9 w-9 place-items-center rounded-lg border border-amber-400/30 text-[9px] font-black leading-tight text-amber-400/70">Nr?</span>
-                  )}
-                  <button type="button" onClick={() => void remove(s.id)} aria-label="Löschen"
-                    className="grid h-9 w-9 place-items-center rounded-lg border border-red-400/40 text-red-300 active:scale-95 transition">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
+              </div>
+              {/* Aktionen DARUNTER — volle Breite, mit Beschriftung. */}
+              <div className="mt-2.5 flex items-center gap-2 border-t border-white/10 pt-2.5">
+                {/* Persönlichen Link kopieren. */}
+                <button type="button" onClick={() => void copyLink(s)}
+                  className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/15 text-[12px] font-black text-white/80 active:scale-95 transition">
+                  {copiedId === s.id ? <><Check className="h-4 w-4 text-emerald-400" /> Kopiert</> : <><Copy className="h-4 w-4" /> Link</>}
+                </button>
+                {/* Manuell senden — für Abgemeldete gesperrt (nicht weiter senden!). */}
+                {s.unsubscribed ? (
+                  <span className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-white/10 text-[12px] font-black text-white/25">
+                    <MessageCircle className="h-4 w-4" /> Abgemeldet
+                  </span>
+                ) : wa ? (
+                  <a href={wa} target="_blank" rel="noopener noreferrer"
+                    onClick={() => setSent(m => ({ ...m, [s.id]: true }))}
+                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#25D366] text-[12px] font-black text-black active:scale-95 transition">
+                    <MessageCircle className="h-4 w-4" /> Senden
+                  </a>
+                ) : (
+                  <span className="flex h-9 flex-1 items-center justify-center rounded-lg border border-amber-400/30 text-[11px] font-black text-amber-400/70">Keine Nr.</span>
+                )}
+                <button type="button" onClick={() => void remove(s.id)} aria-label="Löschen"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-red-400/40 text-red-300 active:scale-95 transition">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
               </div>
             );
           })}
