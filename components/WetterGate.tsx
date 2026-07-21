@@ -202,12 +202,12 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
 
   return (
     <section className="mx-auto mt-8 max-w-md px-5">
-      <div className="relative overflow-hidden rounded-2xl border border-black/10 bg-white p-6">
-        {/* Jugendstil-Eckornamente */}
-        <CornerOrnament className="left-1.5 top-1.5" />
-        <CornerOrnament className="right-1.5 top-1.5 -scale-x-100" />
-        <CornerOrnament className="bottom-1.5 left-1.5 -scale-y-100" />
-        <CornerOrnament className="bottom-1.5 right-1.5 -scale-100" />
+      <div className="relative overflow-hidden rounded-2xl border border-black/10 bg-white px-7 pb-8 pt-12">
+        {/* Jugendstil-Eckornamente — mit Abstand zum Rand, Inhalt hat genug Luft (px-7 / pt-12). */}
+        <CornerOrnament className="left-2.5 top-2.5" />
+        <CornerOrnament className="right-2.5 top-2.5 -scale-x-100" />
+        <CornerOrnament className="bottom-2.5 left-2.5 -scale-y-100" />
+        <CornerOrnament className="bottom-2.5 right-2.5 -scale-100" />
         <p className="text-center text-[20px] font-black leading-tight text-white">{t.title(modelName)}</p>
         <DividerOrnament />
         <p className="mt-2 text-center text-[14px] font-semibold leading-relaxed text-white/65">{t.sub}</p>
