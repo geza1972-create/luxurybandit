@@ -60,7 +60,7 @@ export default async function ThemesCatalog() {
             const Icon = t.icon;
             const active = !!t.href;
             const face = (
-              <div className={`relative aspect-[9/16] w-full overflow-hidden rounded-2xl bg-black ring-1 ${active ? "ring-amber-400" : "ring-white/10"}`}>
+              <div className={`relative aspect-[9/16] w-full overflow-hidden rounded-2xl border bg-black ${active ? "border-amber-400" : "border-white/10"}`}>
                 {/* Cover: Werbevideo (aktiv, autoplay stumm) → Foto → großes Icon-Wasserzeichen */}
                 {t.video ? (
                   // eslint-disable-next-line jsx-a11y/media-has-caption
