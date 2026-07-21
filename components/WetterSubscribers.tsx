@@ -132,11 +132,11 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
       ) : subs.length === 0 ? (
         <p className="py-6 text-center text-[12px] font-bold text-white/40">Noch keine Abonnenten. Trag dich oben selbst ein und teste.</p>
       ) : (
-        <div className="mt-3 grid gap-2">
+        <div className="mt-3 grid grid-cols-1 gap-2">
           {subs.map(s => {
             const wa = waLink(s);
             return (
-              <div key={s.id} className={`flex items-center gap-2 rounded-xl border p-2.5 ${sent[s.id] ? "border-emerald-400/30 bg-emerald-400/[0.06]" : "border-white/10 bg-black/30"}`}>
+              <div key={s.id} className={`flex min-w-0 items-center gap-2 overflow-hidden rounded-xl border p-2.5 ${sent[s.id] ? "border-emerald-400/30 bg-emerald-400/[0.06]" : "border-white/10 bg-black/30"}`}>
                 {/* Abhaken = „heute gesendet" (lokal). */}
                 <button type="button" onClick={() => setSent(m => ({ ...m, [s.id]: !m[s.id] }))} aria-label="Als gesendet markieren"
                   className={`grid h-7 w-7 shrink-0 place-items-center rounded-md border-2 transition ${sent[s.id] ? "border-emerald-400 bg-emerald-400 text-black" : "border-white/30 text-transparent"}`}>
