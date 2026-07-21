@@ -162,21 +162,25 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
                   className={`grid h-7 w-7 shrink-0 place-items-center rounded-md border-2 transition ${sent[s.id] ? "border-emerald-400 bg-emerald-400 text-black" : "border-white/30 text-transparent"}`}>
                   <Check className="h-4 w-4" />
                 </button>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[14px] font-black text-white">
-                    {s.name} <span className="text-[11px] font-bold text-white/40">{(s.lang || "ro").toUpperCase()}</span>
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[14px] font-black text-white">
+                    <span className="max-w-full break-words">{s.name}</span>
+                    <span className="text-[11px] font-bold text-white/40">{(s.lang || "ro").toUpperCase()}</span>
                     {/* Status-Badge (Priorität: abgemeldet → Test abgelaufen → bestätigt/unbestätigt). */}
                     {s.unsubscribed
-                      ? <span className="ml-1.5 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[9px] font-black text-red-400 align-middle">🔴 abgemeldet</span>
+                      ? <span className="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[9px] font-black text-red-400">🔴 abgemeldet</span>
                       : trialExpired(s, trialDays)
-                        ? <span className="ml-1.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-black text-amber-300 align-middle">⌛ Test abgelaufen</span>
+                        ? <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-black text-amber-300">⌛ Test abgelaufen</span>
                         : s.email && (s.confirmed
-                          ? <span className="ml-1.5 rounded-full bg-emerald-400/15 px-1.5 py-0.5 text-[9px] font-black text-emerald-400 align-middle">✓ bestätigt</span>
-                          : <span className="ml-1.5 rounded-full bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-black text-amber-400 align-middle">⏳ unbestätigt</span>)}
+                          ? <span className="rounded-full bg-emerald-400/15 px-1.5 py-0.5 text-[9px] font-black text-emerald-400">✓ bestätigt</span>
+                          : <span className="rounded-full bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-black text-amber-400">⏳ unbestätigt</span>)}
                   </p>
-                  <p className="truncate text-[12px] font-semibold text-white/55">
-                    {[s.email, s.city, s.country, s.phone, s.note].filter(Boolean).join(" · ") || "—"}
-                  </p>
+                  {/* E-Mail + Telefon VOLLSTÄNDIG (umbrechend, nicht abgeschnitten). */}
+                  {s.email && <p className="break-all text-[12px] font-semibold text-white/65">✉ {s.email}</p>}
+                  {s.phone && <p className="break-all text-[12px] font-bold text-white/75">📞 {s.phone}</p>}
+                  {[s.city, s.country, s.note].filter(Boolean).length > 0 && (
+                    <p className="break-words text-[12px] font-semibold text-white/45">{[s.city, s.country, s.note].filter(Boolean).join(" · ")}</p>
+                  )}
                 </div>
                 {/* Aktionen als kompakter Icon-Block — schrumpft nicht, läuft nie aus dem Bild. */}
                 <div className="flex shrink-0 items-center gap-1.5">
