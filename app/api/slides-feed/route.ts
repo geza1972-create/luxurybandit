@@ -31,6 +31,7 @@ export async function GET(request: Request) {
   for (const { c, name, slides } of perModel) {
     for (const s of slides) {
       if (s.customer) continue;                        // per-customer cards never hit the public feed
+      if ((s as { topic?: string }).topic === "wetter") continue; // Wetter-Beiträge sind Abo-only, NICHT im öffentlichen Feed
       if (s.pendingApproval) continue;                  // her own public upload, awaiting admin review
       if (s.hidden === true) continue;                  // "Auf Card" turned off — blurred teaser, not the public feed
       if (s.pages && s.pages.length && !s.pages.includes("profile")) continue; // campaign-only slides (e.g. Journey/Own-Model) aren't generic feed content

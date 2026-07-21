@@ -486,6 +486,7 @@ export type BellaSlide = {
   caption?: string;      // short description / caption
   day?: string;          // Tag, für den der Beitrag ist (YYYY-MM-DD) — der Abonnent sieht den heutigen (bzw. neuesten ≤ heute)
   time?: string;         // Uhrzeit (HH:MM) — für mehrere Beiträge am selben Tag; leer = ganztägig
+  topic?: string;        // z. B. "wetter" — Abo-only Thema, NICHT im öffentlichen Feed/Reel
   context?: string;      // „Bellas Tag": Szenario/Rolle für den Chat-System-Prompt (wo sie ist, was sie macht, was sie trägt)
   firstMessage?: string; // optionale erste Chat-Nachricht (Opener); leer = Standard-Gruß
   hidden?: boolean;      // kept in the library but NOT shown on any card

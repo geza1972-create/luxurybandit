@@ -77,6 +77,8 @@ export async function POST(request: Request) {
       caption: String(body.add.caption ?? "").slice(0, 3000),
       day: String(body.add.day ?? "").slice(0, 10),
       time: String(body.add.time ?? "").slice(0, 5),
+      topic: "wetter",   // Abo-only → nie im öffentlichen Feed/Reel
+
       context: String(body.add.context ?? "").slice(0, 2000),
       firstMessage: String(body.add.firstMessage ?? "").slice(0, 1000),
       private: false,
