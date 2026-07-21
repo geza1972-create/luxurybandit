@@ -199,8 +199,8 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
       {/* Chat mit dem Model */}
       <div className="mb-8 mt-6 rounded-2xl border border-white/10 bg-white/[0.03]">
         <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2.5">
-          <span className="h-2 w-2 rounded-full bg-amber-400" />
-          <p className="text-[13px] font-black text-white">{modelName} <span className="font-bold text-amber-400/90">{t.online}</span></p>
+          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          <p className="text-[13px] font-black text-white">{modelName} <span className="font-bold text-emerald-600">{t.online}</span></p>
         </div>
         <div ref={scrollRef} className="max-h-[46vh] space-y-3 overflow-y-auto px-4 py-4">
           {messages.map((m, i) => (
@@ -228,11 +228,11 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             rows={1} placeholder={t.placeholder(modelName)}
             className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium text-white outline-none focus:border-amber-400 placeholder:text-white/50" />
           <button type="button" onClick={() => void send()} disabled={sending || !input.trim()}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-amber-400 text-black disabled:opacity-40 active:scale-90 transition">
+            className="lb-onmedia grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#1a160f] text-white disabled:opacity-40 active:scale-90 transition">
             {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
           </button>
         </div>
-        <p className="px-4 pb-3 text-center text-[11px] font-bold text-white/60">{t.aiNote(modelName)}</p>
+        <p className="px-4 pb-3 text-center text-[11px] font-bold text-white/80">{t.aiNote(modelName)}</p>
       </div>
     </div>
   );
