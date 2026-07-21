@@ -1375,6 +1375,7 @@ export type WetterSubscriber = {
   country?: string;       // Land (frei oder ISO), z. B. „România"
   lang?: string;          // "ro" | "de" | "en"
   note?: string;          // frei (z. B. „Freund, Test")
+  acceptedTerms?: boolean; // AGB + Datenschutz beim Anmelden akzeptiert
   confirmed?: boolean;    // Double-Opt-in: E-Mail bestätigt? (gegen Spam/Fake)
   confirmToken?: string;  // Einmal-Token im Bestätigungslink
   createdAt: string;

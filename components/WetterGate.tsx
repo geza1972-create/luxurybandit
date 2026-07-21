@@ -24,6 +24,7 @@ type Copy = {
   cta: string; note: string; fillAll: string; badEmail: string;
   sentTitle: string; sentBody: (e: string) => string;
   back: string; open: string;   // „schon angemeldet" + Link-Knopf
+  tooYoung: string; mustAccept: string; consent: string; terms: string; and: string; privacy: string;
 };
 const T: Record<string, Copy> = {
   ro: {
@@ -35,6 +36,8 @@ const T: Record<string, Copy> = {
     fillAll: "Te rog completează toate câmpurile.", badEmail: "Email invalid.",
     sentTitle: "Verifică-ți emailul 📧", sentBody: e => `Ți-am trimis un link de confirmare la ${e}. Confirmă și gata!`,
     back: "Ești deja înscris", open: "Spre mesajul tău de dimineață →",
+    tooYoung: "Trebuie să ai cel puțin 18 ani.", mustAccept: "Te rog acceptă termenii.",
+    consent: "Sunt de acord cu", terms: "Termenii", and: "și", privacy: "Confidențialitatea",
   },
   de: {
     title: m => `Soll ${m} dich jeden Morgen wecken?`,
@@ -45,6 +48,8 @@ const T: Record<string, Copy> = {
     fillAll: "Bitte alle Felder ausfüllen.", badEmail: "Ungültige E-Mail.",
     sentTitle: "Prüfe deine E-Mail 📧", sentBody: e => `Wir haben dir einen Bestätigungslink an ${e} geschickt. Bestätigen und los!`,
     back: "Du bist schon angemeldet", open: "Zu deiner Morgennachricht →",
+    tooYoung: "Du musst mindestens 18 Jahre alt sein.", mustAccept: "Bitte akzeptiere die AGB.",
+    consent: "Ich akzeptiere die", terms: "AGB", and: "und", privacy: "Datenschutz",
   },
   en: {
     title: m => `Want ${m} to wake you every morning?`,
@@ -55,8 +60,21 @@ const T: Record<string, Copy> = {
     fillAll: "Please fill in all fields.", badEmail: "Invalid email.",
     sentTitle: "Check your email 📧", sentBody: e => `We sent a confirmation link to ${e}. Confirm and you're in!`,
     back: "You're already signed up", open: "Go to your morning message →",
+    tooYoung: "You must be at least 18.", mustAccept: "Please accept the terms.",
+    consent: "I accept the", terms: "Terms", and: "and", privacy: "Privacy",
   },
 };
+
+// Alter aus dem Geburtsdatum (YYYY-MM-DD). NaN, wenn kein gültiges Datum.
+function ageFrom(bd: string): number {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(bd);
+  if (!m) return NaN;
+  const y = +m[1], mo = +m[2], d = +m[3];
+  const now = new Date();
+  let age = now.getFullYear() - y;
+  if (now.getMonth() + 1 < mo || (now.getMonth() + 1 === mo && now.getDate() < d)) age--;
+  return age;
+}
 
 // Floating-Label-Feld: leer = grau + großer Platzhalter; getippt/Fokus = WEISS mit schwarzem
 // Rand, und der Feldname rutscht klein nach oben, damit man immer weiß, was es ist.
@@ -97,6 +115,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
   const [country, setCountry] = useState("");
   const [dial, setDial] = useState("+40");   // Länder-Vorwahl (Default RO)
   const [phone, setPhone] = useState("");
+  const [accepted, setAccepted] = useState(false);   // AGB + Datenschutz akzeptiert
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);   // Bestätigungs-Mail raus → „prüfe deine E-Mail"
@@ -117,13 +136,15 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
   const create = async () => {
     if (!name.trim() || !email.trim() || !birthdate || !gender || !city.trim() || !country.trim() || !phone.trim()) { setError(t.fillAll); return; }
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) { setError(t.badEmail); return; }
+    if (ageFrom(birthdate) < 18) { setError(t.tooYoung); return; }   // 18+-Sperre
+    if (!accepted) { setError(t.mustAccept); return; }               // AGB/Datenschutz Pflicht
     setBusy(true); setError("");
     // Vorwahl + nationale Nummer → international (führende 0 der nationalen Nummer weg).
     const fullPhone = `${dial}${phone.replace(/[^\d]/g, "").replace(/^0+/, "")}`;
     try {
       const r = await fetch("/api/wetter-signup", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modelId, name, email, birthdate, gender, city, country, phone: fullPhone, lang: L }),
+        body: JSON.stringify({ modelId, name, email, birthdate, gender, city, country, phone: fullPhone, lang: L, accepted: true }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d?.error ?? "…"); return; }
@@ -200,6 +221,17 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
               <LabeledInput label={t.phone} value={phone} onChange={setPhone} type="tel" inputMode="tel" autoComplete="tel-national" />
             </div>
           </div>
+          {/* AGB + Datenschutz — Pflicht-Häkchen mit Links. */}
+          <label className="mt-1 flex cursor-pointer items-start gap-2.5 text-[12px] font-semibold text-white/70">
+            <input type="checkbox" checked={accepted} onChange={e => setAccepted(e.target.checked)}
+              className="mt-0.5 h-5 w-5 shrink-0 accent-black" />
+            <span>
+              {t.consent}{" "}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="font-black text-white underline">{t.terms}</a>{" "}
+              {t.and}{" "}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-black text-white underline">{t.privacy}</a>.
+            </span>
+          </label>
           <button type="button" onClick={() => void create()} disabled={busy}
             className="mt-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-black text-[15px] font-black text-white active:scale-95 transition disabled:opacity-50">
             {busy && <Loader2 className="h-4 w-4 animate-spin" />} {t.cta}

@@ -31,7 +31,7 @@ function confirmEmail(lang: string, name: string, model: string, link: string): 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
     modelId?: string; name?: string; email?: string; birthdate?: string; gender?: string;
-    phone?: string; city?: string; country?: string; lang?: string;
+    phone?: string; city?: string; country?: string; lang?: string; accepted?: boolean;
   };
   const modelId = String(body.modelId ?? "").trim() || BELLA_ID;
   const name = String(body.name ?? "").trim().slice(0, 120);
@@ -47,6 +47,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Bitte alle Felder ausfüllen." }, { status: 400 });
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
     return NextResponse.json({ error: "Bitte eine gültige E-Mail eingeben." }, { status: 400 });
+  // 18+-Sperre (server-seitig, nicht umgehbar) aus dem Geburtsdatum.
+  const bm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthdate);
+  if (bm) {
+    const now = new Date();
+    let age = now.getFullYear() - +bm[1];
+    if (now.getMonth() + 1 < +bm[2] || (now.getMonth() + 1 === +bm[2] && now.getDate() < +bm[3])) age--;
+    if (age < 18) return NextResponse.json({ error: "Du musst mindestens 18 Jahre alt sein." }, { status: 400 });
+  }
+  // AGB/Datenschutz müssen akzeptiert sein.
+  if (body.accepted !== true)
+    return NextResponse.json({ error: "Bitte akzeptiere die AGB und den Datenschutz." }, { status: 400 });
 
   const lang = String(body.lang ?? "ro").trim().slice(0, 5) || "ro";
   const confirmToken = crypto.randomUUID().replace(/-/g, "");
@@ -54,6 +65,7 @@ export async function POST(request: Request) {
     id: `sub-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
     name, email, birthdate, gender, phone, city, country, lang,
     note: "self-signup",
+    acceptedTerms: true,
     confirmed: false,
     confirmToken,
     createdAt: new Date().toISOString(),
