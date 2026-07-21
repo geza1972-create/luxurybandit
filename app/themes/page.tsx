@@ -66,7 +66,7 @@ export default async function ThemesCatalog() {
                   // eslint-disable-next-line jsx-a11y/media-has-caption
                   <video src={t.video} poster={t.poster || t.cover || undefined}
                     autoPlay muted loop playsInline preload="metadata"
-                    className="h-full w-full object-cover object-top" />
+                    className="h-full w-full object-contain" />
                 ) : t.cover ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={t.cover} alt="" className={`h-full w-full object-cover object-top ${active ? "" : "blur-[2px] brightness-75"}`} />
