@@ -156,7 +156,7 @@ export default async function WetterModelPage({ params, searchParams }: {
           <div className="absolute right-2 top-2 z-20 flex gap-1">
             {["ro", "de", "en"].map(l => (
               <a key={l} href={langHref(l)}
-                className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide backdrop-blur transition ${subLang === l ? "bg-[#c9a23f] text-black" : "bg-black/40 text-white/70 ring-1 ring-white/20"}`}>{l}</a>
+                className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide backdrop-blur transition ${subLang === l ? "bg-amber-400 text-black" : "bg-white/10 text-white/80 ring-1 ring-white/15"}`}>{l}</a>
             ))}
           </div>
         </div>
