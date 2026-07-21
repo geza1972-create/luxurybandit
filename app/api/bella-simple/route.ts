@@ -46,8 +46,8 @@ export async function POST(request: Request) {
   const modelId = new URL(request.url).searchParams.get("model")?.trim() || BELLA_ID;   // pro Model gescoped
   const body = (await request.json().catch(() => ({}))) as {
     sign?: boolean; kind?: string; ext?: string;
-    add?: { kind?: string; path?: string; caption?: string; title?: string; day?: string; time?: string; context?: string; firstMessage?: string };
-    posts?: { id?: string; caption?: string; title?: string; kind?: string; path?: string; day?: string; time?: string; context?: string; firstMessage?: string }[];
+    add?: { kind?: string; path?: string; posterPath?: string; caption?: string; title?: string; day?: string; time?: string; context?: string; firstMessage?: string };
+    posts?: { id?: string; caption?: string; title?: string; kind?: string; path?: string; posterPath?: string; day?: string; time?: string; context?: string; firstMessage?: string }[];
     remove?: string;
     reorder?: string[];
   };
@@ -72,6 +72,7 @@ export async function POST(request: Request) {
       id: `post-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
       kind,
       path: String(body.add.path),
+      posterPath: String(body.add.posterPath ?? ""),
       title: String(body.add.title ?? "").slice(0, 120),
       caption: String(body.add.caption ?? "").slice(0, 3000),
       day: String(body.add.day ?? "").slice(0, 10),
@@ -125,7 +126,7 @@ export async function POST(request: Request) {
       ...(p.path ? {
         kind: (p.kind === "video" ? "video" : "image") as BellaSlide["kind"],
         path: String(p.path),
-        posterPath: "",
+        posterPath: String(p.posterPath ?? ""),
       } : {}),
     }]));
     const next = all.map(s => byId.has(s.id) ? { ...s, ...byId.get(s.id)! } : s);

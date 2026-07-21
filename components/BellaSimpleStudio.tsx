@@ -16,8 +16,34 @@ type Post = {
   // Ein getauschtes Bild/Video, das noch NICHT live ist. Die Datei liegt schon im
   // Speicher (anders geht Hochladen nicht), aber der Beitrag zeigt sie erst nach
   // „Übernehmen". `previewUrl` ist die lokale Vorschau aus der gewählten Datei.
-  pending?: { kind: "image" | "video"; path: string; previewUrl: string };
+  pending?: { kind: "image" | "video"; path: string; previewUrl: string; posterPath?: string };
 };
+
+// Erstes Videobild im Browser abgreifen → JPEG-Blob. Wird als Cover (Poster) mitgespeichert,
+// damit Video-Slides im Feed nicht schwarz sind. Bei Fehler: null (dann eben ohne Cover).
+async function firstFrame(file: File): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    try {
+      const v = document.createElement("video");
+      v.preload = "metadata"; v.muted = true; (v as HTMLVideoElement & { playsInline?: boolean }).playsInline = true;
+      const url = URL.createObjectURL(file);
+      const done = (b: Blob | null) => { try { URL.revokeObjectURL(url); } catch { /**/ } resolve(b); };
+      v.src = url;
+      v.onloadeddata = () => { try { v.currentTime = Math.min(0.1, (v.duration || 1) / 3); } catch { done(null); } };
+      v.onseeked = () => {
+        try {
+          const c = document.createElement("canvas");
+          c.width = v.videoWidth || 720; c.height = v.videoHeight || 1280;
+          const ctx = c.getContext("2d"); if (!ctx) return done(null);
+          ctx.drawImage(v, 0, 0, c.width, c.height);
+          c.toBlob(b => done(b), "image/jpeg", 0.82);
+        } catch { done(null); }
+      };
+      v.onerror = () => done(null);
+      setTimeout(() => done(null), 8000);   // Sicherheitsnetz
+    } catch { resolve(null); }
+  });
+}
 
 // Supabase nimmt pro Datei standardmäßig 50 MB. Lieber vorher sauber melden,
 // als den Nutzer minutenlang hochladen lassen und dann abbrechen.
@@ -113,6 +139,16 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
     return { kind, path: sign.path as string };
   };
 
+  // Erstes Videobild als Cover erzeugen + hochladen → Speicherpfad (oder "" bei Fehler).
+  const captureCover = async (file: File): Promise<string> => {
+    try {
+      const frame = await firstFrame(file);
+      if (!frame) return "";
+      const up = await uploadFile(new File([frame], "cover.jpg", { type: "image/jpeg" }));
+      return up?.path ?? "";
+    } catch { return ""; }
+  };
+
   // Neuer Beitrag: die Datei wandert in den Speicher, der BEITRAG entsteht aber noch
   // nicht. Er liegt als Entwurf oben in der Liste, bis Titel und Text dranstehen —
   // dann geht mit EINEM „Übernehmen" alles zusammen live. Vorher entstand hier sofort
@@ -122,10 +158,11 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
     try {
       const up = await uploadFile(file);
       if (!up) return;
+      const posterPath = up.kind === "video" ? await captureCover(file) : "";
       const entwurf: Post = {
         id: `${DRAFT}${Date.now()}`,
         kind: up.kind, title: "", caption: "", day: todayISO(), time: "", context: "", firstMessage: "", mediaUrl: "",
-        pending: { ...up, previewUrl: URL.createObjectURL(file) },
+        pending: { ...up, posterPath, previewUrl: URL.createObjectURL(file) },
       };
       setPosts(ps => [entwurf, ...ps]);
       setDirtyIds(ids => [...ids, entwurf.id]);
@@ -141,11 +178,12 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
     try {
       const up = await uploadFile(file);
       if (!up) return;
+      const posterPath = up.kind === "video" ? await captureCover(file) : "";
       const previewUrl = URL.createObjectURL(file);
       setPosts(ps => ps.map(p => {
         if (p.id !== id) return p;
         if (p.pending) URL.revokeObjectURL(p.pending.previewUrl);   // alte Vorschau freigeben
-        return { ...p, pending: { ...up, previewUrl } };
+        return { ...p, pending: { ...up, posterPath, previewUrl } };
       }));
       setDirtyIds(ids => ids.includes(id) ? ids : [...ids, id]);
     } catch { setError("Tauschen fehlgeschlagen."); }
@@ -198,11 +236,11 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
       // Bestehender Beitrag → Text speichern, plus getauschtes Bild, falls vorhanden.
       const day = post.day || todayISO();   // nie leer speichern — was der Admin sieht (heute), wird auch gespeichert
       const body = istEntwurf(id)
-        ? { add: { kind: post.pending!.kind, path: post.pending!.path, title: post.title, caption: post.caption, day, time: post.time, context: post.context, firstMessage: post.firstMessage } }
+        ? { add: { kind: post.pending!.kind, path: post.pending!.path, posterPath: post.pending!.posterPath ?? "", title: post.title, caption: post.caption, day, time: post.time, context: post.context, firstMessage: post.firstMessage } }
         : { posts: [{
             id: post.id, title: post.title, caption: post.caption,
             day, time: post.time, context: post.context, firstMessage: post.firstMessage,
-            ...(post.pending ? { kind: post.pending.kind, path: post.pending.path } : {}),
+            ...(post.pending ? { kind: post.pending.kind, path: post.pending.path, posterPath: post.pending.posterPath ?? "" } : {}),
           }] };
       const r = await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify(body) });
       if (!r.ok) { setError("Übernehmen fehlgeschlagen."); return; }
