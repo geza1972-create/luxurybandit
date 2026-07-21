@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Send, Volume2, VolumeX } from "lucide-react";
+import { CornerOrnaments } from "@/components/BoxOrnaments";
 
 // Was der ABONNENT auf /wetter/<model>?name=…&city=…&lang=… sieht:
 // persönlicher Gruß + Wetter aus seiner Stadt + Look vom Tag + Chat mit dem Model (im Abo unbegrenzt).
@@ -216,7 +217,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     <div className="mx-auto max-w-md px-4">
       {/* Persönlicher Gruß + Wetter */}
       <div className="pt-5">
-        {dateLine && <p className="mb-1 text-[11px] font-black uppercase tracking-[0.14em] text-white/50">📅 {dateLine}</p>}
+        {dateLine && <p className="mb-1 text-[11px] font-black uppercase tracking-[0.14em] text-[#c9a23f]">📅 {dateLine}</p>}
         <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-[#c9a23f]">{name}</span>!</p>
         <p className="mt-1 text-[14px] font-semibold text-white/70">
           {weather ? t.wxLine(city, weather.word, weather.e, weather.temp) : t.wxLoading(city)}
@@ -256,16 +257,17 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
       )}
 
       {/* Chat mit dem Model */}
-      <div className="lb-theme mb-8 mt-6 rounded-2xl border border-[#c9a23f] bg-white">
-        <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2.5">
+      <div className="lb-theme relative mb-8 mt-6 overflow-hidden rounded-2xl border border-black/10 bg-white">
+        <CornerOrnaments />
+        <div className="relative flex items-center gap-2 border-b border-black/10 px-4 py-2.5">
           <span className="h-2 w-2 rounded-full bg-emerald-500" />
           <p className="text-[13px] font-black text-white">{modelName} <span className="font-bold text-emerald-600">{t.online}</span></p>
         </div>
-        <div ref={scrollRef} className="max-h-[46vh] space-y-3 overflow-y-auto px-4 py-4">
+        <div ref={scrollRef} className="relative max-h-[46vh] space-y-3 overflow-y-auto px-4 py-4">
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[82%] whitespace-pre-wrap px-3.5 py-2.5 text-sm font-medium ${m.role === "user"
-                ? "rounded-2xl rounded-tr-sm bg-[#c9a23f] text-black"
+                ? "lb-onmedia rounded-2xl rounded-tr-sm bg-[#1a160f] text-white"
                 : "rounded-2xl rounded-tl-sm bg-white/10 text-white/90"}`}>{m.content}</div>
             </div>
           ))}
@@ -281,13 +283,13 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             </div>
           )}
         </div>
-        <div className="flex items-end gap-1.5 border-t border-white/10 px-3 py-3">
+        <div className="relative flex items-end gap-1.5 border-t border-black/10 px-3 py-3">
           <textarea value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
             rows={1} placeholder={t.placeholder(modelName)}
-            className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium text-white outline-none focus:border-[#c9a23f] placeholder:text-white/50" />
+            className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-black/15 bg-white px-4 py-3 text-sm font-medium text-white outline-none focus:border-black placeholder:text-white/50" />
           <button type="button" onClick={() => void send()} disabled={sending || !input.trim()}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#c9a23f] text-black disabled:opacity-40 active:scale-90 transition">
+            className="lb-onmedia grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#1a160f] text-white disabled:opacity-40 active:scale-90 transition">
             {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
           </button>
         </div>

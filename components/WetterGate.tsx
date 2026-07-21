@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, MailCheck } from "lucide-react";
 import { DIAL_CODES, flagEmoji } from "@/lib/countries";
+import { CornerOrnaments, DividerOrnament } from "@/components/BoxOrnaments";
 
 // Vorwahl-Auswahl (Flagge + Code + Dial), RO zuerst. Aus der gemeinsamen Länder-Liste.
 const DIAL_OPTIONS = Object.entries(DIAL_CODES)
@@ -76,22 +77,6 @@ function ageFrom(bd: string): number {
   return age;
 }
 
-// Jugendstil-Ornamente — WHIPLASH-Kurven (Design 3), feine schwarze Linienkunst (S/W-CI).
-const CornerOrnament = ({ className = "" }: { className?: string }) => (
-  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"
-    aria-hidden className={`pointer-events-none absolute h-9 w-9 text-black/30 ${className}`}>
-    <path d="M5 45 C5 22 19 11 23 25 C26 37 38 33 44 19" />
-    <circle cx="44" cy="19" r="2" fill="currentColor" stroke="none" />
-    <path d="M10 38 C7 29 11 21 19 20" />
-  </svg>
-);
-const DividerOrnament = () => (
-  <svg viewBox="0 0 180 14" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"
-    aria-hidden className="mx-auto mt-3 h-3.5 w-44 text-black/25">
-    <path d="M6 7 H72 C82 7 82 1 90 7 C98 13 98 7 108 7 H174" />
-    <circle cx="90" cy="7" r="1.7" fill="currentColor" stroke="none" />
-  </svg>
-);
 
 // Floating-Label-Feld: leer = grau + großer Platzhalter; getippt/Fokus = WEISS mit schwarzem
 // Rand, und der Feldname rutscht klein nach oben, damit man immer weiß, was es ist.
@@ -206,12 +191,9 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
     <section className="lb-theme mx-auto mt-8 max-w-md px-5">
       <div className="relative overflow-hidden rounded-2xl border border-black/10 bg-white px-7 pb-8 pt-12">
         {/* Jugendstil-Eckornamente — mit Abstand zum Rand, Inhalt hat genug Luft (px-7 / pt-12). */}
-        <CornerOrnament className="left-2.5 top-2.5" />
-        <CornerOrnament className="right-2.5 top-2.5 -scale-x-100" />
-        <CornerOrnament className="bottom-2.5 left-2.5 -scale-y-100" />
-        <CornerOrnament className="bottom-2.5 right-2.5 -scale-100" />
+        <CornerOrnaments />
         <p className="text-center text-[20px] font-black leading-tight text-white">{t.title(modelName)}</p>
-        <DividerOrnament />
+        <DividerOrnament className="mt-3" />
         <p className="mt-2 text-center text-[14px] font-semibold leading-relaxed text-white/65">{t.sub}</p>
 
         <div className="mt-4 grid grid-cols-1 gap-2">
