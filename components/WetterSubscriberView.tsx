@@ -218,7 +218,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
       {/* Persönlicher Gruß + Wetter */}
       <div className="pt-5">
         {dateLine && <p className="mb-1 text-[11px] font-black uppercase tracking-[0.14em] text-[#c9a23f]">📅 {dateLine}</p>}
-        <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-[#c9a23f]">{name}</span>!</p>
+        <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-[#c9a23f]">{name}!</span></p>
         <p className="mt-1 text-[14px] font-semibold text-white/70">
           {weather ? t.wxLine(city, weather.word, weather.e, weather.temp) : t.wxLoading(city)}
         </p>
