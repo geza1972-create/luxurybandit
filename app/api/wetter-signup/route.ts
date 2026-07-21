@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   const postal = String(body.postal ?? "").trim().slice(0, 16);
 
   // Alle Felder Pflicht + einfache E-Mail-Prüfung.
-  if (!name || !email || !birthdate || !gender || !city || !country || !postal || !phone)
+  if (!name || !email || !birthdate || !gender || !city || !country || !phone)
     return NextResponse.json({ error: "Bitte alle Felder ausfüllen." }, { status: 400 });
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
     return NextResponse.json({ error: "Bitte eine gültige E-Mail eingeben." }, { status: 400 });

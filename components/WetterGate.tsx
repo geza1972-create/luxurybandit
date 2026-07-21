@@ -31,7 +31,7 @@ const T: Record<string, Copy> = {
     title: m => `Vrei ca ${m} să te trezească în fiecare dimineață?`,
     sub: "Un mesaj în fiecare dimineață — vremea ta, un look nou, și poți vorbi cu ea oricând.",
     name: "Prenumele tău", email: "Email", birthdate: "Data nașterii", gender: "Sexul",
-    genderM: "Bărbat", genderF: "Femeie", genderX: "Altul", city: "Orașul tău (pentru vreme)", country: "Țara", postal: "Cod poștal", phone: "Numărul tău (WhatsApp)",
+    genderM: "Bărbat", genderF: "Femeie", genderX: "Altul", city: "Orașul tău (pentru vreme)", country: "Țara", postal: "Cod poștal (opțional)", phone: "Numărul tău (WhatsApp)",
     cta: "Creează cont gratis", note: "Fără parolă. Îți confirmi emailul o singură dată.",
     fillAll: "Te rog completează toate câmpurile.", badEmail: "Email invalid.",
     sentTitle: "Verifică-ți emailul 📧", sentBody: e => `Ți-am trimis un link de confirmare la ${e}. Confirmă și gata!`,
@@ -43,7 +43,7 @@ const T: Record<string, Copy> = {
     title: m => `Soll ${m} dich jeden Morgen wecken?`,
     sub: "Eine Nachricht jeden Morgen — dein Wetter, ein neuer Look, und du kannst jederzeit mit ihr chatten.",
     name: "Dein Vorname", email: "E-Mail", birthdate: "Geburtsdatum", gender: "Geschlecht",
-    genderM: "Männlich", genderF: "Weiblich", genderX: "Divers", city: "Deine Stadt (fürs Wetter)", country: "Land", postal: "Postleitzahl", phone: "Deine Nummer (WhatsApp)",
+    genderM: "Männlich", genderF: "Weiblich", genderX: "Divers", city: "Deine Stadt (fürs Wetter)", country: "Land", postal: "Postleitzahl (optional)", phone: "Deine Nummer (WhatsApp)",
     cta: "Kostenlos anmelden", note: "Ohne Passwort. E-Mail einmal bestätigen.",
     fillAll: "Bitte alle Felder ausfüllen.", badEmail: "Ungültige E-Mail.",
     sentTitle: "Prüfe deine E-Mail 📧", sentBody: e => `Wir haben dir einen Bestätigungslink an ${e} geschickt. Bestätigen und los!`,
@@ -55,7 +55,7 @@ const T: Record<string, Copy> = {
     title: m => `Want ${m} to wake you every morning?`,
     sub: "A message every morning — your weather, a new look, and you can chat with her anytime.",
     name: "Your first name", email: "Email", birthdate: "Date of birth", gender: "Gender",
-    genderM: "Male", genderF: "Female", genderX: "Other", city: "Your city (for weather)", country: "Country", postal: "Postal code", phone: "Your number (WhatsApp)",
+    genderM: "Male", genderF: "Female", genderX: "Other", city: "Your city (for weather)", country: "Country", postal: "Postal code (optional)", phone: "Your number (WhatsApp)",
     cta: "Create free account", note: "No password. Confirm your email once.",
     fillAll: "Please fill in all fields.", badEmail: "Invalid email.",
     sentTitle: "Check your email 📧", sentBody: e => `We sent a confirmation link to ${e}. Confirm and you're in!`,
@@ -152,7 +152,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
   }, [modelId, preview]);
 
   const create = async () => {
-    if (!name.trim() || !email.trim() || !birthdate || !gender || !country.trim() || !city.trim() || !postal.trim() || !phone.trim()) { setError(t.fillAll); return; }
+    if (!name.trim() || !email.trim() || !birthdate || !gender || !country.trim() || !city.trim() || !phone.trim()) { setError(t.fillAll); return; }
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) { setError(t.badEmail); return; }
     if (ageFrom(birthdate) < 18) { setError(t.tooYoung); return; }   // 18+-Sperre
     if (!accepted) { setError(t.mustAccept); return; }               // AGB/Datenschutz Pflicht
