@@ -126,6 +126,21 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     v.addEventListener("loadeddata", tryPlay);
     return () => { v.removeEventListener("canplay", tryPlay); v.removeEventListener("loadeddata", tryPlay); };
   }, [look?.kind, look?.mediaUrl]);
+  // Selbst-Abmeldung (der Abonnent stoppt die tägliche Nachricht direkt hier).
+  const [unsubbed, setUnsubbed] = useState(false);
+  const [unsubbing, setUnsubbing] = useState(false);
+  const unsubscribe = async () => {
+    if (!subId) return;
+    const ask = L === "de" ? "Keine Morgennachrichten mehr?" : L === "en" ? "Stop the morning messages?" : "Oprești mesajele de dimineață?";
+    if (typeof window !== "undefined" && !window.confirm(ask)) return;
+    setUnsubbing(true);
+    try {
+      await fetch("/api/wetter-unsubscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelId, s: subId }) });
+      try { localStorage.removeItem(`lb_wetter_sub_${modelId}`); } catch { /**/ }
+      setUnsubbed(true);
+    } catch { /**/ } finally { setUnsubbing(false); }
+  };
+
   const toggleMute = () => {
     const v = lookVideoRef.current; if (!v) return;
     v.muted = !v.muted; setMuted(v.muted);
@@ -274,6 +289,22 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         </div>
         <p className="px-4 pb-3 text-center text-[11px] font-bold text-white/80">{t.aiNote(modelName)}</p>
       </div>
+
+      {/* Selbst-Abmeldung — der Abonnent stoppt die tägliche Nachricht direkt hier. */}
+      {subId && (
+        <div className="mb-8 text-center">
+          {unsubbed ? (
+            <p className="text-[12px] font-black text-black/50">
+              {L === "de" ? "✓ Du bist abgemeldet — keine Nachrichten mehr." : L === "en" ? "✓ You're unsubscribed — no more messages." : "✓ Te-ai dezabonat — gata cu mesajele."}
+            </p>
+          ) : (
+            <button type="button" onClick={() => void unsubscribe()} disabled={unsubbing}
+              className="text-[12px] font-bold text-black/40 underline underline-offset-2 disabled:opacity-50">
+              {L === "de" ? "Abmelden" : L === "en" ? "Unsubscribe" : "Dezabonează-te"}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

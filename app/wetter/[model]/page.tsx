@@ -200,7 +200,7 @@ export default async function WetterModelPage({ params, searchParams }: {
         <div className="px-4 pb-16 pt-8">
           <WetterStats modelId={modelId} />
           <BellaSimpleStudio modelId={modelId} modelName={modelName} />
-          <WetterSubscribers modelId={modelId} modelSlug={model} modelName={modelName} />
+          <WetterSubscribers modelId={modelId} modelSlug={model} modelName={modelName} trialDays={trialDays} />
         </div>
       )}
     </main>

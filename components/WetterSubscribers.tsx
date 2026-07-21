@@ -8,7 +8,7 @@ import { Loader2, Plus, Trash2, MessageCircle, Check, Users, Copy } from "lucide
 // persönlichen /wetter-Link des Abonnenten). Später löst ein Cron das automatisch aus.
 // Blendet sich für alle außer dem Admin aus (wie das Beiträge-Werkzeug).
 
-type Sub = { id: string; name: string; email?: string; birthdate?: string; gender?: string; phone?: string; city?: string; country?: string; lang?: string; note?: string; confirmed?: boolean; createdAt: string };
+type Sub = { id: string; name: string; email?: string; birthdate?: string; gender?: string; phone?: string; city?: string; country?: string; lang?: string; note?: string; confirmed?: boolean; unsubscribed?: boolean; createdAt: string };
 
 const LANGS = ["ro", "de", "en"] as const;
 
@@ -20,8 +20,13 @@ const sendText = (lang: string, name: string, link: string) => {
   return `Bună dimineața ${n}! ☀️ Mesajul tău de azi e aici: ${link}`;
 };
 
-export default function WetterSubscribers({ modelId = "curator-1783683672619-td4cy", modelSlug = "bella", modelName = "Model" }: {
-  modelId?: string; modelSlug?: string; modelName?: string;
+// Test abgelaufen? (bestätigt, nicht abgemeldet, älter als trialDays)
+const trialExpired = (s: Sub, trialDays: number) =>
+  !!s.confirmed && !s.unsubscribed && !!s.createdAt &&
+  (Date.now() - new Date(s.createdAt).getTime()) > trialDays * 86_400_000;
+
+export default function WetterSubscribers({ modelId = "curator-1783683672619-td4cy", modelSlug = "bella", modelName = "Model", trialDays = 7 }: {
+  modelId?: string; modelSlug?: string; modelName?: string; trialDays?: number;
 }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [pin, setPin] = useState("");
@@ -101,6 +106,18 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
       <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Nur für dich sichtbar</p>
       <h2 className="mt-1 flex items-center gap-2 text-[18px] font-black text-white"><Users className="h-4 w-4 text-[#c9a23f]" /> Abonnenten <span className="text-white/40">({subs.length})</span></h2>
       <p className="mt-0.5 text-[12px] font-semibold text-white/60">Wer bekommt die tägliche Nachricht von {modelName}. Jetzt manuell per WhatsApp senden — später automatisch.</p>
+      {/* Schnell-Überblick: an wen NICHT mehr senden. */}
+      {(() => {
+        const unsub = subs.filter(s => s.unsubscribed).length;
+        const expired = subs.filter(s => trialExpired(s, trialDays)).length;
+        return (unsub || expired) ? (
+          <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-black">
+            {unsub > 0 && <span className="text-red-400">🔴 {unsub} abgemeldet</span>}
+            {expired > 0 && <span className="text-amber-300">⌛ {expired} Test abgelaufen</span>}
+            <span className="text-white/45">→ diesen NICHT senden</span>
+          </p>
+        ) : null;
+      })()}
 
       {/* Hinzufügen */}
       <div className="mt-3 grid gap-2 rounded-xl border border-[#c9a23f]/30 bg-[#c9a23f]/[0.05] p-3">
@@ -139,7 +156,7 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
           {subs.map(s => {
             const wa = waLink(s);
             return (
-              <div key={s.id} className={`flex min-w-0 items-center gap-2 overflow-hidden rounded-xl border p-2.5 ${sent[s.id] ? "border-emerald-400/30 bg-emerald-400/[0.06]" : "border-white/10 bg-black/30"}`}>
+              <div key={s.id} className={`flex min-w-0 items-center gap-2 overflow-hidden rounded-xl border p-2.5 ${s.unsubscribed ? "border-red-500/20 bg-red-500/[0.04] opacity-60" : sent[s.id] ? "border-emerald-400/30 bg-emerald-400/[0.06]" : "border-white/10 bg-black/30"}`}>
                 {/* Abhaken = „heute gesendet" (lokal). */}
                 <button type="button" onClick={() => setSent(m => ({ ...m, [s.id]: !m[s.id] }))} aria-label="Als gesendet markieren"
                   className={`grid h-7 w-7 shrink-0 place-items-center rounded-md border-2 transition ${sent[s.id] ? "border-emerald-400 bg-emerald-400 text-black" : "border-white/30 text-transparent"}`}>
@@ -148,9 +165,14 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[14px] font-black text-white">
                     {s.name} <span className="text-[11px] font-bold text-white/40">{(s.lang || "ro").toUpperCase()}</span>
-                    {s.email && (s.confirmed
-                      ? <span className="ml-1.5 rounded-full bg-emerald-400/15 px-1.5 py-0.5 text-[9px] font-black text-emerald-400 align-middle">✓ bestätigt</span>
-                      : <span className="ml-1.5 rounded-full bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-black text-amber-400 align-middle">⏳ unbestätigt</span>)}
+                    {/* Status-Badge (Priorität: abgemeldet → Test abgelaufen → bestätigt/unbestätigt). */}
+                    {s.unsubscribed
+                      ? <span className="ml-1.5 rounded-full bg-red-500/15 px-1.5 py-0.5 text-[9px] font-black text-red-400 align-middle">🔴 abgemeldet</span>
+                      : trialExpired(s, trialDays)
+                        ? <span className="ml-1.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-black text-amber-300 align-middle">⌛ Test abgelaufen</span>
+                        : s.email && (s.confirmed
+                          ? <span className="ml-1.5 rounded-full bg-emerald-400/15 px-1.5 py-0.5 text-[9px] font-black text-emerald-400 align-middle">✓ bestätigt</span>
+                          : <span className="ml-1.5 rounded-full bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-black text-amber-400 align-middle">⏳ unbestätigt</span>)}
                   </p>
                   <p className="truncate text-[12px] font-semibold text-white/55">
                     {[s.email, s.city, s.country, s.phone, s.note].filter(Boolean).join(" · ") || "—"}
@@ -163,8 +185,13 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
                     className="grid h-9 w-9 place-items-center rounded-lg border border-white/15 text-white/75 active:scale-95 transition">
                     {copiedId === s.id ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
                   </button>
-                  {/* Manuell senden — öffnet WhatsApp mit vorbefülltem Text + persönlichem Link (Icon-only). */}
-                  {wa ? (
+                  {/* Manuell senden — für Abgemeldete gesperrt (nicht weiter senden!). */}
+                  {s.unsubscribed ? (
+                    <span aria-label="Abgemeldet — nicht senden" title="Abgemeldet"
+                      className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 text-white/20">
+                      <MessageCircle className="h-4 w-4" />
+                    </span>
+                  ) : wa ? (
                     <a href={wa} target="_blank" rel="noopener noreferrer" aria-label="Per WhatsApp senden"
                       onClick={() => setSent(m => ({ ...m, [s.id]: true }))}
                       className="grid h-9 w-9 place-items-center rounded-lg bg-[#25D366] text-black active:scale-95 transition">

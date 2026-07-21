@@ -1429,6 +1429,8 @@ export type WetterSubscriber = {
   acceptedTerms?: boolean; // AGB + Datenschutz beim Anmelden akzeptiert
   confirmed?: boolean;    // Double-Opt-in: E-Mail bestätigt? (gegen Spam/Fake)
   confirmToken?: string;  // Einmal-Token im Bestätigungslink
+  unsubscribed?: boolean; // hat sich selbst abgemeldet → NICHT mehr senden
+  unsubscribedAt?: string;
   createdAt: string;
 };
 
