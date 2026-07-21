@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
+import TopNav from "@/components/TopNav";
 import ModelCardHeader from "@/components/ModelCardHeader";
 import BellaSimpleStudio from "@/components/BellaSimpleStudio";
 import WetterSubscribers from "@/components/WetterSubscribers";
@@ -141,9 +142,10 @@ export default async function WetterModelPage({ params, searchParams }: {
 
   return (
     // Seite: DUNKLER Kopfbereich (Header mit weißem Namen), darunter HELLER Inhalt.
-    // KEIN TopNav — nur die untere BottomNav (ein Menü, unten). /wetter ist eine Funnel-/Landingseite.
+    // Nur Logo oben (TopNav noMenu) — das Menü bleibt UNTEN (BottomNav), kein Doppel-Menü.
     <main className="lb-bg text-white">
       <WetterTrack modelId={modelId} />
+      <TopNav noMenu />
 
       {/* Kopf — volle Breite (NICHT in einer Box). Dunkel, Name weiß. */}
       {card && (
