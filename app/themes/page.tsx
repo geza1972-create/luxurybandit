@@ -55,50 +55,46 @@ export default async function ThemesCatalog() {
           <span className="font-black text-white"> Morning Weather</span> is live; more are on the way.
         </p>
 
+        {/* Karten EXAKT im Stil der Models-Galerie: Bild oben (Badge + Pille), Text darunter, kein Rahmen. */}
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {THEMES.map((t) => {
             const Icon = t.icon;
             const active = !!t.href;
-            const face = (
-              <div className={`relative aspect-[9/16] w-full overflow-hidden rounded-2xl border bg-black ${active ? "border-amber-400" : "border-white/10"}`}>
-                {/* Cover: Werbevideo (aktiv, autoplay stumm) → Foto → großes Icon-Wasserzeichen */}
-                {t.video ? (
-                  // eslint-disable-next-line jsx-a11y/media-has-caption
-                  <video src={t.video} poster={t.poster || t.cover || undefined}
-                    autoPlay muted loop playsInline preload="metadata"
-                    className="h-full w-full object-contain" />
-                ) : t.cover ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={t.cover} alt="" className={`h-full w-full object-cover object-top ${active ? "" : "blur-[2px] brightness-75"}`} />
-                ) : (
-                  <div className="absolute inset-0 grid place-items-center">
-                    <Icon className="h-20 w-20 text-white/10" strokeWidth={1.25} />
-                  </div>
-                )}
-
-                {/* Status-Badge oben rechts */}
-                <div className="absolute right-2 top-2 z-10">
+            const inner = (
+              <>
+                <div className="relative aspect-[9/16] overflow-hidden lb-media-bg">
+                  {/* Cover: Werbevideo (aktiv) → Foto → Icon-Wasserzeichen (coming soon, kein Bild) */}
+                  {t.video ? (
+                    // eslint-disable-next-line jsx-a11y/media-has-caption
+                    <video src={t.video} poster={t.poster || t.cover || undefined}
+                      autoPlay muted loop playsInline preload="metadata"
+                      className="h-full w-full object-cover object-top" />
+                  ) : t.cover ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={t.cover} alt="" className="h-full w-full object-cover object-top" />
+                  ) : (
+                    <div className="absolute inset-0 grid place-items-center"><Icon className="h-16 w-16 text-white/10" strokeWidth={1.25} /></div>
+                  )}
+                  {/* Badge oben rechts — wie der GS-Badge der Models */}
                   {active
-                    ? <span className="rounded-full bg-emerald-400 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-black shadow">Live</span>
-                    : <span className="inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white/75 ring-1 ring-white/20 backdrop-blur"><Lock className="h-2.5 w-2.5" /> Soon</span>}
+                    ? <span className="lb-gold absolute right-2 top-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-black shadow">LIVE</span>
+                    : <span className="absolute right-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black text-white/80 backdrop-blur"><Lock className="h-2.5 w-2.5" /> Soon</span>}
+                  {/* Pille unten links — wie „N looks" */}
+                  {active && <span className="absolute left-2 bottom-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-black text-white backdrop-blur">Daily</span>}
                 </div>
-                {/* Icon-Chip oben links */}
-                <div className="absolute left-2 top-2 z-10 grid h-8 w-8 place-items-center rounded-full bg-black/45 ring-1 ring-white/20 backdrop-blur">
-                  <Icon className={`h-4 w-4 ${active ? "text-amber-400" : "text-white/70"}`} />
+                <div className="px-2.5 py-2">
+                  <p className="truncate text-[13px] font-black text-white">{t.title}</p>
+                  <p className="truncate text-[11px] font-bold text-white/80">{t.tagline}</p>
+                  <p className="mt-0.5 truncate text-[9px] font-black uppercase tracking-wide text-amber-400/70">
+                    {active ? "♥ Weather · New look · Chat" : "Coming soon"}
+                  </p>
                 </div>
-
-                {/* Titel-Overlay ganz unten, sehr kurzer Verlauf → Video bleibt frei */}
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent px-3 pb-3 pt-8">
-                  <p className="text-[14px] font-black leading-tight drop-shadow">{t.title}</p>
-                  <p className="mt-0.5 text-[11px] font-semibold leading-snug text-white/70 drop-shadow">{t.tagline}</p>
-                </div>
-              </div>
+              </>
             );
-            return active ? (
-              <Link key={t.title} href={t.href!} className="block transition active:scale-[0.98]">{face}</Link>
-            ) : (
-              <div key={t.title} className="opacity-90">{face}</div>
-            );
+            const cls = "flex flex-col overflow-hidden rounded-2xl bg-white/[0.04] active:opacity-80 transition-opacity";
+            return active
+              ? <Link key={t.title} href={t.href!} className={cls}>{inner}</Link>
+              : <div key={t.title} className={`${cls} opacity-90`}>{inner}</div>;
           })}
         </div>
 
