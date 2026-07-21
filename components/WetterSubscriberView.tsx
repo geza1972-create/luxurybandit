@@ -217,8 +217,8 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     <div className="mx-auto max-w-md px-4">
       {/* Persönlicher Gruß + Wetter */}
       <div className="pt-5">
-        {dateLine && <p className="mb-1 text-[11px] font-black uppercase tracking-[0.14em] text-[#c9a23f]">📅 {dateLine}</p>}
-        <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-[#c9a23f]">{name}!</span></p>
+        {dateLine && <p className="mb-1 text-[11px] font-black uppercase tracking-[0.14em] text-amber-400">📅 {dateLine}</p>}
+        <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-amber-400">{name}!</span></p>
         <p className="mt-1 text-[14px] font-semibold text-white/70">
           {weather ? t.wxLine(city, weather.word, weather.e, weather.temp) : t.wxLoading(city)}
         </p>
@@ -226,7 +226,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
 
       {/* Look vom Tag */}
       {look && (
-        <div className="relative mt-4 aspect-[3/4] w-full overflow-hidden rounded-2xl border border-[#c9a23f] bg-[#0a0a0a]">
+        <div className="relative mt-4 aspect-[3/4] w-full overflow-hidden rounded-2xl border border-amber-400/80 bg-[#0a0a0a]">
           {look.kind === "video" ? (
             <>
               {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
@@ -239,7 +239,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
               {!vidPlaying && (
                 <>
                   <div className="pointer-events-none absolute inset-0 bg-black/30" />
-                  <span className="lb-scanline pointer-events-none absolute inset-x-3 h-[3px] rounded-full bg-gradient-to-r from-transparent via-[#c9a23f] to-transparent shadow-[0_0_16px_4px_rgba(201,162,63,0.55)]" />
+                  <span className="lb-scanline pointer-events-none absolute inset-x-3 h-[3px] rounded-full bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_16px_4px_rgba(251,191,36,0.55)]" />
                   <span className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] font-black uppercase tracking-[0.25em] text-white/80">{L === "en" ? "loading" : L === "de" ? "lädt" : "se încarcă"}…</span>
                 </>
               )}

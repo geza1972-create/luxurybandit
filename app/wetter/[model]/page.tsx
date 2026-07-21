@@ -179,9 +179,9 @@ export default async function WetterModelPage({ params, searchParams }: {
              Beispiel-Name/-Stadt; nichts wird auf dem Gerät eingeloggt. */
           <>
             {/* Umschalter — genau das, was der User in beiden Zuständen sieht. */}
-            <div className="mx-auto mt-3 flex max-w-md gap-1.5 rounded-full border border-white/10 bg-white/[0.04] p-1 text-center text-[12px] font-black">
-              <a href="?admin=1&preview=visitor" className={`flex-1 rounded-full py-2 transition ${previewMode === "visitor" ? "bg-[#c9a23f] text-black" : "text-white/60"}`}>👤 Besucher</a>
-              <a href="?admin=1&preview=subscriber" className={`flex-1 rounded-full py-2 transition ${previewMode === "subscriber" ? "bg-[#c9a23f] text-black" : "text-white/60"}`}>🔔 Abonnent</a>
+            <div className="mx-auto mt-3 flex max-w-[300px] gap-1.5 rounded-full border border-white/10 bg-white/[0.04] p-1 text-center text-[12px] font-black">
+              <a href="?admin=1&preview=visitor" className={`flex-1 rounded-full py-2 transition ${previewMode === "visitor" ? "bg-amber-400 text-black" : "text-white/60"}`}>👤 Besucher</a>
+              <a href="?admin=1&preview=subscriber" className={`flex-1 rounded-full py-2 transition ${previewMode === "subscriber" ? "bg-amber-400 text-black" : "text-white/60"}`}>🔔 Abonnent</a>
             </div>
             <p className="mx-auto max-w-md px-4 pt-3 text-[11px] font-black uppercase tracking-[0.14em] text-white/45">
               👁 Vorschau — so sieht es der {previewMode === "visitor" ? "neue Besucher" : "Kunde jeden Morgen"}
