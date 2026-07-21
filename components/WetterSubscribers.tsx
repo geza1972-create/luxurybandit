@@ -156,7 +156,7 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
           {subs.map(s => {
             const wa = waLink(s);
             return (
-              <div key={s.id} className={`min-w-0 overflow-hidden rounded-xl border p-2.5 ${s.unsubscribed ? "border-red-500/20 bg-red-500/[0.04] opacity-60" : sent[s.id] ? "border-emerald-400/30 bg-emerald-400/[0.06]" : "border-white/10 bg-black/30"}`}>
+              <div key={s.id} className={`min-w-0 overflow-hidden rounded-xl border p-2.5 ${s.unsubscribed ? "border-red-500/20 bg-red-500/[0.04] opacity-60" : sent[s.id] ? "border-emerald-400/30 bg-emerald-400/[0.06]" : "border-white/10 bg-white/[0.03]"}`}>
               <div className="flex items-start gap-2">
                 {/* Abhaken = „heute gesendet" (lokal). */}
                 <button type="button" onClick={() => setSent(m => ({ ...m, [s.id]: !m[s.id] }))} aria-label="Als gesendet markieren"

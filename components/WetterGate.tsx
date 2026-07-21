@@ -181,7 +181,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
 
   // Gerät schon angemeldet → sichtbarer Link zur persönlichen Morgennachricht (kein Formular).
   if (returningId && !sent) return (
-    <section className="mx-auto mt-8 max-w-md px-5">
+    <section className="lb-theme mx-auto mt-8 max-w-md px-5">
       <div className="rounded-2xl border border-[#c9a23f]/30 bg-white/[0.04] p-6 text-center">
         <p className="text-[19px] font-black text-white">{t.back} ✓</p>
         <a href={`?s=${encodeURIComponent(returningId)}`}
@@ -193,7 +193,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
   );
 
   if (sent) return (
-    <section className="mx-auto mt-8 max-w-md px-5">
+    <section className="lb-theme mx-auto mt-8 max-w-md px-5">
       <div className="rounded-2xl border border-[#c9a23f]/30 bg-white/[0.04] p-6 text-center">
         <MailCheck className="mx-auto h-9 w-9 text-[#c9a23f]" />
         <p className="mt-3 text-[19px] font-black text-white">{t.sentTitle}</p>
@@ -203,7 +203,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
   );
 
   return (
-    <section className="mx-auto mt-8 max-w-md px-5">
+    <section className="lb-theme mx-auto mt-8 max-w-md px-5">
       <div className="relative overflow-hidden rounded-2xl border-2 border-[#c9a23f] bg-white/[0.04] px-7 pb-8 pt-12">
         {/* Jugendstil-Eckornamente — mit Abstand zum Rand, Inhalt hat genug Luft (px-7 / pt-12). */}
         <CornerOrnament className="left-2.5 top-2.5" />

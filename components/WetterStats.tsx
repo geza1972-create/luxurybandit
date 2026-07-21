@@ -41,7 +41,7 @@ export default function WetterStats({ modelId = "curator-1783683672619-td4cy" }:
 
   const v = stats ?? { viewsByDay: {}, chatsByDay: {}, viewsTotal: 0, chatsTotal: 0 };
   const cell = (label: string, n: number) => (
-    <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-center">
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 text-center">
       <p className="text-[20px] font-black leading-none text-white">{n.toLocaleString("de-DE")}</p>
       <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-white/45">{label}</p>
     </div>

@@ -326,7 +326,7 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
           {posts.map(p => (
             // Bild oben, Textfelder darunter über die volle Breite — nebeneinander
             // waren die Felder auf dem Handy zu schmal zum Schreiben.
-            <div key={p.id} className={`grid gap-2 rounded-xl border bg-black/30 p-2 ${istEntwurf(p.id) ? "border-[#c9a23f]/60" : "border-white/10"}`}>
+            <div key={p.id} className={`grid gap-2 rounded-xl border bg-white/[0.03] p-2 ${istEntwurf(p.id) ? "border-[#c9a23f]/60" : "border-white/10"}`}>
               {/* Aufs Bild tippen = neues Bild/Video für DIESEN Beitrag. Text bleibt. */}
               <div className="relative h-28 w-[84px]">
                 <button type="button" disabled={replacingId === p.id}

@@ -214,7 +214,7 @@ export default async function WetterModelPage({ params, searchParams }: {
       {/* Admin-Werkzeuge — NUR mit ?admin=1, zusätzlich PIN-gated. BEWUSST außerhalb des
           hellen Themes → sie bleiben dunkel (so gebaut: Gold auf Schwarz). */}
       {showAdmin && (
-        <div className="px-4 pb-16 pt-8">
+        <div className="lb-theme px-4 pb-16 pt-8">
           <WetterStats modelId={modelId} />
           <BellaSimpleStudio modelId={modelId} modelName={modelName} />
           <WetterSubscribers modelId={modelId} modelSlug={model} modelName={modelName} trialDays={trialDays} />
