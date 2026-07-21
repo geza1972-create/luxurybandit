@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import TopNav from "@/components/TopNav";
 import ModelCardHeader from "@/components/ModelCardHeader";
 import BellaSimpleStudio from "@/components/BellaSimpleStudio";
@@ -18,6 +19,23 @@ export const dynamic = "force-dynamic";
 
 const slugify = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
 
+// Browsersprache (Accept-Language) → unterstützte Sprache. Ohne ?lang= entscheidet der Browser.
+// Default ro (RO-Zielgruppe), aber de/en werden respektiert.
+function langFromAccept(accept: string): "ro" | "de" | "en" {
+  for (const part of accept.toLowerCase().split(",")) {
+    const code = part.trim().split(";")[0].slice(0, 2);
+    if (code === "de" || code === "en" || code === "ro") return code;
+  }
+  return "ro";
+}
+
+// Kopf-Texte pro Sprache (Thema „Wetter am Morgen").
+const HEADER: Record<string, { title: string; tagline: string }> = {
+  ro: { title: "Bună dimineața ☀️", tagline: "Un mesaj în fiecare dimineață" },
+  de: { title: "Guten Morgen ☀️", tagline: "Jeden Morgen eine Nachricht" },
+  en: { title: "Good morning ☀️", tagline: "A message every morning" },
+};
+
 export default async function WetterModelPage({ params, searchParams }: {
   params: Promise<{ model: string }>;
   searchParams?: Promise<Record<string, string | undefined>>;
@@ -28,7 +46,9 @@ export default async function WetterModelPage({ params, searchParams }: {
   // Alt-Links mit ?name=&city= bleiben gültig (Rückwärtskompatibilität).
   let subName = String(sp.name ?? "").trim();
   let subCity = String(sp.city ?? "").trim();
-  let subLang = String(sp.lang ?? "ro").trim();
+  // Sprache: ?lang= gewinnt; sonst die Browsersprache (Accept-Language); sonst ro.
+  const browserLang = langFromAccept((await headers()).get("accept-language") || "");
+  let subLang = String(sp.lang ?? "").trim() || browserLang;
 
   const state = await readTryThisLookState();
   const wanted = slugify(model);
@@ -77,10 +97,10 @@ export default async function WetterModelPage({ params, searchParams }: {
     <main className="lb-bg text-white">
       <TopNav />
 
-      {/* Kopf — bleibt dunkel, Name weiß (bewusst NICHT im hellen Theme). */}
+      {/* Kopf — bleibt dunkel, Name weiß (bewusst NICHT im hellen Theme). Texte in der Sprache des Besuchers. */}
       {card && (
-        <ModelCardHeader name={card.name} title="Bună dimineața ☀️"
-          tagline="Un mesaj în fiecare dimineață" statusLabel="online"
+        <ModelCardHeader name={card.name} title={(HEADER[subLang] ?? HEADER.ro).title}
+          tagline={(HEADER[subLang] ?? HEADER.ro).tagline} statusLabel="online"
           ownedName={card.owner || ""} isOwned={!!card.owner} />
       )}
 
