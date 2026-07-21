@@ -53,6 +53,7 @@ export default async function WetterModelPage({ params, searchParams }: {
   }
   const recognized = !!subToken || !!subName;   // eingeloggter Abonnent?
   const showAdmin = String(sp.admin ?? "") === "1";   // Admin-Werkzeuge NUR mit ?admin=1 — nie in der Kundenansicht
+  const justConfirmed = String(sp.confirmed ?? "") === "1";   // gerade E-Mail bestätigt
 
   const [slides, card] = await Promise.all([
     readCardStudioSlides(modelId).catch(() => [] as BellaSlide[]),
@@ -88,9 +89,14 @@ export default async function WetterModelPage({ params, searchParams }: {
       <div className={`lb-theme lb-bg pb-16 text-white ${showAdmin ? "" : "min-h-[100dvh]"}`}>
         {recognized ? (
           /* EINGELOGGTER ABONNENT: Gruß + Wetter + Look + Chat. subId → Gerät merkt sich den Login. */
+          <>
+          {justConfirmed && (
+            <p className="mx-auto max-w-md px-4 pt-4 text-center text-[13px] font-black text-emerald-600">✓ E-Mail bestätigt — bine ai venit!</p>
+          )}
           <WetterSubscriberView name={subName} city={subCity} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken}
             day={posts[0]?.day || ""} time={posts[0]?.time || ""}
             look={posts[0] ? { kind: posts[0].kind, mediaUrl: posts[0].mediaUrl, posterUrl: posts[0].posterUrl || undefined } : null} />
+          </>
         ) : showAdmin ? (
           /* ADMIN-VORSCHAU: exakt die tägliche Kundenansicht MIT Chat (Beispiel-Name/-Stadt).
              subId leer → dieses Preview loggt NICHTS auf dem Gerät ein. */

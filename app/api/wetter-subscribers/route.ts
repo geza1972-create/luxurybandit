@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
   const modelId = modelOf(request);
   const body = (await request.json().catch(() => ({}))) as {
-    add?: { name?: string; phone?: string; city?: string; lang?: string; note?: string };
+    add?: { name?: string; phone?: string; city?: string; country?: string; lang?: string; note?: string };
     remove?: string;
   };
 
@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       name,
       phone: String(body.add.phone ?? "").trim().slice(0, 40),
       city: String(body.add.city ?? "").trim().slice(0, 120),
+      country: String(body.add.country ?? "").trim().slice(0, 80),
       lang: String(body.add.lang ?? "ro").trim().slice(0, 5) || "ro",
       note: String(body.add.note ?? "").trim().slice(0, 300),
       createdAt: new Date().toISOString(),

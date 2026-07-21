@@ -1367,10 +1367,16 @@ export async function addDailySignup(entry: Omit<DailySignup, "id" | "createdAt"
 export type WetterSubscriber = {
   id: string;
   name: string;
+  email?: string;         // echtes Account: Identität + erreichbar per Mail
+  birthdate?: string;     // YYYY-MM-DD — fürs Alter (18+ / Zielgruppe)
+  gender?: string;        // "m" | "f" | "x" — Geschlecht
   phone?: string;         // Telefonnummer mit Vorwahl (Lieferkanal WhatsApp) — z. B. +40…
   city?: string;          // für das Wetter „bei dir"
+  country?: string;       // Land (frei oder ISO), z. B. „România"
   lang?: string;          // "ro" | "de" | "en"
   note?: string;          // frei (z. B. „Freund, Test")
+  confirmed?: boolean;    // Double-Opt-in: E-Mail bestätigt? (gegen Spam/Fake)
+  confirmToken?: string;  // Einmal-Token im Bestätigungslink
   createdAt: string;
 };
 

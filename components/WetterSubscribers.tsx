@@ -8,7 +8,7 @@ import { Loader2, Plus, Trash2, MessageCircle, Check, Users, Copy } from "lucide
 // persönlichen /wetter-Link des Abonnenten). Später löst ein Cron das automatisch aus.
 // Blendet sich für alle außer dem Admin aus (wie das Beiträge-Werkzeug).
 
-type Sub = { id: string; name: string; phone?: string; city?: string; lang?: string; note?: string; createdAt: string };
+type Sub = { id: string; name: string; email?: string; birthdate?: string; gender?: string; phone?: string; city?: string; country?: string; lang?: string; note?: string; confirmed?: boolean; createdAt: string };
 
 const LANGS = ["ro", "de", "en"] as const;
 
@@ -37,6 +37,7 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
+  const [country, setCountry] = useState("");
   const [lang, setLang] = useState<string>("ro");
   const [note, setNote] = useState("");
 
@@ -65,10 +66,10 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
     if (!name.trim()) { setError("Name fehlt."); return; }
     setBusy(true); setError("");
     try {
-      const r = await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify({ add: { name, phone, city, lang, note } }) });
+      const r = await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify({ add: { name, phone, city, country, lang, note } }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d?.error ?? "Speichern fehlgeschlagen."); return; }
-      setName(""); setPhone(""); setCity(""); setNote(""); setLang("ro");
+      setName(""); setPhone(""); setCity(""); setCountry(""); setNote(""); setLang("ro");
       await load();
     } catch { setError("Netzwerkfehler."); }
     finally { setBusy(false); }
@@ -108,8 +109,10 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
           className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]" />
         <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Telefon mit Vorwahl — z. B. +40 712 345 678" inputMode="tel"
           className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]" />
+        <input value={city} onChange={e => setCity(e.target.value)} placeholder="Stadt (fürs Wetter) — z. B. Timișoara"
+          className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]" />
         <div className="flex gap-2">
-          <input value={city} onChange={e => setCity(e.target.value)} placeholder="Stadt (fürs Wetter) — z. B. Timișoara"
+          <input value={country} onChange={e => setCountry(e.target.value)} placeholder="Land — z. B. România"
             className="h-11 min-w-0 flex-1 rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]" />
           <select value={lang} onChange={e => setLang(e.target.value)}
             className="h-11 rounded-lg border border-white/15 bg-white/[0.04] px-2 text-[15px] font-bold text-white outline-none focus:border-[#c9a23f]">
@@ -143,9 +146,14 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
                   <Check className="h-4 w-4" />
                 </button>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[14px] font-black text-white">{s.name} <span className="text-[11px] font-bold text-white/40">{(s.lang || "ro").toUpperCase()}</span></p>
+                  <p className="truncate text-[14px] font-black text-white">
+                    {s.name} <span className="text-[11px] font-bold text-white/40">{(s.lang || "ro").toUpperCase()}</span>
+                    {s.email && (s.confirmed
+                      ? <span className="ml-1.5 rounded-full bg-emerald-400/15 px-1.5 py-0.5 text-[9px] font-black text-emerald-400 align-middle">✓ bestätigt</span>
+                      : <span className="ml-1.5 rounded-full bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-black text-amber-400 align-middle">⏳ unbestätigt</span>)}
+                  </p>
                   <p className="truncate text-[12px] font-semibold text-white/55">
-                    {[s.city, s.phone, s.note].filter(Boolean).join(" · ") || "—"}
+                    {[s.email, s.city, s.country, s.phone, s.note].filter(Boolean).join(" · ") || "—"}
                   </p>
                 </div>
                 {/* Aktionen als kompakter Icon-Block — schrumpft nicht, läuft nie aus dem Bild. */}
