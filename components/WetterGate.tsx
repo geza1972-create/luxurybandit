@@ -29,7 +29,7 @@ type Copy = {
 const T: Record<string, Copy> = {
   ro: {
     title: m => `Vrei ca ${m} să te trezească în fiecare dimineață?`,
-    sub: "Un mesaj în fiecare dimineață — vremea de la tine și un gând bun.",
+    sub: "Un mesaj în fiecare dimineață — vremea ta, un look nou, și poți vorbi cu ea oricând.",
     name: "Numele tău", email: "Email", birthdate: "Data nașterii", gender: "Sexul",
     genderM: "Bărbat", genderF: "Femeie", genderX: "Altul", city: "Orașul tău (pentru vreme)", country: "Țara", postal: "Cod poștal", phone: "Numărul tău (WhatsApp)",
     cta: "Creează cont gratis", note: "Fără parolă. Îți confirmi emailul o singură dată.",
@@ -41,7 +41,7 @@ const T: Record<string, Copy> = {
   },
   de: {
     title: m => `Soll ${m} dich jeden Morgen wecken?`,
-    sub: "Eine Nachricht jeden Morgen — dein Wetter und ein guter Gedanke.",
+    sub: "Eine Nachricht jeden Morgen — dein Wetter, ein neuer Look, und du kannst jederzeit mit ihr chatten.",
     name: "Dein Name", email: "E-Mail", birthdate: "Geburtsdatum", gender: "Geschlecht",
     genderM: "Männlich", genderF: "Weiblich", genderX: "Divers", city: "Deine Stadt (fürs Wetter)", country: "Land", postal: "Postleitzahl", phone: "Deine Nummer (WhatsApp)",
     cta: "Kostenlos anmelden", note: "Ohne Passwort. E-Mail einmal bestätigen.",
@@ -53,7 +53,7 @@ const T: Record<string, Copy> = {
   },
   en: {
     title: m => `Want ${m} to wake you every morning?`,
-    sub: "One message every morning — your weather and a good thought.",
+    sub: "A message every morning — your weather, a new look, and you can chat with her anytime.",
     name: "Your name", email: "Email", birthdate: "Date of birth", gender: "Gender",
     genderM: "Male", genderF: "Female", genderX: "Other", city: "Your city (for weather)", country: "Country", postal: "Postal code", phone: "Your number (WhatsApp)",
     cta: "Create free account", note: "No password. Confirm your email once.",
