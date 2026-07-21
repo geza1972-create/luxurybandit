@@ -2,7 +2,8 @@ import Link from "next/link";
 import TopNav from "@/components/TopNav";
 import { CloudSun, Sparkles, Flame, MapPin, KeyRound, ArrowRight, Lock } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { buildBellaCard } from "@/lib/bella-card";
+import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
+import { readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts } from "@/lib/try-this-look-store";
 
 // Katalog aller „Themen" als bildstarke Galerie (wie die Reel-/Models-Galerie).
 // Aktiv: Wetter am Morgen (/themes/wetter/<model>). Weitere sind vorbereitet (coming soon).
@@ -15,15 +16,25 @@ export const metadata = {
   openGraph: { title: "LuxuryBandit Topics", description: "Daily content from your favorite influencer — pick a topic." },
 };
 
-type Theme = { icon: LucideIcon; title: string; tagline: string; href?: string; cover?: string; grad: string };
+type Theme = { icon: LucideIcon; title: string; tagline: string; href?: string; cover?: string; video?: string; poster?: string; grad: string };
 
 export default async function ThemesCatalog() {
-  // Cover fürs aktive „Wetter"-Thema = Bellas Foto (nur eine leichte Kartenabfrage).
-  let wetterCover = "";
-  try { const { card } = await buildBellaCard({ surface: "themes" }); wetterCover = card?.photo || ""; } catch { /**/ }
+  // Cover fürs aktive „Wetter"-Thema: das WERBEVIDEO (ad-Slide) — genau das, was der
+  // Besucher auf /themes/wetter/bella sieht. Fallback: Bellas Foto.
+  let wetterCover = "", wetterVideo = "", wetterPoster = "";
+  try {
+    const { card } = await buildBellaCard({ surface: "themes" });
+    wetterCover = card?.photo || "";
+    const slides = (await readCardStudioSlides(BELLA_ID)).filter(isPublicBellaPost).sort(sortBellaPosts);
+    const adVid = slides.find(s => s.kind === "video" && (s as { ad?: boolean }).ad === true) ?? slides.find(s => s.kind === "video");
+    if (adVid) {
+      wetterVideo = await getSignedUrl(adVid.path).catch(() => "");
+      wetterPoster = adVid.posterPath ? await getSignedUrl(adVid.posterPath).catch(() => "") : "";
+    }
+  } catch { /**/ }
 
   const THEMES: Theme[] = [
-    { icon: CloudSun, title: "Morning Weather", tagline: "Your weather, a new look & a chat — every morning.", href: "/themes/wetter/bella", cover: wetterCover, grad: "from-amber-900" },
+    { icon: CloudSun, title: "Morning Weather", tagline: "Your weather, a new look & a chat — every morning.", href: "/themes/wetter/bella", cover: wetterCover, video: wetterVideo, poster: wetterPoster, grad: "from-amber-900" },
     { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every single day.", grad: "from-amber-800" },
     { icon: Flame, title: "Lingerie Looks", tagline: "A daily intimate look — tasteful, private.", grad: "from-rose-950" },
     { icon: MapPin, title: "City Secrets", tagline: "Learn a city every day — hidden gems & stories.", grad: "from-sky-950" },
@@ -50,8 +61,13 @@ export default async function ThemesCatalog() {
             const active = !!t.href;
             const face = (
               <div className={`relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-gradient-to-b ${t.grad} via-black to-black`}>
-                {/* Cover: Foto (aktiv) oder großes Icon-Wasserzeichen (coming soon) */}
-                {t.cover ? (
+                {/* Cover: Werbevideo (aktiv, autoplay stumm) → Foto → großes Icon-Wasserzeichen */}
+                {t.video ? (
+                  // eslint-disable-next-line jsx-a11y/media-has-caption
+                  <video src={t.video} poster={t.poster || t.cover || undefined}
+                    autoPlay muted loop playsInline preload="metadata"
+                    className="h-full w-full object-cover object-top" />
+                ) : t.cover ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={t.cover} alt="" className={`h-full w-full object-cover object-top ${active ? "" : "blur-[2px] brightness-75"}`} />
                 ) : (
