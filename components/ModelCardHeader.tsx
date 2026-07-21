@@ -13,7 +13,7 @@ const MONO_SVG = `<svg xmlns='http://www.w3.org/2000/svg' width='58' height='58'
 export const MONO_URL = `url("data:image/svg+xml,${encodeURIComponent(MONO_SVG)}")`;
 
 export default function ModelCardHeader({
-  name, title = "", isOwned = false, ownedName = "", hideOwner = false, onShare, copied = false, tagline = "", statusLabel = "Available",
+  name, title = "", isOwned = false, ownedName = "", hideOwner = false, onShare, copied = false, tagline = "", statusLabel = "Available", noPattern = false,
 }: {
   name: string;
   title?: string;
@@ -24,10 +24,11 @@ export default function ModelCardHeader({
   copied?: boolean;
   tagline?: string;          // untere Zeile pro Thema überschreiben (Standard: „Sponsor an AI Influencer")
   statusLabel?: string;      // Status-Abzeichen pro Thema (Standard „Available", z. B. „online")
+  noPattern?: boolean;       // LB-Monogramm-Muster ausblenden (z. B. auf /wetter)
 }) {
   return (
     <div className="relative flex flex-col items-center justify-center gap-2 overflow-hidden border-b border-amber-400/20 bg-gradient-to-r from-amber-400/[0.1] via-amber-300/[0.16] to-amber-400/[0.1] px-6 py-4 text-center">
-      <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundImage: MONO_URL, backgroundSize: "30px 30px", opacity: 0.4 }} />
+      {!noPattern && <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundImage: MONO_URL, backgroundSize: "30px 30px", opacity: 0.4 }} />}
       <p className="relative max-w-full truncate px-6 text-[26px] font-black leading-none tracking-tight text-white">{name}</p>
       {/* Rolle / Markenzeile — sie ist eine Marke, z. B. „Tenerife Influencer". */}
       {title && <p className="relative -mt-0.5 max-w-full truncate text-[10px] font-black uppercase tracking-[0.22em] text-amber-300">{title}</p>}
