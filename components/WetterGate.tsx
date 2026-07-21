@@ -79,7 +79,7 @@ function ageFrom(bd: string): number {
 // Jugendstil-Ornamente — WHIPLASH-Kurven (Design 3), feine schwarze Linienkunst (S/W-CI).
 const CornerOrnament = ({ className = "" }: { className?: string }) => (
   <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"
-    aria-hidden className={`pointer-events-none absolute h-9 w-9 text-[#c9a23f]/45 ${className}`}>
+    aria-hidden className={`pointer-events-none absolute h-9 w-9 text-black/30 ${className}`}>
     <path d="M5 45 C5 22 19 11 23 25 C26 37 38 33 44 19" />
     <circle cx="44" cy="19" r="2" fill="currentColor" stroke="none" />
     <path d="M10 38 C7 29 11 21 19 20" />
@@ -87,7 +87,7 @@ const CornerOrnament = ({ className = "" }: { className?: string }) => (
 );
 const DividerOrnament = () => (
   <svg viewBox="0 0 180 14" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"
-    aria-hidden className="mx-auto mt-3 h-3.5 w-44 text-[#c9a23f]/40">
+    aria-hidden className="mx-auto mt-3 h-3.5 w-44 text-black/25">
     <path d="M6 7 H72 C82 7 82 1 90 7 C98 13 98 7 108 7 H174" />
     <circle cx="90" cy="7" r="1.7" fill="currentColor" stroke="none" />
   </svg>
@@ -102,7 +102,7 @@ function LabeledInput({ label, value, onChange, invalid = false, type = "text", 
   return (
     <div className="relative">
       <input value={value} onChange={e => onChange(e.target.value)} placeholder=" " type={type} inputMode={inputMode} autoComplete={autoComplete}
-        className={`peer h-14 w-full rounded-xl border px-4 pb-1 pt-5 text-[15px] font-semibold text-white outline-none transition-colors focus:border-[#c9a23f] focus:bg-white/[0.08] ${invalid ? "border-red-500 bg-white/[0.08]" : filled ? "border-[#c9a23f] bg-white/[0.08]" : "border-white/15 bg-white/[0.04]"}`} />
+        className={`peer h-14 w-full rounded-xl border px-4 pb-1 pt-5 text-[15px] font-semibold text-white outline-none transition-colors focus:border-black focus:bg-white ${invalid ? "border-red-500 bg-white" : filled ? "border-black bg-white" : "border-white/15 bg-white/[0.04]"}`} />
       <label className="pointer-events-none absolute left-4 top-2 text-[11px] font-bold text-white/50 transition-all
         peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-[15px] peer-placeholder-shown:font-semibold peer-placeholder-shown:text-white/40
         peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[11px] peer-focus:font-bold peer-focus:text-white/50">
@@ -182,10 +182,10 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
   // Gerät schon angemeldet → sichtbarer Link zur persönlichen Morgennachricht (kein Formular).
   if (returningId && !sent) return (
     <section className="lb-theme mx-auto mt-8 max-w-md px-5">
-      <div className="rounded-2xl border border-[#c9a23f]/30 bg-white p-6 text-center">
+      <div className="rounded-2xl border border-black/10 bg-white p-6 text-center">
         <p className="text-[19px] font-black text-white">{t.back} ✓</p>
         <a href={`?s=${encodeURIComponent(returningId)}`}
-          className="mt-4 flex h-12 items-center justify-center rounded-xl bg-[#c9a23f] text-[15px] font-black text-black active:scale-95 transition">
+          className="mt-4 flex h-12 items-center justify-center rounded-xl bg-white text-[15px] font-black text-black shadow-md active:scale-95 transition">
           {t.open}
         </a>
       </div>
@@ -194,8 +194,8 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
 
   if (sent) return (
     <section className="lb-theme mx-auto mt-8 max-w-md px-5">
-      <div className="rounded-2xl border border-[#c9a23f]/30 bg-white p-6 text-center">
-        <MailCheck className="mx-auto h-9 w-9 text-[#c9a23f]" />
+      <div className="rounded-2xl border border-black/10 bg-white p-6 text-center">
+        <MailCheck className="mx-auto h-9 w-9 text-black" />
         <p className="mt-3 text-[19px] font-black text-white">{t.sentTitle}</p>
         <p className="mt-1.5 text-[14px] font-semibold leading-relaxed text-white/70">{t.sentBody(email.trim())}</p>
       </div>
@@ -204,7 +204,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
 
   return (
     <section className="lb-theme mx-auto mt-8 max-w-md px-5">
-      <div className="relative overflow-hidden rounded-2xl border border-[#c9a23f] bg-white px-7 pb-8 pt-12">
+      <div className="relative overflow-hidden rounded-2xl border border-black/10 bg-white px-7 pb-8 pt-12">
         {/* Jugendstil-Eckornamente — mit Abstand zum Rand, Inhalt hat genug Luft (px-7 / pt-12). */}
         <CornerOrnament className="left-2.5 top-2.5" />
         <CornerOrnament className="right-2.5 top-2.5 -scale-x-100" />
@@ -219,14 +219,14 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
           <LabeledInput label={t.email} value={email} onChange={setEmail} type="email" inputMode="email" autoComplete="email" invalid={(!!email && !emailOk) || (triedSubmit && !email.trim())} />
           {email && !emailOk && <p className="-mt-1 text-[11px] font-bold text-red-500">{t.badEmail}</p>}
           {/* Geburtsdatum — Feldname bleibt links stehen (type=date hat eine Mindestbreite). */}
-          <label className={`flex h-14 w-full items-center rounded-xl border px-4 transition-colors focus-within:border-[#c9a23f] focus-within:bg-white/[0.08] ${birthdate ? "border-[#c9a23f] bg-white/[0.08]" : triedSubmit ? "border-red-500 bg-white/[0.08]" : "border-white/15 bg-white/[0.04]"}`}>
+          <label className={`flex h-14 w-full items-center rounded-xl border px-4 transition-colors focus-within:border-black focus-within:bg-white ${birthdate ? "border-black bg-white" : triedSubmit ? "border-red-500 bg-white" : "border-white/15 bg-white/[0.04]"}`}>
             <span className="mr-2 shrink-0 text-[11px] font-bold text-white/50">{t.birthdate}</span>
             <input value={birthdate} onChange={e => setBirthdate(e.target.value)} type="date" autoComplete="bday"
               className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold text-white outline-none" />
           </label>
           {/* Geschlecht — volle Breite. */}
           <select value={gender} onChange={e => setGender(e.target.value)} autoComplete="sex"
-            className={`h-14 w-full rounded-xl border px-4 text-[15px] font-bold text-white outline-none transition-colors focus:border-[#c9a23f] focus:bg-white/[0.08] ${gender ? "border-[#c9a23f] bg-white/[0.08]" : triedSubmit ? "border-red-500 bg-white/[0.08]" : "border-white/15 bg-white/[0.04]"}`}>
+            className={`h-14 w-full rounded-xl border px-4 text-[15px] font-bold text-white outline-none transition-colors focus:border-black focus:bg-white ${gender ? "border-black bg-white" : triedSubmit ? "border-red-500 bg-white" : "border-white/15 bg-white/[0.04]"}`}>
             <option value="" className="bg-[#0d0b0a]">{t.gender}</option>
             <option value="m" className="bg-[#0d0b0a]">{t.genderM}</option>
             <option value="f" className="bg-[#0d0b0a]">{t.genderF}</option>
@@ -239,7 +239,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
           {/* WhatsApp — Länder-Vorwahl (Flagge + Code) + Nummer. */}
           <div className="flex gap-2">
             <select value={dial} onChange={e => setDial(e.target.value)} aria-label="Vorwahl"
-              className="h-14 w-[118px] shrink-0 rounded-xl border border-white/15 bg-white/[0.04] px-2 text-[14px] font-bold text-white outline-none transition-colors focus:border-[#c9a23f]">
+              className="h-14 w-[118px] shrink-0 rounded-xl border border-black bg-white px-2 text-[14px] font-bold text-white outline-none transition-colors focus:border-black">
               {DIAL_OPTIONS.map(o => (
                 <option key={o.code} value={o.dial} className="bg-[#0d0b0a]">{flagEmoji(o.code)} {o.code} {o.dial}</option>
               ))}
@@ -251,7 +251,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
           {/* AGB + Datenschutz — Pflicht-Häkchen mit Links. */}
           <label className="mt-1 flex cursor-pointer items-start gap-2.5 text-[12px] font-semibold text-white/70">
             <input type="checkbox" checked={accepted} onChange={e => setAccepted(e.target.checked)}
-              className="mt-0.5 h-5 w-5 shrink-0 accent-[#c9a23f]" />
+              className="mt-0.5 h-5 w-5 shrink-0 accent-black" />
             <span>
               {t.consent}{" "}
               <a href="/terms" target="_blank" rel="noopener noreferrer" className="font-black text-white underline">{t.terms}</a>{" "}
@@ -260,7 +260,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
             </span>
           </label>
           <button type="button" onClick={() => void create()} disabled={busy}
-            className="mt-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-[#c9a23f] text-[15px] font-black text-black active:scale-95 transition disabled:opacity-50">
+            className="mt-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-white text-[15px] font-black text-black shadow-md active:scale-95 transition disabled:opacity-50">
             {busy && <Loader2 className="h-4 w-4 animate-spin" />} {t.cta}
           </button>
         </div>
