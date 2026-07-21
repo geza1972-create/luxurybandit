@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Play, Maximize2, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Play, Maximize2, X, ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react";
 
 // Bellas Beiträge als Karussell: seitlich durchblättern statt untereinander.
 // Nutzt natives Scroll-Snapping (auf dem Handy also echtes Wischen), der Index wird
@@ -34,7 +34,20 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
   const videoRefs = useRef<Record<string, HTMLVideoElement | null>>({});
   const [active, setActive] = useState(0);
   const [playingId, setPlayingId] = useState("");
+  const [muted, setMuted] = useState(true);   // Autostart geht nur STUMM; Ton per Knopf
   const [zoom, setZoom] = useState<{ url: string; kind: "image" | "video"; poster?: string } | null>(null);
+
+  // Aktive Slide automatisch abspielen (stumm), alle anderen pausieren. Werbung = Autostart.
+  useEffect(() => {
+    const activeId = posts[active]?.id;
+    Object.entries(videoRefs.current).forEach(([k, v]) => {
+      if (!v) return;
+      if (k === activeId) { v.muted = muted; v.defaultMuted = muted; void v.play().then(() => setPlayingId(k)).catch(() => {}); }
+      else v.pause();
+    });
+  }, [active, posts, muted]);
+
+  const toggleMute = () => setMuted(m => !m);
 
   const onScroll = () => {
     const el = trackRef.current;
@@ -83,13 +96,14 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
                 <>
                   {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                   <video
-                    ref={el => { videoRefs.current[p.id] = el; }}
+                    ref={el => { videoRefs.current[p.id] = el; if (el) { el.muted = muted; el.defaultMuted = muted; } }}
                     src={p.mediaUrl}
                     poster={p.posterUrl || undefined}
-                    playsInline
+                    muted playsInline loop
                     preload="metadata"
                     onEnded={() => setPlayingId("")}
                     onPause={() => setPlayingId(id => (id === p.id ? "" : id))}
+                    onCanPlay={() => { if (posts[active]?.id === p.id) { const v = videoRefs.current[p.id]; if (v) { v.muted = muted; void v.play().catch(() => {}); } } }}
                     onClick={() => toggle(p.id)}
                     className="absolute inset-0 h-full w-full cursor-pointer object-contain object-top"
                   />
@@ -101,6 +115,11 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
                       </span>
                     </button>
                   )}
+                  {/* Ton an/aus (Autostart ist stumm). */}
+                  <button type="button" onClick={(e) => { e.stopPropagation(); toggleMute(); }} aria-label="Ton"
+                    className="lb-onmedia absolute bottom-2 left-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/30 backdrop-blur transition active:scale-95">
+                    {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                  </button>
                 </>
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
