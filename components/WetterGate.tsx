@@ -52,7 +52,7 @@ const T: Record<string, Copy> = {
 const fieldBase = "h-12 w-full rounded-xl border px-4 text-[15px] font-semibold text-white outline-none transition-colors placeholder:text-white/40 focus:border-black focus:bg-white";
 const fieldCls = (v: string) => `${fieldBase} ${v ? "border-black bg-white" : "border-white/15 bg-white/[0.04]"}`;
 
-export default function WetterGate({ modelId, modelName = "Bella", lang = "ro" }: { modelId: string; modelName?: string; lang?: string }) {
+export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", preview = false }: { modelId: string; modelName?: string; lang?: string; preview?: boolean }) {
   const L = (lang || "ro").slice(0, 2).toLowerCase();
   const t = T[L] ?? T.ro;
 
@@ -70,13 +70,15 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro" }
   const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());   // gültiges E-Mail-Format?
 
   // Schon eingeloggt auf diesem Gerät? → direkt zur persönlichen Ansicht.
+  // Im Admin-Vorschau-Modus NICHT umleiten (sonst springt die Vorschau weg).
   useEffect(() => {
+    if (preview) { setChecking(false); return; }
     try {
       const id = localStorage.getItem(storeKey(modelId));
       if (id) { window.location.replace(`?s=${encodeURIComponent(id)}`); return; }
     } catch { /**/ }
     setChecking(false);
-  }, [modelId]);
+  }, [modelId, preview]);
 
   const create = async () => {
     if (!name.trim() || !email.trim() || !birthdate || !gender || !city.trim() || !country.trim() || !phone.trim()) { setError(t.fillAll); return; }

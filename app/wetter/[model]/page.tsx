@@ -75,6 +75,7 @@ export default async function WetterModelPage({ params, searchParams }: {
   const recognized = !!subToken || !!subName;   // eingeloggter Abonnent?
   const showAdmin = String(sp.admin ?? "") === "1";   // Admin-Werkzeuge NUR mit ?admin=1 — nie in der Kundenansicht
   const justConfirmed = String(sp.confirmed ?? "") === "1";   // gerade E-Mail bestätigt
+  const previewMode = String(sp.preview ?? "") === "visitor" ? "visitor" : "subscriber";   // Admin-Vorschau: was der User sieht
 
   const [slides, card] = await Promise.all([
     readCardStudioSlides(modelId).catch(() => [] as BellaSlide[]),
@@ -127,15 +128,27 @@ export default async function WetterModelPage({ params, searchParams }: {
             look={posts[0] ? { kind: posts[0].kind, mediaUrl: posts[0].mediaUrl, posterUrl: posts[0].posterUrl || undefined } : null} />
           </>
         ) : showAdmin ? (
-          /* ADMIN-VORSCHAU: exakt die tägliche Kundenansicht MIT Chat (Beispiel-Name/-Stadt).
-             subId leer → dieses Preview loggt NICHTS auf dem Gerät ein. */
+          /* ADMIN-VORSCHAU: umschaltbar zwischen Besucher (Anmeldung) und Abonnent (täglich).
+             Beispiel-Name/-Stadt; nichts wird auf dem Gerät eingeloggt. */
           <>
-            <p className="mx-auto max-w-md px-4 pt-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/50">
-              👁 Vorschau — so sieht es der Kunde jeden Morgen
+            {/* Umschalter — genau das, was der User in beiden Zuständen sieht. */}
+            <div className="mx-auto mt-3 flex max-w-md gap-1.5 rounded-full border border-black/10 bg-white p-1 text-center text-[12px] font-black">
+              <a href="?admin=1&preview=visitor" className={`flex-1 rounded-full py-2 transition ${previewMode === "visitor" ? "bg-black text-white" : "text-black/60"}`}>👤 Besucher</a>
+              <a href="?admin=1&preview=subscriber" className={`flex-1 rounded-full py-2 transition ${previewMode === "subscriber" ? "bg-black text-white" : "text-black/60"}`}>🔔 Abonnent</a>
+            </div>
+            <p className="mx-auto max-w-md px-4 pt-3 text-[11px] font-black uppercase tracking-[0.14em] text-black/45">
+              👁 Vorschau — so sieht es der {previewMode === "visitor" ? "neue Besucher" : "Kunde jeden Morgen"}
             </p>
-            <WetterSubscriberView name="Remus" city="Timișoara" lang={subLang} modelId={modelId} modelName={modelName} subId=""
-              day={posts[0]?.day || ""} time={posts[0]?.time || ""}
-              look={posts[0] ? { kind: posts[0].kind, mediaUrl: posts[0].mediaUrl, posterUrl: posts[0].posterUrl || undefined } : null} />
+            {previewMode === "visitor" ? (
+              <>
+                {posts.length > 0 && <BellaPostsCarousel posts={posts} name={modelName} />}
+                <WetterGate modelId={modelId} modelName={modelName} lang={subLang} preview />
+              </>
+            ) : (
+              <WetterSubscriberView name="Remus" city="Timișoara" lang={subLang} modelId={modelId} modelName={modelName} subId=""
+                day={posts[0]?.day || ""} time={posts[0]?.time || ""}
+                look={posts[0] ? { kind: posts[0].kind, mediaUrl: posts[0].mediaUrl, posterUrl: posts[0].posterUrl || undefined } : null} />
+            )}
           </>
         ) : (
           /* BESUCHER: Beiträge-Karussell + Account anlegen (oder Gerät automatisch einloggen). */
