@@ -221,7 +221,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
 
       {/* Look vom Tag */}
       {look && (
-        <div className="relative mt-4 aspect-[3/4] w-full overflow-hidden rounded-2xl border-2 border-black bg-black">
+        <div className="relative mt-4 aspect-[3/4] w-full overflow-hidden rounded-2xl border-2 border-[#c9a23f] bg-black">
           {look.kind === "video" ? (
             <>
               {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
@@ -252,7 +252,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
       )}
 
       {/* Chat mit dem Model */}
-      <div className="mb-8 mt-6 rounded-2xl border-2 border-black bg-white/[0.03]">
+      <div className="mb-8 mt-6 rounded-2xl border-2 border-[#c9a23f] bg-white/[0.03]">
         <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2.5">
           <span className="h-2 w-2 rounded-full bg-emerald-500" />
           <p className="text-[13px] font-black text-white">{modelName} <span className="font-bold text-emerald-600">{t.online}</span></p>
