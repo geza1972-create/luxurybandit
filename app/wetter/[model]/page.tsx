@@ -148,21 +148,23 @@ export default async function WetterModelPage({ params, searchParams }: {
 
       {/* Kopf — bleibt dunkel, Name weiß (bewusst NICHT im hellen Theme). Texte in der Sprache des Besuchers. */}
       {card && (
-        <ModelCardHeader name={card.name} title={(HEADER[subLang] ?? HEADER.ro).title}
-          tagline={(HEADER[subLang] ?? HEADER.ro).tagline} statusLabel="online"
-          ownedName={card.owner || ""} isOwned={!!card.owner} />
+        <div className="relative">
+          <ModelCardHeader name={card.name} title={(HEADER[subLang] ?? HEADER.ro).title}
+            tagline={(HEADER[subLang] ?? HEADER.ro).tagline} statusLabel="online"
+            ownedName={card.owner || ""} isOwned={!!card.owner} />
+          {/* Sprach-Umschalter — oben rechts im Header (dunkel). */}
+          <div className="absolute right-2 top-2 z-20 flex gap-1">
+            {["ro", "de", "en"].map(l => (
+              <a key={l} href={langHref(l)}
+                className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide backdrop-blur transition ${subLang === l ? "bg-white text-black" : "bg-black/40 text-white/70 ring-1 ring-white/20"}`}>{l}</a>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Inhalt (Kunde): HELL (Tageslicht-lesbar). lb-theme + lb-bg auf demselben Element.
           Volle Höhe nur ohne Admin — mit Admin folgt gleich der dunkle Werkzeug-Block. */}
       <div className={`lb-theme lb-bg pb-16 text-white ${showAdmin ? "" : "min-h-[100dvh]"}`}>
-        {/* Sprach-Umschalter — RO · DE · EN (Test + mehrsprachige Besucher). */}
-        <div className="mx-auto flex max-w-md justify-center gap-1.5 px-4 pt-3">
-          {["ro", "de", "en"].map(l => (
-            <a key={l} href={langHref(l)}
-              className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wide transition ${subLang === l ? "bg-[#111] text-white" : "border border-black/15 text-black/50"}`}>{l}</a>
-          ))}
-        </div>
         {recognized ? (
           /* EINGELOGGTER ABONNENT: Gruß + Wetter + Look + Chat. subId → Gerät merkt sich den Login. */
           <>
