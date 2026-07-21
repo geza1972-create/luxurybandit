@@ -146,20 +146,18 @@ export default async function WetterModelPage({ params, searchParams }: {
       <WetterTrack modelId={modelId} />
       <TopNav />
 
-      {/* Kopf — als eigene Box (Rand + abgerundet + Abstand), wie die anderen Boxen. Dunkel, Name weiß. */}
+      {/* Kopf — volle Breite (NICHT in einer Box). Dunkel, Name weiß. */}
       {card && (
-        <div className="px-4 pt-4">
-          <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-lg">
-            <ModelCardHeader name={card.name} title={(HEADER[subLang] ?? HEADER.ro).title}
-              tagline={(HEADER[subLang] ?? HEADER.ro).tagline} statusLabel="online" noPattern
-              ownedName={card.owner || ""} isOwned={!!card.owner} />
-            {/* Sprach-Umschalter — oben rechts im Header. */}
-            <div className="absolute right-2 top-2 z-20 flex gap-1">
-              {["ro", "de", "en"].map(l => (
-                <a key={l} href={langHref(l)}
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide backdrop-blur transition ${subLang === l ? "bg-[#c9a23f] text-black" : "bg-black/40 text-white/70 ring-1 ring-white/20"}`}>{l}</a>
-              ))}
-            </div>
+        <div className="relative">
+          <ModelCardHeader name={card.name} title={(HEADER[subLang] ?? HEADER.ro).title}
+            tagline={(HEADER[subLang] ?? HEADER.ro).tagline} statusLabel="online" noPattern
+            ownedName={card.owner || ""} isOwned={!!card.owner} />
+          {/* Sprach-Umschalter — oben rechts im Header. */}
+          <div className="absolute right-2 top-2 z-20 flex gap-1">
+            {["ro", "de", "en"].map(l => (
+              <a key={l} href={langHref(l)}
+                className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide backdrop-blur transition ${subLang === l ? "bg-[#c9a23f] text-black" : "bg-black/40 text-white/70 ring-1 ring-white/20"}`}>{l}</a>
+            ))}
           </div>
         </div>
       )}
