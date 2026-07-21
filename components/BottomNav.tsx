@@ -192,11 +192,12 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
   // Follow by the name) — hide the global bottom nav THERE only. The grid/home
   // gallery (/home, or /stores?view=grid) DOES keep the nav. Mirrors the view
   // logic in app/stores/page.tsx: reel = /stores with no view/panel param.
+  // Das echte immersive Reel = /stores OHNE view-Parameter (Standard). Alle Galerien
+  // (view=models/grid/alist und /home) sind KEIN Reel und behalten das Menü unten.
   const spView = searchParams.get("view");
-  const gridShowing = spView === "grid" || spView === "alist" || pathname.endsWith("/home");
   const reelShowing =
     (pathname === "/stores" || pathname.endsWith("/stores")) &&
-    !gridShowing &&
+    !spView &&
     !searchParams.get("panel");
   const hideBar = reelShowing || pathname.startsWith("/look/");
 
