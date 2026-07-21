@@ -39,6 +39,7 @@ const WX: Record<string, Record<string, string>> = {
 // Alle sichtbaren Texte pro Sprache. Model-Name wird eingesetzt. Fallback: EN.
 type Copy = {
   greet: (n: string) => string;
+  greetPre: string;   // Gruß ohne Name (Name danach in Gold)
   wxLine: (city: string, word: string, emoji: string, temp: number) => string;
   wxLoading: (city: string) => string;
   online: string;
@@ -49,6 +50,7 @@ type Copy = {
 const T: Record<string, Copy> = {
   ro: {
     greet: n => `Bună dimineața, ${n}!`,
+    greetPre: "Bună dimineața,",
     wxLine: (c, w, e, t) => `La ${c} azi e ${w} ${e}, ${t}°.`,
     wxLoading: c => `La ${c}…`,
     online: "online",
@@ -58,6 +60,7 @@ const T: Record<string, Copy> = {
   },
   de: {
     greet: n => `Guten Morgen, ${n}!`,
+    greetPre: "Guten Morgen,",
     wxLine: (c, w, e, t) => `In ${c} ist heute ${w} ${e}, ${t}°.`,
     wxLoading: c => `In ${c}…`,
     online: "online",
@@ -67,6 +70,7 @@ const T: Record<string, Copy> = {
   },
   en: {
     greet: n => `Good morning, ${n}!`,
+    greetPre: "Good morning,",
     wxLine: (c, w, e, t) => `In ${c} it's ${w} ${e}, ${t}° today.`,
     wxLoading: c => `In ${c}…`,
     online: "online",
@@ -213,7 +217,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
       {/* Persönlicher Gruß + Wetter */}
       <div className="pt-5">
         {dateLine && <p className="mb-1 text-[11px] font-black uppercase tracking-[0.14em] text-white/50">📅 {dateLine}</p>}
-        <p className="text-[24px] font-black leading-tight text-white">{t.greet(name)}</p>
+        <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-[#c9a23f]">{name}</span>!</p>
         <p className="mt-1 text-[14px] font-semibold text-white/70">
           {weather ? t.wxLine(city, weather.word, weather.e, weather.temp) : t.wxLoading(city)}
         </p>
