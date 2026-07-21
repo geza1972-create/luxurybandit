@@ -117,8 +117,14 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   useEffect(() => {
     const v = lookVideoRef.current;
     if (!v || look?.kind !== "video") return;
-    v.muted = true;
-    v.play().catch(() => {});
+    // React setzt `muted` nicht zuverlässig als DOM-Property → Browser blockt sonst Autoplay.
+    // Deshalb hier hart setzen (muted + defaultMuted) und bei jedem „abspielbar"-Moment starten.
+    v.muted = true; v.defaultMuted = true;
+    const tryPlay = () => { void v.play().catch(() => {}); };
+    tryPlay();
+    v.addEventListener("canplay", tryPlay);
+    v.addEventListener("loadeddata", tryPlay);
+    return () => { v.removeEventListener("canplay", tryPlay); v.removeEventListener("loadeddata", tryPlay); };
   }, [look?.kind, look?.mediaUrl]);
   const toggleMute = () => {
     const v = lookVideoRef.current; if (!v) return;
@@ -208,7 +214,6 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
                 autoPlay muted loop playsInline preload="auto"
                 onPlaying={() => setVidPlaying(true)}
                 onWaiting={() => setVidPlaying(false)}
-                onLoadedData={() => { const v = lookVideoRef.current; if (v) { v.muted = muted; v.play().catch(() => {}); } }}
                 className="h-full w-full object-contain object-top" />
               {/* Lade-/Scan-Modus: läuft, bis das Video wirklich abspielt. */}
               {!vidPlaying && (
