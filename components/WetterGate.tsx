@@ -30,7 +30,7 @@ const T: Record<string, Copy> = {
   ro: {
     title: m => `Vrei ca ${m} să te trezească în fiecare dimineață?`,
     sub: "Un mesaj în fiecare dimineață — vremea ta, un look nou, și poți vorbi cu ea oricând.",
-    name: "Numele tău", email: "Email", birthdate: "Data nașterii", gender: "Sexul",
+    name: "Prenumele tău", email: "Email", birthdate: "Data nașterii", gender: "Sexul",
     genderM: "Bărbat", genderF: "Femeie", genderX: "Altul", city: "Orașul tău (pentru vreme)", country: "Țara", postal: "Cod poștal", phone: "Numărul tău (WhatsApp)",
     cta: "Creează cont gratis", note: "Fără parolă. Îți confirmi emailul o singură dată.",
     fillAll: "Te rog completează toate câmpurile.", badEmail: "Email invalid.",
@@ -42,7 +42,7 @@ const T: Record<string, Copy> = {
   de: {
     title: m => `Soll ${m} dich jeden Morgen wecken?`,
     sub: "Eine Nachricht jeden Morgen — dein Wetter, ein neuer Look, und du kannst jederzeit mit ihr chatten.",
-    name: "Dein Name", email: "E-Mail", birthdate: "Geburtsdatum", gender: "Geschlecht",
+    name: "Dein Vorname", email: "E-Mail", birthdate: "Geburtsdatum", gender: "Geschlecht",
     genderM: "Männlich", genderF: "Weiblich", genderX: "Divers", city: "Deine Stadt (fürs Wetter)", country: "Land", postal: "Postleitzahl", phone: "Deine Nummer (WhatsApp)",
     cta: "Kostenlos anmelden", note: "Ohne Passwort. E-Mail einmal bestätigen.",
     fillAll: "Bitte alle Felder ausfüllen.", badEmail: "Ungültige E-Mail.",
@@ -54,7 +54,7 @@ const T: Record<string, Copy> = {
   en: {
     title: m => `Want ${m} to wake you every morning?`,
     sub: "A message every morning — your weather, a new look, and you can chat with her anytime.",
-    name: "Your name", email: "Email", birthdate: "Date of birth", gender: "Gender",
+    name: "Your first name", email: "Email", birthdate: "Date of birth", gender: "Gender",
     genderM: "Male", genderF: "Female", genderX: "Other", city: "Your city (for weather)", country: "Country", postal: "Postal code", phone: "Your number (WhatsApp)",
     cta: "Create free account", note: "No password. Confirm your email once.",
     fillAll: "Please fill in all fields.", badEmail: "Invalid email.",
@@ -215,7 +215,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
         <p className="mt-2 text-center text-[14px] font-semibold leading-relaxed text-white/65">{t.sub}</p>
 
         <div className="mt-4 grid grid-cols-1 gap-2">
-          <LabeledInput label={t.name} value={name} onChange={setName} autoComplete="name" />
+          <LabeledInput label={t.name} value={name} onChange={setName} autoComplete="given-name" />
           <LabeledInput label={t.email} value={email} onChange={setEmail} type="email" inputMode="email" autoComplete="email" invalid={!!email && !emailOk} />
           {email && !emailOk && <p className="-mt-1 text-[11px] font-bold text-red-500">{t.badEmail}</p>}
           {/* Geburtsdatum — Feldname bleibt links stehen (type=date hat eine Mindestbreite). */}

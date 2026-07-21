@@ -321,7 +321,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <button type="button" onClick={() => setOpenThemen(v => !v)}
                   className="flex w-full items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <Layers className="h-5 w-5 shrink-0 text-amber-400" />
-                  <span className="text-sm font-black text-white">Themen</span>
+                  <span className="text-sm font-black text-white">Topics</span>
                   <ChevronDown className={`ml-auto h-4 w-4 text-white/50 transition-transform ${openThemen ? "rotate-180" : ""}`} />
                 </button>
                 {openThemen && (
@@ -329,13 +329,13 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                     <button type="button" onClick={() => navigate("/wetter/bella")}
                       className="flex w-full items-center gap-3 py-3 pl-14 pr-5 text-left active:bg-white/[0.06] transition">
                       <CloudSun className="h-5 w-5 shrink-0 text-amber-400" />
-                      <span className="text-sm font-bold text-white">Wetter am Morgen</span>
+                      <span className="text-sm font-bold text-white">Morning Weather</span>
                     </button>
                     {isStaff && (
                       <button type="button" onClick={() => navigate("/wetter/bella?admin=1")}
                         className="flex w-full items-center gap-3 py-2.5 pl-14 pr-5 text-left text-white/60 active:bg-white/[0.06] transition">
                         <Shield className="h-4 w-4 shrink-0 text-violet-400" />
-                        <span className="text-[13px] font-bold">Wetter — verwalten</span>
+                        <span className="text-[13px] font-bold">Morning Weather — manage</span>
                       </button>
                     )}
                   </div>
@@ -347,7 +347,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <button type="button" onClick={() => navigate("/wetter/bella")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <CloudSun className="h-5 w-5 shrink-0 text-amber-400" />
-                  <span className="text-sm font-black text-white">Meine Morgennachricht</span>
+                  <span className="text-sm font-black text-white">My morning message</span>
                 </button>
               )}
               {/* Reels — the swipeable video/story feed. Not for a model (her Home covers her needs). */}
