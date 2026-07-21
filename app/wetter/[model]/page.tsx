@@ -72,7 +72,7 @@ export default async function WetterModelPage({ params, searchParams }: {
   })))).filter(p => p.mediaUrl);
 
   return (
-    <main className="min-h-[100dvh] lb-bg pb-16 text-white">
+    <main className="lb-theme min-h-[100dvh] lb-bg pb-16 text-white">
       <TopNav />
 
       {/* Kopf — Name vom Model, Thema-Texte (RO). */}

@@ -243,6 +243,12 @@ svg {
   .lb-theme .lb-userbubble { background-color: #1a160f !important; color: #ffffff !important; }
 }
 
+/* Over-media overlays (text/icons over a photo or video) MUST stay white even on a light
+   page — the dark scrim/gradient is local to the image, so the flipped dark text would be
+   unreadable there. Comes AFTER the .lb-theme flips so it wins by source order. */
+.lb-theme .lb-onmedia,
+.lb-theme .lb-onmedia * { color: #fff !important; }
+
 /* ── Admin DARK view ─────────────────────────────────────────────────────────
    The admin dashboard is authored in bright light utilities (bg-white cards,
    text-ink). Staring at that all day hurts. `.lb-dark` (toggled in the header,

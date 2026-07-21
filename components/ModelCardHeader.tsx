@@ -38,7 +38,7 @@ export default function ModelCardHeader({
         </span>
       )}
       <span className="relative inline-flex items-center whitespace-nowrap rounded-full bg-black/40 px-3.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-amber-300/85 ring-1 ring-amber-300/20 backdrop-blur">
-        LuxuryBandit.com <span className="mx-1.5 text-amber-300/40">·</span> <span className="text-white/85">{tagline || (hideOwner ? "Creator preview" : "Sponsor an AI Influencer")}</span>
+        LuxuryBandit.com <span className="mx-1.5 text-amber-300/40">·</span> <span className="lb-onmedia text-white/85">{tagline || (hideOwner ? "Creator preview" : "Sponsor an AI Influencer")}</span>
       </span>
       {onShare && (
         <button type="button" onClick={onShare} aria-label="Share this card"

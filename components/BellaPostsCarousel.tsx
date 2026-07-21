@@ -96,7 +96,7 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
                   {playingId !== p.id && (
                     <button type="button" onClick={() => toggle(p.id)} aria-label="Video abspielen"
                       className="absolute inset-0 grid place-items-center">
-                      <span className="grid h-16 w-16 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/40 backdrop-blur-sm transition active:scale-95">
+                      <span className="lb-onmedia grid h-16 w-16 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/40 backdrop-blur-sm transition active:scale-95">
                         <Play className="ml-0.5 h-7 w-7" fill="currentColor" />
                       </span>
                     </button>
@@ -109,14 +109,14 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
               )}
               {/* Datum des Beitrags — oben links, damit man sieht, für welchen Tag er ist. */}
               {fmtDay(p.day, p.time) && (
-                <span className="pointer-events-none absolute left-2 top-2 z-10 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-black text-white ring-1 ring-white/20 backdrop-blur">
+                <span className="lb-onmedia pointer-events-none absolute left-2 top-2 z-10 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-black text-white ring-1 ring-white/20 backdrop-blur">
                   📅 {fmtDay(p.day, p.time)}
                 </span>
               )}
               {/* Groß ansehen — Vollbild, ohne das Tap-to-Play zu stören. */}
               <button type="button" aria-label="Groß ansehen"
                 onClick={(e) => { e.stopPropagation(); setZoom({ url: p.mediaUrl, kind: p.kind, poster: p.posterUrl }); }}
-                className="absolute right-2 top-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/30 backdrop-blur transition active:scale-95">
+                className="lb-onmedia absolute right-2 top-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/30 backdrop-blur transition active:scale-95">
                 <Maximize2 className="h-4 w-4" />
               </button>
             </div>
@@ -128,7 +128,7 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
             {/* -mt in Prozent der BREITE. 60 % → 49,3 % → 33,3 %: der Text sitzt damit
                 100 px tiefer als anfangs (bei 375 px Bildschirm) und skaliert mit. */}
             {(p.title || p.caption) && (
-              <div className="pointer-events-none relative -mt-[33.3%] bg-gradient-to-b from-transparent via-[#0d0b0a]/85 to-[#0d0b0a] px-5 pb-4 pt-10">
+              <div className="lb-onmedia pointer-events-none relative -mt-[33.3%] bg-gradient-to-b from-transparent via-[#0d0b0a]/85 to-[#0d0b0a] px-5 pb-4 pt-10">
                 {p.title && (
                   <p className="text-[28px] font-black leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">{p.title}</p>
                 )}
@@ -149,12 +149,12 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
         <>
           <button type="button" onClick={() => goTo(Math.max(0, active - 1))} aria-label="Zurück"
             disabled={active === 0}
-            className="absolute left-2 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/25 backdrop-blur transition active:scale-95 disabled:opacity-0">
+            className="lb-onmedia absolute left-2 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/25 backdrop-blur transition active:scale-95 disabled:opacity-0">
             <ChevronLeft className="h-5 w-5" />
           </button>
           <button type="button" onClick={() => goTo(Math.min(posts.length - 1, active + 1))} aria-label="Weiter"
             disabled={active === posts.length - 1}
-            className="absolute right-2 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/25 backdrop-blur transition active:scale-95 disabled:opacity-0">
+            className="lb-onmedia absolute right-2 top-1/2 z-20 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/25 backdrop-blur transition active:scale-95 disabled:opacity-0">
             <ChevronRight className="h-5 w-5" />
           </button>
         </>
