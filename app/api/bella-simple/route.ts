@@ -29,6 +29,7 @@ export async function GET(request: Request) {
     caption: s.caption ?? "",
     day: s.day ?? "",
     time: s.time ?? "",
+    ad: s.ad === true,
     context: s.context ?? "",
     firstMessage: s.firstMessage ?? "",
     mediaUrl: await getSignedUrl(s.path).catch(() => ""),
@@ -46,8 +47,8 @@ export async function POST(request: Request) {
   const modelId = new URL(request.url).searchParams.get("model")?.trim() || BELLA_ID;   // pro Model gescoped
   const body = (await request.json().catch(() => ({}))) as {
     sign?: boolean; kind?: string; ext?: string;
-    add?: { kind?: string; path?: string; posterPath?: string; caption?: string; title?: string; day?: string; time?: string; context?: string; firstMessage?: string };
-    posts?: { id?: string; caption?: string; title?: string; kind?: string; path?: string; posterPath?: string; day?: string; time?: string; context?: string; firstMessage?: string }[];
+    add?: { kind?: string; path?: string; posterPath?: string; caption?: string; title?: string; day?: string; time?: string; ad?: boolean; context?: string; firstMessage?: string };
+    posts?: { id?: string; caption?: string; title?: string; kind?: string; path?: string; posterPath?: string; day?: string; time?: string; ad?: boolean; context?: string; firstMessage?: string }[];
     remove?: string;
     reorder?: string[];
   };
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
       caption: String(body.add.caption ?? "").slice(0, 3000),
       day: String(body.add.day ?? "").slice(0, 10),
       time: String(body.add.time ?? "").slice(0, 5),
+      ad: body.add.ad === true,
       topic: "wetter",   // Abo-only → nie im öffentlichen Feed/Reel
 
       context: String(body.add.context ?? "").slice(0, 2000),
@@ -123,6 +125,7 @@ export async function POST(request: Request) {
       caption: String(p.caption ?? "").slice(0, 3000),
       ...(p.day !== undefined ? { day: String(p.day).slice(0, 10) } : {}),
       ...(p.time !== undefined ? { time: String(p.time).slice(0, 5) } : {}),
+      ...(p.ad !== undefined ? { ad: p.ad === true } : {}),
       ...(p.context !== undefined ? { context: String(p.context).slice(0, 2000) } : {}),
       ...(p.firstMessage !== undefined ? { firstMessage: String(p.firstMessage).slice(0, 1000) } : {}),
       ...(p.path ? {

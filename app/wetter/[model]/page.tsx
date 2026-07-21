@@ -114,6 +114,7 @@ export default async function WetterModelPage({ params, searchParams }: {
     caption: personalize(s.caption ?? "", {}),
     day: s.day ?? "",
     time: s.time ?? "",
+    ad: (s as { ad?: boolean }).ad === true,
     mediaUrl: await getSignedUrl(s.path).catch(() => ""),
     posterUrl: s.posterPath ? await getSignedUrl(s.posterPath).catch(() => "") : "",
   })))).filter(p => p.mediaUrl);
@@ -125,6 +126,11 @@ export default async function WetterModelPage({ params, searchParams }: {
     translateMany(rawPosts.map(p => p.caption), subLang),
   ]);
   const posts = rawPosts.map((p, i) => ({ ...p, title: txTitles[i], caption: txCaptions[i] }));
+  // „Werbung": Besucher (nicht eingeloggt) sehen die als Ad markierten Beiträge; sind keine
+  // markiert, fällt es auf alle zurück (nie leer). Abonnent sieht den täglichen (nicht-Ad) Look.
+  const adPosts = posts.filter(p => p.ad);
+  const visitorPosts = adPosts.length ? adPosts : posts;
+  const dayLook = posts.find(p => !p.ad) ?? posts[0];
 
   return (
     // Seite: DUNKLER Kopfbereich (TopNav + Header mit weißem Namen), darunter HELLER Inhalt.
@@ -149,8 +155,8 @@ export default async function WetterModelPage({ params, searchParams }: {
             <p className="mx-auto max-w-md px-4 pt-4 text-center text-[13px] font-black text-emerald-600">{CONFIRMED_TEXT[subLang] ?? CONFIRMED_TEXT.ro}</p>
           )}
           <WetterSubscriberView name={subName} city={subCity} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken}
-            day={posts[0]?.day || ""} time={posts[0]?.time || ""}
-            look={posts[0] ? { kind: posts[0].kind, mediaUrl: posts[0].mediaUrl, posterUrl: posts[0].posterUrl || undefined } : null} />
+            day={dayLook?.day || ""} time={dayLook?.time || ""}
+            look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />
           </>
         ) : showAdmin ? (
           /* ADMIN-VORSCHAU: umschaltbar zwischen Besucher (Anmeldung) und Abonnent (täglich).
@@ -166,22 +172,22 @@ export default async function WetterModelPage({ params, searchParams }: {
             </p>
             {previewMode === "visitor" ? (
               <>
-                {posts.length > 0 && <BellaPostsCarousel posts={posts} name={modelName} />}
+                {visitorPosts.length > 0 && <BellaPostsCarousel posts={visitorPosts} name={modelName} />}
                 <WetterGate modelId={modelId} modelName={modelName} lang={subLang} trialDays={trialDays} monthlyCents={monthlyCents} preview />
               </>
             ) : (
               <WetterSubscriberView name="Remus" city="Timișoara" lang={subLang} modelId={modelId} modelName={modelName} subId=""
-                day={posts[0]?.day || ""} time={posts[0]?.time || ""}
-                look={posts[0] ? { kind: posts[0].kind, mediaUrl: posts[0].mediaUrl, posterUrl: posts[0].posterUrl || undefined } : null} />
+                day={dayLook?.day || ""} time={dayLook?.time || ""}
+                look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />
             )}
           </>
         ) : (
           /* BESUCHER: Beiträge-Karussell + Account anlegen (oder Gerät automatisch einloggen). */
           <>
-            {posts.length === 0 ? (
+            {visitorPosts.length === 0 ? (
               <p className="px-5 pt-8 text-[13px] font-bold text-white/45">Noch keine Beiträge.</p>
             ) : (
-              <BellaPostsCarousel posts={posts} name={modelName} />
+              <BellaPostsCarousel posts={visitorPosts} name={modelName} />
             )}
             <WetterGate modelId={modelId} modelName={modelName} lang={subLang} trialDays={trialDays} monthlyCents={monthlyCents} />
           </>

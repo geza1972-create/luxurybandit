@@ -12,7 +12,7 @@ import { Loader2, Plus, Trash2, Check, ImageUp, ChevronUp, ChevronDown, Maximize
 // Blendet sich für alle außer dem Admin aus.
 
 type Post = {
-  id: string; kind: "image" | "video"; title: string; caption: string; day: string; time: string; context: string; firstMessage: string; mediaUrl: string;
+  id: string; kind: "image" | "video"; title: string; caption: string; day: string; time: string; ad: boolean; context: string; firstMessage: string; mediaUrl: string;
   // Ein getauschtes Bild/Video, das noch NICHT live ist. Die Datei liegt schon im
   // Speicher (anders geht Hochladen nicht), aber der Beitrag zeigt sie erst nach
   // „Übernehmen". `previewUrl` ist die lokale Vorschau aus der gewählten Datei.
@@ -101,7 +101,7 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
       setPosts(prev => keepEdits
         ? fresh.map(f => {
           const local = prev.find(x => x.id === f.id);
-          return local ? { ...f, title: local.title, caption: local.caption, day: local.day, time: local.time, context: local.context, firstMessage: local.firstMessage } : f;
+          return local ? { ...f, title: local.title, caption: local.caption, day: local.day, time: local.time, ad: local.ad, context: local.context, firstMessage: local.firstMessage } : f;
         })
         : fresh);
     } catch { /**/ } finally { setLoading(false); }
@@ -161,7 +161,7 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
       const posterPath = up.kind === "video" ? await captureCover(file) : "";
       const entwurf: Post = {
         id: `${DRAFT}${Date.now()}`,
-        kind: up.kind, title: "", caption: "", day: todayISO(), time: "", context: "", firstMessage: "", mediaUrl: "",
+        kind: up.kind, title: "", caption: "", day: todayISO(), time: "", ad: false, context: "", firstMessage: "", mediaUrl: "",
         pending: { ...up, posterPath, previewUrl: URL.createObjectURL(file) },
       };
       setPosts(ps => [entwurf, ...ps]);
@@ -236,10 +236,10 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
       // Bestehender Beitrag → Text speichern, plus getauschtes Bild, falls vorhanden.
       const day = post.day || todayISO();   // nie leer speichern — was der Admin sieht (heute), wird auch gespeichert
       const body = istEntwurf(id)
-        ? { add: { kind: post.pending!.kind, path: post.pending!.path, posterPath: post.pending!.posterPath ?? "", title: post.title, caption: post.caption, day, time: post.time, context: post.context, firstMessage: post.firstMessage } }
+        ? { add: { kind: post.pending!.kind, path: post.pending!.path, posterPath: post.pending!.posterPath ?? "", title: post.title, caption: post.caption, day, time: post.time, ad: post.ad, context: post.context, firstMessage: post.firstMessage } }
         : { posts: [{
             id: post.id, title: post.title, caption: post.caption,
-            day, time: post.time, context: post.context, firstMessage: post.firstMessage,
+            day, time: post.time, ad: post.ad, context: post.context, firstMessage: post.firstMessage,
             ...(post.pending ? { kind: post.pending.kind, path: post.pending.path, posterPath: post.pending.posterPath ?? "" } : {}),
           }] };
       const r = await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify(body) });
@@ -367,6 +367,15 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
                   </div>
                   <p className="mt-1 text-[11px] font-semibold text-white/40">Uhrzeit nur nötig, wenn du mehrere Beiträge am selben Tag hast.</p>
                 </div>
+
+                {/* 📣 Werbung — dieser Beitrag ist die BESUCHER-Vorschau (nicht eingeloggt), nicht der Abo-Alltag. */}
+                <button type="button" onClick={() => edit(p.id, { ad: !p.ad })}
+                  className={`flex items-center justify-between rounded-lg border px-3 py-2.5 text-left transition active:scale-[0.99] ${p.ad ? "border-[#c9a23f] bg-[#c9a23f]/15" : "border-white/15 bg-white/[0.03]"}`}>
+                  <span className="text-[13px] font-black text-white">📣 Werbung — Besucher sehen das</span>
+                  <span className={`relative h-6 w-11 shrink-0 rounded-full transition ${p.ad ? "bg-[#c9a23f]" : "bg-white/20"}`}>
+                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${p.ad ? "left-[22px]" : "left-0.5"}`} />
+                  </span>
+                </button>
 
                 {/* ✨ KI-Vorschlag — liest das Foto und füllt Kontext, erste Nachricht und Text vor. */}
                 <button type="button" onClick={() => void suggest(p.id)} disabled={suggestingId === p.id}
