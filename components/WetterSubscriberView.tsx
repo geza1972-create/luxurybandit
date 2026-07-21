@@ -93,6 +93,16 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   const [weather, setWeather] = useState<{ temp: number; word: string; e: string } | null>(null);
   const tzRef = useRef<string>("");   // Zeitzone der Stadt — fürs spätere „Morgen"-Timing pro Land.
 
+  // Look-Video: automatisch starten. Handys erlauben Autostart nur STUMM, deshalb muted +
+  // playsInline. Das Poster ist bis dahin das Cover; ohne Poster zeigt der erste Frame.
+  const lookVideoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const v = lookVideoRef.current;
+    if (!v || look?.kind !== "video") return;
+    v.muted = true;
+    v.play().catch(() => {});
+  }, [look?.kind, look?.mediaUrl]);
+
   // Wetter aus der Stadt des Abonnenten (Open-Meteo, CORS-frei, kein Key, weltweit).
   useEffect(() => {
     if (!city) return;
@@ -161,7 +171,9 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         <div className="relative mt-4 aspect-[3/4] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
           {look.kind === "video"
             // eslint-disable-next-line jsx-a11y/media-has-caption
-            ? <video src={look.mediaUrl} poster={look.posterUrl || undefined} controls playsInline className="h-full w-full object-contain object-top" />
+            ? <video ref={lookVideoRef} src={look.mediaUrl} poster={look.posterUrl || undefined}
+                autoPlay muted loop playsInline controls preload="metadata"
+                className="h-full w-full object-contain object-top" />
             // eslint-disable-next-line @next/next/no-img-element
             : <img src={look.mediaUrl} alt="" className="h-full w-full object-contain object-top" />}
         </div>
