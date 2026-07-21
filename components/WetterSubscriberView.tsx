@@ -259,7 +259,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
       {/* Chat mit dem Model */}
       <div className="lb-theme relative mb-8 mt-6 overflow-hidden rounded-2xl border border-black/10 bg-white">
         <CornerOrnaments />
-        <div className="relative flex items-center gap-2 border-b border-black/10 px-4 py-2.5">
+        <div className="relative flex items-center gap-2 border-b border-black/10 px-6 py-3">
           <span className="h-2 w-2 rounded-full bg-emerald-500" />
           <p className="text-[13px] font-black text-white">{modelName} <span className="font-bold text-emerald-600">{t.online}</span></p>
         </div>
@@ -293,7 +293,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
           </button>
         </div>
-        <p className="px-4 pb-3 text-center text-[11px] font-bold text-white/80">{t.aiNote(modelName)}</p>
+        <p className="px-9 pb-4 pt-1 text-center text-[11px] font-bold text-white/80">{t.aiNote(modelName)}</p>
       </div>
 
       {/* Selbst-Abmeldung — der Abonnent stoppt die tägliche Nachricht direkt hier. */}
