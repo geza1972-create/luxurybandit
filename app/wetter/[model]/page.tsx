@@ -91,6 +91,17 @@ export default async function WetterModelPage({ params, searchParams }: {
           <WetterSubscriberView name={subName} city={subCity} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken}
             day={posts[0]?.day || ""} time={posts[0]?.time || ""}
             look={posts[0] ? { kind: posts[0].kind, mediaUrl: posts[0].mediaUrl, posterUrl: posts[0].posterUrl || undefined } : null} />
+        ) : showAdmin ? (
+          /* ADMIN-VORSCHAU: exakt die tägliche Kundenansicht MIT Chat (Beispiel-Name/-Stadt).
+             subId leer → dieses Preview loggt NICHTS auf dem Gerät ein. */
+          <>
+            <p className="mx-auto max-w-md px-4 pt-4 text-[11px] font-black uppercase tracking-[0.14em] text-white/50">
+              👁 Vorschau — so sieht es der Kunde jeden Morgen
+            </p>
+            <WetterSubscriberView name="Remus" city="Timișoara" lang={subLang} modelId={modelId} modelName={modelName} subId=""
+              day={posts[0]?.day || ""} time={posts[0]?.time || ""}
+              look={posts[0] ? { kind: posts[0].kind, mediaUrl: posts[0].mediaUrl, posterUrl: posts[0].posterUrl || undefined } : null} />
+          </>
         ) : (
           /* BESUCHER: Beiträge-Karussell + Account anlegen (oder Gerät automatisch einloggen). */
           <>
