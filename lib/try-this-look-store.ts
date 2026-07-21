@@ -1373,6 +1373,7 @@ export type WetterSubscriber = {
   phone?: string;         // Telefonnummer mit Vorwahl (Lieferkanal WhatsApp) — z. B. +40…
   city?: string;          // für das Wetter „bei dir"
   country?: string;       // Land (frei oder ISO), z. B. „România"
+  postal?: string;        // Postleitzahl
   lang?: string;          // "ro" | "de" | "en"
   note?: string;          // frei (z. B. „Freund, Test")
   acceptedTerms?: boolean; // AGB + Datenschutz beim Anmelden akzeptiert

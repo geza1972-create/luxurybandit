@@ -20,7 +20,7 @@ const storeKey = (modelId: string) => `lb_wetter_sub_${modelId}`;
 type Copy = {
   title: (m: string) => string; sub: string;
   name: string; email: string; birthdate: string; gender: string;
-  genderM: string; genderF: string; genderX: string; city: string; country: string; phone: string;
+  genderM: string; genderF: string; genderX: string; city: string; country: string; postal: string; phone: string;
   cta: string; note: string; fillAll: string; badEmail: string;
   sentTitle: string; sentBody: (e: string) => string;
   back: string; open: string;   // „schon angemeldet" + Link-Knopf
@@ -31,7 +31,7 @@ const T: Record<string, Copy> = {
     title: m => `Vrei ca ${m} să te trezească în fiecare dimineață?`,
     sub: "Un mesaj în fiecare dimineață — vremea de la tine și un gând bun.",
     name: "Numele tău", email: "Email", birthdate: "Data nașterii", gender: "Sexul",
-    genderM: "Bărbat", genderF: "Femeie", genderX: "Altul", city: "Orașul tău (pentru vreme)", country: "Țara", phone: "Numărul tău (WhatsApp)",
+    genderM: "Bărbat", genderF: "Femeie", genderX: "Altul", city: "Orașul tău (pentru vreme)", country: "Țara", postal: "Cod poștal", phone: "Numărul tău (WhatsApp)",
     cta: "Creează cont gratis", note: "Fără parolă. Îți confirmi emailul o singură dată.",
     fillAll: "Te rog completează toate câmpurile.", badEmail: "Email invalid.",
     sentTitle: "Verifică-ți emailul 📧", sentBody: e => `Ți-am trimis un link de confirmare la ${e}. Confirmă și gata!`,
@@ -43,7 +43,7 @@ const T: Record<string, Copy> = {
     title: m => `Soll ${m} dich jeden Morgen wecken?`,
     sub: "Eine Nachricht jeden Morgen — dein Wetter und ein guter Gedanke.",
     name: "Dein Name", email: "E-Mail", birthdate: "Geburtsdatum", gender: "Geschlecht",
-    genderM: "Männlich", genderF: "Weiblich", genderX: "Divers", city: "Deine Stadt (fürs Wetter)", country: "Land", phone: "Deine Nummer (WhatsApp)",
+    genderM: "Männlich", genderF: "Weiblich", genderX: "Divers", city: "Deine Stadt (fürs Wetter)", country: "Land", postal: "Postleitzahl", phone: "Deine Nummer (WhatsApp)",
     cta: "Kostenlos anmelden", note: "Ohne Passwort. E-Mail einmal bestätigen.",
     fillAll: "Bitte alle Felder ausfüllen.", badEmail: "Ungültige E-Mail.",
     sentTitle: "Prüfe deine E-Mail 📧", sentBody: e => `Wir haben dir einen Bestätigungslink an ${e} geschickt. Bestätigen und los!`,
@@ -55,7 +55,7 @@ const T: Record<string, Copy> = {
     title: m => `Want ${m} to wake you every morning?`,
     sub: "One message every morning — your weather and a good thought.",
     name: "Your name", email: "Email", birthdate: "Date of birth", gender: "Gender",
-    genderM: "Male", genderF: "Female", genderX: "Other", city: "Your city (for weather)", country: "Country", phone: "Your number (WhatsApp)",
+    genderM: "Male", genderF: "Female", genderX: "Other", city: "Your city (for weather)", country: "Country", postal: "Postal code", phone: "Your number (WhatsApp)",
     cta: "Create free account", note: "No password. Confirm your email once.",
     fillAll: "Please fill in all fields.", badEmail: "Invalid email.",
     sentTitle: "Check your email 📧", sentBody: e => `We sent a confirmation link to ${e}. Confirm and you're in!`,
@@ -111,8 +111,9 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
   const [email, setEmail] = useState("");
   const [birthdate, setBirthdate] = useState("");
   const [gender, setGender] = useState("");
-  const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
+  const [city, setCity] = useState("");
+  const [postal, setPostal] = useState("");
   const [dial, setDial] = useState("+40");   // Länder-Vorwahl (Default RO)
   const [phone, setPhone] = useState("");
   const [accepted, setAccepted] = useState(false);   // AGB + Datenschutz akzeptiert
@@ -134,7 +135,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
   }, [modelId, preview]);
 
   const create = async () => {
-    if (!name.trim() || !email.trim() || !birthdate || !gender || !city.trim() || !country.trim() || !phone.trim()) { setError(t.fillAll); return; }
+    if (!name.trim() || !email.trim() || !birthdate || !gender || !country.trim() || !city.trim() || !postal.trim() || !phone.trim()) { setError(t.fillAll); return; }
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) { setError(t.badEmail); return; }
     if (ageFrom(birthdate) < 18) { setError(t.tooYoung); return; }   // 18+-Sperre
     if (!accepted) { setError(t.mustAccept); return; }               // AGB/Datenschutz Pflicht
@@ -144,7 +145,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
     try {
       const r = await fetch("/api/wetter-signup", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modelId, name, email, birthdate, gender, city, country, phone: fullPhone, lang: L, accepted: true }),
+        body: JSON.stringify({ modelId, name, email, birthdate, gender, country, city, postal, phone: fullPhone, lang: L, accepted: true }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d?.error ?? "…"); return; }
@@ -206,9 +207,10 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
             <option value="f" className="bg-[#0d0b0a]">{t.genderF}</option>
             <option value="x" className="bg-[#0d0b0a]">{t.genderX}</option>
           </select>
-          {/* Stadt + Land — Browser-Autofill über autoComplete. */}
-          <LabeledInput label={t.city} value={city} onChange={setCity} autoComplete="address-level2" />
+          {/* Adresse — Reihenfolge Land → Stadt → PLZ (Browser-Autofill über autoComplete). */}
           <LabeledInput label={t.country} value={country} onChange={setCountry} autoComplete="country-name" />
+          <LabeledInput label={t.city} value={city} onChange={setCity} autoComplete="address-level2" />
+          <LabeledInput label={t.postal} value={postal} onChange={setPostal} autoComplete="postal-code" />
           {/* WhatsApp — Länder-Vorwahl (Flagge + Code) + Nummer. */}
           <div className="flex gap-2">
             <select value={dial} onChange={e => setDial(e.target.value)} aria-label="Vorwahl"

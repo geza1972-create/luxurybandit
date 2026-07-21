@@ -31,7 +31,7 @@ function confirmEmail(lang: string, name: string, model: string, link: string): 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
     modelId?: string; name?: string; email?: string; birthdate?: string; gender?: string;
-    phone?: string; city?: string; country?: string; lang?: string; accepted?: boolean;
+    phone?: string; city?: string; country?: string; postal?: string; lang?: string; accepted?: boolean;
   };
   const modelId = String(body.modelId ?? "").trim() || BELLA_ID;
   const name = String(body.name ?? "").trim().slice(0, 120);
@@ -41,9 +41,10 @@ export async function POST(request: Request) {
   const phone = String(body.phone ?? "").trim().slice(0, 40);
   const city = String(body.city ?? "").trim().slice(0, 120);
   const country = String(body.country ?? "").trim().slice(0, 80);
+  const postal = String(body.postal ?? "").trim().slice(0, 16);
 
   // Alle Felder Pflicht + einfache E-Mail-Prüfung.
-  if (!name || !email || !birthdate || !gender || !city || !country || !phone)
+  if (!name || !email || !birthdate || !gender || !city || !country || !postal || !phone)
     return NextResponse.json({ error: "Bitte alle Felder ausfüllen." }, { status: 400 });
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
     return NextResponse.json({ error: "Bitte eine gültige E-Mail eingeben." }, { status: 400 });
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
   const confirmToken = crypto.randomUUID().replace(/-/g, "");
   const sub: WetterSubscriber = {
     id: `sub-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
-    name, email, birthdate, gender, phone, city, country, lang,
+    name, email, birthdate, gender, phone, city, country, postal, lang,
     note: "self-signup",
     acceptedTerms: true,
     confirmed: false,
