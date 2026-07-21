@@ -20,6 +20,18 @@ export const dynamic = "force-dynamic";
 
 const slugify = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
 
+// SEO: sprechender Titel + Beschreibung + Canonical, damit Google die öffentliche Seite rankt.
+export async function generateMetadata({ params }: { params: Promise<{ model: string }> }) {
+  const { model } = await params;
+  const name = model.charAt(0).toUpperCase() + model.slice(1);
+  return {
+    title: `Wetter am Morgen mit ${name} — jeden Morgen eine Nachricht`,
+    description: `${name} weckt dich jeden Morgen: dein Wetter, ein neuer Look und ein Chat mit ihr. Kostenlos anmelden.`,
+    alternates: { canonical: `/wetter/${model}` },
+    openGraph: { title: `Wetter am Morgen mit ${name}`, description: `Jeden Morgen eine Nachricht von ${name} — Wetter, neuer Look, Chat.` },
+  };
+}
+
 // Browsersprache (Accept-Language) → unterstützte Sprache. Ohne ?lang= entscheidet der Browser.
 // Default ro (RO-Zielgruppe), aber de/en werden respektiert.
 function langFromAccept(accept: string): "ro" | "de" | "en" {
