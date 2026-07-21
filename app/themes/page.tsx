@@ -1,10 +1,13 @@
 import Link from "next/link";
 import TopNav from "@/components/TopNav";
-import { CloudSun, Sparkles, Flame, MapPin, KeyRound, ArrowRight } from "lucide-react";
+import { CloudSun, Sparkles, Flame, MapPin, KeyRound, ArrowRight, Lock } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { buildBellaCard } from "@/lib/bella-card";
 
-// Katalog aller „Themen" — jedes Thema liefert täglich Content von einem Model.
+// Katalog aller „Themen" als bildstarke Galerie (wie die Reel-/Models-Galerie).
 // Aktiv: Wetter am Morgen (/themes/wetter/<model>). Weitere sind vorbereitet (coming soon).
+export const dynamic = "force-dynamic"; // Cover-Foto (signierte URL) frisch laden
+
 export const metadata = {
   title: "Topics — a daily message from your influencer | LuxuryBandit",
   description: "Pick a topic and get daily content from your favorite AI influencer: morning weather, luxury looks, lingerie, city secrets and more.",
@@ -12,67 +15,76 @@ export const metadata = {
   openGraph: { title: "LuxuryBandit Topics", description: "Daily content from your favorite influencer — pick a topic." },
 };
 
-type Theme = { icon: LucideIcon; title: string; tagline: string; href?: string; badge?: string };
+type Theme = { icon: LucideIcon; title: string; tagline: string; href?: string; cover?: string; grad: string };
 
-const THEMES: Theme[] = [
-  { icon: CloudSun, title: "Morning Weather", tagline: "A message every morning — your weather, a new look, and a chat with her.", href: "/themes/wetter/bella" },
-  { icon: Sparkles, title: "Luxury Looks — every day", tagline: "A fresh luxury outfit every day, styled on your favorite influencer." },
-  { icon: Flame, title: "Lingerie Looks", tagline: "A daily intimate look — tasteful, private, subscriber-only." },
-  { icon: MapPin, title: "City Secrets", tagline: "Learn something new about a city every day — hidden gems and little stories." },
-  { icon: KeyRound, title: "Secrets", tagline: "A little secret she shares only with you, every day." },
-];
+export default async function ThemesCatalog() {
+  // Cover fürs aktive „Wetter"-Thema = Bellas Foto (nur eine leichte Kartenabfrage).
+  let wetterCover = "";
+  try { const { card } = await buildBellaCard({ surface: "themes" }); wetterCover = card?.photo || ""; } catch { /**/ }
 
-export default function ThemesCatalog() {
+  const THEMES: Theme[] = [
+    { icon: CloudSun, title: "Morning Weather", tagline: "Your weather, a new look & a chat — every morning.", href: "/themes/wetter/bella", cover: wetterCover, grad: "from-amber-900" },
+    { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every single day.", grad: "from-amber-800" },
+    { icon: Flame, title: "Lingerie Looks", tagline: "A daily intimate look — tasteful, private.", grad: "from-rose-950" },
+    { icon: MapPin, title: "City Secrets", tagline: "Learn a city every day — hidden gems & stories.", grad: "from-sky-950" },
+    { icon: KeyRound, title: "Secrets", tagline: "A little secret she shares only with you.", grad: "from-violet-950" },
+  ];
+
   return (
     <main className="lb-bg min-h-[100dvh] text-white">
       <TopNav />
 
       <div className="mx-auto max-w-3xl px-4 pb-24 pt-6">
         <p className="text-[11px] font-black uppercase tracking-[0.22em] text-amber-400">LuxuryBandit Topics</p>
-        <h1 className="mt-1 text-[30px] font-black leading-tight tracking-tight">
+        <h1 className="mt-1 text-[28px] font-black leading-tight tracking-tight">
           Pick a topic. <span className="text-amber-400">Get it every day.</span>
         </h1>
-        <p className="mt-2 max-w-xl text-[15px] font-semibold leading-relaxed text-white/65">
-          Each topic sends you daily content from your favorite influencer — plus a chat with her.
-          Right now <span className="font-black text-white">Morning Weather</span> is live; more are on the way.
+        <p className="mt-2 max-w-xl text-[14px] font-semibold leading-relaxed text-white/60">
+          Each topic sends daily content from your favorite influencer — plus a chat with her.
+          <span className="font-black text-white"> Morning Weather</span> is live; more are on the way.
         </p>
 
-        <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {THEMES.map((t) => {
             const Icon = t.icon;
             const active = !!t.href;
-            const inner = (
-              <>
-                <div className="flex items-start gap-3">
-                  <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${active ? "bg-amber-400 text-black" : "bg-white/10 text-white/60"}`}>
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-[16px] font-black leading-tight">{t.title}</p>
-                      {active
-                        ? <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-emerald-400">Live</span>
-                        : <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white/50">Coming soon</span>}
-                    </div>
-                    <p className="mt-1 text-[13px] font-semibold leading-snug text-white/60">{t.tagline}</p>
+            const face = (
+              <div className={`relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-gradient-to-b ${t.grad} via-black to-black`}>
+                {/* Cover: Foto (aktiv) oder großes Icon-Wasserzeichen (coming soon) */}
+                {t.cover ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={t.cover} alt="" className={`h-full w-full object-cover object-top ${active ? "" : "blur-[2px] brightness-75"}`} />
+                ) : (
+                  <div className="absolute inset-0 grid place-items-center">
+                    <Icon className="h-20 w-20 text-white/10" strokeWidth={1.25} />
                   </div>
-                </div>
-                {active && (
-                  <span className="mt-3 inline-flex items-center gap-1.5 self-start text-[13px] font-black text-amber-400">
-                    Open <ArrowRight className="h-4 w-4" />
-                  </span>
                 )}
-              </>
+
+                {/* Status-Badge oben rechts */}
+                <div className="absolute right-2 top-2 z-10">
+                  {active
+                    ? <span className="rounded-full bg-emerald-400 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-black shadow">Live</span>
+                    : <span className="inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-white/75 ring-1 ring-white/20 backdrop-blur"><Lock className="h-2.5 w-2.5" /> Soon</span>}
+                </div>
+                {/* Icon-Chip oben links */}
+                <div className="absolute left-2 top-2 z-10 grid h-8 w-8 place-items-center rounded-full bg-black/45 ring-1 ring-white/20 backdrop-blur">
+                  <Icon className={`h-4 w-4 ${active ? "text-amber-400" : "text-white/70"}`} />
+                </div>
+
+                {/* Titel-Overlay unten mit Verlauf */}
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/60 to-transparent p-3 pt-10">
+                  <p className="text-[14px] font-black leading-tight">{t.title}</p>
+                  <p className="mt-0.5 text-[11px] font-semibold leading-snug text-white/60">{t.tagline}</p>
+                  {active && (
+                    <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-black text-amber-400">Open <ArrowRight className="h-3.5 w-3.5" /></span>
+                  )}
+                </div>
+              </div>
             );
             return active ? (
-              <Link key={t.title} href={t.href!}
-                className="flex flex-col rounded-2xl border border-amber-400/40 bg-amber-400/[0.04] p-4 transition active:scale-[0.99] hover:border-amber-400/70">
-                {inner}
-              </Link>
+              <Link key={t.title} href={t.href!} className="block transition active:scale-[0.98]">{face}</Link>
             ) : (
-              <div key={t.title} className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.02] p-4 opacity-80">
-                {inner}
-              </div>
+              <div key={t.title} className="opacity-90">{face}</div>
             );
           })}
         </div>
