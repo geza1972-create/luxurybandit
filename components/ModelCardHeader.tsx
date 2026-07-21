@@ -30,7 +30,7 @@ export default function ModelCardHeader({
 }) {
   return (
     <div className={`relative flex flex-col items-center justify-center gap-2 overflow-hidden border-b px-6 py-4 text-center ${darkBg ? "border-white/10 bg-[#161310]" : "border-amber-400/20 bg-gradient-to-r from-amber-400/[0.1] via-amber-300/[0.16] to-amber-400/[0.1]"}`}>
-      {!noPattern && <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundImage: darkBg ? MONO_URL_BRIGHT : MONO_URL, backgroundSize: "30px 30px", opacity: darkBg ? 0.16 : 0.2 }} />}
+      {!noPattern && <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundImage: darkBg ? MONO_URL_BRIGHT : MONO_URL, backgroundSize: "30px 30px", backgroundPosition: darkBg ? "0 -5px" : undefined, opacity: darkBg ? 0.16 : 0.2 }} />}
       <p className="relative max-w-full truncate px-6 text-[26px] font-black leading-none tracking-tight text-white">{name}</p>
       {/* Rolle / Markenzeile — sie ist eine Marke, z. B. „Tenerife Influencer". darkBg: kräftiges Gelb statt Gold. */}
       {title && <p className={`relative -mt-0.5 max-w-full truncate text-[10px] font-black uppercase tracking-[0.22em] ${darkBg ? "text-amber-400" : "text-amber-300"}`}>{title}</p>}
