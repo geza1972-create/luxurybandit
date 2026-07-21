@@ -4,6 +4,8 @@ import TopNav from "@/components/TopNav";
 import ModelCardHeader from "@/components/ModelCardHeader";
 import BellaSimpleStudio from "@/components/BellaSimpleStudio";
 import WetterSubscribers from "@/components/WetterSubscribers";
+import WetterStats from "@/components/WetterStats";
+import WetterTrack from "@/components/WetterTrack";
 import BellaPostsCarousel from "@/components/BellaPostsCarousel";
 import WetterSubscriberView from "@/components/WetterSubscriberView";
 import WetterGate from "@/components/WetterGate";
@@ -47,6 +49,13 @@ const HEADER: Record<string, { title: string; tagline: string }> = {
   ro: { title: "Bună dimineața ☀️", tagline: "Un mesaj în fiecare dimineață" },
   de: { title: "Guten Morgen ☀️", tagline: "Jeden Morgen eine Nachricht" },
   en: { title: "Good morning ☀️", tagline: "A message every morning" },
+};
+
+// „E-Mail bestätigt"-Banner pro Sprache (nicht mehr halb rumänisch).
+const CONFIRMED_TEXT: Record<string, string> = {
+  ro: "✓ Email confirmat — bine ai venit!",
+  de: "✓ E-Mail bestätigt — willkommen!",
+  en: "✓ Email confirmed — welcome!",
 };
 
 export default async function WetterModelPage({ params, searchParams }: {
@@ -120,6 +129,7 @@ export default async function WetterModelPage({ params, searchParams }: {
   return (
     // Seite: DUNKLER Kopfbereich (TopNav + Header mit weißem Namen), darunter HELLER Inhalt.
     <main className="lb-bg text-white">
+      <WetterTrack modelId={modelId} />
       <TopNav />
 
       {/* Kopf — bleibt dunkel, Name weiß (bewusst NICHT im hellen Theme). Texte in der Sprache des Besuchers. */}
@@ -136,7 +146,7 @@ export default async function WetterModelPage({ params, searchParams }: {
           /* EINGELOGGTER ABONNENT: Gruß + Wetter + Look + Chat. subId → Gerät merkt sich den Login. */
           <>
           {justConfirmed && (
-            <p className="mx-auto max-w-md px-4 pt-4 text-center text-[13px] font-black text-emerald-600">✓ E-Mail bestätigt — bine ai venit!</p>
+            <p className="mx-auto max-w-md px-4 pt-4 text-center text-[13px] font-black text-emerald-600">{CONFIRMED_TEXT[subLang] ?? CONFIRMED_TEXT.ro}</p>
           )}
           <WetterSubscriberView name={subName} city={subCity} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken}
             day={posts[0]?.day || ""} time={posts[0]?.time || ""}
@@ -182,6 +192,7 @@ export default async function WetterModelPage({ params, searchParams }: {
           hellen Themes → sie bleiben dunkel (so gebaut: Gold auf Schwarz). */}
       {showAdmin && (
         <div className="px-4 pb-16 pt-8">
+          <WetterStats modelId={modelId} />
           <BellaSimpleStudio modelId={modelId} modelName={modelName} />
           <WetterSubscribers modelId={modelId} modelSlug={model} modelName={modelName} />
         </div>

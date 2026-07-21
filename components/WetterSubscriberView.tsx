@@ -147,6 +147,14 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   const send = async () => {
     const text = input.trim();
     if (!text || sending) return;
+    // Chat-Sitzung EINMAL zählen (nicht als Admin) → Wetter-Insights.
+    try {
+      const ck = `lb_wetter_chatted_${modelId}`;
+      if (!sessionStorage.getItem(ck) && !localStorage.getItem("luxurybandit-try-look-admin-pin")) {
+        sessionStorage.setItem(ck, "1");
+        fetch("/api/wetter-stats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelId, kind: "chat" }) }).catch(() => {});
+      }
+    } catch { /**/ }
     const next = [...messages, { role: "user" as const, content: text }];
     setMessages(next); setInput(""); setSending(true);
     try {

@@ -1360,6 +1360,54 @@ export async function addDailySignup(entry: Omit<DailySignup, "id" | "createdAt"
   return true;
 }
 
+// ── Wetter-am-Morgen: Statistik PRO MODEL (Aufrufe + Chats) ─────────────────
+// Eigenes Blob (clobber-sicher, NICHT im 500er-Event-Cap). Tages-Zähler + Summen.
+export type WetterStats = {
+  viewsByDay: Record<string, number>;   // Seitenaufrufe (Besucher, ohne Admin), pro Tag
+  chatsByDay: Record<string, number>;   // Chat-Sitzungen, pro Tag
+  viewsTotal: number;
+  chatsTotal: number;
+  updatedAt?: string;
+};
+
+function wetterStatsPath(modelId?: string) {
+  const id = (modelId ?? "").trim();
+  return (!id || id === BELLA_STUDIO_ID)
+    ? "try-this-look/wetter-stats.json"
+    : `try-this-look/wetter-stats-${id.replace(/[^a-zA-Z0-9-]/g, "")}.json`;
+}
+
+const EMPTY_STATS: WetterStats = { viewsByDay: {}, chatsByDay: {}, viewsTotal: 0, chatsTotal: 0 };
+
+export async function readWetterStats(modelId?: string): Promise<WetterStats> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(wetterStatsPath(modelId))}`);
+    if (!res.ok) return { ...EMPTY_STATS };
+    const d = await res.json().catch(() => null);
+    return {
+      viewsByDay: (d?.viewsByDay ?? {}) as Record<string, number>,
+      chatsByDay: (d?.chatsByDay ?? {}) as Record<string, number>,
+      viewsTotal: Number(d?.viewsTotal ?? 0),
+      chatsTotal: Number(d?.chatsTotal ?? 0),
+    };
+  } catch { return { ...EMPTY_STATS }; }
+}
+
+// Zählt einen Aufruf ODER eine Chat-Sitzung hoch (read-modify-write, best-effort).
+export async function bumpWetterStat(kind: "view" | "chat", modelId?: string): Promise<void> {
+  await ensureBucket();
+  const s = await readWetterStats(modelId);
+  const dayKey = new Date().toISOString().slice(0, 10);
+  if (kind === "chat") { s.chatsByDay[dayKey] = (s.chatsByDay[dayKey] ?? 0) + 1; s.chatsTotal += 1; }
+  else { s.viewsByDay[dayKey] = (s.viewsByDay[dayKey] ?? 0) + 1; s.viewsTotal += 1; }
+  const body = JSON.stringify({ ...s, updatedAt: new Date().toISOString() });
+  await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(wetterStatsPath(modelId))}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body,
+  }).catch(() => {});
+}
+
 // ── Wetter-am-Morgen: Abonnenten PRO MODEL ──────────────────────────────────
 // Die Liste, an wen die tägliche Nachricht rausgeht. Vom Admin gepflegt (jetzt manuell,
 // später automatisch aus den Anmeldungen). Eigenes Blob PRO MODEL (clobber-sicher),
