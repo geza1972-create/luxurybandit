@@ -77,9 +77,16 @@ function LabeledInput({ label, value, onChange, invalid = false, type = "text", 
   );
 }
 
-export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", preview = false }: { modelId: string; modelName?: string; lang?: string; preview?: boolean }) {
+export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", preview = false, trialDays = 7, monthlyCents = 999 }: {
+  modelId: string; modelName?: string; lang?: string; preview?: boolean; trialDays?: number; monthlyCents?: number;
+}) {
   const L = (lang || "ro").slice(0, 2).toLowerCase();
   const t = T[L] ?? T.ro;
+  // Kleingedruckte Abo-Zeile (dynamisch aus der Admin-Preisliste).
+  const price = (monthlyCents / 100).toFixed(2).replace(".", L === "en" ? "." : ",");
+  const trialLine = L === "de" ? `${trialDays} Tage gratis, danach ${price} €/Monat · jederzeit kündbar`
+    : L === "en" ? `${trialDays} days free, then €${price}/month · cancel anytime`
+    : `${trialDays} zile gratis, apoi ${price} €/lună · anulezi oricând`;
 
   const [checking, setChecking] = useState(true);   // prüft, ob das Gerät schon eingeloggt ist
   const [name, setName] = useState("");
@@ -199,7 +206,9 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
           </button>
         </div>
         {error && <p className="mt-2 text-[12px] font-bold text-red-300">{error}</p>}
-        <p className="mt-2 text-center text-[11px] font-bold text-white/45">{t.note}</p>
+        {/* Kleingedruckt: Testphase + Preis (dynamisch aus der Preisliste). */}
+        <p className="mt-2 text-center text-[11px] font-bold text-white/55">{trialLine}</p>
+        <p className="mt-0.5 text-center text-[11px] font-bold text-white/40">{t.note}</p>
       </div>
     </section>
   );

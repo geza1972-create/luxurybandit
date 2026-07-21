@@ -76,6 +76,9 @@ export default async function WetterModelPage({ params, searchParams }: {
   const showAdmin = String(sp.admin ?? "") === "1";   // Admin-Werkzeuge NUR mit ?admin=1 — nie in der Kundenansicht
   const justConfirmed = String(sp.confirmed ?? "") === "1";   // gerade E-Mail bestätigt
   const previewMode = String(sp.preview ?? "") === "visitor" ? "visitor" : "subscriber";   // Admin-Vorschau: was der User sieht
+  // Preis/Trial aus der dynamischen Admin-Preisliste (für die Kleingedruckt-Zeile).
+  const trialDays = Number((state as { pricing?: { wetterAboTrialDays?: number } }).pricing?.wetterAboTrialDays ?? 7);
+  const monthlyCents = Number((state as { pricing?: { wetterAboMonthlyCents?: number } }).pricing?.wetterAboMonthlyCents ?? 999);
 
   const [slides, card] = await Promise.all([
     readCardStudioSlides(modelId).catch(() => [] as BellaSlide[]),
@@ -142,7 +145,7 @@ export default async function WetterModelPage({ params, searchParams }: {
             {previewMode === "visitor" ? (
               <>
                 {posts.length > 0 && <BellaPostsCarousel posts={posts} name={modelName} />}
-                <WetterGate modelId={modelId} modelName={modelName} lang={subLang} preview />
+                <WetterGate modelId={modelId} modelName={modelName} lang={subLang} trialDays={trialDays} monthlyCents={monthlyCents} preview />
               </>
             ) : (
               <WetterSubscriberView name="Remus" city="Timișoara" lang={subLang} modelId={modelId} modelName={modelName} subId=""
@@ -158,7 +161,7 @@ export default async function WetterModelPage({ params, searchParams }: {
             ) : (
               <BellaPostsCarousel posts={posts} name={modelName} />
             )}
-            <WetterGate modelId={modelId} modelName={modelName} lang={subLang} />
+            <WetterGate modelId={modelId} modelName={modelName} lang={subLang} trialDays={trialDays} monthlyCents={monthlyCents} />
           </>
         )}
       </div>
