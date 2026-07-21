@@ -134,6 +134,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
   const [dial, setDial] = useState("+40");   // Länder-Vorwahl (Default RO)
   const [phone, setPhone] = useState("");
   const [accepted, setAccepted] = useState(false);   // AGB + Datenschutz akzeptiert
+  const [triedSubmit, setTriedSubmit] = useState(false);   // nach fehlgeschlagenem Absenden → leere Pflichtfelder rot
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);   // Bestätigungs-Mail raus → „prüfe deine E-Mail"
@@ -152,6 +153,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
   }, [modelId, preview]);
 
   const create = async () => {
+    setTriedSubmit(true);   // ab jetzt leere Pflichtfelder rot markieren
     if (!name.trim() || !email.trim() || !birthdate || !gender || !country.trim() || !city.trim() || !phone.trim()) { setError(t.fillAll); return; }
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) { setError(t.badEmail); return; }
     if (ageFrom(birthdate) < 18) { setError(t.tooYoung); return; }   // 18+-Sperre
@@ -183,7 +185,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
       <div className="rounded-2xl border border-black/10 bg-white p-6 text-center">
         <p className="text-[19px] font-black text-white">{t.back} ✓</p>
         <a href={`?s=${encodeURIComponent(returningId)}`}
-          className="mt-4 flex h-12 items-center justify-center rounded-xl bg-black text-[15px] font-black text-white active:scale-95 transition">
+          className="mt-4 flex h-12 items-center justify-center rounded-xl bg-[#111] text-[15px] font-black text-white active:scale-95 transition">
           {t.open}
         </a>
       </div>
@@ -213,26 +215,26 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
         <p className="mt-2 text-center text-[14px] font-semibold leading-relaxed text-white/65">{t.sub}</p>
 
         <div className="mt-4 grid grid-cols-1 gap-2">
-          <LabeledInput label={t.name} value={name} onChange={setName} autoComplete="given-name" />
-          <LabeledInput label={t.email} value={email} onChange={setEmail} type="email" inputMode="email" autoComplete="email" invalid={!!email && !emailOk} />
+          <LabeledInput label={t.name} value={name} onChange={setName} autoComplete="given-name" invalid={triedSubmit && !name.trim()} />
+          <LabeledInput label={t.email} value={email} onChange={setEmail} type="email" inputMode="email" autoComplete="email" invalid={(!!email && !emailOk) || (triedSubmit && !email.trim())} />
           {email && !emailOk && <p className="-mt-1 text-[11px] font-bold text-red-500">{t.badEmail}</p>}
           {/* Geburtsdatum — Feldname bleibt links stehen (type=date hat eine Mindestbreite). */}
-          <label className={`flex h-14 w-full items-center rounded-xl border px-4 transition-colors focus-within:border-black focus-within:bg-white ${birthdate ? "border-black bg-white" : "border-white/15 bg-white/[0.04]"}`}>
+          <label className={`flex h-14 w-full items-center rounded-xl border px-4 transition-colors focus-within:border-black focus-within:bg-white ${birthdate ? "border-black bg-white" : triedSubmit ? "border-red-500 bg-white" : "border-white/15 bg-white/[0.04]"}`}>
             <span className="mr-2 shrink-0 text-[11px] font-bold text-black/45">{t.birthdate}</span>
             <input value={birthdate} onChange={e => setBirthdate(e.target.value)} type="date" autoComplete="bday"
               className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold text-white outline-none" />
           </label>
           {/* Geschlecht — volle Breite. */}
           <select value={gender} onChange={e => setGender(e.target.value)} autoComplete="sex"
-            className={`h-14 w-full rounded-xl border px-4 text-[15px] font-bold text-white outline-none transition-colors focus:border-black focus:bg-white ${gender ? "border-black bg-white" : "border-white/15 bg-white/[0.04]"}`}>
+            className={`h-14 w-full rounded-xl border px-4 text-[15px] font-bold text-white outline-none transition-colors focus:border-black focus:bg-white ${gender ? "border-black bg-white" : triedSubmit ? "border-red-500 bg-white" : "border-white/15 bg-white/[0.04]"}`}>
             <option value="" className="bg-[#0d0b0a]">{t.gender}</option>
             <option value="m" className="bg-[#0d0b0a]">{t.genderM}</option>
             <option value="f" className="bg-[#0d0b0a]">{t.genderF}</option>
             <option value="x" className="bg-[#0d0b0a]">{t.genderX}</option>
           </select>
           {/* Adresse — Reihenfolge Land → Stadt → PLZ (Browser-Autofill über autoComplete). */}
-          <LabeledInput label={t.country} value={country} onChange={setCountry} autoComplete="country-name" />
-          <LabeledInput label={t.city} value={city} onChange={setCity} autoComplete="address-level2" />
+          <LabeledInput label={t.country} value={country} onChange={setCountry} autoComplete="country-name" invalid={triedSubmit && !country.trim()} />
+          <LabeledInput label={t.city} value={city} onChange={setCity} autoComplete="address-level2" invalid={triedSubmit && !city.trim()} />
           <LabeledInput label={t.postal} value={postal} onChange={setPostal} autoComplete="postal-code" />
           {/* WhatsApp — Länder-Vorwahl (Flagge + Code) + Nummer. */}
           <div className="flex gap-2">
@@ -243,7 +245,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
               ))}
             </select>
             <div className="min-w-0 flex-1">
-              <LabeledInput label={t.phone} value={phone} onChange={setPhone} type="tel" inputMode="tel" autoComplete="tel-national" />
+              <LabeledInput label={t.phone} value={phone} onChange={setPhone} type="tel" inputMode="tel" autoComplete="tel-national" invalid={triedSubmit && !phone.trim()} />
             </div>
           </div>
           {/* AGB + Datenschutz — Pflicht-Häkchen mit Links. */}
@@ -258,7 +260,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
             </span>
           </label>
           <button type="button" onClick={() => void create()} disabled={busy}
-            className="mt-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-black text-[15px] font-black text-white active:scale-95 transition disabled:opacity-50">
+            className="mt-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-[#111] text-[15px] font-black text-white active:scale-95 transition disabled:opacity-50">
             {busy && <Loader2 className="h-4 w-4 animate-spin" />} {t.cta}
           </button>
         </div>

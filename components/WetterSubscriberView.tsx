@@ -206,7 +206,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[82%] whitespace-pre-wrap px-3.5 py-2.5 text-sm font-medium ${m.role === "user"
-                ? "rounded-2xl rounded-tr-sm bg-black text-white"
+                ? "rounded-2xl rounded-tr-sm bg-[#111] text-white"
                 : "rounded-2xl rounded-tl-sm bg-white/10 text-white/90"}`}>{m.content}</div>
             </div>
           ))}
