@@ -87,12 +87,12 @@ export default async function ThemesCatalog() {
                   <Icon className={`h-4 w-4 ${active ? "text-amber-400" : "text-white/70"}`} />
                 </div>
 
-                {/* Titel-Overlay unten mit Verlauf */}
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/60 to-transparent p-3 pt-10">
-                  <p className="text-[14px] font-black leading-tight">{t.title}</p>
-                  <p className="mt-0.5 text-[11px] font-semibold leading-snug text-white/60">{t.tagline}</p>
+                {/* Titel-Overlay ganz unten, kurzer Verlauf → Video bleibt frei */}
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/45 to-transparent px-3 pb-2 pt-6">
+                  <p className="text-[14px] font-black leading-tight drop-shadow">{t.title}</p>
+                  <p className="mt-0.5 text-[10px] font-semibold leading-snug text-white/55">{t.tagline}</p>
                   {active && (
-                    <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-black text-amber-400">Open <ArrowRight className="h-3.5 w-3.5" /></span>
+                    <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-black text-amber-400">Open <ArrowRight className="h-3.5 w-3.5" /></span>
                   )}
                 </div>
               </div>
