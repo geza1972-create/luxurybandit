@@ -226,7 +226,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           <textarea value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
             rows={1} placeholder={t.placeholder(modelName)}
-            className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium text-white outline-none focus:border-amber-400 placeholder:text-white/50" />
+            className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-white/15 bg-white px-4 py-3 text-sm font-medium text-white outline-none focus:border-amber-400 placeholder:text-white/50" />
           <button type="button" onClick={() => void send()} disabled={sending || !input.trim()}
             className="lb-onmedia grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#1a160f] text-white disabled:opacity-40 active:scale-90 transition">
             {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
