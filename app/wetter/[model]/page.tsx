@@ -72,40 +72,44 @@ export default async function WetterModelPage({ params, searchParams }: {
   })))).filter(p => p.mediaUrl);
 
   return (
-    <main className="lb-theme min-h-[100dvh] lb-bg pb-16 text-white">
+    // Seite: DUNKLER Kopfbereich (TopNav + Header mit weißem Namen), darunter HELLER Inhalt.
+    <main className="lb-bg text-white">
       <TopNav />
 
-      {/* Kopf — Name vom Model, Thema-Texte (RO). */}
+      {/* Kopf — bleibt dunkel, Name weiß (bewusst NICHT im hellen Theme). */}
       {card && (
         <ModelCardHeader name={card.name} title="Bună dimineața ☀️"
           tagline="Un mesaj în fiecare dimineață" statusLabel="online"
           ownedName={card.owner || ""} isOwned={!!card.owner} />
       )}
 
-      {recognized ? (
-        /* EINGELOGGTER ABONNENT: Gruß + Wetter + Look + Chat. subId → Gerät merkt sich den Login. */
-        <WetterSubscriberView name={subName} city={subCity} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken}
-          day={posts[0]?.day || ""} time={posts[0]?.time || ""}
-          look={posts[0] ? { kind: posts[0].kind, mediaUrl: posts[0].mediaUrl, posterUrl: posts[0].posterUrl || undefined } : null} />
-      ) : (
-        /* BESUCHER: Beiträge-Karussell + Account anlegen (oder Gerät automatisch einloggen). */
-        <>
-          {posts.length === 0 ? (
-            <p className="px-5 pt-8 text-[13px] font-bold text-white/45">Noch keine Beiträge.</p>
-          ) : (
-            <BellaPostsCarousel posts={posts} name={modelName} />
-          )}
-          <WetterGate modelId={modelId} modelName={modelName} lang={subLang} />
-        </>
-      )}
+      {/* Inhalt: HELL (Tageslicht-lesbar). lb-theme + lb-bg auf demselben Element. */}
+      <div className="lb-theme lb-bg min-h-[100dvh] pb-16 text-white">
+        {recognized ? (
+          /* EINGELOGGTER ABONNENT: Gruß + Wetter + Look + Chat. subId → Gerät merkt sich den Login. */
+          <WetterSubscriberView name={subName} city={subCity} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken}
+            day={posts[0]?.day || ""} time={posts[0]?.time || ""}
+            look={posts[0] ? { kind: posts[0].kind, mediaUrl: posts[0].mediaUrl, posterUrl: posts[0].posterUrl || undefined } : null} />
+        ) : (
+          /* BESUCHER: Beiträge-Karussell + Account anlegen (oder Gerät automatisch einloggen). */
+          <>
+            {posts.length === 0 ? (
+              <p className="px-5 pt-8 text-[13px] font-bold text-white/45">Noch keine Beiträge.</p>
+            ) : (
+              <BellaPostsCarousel posts={posts} name={modelName} />
+            )}
+            <WetterGate modelId={modelId} modelName={modelName} lang={subLang} />
+          </>
+        )}
 
-      {/* Admin-Werkzeuge — NUR mit ?admin=1 (nie in der Kundenansicht), zusätzlich PIN-gated. */}
-      {showAdmin && (
-        <div className="px-4 pt-12">
-          <BellaSimpleStudio modelId={modelId} modelName={modelName} />
-          <WetterSubscribers modelId={modelId} modelSlug={model} modelName={modelName} />
-        </div>
-      )}
+        {/* Admin-Werkzeuge — NUR mit ?admin=1 (nie in der Kundenansicht), zusätzlich PIN-gated. */}
+        {showAdmin && (
+          <div className="px-4 pt-12">
+            <BellaSimpleStudio modelId={modelId} modelName={modelName} />
+            <WetterSubscribers modelId={modelId} modelSlug={model} modelName={modelName} />
+          </div>
+        )}
+      </div>
     </main>
   );
 }

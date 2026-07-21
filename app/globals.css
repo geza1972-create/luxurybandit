@@ -199,8 +199,10 @@ svg {
     radial-gradient(130% 95% at 88% 108%, rgba(126, 62, 24, 0.15), transparent 58%),
     linear-gradient(180deg, #15110c 0%, #0d0b0a 34%, #090706 100%);
 }
-/* Light-theme fallback (funnels/pages that flip to daylight via .lb-theme). */
-.lb-theme .lb-bg {
+/* Light-theme fallback (funnels/pages that flip to daylight via .lb-theme).
+   Matches lb-bg as a descendant OR on the SAME element as .lb-theme. */
+.lb-theme .lb-bg,
+.lb-theme.lb-bg {
   background-color: #fbfaf7;
   background-image:
     radial-gradient(120% 85% at 14% -8%, rgba(233, 174, 43, 0.10), transparent 55%),
