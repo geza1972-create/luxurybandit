@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid, Crown, UserPlus, Film, Layers, CloudSun, ChevronDown } from "lucide-react";
+import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid, Crown, UserPlus, Film, Layers, CloudSun } from "lucide-react";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -54,7 +54,6 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
   const [previewName, setPreviewName] = useState("");
   const [curatorCredits, setCuratorCredits] = useState<number | null>(null);
   const [signedIn, setSignedIn] = useState(false);
-  const [openThemen, setOpenThemen] = useState(false);   // Untermenü „Themen" auf/zu
   const [hasWetter, setHasWetter] = useState(false);     // Gerät hat ein Wetter-am-Morgen-Abo
 
   useEffect(() => {
@@ -299,38 +298,21 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <Home className="h-5 w-5 shrink-0 text-white/85" />
                 <span className="text-sm font-black text-white">Home</span>
               </button>
-              {/* Themen — aufklappbares Untermenü, WEIT OBEN. ÖFFENTLICH (jeder sieht es, auch
-                  ausgeloggt) → gute interne Verlinkung für SEO. Link geht auf die Kundenseite;
-                  Admin bekommt zusätzlich „Verwalten" (?admin=1). */}
-              <div>
-                <button type="button" onClick={() => setOpenThemen(v => !v)}
-                  className="flex w-full items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <Layers className="h-5 w-5 shrink-0 text-amber-400" />
-                  <span className="text-sm font-black text-white">Topics</span>
-                  <ChevronDown className={`ml-auto h-4 w-4 text-white/50 transition-transform ${openThemen ? "rotate-180" : ""}`} />
+              {/* Themes — EIN Punkt → der Themen-Katalog. ÖFFENTLICH (jeder sieht es, auch
+                  ausgeloggt) → gute interne Verlinkung für SEO. */}
+              <button type="button" onClick={() => navigate("/themes")}
+                className="flex w-full items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                <Layers className="h-5 w-5 shrink-0 text-amber-400" />
+                <span className="text-sm font-black text-white">Themes</span>
+              </button>
+              {/* Admin-Shortcut: Wetter-am-Morgen verwalten (?admin=1). */}
+              {isStaff && (
+                <button type="button" onClick={() => navigate("/themes/wetter/bella?admin=1")}
+                  className="flex w-full items-center gap-3 px-5 py-3 text-left text-white/60 active:bg-white/[0.06] transition">
+                  <Shield className="h-4 w-4 shrink-0 text-violet-400" />
+                  <span className="text-[13px] font-bold">Morning Weather — manage</span>
                 </button>
-                {openThemen && (
-                  <div className="bg-black/25">
-                    <button type="button" onClick={() => navigate("/themes")}
-                      className="flex w-full items-center gap-3 py-3 pl-14 pr-5 text-left active:bg-white/[0.06] transition">
-                      <Layers className="h-5 w-5 shrink-0 text-amber-400" />
-                      <span className="text-sm font-bold text-white">Browse all topics</span>
-                    </button>
-                    <button type="button" onClick={() => navigate("/themes/wetter/bella")}
-                      className="flex w-full items-center gap-3 py-3 pl-14 pr-5 text-left active:bg-white/[0.06] transition">
-                      <CloudSun className="h-5 w-5 shrink-0 text-amber-400" />
-                      <span className="text-sm font-bold text-white">Morning Weather</span>
-                    </button>
-                    {isStaff && (
-                      <button type="button" onClick={() => navigate("/themes/wetter/bella?admin=1")}
-                        className="flex w-full items-center gap-3 py-2.5 pl-14 pr-5 text-left text-white/60 active:bg-white/[0.06] transition">
-                        <Shield className="h-4 w-4 shrink-0 text-violet-400" />
-                        <span className="text-[13px] font-bold">Morning Weather — manage</span>
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
+              )}
               {/* Meine Morgennachricht — Shortcut zur persönlichen Wetter-am-Morgen-Ansicht,
                   sichtbar sobald das Gerät angemeldet ist (loggt über den gespeicherten Login ein). */}
               {hasWetter && (
