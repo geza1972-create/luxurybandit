@@ -314,6 +314,27 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <Home className="h-5 w-5 shrink-0 text-white/85" />
                 <span className="text-sm font-black text-white">Home</span>
               </button>
+              {/* Themen — aufklappbares Untermenü (Staff), WEIT OBEN. Bündelt die abonnierbaren
+                  Themen-Werkzeuge. Erstes: „Wetter am Morgen" → /wetter/bella?admin=1. */}
+              {isStaff && (
+                <div>
+                  <button type="button" onClick={() => setOpenThemen(v => !v)}
+                    className="flex w-full items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                    <Layers className="h-5 w-5 shrink-0 text-amber-400" />
+                    <span className="text-sm font-black text-white">Themen</span>
+                    <ChevronDown className={`ml-auto h-4 w-4 text-white/50 transition-transform ${openThemen ? "rotate-180" : ""}`} />
+                  </button>
+                  {openThemen && (
+                    <div className="bg-black/25">
+                      <button type="button" onClick={() => navigate("/wetter/bella?admin=1")}
+                        className="flex w-full items-center gap-3 py-3 pl-14 pr-5 text-left active:bg-white/[0.06] transition">
+                        <CloudSun className="h-5 w-5 shrink-0 text-amber-400" />
+                        <span className="text-sm font-bold text-white">Wetter am Morgen</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               {/* Meine Morgennachricht — Shortcut zur persönlichen Wetter-am-Morgen-Ansicht,
                   sichtbar sobald das Gerät angemeldet ist (loggt über den gespeicherten Login ein). */}
               {hasWetter && (
@@ -403,27 +424,6 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <LayoutGrid className="h-5 w-5 shrink-0 text-amber-400" />
                   <span className="text-sm font-black text-white">Card Studio</span>
                 </button>
-              )}
-              {/* Themen — aufklappbares Untermenü (Staff). Hält die abonnierbaren Themen-Werkzeuge
-                  zusammen, damit das Hauptmenü nicht zu voll wird. Erstes: „Wetter am Morgen". */}
-              {isStaff && (
-                <div>
-                  <button type="button" onClick={() => setOpenThemen(v => !v)}
-                    className="flex w-full items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                    <Layers className="h-5 w-5 shrink-0 text-amber-400" />
-                    <span className="text-sm font-black text-white">Themen</span>
-                    <ChevronDown className={`ml-auto h-4 w-4 text-white/50 transition-transform ${openThemen ? "rotate-180" : ""}`} />
-                  </button>
-                  {openThemen && (
-                    <div className="bg-black/25">
-                      <button type="button" onClick={() => navigate("/wetter/bella?admin=1")}
-                        className="flex w-full items-center gap-3 py-3 pl-14 pr-5 text-left active:bg-white/[0.06] transition">
-                        <CloudSun className="h-5 w-5 shrink-0 text-amber-400" />
-                        <span className="text-sm font-bold text-white">Wetter am Morgen</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
               )}
               {/* My Gallery — Admin: alle Videos; normaler User: seine eigenen Try-ons. Vollbild + Download. */}
               {signedIn && (
