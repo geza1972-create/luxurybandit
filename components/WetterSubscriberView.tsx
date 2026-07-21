@@ -226,7 +226,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
 
       {/* Look vom Tag */}
       {look && (
-        <div className="lb-theme relative mt-4 aspect-[3/4] w-full overflow-hidden rounded-2xl border border-[#c9a23f] bg-black">
+        <div className="relative mt-4 aspect-[3/4] w-full overflow-hidden rounded-2xl border border-[#c9a23f] bg-[#0a0a0a]">
           {look.kind === "video" ? (
             <>
               {/* eslint-disable-next-line jsx-a11y/media-has-caption */}

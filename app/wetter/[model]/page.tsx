@@ -150,7 +150,7 @@ export default async function WetterModelPage({ params, searchParams }: {
       {card && (
         <div className="relative">
           <ModelCardHeader name={card.name} title={(HEADER[subLang] ?? HEADER.ro).title}
-            tagline={(HEADER[subLang] ?? HEADER.ro).tagline} statusLabel="online" noPattern
+            tagline={(HEADER[subLang] ?? HEADER.ro).tagline} statusLabel="online" darkBg
             ownedName={card.owner || ""} isOwned={!!card.owner} />
           {/* Sprach-Umschalter — oben rechts im Header. */}
           <div className="absolute right-2 top-2 z-20 flex gap-1">
