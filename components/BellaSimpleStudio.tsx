@@ -296,7 +296,7 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
 
   return (
     <div className="rounded-2xl border border-white/15 bg-white p-4">
-      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Nur für dich sichtbar</p>
+      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/50">Nur für dich sichtbar</p>
       <h2 className="mt-1 text-[18px] font-black text-white">Beiträge</h2>
       <p className="mt-0.5 text-[12px] font-semibold text-white/60">Bild oder Video hochladen, Titel und Text dazuschreiben — dann bei dem Beitrag auf <b className="text-white/80">Übernehmen</b>.</p>
 
@@ -310,7 +310,7 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
           e.target.value = ""; replaceTarget.current = "";
         }} />
       <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-        className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#c9a23f] text-[15px] font-black text-black active:scale-95 transition disabled:opacity-50">
+        className="lb-onmedia mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1a160f] text-[15px] font-black text-white active:scale-95 transition disabled:opacity-50">
         {uploading ? <><Loader2 className="h-4 w-4 animate-spin" /> Lädt hoch…</> : <><Plus className="h-4 w-4" /> Beitrag hinzufügen</>}
       </button>
 
@@ -358,9 +358,9 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
                   <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">📅 Für welchen Tag · 🕗 Uhrzeit</p>
                   <div className="flex flex-wrap items-center gap-2">
                     <input type="date" value={p.day || todayISO()} onChange={e => edit(p.id, { day: e.target.value })}
-                      className="h-10 rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[14px] font-bold text-white outline-none focus:border-[#c9a23f]" />
+                      className="h-10 rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[14px] font-bold text-white outline-none focus:border-black" />
                     <input type="time" value={p.time} onChange={e => edit(p.id, { time: e.target.value })}
-                      className="h-10 w-[104px] rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[14px] font-bold text-white outline-none focus:border-[#c9a23f]" />
+                      className="h-10 w-[104px] rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[14px] font-bold text-white outline-none focus:border-black" />
                     <button type="button" onClick={() => edit(p.id, { day: todayISO() })}
                       className="h-10 rounded-lg border border-white/15 px-3 text-[12px] font-black text-white/75 active:scale-95 transition">Heute</button>
                     {!p.day && <span className="text-[11px] font-bold text-amber-400/70">noch nicht gesetzt</span>}
@@ -379,7 +379,7 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
 
                 {/* ✨ KI-Vorschlag — liest das Foto und füllt Kontext, erste Nachricht und Text vor. */}
                 <button type="button" onClick={() => void suggest(p.id)} disabled={suggestingId === p.id}
-                  className="flex h-11 items-center justify-center gap-2 rounded-lg border border-[#c9a23f]/50 bg-[#c9a23f]/10 text-[13px] font-black text-[#c9a23f] active:scale-95 transition disabled:opacity-50">
+                  className="flex h-11 items-center justify-center gap-2 rounded-lg border border-black/20 bg-black/[0.03] text-[13px] font-black text-black active:scale-95 transition disabled:opacity-50">
                   {suggestingId === p.id ? <><Loader2 className="h-4 w-4 animate-spin" /> KI überlegt…</> : <><Sparkles className="h-4 w-4" /> KI-Vorschlag (aus dem Foto)</>}
                 </button>
 
@@ -388,14 +388,14 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
                   <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">Titel — groß im Bild</p>
                   <input value={p.title} placeholder="z. B. Mesajul de dimineață"
                     onChange={e => edit(p.id, { title: e.target.value })}
-                    className="h-12 w-full rounded-lg border border-[#c9a23f]/40 bg-[#c9a23f]/10 px-3 text-[15px] font-black text-white outline-none placeholder:text-[13px] placeholder:font-semibold placeholder:text-white/35 focus:border-[#c9a23f]" />
+                    className="h-12 w-full rounded-lg border border-black/15 bg-white/[0.04] px-3 text-[15px] font-black text-white outline-none placeholder:text-[13px] placeholder:font-semibold placeholder:text-white/35 focus:border-black" />
                 </div>
 
                 <div>
                   <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">Text unter dem Bild</p>
                   <textarea value={p.caption} rows={5} placeholder="Kurzer Text unter dem Bild (optional)…"
                     onChange={e => edit(p.id, { caption: e.target.value })}
-                    className="w-full resize-y rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2.5 text-[15px] font-semibold leading-relaxed text-white outline-none placeholder:text-[13px] placeholder:text-white/35 focus:border-[#c9a23f]" />
+                    className="w-full resize-y rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2.5 text-[15px] font-semibold leading-relaxed text-white outline-none placeholder:text-[13px] placeholder:text-white/35 focus:border-black" />
                 </div>
 
                 {/* „Bellas Tag" — Chat-Kontext: steuert, wie sie heute antwortet. */}
@@ -411,7 +411,7 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
                   <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">Erste Nachricht im Chat</p>
                   <textarea value={p.firstMessage} rows={2} placeholder="Ihre erste Nachricht am Morgen (optional) — leer = Standard-Gruß"
                     onChange={e => edit(p.id, { firstMessage: e.target.value })}
-                    className="w-full resize-y rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[13px] font-medium leading-snug text-white outline-none placeholder:text-[12px] placeholder:text-white/35 focus:border-[#c9a23f]" />
+                    className="w-full resize-y rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[13px] font-medium leading-snug text-white outline-none placeholder:text-[12px] placeholder:text-white/35 focus:border-black" />
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -436,7 +436,7 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
                       sonst ginge nur der Text live und das Bild wäre verloren. */}
                   <button type="button" onClick={() => void apply(p.id)}
                     disabled={!dirtyIds.includes(p.id) || applyingId === p.id || replacingId === p.id}
-                    className="ml-auto flex h-10 items-center gap-1.5 rounded-lg bg-[#c9a23f] px-4 text-[13px] font-black text-black transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-30">
+                    className="lb-onmedia ml-auto flex h-10 items-center gap-1.5 rounded-lg bg-[#1a160f] px-4 text-[13px] font-black text-white transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-30">
                     {replacingId === p.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Bild lädt…</>
                       : applyingId === p.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> …</>
                       : appliedId === p.id ? <><Check className="h-3.5 w-3.5" /> Übernommen</>
