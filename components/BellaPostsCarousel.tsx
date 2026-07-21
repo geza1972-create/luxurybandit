@@ -107,12 +107,6 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
                 <img src={p.mediaUrl} alt={`${name} ${i + 1}`} loading={i < 2 ? "eager" : "lazy"}
                   className="absolute inset-0 h-full w-full object-contain object-top" />
               )}
-              {/* Datum des Beitrags — oben links, damit man sieht, für welchen Tag er ist. */}
-              {fmtDay(p.day, p.time) && (
-                <span className="lb-onmedia pointer-events-none absolute left-2 top-2 z-10 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-black text-white ring-1 ring-white/20 backdrop-blur">
-                  📅 {fmtDay(p.day, p.time)}
-                </span>
-              )}
               {/* Groß ansehen — Vollbild, ohne das Tap-to-Play zu stören. */}
               <button type="button" aria-label="Groß ansehen"
                 onClick={(e) => { e.stopPropagation(); setZoom({ url: p.mediaUrl, kind: p.kind, poster: p.posterUrl }); }}
@@ -127,8 +121,12 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
                 das nahtlos aussieht. Durchklickbar, sonst käme das Video nicht an den Tipp. */}
             {/* -mt in Prozent der BREITE. 60 % → 49,3 % → 33,3 %: der Text sitzt damit
                 100 px tiefer als anfangs (bei 375 px Bildschirm) und skaliert mit. */}
-            {(p.title || p.caption) && (
+            {(p.title || p.caption || fmtDay(p.day, p.time)) && (
               <div className="lb-onmedia pointer-events-none relative -mt-[33.3%] bg-gradient-to-b from-transparent via-[#0d0b0a]/85 to-[#0d0b0a] px-5 pb-4 pt-10">
+                {/* Für welchen Tag (+ Uhrzeit) der Beitrag ist — direkt über dem Titel. */}
+                {fmtDay(p.day, p.time) && (
+                  <p className="mb-1.5 text-[12px] font-black uppercase tracking-wide text-white/85 drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">📅 {fmtDay(p.day, p.time)}</p>
+                )}
                 {p.title && (
                   <p className="text-[28px] font-black leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">{p.title}</p>
                 )}
