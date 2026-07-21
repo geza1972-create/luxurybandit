@@ -67,6 +67,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro" }
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);   // Bestätigungs-Mail raus → „prüfe deine E-Mail"
+  const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());   // gültiges E-Mail-Format?
 
   // Schon eingeloggt auf diesem Gerät? → direkt zur persönlichen Ansicht.
   useEffect(() => {
@@ -117,7 +118,9 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro" }
 
         <div className="mt-4 grid grid-cols-1 gap-2">
           <input value={name} onChange={e => setName(e.target.value)} placeholder={t.name} className={fieldCls(name)} />
-          <input value={email} onChange={e => setEmail(e.target.value)} placeholder={t.email} inputMode="email" type="email" className={fieldCls(email)} />
+          <input value={email} onChange={e => setEmail(e.target.value)} placeholder={t.email} inputMode="email" type="email"
+            className={email && !emailOk ? `${fieldBase} border-red-500 bg-white` : fieldCls(email)} />
+          {email && !emailOk && <p className="-mt-1 text-[11px] font-bold text-red-500">{t.badEmail}</p>}
           {/* Geburtsdatum — volle Breite (type=date hat eine Mindestbreite, deshalb nicht nebeneinander). */}
           <label className={`flex h-12 w-full items-center rounded-xl border px-4 transition-colors focus-within:border-black focus-within:bg-white ${birthdate ? "border-black bg-white" : "border-white/15 bg-white/[0.04]"}`}>
             <span className="mr-2 shrink-0 text-[13px] font-bold text-white/45">{t.birthdate}</span>
