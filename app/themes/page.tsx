@@ -88,9 +88,9 @@ export default async function ThemesCatalog() {
                 </div>
 
                 {/* Titel-Overlay ganz unten, sehr kurzer Verlauf → Video bleibt frei */}
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/45 to-transparent px-3 pb-2 pt-5">
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent px-3 pb-3 pt-8">
                   <p className="text-[14px] font-black leading-tight drop-shadow">{t.title}</p>
-                  <p className="mt-0.5 line-clamp-1 text-[10px] font-semibold leading-snug text-white/55">{t.tagline}</p>
+                  <p className="mt-0.5 text-[11px] font-semibold leading-snug text-white/70 drop-shadow">{t.tagline}</p>
                 </div>
               </div>
             );
