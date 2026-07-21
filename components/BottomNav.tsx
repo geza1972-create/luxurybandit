@@ -288,10 +288,6 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <p className="truncate text-[11px] font-bold text-white/80">Sign in to save & curate</p>
                 )}
               </div>
-              <button type="button" onClick={() => setShowProfileMenu(false)}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/10 text-white/80">
-                <X className="h-4 w-4" />
-              </button>
             </div>
             {/* Menu items */}
             <div className="grid divide-y divide-white/10">
