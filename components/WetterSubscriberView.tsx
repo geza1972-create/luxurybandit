@@ -48,29 +48,29 @@ type Copy = {
 };
 const T: Record<string, Copy> = {
   ro: {
-    greet: n => `Bună dimineața, ${n}! 🌞`,
+    greet: n => `Bună dimineața, ${n}!`,
     wxLine: (c, w, e, t) => `La ${c} azi e ${w} ${e}, ${t}°.`,
     wxLoading: c => `La ${c}…`,
     online: "online",
-    opener: (n) => `Bună dimineața, ${n}! ☀️ Mă bucur că ești aici. Cum ai dormit?`,
+    opener: (n) => `Bună dimineața, ${n}! Mă bucur că ești aici. Cum ai dormit?`,
     placeholder: m => `Scrie-i lui ${m}…`,
     aiNote: m => `✨ Vorbești cu asistentul AI al lui ${m} — o persona AI, nu persoana reală.`,
   },
   de: {
-    greet: n => `Guten Morgen, ${n}! 🌞`,
+    greet: n => `Guten Morgen, ${n}!`,
     wxLine: (c, w, e, t) => `In ${c} ist heute ${w} ${e}, ${t}°.`,
     wxLoading: c => `In ${c}…`,
     online: "online",
-    opener: (n) => `Guten Morgen, ${n}! ☀️ Schön, dass du da bist. Wie hast du geschlafen?`,
+    opener: (n) => `Guten Morgen, ${n}! Schön, dass du da bist. Wie hast du geschlafen?`,
     placeholder: m => `Schreib ${m}…`,
     aiNote: m => `✨ Du chattest mit ${m}s KI-Assistentin — eine KI-Persona, nicht die echte Person.`,
   },
   en: {
-    greet: n => `Good morning, ${n}! 🌞`,
+    greet: n => `Good morning, ${n}!`,
     wxLine: (c, w, e, t) => `In ${c} it's ${w} ${e}, ${t}° today.`,
     wxLoading: c => `In ${c}…`,
     online: "online",
-    opener: (n) => `Good morning, ${n}! ☀️ So glad you're here. How did you sleep?`,
+    opener: (n) => `Good morning, ${n}! So glad you're here. How did you sleep?`,
     placeholder: m => `Message ${m}…`,
     aiNote: m => `✨ You're chatting with ${m}'s AI assistant — an AI persona, not the real person.`,
   },
@@ -206,7 +206,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[82%] whitespace-pre-wrap px-3.5 py-2.5 text-sm font-medium ${m.role === "user"
-                ? "rounded-2xl rounded-tr-sm bg-amber-400 text-black"
+                ? "rounded-2xl rounded-tr-sm bg-black text-white"
                 : "rounded-2xl rounded-tl-sm bg-white/10 text-white/90"}`}>{m.content}</div>
             </div>
           ))}
@@ -226,7 +226,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           <textarea value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
             rows={1} placeholder={t.placeholder(modelName)}
-            className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-white/15 bg-white px-4 py-3 text-sm font-medium text-white outline-none focus:border-amber-400 placeholder:text-white/50" />
+            className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-white/15 bg-white px-4 py-3 text-sm font-medium text-white outline-none focus:border-black/70 placeholder:text-white/50" />
           <button type="button" onClick={() => void send()} disabled={sending || !input.trim()}
             className="lb-onmedia grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#1a160f] text-white disabled:opacity-40 active:scale-90 transition">
             {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}

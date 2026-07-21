@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Sun, MailCheck } from "lucide-react";
+import { Loader2, MailCheck } from "lucide-react";
 
 // „Account" für Wetter am Morgen:
 //  • Kennt das Gerät schon eine Kennung (localStorage) → automatisch einloggen (?s=… laden).
@@ -20,7 +20,7 @@ type Copy = {
 };
 const T: Record<string, Copy> = {
   ro: {
-    title: m => `Vrei ca ${m} să te trezească în fiecare dimineață? ☀️`,
+    title: m => `Vrei ca ${m} să te trezească în fiecare dimineață?`,
     sub: "Un mesaj în fiecare dimineață — vremea de la tine și un gând bun.",
     name: "Numele tău", email: "Email", birthdate: "Data nașterii", gender: "Sexul",
     genderM: "Bărbat", genderF: "Femeie", genderX: "Altul", city: "Orașul tău (pentru vreme)", country: "Țara", phone: "Numărul tău (WhatsApp)",
@@ -29,7 +29,7 @@ const T: Record<string, Copy> = {
     sentTitle: "Verifică-ți emailul 📧", sentBody: e => `Ți-am trimis un link de confirmare la ${e}. Confirmă și gata!`,
   },
   de: {
-    title: m => `Soll ${m} dich jeden Morgen wecken? ☀️`,
+    title: m => `Soll ${m} dich jeden Morgen wecken?`,
     sub: "Eine Nachricht jeden Morgen — dein Wetter und ein guter Gedanke.",
     name: "Dein Name", email: "E-Mail", birthdate: "Geburtsdatum", gender: "Geschlecht",
     genderM: "Männlich", genderF: "Weiblich", genderX: "Divers", city: "Deine Stadt (fürs Wetter)", country: "Land", phone: "Deine Nummer (WhatsApp)",
@@ -38,7 +38,7 @@ const T: Record<string, Copy> = {
     sentTitle: "Prüfe deine E-Mail 📧", sentBody: e => `Wir haben dir einen Bestätigungslink an ${e} geschickt. Bestätigen und los!`,
   },
   en: {
-    title: m => `Want ${m} to wake you every morning? ☀️`,
+    title: m => `Want ${m} to wake you every morning?`,
     sub: "One message every morning — your weather and a good thought.",
     name: "Your name", email: "Email", birthdate: "Date of birth", gender: "Gender",
     genderM: "Male", genderF: "Female", genderX: "Other", city: "Your city (for weather)", country: "Country", phone: "Your number (WhatsApp)",
@@ -48,7 +48,7 @@ const T: Record<string, Copy> = {
   },
 };
 
-const inputCls = "h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[15px] font-semibold text-white outline-none placeholder:text-white/40 focus:border-[#c9a23f]";
+const inputCls = "h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[15px] font-semibold text-white outline-none placeholder:text-white/40 focus:border-black/70";
 
 export default function WetterGate({ modelId, modelName = "Bella", lang = "ro" }: { modelId: string; modelName?: string; lang?: string }) {
   const L = (lang || "ro").slice(0, 2).toLowerCase();
@@ -99,8 +99,8 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro" }
 
   if (sent) return (
     <section className="mx-auto mt-8 max-w-md px-5">
-      <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/[0.07] p-6 text-center">
-        <MailCheck className="mx-auto h-9 w-9 text-emerald-400" />
+      <div className="rounded-2xl border border-black/10 bg-white p-6 text-center">
+        <MailCheck className="mx-auto h-9 w-9 text-black" />
         <p className="mt-3 text-[19px] font-black text-white">{t.sentTitle}</p>
         <p className="mt-1.5 text-[14px] font-semibold leading-relaxed text-white/70">{t.sentBody(email.trim())}</p>
       </div>
@@ -109,10 +109,8 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro" }
 
   return (
     <section className="mx-auto mt-8 max-w-md px-5">
-      <div className="rounded-2xl border border-[#c9a23f]/30 bg-[#c9a23f]/[0.06] p-5">
-        <p className="flex items-center gap-2 text-[20px] font-black leading-tight text-white">
-          <Sun className="h-5 w-5 shrink-0 text-[#c9a23f]" /> {t.title(modelName)}
-        </p>
+      <div className="rounded-2xl border border-black/10 bg-white p-5">
+        <p className="text-[20px] font-black leading-tight text-white">{t.title(modelName)}</p>
         <p className="mt-1.5 text-[14px] font-semibold leading-relaxed text-white/65">{t.sub}</p>
 
         <div className="mt-4 grid grid-cols-1 gap-2">
@@ -126,7 +124,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro" }
           </label>
           {/* Geschlecht — volle Breite. */}
           <select value={gender} onChange={e => setGender(e.target.value)}
-            className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[15px] font-bold text-white outline-none focus:border-[#c9a23f]">
+            className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[15px] font-bold text-white outline-none focus:border-black/70">
             <option value="" className="bg-[#0d0b0a]">{t.gender}</option>
             <option value="m" className="bg-[#0d0b0a]">{t.genderM}</option>
             <option value="f" className="bg-[#0d0b0a]">{t.genderF}</option>
@@ -136,8 +134,8 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro" }
           <input value={country} onChange={e => setCountry(e.target.value)} placeholder={t.country} className={inputCls} />
           <input value={phone} onChange={e => setPhone(e.target.value)} placeholder={t.phone} inputMode="tel" type="tel" className={inputCls} />
           <button type="button" onClick={() => void create()} disabled={busy}
-            className="mt-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-[#c9a23f] text-[15px] font-black text-black active:scale-95 transition disabled:opacity-50">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "☀️"} {t.cta}
+            className="mt-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-black text-[15px] font-black text-white active:scale-95 transition disabled:opacity-50">
+            {busy && <Loader2 className="h-4 w-4 animate-spin" />} {t.cta}
           </button>
         </div>
         {error && <p className="mt-2 text-[12px] font-bold text-red-300">{error}</p>}
