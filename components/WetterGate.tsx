@@ -48,9 +48,24 @@ const T: Record<string, Copy> = {
   },
 };
 
-// Leer = graues Feld; ausgefüllt ODER im Fokus = WEISS mit schwarzem Rand.
-const fieldBase = "h-12 w-full rounded-xl border px-4 text-[15px] font-semibold text-white outline-none transition-colors placeholder:text-white/40 focus:border-black focus:bg-white";
-const fieldCls = (v: string) => `${fieldBase} ${v ? "border-black bg-white" : "border-white/15 bg-white/[0.04]"}`;
+// Floating-Label-Feld: leer = grau + großer Platzhalter; getippt/Fokus = WEISS mit schwarzem
+// Rand, und der Feldname rutscht klein nach oben, damit man immer weiß, was es ist.
+function LabeledInput({ label, value, onChange, invalid = false, type = "text", inputMode }: {
+  label: string; value: string; onChange: (v: string) => void; invalid?: boolean; type?: string; inputMode?: "email" | "tel" | "text";
+}) {
+  const filled = !!value.trim();
+  return (
+    <div className="relative">
+      <input value={value} onChange={e => onChange(e.target.value)} placeholder=" " type={type} inputMode={inputMode}
+        className={`peer h-14 w-full rounded-xl border px-4 pb-1 pt-5 text-[15px] font-semibold text-white outline-none transition-colors focus:border-black focus:bg-white ${invalid ? "border-red-500 bg-white" : filled ? "border-black bg-white" : "border-white/15 bg-white/[0.04]"}`} />
+      <label className="pointer-events-none absolute left-4 top-2 text-[11px] font-bold text-black/45 transition-all
+        peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-[15px] peer-placeholder-shown:font-semibold peer-placeholder-shown:text-white/40
+        peer-focus:top-2 peer-focus:translate-y-0 peer-focus:text-[11px] peer-focus:font-bold peer-focus:text-black/45">
+        {label}
+      </label>
+    </div>
+  );
+}
 
 export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", preview = false }: { modelId: string; modelName?: string; lang?: string; preview?: boolean }) {
   const L = (lang || "ro").slice(0, 2).toLowerCase();
@@ -119,27 +134,26 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
         <p className="mt-1.5 text-[14px] font-semibold leading-relaxed text-white/65">{t.sub}</p>
 
         <div className="mt-4 grid grid-cols-1 gap-2">
-          <input value={name} onChange={e => setName(e.target.value)} placeholder={t.name} className={fieldCls(name)} />
-          <input value={email} onChange={e => setEmail(e.target.value)} placeholder={t.email} inputMode="email" type="email"
-            className={email && !emailOk ? `${fieldBase} border-red-500 bg-white` : fieldCls(email)} />
+          <LabeledInput label={t.name} value={name} onChange={setName} />
+          <LabeledInput label={t.email} value={email} onChange={setEmail} type="email" inputMode="email" invalid={!!email && !emailOk} />
           {email && !emailOk && <p className="-mt-1 text-[11px] font-bold text-red-500">{t.badEmail}</p>}
-          {/* Geburtsdatum — volle Breite (type=date hat eine Mindestbreite, deshalb nicht nebeneinander). */}
-          <label className={`flex h-12 w-full items-center rounded-xl border px-4 transition-colors focus-within:border-black focus-within:bg-white ${birthdate ? "border-black bg-white" : "border-white/15 bg-white/[0.04]"}`}>
-            <span className="mr-2 shrink-0 text-[13px] font-bold text-white/45">{t.birthdate}</span>
+          {/* Geburtsdatum — Feldname bleibt links stehen (type=date hat eine Mindestbreite). */}
+          <label className={`flex h-14 w-full items-center rounded-xl border px-4 transition-colors focus-within:border-black focus-within:bg-white ${birthdate ? "border-black bg-white" : "border-white/15 bg-white/[0.04]"}`}>
+            <span className="mr-2 shrink-0 text-[11px] font-bold text-black/45">{t.birthdate}</span>
             <input value={birthdate} onChange={e => setBirthdate(e.target.value)} type="date"
               className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold text-white outline-none" />
           </label>
           {/* Geschlecht — volle Breite. */}
           <select value={gender} onChange={e => setGender(e.target.value)}
-            className={`h-12 w-full rounded-xl border px-4 text-[15px] font-bold text-white outline-none transition-colors focus:border-black focus:bg-white ${gender ? "border-black bg-white" : "border-white/15 bg-white/[0.04]"}`}>
+            className={`h-14 w-full rounded-xl border px-4 text-[15px] font-bold text-white outline-none transition-colors focus:border-black focus:bg-white ${gender ? "border-black bg-white" : "border-white/15 bg-white/[0.04]"}`}>
             <option value="" className="bg-[#0d0b0a]">{t.gender}</option>
             <option value="m" className="bg-[#0d0b0a]">{t.genderM}</option>
             <option value="f" className="bg-[#0d0b0a]">{t.genderF}</option>
             <option value="x" className="bg-[#0d0b0a]">{t.genderX}</option>
           </select>
-          <input value={city} onChange={e => setCity(e.target.value)} placeholder={t.city} className={fieldCls(city)} />
-          <input value={country} onChange={e => setCountry(e.target.value)} placeholder={t.country} className={fieldCls(country)} />
-          <input value={phone} onChange={e => setPhone(e.target.value)} placeholder={t.phone} inputMode="tel" type="tel" className={fieldCls(phone)} />
+          <LabeledInput label={t.city} value={city} onChange={setCity} />
+          <LabeledInput label={t.country} value={country} onChange={setCountry} />
+          <LabeledInput label={t.phone} value={phone} onChange={setPhone} type="tel" inputMode="tel" />
           <button type="button" onClick={() => void create()} disabled={busy}
             className="mt-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-black text-[15px] font-black text-white active:scale-95 transition disabled:opacity-50">
             {busy && <Loader2 className="h-4 w-4 animate-spin" />} {t.cta}
