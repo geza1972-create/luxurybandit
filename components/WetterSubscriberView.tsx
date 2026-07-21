@@ -1,0 +1,210 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { Loader2, Send } from "lucide-react";
+
+// Was der ABONNENT auf /wetter/<model>?name=…&city=…&lang=… sieht:
+// persönlicher Gruß + Wetter aus seiner Stadt + Look vom Tag + Chat mit dem Model (im Abo unbegrenzt).
+//
+// MODEL-AGNOSTISCH: Model-ID + -Name kommen als Props (dieses Mal Bella, kann jede andere sein).
+// WELTWEIT: jeder Text aus der Übersetzungs-Tabelle `T` (keyed by lang); Wetter (Open-Meteo) global,
+// Bedingungs-Wörter pro Sprache; Zeitzone der Stadt mit abgefangen (spätere „Morgen"-Zustellung).
+
+const DEFAULT_MODEL_ID = "curator-1783683672619-td4cy"; // Bella = Fallback/erstes Model
+const DEFAULT_LANG = "ro";
+
+type Msg = { role: "user" | "assistant"; content: string };
+type Look = { kind: "image" | "video"; mediaUrl: string; posterUrl?: string };
+
+// Open-Meteo weather_code → sprach-neutraler Schlüssel + Emoji.
+function wxKey(code: number): { key: string; e: string } {
+  if (code === 0) return { key: "clear", e: "☀️" };
+  if (code <= 2) return { key: "partly", e: "🌤️" };
+  if (code === 3) return { key: "cloudy", e: "☁️" };
+  if (code <= 48) return { key: "fog", e: "🌫️" };
+  if (code <= 67) return { key: "rain", e: "🌧️" };
+  if (code <= 77) return { key: "snow", e: "❄️" };
+  if (code <= 82) return { key: "showers", e: "🌦️" };
+  if (code <= 99) return { key: "storm", e: "⛈️" };
+  return { key: "", e: "🌡️" };
+}
+
+// Wetter-Wörter pro Sprache (Emoji ist sprach-neutral).
+const WX: Record<string, Record<string, string>> = {
+  ro: { clear: "senin", partly: "parțial noros", cloudy: "noros", fog: "ceață", rain: "ploaie", snow: "ninsoare", showers: "averse", storm: "furtună", "": "" },
+  en: { clear: "clear", partly: "partly cloudy", cloudy: "cloudy", fog: "fog", rain: "rain", snow: "snow", showers: "showers", storm: "storm", "": "" },
+  de: { clear: "klar", partly: "teils bewölkt", cloudy: "bewölkt", fog: "Nebel", rain: "Regen", snow: "Schnee", showers: "Schauer", storm: "Gewitter", "": "" },
+};
+
+// Alle sichtbaren Texte pro Sprache. Model-Name wird eingesetzt. Fallback: EN.
+type Copy = {
+  greet: (n: string) => string;
+  wxLine: (city: string, word: string, emoji: string, temp: number) => string;
+  wxLoading: (city: string) => string;
+  online: string;
+  opener: (userName: string, model: string) => string;
+  placeholder: (model: string) => string;
+  aiNote: (model: string) => string;
+};
+const T: Record<string, Copy> = {
+  ro: {
+    greet: n => `Bună dimineața, ${n}! 🌞`,
+    wxLine: (c, w, e, t) => `La ${c} azi e ${w} ${e}, ${t}°.`,
+    wxLoading: c => `La ${c}…`,
+    online: "online",
+    opener: (n) => `Bună dimineața, ${n}! ☀️ Mă bucur că ești aici. Cum ai dormit?`,
+    placeholder: m => `Scrie-i lui ${m}…`,
+    aiNote: m => `✨ Vorbești cu asistentul AI al lui ${m} — o persona AI, nu persoana reală.`,
+  },
+  de: {
+    greet: n => `Guten Morgen, ${n}! 🌞`,
+    wxLine: (c, w, e, t) => `In ${c} ist heute ${w} ${e}, ${t}°.`,
+    wxLoading: c => `In ${c}…`,
+    online: "online",
+    opener: (n) => `Guten Morgen, ${n}! ☀️ Schön, dass du da bist. Wie hast du geschlafen?`,
+    placeholder: m => `Schreib ${m}…`,
+    aiNote: m => `✨ Du chattest mit ${m}s KI-Assistentin — eine KI-Persona, nicht die echte Person.`,
+  },
+  en: {
+    greet: n => `Good morning, ${n}! 🌞`,
+    wxLine: (c, w, e, t) => `In ${c} it's ${w} ${e}, ${t}° today.`,
+    wxLoading: c => `In ${c}…`,
+    online: "online",
+    opener: (n) => `Good morning, ${n}! ☀️ So glad you're here. How did you sleep?`,
+    placeholder: m => `Message ${m}…`,
+    aiNote: m => `✨ You're chatting with ${m}'s AI assistant — an AI persona, not the real person.`,
+  },
+};
+
+export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "" }: {
+  name: string; city: string; look: Look | null; lang?: string; modelId?: string; modelName?: string; subId?: string;
+}) {
+  const L = (lang || DEFAULT_LANG).slice(0, 2).toLowerCase();
+  const t = T[L] ?? T.en;
+  const wxWords = WX[L] ?? WX.en;
+
+  // Login auf DIESEM Gerät merken: kommt der Abonnent per `?s=`-Link, speichern wir die
+  // Kennung — beim nächsten Öffnen von /wetter/<model> erkennt ihn die Seite ohne Link.
+  useEffect(() => {
+    if (!subId) return;
+    try { localStorage.setItem(`lb_wetter_sub_${modelId}`, subId); } catch { /**/ }
+  }, [subId, modelId]);
+
+  const [weather, setWeather] = useState<{ temp: number; word: string; e: string } | null>(null);
+  const tzRef = useRef<string>("");   // Zeitzone der Stadt — fürs spätere „Morgen"-Timing pro Land.
+
+  // Wetter aus der Stadt des Abonnenten (Open-Meteo, CORS-frei, kein Key, weltweit).
+  useEffect(() => {
+    if (!city) return;
+    let ok = true;
+    (async () => {
+      try {
+        const g = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=${encodeURIComponent(L)}`).then(r => r.json());
+        const loc = g?.results?.[0];
+        if (!loc) return;
+        tzRef.current = String(loc.timezone || "");   // ← Zeitzone mit abgefangen (steht bereit für die DB).
+        const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,weather_code&timezone=auto`).then(r => r.json());
+        const c = w?.current;
+        if (ok && c) { const wk = wxKey(Number(c.weather_code)); setWeather({ temp: Math.round(c.temperature_2m), word: wxWords[wk.key] ?? "", e: wk.e }); }
+      } catch { /**/ }
+    })();
+    return () => { ok = false; };
+  }, [city, L, wxWords]);
+
+  // ── Chat mit dem Model (Abonnent = unbegrenzt) ── in der Sprache des Abonnenten.
+  const [messages, setMessages] = useState<Msg[]>([{ role: "assistant", content: t.opener(name, modelName) }]);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages, sending]);
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || sending) return;
+    const next = [...messages, { role: "user" as const, content: text }];
+    setMessages(next); setInput(""); setSending(true);
+    try {
+      const res = await fetch("/api/model-chat", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ curatorId: modelId, visitorId: (name || "sub").toLowerCase(), userName: name, messages: next, lang: L }),
+      });
+      const ct = res.headers.get("content-type") || "";
+      if (ct.includes("application/json") || !res.body) {
+        const d = await res.json().catch(() => ({}));
+        setMessages(m => [...m, { role: "assistant", content: String(d.reply || "…") }]);
+      } else {
+        const reader = res.body.getReader(); const dec = new TextDecoder(); let acc = "", started = false;
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          acc += dec.decode(value, { stream: true });
+          if (!started) { started = true; setMessages(m => [...m, { role: "assistant", content: acc }]); }
+          else setMessages(m => { const c = m.slice(); c[c.length - 1] = { role: "assistant", content: acc }; return c; });
+        }
+      }
+    } catch { setMessages(m => [...m, { role: "assistant", content: "…" }]); }
+    finally { setSending(false); }
+  };
+
+  return (
+    <div className="mx-auto max-w-md px-4">
+      {/* Persönlicher Gruß + Wetter */}
+      <div className="pt-5">
+        <p className="text-[24px] font-black leading-tight text-white">{t.greet(name)}</p>
+        <p className="mt-1 text-[14px] font-semibold text-white/70">
+          {weather ? t.wxLine(city, weather.word, weather.e, weather.temp) : t.wxLoading(city)}
+        </p>
+      </div>
+
+      {/* Look vom Tag */}
+      {look && (
+        <div className="relative mt-4 aspect-[3/4] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
+          {look.kind === "video"
+            // eslint-disable-next-line jsx-a11y/media-has-caption
+            ? <video src={look.mediaUrl} poster={look.posterUrl || undefined} controls playsInline className="h-full w-full object-contain object-top" />
+            // eslint-disable-next-line @next/next/no-img-element
+            : <img src={look.mediaUrl} alt="" className="h-full w-full object-contain object-top" />}
+        </div>
+      )}
+
+      {/* Chat mit dem Model */}
+      <div className="mb-8 mt-6 rounded-2xl border border-white/10 bg-white/[0.03]">
+        <div className="flex items-center gap-2 border-b border-white/10 px-4 py-2.5">
+          <span className="h-2 w-2 rounded-full bg-amber-400" />
+          <p className="text-[13px] font-black text-white">{modelName} <span className="font-bold text-amber-400/90">{t.online}</span></p>
+        </div>
+        <div ref={scrollRef} className="max-h-[46vh] space-y-3 overflow-y-auto px-4 py-4">
+          {messages.map((m, i) => (
+            <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[82%] whitespace-pre-wrap px-3.5 py-2.5 text-sm font-medium ${m.role === "user"
+                ? "rounded-2xl rounded-tr-sm bg-amber-400 text-black"
+                : "rounded-2xl rounded-tl-sm bg-white/10 text-white/90"}`}>{m.content}</div>
+            </div>
+          ))}
+          {sending && (
+            <div className="flex justify-start">
+              <div className="rounded-2xl rounded-tl-sm bg-white/10 px-4 py-3">
+                <span className="flex gap-1">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/50 [animation-delay:-0.3s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/50 [animation-delay:-0.15s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-white/50" />
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="flex items-end gap-1.5 border-t border-white/10 px-3 py-3">
+          <textarea value={input} onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
+            rows={1} placeholder={t.placeholder(modelName)}
+            className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium text-white outline-none focus:border-amber-400 placeholder:text-white/50" />
+          <button type="button" onClick={() => void send()} disabled={sending || !input.trim()}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-amber-400 text-black disabled:opacity-40 active:scale-90 transition">
+            {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+          </button>
+        </div>
+        <p className="px-4 pb-3 text-center text-[11px] font-bold text-white/60">{t.aiNote(modelName)}</p>
+      </div>
+    </div>
+  );
+}

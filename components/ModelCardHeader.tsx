@@ -13,7 +13,7 @@ const MONO_SVG = `<svg xmlns='http://www.w3.org/2000/svg' width='58' height='58'
 export const MONO_URL = `url("data:image/svg+xml,${encodeURIComponent(MONO_SVG)}")`;
 
 export default function ModelCardHeader({
-  name, title = "", isOwned = false, ownedName = "", hideOwner = false, onShare, copied = false,
+  name, title = "", isOwned = false, ownedName = "", hideOwner = false, onShare, copied = false, tagline = "", statusLabel = "Available",
 }: {
   name: string;
   title?: string;
@@ -22,6 +22,8 @@ export default function ModelCardHeader({
   hideOwner?: boolean;
   onShare?: () => void;      // ohne Handler kein Teilen-Knopf
   copied?: boolean;
+  tagline?: string;          // untere Zeile pro Thema überschreiben (Standard: „Sponsor an AI Influencer")
+  statusLabel?: string;      // Status-Abzeichen pro Thema (Standard „Available", z. B. „online")
 }) {
   return (
     <div className="relative flex flex-col items-center justify-center gap-2 overflow-hidden border-b border-amber-400/20 bg-gradient-to-r from-amber-400/[0.1] via-amber-300/[0.16] to-amber-400/[0.1] px-6 py-4 text-center">
@@ -32,11 +34,11 @@ export default function ModelCardHeader({
       {/* Status direkt unter dem Namen — darauf fällt der Blick zuerst. */}
       {!hideOwner && (
         <span className={`relative inline-flex max-w-full items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-1.5 text-[12px] font-black leading-none shadow backdrop-blur ${isOwned ? "bg-amber-400 text-black ring-1 ring-amber-300" : "bg-black/50 text-amber-200 ring-1 ring-amber-300/45"}`}>
-          {isOwned ? <><Crown className="h-3.5 w-3.5 shrink-0" fill="currentColor" /> <span className="min-w-0 truncate">Sponsored by {ownedName}</span></> : <><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300" /> Available</>}
+          {isOwned ? <><Crown className="h-3.5 w-3.5 shrink-0" fill="currentColor" /> <span className="min-w-0 truncate">Sponsored by {ownedName}</span></> : <><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300" /> {statusLabel}</>}
         </span>
       )}
       <span className="relative inline-flex items-center whitespace-nowrap rounded-full bg-black/40 px-3.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-amber-300/85 ring-1 ring-amber-300/20 backdrop-blur">
-        LuxuryBandit.com <span className="mx-1.5 text-amber-300/40">·</span> <span className="text-white/85">{hideOwner ? "Creator preview" : "Sponsor an AI Influencer"}</span>
+        LuxuryBandit.com <span className="mx-1.5 text-amber-300/40">·</span> <span className="text-white/85">{tagline || (hideOwner ? "Creator preview" : "Sponsor an AI Influencer")}</span>
       </span>
       {onShare && (
         <button type="button" onClick={onShare} aria-label="Share this card"

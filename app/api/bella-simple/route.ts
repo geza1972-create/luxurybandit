@@ -18,7 +18,8 @@ const BELLA_ID = "curator-1783683672619-td4cy";
 
 export async function GET(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
-  const all = await readCardStudioSlides(BELLA_ID).catch(() => [] as BellaSlide[]);
+  const modelId = new URL(request.url).searchParams.get("model")?.trim() || BELLA_ID;   // pro Model gescoped
+  const all = await readCardStudioSlides(modelId).catch(() => [] as BellaSlide[]);
   // Exakt dieselbe Regel und Reihenfolge wie die Seite — deshalb aus dem Store.
   const mine = all.filter(isPublicBellaPost).sort(sortBellaPosts);
   const posts = await Promise.all(mine.map(async s => ({
@@ -26,6 +27,10 @@ export async function GET(request: Request) {
     kind: s.kind,
     title: s.title ?? "",
     caption: s.caption ?? "",
+    day: s.day ?? "",
+    time: s.time ?? "",
+    context: s.context ?? "",
+    firstMessage: s.firstMessage ?? "",
     mediaUrl: await getSignedUrl(s.path).catch(() => ""),
   })));
   return NextResponse.json({ posts }, { headers: { "Cache-Control": "no-store, max-age=0" } });
@@ -38,11 +43,13 @@ export async function GET(request: Request) {
 // POST { remove: "<id>" }                     → ganzen Beitrag entfernen
 export async function POST(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
+  const modelId = new URL(request.url).searchParams.get("model")?.trim() || BELLA_ID;   // pro Model gescoped
   const body = (await request.json().catch(() => ({}))) as {
     sign?: boolean; kind?: string; ext?: string;
-    add?: { kind?: string; path?: string; caption?: string; title?: string };
-    posts?: { id?: string; caption?: string; title?: string; kind?: string; path?: string }[];
+    add?: { kind?: string; path?: string; caption?: string; title?: string; day?: string; time?: string; context?: string; firstMessage?: string };
+    posts?: { id?: string; caption?: string; title?: string; kind?: string; path?: string; day?: string; time?: string; context?: string; firstMessage?: string }[];
     remove?: string;
+    reorder?: string[];
   };
 
   if (body.sign) {
@@ -67,6 +74,10 @@ export async function POST(request: Request) {
       path: String(body.add.path),
       title: String(body.add.title ?? "").slice(0, 120),
       caption: String(body.add.caption ?? "").slice(0, 3000),
+      day: String(body.add.day ?? "").slice(0, 10),
+      time: String(body.add.time ?? "").slice(0, 5),
+      context: String(body.add.context ?? "").slice(0, 2000),
+      firstMessage: String(body.add.firstMessage ?? "").slice(0, 1000),
       private: false,
       hidden: false,
       pages: ["profile"],
@@ -75,7 +86,7 @@ export async function POST(request: Request) {
       source: "admin",
       pendingApproval: false,
     };
-    try { await writeCardStudioSlides([slide, ...all], BELLA_ID); } catch (e) {
+    try { await writeCardStudioSlides([slide, ...all], modelId); } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "Speichern fehlgeschlagen." }, { status: 502 });
     }
     return NextResponse.json({ ok: true, id: slide.id });
@@ -83,8 +94,19 @@ export async function POST(request: Request) {
 
   if (body.remove) {
     const next = all.filter(s => s.id !== body.remove);
-    try { await writeCardStudioSlides(next, BELLA_ID); } catch (e) {
+    try { await writeCardStudioSlides(next, modelId); } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "Loeschen fehlgeschlagen." }, { status: 502 });
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  if (Array.isArray(body.reorder)) {
+    // Reihenfolge = Position im Array (aufsteigend). Nur die übergebenen Beiträge
+    // bekommen eine neue `order`, alles andere bleibt unangetastet → clobber-fest.
+    const pos = new Map(body.reorder.map((id, i) => [String(id), i]));
+    const next = all.map(s => pos.has(s.id) ? { ...s, order: pos.get(s.id)! } : s);
+    try { await writeCardStudioSlides(next, modelId); } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : "Reihenfolge speichern fehlgeschlagen." }, { status: 502 });
     }
     return NextResponse.json({ ok: true });
   }
@@ -96,6 +118,10 @@ export async function POST(request: Request) {
     const byId = new Map(body.posts.filter(p => p?.id).map(p => [String(p.id), {
       title: String(p.title ?? "").slice(0, 120),
       caption: String(p.caption ?? "").slice(0, 3000),
+      ...(p.day !== undefined ? { day: String(p.day).slice(0, 10) } : {}),
+      ...(p.time !== undefined ? { time: String(p.time).slice(0, 5) } : {}),
+      ...(p.context !== undefined ? { context: String(p.context).slice(0, 2000) } : {}),
+      ...(p.firstMessage !== undefined ? { firstMessage: String(p.firstMessage).slice(0, 1000) } : {}),
       ...(p.path ? {
         kind: (p.kind === "video" ? "video" : "image") as BellaSlide["kind"],
         path: String(p.path),
@@ -103,7 +129,7 @@ export async function POST(request: Request) {
       } : {}),
     }]));
     const next = all.map(s => byId.has(s.id) ? { ...s, ...byId.get(s.id)! } : s);
-    try { await writeCardStudioSlides(next, BELLA_ID); } catch (e) {
+    try { await writeCardStudioSlides(next, modelId); } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "Speichern fehlgeschlagen." }, { status: 502 });
     }
     return NextResponse.json({ ok: true, count: byId.size });

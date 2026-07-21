@@ -207,6 +207,9 @@ export type PricingConfig = {
   chatPassCents?: number;            // paid chat pass price with someone else's model
   chatPassMinutes?: number;          // how many MINUTES a paid chat pass lasts (a count, not $)
   chatFreeMessages?: number;         // how many FREE messages a fan gets first (a count, not $)
+  chatDailyMessages?: number;        // Bella-Abo: chat messages PER DAY per subscriber (a count; caps AI cost)
+  wetterAboMonthlyCents?: number;    // „Wetter am Morgen" TOPIC subscription / month (per Thema, nicht per Model)
+  wetterAboTrialDays?: number;       // Wetter-Abo free days before the paywall (a count, not $)
   superFollowCents?: number;         // what a fan pays to Super Follow her (one-time)
   // Per-field Stripe Price ID (admin fills these in Stripe → paste here). Keyed by the same
   // field names as the cents amounts above, e.g. stripeIds.subscriptionMonthlyCents = "price_…".
@@ -232,8 +235,11 @@ export const DEFAULT_PRICING: Required<PricingConfig> = {
   chatPassCents: 399,              // $3.99 paid chat pass
   chatPassMinutes: 30,             // 30-minute chat pass
   chatFreeMessages: 10,            // 10 free messages first
+  chatDailyMessages: 40,           // Bella-Abo: 40 chat messages / day per subscriber (caps Haiku cost)
+  wetterAboMonthlyCents: 999,      // €9.99 / month — „Wetter am Morgen" Thema
+  wetterAboTrialDays: 7,           // 7 free days before the paywall
   superFollowCents: 499,           // $4.99 / month to Super Follow her (unlocks her private videos)
-  stripeIds: { subscriptionMonthlyCents: "price_1TtEoM1jPNCWoiztvswekWJD" }, // rest filled by admin
+  stripeIds: { subscriptionMonthlyCents: "price_1TtEoM1jPNCWoiztvswekWJD", wetterAboMonthlyCents: "price_1TvXn31jPNCWoiztjlTTbaKF" }, // rest filled by admin
 };
 
 // Read the live price list (admin-editable) merged over the defaults. ONE source of truth for
@@ -478,6 +484,10 @@ export type BellaSlide = {
   posterPath?: string;   // optional poster for a video slide
   title?: string;        // e.g. "Das ist Peter"
   caption?: string;      // short description / caption
+  day?: string;          // Tag, für den der Beitrag ist (YYYY-MM-DD) — der Abonnent sieht den heutigen (bzw. neuesten ≤ heute)
+  time?: string;         // Uhrzeit (HH:MM) — für mehrere Beiträge am selben Tag; leer = ganztägig
+  context?: string;      // „Bellas Tag": Szenario/Rolle für den Chat-System-Prompt (wo sie ist, was sie macht, was sie trägt)
+  firstMessage?: string; // optionale erste Chat-Nachricht (Opener); leer = Standard-Gruß
   hidden?: boolean;      // kept in the library but NOT shown on any card
   private?: boolean;     // shown on the card but LOCKED — only members / super-followers can open it
   pages?: string[];      // surface keys it appears on ("landing" | "profile"); empty = everywhere
@@ -1348,6 +1358,47 @@ export async function addDailySignup(entry: Omit<DailySignup, "id" | "createdAt"
   });
   if (!res.ok) throw new Error("Anmeldung konnte nicht gespeichert werden.");
   return true;
+}
+
+// ── Wetter-am-Morgen: Abonnenten PRO MODEL ──────────────────────────────────
+// Die Liste, an wen die tägliche Nachricht rausgeht. Vom Admin gepflegt (jetzt manuell,
+// später automatisch aus den Anmeldungen). Eigenes Blob PRO MODEL (clobber-sicher),
+// gespiegelt an card-studio: Bella = Legacy-Pfad, jedes andere Model = eigenes Blob.
+export type WetterSubscriber = {
+  id: string;
+  name: string;
+  phone?: string;         // Telefonnummer mit Vorwahl (Lieferkanal WhatsApp) — z. B. +40…
+  city?: string;          // für das Wetter „bei dir"
+  lang?: string;          // "ro" | "de" | "en"
+  note?: string;          // frei (z. B. „Freund, Test")
+  createdAt: string;
+};
+
+function wetterSubsPath(modelId?: string) {
+  const id = (modelId ?? "").trim();
+  return (!id || id === BELLA_STUDIO_ID)
+    ? "try-this-look/wetter-subscribers.json"
+    : `try-this-look/wetter-subscribers-${id.replace(/[^a-zA-Z0-9-]/g, "")}.json`;
+}
+
+export async function readWetterSubscribers(modelId?: string): Promise<WetterSubscriber[]> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(wetterSubsPath(modelId))}`);
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => null);
+    return Array.isArray(data?.subscribers) ? (data.subscribers as WetterSubscriber[]) : [];
+  } catch { return []; }
+}
+
+export async function writeWetterSubscribers(subscribers: WetterSubscriber[], modelId?: string): Promise<void> {
+  await ensureBucket();
+  const body = JSON.stringify({ subscribers: subscribers.slice(0, 20000), updatedAt: new Date().toISOString() });
+  const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(wetterSubsPath(modelId))}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body,
+  });
+  if (!res.ok) throw new Error("Abonnenten konnten nicht gespeichert werden.");
 }
 
 // ── Werbetexte & Bella-Sätze ────────────────────────────────────────────────

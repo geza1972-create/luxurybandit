@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Plus, Trash2, Check, ImageUp } from "lucide-react";
+import { Loader2, Plus, Trash2, Check, ImageUp, ChevronUp, ChevronDown, Maximize2, X, Sparkles } from "lucide-react";
 
 // Das EINFACHE Bella-Werkzeug. Bewusst nur drei Dinge:
 // hochladen · Text schreiben · löschen. Kein Modell-Wähler, keine KI, keine Flächen.
@@ -12,7 +12,7 @@ import { Loader2, Plus, Trash2, Check, ImageUp } from "lucide-react";
 // Blendet sich für alle außer dem Admin aus.
 
 type Post = {
-  id: string; kind: "image" | "video"; title: string; caption: string; mediaUrl: string;
+  id: string; kind: "image" | "video"; title: string; caption: string; day: string; time: string; context: string; firstMessage: string; mediaUrl: string;
   // Ein getauschtes Bild/Video, das noch NICHT live ist. Die Datei liegt schon im
   // Speicher (anders geht Hochladen nicht), aber der Beitrag zeigt sie erst nach
   // „Übernehmen". `previewUrl` ist die lokale Vorschau aus der gewählten Datei.
@@ -27,12 +27,14 @@ const MAX_MB = 50;
 // gerade getippt. Erst „Übernehmen" legt ihn an.
 const DRAFT = "entwurf-";
 const istEntwurf = (id: string) => id.startsWith(DRAFT);
+const todayISO = () => new Date().toISOString().slice(0, 10);   // YYYY-MM-DD (heute) als Standard-Tag.
 
-export default function BellaSimpleStudio() {
+export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4cy", modelName = "Model" }: { modelId?: string; modelName?: string } = {}) {
   // Das Karussell oben wird auf dem Server gebaut. Nach jeder Änderung muss die Seite
   // neu gerendert werden — sonst zeigt die Slide weiter den alten Stand, obwohl
   // gespeichert wurde. Genau das sah aus wie „das Bild wird nicht übernommen".
   const router = useRouter();
+  const apiUrl = `/api/bella-simple?model=${encodeURIComponent(modelId)}`;   // pro Model gescoped
   const [isAdmin, setIsAdmin] = useState(false);
   const [pin, setPin] = useState("");
   const [posts, setPosts] = useState<Post[]>([]);
@@ -45,7 +47,9 @@ export default function BellaSimpleStudio() {
   const [dirtyIds, setDirtyIds] = useState<string[]>([]);
   const [applyingId, setApplyingId] = useState("");
   const [appliedId, setAppliedId] = useState("");
+  const [suggestingId, setSuggestingId] = useState("");   // „✨ KI-Vorschlag" läuft für diesen Beitrag
   const [error, setError] = useState("");
+  const [zoom, setZoom] = useState<{ url: string; kind: "image" | "video" } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
   const replaceTarget = useRef("");   // welcher Beitrag getauscht wird
@@ -64,14 +68,14 @@ export default function BellaSimpleStudio() {
   // behalten — sonst wären getippte, aber nicht übernommene Änderungen weg.
   const load = async (keepEdits = false) => {
     try {
-      const r = await fetch("/api/bella-simple", { headers: { "x-try-look-admin-pin": pin }, cache: "no-store" });
+      const r = await fetch(apiUrl, { headers: { "x-try-look-admin-pin": pin }, cache: "no-store" });
       if (!r.ok) return;
       const d = await r.json();
       const fresh: Post[] = d.posts ?? [];
       setPosts(prev => keepEdits
         ? fresh.map(f => {
           const local = prev.find(x => x.id === f.id);
-          return local ? { ...f, title: local.title, caption: local.caption } : f;
+          return local ? { ...f, title: local.title, caption: local.caption, day: local.day, time: local.time, context: local.context, firstMessage: local.firstMessage } : f;
         })
         : fresh);
     } catch { /**/ } finally { setLoading(false); }
@@ -93,7 +97,7 @@ export default function BellaSimpleStudio() {
     }
 
     setBusyNote(`${file.name} · ${mb < 1 ? "<1" : mb.toFixed(1)} MB wird hochgeladen…`);
-    const sign = await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ sign: true, kind, ext: ext || (isVideo ? "mp4" : "jpg") }) }).then(r => r.json());
+    const sign = await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify({ sign: true, kind, ext: ext || (isVideo ? "mp4" : "jpg") }) }).then(r => r.json());
     if (!sign?.uploadUrl) { setError(sign?.error ?? "Upload nicht möglich."); return null; }
     const put = await fetch(sign.uploadUrl, {
       method: "PUT",
@@ -120,7 +124,7 @@ export default function BellaSimpleStudio() {
       if (!up) return;
       const entwurf: Post = {
         id: `${DRAFT}${Date.now()}`,
-        kind: up.kind, title: "", caption: "", mediaUrl: "",
+        kind: up.kind, title: "", caption: "", day: todayISO(), time: "", context: "", firstMessage: "", mediaUrl: "",
         pending: { ...up, previewUrl: URL.createObjectURL(file) },
       };
       setPosts(ps => [entwurf, ...ps]);
@@ -154,6 +158,36 @@ export default function BellaSimpleStudio() {
     setDirtyIds(ids => ids.includes(id) ? ids : [...ids, id]);
   };
 
+  // „✨ KI-Vorschlag": aus dem Foto einen Tages-Text vorschlagen (Kontext + erste Nachricht + Text).
+  // Füllt die Felder NUR aus — gespeichert wird wie immer erst mit „Übernehmen".
+  const suggest = async (id: string) => {
+    const post = posts.find(p => p.id === id);
+    if (!post) return;
+    setSuggestingId(id); setError("");
+    try {
+      const kind = post.pending?.kind ?? post.kind;
+      const r = await fetch("/api/wetter-suggest", {
+        method: "POST", headers: headers(),
+        body: JSON.stringify({
+          modelName,
+          lang: "ro",
+          kind,
+          // Entwurf → Speicherpfad; bestehender Beitrag → signierte Bild-Adresse.
+          ...(post.pending ? { path: post.pending.path } : { imageUrl: post.mediaUrl }),
+        }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setError(d?.error ?? "KI-Vorschlag fehlgeschlagen."); return; }
+      edit(id, {
+        context: String(d.context ?? ""),
+        firstMessage: String(d.firstMessage ?? ""),
+        // Text nur setzen, wenn noch leer — einen selbst geschriebenen Text nicht überschreiben.
+        ...(post.caption?.trim() ? {} : { caption: String(d.caption ?? "") }),
+      });
+    } catch { setError("KI-Vorschlag fehlgeschlagen."); }
+    finally { setSuggestingId(""); }
+  };
+
   // Nur DIESEN einen Beitrag speichern — die anderen bleiben unangetastet.
   const apply = async (id: string) => {
     const post = posts.find(p => p.id === id);
@@ -162,13 +196,15 @@ export default function BellaSimpleStudio() {
     try {
       // Entwurf → Beitrag ANLEGEN (Bild und Text in einem Rutsch).
       // Bestehender Beitrag → Text speichern, plus getauschtes Bild, falls vorhanden.
+      const day = post.day || todayISO();   // nie leer speichern — was der Admin sieht (heute), wird auch gespeichert
       const body = istEntwurf(id)
-        ? { add: { kind: post.pending!.kind, path: post.pending!.path, title: post.title, caption: post.caption } }
+        ? { add: { kind: post.pending!.kind, path: post.pending!.path, title: post.title, caption: post.caption, day, time: post.time, context: post.context, firstMessage: post.firstMessage } }
         : { posts: [{
             id: post.id, title: post.title, caption: post.caption,
+            day, time: post.time, context: post.context, firstMessage: post.firstMessage,
             ...(post.pending ? { kind: post.pending.kind, path: post.pending.path } : {}),
           }] };
-      const r = await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify(body) });
+      const r = await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify(body) });
       if (!r.ok) { setError("Übernehmen fehlgeschlagen."); return; }
       setDirtyIds(ids => ids.filter(x => x !== id));
       setAppliedId(id); setTimeout(() => setAppliedId(x => (x === id ? "" : x)), 2500);
@@ -195,10 +231,28 @@ export default function BellaSimpleStudio() {
     if (!window.confirm("Den GANZEN Beitrag löschen — Bild und Text?\n\nNur ein neues Bild? Dann „Bild tauschen“ nehmen.")) return;
     setPosts(ps => ps.filter(p => p.id !== id));
     try {
-      await fetch("/api/bella-simple", { method: "POST", headers: headers(), body: JSON.stringify({ remove: id }) });
+      await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify({ remove: id }) });
       router.refresh();
     } catch { setError("Löschen fehlgeschlagen."); void load(); }
   };
+
+  // ↑↓ — Reihenfolge der bereits übernommenen Beiträge bestimmen. Entwürfe bleiben oben
+  // und werden nicht mitsortiert. Position im Array = Reihenfolge, sofort gespeichert.
+  const move = async (id: string, dir: "up" | "down") => {
+    const i = posts.findIndex(p => p.id === id);
+    const j = dir === "up" ? i - 1 : i + 1;
+    if (i < 0 || j < 0 || j >= posts.length || istEntwurf(posts[j].id)) return;
+    const next = [...posts];
+    [next[i], next[j]] = [next[j], next[i]];
+    setPosts(next);
+    try {
+      const r = await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify({ reorder: next.filter(p => !istEntwurf(p.id)).map(p => p.id) }) });
+      if (!r.ok) throw new Error();
+      router.refresh();   // Karussell oben zeigt sofort die neue Reihenfolge
+    } catch { setError("Reihenfolge speichern fehlgeschlagen."); void load(); }
+  };
+  // Nur übernommene Beiträge sind sortierbar → für die ↑↓-Deaktivierung an den Enden.
+  const orderIds = posts.filter(p => !istEntwurf(p.id)).map(p => p.id);
 
   if (!isAdmin) return null;
 
@@ -236,10 +290,10 @@ export default function BellaSimpleStudio() {
             // waren die Felder auf dem Handy zu schmal zum Schreiben.
             <div key={p.id} className={`grid gap-2 rounded-xl border bg-black/30 p-2 ${istEntwurf(p.id) ? "border-[#c9a23f]/60" : "border-white/10"}`}>
               {/* Aufs Bild tippen = neues Bild/Video für DIESEN Beitrag. Text bleibt. */}
-              <div>
+              <div className="relative h-28 w-[84px]">
                 <button type="button" disabled={replacingId === p.id}
                   onClick={() => { replaceTarget.current = p.id; replaceRef.current?.click(); }}
-                  className={`relative block h-28 w-[84px] overflow-hidden rounded-lg bg-black transition active:scale-95 ${p.pending ? "ring-2 ring-[#c9a23f]" : ""}`}>
+                  className={`block h-full w-full overflow-hidden rounded-lg bg-black transition active:scale-95 ${p.pending ? "ring-2 ring-[#c9a23f]" : ""}`}>
                   {/* Nach dem Tauschen die VORSCHAU zeigen — live ist sie erst nach Übernehmen. */}
                   {(p.pending?.kind ?? p.kind) === "video"
                     // eslint-disable-next-line jsx-a11y/media-has-caption
@@ -253,16 +307,79 @@ export default function BellaSimpleStudio() {
                       : <><ImageUp className="h-3 w-3" /> Tauschen</>}
                   </span>
                 </button>
+                {/* Vergrößern (Vollbild) — eigener Knopf oben rechts, überschreibt „Tauschen" nicht. */}
+                <button type="button" aria-label="Groß ansehen"
+                  onClick={(e) => { e.stopPropagation(); setZoom({ url: (p.pending?.previewUrl ?? p.mediaUrl) || "", kind: (p.pending?.kind ?? p.kind) === "video" ? "video" : "image" }); }}
+                  className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-md bg-black/60 text-white backdrop-blur transition active:scale-95">
+                  <Maximize2 className="h-3.5 w-3.5" />
+                </button>
               </div>
-              <div className="grid min-w-0 gap-2">
+              <div className="grid min-w-0 gap-3">
+                {/* 📅 Für welchen Tag + 🕗 Uhrzeit — nie leer: fehlt der Tag, steht HEUTE drin. */}
+                <div>
+                  <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">📅 Für welchen Tag · 🕗 Uhrzeit</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input type="date" value={p.day || todayISO()} onChange={e => edit(p.id, { day: e.target.value })}
+                      className="h-10 rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[14px] font-bold text-white outline-none focus:border-[#c9a23f]" />
+                    <input type="time" value={p.time} onChange={e => edit(p.id, { time: e.target.value })}
+                      className="h-10 w-[104px] rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[14px] font-bold text-white outline-none focus:border-[#c9a23f]" />
+                    <button type="button" onClick={() => edit(p.id, { day: todayISO() })}
+                      className="h-10 rounded-lg border border-white/15 px-3 text-[12px] font-black text-white/75 active:scale-95 transition">Heute</button>
+                    {!p.day && <span className="text-[11px] font-bold text-amber-400/70">noch nicht gesetzt</span>}
+                  </div>
+                  <p className="mt-1 text-[11px] font-semibold text-white/40">Uhrzeit nur nötig, wenn du mehrere Beiträge am selben Tag hast.</p>
+                </div>
+
+                {/* ✨ KI-Vorschlag — liest das Foto und füllt Kontext, erste Nachricht und Text vor. */}
+                <button type="button" onClick={() => void suggest(p.id)} disabled={suggestingId === p.id}
+                  className="flex h-11 items-center justify-center gap-2 rounded-lg border border-[#c9a23f]/50 bg-[#c9a23f]/10 text-[13px] font-black text-[#c9a23f] active:scale-95 transition disabled:opacity-50">
+                  {suggestingId === p.id ? <><Loader2 className="h-4 w-4 animate-spin" /> KI überlegt…</> : <><Sparkles className="h-4 w-4" /> KI-Vorschlag (aus dem Foto)</>}
+                </button>
+
                 {/* Titel — erscheint GROSS im Bild, z. B. „Bella ist dein Wecker" */}
-                <input value={p.title} placeholder="Titel im Bild, z. B. Bella ist dein Wecker"
-                  onChange={e => edit(p.id, { title: e.target.value })}
-                  className="h-12 w-full rounded-lg border border-[#c9a23f]/40 bg-[#c9a23f]/10 px-3 text-[15px] font-black text-white outline-none placeholder:text-[13px] placeholder:font-semibold placeholder:text-white/35 focus:border-[#c9a23f]" />
-                <textarea value={p.caption} rows={7} placeholder="Text darunter (optional)…"
-                  onChange={e => edit(p.id, { caption: e.target.value })}
-                  className="w-full resize-y rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2.5 text-[15px] font-semibold leading-relaxed text-white outline-none placeholder:text-[13px] placeholder:text-white/35 focus:border-[#c9a23f]" />
+                <div>
+                  <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">Titel — groß im Bild</p>
+                  <input value={p.title} placeholder="z. B. Mesajul de dimineață"
+                    onChange={e => edit(p.id, { title: e.target.value })}
+                    className="h-12 w-full rounded-lg border border-[#c9a23f]/40 bg-[#c9a23f]/10 px-3 text-[15px] font-black text-white outline-none placeholder:text-[13px] placeholder:font-semibold placeholder:text-white/35 focus:border-[#c9a23f]" />
+                </div>
+
+                <div>
+                  <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">Text unter dem Bild</p>
+                  <textarea value={p.caption} rows={5} placeholder="Kurzer Text unter dem Bild (optional)…"
+                    onChange={e => edit(p.id, { caption: e.target.value })}
+                    className="w-full resize-y rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2.5 text-[15px] font-semibold leading-relaxed text-white outline-none placeholder:text-[13px] placeholder:text-white/35 focus:border-[#c9a23f]" />
+                </div>
+
+                {/* „Bellas Tag" — Chat-Kontext: steuert, wie sie heute antwortet. */}
+                <div>
+                  <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-[#c9a23f]/90">Ihr Tag heute — steuert den Chat</p>
+                  <textarea value={p.context} rows={3} placeholder="Wo ist sie, was macht sie? z. B. Azi sunt în Nisa, plimbare pe faleză, port un look nou…"
+                    onChange={e => edit(p.id, { context: e.target.value })}
+                    className="w-full resize-y rounded-lg border border-[#c9a23f]/30 bg-[#c9a23f]/[0.06] px-3 py-2.5 text-[14px] font-semibold leading-relaxed text-white outline-none placeholder:text-[12px] placeholder:text-white/35 focus:border-[#c9a23f]" />
+                </div>
+
+                {/* Erste Chat-Nachricht (optional) — leer = Standard-Gruß. */}
+                <div>
+                  <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">Erste Nachricht im Chat</p>
+                  <textarea value={p.firstMessage} rows={2} placeholder="Ihre erste Nachricht am Morgen (optional) — leer = Standard-Gruß"
+                    onChange={e => edit(p.id, { firstMessage: e.target.value })}
+                    className="w-full resize-y rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[13px] font-medium leading-snug text-white outline-none placeholder:text-[12px] placeholder:text-white/35 focus:border-[#c9a23f]" />
+                </div>
+
                 <div className="flex items-center gap-2">
+                  {!istEntwurf(p.id) && (
+                    <>
+                      <button type="button" onClick={() => void move(p.id, "up")} disabled={orderIds.indexOf(p.id) <= 0}
+                        aria-label="Nach oben" className="grid h-10 w-9 place-items-center rounded-lg border border-white/15 text-white/85 active:scale-95 transition disabled:opacity-30">
+                        <ChevronUp className="h-4 w-4" />
+                      </button>
+                      <button type="button" onClick={() => void move(p.id, "down")} disabled={orderIds.indexOf(p.id) === orderIds.length - 1}
+                        aria-label="Nach unten" className="grid h-10 w-9 place-items-center rounded-lg border border-white/15 text-white/85 active:scale-95 transition disabled:opacity-30">
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
+                    </>
+                  )}
                   <button type="button" onClick={() => void remove(p.id)}
                     className="flex h-10 items-center gap-1.5 rounded-lg border border-red-400/40 px-3 text-[12px] font-black text-red-300 active:scale-95 transition">
                     <Trash2 className="h-3.5 w-3.5" /> {istEntwurf(p.id) ? "Verwerfen" : "Beitrag löschen"}
@@ -289,6 +406,21 @@ export default function BellaSimpleStudio() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Vollbild-Vorschau der Slide — Bild/Video groß ansehen. */}
+      {zoom && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/95 p-4" onClick={() => setZoom(null)}>
+          <button type="button" onClick={() => setZoom(null)} aria-label="Schließen"
+            className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white active:scale-95">
+            <X className="h-5 w-5" />
+          </button>
+          {zoom.kind === "video"
+            // eslint-disable-next-line jsx-a11y/media-has-caption
+            ? <video src={zoom.url} controls autoPlay playsInline onClick={e => e.stopPropagation()} className="max-h-full max-w-full rounded-2xl" />
+            // eslint-disable-next-line @next/next/no-img-element
+            : <img src={zoom.url} alt="" onClick={e => e.stopPropagation()} className="max-h-full max-w-full rounded-2xl object-contain" />}
         </div>
       )}
 

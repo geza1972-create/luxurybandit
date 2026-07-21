@@ -591,6 +591,9 @@ export default function AdminPage() {
     { k: "lookValueCents", label: "Value gift / look" },
     { k: "dayValueCents", label: "Value gift / day owned" },
     { k: "chatFreeMessages", label: "Chat — free messages", hint: "then membership", count: true },
+    { k: "wetterAboMonthlyCents", label: "Wetter-Abo / month", hint: "Wetter am Morgen (9,99 €)", stripe: true },
+    { k: "wetterAboTrialDays", label: "Wetter-Abo — free days", hint: "7 days trial", count: true },
+    { k: "chatDailyMessages", label: "Chat — messages / day", hint: "per subscriber", count: true },
   ];
   const COUNT_FIELDS = new Set(PRICE_FIELDS.filter(f => f.count).map(f => f.k)); // stored as-is, not cents
   const [pricingDraft, setPricingDraft] = useState<Record<string, string>>({});

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid, Crown, UserPlus } from "lucide-react";
+import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid, Crown, UserPlus, Film } from "lucide-react";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -387,6 +387,14 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <LayoutGrid className="h-5 w-5 shrink-0 text-amber-400" />
                   <span className="text-sm font-black text-white">Card Studio</span>
+                </button>
+              )}
+              {/* My Gallery — Admin: alle Videos; normaler User: seine eigenen Try-ons. Vollbild + Download. */}
+              {signedIn && (
+                <button type="button" onClick={() => navigate("/my-gallery")}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                  <Film className="h-5 w-5 shrink-0 text-amber-400" />
+                  <span className="text-sm font-black text-white">My Gallery</span>
                 </button>
               )}
               {/* Admin: view/act AS any model (impersonate) — picker with search + photos. */}
