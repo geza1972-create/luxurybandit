@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Volume2, VolumeX } from "lucide-react";
 
 // Was der ABONNENT auf /wetter/<model>?name=…&city=…&lang=… sieht:
 // persönlicher Gruß + Wetter aus seiner Stadt + Look vom Tag + Chat mit dem Model (im Abo unbegrenzt).
@@ -112,12 +112,19 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   // Look-Video: automatisch starten. Handys erlauben Autostart nur STUMM, deshalb muted +
   // playsInline. Das Poster ist bis dahin das Cover; ohne Poster zeigt der erste Frame.
   const lookVideoRef = useRef<HTMLVideoElement>(null);
+  const [vidPlaying, setVidPlaying] = useState(false);   // läuft das Video? (steuert den Scan-Ladebalken)
+  const [muted, setMuted] = useState(true);              // Autostart nur stumm erlaubt
   useEffect(() => {
     const v = lookVideoRef.current;
     if (!v || look?.kind !== "video") return;
     v.muted = true;
     v.play().catch(() => {});
   }, [look?.kind, look?.mediaUrl]);
+  const toggleMute = () => {
+    const v = lookVideoRef.current; if (!v) return;
+    v.muted = !v.muted; setMuted(v.muted);
+    if (v.paused) v.play().catch(() => {});
+  };
 
   // Wetter aus der Stadt des Abonnenten (Open-Meteo, CORS-frei, kein Key, weltweit).
   useEffect(() => {
@@ -194,13 +201,33 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
       {/* Look vom Tag */}
       {look && (
         <div className="relative mt-4 aspect-[3/4] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
-          {look.kind === "video"
-            // eslint-disable-next-line jsx-a11y/media-has-caption
-            ? <video ref={lookVideoRef} src={look.mediaUrl}
-                autoPlay muted loop playsInline controls preload="auto"
+          {look.kind === "video" ? (
+            <>
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              <video ref={lookVideoRef} src={look.mediaUrl}
+                autoPlay muted loop playsInline preload="auto"
+                onPlaying={() => setVidPlaying(true)}
+                onWaiting={() => setVidPlaying(false)}
+                onLoadedData={() => { const v = lookVideoRef.current; if (v) { v.muted = muted; v.play().catch(() => {}); } }}
                 className="h-full w-full object-contain object-top" />
+              {/* Lade-/Scan-Modus: läuft, bis das Video wirklich abspielt. */}
+              {!vidPlaying && (
+                <>
+                  <div className="pointer-events-none absolute inset-0 bg-black/30" />
+                  <span className="lb-scanline pointer-events-none absolute inset-x-3 h-[3px] rounded-full bg-gradient-to-r from-transparent via-[#c9a23f] to-transparent shadow-[0_0_16px_4px_rgba(201,162,63,0.55)]" />
+                  <span className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] font-black uppercase tracking-[0.25em] text-white/80">{L === "en" ? "loading" : L === "de" ? "lädt" : "se încarcă"}…</span>
+                </>
+              )}
+              {/* Ton an/aus (Autostart ist stumm). */}
+              <button type="button" onClick={toggleMute} aria-label="Ton"
+                className="lb-onmedia absolute bottom-2 right-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white ring-1 ring-white/25 backdrop-blur active:scale-95 transition">
+                {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
+            </>
+          ) : (
             // eslint-disable-next-line @next/next/no-img-element
-            : <img src={look.mediaUrl} alt="" className="h-full w-full object-contain object-top" />}
+            <img src={look.mediaUrl} alt="" className="h-full w-full object-contain object-top" />
+          )}
         </div>
       )}
 
