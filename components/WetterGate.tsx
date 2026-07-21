@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { Loader2, MailCheck } from "lucide-react";
+import { DIAL_CODES, flagEmoji } from "@/lib/countries";
+
+// Vorwahl-Auswahl (Flagge + Code + Dial), RO zuerst. Aus der gemeinsamen Länder-Liste.
+const DIAL_OPTIONS = Object.entries(DIAL_CODES)
+  .map(([code, dial]) => ({ code, dial }))
+  .sort((a, b) => (a.code === "RO" ? -1 : b.code === "RO" ? 1 : a.code.localeCompare(b.code)));
 
 // „Account" für Wetter am Morgen:
 //  • Kennt das Gerät schon eine Kennung (localStorage) → automatisch einloggen (?s=… laden).
@@ -50,13 +56,13 @@ const T: Record<string, Copy> = {
 
 // Floating-Label-Feld: leer = grau + großer Platzhalter; getippt/Fokus = WEISS mit schwarzem
 // Rand, und der Feldname rutscht klein nach oben, damit man immer weiß, was es ist.
-function LabeledInput({ label, value, onChange, invalid = false, type = "text", inputMode }: {
-  label: string; value: string; onChange: (v: string) => void; invalid?: boolean; type?: string; inputMode?: "email" | "tel" | "text";
+function LabeledInput({ label, value, onChange, invalid = false, type = "text", inputMode, autoComplete }: {
+  label: string; value: string; onChange: (v: string) => void; invalid?: boolean; type?: string; inputMode?: "email" | "tel" | "text"; autoComplete?: string;
 }) {
   const filled = !!value.trim();
   return (
     <div className="relative">
-      <input value={value} onChange={e => onChange(e.target.value)} placeholder=" " type={type} inputMode={inputMode}
+      <input value={value} onChange={e => onChange(e.target.value)} placeholder=" " type={type} inputMode={inputMode} autoComplete={autoComplete}
         className={`peer h-14 w-full rounded-xl border px-4 pb-1 pt-5 text-[15px] font-semibold text-white outline-none transition-colors focus:border-black focus:bg-white ${invalid ? "border-red-500 bg-white" : filled ? "border-black bg-white" : "border-white/15 bg-white/[0.04]"}`} />
       <label className="pointer-events-none absolute left-4 top-2 text-[11px] font-bold text-black/45 transition-all
         peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-[15px] peer-placeholder-shown:font-semibold peer-placeholder-shown:text-white/40
@@ -78,6 +84,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
   const [gender, setGender] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
+  const [dial, setDial] = useState("+40");   // Länder-Vorwahl (Default RO)
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -99,10 +106,12 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
     if (!name.trim() || !email.trim() || !birthdate || !gender || !city.trim() || !country.trim() || !phone.trim()) { setError(t.fillAll); return; }
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) { setError(t.badEmail); return; }
     setBusy(true); setError("");
+    // Vorwahl + nationale Nummer → international (führende 0 der nationalen Nummer weg).
+    const fullPhone = `${dial}${phone.replace(/[^\d]/g, "").replace(/^0+/, "")}`;
     try {
       const r = await fetch("/api/wetter-signup", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modelId, name, email, birthdate, gender, city, country, phone, lang: L }),
+        body: JSON.stringify({ modelId, name, email, birthdate, gender, city, country, phone: fullPhone, lang: L }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d?.error ?? "…"); return; }
@@ -134,26 +143,38 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
         <p className="mt-1.5 text-[14px] font-semibold leading-relaxed text-white/65">{t.sub}</p>
 
         <div className="mt-4 grid grid-cols-1 gap-2">
-          <LabeledInput label={t.name} value={name} onChange={setName} />
-          <LabeledInput label={t.email} value={email} onChange={setEmail} type="email" inputMode="email" invalid={!!email && !emailOk} />
+          <LabeledInput label={t.name} value={name} onChange={setName} autoComplete="name" />
+          <LabeledInput label={t.email} value={email} onChange={setEmail} type="email" inputMode="email" autoComplete="email" invalid={!!email && !emailOk} />
           {email && !emailOk && <p className="-mt-1 text-[11px] font-bold text-red-500">{t.badEmail}</p>}
           {/* Geburtsdatum — Feldname bleibt links stehen (type=date hat eine Mindestbreite). */}
           <label className={`flex h-14 w-full items-center rounded-xl border px-4 transition-colors focus-within:border-black focus-within:bg-white ${birthdate ? "border-black bg-white" : "border-white/15 bg-white/[0.04]"}`}>
             <span className="mr-2 shrink-0 text-[11px] font-bold text-black/45">{t.birthdate}</span>
-            <input value={birthdate} onChange={e => setBirthdate(e.target.value)} type="date"
+            <input value={birthdate} onChange={e => setBirthdate(e.target.value)} type="date" autoComplete="bday"
               className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold text-white outline-none" />
           </label>
           {/* Geschlecht — volle Breite. */}
-          <select value={gender} onChange={e => setGender(e.target.value)}
+          <select value={gender} onChange={e => setGender(e.target.value)} autoComplete="sex"
             className={`h-14 w-full rounded-xl border px-4 text-[15px] font-bold text-white outline-none transition-colors focus:border-black focus:bg-white ${gender ? "border-black bg-white" : "border-white/15 bg-white/[0.04]"}`}>
             <option value="" className="bg-[#0d0b0a]">{t.gender}</option>
             <option value="m" className="bg-[#0d0b0a]">{t.genderM}</option>
             <option value="f" className="bg-[#0d0b0a]">{t.genderF}</option>
             <option value="x" className="bg-[#0d0b0a]">{t.genderX}</option>
           </select>
-          <LabeledInput label={t.city} value={city} onChange={setCity} />
-          <LabeledInput label={t.country} value={country} onChange={setCountry} />
-          <LabeledInput label={t.phone} value={phone} onChange={setPhone} type="tel" inputMode="tel" />
+          {/* Stadt + Land — Browser-Autofill über autoComplete. */}
+          <LabeledInput label={t.city} value={city} onChange={setCity} autoComplete="address-level2" />
+          <LabeledInput label={t.country} value={country} onChange={setCountry} autoComplete="country-name" />
+          {/* WhatsApp — Länder-Vorwahl (Flagge + Code) + Nummer. */}
+          <div className="flex gap-2">
+            <select value={dial} onChange={e => setDial(e.target.value)} aria-label="Vorwahl"
+              className="h-14 w-[118px] shrink-0 rounded-xl border border-black bg-white px-2 text-[14px] font-bold text-white outline-none transition-colors focus:border-black">
+              {DIAL_OPTIONS.map(o => (
+                <option key={o.code} value={o.dial} className="bg-[#0d0b0a]">{flagEmoji(o.code)} {o.code} {o.dial}</option>
+              ))}
+            </select>
+            <div className="min-w-0 flex-1">
+              <LabeledInput label={t.phone} value={phone} onChange={setPhone} type="tel" inputMode="tel" autoComplete="tel-national" />
+            </div>
+          </div>
           <button type="button" onClick={() => void create()} disabled={busy}
             className="mt-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-black text-[15px] font-black text-white active:scale-95 transition disabled:opacity-50">
             {busy && <Loader2 className="h-4 w-4 animate-spin" />} {t.cta}
