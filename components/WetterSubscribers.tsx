@@ -103,8 +103,8 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
 
   return (
     <div className="rounded-2xl border border-white/15 bg-white p-4">
-      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Nur für dich sichtbar</p>
-      <h2 className="mt-1 flex items-center gap-2 text-[18px] font-black text-white"><Users className="h-4 w-4 text-[#c9a23f]" /> Abonnenten <span className="text-white/40">({subs.length})</span></h2>
+      <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/50">Nur für dich sichtbar</p>
+      <h2 className="mt-1 flex items-center gap-2 text-[18px] font-black text-white"><Users className="h-4 w-4 text-black/50" /> Abonnenten <span className="text-white/40">({subs.length})</span></h2>
       <p className="mt-0.5 text-[12px] font-semibold text-white/60">Wer bekommt die tägliche Nachricht von {modelName}. Jetzt manuell per WhatsApp senden — später automatisch.</p>
       {/* Schnell-Überblick: an wen NICHT mehr senden. */}
       {(() => {
@@ -113,33 +113,33 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
         return (unsub || expired) ? (
           <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-black">
             {unsub > 0 && <span className="text-red-400">🔴 {unsub} abgemeldet</span>}
-            {expired > 0 && <span className="text-amber-300">⌛ {expired} Test abgelaufen</span>}
+            {expired > 0 && <span className="text-black/50">⌛ {expired} Test abgelaufen</span>}
             <span className="text-white/45">→ diesen NICHT senden</span>
           </p>
         ) : null;
       })()}
 
       {/* Hinzufügen */}
-      <div className="mt-3 grid gap-2 rounded-xl border border-[#c9a23f]/30 bg-[#c9a23f]/[0.05] p-3">
+      <div className="mt-3 grid gap-2 rounded-xl border border-black/10 bg-black/[0.02] p-3">
         <p className="text-[11px] font-black uppercase tracking-wide text-white/55">Neuen Abonnenten hinzufügen</p>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="Name — z. B. Remus"
-          className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]" />
+          className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-black" />
         <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Telefon mit Vorwahl — z. B. +40 712 345 678" inputMode="tel"
-          className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]" />
+          className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-black" />
         <input value={city} onChange={e => setCity(e.target.value)} placeholder="Stadt (fürs Wetter) — z. B. Timișoara"
-          className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]" />
+          className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-black" />
         <div className="flex gap-2">
           <input value={country} onChange={e => setCountry(e.target.value)} placeholder="Land — z. B. România"
-            className="h-11 min-w-0 flex-1 rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]" />
+            className="h-11 min-w-0 flex-1 rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-black" />
           <select value={lang} onChange={e => setLang(e.target.value)}
-            className="h-11 rounded-lg border border-white/15 bg-white/[0.04] px-2 text-[15px] font-bold text-white outline-none focus:border-[#c9a23f]">
+            className="h-11 rounded-lg border border-white/15 bg-white/[0.04] px-2 text-[15px] font-bold text-white outline-none focus:border-black">
             {LANGS.map(l => <option key={l} value={l} className="bg-[#0d0b0a]">{l.toUpperCase()}</option>)}
           </select>
         </div>
         <input value={note} onChange={e => setNote(e.target.value)} placeholder="Notiz (optional) — z. B. Freund, Test"
-          className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[14px] font-medium text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]" />
+          className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[14px] font-medium text-white outline-none placeholder:text-white/35 focus:border-black" />
         <button type="button" onClick={() => void add()} disabled={busy}
-          className="flex h-11 items-center justify-center gap-2 rounded-lg bg-[#c9a23f] text-[14px] font-black text-black active:scale-95 transition disabled:opacity-50">
+          className="lb-onmedia flex h-11 items-center justify-center gap-2 rounded-lg bg-[#1a160f] text-[14px] font-black text-white active:scale-95 transition disabled:opacity-50">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Hinzufügen
         </button>
       </div>
@@ -171,10 +171,10 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
                     {s.unsubscribed
                       ? <span className="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[9px] font-black text-red-400">🔴 abgemeldet</span>
                       : trialExpired(s, trialDays)
-                        ? <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-black text-amber-300">⌛ Test abgelaufen</span>
+                        ? <span className="rounded-full bg-black/[0.07] px-1.5 py-0.5 text-[9px] font-black text-black/55">⌛ Test abgelaufen</span>
                         : s.email && (s.confirmed
                           ? <span className="rounded-full bg-emerald-400/15 px-1.5 py-0.5 text-[9px] font-black text-emerald-400">✓ bestätigt</span>
-                          : <span className="rounded-full bg-amber-400/15 px-1.5 py-0.5 text-[9px] font-black text-amber-400">⏳ unbestätigt</span>)}
+                          : <span className="rounded-full bg-black/[0.07] px-1.5 py-0.5 text-[9px] font-black text-black/55">⏳ unbestätigt</span>)}
                   </p>
                   {/* E-Mail + Telefon VOLLSTÄNDIG (umbrechend, nicht abgeschnitten). */}
                   {s.email && <p className="break-all text-[12px] font-semibold text-white/65">✉ {s.email}</p>}
@@ -203,7 +203,7 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
                     <MessageCircle className="h-4 w-4" /> Senden
                   </a>
                 ) : (
-                  <span className="flex h-9 flex-1 items-center justify-center rounded-lg border border-amber-400/30 text-[11px] font-black text-amber-400/70">Keine Nr.</span>
+                  <span className="flex h-9 flex-1 items-center justify-center rounded-lg border border-black/20 text-[11px] font-black text-black/45">Keine Nr.</span>
                 )}
                 <button type="button" onClick={() => void remove(s.id)} aria-label="Löschen"
                   className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-red-400/40 text-red-300 active:scale-95 transition">

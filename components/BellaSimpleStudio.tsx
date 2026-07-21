@@ -326,19 +326,19 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
           {posts.map(p => (
             // Bild oben, Textfelder darunter über die volle Breite — nebeneinander
             // waren die Felder auf dem Handy zu schmal zum Schreiben.
-            <div key={p.id} className={`grid gap-2 rounded-xl border bg-white/[0.03] p-2 ${istEntwurf(p.id) ? "border-[#c9a23f]/60" : "border-white/10"}`}>
+            <div key={p.id} className={`grid gap-2 rounded-xl border bg-white/[0.03] p-2 ${istEntwurf(p.id) ? "border-black/40" : "border-white/10"}`}>
               {/* Aufs Bild tippen = neues Bild/Video für DIESEN Beitrag. Text bleibt. */}
               <div className="relative h-28 w-[84px]">
                 <button type="button" disabled={replacingId === p.id}
                   onClick={() => { replaceTarget.current = p.id; replaceRef.current?.click(); }}
-                  className={`block h-full w-full overflow-hidden rounded-lg bg-black transition active:scale-95 ${p.pending ? "ring-2 ring-[#c9a23f]" : ""}`}>
+                  className={`block h-full w-full overflow-hidden rounded-lg bg-black transition active:scale-95 ${p.pending ? "ring-2 ring-black/50" : ""}`}>
                   {/* Nach dem Tauschen die VORSCHAU zeigen — live ist sie erst nach Übernehmen. */}
                   {(p.pending?.kind ?? p.kind) === "video"
                     // eslint-disable-next-line jsx-a11y/media-has-caption
                     ? <video src={p.pending?.previewUrl ?? p.mediaUrl} className="h-full w-full object-cover" muted playsInline />
                     // eslint-disable-next-line @next/next/no-img-element
                     : <img src={p.pending?.previewUrl ?? p.mediaUrl} alt="" className="h-full w-full object-cover" />}
-                  <span className={`absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 py-1 text-[9px] font-black uppercase tracking-wide ${p.pending ? "bg-[#c9a23f] text-black" : "bg-black/70 text-white"}`}>
+                  <span className={`lb-onmedia absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 py-1 text-[9px] font-black uppercase tracking-wide ${p.pending ? "bg-[#1a160f] text-white" : "bg-black/70 text-white"}`}>
                     {replacingId === p.id
                       ? <Loader2 className="h-3 w-3 animate-spin" />
                       : p.pending ? (istEntwurf(p.id) ? "Neuer Beitrag" : "Neu — noch nicht live")
@@ -363,16 +363,16 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
                       className="h-10 w-[104px] rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[14px] font-bold text-white outline-none focus:border-black" />
                     <button type="button" onClick={() => edit(p.id, { day: todayISO() })}
                       className="h-10 rounded-lg border border-white/15 px-3 text-[12px] font-black text-white/75 active:scale-95 transition">Heute</button>
-                    {!p.day && <span className="text-[11px] font-bold text-amber-400/70">noch nicht gesetzt</span>}
+                    {!p.day && <span className="text-[11px] font-bold text-black/45">noch nicht gesetzt</span>}
                   </div>
                   <p className="mt-1 text-[11px] font-semibold text-white/40">Uhrzeit nur nötig, wenn du mehrere Beiträge am selben Tag hast.</p>
                 </div>
 
                 {/* 📣 Werbung — dieser Beitrag ist die BESUCHER-Vorschau (nicht eingeloggt), nicht der Abo-Alltag. */}
                 <button type="button" onClick={() => edit(p.id, { ad: !p.ad })}
-                  className={`flex items-center justify-between rounded-lg border px-3 py-2.5 text-left transition active:scale-[0.99] ${p.ad ? "border-[#c9a23f] bg-[#c9a23f]/15" : "border-white/15 bg-white/[0.03]"}`}>
+                  className={`flex items-center justify-between rounded-lg border px-3 py-2.5 text-left transition active:scale-[0.99] ${p.ad ? "border-black bg-black/10" : "border-white/15 bg-white/[0.03]"}`}>
                   <span className="text-[13px] font-black text-white">📣 Werbung — Besucher sehen das</span>
-                  <span className={`relative h-6 w-11 shrink-0 rounded-full transition ${p.ad ? "bg-[#c9a23f]" : "bg-white/20"}`}>
+                  <span className={`relative h-6 w-11 shrink-0 rounded-full transition ${p.ad ? "bg-[#1a160f]" : "bg-white/20"}`}>
                     <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${p.ad ? "left-[22px]" : "left-0.5"}`} />
                   </span>
                 </button>
@@ -400,10 +400,10 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
 
                 {/* „Bellas Tag" — Chat-Kontext: steuert, wie sie heute antwortet. */}
                 <div>
-                  <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-[#c9a23f]/90">Ihr Tag heute — steuert den Chat</p>
+                  <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-black/55">Ihr Tag heute — steuert den Chat</p>
                   <textarea value={p.context} rows={3} placeholder="Wo ist sie, was macht sie? z. B. Azi sunt în Nisa, plimbare pe faleză, port un look nou…"
                     onChange={e => edit(p.id, { context: e.target.value })}
-                    className="w-full resize-y rounded-lg border border-[#c9a23f]/30 bg-[#c9a23f]/[0.06] px-3 py-2.5 text-[14px] font-semibold leading-relaxed text-white outline-none placeholder:text-[12px] placeholder:text-white/35 focus:border-[#c9a23f]" />
+                    className="w-full resize-y rounded-lg border border-black/15 bg-white/[0.04] px-3 py-2.5 text-[14px] font-semibold leading-relaxed text-white outline-none placeholder:text-[12px] placeholder:text-white/35 focus:border-black" />
                 </div>
 
                 {/* Erste Chat-Nachricht (optional) — leer = Standard-Gruß. */}
@@ -444,7 +444,7 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
                   </button>
                 </div>
                 {dirtyIds.includes(p.id) && (
-                  <p className="text-[11px] font-bold text-[#c9a23f]/80">
+                  <p className="text-[11px] font-bold text-black/60">
                     {istEntwurf(p.id) ? "Neu — Text schreiben, dann Übernehmen. Erst dann steht er auf der Seite."
                       : p.pending ? "Neues Bild und Text — noch nicht übernommen."
                       : "Noch nicht übernommen."}
