@@ -1,29 +1,40 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { Search, Send, Instagram } from "lucide-react";
 
 /**
- * The ONE shared top bar for every page. Left: LB logo + wordmark → home (root
- * landing). Right: optional page-specific action icons (search/share/…).
+ * The ONE shared top bar for every page. Left: LB logo + wordmark → home. Right:
+ * the 3 CI icons (Search · Share · Instagram) by default — pass `actions` to
+ * override them (e.g. /stores wires the Search icon to its own search bar).
  *
  * KEIN Hamburger-Menü mehr hier — das Menü lebt appweit UNTEN (BottomNav's
- * Floating-Button). So gibt es nie zwei Menüs. Page-specific chrome (search
- * fields, filter chips, tabs) lives in a SEPARATE row BELOW this bar.
+ * Floating-Button). Page-specific chrome (search fields, filter chips, tabs)
+ * lives in a SEPARATE row BELOW this bar.
  */
 export default function TopNav({
   subtitle = "The influencer marketplace",
   actions,
 }: {
   subtitle?: string;
-  actions?: React.ReactNode;
+  actions?: React.ReactNode;          // override the default 3 CI icons
 }) {
   const router = useRouter();
+  const ig = process.env.NEXT_PUBLIC_INSTAGRAM_HANDLE ?? "luxurybandit";
+  const share = () => {
+    try {
+      const url = window.location.href;
+      if (typeof navigator !== "undefined" && navigator.share) { navigator.share({ title: "LuxuryBandit", url }).catch(() => {}); }
+      else { navigator.clipboard?.writeText(url).catch(() => {}); }
+    } catch { /**/ }
+  };
+  const iconBtn = "flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 transition hover:text-white";
+
   return (
     <header data-topnav="1" className="sticky top-0 z-30 border-b border-white/10 bg-[#0d0b0a]/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5">
-        {/* Brand → the "Own an AI Influencer" landing. Target its real route (not "/")
-            so client-side nav lands there directly, instead of falling through the old
-            root→/stores redirect chain (which, for admins, ends on /admin/stores). */}
+        {/* Brand → the marketplace. Target its real route (not "/") so client-side nav
+            lands there directly, instead of the old root→/stores redirect chain. */}
         <button type="button" onClick={() => router.push("/stores?view=models")} aria-label="Home"
           className="flex min-w-0 items-center gap-2 active:opacity-70 transition-opacity">
           <span className="relative h-9 w-9 shrink-0">
@@ -38,8 +49,22 @@ export default function TopNav({
           </span>
         </button>
 
-        {/* Right: optional page actions only — no menu button (menu is in the bottom nav). */}
-        {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+        {/* Right: the 3 CI icons (or a page override). No menu button — menu is in the bottom nav. */}
+        <div className="flex shrink-0 items-center gap-2">
+          {actions ?? (
+            <>
+              <button type="button" onClick={() => router.push("/stores?view=grid")} className={iconBtn} aria-label="Search">
+                <Search className="h-4 w-4" />
+              </button>
+              <button type="button" onClick={share} className={iconBtn} aria-label="Share">
+                <Send className="h-4 w-4" />
+              </button>
+              <a href={`https://instagram.com/${ig}`} target="_blank" rel="noopener noreferrer" className={iconBtn} aria-label="Instagram">
+                <Instagram className="h-4 w-4" />
+              </a>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );
