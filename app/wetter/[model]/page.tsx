@@ -85,6 +85,7 @@ export default async function WetterModelPage({ params, searchParams }: {
       {recognized ? (
         /* EINGELOGGTER ABONNENT: Gruß + Wetter + Look + Chat. subId → Gerät merkt sich den Login. */
         <WetterSubscriberView name={subName} city={subCity} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken}
+          day={posts[0]?.day || ""} time={posts[0]?.time || ""}
           look={posts[0] ? { kind: posts[0].kind, mediaUrl: posts[0].mediaUrl, posterUrl: posts[0].posterUrl || undefined } : null} />
       ) : (
         /* BESUCHER: Beiträge-Karussell + Account anlegen (oder Gerät automatisch einloggen). */

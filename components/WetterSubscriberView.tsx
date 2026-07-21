@@ -76,12 +76,28 @@ const T: Record<string, Copy> = {
   },
 };
 
-export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "" }: {
-  name: string; city: string; look: Look | null; lang?: string; modelId?: string; modelName?: string; subId?: string;
+// "2026-07-21" → "21.07.2026" (ohne Date, hydration-sicher).
+function fmtDay(s: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : s;
+}
+
+export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", day = "", time = "" }: {
+  name: string; city: string; look: Look | null; lang?: string; modelId?: string; modelName?: string; subId?: string; day?: string; time?: string;
 }) {
   const L = (lang || DEFAULT_LANG).slice(0, 2).toLowerCase();
   const t = T[L] ?? T.en;
   const wxWords = WX[L] ?? WX.en;
+
+  // Datum + Uhrzeit über dem Titel. Hat der Beitrag einen Tag, den zeigen; sonst das
+  // heutige Datum + aktuelle Uhrzeit (erst im Effekt gesetzt → keine SSR-Abweichung).
+  const [nowLabel, setNowLabel] = useState("");
+  useEffect(() => {
+    if (day) return;
+    const d = new Date(); const p = (n: number) => String(n).padStart(2, "0");
+    setNowLabel(`${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} · ${p(d.getHours())}:${p(d.getMinutes())}`);
+  }, [day]);
+  const dateLine = day ? (fmtDay(day) + (time ? ` · ${time}` : "")) : nowLabel;
 
   // Login auf DIESEM Gerät merken: kommt der Abonnent per `?s=`-Link, speichern wir die
   // Kennung — beim nächsten Öffnen von /wetter/<model> erkennt ihn die Seite ohne Link.
@@ -160,6 +176,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     <div className="mx-auto max-w-md px-4">
       {/* Persönlicher Gruß + Wetter */}
       <div className="pt-5">
+        {dateLine && <p className="mb-1 text-[11px] font-black uppercase tracking-[0.14em] text-white/50">📅 {dateLine}</p>}
         <p className="text-[24px] font-black leading-tight text-white">{t.greet(name)}</p>
         <p className="mt-1 text-[14px] font-semibold text-white/70">
           {weather ? t.wxLine(city, weather.word, weather.e, weather.temp) : t.wxLoading(city)}
@@ -171,8 +188,8 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         <div className="relative mt-4 aspect-[3/4] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
           {look.kind === "video"
             // eslint-disable-next-line jsx-a11y/media-has-caption
-            ? <video ref={lookVideoRef} src={look.mediaUrl} poster={look.posterUrl || undefined}
-                autoPlay muted loop playsInline controls preload="metadata"
+            ? <video ref={lookVideoRef} src={look.mediaUrl}
+                autoPlay muted loop playsInline controls preload="auto"
                 className="h-full w-full object-contain object-top" />
             // eslint-disable-next-line @next/next/no-img-element
             : <img src={look.mediaUrl} alt="" className="h-full w-full object-contain object-top" />}
