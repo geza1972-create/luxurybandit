@@ -117,11 +117,11 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
 }) {
   const L = (lang || "ro").slice(0, 2).toLowerCase();
   const t = T[L] ?? T.ro;
-  // Kleingedruckte Abo-Zeile (dynamisch aus der Admin-Preisliste).
-  const price = (monthlyCents / 100).toFixed(2).replace(".", L === "en" ? "." : ",");
-  const trialLine = L === "de" ? `${trialDays} Tage gratis, danach ${price} €/Monat · jederzeit kündbar`
-    : L === "en" ? `${trialDays} days free, then €${price}/month · cancel anytime`
-    : `${trialDays} zile gratis, apoi ${price} €/lună · anulezi oricând`;
+  // Anmeldung ist KOMPLETT gratis (kein Abo, keine Karte). Ein Abo wird erst NACH der
+  // Testphase per E-Mail angeboten — hier also NICHTS von „danach 9,99 €" (missverständlich).
+  const trialLine = L === "de" ? "Kostenlos & unverbindlich — kein Abo, keine Karte."
+    : L === "en" ? "Free & no commitment — no subscription, no card."
+    : "Gratis, fără obligații — fără abonament, fără card.";
 
   const [checking, setChecking] = useState(true);   // prüft, ob das Gerät schon eingeloggt ist
   const [name, setName] = useState("");
