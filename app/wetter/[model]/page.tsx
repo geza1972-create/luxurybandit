@@ -83,8 +83,9 @@ export default async function WetterModelPage({ params, searchParams }: {
           ownedName={card.owner || ""} isOwned={!!card.owner} />
       )}
 
-      {/* Inhalt: HELL (Tageslicht-lesbar). lb-theme + lb-bg auf demselben Element. */}
-      <div className="lb-theme lb-bg min-h-[100dvh] pb-16 text-white">
+      {/* Inhalt (Kunde): HELL (Tageslicht-lesbar). lb-theme + lb-bg auf demselben Element.
+          Volle Höhe nur ohne Admin — mit Admin folgt gleich der dunkle Werkzeug-Block. */}
+      <div className={`lb-theme lb-bg pb-16 text-white ${showAdmin ? "" : "min-h-[100dvh]"}`}>
         {recognized ? (
           /* EINGELOGGTER ABONNENT: Gruß + Wetter + Look + Chat. subId → Gerät merkt sich den Login. */
           <WetterSubscriberView name={subName} city={subCity} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken}
@@ -101,15 +102,16 @@ export default async function WetterModelPage({ params, searchParams }: {
             <WetterGate modelId={modelId} modelName={modelName} lang={subLang} />
           </>
         )}
-
-        {/* Admin-Werkzeuge — NUR mit ?admin=1 (nie in der Kundenansicht), zusätzlich PIN-gated. */}
-        {showAdmin && (
-          <div className="px-4 pt-12">
-            <BellaSimpleStudio modelId={modelId} modelName={modelName} />
-            <WetterSubscribers modelId={modelId} modelSlug={model} modelName={modelName} />
-          </div>
-        )}
       </div>
+
+      {/* Admin-Werkzeuge — NUR mit ?admin=1, zusätzlich PIN-gated. BEWUSST außerhalb des
+          hellen Themes → sie bleiben dunkel (so gebaut: Gold auf Schwarz). */}
+      {showAdmin && (
+        <div className="px-4 pb-16 pt-8">
+          <BellaSimpleStudio modelId={modelId} modelName={modelName} />
+          <WetterSubscribers modelId={modelId} modelSlug={model} modelName={modelName} />
+        </div>
+      )}
     </main>
   );
 }
