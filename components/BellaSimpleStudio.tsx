@@ -295,7 +295,7 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
   if (!isAdmin) return null;
 
   return (
-    <div className="rounded-2xl border border-white/15 bg-white/[0.04] p-4">
+    <div className="rounded-2xl border border-white/15 bg-white p-4">
       <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Nur für dich sichtbar</p>
       <h2 className="mt-1 text-[18px] font-black text-white">Beiträge</h2>
       <p className="mt-0.5 text-[12px] font-semibold text-white/60">Bild oder Video hochladen, Titel und Text dazuschreiben — dann bei dem Beitrag auf <b className="text-white/80">Übernehmen</b>.</p>

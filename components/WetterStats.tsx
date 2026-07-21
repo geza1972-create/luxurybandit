@@ -48,7 +48,7 @@ export default function WetterStats({ modelId = "curator-1783683672619-td4cy" }:
   );
 
   return (
-    <div className="mt-4 rounded-2xl border border-white/15 bg-white/[0.04] p-4">
+    <div className="mt-4 rounded-2xl border border-white/15 bg-white p-4">
       <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Nur für dich sichtbar</p>
       <h2 className="mt-1 flex items-center gap-2 text-[18px] font-black text-white"><BarChart3 className="h-4 w-4 text-[#c9a23f]" /> Insights</h2>
 
