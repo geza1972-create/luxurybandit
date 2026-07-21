@@ -115,9 +115,9 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
                       </span>
                     </button>
                   )}
-                  {/* Ton an/aus (Autostart ist stumm). */}
+                  {/* Ton an/aus (Autostart ist stumm) — oben links, NICHT über der Caption. */}
                   <button type="button" onClick={(e) => { e.stopPropagation(); toggleMute(); }} aria-label="Ton"
-                    className="lb-onmedia absolute bottom-2 left-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/30 backdrop-blur transition active:scale-95">
+                    className="lb-onmedia absolute left-2 top-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/30 backdrop-blur transition active:scale-95">
                     {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                   </button>
                 </>
