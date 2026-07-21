@@ -242,7 +242,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
             </span>
           </label>
           <button type="button" onClick={() => void create()} disabled={busy}
-            className="mt-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-white text-[15px] font-black text-black shadow-md active:scale-95 transition disabled:opacity-50">
+            className="lb-onmedia mt-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-[#1a160f] text-[15px] font-black text-white shadow-md active:scale-95 transition disabled:opacity-50">
             {busy && <Loader2 className="h-4 w-4 animate-spin" />} {t.cta}
           </button>
         </div>
