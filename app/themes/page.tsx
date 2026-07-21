@@ -3,7 +3,7 @@ import TopNav from "@/components/TopNav";
 import { CloudSun, Sparkles, Flame, MapPin, KeyRound, Lock } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
-import { readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts } from "@/lib/try-this-look-store";
+import { readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, readTryThisLookState } from "@/lib/try-this-look-store";
 
 // Katalog aller „Themen" als bildstarke Galerie (wie die Reel-/Models-Galerie).
 // Aktiv: Wetter am Morgen (/themes/wetter/<model>). Weitere sind vorbereitet (coming soon).
@@ -33,12 +33,23 @@ export default async function ThemesCatalog() {
     }
   } catch { /**/ }
 
+  // Platzhalter-Cover für die „coming soon"-Themen = echte Model-Fotos aus dem Katalog
+  // (signierte URLs, keine intimen Bilder). Später bekommt jedes Thema sein eigenes Ad-Video.
+  let placeholders: string[] = [];
+  try {
+    const state = await readTryThisLookState();
+    placeholders = ((state?.curators ?? []) as Array<{ id?: string; photoUrl?: string; hidden?: boolean; status?: string }>)
+      .filter(c => c.id !== BELLA_ID && !!c.photoUrl && !c.hidden && c.status !== "removed")
+      .map(c => c.photoUrl as string);
+  } catch { /**/ }
+  const ph = (i: number) => placeholders[i % Math.max(1, placeholders.length)] || undefined;
+
   const THEMES: Theme[] = [
     { icon: CloudSun, title: "Morning Weather", tagline: "Your weather, a new look & a chat — every morning.", href: "/themes/wetter/bella", cover: wetterCover, video: wetterVideo, poster: wetterPoster },
-    { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every single day." },
-    { icon: Flame, title: "Lingerie Looks", tagline: "A daily intimate look — tasteful, private." },
-    { icon: MapPin, title: "City Secrets", tagline: "Learn a city every day — hidden gems & stories." },
-    { icon: KeyRound, title: "Secrets", tagline: "A little secret she shares only with you." },
+    { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every single day.", cover: ph(0) },
+    { icon: Flame, title: "Lingerie Looks", tagline: "A daily intimate look — tasteful, private.", cover: ph(1) },
+    { icon: MapPin, title: "City Secrets", tagline: "Learn a city every day — hidden gems & stories.", cover: ph(2) },
+    { icon: KeyRound, title: "Secrets", tagline: "A little secret she shares only with you.", cover: ph(3) },
   ];
 
   return (
@@ -71,7 +82,7 @@ export default async function ThemesCatalog() {
                       className="h-full w-full object-cover object-top" />
                   ) : t.cover ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={t.cover} alt="" className="h-full w-full object-cover object-top" />
+                    <img src={t.cover} alt="" className={`h-full w-full object-cover object-top ${active ? "" : "brightness-[0.8]"}`} />
                   ) : (
                     <div className="absolute inset-0 grid place-items-center"><Icon className="h-16 w-16 text-white/10" strokeWidth={1.25} /></div>
                   )}
