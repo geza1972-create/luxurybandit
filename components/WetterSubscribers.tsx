@@ -148,24 +148,28 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
                     {[s.city, s.phone, s.note].filter(Boolean).join(" · ") || "—"}
                   </p>
                 </div>
-                {/* Persönlichen Link kopieren — für jeden Kanal (WhatsApp, SMS, überall). */}
-                <button type="button" onClick={() => void copyLink(s)} aria-label="Link kopieren"
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/15 text-white/75 active:scale-95 transition">
-                  {copiedId === s.id ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                </button>
-                {/* Manuell senden — öffnet WhatsApp mit vorbefülltem Text + persönlichem Link. */}
-                {wa ? (
-                  <a href={wa} target="_blank" rel="noopener noreferrer" onClick={() => setSent(m => ({ ...m, [s.id]: true }))}
-                    className="flex h-9 items-center gap-1.5 rounded-lg bg-[#25D366] px-3 text-[12px] font-black text-black active:scale-95 transition">
-                    <MessageCircle className="h-3.5 w-3.5" /> Senden
-                  </a>
-                ) : (
-                  <span className="text-[11px] font-bold text-amber-400/70">keine Nr.</span>
-                )}
-                <button type="button" onClick={() => void remove(s.id)} aria-label="Löschen"
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-red-400/40 text-red-300 active:scale-95 transition">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                {/* Aktionen als kompakter Icon-Block — schrumpft nicht, läuft nie aus dem Bild. */}
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {/* Persönlichen Link kopieren — für jeden Kanal (WhatsApp, SMS, überall). */}
+                  <button type="button" onClick={() => void copyLink(s)} aria-label="Link kopieren"
+                    className="grid h-9 w-9 place-items-center rounded-lg border border-white/15 text-white/75 active:scale-95 transition">
+                    {copiedId === s.id ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+                  </button>
+                  {/* Manuell senden — öffnet WhatsApp mit vorbefülltem Text + persönlichem Link (Icon-only). */}
+                  {wa ? (
+                    <a href={wa} target="_blank" rel="noopener noreferrer" aria-label="Per WhatsApp senden"
+                      onClick={() => setSent(m => ({ ...m, [s.id]: true }))}
+                      className="grid h-9 w-9 place-items-center rounded-lg bg-[#25D366] text-black active:scale-95 transition">
+                      <MessageCircle className="h-4 w-4" />
+                    </a>
+                  ) : (
+                    <span className="grid h-9 w-9 place-items-center rounded-lg border border-amber-400/30 text-[9px] font-black leading-tight text-amber-400/70">Nr?</span>
+                  )}
+                  <button type="button" onClick={() => void remove(s.id)} aria-label="Löschen"
+                    className="grid h-9 w-9 place-items-center rounded-lg border border-red-400/40 text-red-300 active:scale-95 transition">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             );
           })}
