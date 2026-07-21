@@ -15,19 +15,19 @@ export async function GET(request: Request) {
   const token = url.searchParams.get("token")?.trim() || "";
   const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || url.origin;
 
-  if (!token) return NextResponse.redirect(`${origin}/wetter/${encodeURIComponent(modelId)}`);
+  if (!token) return NextResponse.redirect(`${origin}/themes/wetter/${encodeURIComponent(modelId)}`);
 
   try {
     const subs = await readWetterSubscribers(modelId);
     const sub = subs.find(s => s.confirmToken === token);
-    if (!sub) return NextResponse.redirect(`${origin}/wetter/${encodeURIComponent(modelId)}?confirm=invalid`);
+    if (!sub) return NextResponse.redirect(`${origin}/themes/wetter/${encodeURIComponent(modelId)}?confirm=invalid`);
     if (!sub.confirmed) {
       sub.confirmed = true;
       await writeWetterSubscribers(subs, modelId);
     }
     // In die persönliche Ansicht — ?s= loggt das Gerät ein, ?confirmed=1 zeigt den Haken.
-    return NextResponse.redirect(`${origin}/wetter/${encodeURIComponent(modelId)}?s=${encodeURIComponent(sub.id)}&confirmed=1`);
+    return NextResponse.redirect(`${origin}/themes/wetter/${encodeURIComponent(modelId)}?s=${encodeURIComponent(sub.id)}&confirmed=1`);
   } catch {
-    return NextResponse.redirect(`${origin}/wetter/${encodeURIComponent(modelId)}?confirm=error`);
+    return NextResponse.redirect(`${origin}/themes/wetter/${encodeURIComponent(modelId)}?confirm=error`);
   }
 }

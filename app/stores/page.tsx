@@ -2872,7 +2872,7 @@ function StoresPage() {
                 </div>
                 <div className="mt-3.5 flex flex-col items-start gap-1.5">
                   {/* PRIMÄR: Wetter am Morgen (Bella) — das Aushängeschild. */}
-                  <button type="button" onClick={() => router.push("/wetter/bella")}
+                  <button type="button" onClick={() => router.push("/themes/wetter/bella")}
                     className="lb-gold flex h-11 items-center justify-center gap-1.5 rounded-full px-5 text-sm font-black active:scale-95 transition-transform">
                     <Sparkles className="h-4 w-4" /> {HERO[heroLang].wetterCta}
                   </button>

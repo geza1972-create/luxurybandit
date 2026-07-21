@@ -311,13 +311,18 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 </button>
                 {openThemen && (
                   <div className="bg-black/25">
-                    <button type="button" onClick={() => navigate("/wetter/bella")}
+                    <button type="button" onClick={() => navigate("/themes")}
+                      className="flex w-full items-center gap-3 py-3 pl-14 pr-5 text-left active:bg-white/[0.06] transition">
+                      <Layers className="h-5 w-5 shrink-0 text-amber-400" />
+                      <span className="text-sm font-bold text-white">Browse all topics</span>
+                    </button>
+                    <button type="button" onClick={() => navigate("/themes/wetter/bella")}
                       className="flex w-full items-center gap-3 py-3 pl-14 pr-5 text-left active:bg-white/[0.06] transition">
                       <CloudSun className="h-5 w-5 shrink-0 text-amber-400" />
                       <span className="text-sm font-bold text-white">Morning Weather</span>
                     </button>
                     {isStaff && (
-                      <button type="button" onClick={() => navigate("/wetter/bella?admin=1")}
+                      <button type="button" onClick={() => navigate("/themes/wetter/bella?admin=1")}
                         className="flex w-full items-center gap-3 py-2.5 pl-14 pr-5 text-left text-white/60 active:bg-white/[0.06] transition">
                         <Shield className="h-4 w-4 shrink-0 text-violet-400" />
                         <span className="text-[13px] font-bold">Morning Weather — manage</span>
@@ -329,7 +334,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               {/* Meine Morgennachricht — Shortcut zur persönlichen Wetter-am-Morgen-Ansicht,
                   sichtbar sobald das Gerät angemeldet ist (loggt über den gespeicherten Login ein). */}
               {hasWetter && (
-                <button type="button" onClick={() => navigate("/wetter/bella")}
+                <button type="button" onClick={() => navigate("/themes/wetter/bella")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <CloudSun className="h-5 w-5 shrink-0 text-amber-400" />
                   <span className="text-sm font-black text-white">My morning message</span>

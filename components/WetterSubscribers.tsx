@@ -88,7 +88,7 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
   };
 
   // Persönlicher Link = unsichtbare Kennung `?s=` (kein Name/Telefon in der URL) + WhatsApp-Adresse.
-  const personalLink = (s: Sub) => `${origin}/wetter/${encodeURIComponent(modelSlug)}?s=${encodeURIComponent(s.id)}`;
+  const personalLink = (s: Sub) => `${origin}/themes/wetter/${encodeURIComponent(modelSlug)}?s=${encodeURIComponent(s.id)}`;
   const waLink = (s: Sub) => {
     const digits = (s.phone || "").replace(/[^\d]/g, "");
     const text = encodeURIComponent(sendText(s.lang || "ro", s.name, personalLink(s)));
