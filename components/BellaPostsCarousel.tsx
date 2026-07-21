@@ -113,16 +113,11 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
                 className="lb-onmedia absolute right-2 top-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white ring-1 ring-white/30 backdrop-blur transition active:scale-95">
                 <Maximize2 className="h-4 w-4" />
               </button>
-            </div>
-
-            {/* Der Text hängt NICHT mehr unten am Bild, sondern beginnt bei jeder Slide
-                an derselben Stelle: 55 % der Bildhöhe. Ein langer Text läuft nach unten
-                über das Bild hinaus weiter — der Verlauf endet in der Seitenfarbe, damit
-                das nahtlos aussieht. Durchklickbar, sonst käme das Video nicht an den Tipp. */}
-            {/* -mt in Prozent der BREITE. 60 % → 49,3 % → 33,3 %: der Text sitzt damit
-                100 px tiefer als anfangs (bei 375 px Bildschirm) und skaliert mit. */}
-            {(p.title || p.caption || fmtDay(p.day, p.time)) && (
-              <div className="lb-onmedia pointer-events-none relative -mt-[33.3%] bg-gradient-to-b from-transparent via-[#0d0b0a]/85 to-[#0d0b0a] px-5 pb-4 pt-10">
+              {/* Text-Overlay: ABSOLUT im Bild verankert (unten). Verlauf läuft nach oben ins
+                  Transparente aus und endet IMMER an der Bildkante → nie ein dunkler Streifen
+                  auf der Seite, in hell UND dunkel. Das war die Ursache des „Verlauf-Problems". */}
+              {(p.title || p.caption || fmtDay(p.day, p.time)) && (
+                <div className="lb-onmedia pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0d0b0a] via-[#0d0b0a]/70 to-transparent px-5 pb-4 pt-16">
                 {/* Für welchen Tag (+ Uhrzeit) der Beitrag ist — direkt über dem Titel. */}
                 {fmtDay(p.day, p.time) && (
                   <p className="mb-1.5 text-[12px] font-black uppercase tracking-wide text-white/85 drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">📅 {fmtDay(p.day, p.time)}</p>
@@ -135,8 +130,9 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
                     {p.caption}
                   </p>
                 )}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </article>
         ))}
       </div>

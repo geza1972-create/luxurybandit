@@ -76,22 +76,20 @@ function ageFrom(bd: string): number {
   return age;
 }
 
-// Jugendstil-Ornamente (feine schwarze Linienkunst, S/W-CI): Eck-Ranke + Zierlinie.
+// Jugendstil-Ornamente — WHIPLASH-Kurven (Design 3), feine schwarze Linienkunst (S/W-CI).
 const CornerOrnament = ({ className = "" }: { className?: string }) => (
-  <svg viewBox="0 0 46 46" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round"
-    aria-hidden className={`pointer-events-none absolute h-9 w-9 text-black/30 ${className}`}>
-    <path d="M3 43 C3 23 23 3 43 3" />
-    <path d="M3 43 C17 36 22 27 20 16" />
-    <path d="M20 16 c-3 -1.5 -7 0.5 -7 4 c0 3 4 4.5 6 2 c1.5 -2 0 -5.5 -2.5 -5.5" />
+  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"
+    aria-hidden className={`pointer-events-none absolute h-9 w-9 text-black/35 ${className}`}>
+    <path d="M5 45 C5 22 19 11 23 25 C26 37 38 33 44 19" />
+    <circle cx="44" cy="19" r="2" fill="currentColor" stroke="none" />
+    <path d="M10 38 C7 29 11 21 19 20" />
   </svg>
 );
 const DividerOrnament = () => (
-  <svg viewBox="0 0 170 12" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round"
-    aria-hidden className="mx-auto mt-3 h-3 w-44 text-black/25">
-    <path d="M4 6 H66" /><path d="M166 6 H104" />
-    <circle cx="74" cy="6" r="1.2" fill="currentColor" stroke="none" />
-    <path d="M85 1 l5 5 l-5 5 l-5 -5 z" />
-    <circle cx="96" cy="6" r="1.2" fill="currentColor" stroke="none" />
+  <svg viewBox="0 0 180 14" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"
+    aria-hidden className="mx-auto mt-3 h-3.5 w-44 text-black/30">
+    <path d="M6 7 H72 C82 7 82 1 90 7 C98 13 98 7 108 7 H174" />
+    <circle cx="90" cy="7" r="1.7" fill="currentColor" stroke="none" />
   </svg>
 );
 
