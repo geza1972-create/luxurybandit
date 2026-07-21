@@ -1,6 +1,6 @@
 import Link from "next/link";
 import TopNav from "@/components/TopNav";
-import { CloudSun, Sparkles, Flame, MapPin, KeyRound, ArrowRight, Lock } from "lucide-react";
+import { CloudSun, Sparkles, Flame, MapPin, KeyRound, Lock } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
 import { readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts } from "@/lib/try-this-look-store";
@@ -87,13 +87,10 @@ export default async function ThemesCatalog() {
                   <Icon className={`h-4 w-4 ${active ? "text-amber-400" : "text-white/70"}`} />
                 </div>
 
-                {/* Titel-Overlay ganz unten, kurzer Verlauf → Video bleibt frei */}
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/45 to-transparent px-3 pb-2 pt-6">
+                {/* Titel-Overlay ganz unten, sehr kurzer Verlauf → Video bleibt frei */}
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/45 to-transparent px-3 pb-2 pt-5">
                   <p className="text-[14px] font-black leading-tight drop-shadow">{t.title}</p>
-                  <p className="mt-0.5 text-[10px] font-semibold leading-snug text-white/55">{t.tagline}</p>
-                  {active && (
-                    <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-black text-amber-400">Open <ArrowRight className="h-3.5 w-3.5" /></span>
-                  )}
+                  <p className="mt-0.5 line-clamp-1 text-[10px] font-semibold leading-snug text-white/55">{t.tagline}</p>
                 </div>
               </div>
             );
