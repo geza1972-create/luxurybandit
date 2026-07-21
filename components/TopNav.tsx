@@ -1,39 +1,23 @@
 "use client";
 
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Menu } from "lucide-react";
 
 /**
  * The ONE shared top bar for every page. Left: LB logo + wordmark → home (root
- * landing). Right: optional page-specific action icons, then the hamburger ☰ which
- * opens the global menu sheet (owned by BottomNav via the "lb-open-account" event).
+ * landing). Right: optional page-specific action icons (search/share/…).
  *
- * Page-specific chrome (search fields, filter chips, tabs) lives in a SEPARATE row
- * BELOW this bar — this component stays identical across the whole app.
+ * KEIN Hamburger-Menü mehr hier — das Menü lebt appweit UNTEN (BottomNav's
+ * Floating-Button). So gibt es nie zwei Menüs. Page-specific chrome (search
+ * fields, filter chips, tabs) lives in a SEPARATE row BELOW this bar.
  */
 export default function TopNav({
   subtitle = "The influencer marketplace",
   actions,
-  noMenu = false,
 }: {
   subtitle?: string;
   actions?: React.ReactNode;
-  noMenu?: boolean;          // nur Logo → home; KEIN oberes Hamburger-Menü (das untere BottomNav-Menü bleibt)
 }) {
   const router = useRouter();
-  // Announce presence so BottomNav knows a TopNav is on screen — SKIP when noMenu,
-  // damit BottomNav sein unteres Menü behält (der Logo-Balken trägt ja keins).
-  useEffect(() => {
-    if (noMenu) return;
-    const w = window as unknown as { __lbTopNav?: number };
-    w.__lbTopNav = (w.__lbTopNav ?? 0) + 1;
-    window.dispatchEvent(new Event("lb-topnav-change"));
-    return () => {
-      w.__lbTopNav = Math.max(0, (w.__lbTopNav ?? 1) - 1);
-      window.dispatchEvent(new Event("lb-topnav-change"));
-    };
-  }, [noMenu]);
   return (
     <header data-topnav="1" className="sticky top-0 z-30 border-b border-white/10 bg-[#0d0b0a]/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5">
@@ -54,17 +38,8 @@ export default function TopNav({
           </span>
         </button>
 
-        {/* Right: optional page actions, then the ☰ menu (opens BottomNav's global sheet). */}
-        <div className="flex shrink-0 items-center gap-2">
-          {actions}
-          {!noMenu && (
-            <button type="button" aria-label="Menu"
-              onClick={() => { try { window.dispatchEvent(new Event("lb-open-account")); } catch { /**/ } }}
-              className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white/80 transition active:scale-90 hover:text-white">
-              <Menu className="h-5 w-5" />
-            </button>
-          )}
-        </div>
+        {/* Right: optional page actions only — no menu button (menu is in the bottom nav). */}
+        {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
       </div>
     </header>
   );

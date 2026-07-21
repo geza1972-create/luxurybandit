@@ -160,16 +160,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
     return () => window.removeEventListener("lb-open-account", open);
   }, []);
 
-  // Suppress THIS component's floating hamburger while a shared <TopNav> is mounted
-  // on the page — that bar already carries the menu button, so we'd otherwise show two.
-  const [hasTopNav, setHasTopNav] = useState(false);
-  useEffect(() => {
-    const upd = () => setHasTopNav((((window as unknown as { __lbTopNav?: number }).__lbTopNav) ?? 0) > 0);
-    window.addEventListener("lb-topnav-change", upd);
-    upd();
-    return () => window.removeEventListener("lb-topnav-change", upd);
-  }, [pathname]);
-
+  // Das Menü lebt appweit HIER unten (Floating-Hamburger) — TopNav trägt keins mehr.
   // Hide the NAV BAR on admin, auth, and standalone pages (unless a page explicitly
   // forces it, e.g. the Try-On funnel's unlocked/done screen). NOTE: we no longer
   // `return null` here — the Account sheet (opened via the "lb-open-account" event from
@@ -208,9 +199,6 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
     !gridShowing &&
     !searchParams.get("panel");
   const hideBar = reelShowing || pathname.startsWith("/look/");
-  // The feed (/stores grid + /home) already has a hamburger in its own top header, so
-  // the global floating hamburger is suppressed there to avoid two of them.
-  const onFeed = pathname === "/stores" || pathname.endsWith("/stores") || pathname.endsWith("/home");
 
   return (
     <>
@@ -227,9 +215,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
         </button>
       </div>
     )}
-    {/* Floating hamburger — always shows in bottom right, except on full-screen/funnel
-        pages and the feed (which has its own menu in the top header). */}
-    {!hideChrome && !hideBar && !onFeed && (
+    {/* Floating hamburger — THE app-wide menu, bottom right. Hidden only on
+        full-screen/funnel pages and the immersive reel/look (hideBar). */}
+    {!hideChrome && !hideBar && (
       <div className="lb-phone-col pointer-events-none fixed inset-x-0 bottom-0 z-[70]"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="flex justify-end px-4 pb-4">

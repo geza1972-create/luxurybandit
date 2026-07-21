@@ -145,7 +145,7 @@ export default async function WetterModelPage({ params, searchParams }: {
     // Nur Logo oben (TopNav noMenu) — das Menü bleibt UNTEN (BottomNav), kein Doppel-Menü.
     <main className="lb-bg text-white">
       <WetterTrack modelId={modelId} />
-      <TopNav noMenu />
+      <TopNav />
 
       {/* Kopf — volle Breite (NICHT in einer Box). Dunkel, Name weiß. */}
       {card && (
