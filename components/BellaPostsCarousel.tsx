@@ -122,9 +122,7 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
             {/* -mt in Prozent der BREITE. 60 % → 49,3 % → 33,3 %: der Text sitzt damit
                 100 px tiefer als anfangs (bei 375 px Bildschirm) und skaliert mit. */}
             {(p.title || p.caption || fmtDay(p.day, p.time)) && (
-              // Scrim: oben transparent (Bild frei) → dunkel hinter dem Text → unten in die
-              // helle Seitenfarbe (#fbfaf7) auslaufen, damit kein dunkler Streifen am weißen Rand steht.
-              <div className="lb-onmedia pointer-events-none relative -mt-[33.3%] bg-[linear-gradient(to_bottom,transparent_0%,#0d0b0a_45%,#0d0b0a_82%,#fbfaf7_100%)] px-5 pb-4 pt-10">
+              <div className="lb-onmedia pointer-events-none relative -mt-[33.3%] bg-gradient-to-b from-transparent via-[#0d0b0a]/85 to-[#0d0b0a] px-5 pb-4 pt-10">
                 {/* Für welchen Tag (+ Uhrzeit) der Beitrag ist — direkt über dem Titel. */}
                 {fmtDay(p.day, p.time) && (
                   <p className="mb-1.5 text-[12px] font-black uppercase tracking-wide text-white/85 drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">📅 {fmtDay(p.day, p.time)}</p>

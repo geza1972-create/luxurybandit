@@ -115,24 +115,23 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro" }
         </p>
         <p className="mt-1.5 text-[14px] font-semibold leading-relaxed text-white/65">{t.sub}</p>
 
-        <div className="mt-4 grid gap-2">
+        <div className="mt-4 grid grid-cols-1 gap-2">
           <input value={name} onChange={e => setName(e.target.value)} placeholder={t.name} className={inputCls} />
           <input value={email} onChange={e => setEmail(e.target.value)} placeholder={t.email} inputMode="email" type="email" className={inputCls} />
-          {/* Geburtsdatum + Geschlecht nebeneinander */}
-          <div className="flex gap-2">
-            <label className="flex h-12 min-w-0 flex-1 items-center rounded-xl border border-white/15 bg-white/[0.04] px-3">
-              <span className="mr-2 shrink-0 text-[12px] font-bold text-white/45">{t.birthdate}</span>
-              <input value={birthdate} onChange={e => setBirthdate(e.target.value)} type="date"
-                className="min-w-0 flex-1 bg-transparent text-[14px] font-semibold text-white outline-none" />
-            </label>
-            <select value={gender} onChange={e => setGender(e.target.value)}
-              className="h-12 rounded-xl border border-white/15 bg-white/[0.04] px-2 text-[14px] font-bold text-white outline-none focus:border-[#c9a23f]">
-              <option value="" className="bg-[#0d0b0a]">{t.gender}</option>
-              <option value="m" className="bg-[#0d0b0a]">{t.genderM}</option>
-              <option value="f" className="bg-[#0d0b0a]">{t.genderF}</option>
-              <option value="x" className="bg-[#0d0b0a]">{t.genderX}</option>
-            </select>
-          </div>
+          {/* Geburtsdatum — volle Breite (type=date hat eine Mindestbreite, deshalb nicht nebeneinander). */}
+          <label className="flex h-12 w-full items-center rounded-xl border border-white/15 bg-white/[0.04] px-4">
+            <span className="mr-2 shrink-0 text-[13px] font-bold text-white/45">{t.birthdate}</span>
+            <input value={birthdate} onChange={e => setBirthdate(e.target.value)} type="date"
+              className="min-w-0 flex-1 bg-transparent text-[15px] font-semibold text-white outline-none" />
+          </label>
+          {/* Geschlecht — volle Breite. */}
+          <select value={gender} onChange={e => setGender(e.target.value)}
+            className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[15px] font-bold text-white outline-none focus:border-[#c9a23f]">
+            <option value="" className="bg-[#0d0b0a]">{t.gender}</option>
+            <option value="m" className="bg-[#0d0b0a]">{t.genderM}</option>
+            <option value="f" className="bg-[#0d0b0a]">{t.genderF}</option>
+            <option value="x" className="bg-[#0d0b0a]">{t.genderX}</option>
+          </select>
           <input value={city} onChange={e => setCity(e.target.value)} placeholder={t.city} className={inputCls} />
           <input value={country} onChange={e => setCountry(e.target.value)} placeholder={t.country} className={inputCls} />
           <input value={phone} onChange={e => setPhone(e.target.value)} placeholder={t.phone} inputMode="tel" type="tel" className={inputCls} />
