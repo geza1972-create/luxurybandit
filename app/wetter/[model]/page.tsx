@@ -52,6 +52,7 @@ export default async function WetterModelPage({ params, searchParams }: {
     if (sub) { subName = sub.name || subName; subCity = sub.city || subCity; subLang = sub.lang || subLang; }
   }
   const recognized = !!subToken || !!subName;   // eingeloggter Abonnent?
+  const showAdmin = String(sp.admin ?? "") === "1";   // Admin-Werkzeuge NUR mit ?admin=1 — nie in der Kundenansicht
 
   const [slides, card] = await Promise.all([
     readCardStudioSlides(modelId).catch(() => [] as BellaSlide[]),
@@ -97,11 +98,13 @@ export default async function WetterModelPage({ params, searchParams }: {
         </>
       )}
 
-      {/* Admin-Werkzeuge — nur für dich sichtbar, gescoped auf DIESES Model. */}
-      <div className="px-4 pt-12">
-        <BellaSimpleStudio modelId={modelId} modelName={modelName} />
-        <WetterSubscribers modelId={modelId} modelSlug={model} modelName={modelName} />
-      </div>
+      {/* Admin-Werkzeuge — NUR mit ?admin=1 (nie in der Kundenansicht), zusätzlich PIN-gated. */}
+      {showAdmin && (
+        <div className="px-4 pt-12">
+          <BellaSimpleStudio modelId={modelId} modelName={modelName} />
+          <WetterSubscribers modelId={modelId} modelSlug={model} modelName={modelName} />
+        </div>
+      )}
     </main>
   );
 }
