@@ -259,7 +259,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
       {/* Chat mit dem Model */}
       <div className="lb-theme relative mb-8 mt-6 overflow-hidden rounded-2xl border border-black/10 bg-white">
         <CornerOrnaments />
-        <div className="relative flex items-center gap-2 border-b border-black/10 px-6 py-3">
+        <div className="relative flex items-center justify-center gap-2 border-b border-black/10 px-9 py-3">
           <span className="h-2 w-2 rounded-full bg-emerald-500" />
           <p className="text-[13px] font-black text-white">{modelName} <span className="font-bold text-emerald-600">{t.online}</span></p>
         </div>
