@@ -39,7 +39,11 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isCurator, setIsCurator] = useState(false);
   const [subCount, setSubCount] = useState(0);   // how many models the user subscribed to (lb_subs)
-  useEffect(() => { try { const s = JSON.parse(localStorage.getItem("lb_subs") || "[]"); setSubCount(Array.isArray(s) ? s.length : 0); } catch { /**/ } }, []);
+  useEffect(() => {
+    try { const s = JSON.parse(localStorage.getItem("lb_subs") || "[]"); setSubCount(Array.isArray(s) ? s.length : 0); } catch { /**/ }
+    // „Wetter am Morgen" abonniert? (Gerät-Login gespeichert unter lb_wetter_sub_<modelId>)
+    try { setHasWetter(Object.keys(localStorage).some(k => k.startsWith("lb_wetter_sub_"))); } catch { /**/ }
+  }, []);
   const [curatorId, setCuratorId] = useState("");
   const [previewModel, setPreviewModel] = useState(false); // admin "view as her" mode
   // Admin "view as model" picker — choose any model (search + photos) and impersonate her.
@@ -51,6 +55,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
   const [curatorCredits, setCuratorCredits] = useState<number | null>(null);
   const [signedIn, setSignedIn] = useState(false);
   const [openThemen, setOpenThemen] = useState(false);   // Untermenü „Themen" auf/zu
+  const [hasWetter, setHasWetter] = useState(false);     // Gerät hat ein Wetter-am-Morgen-Abo
 
   useEffect(() => {
     setActive(getActiveTab(pathname));
@@ -309,6 +314,15 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                 <Home className="h-5 w-5 shrink-0 text-white/85" />
                 <span className="text-sm font-black text-white">Home</span>
               </button>
+              {/* Meine Morgennachricht — Shortcut zur persönlichen Wetter-am-Morgen-Ansicht,
+                  sichtbar sobald das Gerät angemeldet ist (loggt über den gespeicherten Login ein). */}
+              {hasWetter && (
+                <button type="button" onClick={() => navigate("/wetter/bella")}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                  <CloudSun className="h-5 w-5 shrink-0 text-amber-400" />
+                  <span className="text-sm font-black text-white">Meine Morgennachricht</span>
+                </button>
+              )}
               {/* Reels — the swipeable video/story feed. Not for a model (her Home covers her needs). */}
               {!isCurator && (
                 <button type="button" onClick={() => navigate("/stores?view=feeds")}

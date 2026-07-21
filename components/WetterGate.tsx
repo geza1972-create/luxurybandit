@@ -23,6 +23,7 @@ type Copy = {
   genderM: string; genderF: string; genderX: string; city: string; country: string; phone: string;
   cta: string; note: string; fillAll: string; badEmail: string;
   sentTitle: string; sentBody: (e: string) => string;
+  back: string; open: string;   // „schon angemeldet" + Link-Knopf
 };
 const T: Record<string, Copy> = {
   ro: {
@@ -33,6 +34,7 @@ const T: Record<string, Copy> = {
     cta: "Creează cont gratis", note: "Fără parolă. Îți confirmi emailul o singură dată.",
     fillAll: "Te rog completează toate câmpurile.", badEmail: "Email invalid.",
     sentTitle: "Verifică-ți emailul 📧", sentBody: e => `Ți-am trimis un link de confirmare la ${e}. Confirmă și gata!`,
+    back: "Ești deja înscris", open: "Spre mesajul tău de dimineață →",
   },
   de: {
     title: m => `Soll ${m} dich jeden Morgen wecken?`,
@@ -42,6 +44,7 @@ const T: Record<string, Copy> = {
     cta: "Kostenlos anmelden", note: "Ohne Passwort. E-Mail einmal bestätigen.",
     fillAll: "Bitte alle Felder ausfüllen.", badEmail: "Ungültige E-Mail.",
     sentTitle: "Prüfe deine E-Mail 📧", sentBody: e => `Wir haben dir einen Bestätigungslink an ${e} geschickt. Bestätigen und los!`,
+    back: "Du bist schon angemeldet", open: "Zu deiner Morgennachricht →",
   },
   en: {
     title: m => `Want ${m} to wake you every morning?`,
@@ -51,6 +54,7 @@ const T: Record<string, Copy> = {
     cta: "Create free account", note: "No password. Confirm your email once.",
     fillAll: "Please fill in all fields.", badEmail: "Invalid email.",
     sentTitle: "Check your email 📧", sentBody: e => `We sent a confirmation link to ${e}. Confirm and you're in!`,
+    back: "You're already signed up", open: "Go to your morning message →",
   },
 };
 
@@ -89,15 +93,16 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);   // Bestätigungs-Mail raus → „prüfe deine E-Mail"
+  const [returningId, setReturningId] = useState("");   // Gerät ist schon angemeldet → Link statt Formular
   const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());   // gültiges E-Mail-Format?
 
-  // Schon eingeloggt auf diesem Gerät? → direkt zur persönlichen Ansicht.
-  // Im Admin-Vorschau-Modus NICHT umleiten (sonst springt die Vorschau weg).
+  // Schon angemeldet auf diesem Gerät? → sichtbaren Link zur persönlichen Ansicht zeigen
+  // (nicht still umleiten). Im Admin-Vorschau-Modus nichts davon.
   useEffect(() => {
     if (preview) { setChecking(false); return; }
     try {
       const id = localStorage.getItem(storeKey(modelId));
-      if (id) { window.location.replace(`?s=${encodeURIComponent(id)}`); return; }
+      if (id) setReturningId(id);
     } catch { /**/ }
     setChecking(false);
   }, [modelId, preview]);
@@ -124,6 +129,19 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
     <div className="mx-auto flex max-w-md items-center justify-center px-5 py-10 text-white/50">
       <Loader2 className="h-5 w-5 animate-spin" />
     </div>
+  );
+
+  // Gerät schon angemeldet → sichtbarer Link zur persönlichen Morgennachricht (kein Formular).
+  if (returningId && !sent) return (
+    <section className="mx-auto mt-8 max-w-md px-5">
+      <div className="rounded-2xl border border-black/10 bg-white p-6 text-center">
+        <p className="text-[19px] font-black text-white">{t.back} ✓</p>
+        <a href={`?s=${encodeURIComponent(returningId)}`}
+          className="mt-4 flex h-12 items-center justify-center rounded-xl bg-black text-[15px] font-black text-white active:scale-95 transition">
+          {t.open}
+        </a>
+      </div>
+    </section>
   );
 
   if (sent) return (
