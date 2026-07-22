@@ -232,7 +232,8 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d?.error ?? "KI-Vorschlag fehlgeschlagen."); return; }
       if (mode === "chat") {
-        edit(id, { context: String(d.context ?? ""), firstMessage: String(d.firstMessage ?? "") });
+        // EIN Chat-Text: er ist die erste Nachricht UND steuert den Chat. Kein zweites Feld.
+        edit(id, { context: String(d.context ?? "") });
       } else {
         // NUR den Text — der Titel ist eine feste Vorgabe (z. B. „Bună dimineața, {Name}!") und bleibt.
         edit(id, { caption: String(d.caption ?? "") });
@@ -414,22 +415,17 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
 
                 {/* ── SEKTION 2: CHAT-TEXT — wie sie heute im Chat spricht. ── */}
                 <div className="rounded-xl border border-black/10 bg-black/[0.02] p-3">
-                  <p className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-black/55">💬 Chat-Text — steuert den Chat</p>
-                  {/* Ihr Tag heute = zugleich Prompt */}
+                  <p className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-black/55">💬 Chat-Text — ihre erste Nachricht & steuert den Chat</p>
+                  {/* EIN Feld: die erste Chat-Nachricht = zugleich Prompt UND Chat-Steuerung. */}
                   <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">Ihr Tag heute · zugleich Prompt</p>
                   <AutoTextarea value={p.context} minRows={3} onChange={v => edit(p.id, { context: v })}
-                    placeholder="Wo ist sie, was macht sie? z. B. Azi sunt în Nisa, plimbare pe faleză… → ✨ schreibt Kontext + erste Nachricht."
+                    placeholder="Wo ist sie, was macht sie? z. B. Azi sunt în Nisa, plimbare pe faleză… → ✨ schreibt daraus ihre erste Chat-Nachricht. Oder tipp sie direkt."
                     className="rounded-lg border border-black/15 bg-white/[0.04] px-3 py-2.5 text-[14px] font-semibold leading-relaxed text-white outline-none placeholder:text-[12px] placeholder:text-white/35 focus:border-black" />
                   <button type="button" onClick={() => void suggest(p.id, "chat")} disabled={suggestingId === `${p.id}:chat`}
-                    title="Aus deiner Anweisung (Feld oben) den Chat schreiben — Kontext + erste Nachricht"
+                    title="Aus deiner Anweisung (Feld oben) ihre erste Chat-Nachricht schreiben — das steuert zugleich den Chat"
                     className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-black/20 bg-black/[0.03] text-[13px] font-black text-black active:scale-95 transition disabled:opacity-50">
                     {suggestingId === `${p.id}:chat` ? <><Loader2 className="h-4 w-4 animate-spin" /> Schreibt…</> : <><Sparkles className="h-4 w-4" /> Chat schreiben</>}
                   </button>
-                  {/* Erste Chat-Nachricht (optional) — leer = Standard-Gruß. */}
-                  <p className="mb-1 mt-3 text-[11px] font-black uppercase tracking-wide text-white/55">Erste Nachricht im Chat</p>
-                  <AutoTextarea value={p.firstMessage} minRows={2} onChange={v => edit(p.id, { firstMessage: v })}
-                    placeholder="Ihre erste Nachricht am Morgen (optional) — leer = Standard-Gruß"
-                    className="rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[13px] font-medium leading-snug text-white outline-none placeholder:text-[12px] placeholder:text-white/35 focus:border-black" />
                 </div>
 
                 <div className="flex items-center gap-2">

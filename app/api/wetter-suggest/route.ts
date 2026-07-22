@@ -35,8 +35,7 @@ export async function POST(request: Request) {
   }
 
   const jsonSpec = mode === "chat"
-    ? `{"context":"1-2 sentences describing HER day today — where she is, what she's doing, what she's wearing — used to steer her chat replies (first person)",`
-      + `"firstMessage":"her warm good-morning opening chat message to the subscriber, 1-2 sentences, may use one emoji"}`
+    ? `{"context":"her warm good-morning chat message to the subscriber — 2-3 sentences, first person, that both GREETS him AND says where she is / what she's doing / wearing today, so it works as her opening chat message AND steers her later replies. May use one emoji."}`
     : `{"caption":"a short caption for under the photo, 1-2 short sentences, may use one emoji"}`;
 
   const instruction =

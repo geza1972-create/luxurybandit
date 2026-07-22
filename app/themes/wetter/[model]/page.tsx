@@ -123,12 +123,13 @@ export default async function WetterModelPage({ params, searchParams }: {
 
   // Beitrags-Texte in die Sprache des Besuchers übersetzen (einmal pro Sprache gecacht),
   // damit die Seite nicht halb rumänisch / halb deutsch ist. Original bleibt bei Fehler.
-  const [txTitles, txCaptions, txFirst] = await Promise.all([
+  const [txTitles, txCaptions, txContext] = await Promise.all([
     translateMany(rawPosts.map(p => p.title), subLang),
     translateMany(rawPosts.map(p => p.caption), subLang),
-    translateMany(rawPosts.map(p => p.firstMessage), subLang),
+    // „Ihr Tag heute" ist der EINE Chat-Text (= erste Nachricht + Chat-Steuerung) → übersetzen.
+    translateMany(rawPosts.map(p => p.context), subLang),
   ]);
-  const posts = rawPosts.map((p, i) => ({ ...p, title: txTitles[i], caption: txCaptions[i], firstMessage: txFirst[i] }));
+  const posts = rawPosts.map((p, i) => ({ ...p, title: txTitles[i], caption: txCaptions[i], context: txContext[i] }));
   // „Werbung": Besucher (nicht eingeloggt) sehen die als Ad markierten Beiträge; sind keine
   // markiert, fällt es auf alle zurück (nie leer). Abonnent sieht den täglichen (nicht-Ad) Look.
   const adPosts = posts.filter(p => p.ad);
@@ -186,7 +187,7 @@ export default async function WetterModelPage({ params, searchParams }: {
           )}
           <WetterSubscriberView name={subName} city={subCity} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken}
             day={dayLook?.day || ""} time={dayLook?.time || ""}
-            title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.firstMessage || ""} dayContext={dayLook?.context || ""}
+            title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.context || ""} dayContext={dayLook?.context || ""}
             look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />
           </>
         ) : showAdmin ? (
@@ -209,7 +210,7 @@ export default async function WetterModelPage({ params, searchParams }: {
             ) : (
               <WetterSubscriberView name="Remus" city="Timișoara" lang={subLang} modelId={modelId} modelName={modelName} subId=""
                 day={dayLook?.day || ""} time={dayLook?.time || ""}
-                title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.firstMessage || ""} dayContext={dayLook?.context || ""}
+                title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.context || ""} dayContext={dayLook?.context || ""}
                 look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />
             )}
           </>
