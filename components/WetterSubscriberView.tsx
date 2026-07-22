@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Send, Volume2, VolumeX } from "lucide-react";
+import { Loader2, Send, Volume2, VolumeX, Maximize2, X } from "lucide-react";
 import { CornerOrnaments } from "@/components/BoxOrnaments";
 
 // Was der ABONNENT auf /wetter/<model>?name=…&city=…&lang=… sieht:
@@ -123,6 +123,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   const lookVideoRef = useRef<HTMLVideoElement>(null);
   const [vidPlaying, setVidPlaying] = useState(false);   // läuft das Video? (steuert den Scan-Ladebalken)
   const [muted, setMuted] = useState(true);              // Autostart nur stumm erlaubt
+  const [zoom, setZoom] = useState(false);               // Vollbild-Vorschau des Looks
   useEffect(() => {
     const v = lookVideoRef.current;
     if (!v || look?.kind !== "video") return;
@@ -247,9 +248,9 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
                   <span className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] font-black uppercase tracking-[0.25em] text-white/80">{L === "en" ? "loading" : L === "de" ? "lädt" : "se încarcă"}…</span>
                 </>
               )}
-              {/* Ton an/aus (Autostart ist stumm). */}
+              {/* Ton an/aus (Autostart ist stumm) — oben links, wie im Karussell. */}
               <button type="button" onClick={toggleMute} aria-label="Ton"
-                className="lb-onmedia absolute bottom-2 right-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white ring-1 ring-white/25 backdrop-blur active:scale-95 transition">
+                className="lb-onmedia absolute left-2 top-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white ring-1 ring-white/25 backdrop-blur active:scale-95 transition">
                 {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
               </button>
             </>
@@ -257,6 +258,26 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             // eslint-disable-next-line @next/next/no-img-element
             <img src={look.mediaUrl} alt="" className="h-full w-full object-contain object-top" />
           )}
+          {/* Groß ansehen — Vollbild, oben rechts (wie im Karussell). */}
+          <button type="button" onClick={() => setZoom(true)} aria-label="Groß ansehen"
+            className="lb-onmedia absolute right-2 top-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white ring-1 ring-white/25 backdrop-blur active:scale-95 transition">
+            <Maximize2 className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Vollbild-Vorschau des Looks. */}
+      {zoom && look && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/95 p-3" onClick={() => setZoom(false)}>
+          <button type="button" onClick={() => setZoom(false)} aria-label="Schließen"
+            className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white active:scale-95">
+            <X className="h-5 w-5" />
+          </button>
+          {look.kind === "video"
+            // eslint-disable-next-line jsx-a11y/media-has-caption
+            ? <video src={look.mediaUrl} poster={look.posterUrl || undefined} controls autoPlay playsInline onClick={e => e.stopPropagation()} className="max-h-full max-w-full rounded-2xl" />
+            // eslint-disable-next-line @next/next/no-img-element
+            : <img src={look.mediaUrl} alt="" onClick={e => e.stopPropagation()} className="max-h-full max-w-full rounded-2xl object-contain" />}
         </div>
       )}
 
