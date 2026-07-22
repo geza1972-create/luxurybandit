@@ -222,7 +222,6 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     <div className="mx-auto max-w-md px-4">
       {/* Persönlicher Gruß + Wetter */}
       <div className="pt-5">
-        {dateLine && <p className="mb-1 text-[11px] font-black uppercase tracking-[0.14em] text-amber-400">📅 {dateLine}</p>}
         <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-amber-400">{name}!</span></p>
         <p className="mt-1 text-[14px] font-semibold text-white/70">
           {weather ? t.wxLine(city, weather.word, weather.e, weather.temp) : t.wxLoading(city)}
@@ -263,6 +262,14 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             className="lb-onmedia absolute right-2 top-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white ring-1 ring-white/25 backdrop-blur active:scale-95 transition">
             <Maximize2 className="h-4 w-4" />
           </button>
+          {/* Text-Overlay unten im Bild — Datum + Titel + Text, exakt wie im Besucher-Karussell. */}
+          {(dateLine || title.trim() || caption.trim()) && (
+            <div className="lb-onmedia pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0d0b0a] via-[#0d0b0a]/70 to-transparent px-5 pb-4 pt-16">
+              {dateLine && <p className="mb-1.5 text-[12px] font-black uppercase tracking-wide text-white/85 drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">📅 {dateLine}</p>}
+              {title.trim() && <p className="text-[28px] font-black leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">{title}</p>}
+              {caption.trim() && <p className="mt-1 whitespace-pre-line text-[13px] font-semibold leading-snug text-white/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">{caption}</p>}
+            </div>
+          )}
         </div>
       )}
 
@@ -278,14 +285,6 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             ? <video src={look.mediaUrl} poster={look.posterUrl || undefined} controls autoPlay playsInline onClick={e => e.stopPropagation()} className="max-h-full max-w-full rounded-2xl" />
             // eslint-disable-next-line @next/next/no-img-element
             : <img src={look.mediaUrl} alt="" onClick={e => e.stopPropagation()} className="max-h-full max-w-full rounded-2xl object-contain" />}
-        </div>
-      )}
-
-      {/* Beitrags-Texte des Tages (aus dem Beiträge-Tool): Titel groß + Text darunter. */}
-      {(title.trim() || caption.trim()) && (
-        <div className="mt-4">
-          {title.trim() && <p className="text-[22px] font-black leading-tight text-white">{title}</p>}
-          {caption.trim() && <p className="mt-1.5 whitespace-pre-wrap text-[15px] font-semibold leading-relaxed text-white/70">{caption}</p>}
         </div>
       )}
 
