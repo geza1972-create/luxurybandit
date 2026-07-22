@@ -15,6 +15,9 @@ import BellaPostsCarousel from "@/components/BellaPostsCarousel";
 const DEFAULT_MODEL_ID = "curator-1783683672619-td4cy"; // Bella = Fallback/erstes Model
 const DEFAULT_LANG = "ro";
 
+// {Name} / {name} im Titel durch den echten Namen ersetzen (feste Vorgabe wird personalisiert).
+const personalizeName = (text: string, name: string) => text.replace(/\{\s*name\s*\}/gi, name);
+
 type Msg = { role: "user" | "assistant"; content: string };
 type Look = { kind: "image" | "video"; mediaUrl: string; posterUrl?: string };
 
@@ -193,15 +196,17 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
       )}
 
       <div className="px-4">
-      {/* ALLE Texte UNTER dem Video: Datum, Gruß, Wetter, Titel, Beitragstext. */}
+      {/* ALLE Texte UNTER dem Video: Datum · TITEL = der Gruß (Vorgabe, {Name} personalisiert) ·
+          Wetter · Beitragstext. KEIN separater Auto-Gruß mehr → „Guten Morgen" steht nur EINMAL. */}
       <div className="pt-4">
         {dateLabel && <p className="mb-1 text-[11px] font-black uppercase tracking-[0.14em] text-amber-400">📅 {dateLabel}</p>}
-        <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-amber-400">{name}!</span></p>
+        {title.trim()
+          ? <p className="text-[24px] font-black leading-tight text-white">{personalizeName(title, name)}</p>
+          : <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-amber-400">{name}!</span></p>}
         <p className="mt-1 text-[14px] font-semibold text-white/70">
           {weather ? t.wxLine(city, weather.word, weather.e, weather.temp) : t.wxLoading(city)}
         </p>
-        {title.trim() && <p className="mt-3 text-[20px] font-black leading-tight text-white">{title.replace(/\{\s*name\s*\}/gi, name)}</p>}
-        {caption.trim() && <p className="mt-1.5 whitespace-pre-wrap text-[15px] font-semibold leading-relaxed text-white/70">{caption}</p>}
+        {caption.trim() && <p className="mt-2.5 whitespace-pre-wrap text-[15px] font-semibold leading-relaxed text-white/70">{caption}</p>}
       </div>
 
       {/* Chat mit dem Model */}

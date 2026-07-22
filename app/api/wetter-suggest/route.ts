@@ -47,7 +47,8 @@ export async function POST(request: Request) {
     `\nWrite everything in ${langName}, warm and in the FIRST PERSON as HER own voice — this is HER message and HER chat.\n` +
     `ABSOLUTE RULE: You ARE ${model}. Speak only as "I"/"me"/"my". NEVER refer to ${model} in the third person — never write "${model} does…", "${model} wishes you…", "talk to her", "she is…". Always "I wish you…", "I'm wearing…", "chat with me".\n` +
     `CRITICAL: she writes to ONE single subscriber — address him ALWAYS in the informal SINGULAR "you" (Romanian: "tu"/"dragul meu", NOT plural). ` +
-    `NEVER address a group or use plural/collective greetings like "dragi prieteni", "friends", "everyone", "you all" — it is always just him, one person.\n\n` +
+    `NEVER address a group or use plural/collective greetings like "dragi prieteni", "friends", "everyone", "you all" — it is always just him, one person.\n` +
+    `NEVER begin with a morning greeting ("Bună dimineața", "Guten Morgen", "Good morning") — the greeting is already shown separately as the title. Start DIRECTLY with the content (her day, her look, a warm thought / question). Do not repeat "good morning".\n\n` +
     `Return ONLY JSON:\n${jsonSpec}`;
 
   try {
