@@ -30,7 +30,10 @@ export async function sendWhatsAppTemplate({ to, lang, bodyParams }: {
   const digits = String(to || "").replace(/[^0-9]/g, "");
   if (!digits) return { ok: false, error: "Keine Telefonnummer." };
 
-  const langCode = /^(ro|de|en)$/.test(lang) ? lang : (process.env.WHATSAPP_TEMPLATE_DEFAULT_LANG || "ro");
+  // WHATSAPP_TEMPLATE_LANG erzwingt EINE Sprache für alle (z. B. "en"), wenn nur eine Vorlage
+  // existiert. Sonst: Sprache des Abonnenten (ro/de/en), sonst der Default (en).
+  const forced = process.env.WHATSAPP_TEMPLATE_LANG;
+  const langCode = forced || (/^(ro|de|en)$/.test(lang) ? lang : (process.env.WHATSAPP_TEMPLATE_DEFAULT_LANG || "en"));
   const payload = {
     messaging_product: "whatsapp",
     to: digits,
