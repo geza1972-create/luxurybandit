@@ -20,11 +20,12 @@ export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "OPENAI_API_KEY missing." }, { status: 400 });
 
-  const body = (await request.json().catch(() => ({}))) as { path?: string; imageUrl?: string; kind?: string; modelName?: string; lang?: string; brief?: string };
+  const body = (await request.json().catch(() => ({}))) as { path?: string; imageUrl?: string; kind?: string; modelName?: string; lang?: string; brief?: string; mode?: string };
   const model = String(body.modelName ?? "").trim() || "Model";
   const lang = String(body.lang ?? "ro").slice(0, 2).toLowerCase();
   const langName = LANG_NAME[lang] ?? "Romanian";
   const brief = String(body.brief ?? "").trim().slice(0, 1200);   // die getippte Anweisung des Admins (optional)
+  const mode = body.mode === "chat" ? "chat" : "post";            // „post" = Karussell-Text (Titel+Text), „chat" = Chat-Text (Kontext+Opener)
 
   // Bild bevorzugt aus dem Speicherpfad (Entwurf) signieren; sonst die übergebene Adresse nehmen.
   let imageUrl = "";
@@ -33,16 +34,21 @@ export async function POST(request: Request) {
     else if (body.imageUrl) imageUrl = String(body.imageUrl);
   }
 
+  const jsonSpec = mode === "chat"
+    ? `{"context":"1-2 sentences describing HER day today — where she is, what she's doing, what she's wearing — used to steer her chat replies (first person)",`
+      + `"firstMessage":"her warm good-morning opening chat message to the subscriber, 1-2 sentences, may use one emoji"}`
+    : `{"title":"a short punchy title shown BIG over the post, max 4-5 words (may be empty)",`
+      + `"caption":"a short caption for under the photo, 1-2 short sentences, may use one emoji"}`;
+
   const instruction =
     `You are ${model}, an AI influencer who sends her subscriber a personal "good morning" message every day. ` +
     `${imageUrl ? "Look at the attached photo and use exactly where she is and what she is wearing." : "Invent a glamorous everyday morning scene (a nice city, a nice outfit)."} ` +
+    (mode === "chat"
+      ? `\nYou are writing the CHAT part: how she talks to him today (her day-context) and her first good-morning chat message.`
+      : `\nYou are writing the POST part: the title shown big over the photo and the caption under it.`) +
     (brief ? `\n\nFOLLOW THIS INSTRUCTION FROM THE ADMIN (it is a brief telling you what to write about, NOT text to copy): ${brief}\n` : "") +
     `\nWrite everything in ${langName}, warm and in the first person, as if it were really her.\n\n` +
-    `Return ONLY JSON:\n` +
-    `{"title":"a short punchy title shown BIG over the post, max 4-5 words (may be empty)",` +
-    `"context":"1-2 sentences describing HER day today — where she is, what she's doing, what she's wearing — used to steer her chat replies (first person)",` +
-    `"firstMessage":"her warm good-morning opening chat message to the subscriber, 1-2 sentences, may use one emoji",` +
-    `"caption":"a short caption for under the photo, max 1 sentence, may use one emoji"}`;
+    `Return ONLY JSON:\n${jsonSpec}`;
 
   try {
     const content: any[] = [{ type: "text", text: instruction }];

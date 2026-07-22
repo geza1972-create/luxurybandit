@@ -11,6 +11,20 @@ import { Loader2, Plus, Trash2, Check, ImageUp, ChevronUp, ChevronDown, Maximize
 // Hochladen und Löschen wirken sofort (die Datei muss ohnehin gespeichert werden).
 // Blendet sich für alle außer dem Admin aus.
 
+// Textfeld, das mit dem Inhalt MITWÄCHST (nichts wird abgeschnitten) — wie im Card Studio.
+function AutoTextarea({ value, onChange, className = "", placeholder, minRows = 2 }: {
+  value: string; onChange: (v: string) => void; className?: string; placeholder?: string; minRows?: number;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const grow = (el: HTMLTextAreaElement | null) => { if (el) { el.style.height = "auto"; el.style.height = `${el.scrollHeight}px`; } };
+  useEffect(() => { grow(ref.current); }, [value]);
+  return (
+    <textarea ref={ref} value={value} rows={minRows} placeholder={placeholder}
+      onChange={e => onChange(e.target.value)} onInput={e => grow(e.currentTarget)}
+      className={`w-full resize-none overflow-hidden ${className}`} />
+  );
+}
+
 type Post = {
   id: string; kind: "image" | "video"; title: string; caption: string; day: string; time: string; ad: boolean; context: string; firstMessage: string; mediaUrl: string;
   // Ein getauschtes Bild/Video, das noch NICHT live ist. Die Datei liegt schon im
@@ -198,33 +212,30 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
 
   // „✨ KI-Vorschlag": aus dem Foto einen Tages-Text vorschlagen (Kontext + erste Nachricht + Text).
   // Füllt die Felder NUR aus — gespeichert wird wie immer erst mit „Übernehmen".
-  const suggest = async (id: string) => {
+  // mode "post" = Karussell-Text (Titel+Text, Prompt = Text-Feld); "chat" = Chat-Text
+  // (Kontext+Opener, Prompt = „Ihr Tag heute"-Feld). Ergebnis ersetzt den Prompt im selben Feld.
+  const suggest = async (id: string, mode: "post" | "chat") => {
     const post = posts.find(p => p.id === id);
     if (!post) return;
-    setSuggestingId(id); setError("");
+    setSuggestingId(`${id}:${mode}`); setError("");
     try {
       const kind = post.pending?.kind ?? post.kind;
+      const brief = mode === "chat" ? (post.context ?? "") : (post.caption ?? "");
       const r = await fetch("/api/wetter-suggest", {
         method: "POST", headers: headers(),
         body: JSON.stringify({
-          modelName,
-          lang: "ro",
-          kind,
-          // Der Feldinhalt „Text unter dem Bild" ist zugleich der PROMPT/die Anweisung.
-          brief: post.caption ?? "",
+          modelName, lang: "ro", kind, mode, brief,
           // Entwurf → Speicherpfad; bestehender Beitrag → signierte Bild-Adresse.
           ...(post.pending ? { path: post.pending.path } : { imageUrl: post.mediaUrl }),
         }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d?.error ?? "KI-Vorschlag fehlgeschlagen."); return; }
-      // Ergebnis ersetzt den Prompt im selben Feld (wie im Card Studio) + füllt Titel/Kontext/Opener.
-      edit(id, {
-        ...(String(d.title ?? "").trim() ? { title: String(d.title) } : {}),
-        caption: String(d.caption ?? ""),
-        context: String(d.context ?? ""),
-        firstMessage: String(d.firstMessage ?? ""),
-      });
+      if (mode === "chat") {
+        edit(id, { context: String(d.context ?? ""), firstMessage: String(d.firstMessage ?? "") });
+      } else {
+        edit(id, { ...(String(d.title ?? "").trim() ? { title: String(d.title) } : {}), caption: String(d.caption ?? "") });
+      }
     } catch { setError("KI-Vorschlag fehlgeschlagen."); }
     finally { setSuggestingId(""); }
   };
@@ -380,41 +391,44 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
                   </span>
                 </button>
 
-                {/* Titel — erscheint GROSS im Bild, z. B. „Bella ist dein Wecker" */}
-                <div>
+                {/* ── SEKTION 1: KARUSSELL-TEXT — was im Beitrag steht (Titel groß + Text). ── */}
+                <div className="rounded-xl border border-black/10 bg-black/[0.02] p-3">
+                  <p className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-black/55">🖼 Karussell-Text — im Beitrag</p>
+                  {/* Titel — erscheint GROSS im Bild */}
                   <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">Titel — groß im Bild</p>
                   <input value={p.title} placeholder="z. B. Mesajul de dimineață"
                     onChange={e => edit(p.id, { title: e.target.value })}
                     className="h-12 w-full rounded-lg border border-black/15 bg-white/[0.04] px-3 text-[15px] font-black text-white outline-none placeholder:text-[13px] placeholder:font-semibold placeholder:text-white/35 focus:border-black" />
-                </div>
-
-                <div>
-                  <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">Text unter dem Bild · zugleich Prompt</p>
-                  <textarea value={p.caption} rows={5} placeholder="Schreib rein, WORÜBER sie posten soll (z. B. „schreib was Schönes über das blaue Kleid am Meer…“) → ✨ macht Titel + Text draus. Oder tipp den fertigen Text direkt."
-                    onChange={e => edit(p.id, { caption: e.target.value })}
-                    className="w-full resize-y rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2.5 text-[15px] font-semibold leading-relaxed text-white outline-none placeholder:text-[13px] placeholder:text-white/35 focus:border-black" />
-                  {/* ✨ Prompt-in-place: der Feldinhalt oben ist die Anweisung → KI schreibt Titel + Text (+ Kontext/Opener) rein. */}
-                  <button type="button" onClick={() => void suggest(p.id)} disabled={suggestingId === p.id}
-                    title="Aus deiner Anweisung (Feld oben) Titel + Text schreiben lassen — sieht auch das Foto"
+                  {/* Text unter dem Bild = zugleich Prompt */}
+                  <p className="mb-1 mt-3 text-[11px] font-black uppercase tracking-wide text-white/55">Text unter dem Bild · zugleich Prompt</p>
+                  <AutoTextarea value={p.caption} minRows={4} onChange={v => edit(p.id, { caption: v })}
+                    placeholder="Schreib rein, WORÜBER sie posten soll (z. B. „schreib was Schönes über das blaue Kleid am Meer…“) → ✨ macht Titel + Text draus. Oder tipp den fertigen Text direkt."
+                    className="rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2.5 text-[15px] font-semibold leading-relaxed text-white outline-none placeholder:text-[13px] placeholder:text-white/35 focus:border-black" />
+                  <button type="button" onClick={() => void suggest(p.id, "post")} disabled={suggestingId === `${p.id}:post`}
+                    title="Aus deiner Anweisung (Text-Feld) Titel + Text schreiben lassen — sieht auch das Foto"
                     className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-black/20 bg-black/[0.03] text-[13px] font-black text-black active:scale-95 transition disabled:opacity-50">
-                    {suggestingId === p.id ? <><Loader2 className="h-4 w-4 animate-spin" /> Schreibt…</> : <><Sparkles className="h-4 w-4" /> Titel + Text schreiben</>}
+                    {suggestingId === `${p.id}:post` ? <><Loader2 className="h-4 w-4 animate-spin" /> Schreibt…</> : <><Sparkles className="h-4 w-4" /> Titel + Text schreiben</>}
                   </button>
                 </div>
 
-                {/* „Bellas Tag" — Chat-Kontext: steuert, wie sie heute antwortet. */}
-                <div>
-                  <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-black/55">Ihr Tag heute — steuert den Chat</p>
-                  <textarea value={p.context} rows={3} placeholder="Wo ist sie, was macht sie? z. B. Azi sunt în Nisa, plimbare pe faleză, port un look nou…"
-                    onChange={e => edit(p.id, { context: e.target.value })}
-                    className="w-full resize-y rounded-lg border border-black/15 bg-white/[0.04] px-3 py-2.5 text-[14px] font-semibold leading-relaxed text-white outline-none placeholder:text-[12px] placeholder:text-white/35 focus:border-black" />
-                </div>
-
-                {/* Erste Chat-Nachricht (optional) — leer = Standard-Gruß. */}
-                <div>
-                  <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">Erste Nachricht im Chat</p>
-                  <textarea value={p.firstMessage} rows={2} placeholder="Ihre erste Nachricht am Morgen (optional) — leer = Standard-Gruß"
-                    onChange={e => edit(p.id, { firstMessage: e.target.value })}
-                    className="w-full resize-y rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[13px] font-medium leading-snug text-white outline-none placeholder:text-[12px] placeholder:text-white/35 focus:border-black" />
+                {/* ── SEKTION 2: CHAT-TEXT — wie sie heute im Chat spricht. ── */}
+                <div className="rounded-xl border border-black/10 bg-black/[0.02] p-3">
+                  <p className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-black/55">💬 Chat-Text — steuert den Chat</p>
+                  {/* Ihr Tag heute = zugleich Prompt */}
+                  <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">Ihr Tag heute · zugleich Prompt</p>
+                  <AutoTextarea value={p.context} minRows={3} onChange={v => edit(p.id, { context: v })}
+                    placeholder="Wo ist sie, was macht sie? z. B. Azi sunt în Nisa, plimbare pe faleză… → ✨ schreibt Kontext + erste Nachricht."
+                    className="rounded-lg border border-black/15 bg-white/[0.04] px-3 py-2.5 text-[14px] font-semibold leading-relaxed text-white outline-none placeholder:text-[12px] placeholder:text-white/35 focus:border-black" />
+                  <button type="button" onClick={() => void suggest(p.id, "chat")} disabled={suggestingId === `${p.id}:chat`}
+                    title="Aus deiner Anweisung (Feld oben) den Chat schreiben — Kontext + erste Nachricht"
+                    className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-black/20 bg-black/[0.03] text-[13px] font-black text-black active:scale-95 transition disabled:opacity-50">
+                    {suggestingId === `${p.id}:chat` ? <><Loader2 className="h-4 w-4 animate-spin" /> Schreibt…</> : <><Sparkles className="h-4 w-4" /> Chat schreiben</>}
+                  </button>
+                  {/* Erste Chat-Nachricht (optional) — leer = Standard-Gruß. */}
+                  <p className="mb-1 mt-3 text-[11px] font-black uppercase tracking-wide text-white/55">Erste Nachricht im Chat</p>
+                  <AutoTextarea value={p.firstMessage} minRows={2} onChange={v => edit(p.id, { firstMessage: v })}
+                    placeholder="Ihre erste Nachricht am Morgen (optional) — leer = Standard-Gruß"
+                    className="rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-[13px] font-medium leading-snug text-white outline-none placeholder:text-[12px] placeholder:text-white/35 focus:border-black" />
                 </div>
 
                 <div className="flex items-center gap-2">
