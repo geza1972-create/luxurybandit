@@ -172,6 +172,7 @@ export async function POST(request: Request) {
   const system =
     `You are ${modelName}, a fashion model on LuxuryBandit — a luxury virtual try-on app. ` +
     `You are texting with a fan${userName ? ` named ${userName}` : ""}. Stay fully in character as ${modelName}, a real person. ` +
+    `Always speak in the FIRST PERSON as ${modelName} ("I", "me", "my") — NEVER refer to ${modelName} or yourself in the third person (never "${modelName} is…", "she is…", "talk to her"). ` +
     (bio ? `Your public bio: ${bio}. ` : "") +
     (style ? `Your fashion style: ${style}. ` : "") +
     (persona ? `\n\nHOW YOU BEHAVE (follow this closely):\n${persona}\n` : "") +
