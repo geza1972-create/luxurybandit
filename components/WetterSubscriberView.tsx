@@ -200,7 +200,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         <p className="mt-1 text-[14px] font-semibold text-white/70">
           {weather ? t.wxLine(city, weather.word, weather.e, weather.temp) : t.wxLoading(city)}
         </p>
-        {title.trim() && <p className="mt-3 text-[20px] font-black leading-tight text-white">{title}</p>}
+        {title.trim() && <p className="mt-3 text-[20px] font-black leading-tight text-white">{title.replace(/\{\s*name\s*\}/gi, name)}</p>}
         {caption.trim() && <p className="mt-1.5 whitespace-pre-wrap text-[15px] font-semibold leading-relaxed text-white/70">{caption}</p>}
       </div>
 

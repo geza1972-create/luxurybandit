@@ -37,8 +37,7 @@ export async function POST(request: Request) {
   const jsonSpec = mode === "chat"
     ? `{"context":"1-2 sentences describing HER day today — where she is, what she's doing, what she's wearing — used to steer her chat replies (first person)",`
       + `"firstMessage":"her warm good-morning opening chat message to the subscriber, 1-2 sentences, may use one emoji"}`
-    : `{"title":"a short punchy title shown BIG over the post, max 4-5 words (may be empty)",`
-      + `"caption":"a short caption for under the photo, 1-2 short sentences, may use one emoji"}`;
+    : `{"caption":"a short caption for under the photo, 1-2 short sentences, may use one emoji"}`;
 
   const instruction =
     `You are ${model}, an AI influencer who sends her subscriber a personal "good morning" message every day. ` +

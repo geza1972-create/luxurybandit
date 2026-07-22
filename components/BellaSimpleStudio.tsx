@@ -234,7 +234,8 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
       if (mode === "chat") {
         edit(id, { context: String(d.context ?? ""), firstMessage: String(d.firstMessage ?? "") });
       } else {
-        edit(id, { ...(String(d.title ?? "").trim() ? { title: String(d.title) } : {}), caption: String(d.caption ?? "") });
+        // NUR den Text — der Titel ist eine feste Vorgabe (z. B. „Bună dimineața, {Name}!") und bleibt.
+        edit(id, { caption: String(d.caption ?? "") });
       }
     } catch { setError("KI-Vorschlag fehlgeschlagen."); }
     finally { setSuggestingId(""); }
@@ -394,9 +395,9 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
                 {/* ── SEKTION 1: KARUSSELL-TEXT — was im Beitrag steht (Titel groß + Text). ── */}
                 <div className="rounded-xl border border-black/10 bg-black/[0.02] p-3">
                   <p className="mb-2.5 text-[11px] font-black uppercase tracking-[0.16em] text-black/55">🖼 Karussell-Text — im Beitrag</p>
-                  {/* Titel — erscheint GROSS im Bild */}
-                  <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">Titel — groß im Bild</p>
-                  <input value={p.title} placeholder="z. B. Mesajul de dimineață"
+                  {/* Titel — feste Vorgabe (die KI fasst ihn NICHT an). {Name} → Name des Abonnenten. */}
+                  <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">Titel — groß im Bild · feste Vorgabe · <span className="text-white/40">{"{Name}"} = Name des Abonnenten</span></p>
+                  <input value={p.title} placeholder="z. B. Bună dimineața, {Name}!"
                     onChange={e => edit(p.id, { title: e.target.value })}
                     className="h-12 w-full rounded-lg border border-black/15 bg-white/[0.04] px-3 text-[15px] font-black text-white outline-none placeholder:text-[13px] placeholder:font-semibold placeholder:text-white/35 focus:border-black" />
                   {/* Text unter dem Bild = zugleich Prompt */}
@@ -405,9 +406,9 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
                     placeholder="Schreib rein, WORÜBER sie posten soll (z. B. „schreib was Schönes über das blaue Kleid am Meer…“) → ✨ macht Titel + Text draus. Oder tipp den fertigen Text direkt."
                     className="rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2.5 text-[15px] font-semibold leading-relaxed text-white outline-none placeholder:text-[13px] placeholder:text-white/35 focus:border-black" />
                   <button type="button" onClick={() => void suggest(p.id, "post")} disabled={suggestingId === `${p.id}:post`}
-                    title="Aus deiner Anweisung (Text-Feld) Titel + Text schreiben lassen — sieht auch das Foto"
+                    title="Aus deiner Anweisung (Text-Feld) den Text schreiben lassen — sieht auch das Foto. Der Titel bleibt (feste Vorgabe)."
                     className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-black/20 bg-black/[0.03] text-[13px] font-black text-black active:scale-95 transition disabled:opacity-50">
-                    {suggestingId === `${p.id}:post` ? <><Loader2 className="h-4 w-4 animate-spin" /> Schreibt…</> : <><Sparkles className="h-4 w-4" /> Titel + Text schreiben</>}
+                    {suggestingId === `${p.id}:post` ? <><Loader2 className="h-4 w-4 animate-spin" /> Schreibt…</> : <><Sparkles className="h-4 w-4" /> Text schreiben</>}
                   </button>
                 </div>
 
