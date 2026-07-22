@@ -13,11 +13,28 @@ type Sub = { id: string; name: string; email?: string; birthdate?: string; gende
 const LANGS = ["ro", "de", "en"] as const;
 
 // Vorbefüllter WhatsApp-Text pro Sprache: kurze Begrüßung + persönlicher Link.
+// Schön formulierte WhatsApp-Nachricht — Bellas Ich-Stimme, Du-Form (Singular),
+// mit Zeilenumbrüchen und dem persönlichen Link ganz unten.
 const sendText = (lang: string, name: string, link: string) => {
-  const n = name || "";
-  if (lang === "de") return `Guten Morgen ${n}! ☀️ Deine Nachricht von heute ist hier: ${link}`;
-  if (lang === "en") return `Good morning ${n}! ☀️ Your message for today is here: ${link}`;
-  return `Bună dimineața ${n}! ☀️ Mesajul tău de azi e aici: ${link}`;
+  const n = (name || "").trim();
+  if (lang === "de") return (
+    `Guten Morgen${n ? `, ${n}` : ""}! ☀️\n\n` +
+    `Ich hab dir deine Nachricht für heute vorbereitet — dein Wetter, ein neuer Look und ein lieber Gruß von mir. 💛\n` +
+    `Wir schreiben uns dann im Chat.\n\n` +
+    `Hier öffnen 👉 ${link}`
+  );
+  if (lang === "en") return (
+    `Good morning${n ? `, ${n}` : ""}! ☀️\n\n` +
+    `I've got your message for today ready — your weather, a new look and a little thought from me. 💛\n` +
+    `Let's talk in the chat after.\n\n` +
+    `Open it here 👉 ${link}`
+  );
+  return (
+    `Bună dimineața${n ? `, ${n}` : ""}! ☀️\n\n` +
+    `Ți-am pregătit mesajul de azi — vremea ta, un look nou și un gând bun de la mine. 💛\n` +
+    `Vorbim după în chat.\n\n` +
+    `Deschide aici 👉 ${link}`
+  );
 };
 
 // Test abgelaufen? (bestätigt, nicht abgemeldet, älter als trialDays)
