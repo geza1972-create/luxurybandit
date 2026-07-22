@@ -133,7 +133,16 @@ export default async function WetterModelPage({ params, searchParams }: {
   // markiert, fällt es auf alle zurück (nie leer). Abonnent sieht den täglichen (nicht-Ad) Look.
   const adPosts = posts.filter(p => p.ad);
   const visitorPosts = adPosts.length ? adPosts : posts;
-  const dayLook = posts.find(p => !p.ad) ?? posts[0];
+  // Abonnent sieht den Beitrag von HEUTE (day == heute); sonst den neuesten vergangenen
+  // (day <= heute); sonst — falls nur zukünftige/undatierte da sind — den ersten. Ad-Posts
+  // (Besucher-Werbung) zählen hier nie. So steuert der Admin per Datum, was wann erscheint.
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const nonAd = posts.filter(p => !p.ad);
+  const dayLook =
+    nonAd.find(p => p.day === todayISO)
+    ?? [...nonAd].filter(p => p.day && p.day <= todayISO).sort((a, b) => String(b.day).localeCompare(String(a.day)))[0]
+    ?? nonAd[0]
+    ?? posts[0];
 
   // Sprach-Umschalter: setzt ?lang=, behält alle anderen Parameter (s, admin, preview, …).
   const langHref = (l: string) => {
