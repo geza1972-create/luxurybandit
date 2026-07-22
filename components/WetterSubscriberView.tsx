@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Send, Volume2, VolumeX, Maximize2, X } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
 import { CornerOrnaments } from "@/components/BoxOrnaments";
+import BellaPostsCarousel from "@/components/BellaPostsCarousel";
 
 // Was der ABONNENT auf /wetter/<model>?name=…&city=…&lang=… sieht:
 // persönlicher Gruß + Wetter aus seiner Stadt + Look vom Tag + Chat mit dem Model (im Abo unbegrenzt).
@@ -81,12 +82,6 @@ const T: Record<string, Copy> = {
   },
 };
 
-// "2026-07-21" → "21.07.2026" (ohne Date, hydration-sicher).
-function fmtDay(s: string): string {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
-  return m ? `${m[3]}.${m[2]}.${m[1]}` : s;
-}
-
 export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", day = "", time = "", title = "", caption = "", firstMessage = "", dayContext = "" }: {
   name: string; city: string; look: Look | null; lang?: string; modelId?: string; modelName?: string; subId?: string; day?: string; time?: string;
   title?: string;         // „Titel" aus dem Beitrag — groß über dem Text
@@ -98,16 +93,6 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   const t = T[L] ?? T.en;
   const wxWords = WX[L] ?? WX.en;
 
-  // Datum + Uhrzeit über dem Titel. Hat der Beitrag einen Tag, den zeigen; sonst das
-  // heutige Datum + aktuelle Uhrzeit (erst im Effekt gesetzt → keine SSR-Abweichung).
-  const [nowLabel, setNowLabel] = useState("");
-  useEffect(() => {
-    if (day) return;
-    const d = new Date(); const p = (n: number) => String(n).padStart(2, "0");
-    setNowLabel(`${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} · ${p(d.getHours())}:${p(d.getMinutes())}`);
-  }, [day]);
-  const dateLine = day ? (fmtDay(day) + (time ? ` · ${time}` : "")) : nowLabel;
-
   // Login auf DIESEM Gerät merken: kommt der Abonnent per `?s=`-Link, speichern wir die
   // Kennung — beim nächsten Öffnen von /wetter/<model> erkennt ihn die Seite ohne Link.
   useEffect(() => {
@@ -118,24 +103,6 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   const [weather, setWeather] = useState<{ temp: number; word: string; e: string } | null>(null);
   const tzRef = useRef<string>("");   // Zeitzone der Stadt — fürs spätere „Morgen"-Timing pro Land.
 
-  // Look-Video: automatisch starten. Handys erlauben Autostart nur STUMM, deshalb muted +
-  // playsInline. Das Poster ist bis dahin das Cover; ohne Poster zeigt der erste Frame.
-  const lookVideoRef = useRef<HTMLVideoElement>(null);
-  const [vidPlaying, setVidPlaying] = useState(false);   // läuft das Video? (steuert den Scan-Ladebalken)
-  const [muted, setMuted] = useState(true);              // Autostart nur stumm erlaubt
-  const [zoom, setZoom] = useState(false);               // Vollbild-Vorschau des Looks
-  useEffect(() => {
-    const v = lookVideoRef.current;
-    if (!v || look?.kind !== "video") return;
-    // React setzt `muted` nicht zuverlässig als DOM-Property → Browser blockt sonst Autoplay.
-    // Deshalb hier hart setzen (muted + defaultMuted) und bei jedem „abspielbar"-Moment starten.
-    v.muted = true; v.defaultMuted = true;
-    const tryPlay = () => { void v.play().catch(() => {}); };
-    tryPlay();
-    v.addEventListener("canplay", tryPlay);
-    v.addEventListener("loadeddata", tryPlay);
-    return () => { v.removeEventListener("canplay", tryPlay); v.removeEventListener("loadeddata", tryPlay); };
-  }, [look?.kind, look?.mediaUrl]);
   // Selbst-Abmeldung (der Abonnent stoppt die tägliche Nachricht direkt hier).
   const [unsubbed, setUnsubbed] = useState(false);
   const [unsubbing, setUnsubbing] = useState(false);
@@ -149,12 +116,6 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
       try { localStorage.removeItem(`lb_wetter_sub_${modelId}`); } catch { /**/ }
       setUnsubbed(true);
     } catch { /**/ } finally { setUnsubbing(false); }
-  };
-
-  const toggleMute = () => {
-    const v = lookVideoRef.current; if (!v) return;
-    v.muted = !v.muted; setMuted(v.muted);
-    if (v.paused) v.play().catch(() => {});
   };
 
   // Wetter aus der Stadt des Abonnenten (Open-Meteo, CORS-frei, kein Key, weltweit).
@@ -228,63 +189,12 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         </p>
       </div>
 
-      {/* Look vom Tag */}
+      {/* Look vom Tag — EXAKT dieselbe Komponente wie das Besucher-Karussell (ein Beitrag):
+          Video full, Text/Datum/Titel im Bild, Sound oben links, Vergrößern oben rechts. */}
       {look && (
-        <div className="relative mt-4 aspect-[3/4] w-full overflow-hidden rounded-2xl border border-amber-400/80 bg-[#0a0a0a]">
-          {look.kind === "video" ? (
-            <>
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-              <video ref={lookVideoRef} src={look.mediaUrl}
-                autoPlay muted loop playsInline preload="auto"
-                onPlaying={() => setVidPlaying(true)}
-                onWaiting={() => setVidPlaying(false)}
-                className="h-full w-full object-contain object-top" />
-              {/* Lade-/Scan-Modus: läuft, bis das Video wirklich abspielt. */}
-              {!vidPlaying && (
-                <>
-                  <div className="pointer-events-none absolute inset-0 bg-black/30" />
-                  <span className="lb-scanline pointer-events-none absolute inset-x-3 h-[3px] rounded-full bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_16px_4px_rgba(251,191,36,0.55)]" />
-                  <span className="pointer-events-none absolute inset-x-0 bottom-3 text-center text-[11px] font-black uppercase tracking-[0.25em] text-white/80">{L === "en" ? "loading" : L === "de" ? "lädt" : "se încarcă"}…</span>
-                </>
-              )}
-              {/* Ton an/aus (Autostart ist stumm) — oben links, wie im Karussell. */}
-              <button type="button" onClick={toggleMute} aria-label="Ton"
-                className="lb-onmedia absolute left-2 top-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white ring-1 ring-white/25 backdrop-blur active:scale-95 transition">
-                {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-              </button>
-            </>
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={look.mediaUrl} alt="" className="h-full w-full object-contain object-top" />
-          )}
-          {/* Groß ansehen — Vollbild, oben rechts (wie im Karussell). */}
-          <button type="button" onClick={() => setZoom(true)} aria-label="Groß ansehen"
-            className="lb-onmedia absolute right-2 top-2 z-10 grid h-9 w-9 place-items-center rounded-full bg-black/50 text-white ring-1 ring-white/25 backdrop-blur active:scale-95 transition">
-            <Maximize2 className="h-4 w-4" />
-          </button>
-          {/* Text-Overlay unten im Bild — Datum + Titel + Text, exakt wie im Besucher-Karussell. */}
-          {(dateLine || title.trim() || caption.trim()) && (
-            <div className="lb-onmedia pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0d0b0a] via-[#0d0b0a]/70 to-transparent px-5 pb-4 pt-16">
-              {dateLine && <p className="mb-1.5 text-[12px] font-black uppercase tracking-wide text-white/85 drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">📅 {dateLine}</p>}
-              {title.trim() && <p className="text-[28px] font-black leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">{title}</p>}
-              {caption.trim() && <p className="mt-1 whitespace-pre-line text-[13px] font-semibold leading-snug text-white/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.95)]">{caption}</p>}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Vollbild-Vorschau des Looks. */}
-      {zoom && look && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/95 p-3" onClick={() => setZoom(false)}>
-          <button type="button" onClick={() => setZoom(false)} aria-label="Schließen"
-            className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white active:scale-95">
-            <X className="h-5 w-5" />
-          </button>
-          {look.kind === "video"
-            // eslint-disable-next-line jsx-a11y/media-has-caption
-            ? <video src={look.mediaUrl} poster={look.posterUrl || undefined} controls autoPlay playsInline onClick={e => e.stopPropagation()} className="max-h-full max-w-full rounded-2xl" />
-            // eslint-disable-next-line @next/next/no-img-element
-            : <img src={look.mediaUrl} alt="" onClick={e => e.stopPropagation()} className="max-h-full max-w-full rounded-2xl object-contain" />}
+        <div className="mt-4">
+          <BellaPostsCarousel name={modelName}
+            posts={[{ id: "day", kind: look.kind, title, caption, mediaUrl: look.mediaUrl, posterUrl: look.posterUrl, day, time }]} />
         </div>
       )}
 
