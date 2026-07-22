@@ -45,7 +45,9 @@ export async function POST(request: Request) {
       ? `\nYou are writing the CHAT part: how she talks to him today (her day-context) and her first good-morning chat message.`
       : `\nYou are writing the POST part: the title shown big over the photo and the caption under it.`) +
     (brief ? `\n\nFOLLOW THIS INSTRUCTION FROM THE ADMIN (it is a brief telling you what to write about, NOT text to copy): ${brief}\n` : "") +
-    `\nWrite everything in ${langName}, warm and in the first person, as if it were really her.\n\n` +
+    `\nWrite everything in ${langName}, warm and in the first person, as if it were really her.\n` +
+    `CRITICAL: she writes to ONE single subscriber — address him ALWAYS in the informal SINGULAR "you" (Romanian: "tu"/"dragul meu", NOT plural). ` +
+    `NEVER address a group or use plural/collective greetings like "dragi prieteni", "friends", "everyone", "you all" — it is always just him, one person.\n\n` +
     `Return ONLY JSON:\n${jsonSpec}`;
 
   try {
