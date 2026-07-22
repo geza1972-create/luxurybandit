@@ -2946,7 +2946,7 @@ function StoresPage() {
                     {/* No light border — bright photo edges made it flash white on dark. */}
                     {/* Bella führt auf ihre neue Seite (/bella) statt aufs alte Profil.
                         Andere Models vorerst weiter aufs Profil, bis sie eigene Inhalte haben. */}
-                    <a href={m.id === BELLA_ID ? "/bella" : `/curator/${m.id}`}
+                    <a href={`/curator/${m.id}`}
                       onClick={(e) => {
                         if (modelSelect && isAdmin) {
                           e.preventDefault();
