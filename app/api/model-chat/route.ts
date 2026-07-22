@@ -41,6 +41,7 @@ export async function POST(request: Request) {
     userName?: string;
     messages?: ChatMsg[];
     lang?: string;      // fan's chosen chat language (BCP-47 short code)
+    dayContext?: string; // „Ihr Tag heute" aus dem Wetter-Beitrag — steuert, wie sie heute antwortet
     globalNote?: string;
     chatId?: string;
     texts?: string[];   // for "translate"
@@ -174,6 +175,7 @@ export async function POST(request: Request) {
     (bio ? `Your public bio: ${bio}. ` : "") +
     (style ? `Your fashion style: ${style}. ` : "") +
     (persona ? `\n\nHOW YOU BEHAVE (follow this closely):\n${persona}\n` : "") +
+    (String(body.dayContext ?? "").trim() ? `\n\nWHAT YOU'RE DOING TODAY (weave in naturally when it fits, don't recite it):\n${String(body.dayContext).trim()}\n` : "") +
     (globalNote ? `\n\nHOUSE RULES (apply to every conversation):\n${globalNote}\n` : "") +
     `\n\nYou are perfectly fluent in EVERY language. ALWAYS reply in the SAME language the fan writes in (German, English, French, Spanish, Italian, etc.), and switch instantly if they switch. ` +
     `NEVER say your German/French/etc. is not good, never claim you only speak English, and never ask them to switch languages — just reply naturally in their language. ` +

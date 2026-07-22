@@ -115,17 +115,20 @@ export default async function WetterModelPage({ params, searchParams }: {
     day: s.day ?? "",
     time: s.time ?? "",
     ad: (s as { ad?: boolean }).ad === true,
+    context: (s as { context?: string }).context ?? "",
+    firstMessage: (s as { firstMessage?: string }).firstMessage ?? "",
     mediaUrl: await getSignedUrl(s.path).catch(() => ""),
     posterUrl: s.posterPath ? await getSignedUrl(s.posterPath).catch(() => "") : "",
   })))).filter(p => p.mediaUrl);
 
   // Beitrags-Texte in die Sprache des Besuchers übersetzen (einmal pro Sprache gecacht),
   // damit die Seite nicht halb rumänisch / halb deutsch ist. Original bleibt bei Fehler.
-  const [txTitles, txCaptions] = await Promise.all([
+  const [txTitles, txCaptions, txFirst] = await Promise.all([
     translateMany(rawPosts.map(p => p.title), subLang),
     translateMany(rawPosts.map(p => p.caption), subLang),
+    translateMany(rawPosts.map(p => p.firstMessage), subLang),
   ]);
-  const posts = rawPosts.map((p, i) => ({ ...p, title: txTitles[i], caption: txCaptions[i] }));
+  const posts = rawPosts.map((p, i) => ({ ...p, title: txTitles[i], caption: txCaptions[i], firstMessage: txFirst[i] }));
   // „Werbung": Besucher (nicht eingeloggt) sehen die als Ad markierten Beiträge; sind keine
   // markiert, fällt es auf alle zurück (nie leer). Abonnent sieht den täglichen (nicht-Ad) Look.
   const adPosts = posts.filter(p => p.ad);
@@ -174,6 +177,7 @@ export default async function WetterModelPage({ params, searchParams }: {
           )}
           <WetterSubscriberView name={subName} city={subCity} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken}
             day={dayLook?.day || ""} time={dayLook?.time || ""}
+            title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.firstMessage || ""} dayContext={dayLook?.context || ""}
             look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />
           </>
         ) : showAdmin ? (
@@ -196,6 +200,7 @@ export default async function WetterModelPage({ params, searchParams }: {
             ) : (
               <WetterSubscriberView name="Remus" city="Timișoara" lang={subLang} modelId={modelId} modelName={modelName} subId=""
                 day={dayLook?.day || ""} time={dayLook?.time || ""}
+                title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.firstMessage || ""} dayContext={dayLook?.context || ""}
                 look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />
             )}
           </>

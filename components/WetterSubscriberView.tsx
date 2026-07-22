@@ -87,8 +87,12 @@ function fmtDay(s: string): string {
   return m ? `${m[3]}.${m[2]}.${m[1]}` : s;
 }
 
-export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", day = "", time = "" }: {
+export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", day = "", time = "", title = "", caption = "", firstMessage = "", dayContext = "" }: {
   name: string; city: string; look: Look | null; lang?: string; modelId?: string; modelName?: string; subId?: string; day?: string; time?: string;
+  title?: string;         // „Titel" aus dem Beitrag — groß über dem Text
+  caption?: string;       // „Text unter dem Bild" aus dem Beitrag
+  firstMessage?: string;  // „Erste Nachricht im Chat" — Opener (leer = Standard-Gruß)
+  dayContext?: string;    // „Ihr Tag heute" — steuert den Chat
 }) {
   const L = (lang || DEFAULT_LANG).slice(0, 2).toLowerCase();
   const t = T[L] ?? T.en;
@@ -171,7 +175,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   }, [city, L, wxWords]);
 
   // ── Chat mit dem Model (Abonnent = unbegrenzt) ── in der Sprache des Abonnenten.
-  const [messages, setMessages] = useState<Msg[]>([{ role: "assistant", content: t.opener(name, modelName) }]);
+  const [messages, setMessages] = useState<Msg[]>([{ role: "assistant", content: firstMessage.trim() || t.opener(name, modelName) }]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -193,7 +197,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     try {
       const res = await fetch("/api/model-chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ curatorId: modelId, visitorId: (name || "sub").toLowerCase(), userName: name, messages: next, lang: L }),
+        body: JSON.stringify({ curatorId: modelId, visitorId: (name || "sub").toLowerCase(), userName: name, messages: next, lang: L, dayContext }),
       });
       const ct = res.headers.get("content-type") || "";
       if (ct.includes("application/json") || !res.body) {
@@ -253,6 +257,14 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             // eslint-disable-next-line @next/next/no-img-element
             <img src={look.mediaUrl} alt="" className="h-full w-full object-contain object-top" />
           )}
+        </div>
+      )}
+
+      {/* Beitrags-Texte des Tages (aus dem Beiträge-Tool): Titel groß + Text darunter. */}
+      {(title.trim() || caption.trim()) && (
+        <div className="mt-4">
+          {title.trim() && <p className="text-[22px] font-black leading-tight text-white">{title}</p>}
+          {caption.trim() && <p className="mt-1.5 whitespace-pre-wrap text-[15px] font-semibold leading-relaxed text-white/70">{caption}</p>}
         </div>
       )}
 
