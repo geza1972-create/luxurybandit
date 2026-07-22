@@ -27,12 +27,11 @@ export async function POST(request: Request) {
   const brief = String(body.brief ?? "").trim().slice(0, 1200);   // die getippte Anweisung des Admins (optional)
   const mode = body.mode === "chat" ? "chat" : "post";            // „post" = Karussell-Text (Titel+Text), „chat" = Chat-Text (Kontext+Opener)
 
-  // Bild bevorzugt aus dem Speicherpfad (Entwurf) signieren; sonst die übergebene Adresse nehmen.
+  // Bild, das die KI sieht (bei Video schickt der Client das POSTER als path/imageUrl):
+  // bevorzugt aus dem Speicherpfad (Entwurf) signieren; sonst die übergebene Adresse nehmen.
   let imageUrl = "";
-  if (body.kind !== "video") {
-    if (body.path) imageUrl = await getSignedUrl(String(body.path)).catch(() => "");
-    else if (body.imageUrl) imageUrl = String(body.imageUrl);
-  }
+  if (body.path) imageUrl = await getSignedUrl(String(body.path)).catch(() => "");
+  else if (body.imageUrl) imageUrl = String(body.imageUrl);
 
   const jsonSpec = mode === "chat"
     ? `{"context":"her warm good-morning chat message to the subscriber — 2-3 sentences, first person, that both GREETS him AND says where she is / what she's doing / wearing today, so it works as her opening chat message AND steers her later replies. May use one emoji."}`
@@ -40,7 +39,7 @@ export async function POST(request: Request) {
 
   const instruction =
     `You are ${model}, an AI influencer who sends her subscriber a personal "good morning" message every day. ` +
-    `${imageUrl ? "Look at the attached photo and use exactly where she is and what she is wearing." : "Invent a glamorous everyday morning scene (a nice city, a nice outfit)."} ` +
+    `${imageUrl ? "Look CAREFULLY at the attached photo and describe EXACTLY what she is really wearing (the exact garment and its colour, e.g. blue lingerie) and her actual setting — never invent a different outfit or place than the photo shows." : "Invent a glamorous everyday morning scene (a nice city, a nice outfit)."} ` +
     (mode === "chat"
       ? `\nYou are writing the CHAT part: how she talks to him today (her day-context) and her first good-morning chat message.`
       : `\nYou are writing the POST part: the title shown big over the photo and the caption under it.`) +

@@ -33,6 +33,7 @@ export async function GET(request: Request) {
     context: s.context ?? "",
     firstMessage: s.firstMessage ?? "",
     mediaUrl: await getSignedUrl(s.path).catch(() => ""),
+    posterUrl: s.posterPath ? await getSignedUrl(s.posterPath).catch(() => "") : "",
   })));
   return NextResponse.json({ posts }, { headers: { "Cache-Control": "no-store, max-age=0" } });
 }

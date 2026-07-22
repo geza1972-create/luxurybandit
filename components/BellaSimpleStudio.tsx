@@ -26,7 +26,7 @@ function AutoTextarea({ value, onChange, className = "", placeholder, minRows = 
 }
 
 type Post = {
-  id: string; kind: "image" | "video"; title: string; caption: string; day: string; time: string; ad: boolean; context: string; firstMessage: string; mediaUrl: string;
+  id: string; kind: "image" | "video"; title: string; caption: string; day: string; time: string; ad: boolean; context: string; firstMessage: string; mediaUrl: string; posterUrl?: string;
   // Ein getauschtes Bild/Video, das noch NICHT live ist. Die Datei liegt schon im
   // Speicher (anders geht Hochladen nicht), aber der Beitrag zeigt sie erst nach
   // „Übernehmen". `previewUrl` ist die lokale Vorschau aus der gewählten Datei.
@@ -221,13 +221,14 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
     try {
       const kind = post.pending?.kind ?? post.kind;
       const brief = mode === "chat" ? (post.context ?? "") : (post.caption ?? "");
+      // Bild, das die KI SIEHT: bei Video das Poster (erstes Frame), bei Bild das Medium selbst.
+      // Entwurf → Speicherpfad (path); bestehender Beitrag → signierte Adresse (imageUrl).
+      const imgSource = post.pending
+        ? { path: kind === "video" ? (post.pending.posterPath || "") : post.pending.path }
+        : { imageUrl: (kind === "video" ? (post.posterUrl || "") : post.mediaUrl) || "" };
       const r = await fetch("/api/wetter-suggest", {
         method: "POST", headers: headers(),
-        body: JSON.stringify({
-          modelName, lang: "ro", kind, mode, brief,
-          // Entwurf → Speicherpfad; bestehender Beitrag → signierte Bild-Adresse.
-          ...(post.pending ? { path: post.pending.path } : { imageUrl: post.mediaUrl }),
-        }),
+        body: JSON.stringify({ modelName, lang: "ro", kind, mode, brief, ...imgSource }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d?.error ?? "KI-Vorschlag fehlgeschlagen."); return; }
