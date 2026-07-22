@@ -54,6 +54,8 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
   const [sent, setSent] = useState<Record<string, boolean>>({});   // lokal abgehakt = „heute gesendet"
   const [copiedId, setCopiedId] = useState("");
   const [origin, setOrigin] = useState("");
+  const [botBusy, setBotBusy] = useState("");     // subId oder "all", solange der Bot sendet
+  const [botMsg, setBotMsg] = useState("");       // Ergebnis-Hinweis nach dem Bot-Versand
 
   // Formular
   const [name, setName] = useState("");
@@ -116,13 +118,35 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
     catch { window.prompt("Link kopieren:", personalLink(s)); }
   };
 
+  // Bot-Versand über die WhatsApp Cloud API (Meta) — einzeln ({ s }) oder an alle ({ all:true }).
+  const botSend = async (payload: { s?: string; all?: boolean }) => {
+    const key = payload.all ? "all" : String(payload.s ?? "");
+    if (payload.all && !window.confirm("Tägliche Nachricht per WhatsApp-Bot an ALLE aktiven Abonnenten senden?")) return;
+    setBotBusy(key); setBotMsg("");
+    try {
+      const r = await fetch("/api/wetter-send", { method: "POST", headers: headers(), body: JSON.stringify({ modelId, modelSlug, ...payload }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setBotMsg(d?.error ?? "Bot-Versand fehlgeschlagen."); return; }
+      const failed = (d.results ?? []).filter((x: { ok: boolean }) => !x.ok);
+      setBotMsg(`✅ ${d.sent}/${d.total} gesendet${failed.length ? ` · ${failed.length} fehlgeschlagen (${failed.map((x: { name: string }) => x.name).join(", ")})` : ""}${d.note ? ` · ${d.note}` : ""}`);
+      if (payload.s && d.sent) setSent(prev => ({ ...prev, [payload.s as string]: true }));
+    } catch { setBotMsg("Bot-Versand fehlgeschlagen."); }
+    finally { setBotBusy(""); }
+  };
+
   if (!isAdmin) return null;
 
   return (
     <div className="rounded-2xl border border-white/15 bg-white p-4">
       <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/50">Nur für dich sichtbar</p>
       <h2 className="mt-1 flex items-center gap-2 text-[18px] font-black text-white"><Users className="h-4 w-4 text-black/50" /> Abonnenten <span className="text-white/40">({subs.length})</span></h2>
-      <p className="mt-0.5 text-[12px] font-semibold text-white/60">Wer bekommt die tägliche Nachricht von {modelName}. Jetzt manuell per WhatsApp senden — später automatisch.</p>
+      <p className="mt-0.5 text-[12px] font-semibold text-white/60">Wer bekommt die tägliche Nachricht von {modelName}. Einzeln „Senden" (öffnet WhatsApp) oder „🤖 An alle" per Bot (WhatsApp Cloud API).</p>
+      {/* 🤖 Bot: an ALLE aktiven Abonnenten auf einmal (Meta Cloud API). Braucht die WHATSAPP_*-Env. */}
+      <button type="button" onClick={() => void botSend({ all: true })} disabled={botBusy === "all"}
+        className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] text-[13px] font-black text-black active:scale-95 transition disabled:opacity-50">
+        {botBusy === "all" ? "Sendet…" : "🤖 An alle senden (Bot)"}
+      </button>
+      {botMsg && <p className="mt-1.5 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{botMsg}</p>}
       {/* Schnell-Überblick: an wen NICHT mehr senden. */}
       {(() => {
         const unsub = subs.filter(s => s.unsubscribed).length;
@@ -221,6 +245,14 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
                   </a>
                 ) : (
                   <span className="flex h-9 flex-1 items-center justify-center rounded-lg border border-black/20 text-[11px] font-black text-black/45">Keine Nr.</span>
+                )}
+                {/* 🤖 Bot: diesen einen Abonnenten direkt per WhatsApp Cloud API anschreiben. */}
+                {s.phone && !s.unsubscribed && (
+                  <button type="button" onClick={() => void botSend({ s: s.id })} disabled={botBusy === s.id} aria-label="Per Bot senden"
+                    title="Per WhatsApp-Bot senden (kein WhatsApp-Öffnen)"
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-[#25D366]/50 bg-[#25D366]/10 text-[15px] active:scale-95 transition disabled:opacity-40">
+                    {botBusy === s.id ? "…" : "🤖"}
+                  </button>
                 )}
                 <button type="button" onClick={() => void remove(s.id)} aria-label="Löschen"
                   className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-red-400/40 text-red-300 active:scale-95 transition">
