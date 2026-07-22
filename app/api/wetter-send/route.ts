@@ -16,12 +16,14 @@ export async function POST(request: Request) {
   const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || new URL(request.url).origin;
   const link = (s: WetterSubscriber) => `${origin}/themes/wetter/${encodeURIComponent(modelSlug)}?s=${encodeURIComponent(s.id)}`;
 
-  // Empfänger: hat Nummer, E-Mail bestätigt, nicht abgemeldet.
-  const eligible = (s: WetterSubscriber) => !!s.phone && s.confirmed === true && s.unsubscribed !== true;
+  // „An alle": nur Nummer + E-Mail bestätigt + nicht abgemeldet (Anti-Spam).
+  // Einzel-Klick (Admin wählt bewusst): nur Nummer + nicht abgemeldet (Bestätigung egal → Test).
+  const eligibleAll = (s: WetterSubscriber) => !!s.phone && s.confirmed === true && s.unsubscribed !== true;
+  const eligibleOne = (s: WetterSubscriber) => !!s.phone && s.unsubscribed !== true;
   const subs = await readWetterSubscribers(modelId);
   const targets = body.all
-    ? subs.filter(eligible)
-    : subs.filter(s => s.id === String(body.s ?? "") && eligible(s));
+    ? subs.filter(eligibleAll)
+    : subs.filter(s => s.id === String(body.s ?? "") && eligibleOne(s));
 
   if (targets.length === 0) return NextResponse.json({ sent: 0, total: 0, results: [], note: "Keine passenden Empfänger (Nummer + bestätigt + nicht abgemeldet)." });
 
