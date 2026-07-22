@@ -179,24 +179,30 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     finally { setSending(false); }
   };
 
+  // "2026-07-22" → "22.07.2026" (+ optional Uhrzeit) fürs Datum unter dem Video.
+  const dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+  const dateLabel = dm ? `${dm[3]}.${dm[2]}.${dm[1]}${time ? ` · ${time}` : ""}` : "";
+
   return (
-    <div className="mx-auto max-w-md px-4">
-      {/* Persönlicher Gruß + Wetter */}
-      <div className="pt-5">
+    <div className="mx-auto max-w-md">
+      {/* VIDEO zuerst — klebt direkt am Header (Muster), Video full, Sound oben links,
+          Vergrößern oben rechts. KEIN Text im Bild (Overlay leer) → alle Texte kommen darunter. */}
+      {look && (
+        <BellaPostsCarousel name={modelName}
+          posts={[{ id: "day", kind: look.kind, title: "", caption: "", mediaUrl: look.mediaUrl, posterUrl: look.posterUrl }]} />
+      )}
+
+      <div className="px-4">
+      {/* ALLE Texte UNTER dem Video: Datum, Gruß, Wetter, Titel, Beitragstext. */}
+      <div className="pt-4">
+        {dateLabel && <p className="mb-1 text-[11px] font-black uppercase tracking-[0.14em] text-amber-400">📅 {dateLabel}</p>}
         <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-amber-400">{name}!</span></p>
         <p className="mt-1 text-[14px] font-semibold text-white/70">
           {weather ? t.wxLine(city, weather.word, weather.e, weather.temp) : t.wxLoading(city)}
         </p>
+        {title.trim() && <p className="mt-3 text-[20px] font-black leading-tight text-white">{title}</p>}
+        {caption.trim() && <p className="mt-1.5 whitespace-pre-wrap text-[15px] font-semibold leading-relaxed text-white/70">{caption}</p>}
       </div>
-
-      {/* Look vom Tag — EXAKT dieselbe Komponente wie das Besucher-Karussell (ein Beitrag):
-          Video full, Text/Datum/Titel im Bild, Sound oben links, Vergrößern oben rechts. */}
-      {look && (
-        <div className="mt-4">
-          <BellaPostsCarousel name={modelName}
-            posts={[{ id: "day", kind: look.kind, title, caption, mediaUrl: look.mediaUrl, posterUrl: look.posterUrl, day, time }]} />
-        </div>
-      )}
 
       {/* Chat mit dem Model */}
       <div className="lb-theme relative mb-8 mt-6 overflow-hidden rounded-2xl border border-black/10 bg-white">
@@ -253,6 +259,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }
