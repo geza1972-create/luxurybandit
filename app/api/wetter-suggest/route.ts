@@ -43,8 +43,9 @@ export async function POST(request: Request) {
     (mode === "chat"
       ? `\nYou are writing the CHAT part: how she talks to him today (her day-context) and her first good-morning chat message.`
       : `\nYou are writing the POST part: the title shown big over the photo and the caption under it.`) +
-    (brief ? `\n\nFOLLOW THIS INSTRUCTION FROM THE ADMIN (it is a brief telling you what to write about, NOT text to copy): ${brief}\n` : "") +
-    `\nWrite everything in ${langName}, warm and in the first person, as if it were really her.\n` +
+    (brief ? `\n\nThe admin gives you a DIRECTIVE about what to convey (it may be phrased as a command, even in the third person, e.g. "say she is in the park wearing blue lingerie"). Treat it ONLY as instructions about the content and REWRITE it in HER own first-person voice — never copy its wording and never keep its third-person phrasing. DIRECTIVE: ${brief}\n` : "") +
+    `\nWrite everything in ${langName}, warm and in the FIRST PERSON as HER own voice — this is HER message and HER chat.\n` +
+    `ABSOLUTE RULE: You ARE ${model}. Speak only as "I"/"me"/"my". NEVER refer to ${model} in the third person — never write "${model} does…", "${model} wishes you…", "talk to her", "she is…". Always "I wish you…", "I'm wearing…", "chat with me".\n` +
     `CRITICAL: she writes to ONE single subscriber — address him ALWAYS in the informal SINGULAR "you" (Romanian: "tu"/"dragul meu", NOT plural). ` +
     `NEVER address a group or use plural/collective greetings like "dragi prieteni", "friends", "everyone", "you all" — it is always just him, one person.\n\n` +
     `Return ONLY JSON:\n${jsonSpec}`;
