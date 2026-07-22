@@ -20,10 +20,11 @@ export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "OPENAI_API_KEY missing." }, { status: 400 });
 
-  const body = (await request.json().catch(() => ({}))) as { path?: string; imageUrl?: string; kind?: string; modelName?: string; lang?: string };
+  const body = (await request.json().catch(() => ({}))) as { path?: string; imageUrl?: string; kind?: string; modelName?: string; lang?: string; brief?: string };
   const model = String(body.modelName ?? "").trim() || "Model";
   const lang = String(body.lang ?? "ro").slice(0, 2).toLowerCase();
   const langName = LANG_NAME[lang] ?? "Romanian";
+  const brief = String(body.brief ?? "").trim().slice(0, 1200);   // die getippte Anweisung des Admins (optional)
 
   // Bild bevorzugt aus dem Speicherpfad (Entwurf) signieren; sonst die übergebene Adresse nehmen.
   let imageUrl = "";
@@ -35,9 +36,11 @@ export async function POST(request: Request) {
   const instruction =
     `You are ${model}, an AI influencer who sends her subscriber a personal "good morning" message every day. ` +
     `${imageUrl ? "Look at the attached photo and use exactly where she is and what she is wearing." : "Invent a glamorous everyday morning scene (a nice city, a nice outfit)."} ` +
-    `Write everything in ${langName}, warm and in the first person, as if it were really her.\n\n` +
+    (brief ? `\n\nFOLLOW THIS INSTRUCTION FROM THE ADMIN (it is a brief telling you what to write about, NOT text to copy): ${brief}\n` : "") +
+    `\nWrite everything in ${langName}, warm and in the first person, as if it were really her.\n\n` +
     `Return ONLY JSON:\n` +
-    `{"context":"1-2 sentences describing HER day today — where she is, what she's doing, what she's wearing — used to steer her chat replies (first person)",` +
+    `{"title":"a short punchy title shown BIG over the post, max 4-5 words (may be empty)",` +
+    `"context":"1-2 sentences describing HER day today — where she is, what she's doing, what she's wearing — used to steer her chat replies (first person)",` +
     `"firstMessage":"her warm good-morning opening chat message to the subscriber, 1-2 sentences, may use one emoji",` +
     `"caption":"a short caption for under the photo, max 1 sentence, may use one emoji"}`;
 
@@ -53,6 +56,7 @@ export async function POST(request: Request) {
     const text = String(p?.choices?.[0]?.message?.content ?? "").replace(/^```json\s*|\s*```$/g, "").trim();
     const j = JSON.parse(text);
     return NextResponse.json({
+      title: String(j.title ?? "").slice(0, 200),
       context: String(j.context ?? "").slice(0, 2000),
       firstMessage: String(j.firstMessage ?? "").slice(0, 1000),
       caption: String(j.caption ?? "").slice(0, 3000),

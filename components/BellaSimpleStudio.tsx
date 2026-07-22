@@ -210,17 +210,20 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
           modelName,
           lang: "ro",
           kind,
+          // Der Feldinhalt „Text unter dem Bild" ist zugleich der PROMPT/die Anweisung.
+          brief: post.caption ?? "",
           // Entwurf → Speicherpfad; bestehender Beitrag → signierte Bild-Adresse.
           ...(post.pending ? { path: post.pending.path } : { imageUrl: post.mediaUrl }),
         }),
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d?.error ?? "KI-Vorschlag fehlgeschlagen."); return; }
+      // Ergebnis ersetzt den Prompt im selben Feld (wie im Card Studio) + füllt Titel/Kontext/Opener.
       edit(id, {
+        ...(String(d.title ?? "").trim() ? { title: String(d.title) } : {}),
+        caption: String(d.caption ?? ""),
         context: String(d.context ?? ""),
         firstMessage: String(d.firstMessage ?? ""),
-        // Text nur setzen, wenn noch leer — einen selbst geschriebenen Text nicht überschreiben.
-        ...(post.caption?.trim() ? {} : { caption: String(d.caption ?? "") }),
       });
     } catch { setError("KI-Vorschlag fehlgeschlagen."); }
     finally { setSuggestingId(""); }
@@ -377,12 +380,6 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
                   </span>
                 </button>
 
-                {/* ✨ KI-Vorschlag — liest das Foto und füllt Kontext, erste Nachricht und Text vor. */}
-                <button type="button" onClick={() => void suggest(p.id)} disabled={suggestingId === p.id}
-                  className="flex h-11 items-center justify-center gap-2 rounded-lg border border-black/20 bg-black/[0.03] text-[13px] font-black text-black active:scale-95 transition disabled:opacity-50">
-                  {suggestingId === p.id ? <><Loader2 className="h-4 w-4 animate-spin" /> KI überlegt…</> : <><Sparkles className="h-4 w-4" /> KI-Vorschlag (aus dem Foto)</>}
-                </button>
-
                 {/* Titel — erscheint GROSS im Bild, z. B. „Bella ist dein Wecker" */}
                 <div>
                   <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">Titel — groß im Bild</p>
@@ -392,10 +389,16 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
                 </div>
 
                 <div>
-                  <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">Text unter dem Bild</p>
-                  <textarea value={p.caption} rows={5} placeholder="Kurzer Text unter dem Bild (optional)…"
+                  <p className="mb-1 text-[11px] font-black uppercase tracking-wide text-white/55">Text unter dem Bild · zugleich Prompt</p>
+                  <textarea value={p.caption} rows={5} placeholder="Schreib rein, WORÜBER sie posten soll (z. B. „schreib was Schönes über das blaue Kleid am Meer…“) → ✨ macht Titel + Text draus. Oder tipp den fertigen Text direkt."
                     onChange={e => edit(p.id, { caption: e.target.value })}
                     className="w-full resize-y rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2.5 text-[15px] font-semibold leading-relaxed text-white outline-none placeholder:text-[13px] placeholder:text-white/35 focus:border-black" />
+                  {/* ✨ Prompt-in-place: der Feldinhalt oben ist die Anweisung → KI schreibt Titel + Text (+ Kontext/Opener) rein. */}
+                  <button type="button" onClick={() => void suggest(p.id)} disabled={suggestingId === p.id}
+                    title="Aus deiner Anweisung (Feld oben) Titel + Text schreiben lassen — sieht auch das Foto"
+                    className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-black/20 bg-black/[0.03] text-[13px] font-black text-black active:scale-95 transition disabled:opacity-50">
+                    {suggestingId === p.id ? <><Loader2 className="h-4 w-4 animate-spin" /> Schreibt…</> : <><Sparkles className="h-4 w-4" /> Titel + Text schreiben</>}
+                  </button>
                 </div>
 
                 {/* „Bellas Tag" — Chat-Kontext: steuert, wie sie heute antwortet. */}
