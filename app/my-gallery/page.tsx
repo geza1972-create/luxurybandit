@@ -314,11 +314,11 @@ export default function MyGalleryPage() {
               {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Download
             </button>
           </div>
-          <div className="flex flex-1 items-center justify-center p-3" onClick={(e) => e.stopPropagation()}>
+          <div className="flex min-h-0 flex-1 items-center justify-center p-3" onClick={(e) => e.stopPropagation()}>
             {open.videoUrl ? (
               // eslint-disable-next-line jsx-a11y/media-has-caption
               <video src={open.videoUrl} poster={open.imageUrl || undefined} controls autoPlay playsInline
-                className="max-h-full max-w-full rounded-2xl" />
+                className="max-h-full max-w-full rounded-2xl object-contain" />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={open.imageUrl} alt={open.lookName ?? ""} className="max-h-full max-w-full rounded-2xl object-contain" />
