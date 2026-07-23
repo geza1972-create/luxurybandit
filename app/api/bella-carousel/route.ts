@@ -38,7 +38,7 @@ const slideSort = (a: BellaSlide, b: BellaSlide) =>
 async function signSlides(slides: BellaSlide[], includePaths = false) {
   return Promise.all([...slides].sort(slideSort).map(async (s) => ({
     id: s.id, kind: s.kind, title: s.title ?? "", caption: s.caption ?? "",
-    hidden: s.hidden === true, private: s.private === true, pages: s.pages ?? null, customer: s.customer ?? "", order: s.order ?? null,
+    hidden: s.hidden === true, private: s.private === true, garmentCat: s.garmentCat ?? "", pages: s.pages ?? null, customer: s.customer ?? "", order: s.order ?? null,
     source: s.source ?? null, pendingApproval: s.pendingApproval === true,
     ...(includePaths ? { path: s.path ?? "", posterPath: s.posterPath ?? "", createdAt: s.createdAt ?? "" } : {}),
     mediaUrl: s.path ? await getSignedUrl(s.path).catch(() => "") : "",
@@ -65,6 +65,7 @@ function normalizeSlide(raw: any): BellaSlide | null {
     caption: String(raw?.caption ?? "").trim().slice(0, 400) || undefined,
     hidden: raw?.hidden === true,
     private: raw?.private === true,
+    garmentCat: (raw?.garmentCat === "lingerie" || raw?.garmentCat === "normal") ? raw.garmentCat : undefined,
     pages,
     customer,
     order: Number.isFinite(raw?.order) ? Number(raw.order) : undefined,
@@ -115,6 +116,7 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
     sign?: boolean; kind?: "image" | "video"; ext?: string;
     commit?: any[]; restoreBackup?: boolean; removeBooking?: string; model?: string;
+    bulkSlides?: { ids?: string[]; patch?: { private?: boolean; garmentCat?: string; remove?: boolean } };
   };
   let model = (body.model || "").trim() || undefined;   // which influencer's card
   // Non-admins: only a signed-in REAL MODEL may write, and ONLY her own blob. Her resolved id
@@ -133,6 +135,29 @@ export async function POST(request: Request) {
     st.tripBookings = (st.tripBookings ?? []).filter(b => b.id !== body.removeBooking);
     await saveTryThisLookState(st, { deletedBookingIds: [body.removeBooking] });
     return NextResponse.json({ ok: true, slides: await signSlides(await readCardStudioSlides(model), true), bookings: st.tripBookings });
+  }
+
+  // Bulk aus dem Owner-Overview (My Gallery): ausgewählte Slides löschen / privat-öffentlich /
+  // Kategorie (lingerie|normal). Admin only. Liest die Slides, patcht, committet in einem Write.
+  if (body.bulkSlides) {
+    if (!admin) return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+    const ids = new Set((body.bulkSlides.ids ?? []).map(String));
+    const patch = body.bulkSlides.patch ?? {};
+    const all = await readCardStudioSlides(model);
+    let next = all;
+    if (patch.remove) {
+      next = all.filter(s => !ids.has(s.id));
+    } else {
+      next = all.map(s => {
+        if (!ids.has(s.id)) return s;
+        const upd = { ...s };
+        if (typeof patch.private === "boolean") upd.private = patch.private;
+        if (patch.garmentCat === "lingerie" || patch.garmentCat === "normal") upd.garmentCat = patch.garmentCat;
+        return upd;
+      });
+    }
+    await writeCardStudioSlides(next, model);
+    return NextResponse.json({ ok: true, slides: await signSlides(next, true) });
   }
 
   if (body.sign) {

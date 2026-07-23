@@ -48,28 +48,39 @@ export default function MyGalleryPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const toggleSel = (id: string) => setSelected(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const clearSel = () => { setSelected(new Set()); setSelectMode(false); };
+  const hdr = () => ({ "Content-Type": "application/json", "x-try-look-admin-pin": pin });
+  // Ausgewählte Slides (id = "slide:<cid>:<sid>") nach Model gruppieren + gepatcht committen.
+  const patchSlides = async (ids: string[], patch: { private?: boolean; garmentCat?: string; remove?: boolean }) => {
+    const byCid = new Map<string, string[]>();
+    ids.forEach(id => { const m = /^slide:([^:]+):(.+)$/.exec(id); if (m) { const a = byCid.get(m[1]) ?? []; a.push(m[2]); byCid.set(m[1], a); } });
+    for (const [cid, sids] of byCid) {
+      try { await fetch("/api/bella-carousel", { method: "POST", headers: hdr(), body: JSON.stringify({ model: cid, bulkSlides: { ids: sids, patch } }) }); } catch { /**/ }
+    }
+  };
+  const splitSel = () => { const sel = [...selected]; return { sel, vids: sel.filter(id => items.find(it => it.id === id)?.type !== "slide"), slds: sel.filter(id => items.find(it => it.id === id)?.type === "slide") }; };
+
   const bulkPublic = async (pub: boolean) => {
     if (!pin) return;
-    const ids = [...selected].filter(id => items.find(it => it.id === id)?.type !== "slide");
-    if (!ids.length) return;
-    setItems(list => list.map(x => ids.includes(x.id) ? { ...x, public: pub, feed: pub ? true : false } : x));
-    const h = { "Content-Type": "application/json", "x-try-look-admin-pin": pin };
-    for (const id of ids) {
+    const { sel, vids, slds } = splitSel();
+    if (!sel.length) return;
+    setItems(list => list.map(x => sel.includes(x.id) ? { ...x, public: pub } : x));
+    for (const id of vids) {
       try {
-        await fetch("/api/try-this-look", { method: "POST", headers: h, body: JSON.stringify({ action: "set-generation-public", generationId: id, public: pub }) });
-        if (!pub) await fetch("/api/try-this-look", { method: "POST", headers: h, body: JSON.stringify({ action: "set-generation-feed", generationId: id, feed: false }) });
+        await fetch("/api/try-this-look", { method: "POST", headers: hdr(), body: JSON.stringify({ action: "set-generation-public", generationId: id, public: pub }) });
+        if (!pub) await fetch("/api/try-this-look", { method: "POST", headers: hdr(), body: JSON.stringify({ action: "set-generation-feed", generationId: id, feed: false }) });
       } catch { /**/ }
     }
+    await patchSlides(slds, { private: !pub });   // Slide: public = nicht privat
     clearSel();
   };
   const bulkDelete = async () => {
     if (!pin) return;
-    const ids = [...selected].filter(id => items.find(it => it.id === id)?.type !== "slide");
-    if (!ids.length) return;
-    if (typeof window !== "undefined" && !window.confirm(`${ids.length} Video(s) endgültig löschen?`)) return;
-    setItems(list => list.filter(x => !ids.includes(x.id)));
-    const h = { "Content-Type": "application/json", "x-try-look-admin-pin": pin };
-    for (const id of ids) { try { await fetch("/api/try-this-look", { method: "POST", headers: h, body: JSON.stringify({ action: "delete-generation", id }) }); } catch { /**/ } }
+    const { sel, vids, slds } = splitSel();
+    if (!sel.length) return;
+    if (typeof window !== "undefined" && !window.confirm(`${sel.length} Element(e) endgültig löschen?`)) return;
+    setItems(list => list.filter(x => !sel.includes(x.id)));
+    for (const id of vids) { try { await fetch("/api/try-this-look", { method: "POST", headers: hdr(), body: JSON.stringify({ action: "delete-generation", id }) }); } catch { /**/ } }
+    await patchSlides(slds, { remove: true });
     clearSel();
   };
 
@@ -86,11 +97,11 @@ export default function MyGalleryPage() {
   };
   const bulkGarment = async (garment: "lingerie" | "normal") => {
     if (!pin) return;
-    const ids = [...selected].filter(id => items.find(it => it.id === id)?.type !== "slide");
-    if (!ids.length) return;
-    setItems(list => list.map(x => ids.includes(x.id) ? { ...x, garment } : x));
-    const h = { "Content-Type": "application/json", "x-try-look-admin-pin": pin };
-    for (const id of ids) { try { await fetch("/api/try-this-look", { method: "POST", headers: h, body: JSON.stringify({ action: "set-generation-garment", generationId: id, garment }) }); } catch { /**/ } }
+    const { sel, vids, slds } = splitSel();
+    if (!sel.length) return;
+    setItems(list => list.map(x => sel.includes(x.id) ? { ...x, garment } : x));
+    for (const id of vids) { try { await fetch("/api/try-this-look", { method: "POST", headers: hdr(), body: JSON.stringify({ action: "set-generation-garment", generationId: id, garment }) }); } catch { /**/ } }
+    await patchSlides(slds, { garmentCat: garment });
     clearSel();
   };
   const q = query.trim().toLowerCase();
@@ -144,6 +155,7 @@ export default function MyGalleryPage() {
                 lookName: String(s.title || ""),
                 imageUrl: String(s.kind === "video" ? (s.posterUrl || s.mediaUrl) : s.mediaUrl),
                 videoUrl: s.kind === "video" ? String(s.mediaUrl || "") : undefined,
+                garment: String(s.garmentCat || ""),
                 public: s.private !== true,
               });
             });
@@ -232,16 +244,15 @@ export default function MyGalleryPage() {
         ) : (
           <div className="mt-4 grid grid-cols-3 gap-2">
             {shown.map(it => {
-              const selectable = selectMode && it.type !== "slide";
               const isSel = selected.has(it.id);
               return (
-              <div key={it.id} onClick={() => selectable ? toggleSel(it.id) : setOpen(it)}
+              <div key={it.id} onClick={() => selectMode ? toggleSel(it.id) : setOpen(it)}
                 className={`relative block aspect-[9/16] cursor-pointer overflow-hidden rounded-xl border bg-white/[0.04] active:opacity-80 ${isSel ? "border-amber-400 ring-2 ring-amber-400" : "border-white/10"}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={it.imageUrl} alt={it.lookName ?? ""} loading="lazy" className="h-full w-full object-cover object-top" />
-                {/* Auswahl-Häkchen (nur Videos im Auswahl-Modus). */}
+                {/* Auswahl-Häkchen (Videos UND Slides). */}
                 {selectMode && (
-                  <span className={`absolute right-1 top-1 z-10 grid h-5 w-5 place-items-center rounded-full text-[11px] font-black ${it.type === "slide" ? "bg-black/50 text-white/40" : isSel ? "bg-amber-400 text-black" : "bg-black/60 text-white ring-1 ring-white/60"}`}>{isSel ? "✓" : ""}</span>
+                  <span className={`absolute right-1 top-1 z-10 grid h-5 w-5 place-items-center rounded-full text-[11px] font-black ${isSel ? "bg-amber-400 text-black" : "bg-black/60 text-white ring-1 ring-white/60"}`}>{isSel ? "✓" : ""}</span>
                 )}
                 {it.videoUrl && (
                   <span className="pointer-events-none absolute inset-0 grid place-items-center text-white/90">
@@ -251,8 +262,8 @@ export default function MyGalleryPage() {
                 <span className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[8px] font-black backdrop-blur ${it.public ? "bg-amber-500 text-white" : it.feed ? "bg-amber-400 text-black" : "bg-black/70 text-white"}`}>
                   {it.public ? "Public" : it.feed ? "Show" : "Private"}
                 </span>
-                {/* Typ-Tag: Card-Slide (Urlaub/Peter) unterscheiden. */}
-                {it.type === "slide" && (
+                {/* Typ-Tag: Card-Slide (Urlaub/Peter) unterscheiden. Im Auswahl-Modus weg (Häkchen). */}
+                {it.type === "slide" && !selectMode && (
                   <span className="absolute right-1 top-1 rounded-full bg-white/85 px-1.5 py-0.5 text-[8px] font-black text-black backdrop-blur">Slide</span>
                 )}
                 {/* Kategorie-Tag (Lingerie) als kleiner Hinweis. */}

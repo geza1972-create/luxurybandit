@@ -492,6 +492,7 @@ export type BellaSlide = {
   firstMessage?: string; // optionale erste Chat-Nachricht (Opener); leer = Standard-Gruß
   hidden?: boolean;      // kept in the library but NOT shown on any card
   private?: boolean;     // shown on the card but LOCKED — only members / super-followers can open it
+  garmentCat?: string;   // manuelle Kategorie fürs Owner-Overview: "lingerie" | "normal"
   pages?: string[];      // surface keys it appears on ("landing" | "profile"); empty = everywhere
   customer?: string;     // customer email this slide is FOR; empty = the general (public) card
   order?: number;        // manual sort order within its scope (ascending); undefined = by createdAt
