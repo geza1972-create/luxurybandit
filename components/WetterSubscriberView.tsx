@@ -50,7 +50,7 @@ const WX: Record<string, Record<string, string>> = {
 type Copy = {
   greet: (n: string) => string;
   greetPre: string;   // Gruß ohne Name (Name danach in Gold)
-  wxLine: (city: string, word: string, emoji: string, temp: number) => string;
+  wxLine: (city: string, word: string, emoji: string, min: number, max: number, rainy: boolean) => string;
   wxLoading: (city: string) => string;
   online: string;
   opener: (userName: string, model: string) => string;
@@ -61,7 +61,7 @@ const T: Record<string, Copy> = {
   ro: {
     greet: n => `Bună dimineața, ${n}!`,
     greetPre: "Bună dimineața,",
-    wxLine: (c, w, e, t) => `La ${c} azi e ${w} ${e}, ${t}°.`,
+    wxLine: (c, w, e, mn, mx, r) => `La ${c} azi ${w} ${e}, ${mn}–${mx}°${r ? ", posibil ploaie" : ""}.`,
     wxLoading: c => `La ${c}…`,
     online: "online",
     opener: (n) => `Bună dimineața, ${n}! Mă bucur că ești aici. Cum ai dormit?`,
@@ -71,7 +71,7 @@ const T: Record<string, Copy> = {
   de: {
     greet: n => `Guten Morgen, ${n}!`,
     greetPre: "Guten Morgen,",
-    wxLine: (c, w, e, t) => `In ${c} ist heute ${w} ${e}, ${t}°.`,
+    wxLine: (c, w, e, mn, mx, r) => `In ${c} heute ${w} ${e}, ${mn}–${mx}°${r ? ", Regen möglich" : ""}.`,
     wxLoading: c => `In ${c}…`,
     online: "online",
     opener: (n) => `Guten Morgen, ${n}! Schön, dass du da bist. Wie hast du geschlafen?`,
@@ -81,7 +81,7 @@ const T: Record<string, Copy> = {
   en: {
     greet: n => `Good morning, ${n}!`,
     greetPre: "Good morning,",
-    wxLine: (c, w, e, t) => `In ${c} it's ${w} ${e}, ${t}° today.`,
+    wxLine: (c, w, e, mn, mx, r) => `In ${c} today ${w} ${e}, ${mn}–${mx}°${r ? ", rain likely" : ""}.`,
     wxLoading: c => `In ${c}…`,
     online: "online",
     opener: (n) => `Good morning, ${n}! So glad you're here. How did you sleep?`,
@@ -91,7 +91,7 @@ const T: Record<string, Copy> = {
   es: {
     greet: n => `¡Buenos días, ${n}!`,
     greetPre: "¡Buenos días,",
-    wxLine: (c, w, e, t) => `En ${c} hoy está ${w} ${e}, ${t}°.`,
+    wxLine: (c, w, e, mn, mx, r) => `En ${c} hoy ${w} ${e}, ${mn}–${mx}°${r ? ", posible lluvia" : ""}.`,
     wxLoading: c => `En ${c}…`,
     online: "en línea",
     opener: (n) => `¡Buenos días, ${n}! Me alegra que estés aquí. ¿Qué tal dormiste?`,
@@ -101,7 +101,7 @@ const T: Record<string, Copy> = {
   fr: {
     greet: n => `Bonjour, ${n} !`,
     greetPre: "Bonjour,",
-    wxLine: (c, w, e, t) => `À ${c} aujourd'hui c'est ${w} ${e}, ${t}°.`,
+    wxLine: (c, w, e, mn, mx, r) => `À ${c} aujourd'hui ${w} ${e}, ${mn}–${mx}°${r ? ", pluie possible" : ""}.`,
     wxLoading: c => `À ${c}…`,
     online: "en ligne",
     opener: (n) => `Bonjour, ${n} ! Contente que tu sois là. Tu as bien dormi ?`,
@@ -111,7 +111,7 @@ const T: Record<string, Copy> = {
   pt: {
     greet: n => `Bom dia, ${n}!`,
     greetPre: "Bom dia,",
-    wxLine: (c, w, e, t) => `Em ${c} hoje está ${w} ${e}, ${t}°.`,
+    wxLine: (c, w, e, mn, mx, r) => `Em ${c} hoje ${w} ${e}, ${mn}–${mx}°${r ? ", possível chuva" : ""}.`,
     wxLoading: c => `Em ${c}…`,
     online: "online",
     opener: (n) => `Bom dia, ${n}! Ainda bem que estás aqui. Dormiste bem?`,
@@ -121,7 +121,7 @@ const T: Record<string, Copy> = {
   pl: {
     greet: n => `Dzień dobry, ${n}!`,
     greetPre: "Dzień dobry,",
-    wxLine: (c, w, e, t) => `W ${c} dziś jest ${w} ${e}, ${t}°.`,
+    wxLine: (c, w, e, mn, mx, r) => `W ${c} dziś ${w} ${e}, ${mn}–${mx}°${r ? ", możliwy deszcz" : ""}.`,
     wxLoading: c => `W ${c}…`,
     online: "online",
     opener: (n) => `Dzień dobry, ${n}! Cieszę się, że jesteś. Jak spałeś?`,
@@ -131,7 +131,7 @@ const T: Record<string, Copy> = {
   it: {
     greet: n => `Buongiorno, ${n}!`,
     greetPre: "Buongiorno,",
-    wxLine: (c, w, e, t) => `A ${c} oggi c'è ${w} ${e}, ${t}°.`,
+    wxLine: (c, w, e, mn, mx, r) => `A ${c} oggi ${w} ${e}, ${mn}–${mx}°${r ? ", possibile pioggia" : ""}.`,
     wxLoading: c => `A ${c}…`,
     online: "online",
     opener: (n) => `Buongiorno, ${n}! Che bello averti qui. Hai dormito bene?`,
@@ -158,7 +158,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     try { localStorage.setItem(`lb_wetter_sub_${modelId}`, subId); } catch { /**/ }
   }, [subId, modelId]);
 
-  const [weather, setWeather] = useState<{ temp: number; word: string; e: string } | null>(null);
+  const [weather, setWeather] = useState<{ temp: number; min: number; max: number; word: string; e: string; rainy: boolean } | null>(null);
   const tzRef = useRef<string>("");   // Zeitzone der Stadt — fürs spätere „Morgen"-Timing pro Land.
 
   // Selbst-Abmeldung (der Abonnent stoppt die tägliche Nachricht direkt hier).
@@ -186,9 +186,18 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         const loc = g?.results?.[0];
         if (!loc) return;
         tzRef.current = String(loc.timezone || "");   // ← Zeitzone mit abgefangen (steht bereit für die DB).
-        const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,weather_code&timezone=auto`).then(r => r.json());
-        const c = w?.current;
-        if (ok && c) { const wk = wxKey(Number(c.weather_code)); setWeather({ temp: Math.round(c.temperature_2m), word: wxWords[wk.key] ?? "", e: wk.e }); }
+        const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=1`).then(r => r.json());
+        const c = w?.current, dy = w?.daily;
+        if (ok && c) {
+          // Tages-VORHERSAGE: Tages-Wettercode + Hoch/Tief + Regenwahrscheinlichkeit (Fallback: aktuell).
+          const dayCode = Number(dy?.weather_code?.[0] ?? c.weather_code);
+          const wk = wxKey(dayCode);
+          const now = Math.round(Number(c.temperature_2m));
+          const max = Math.round(Number(dy?.temperature_2m_max?.[0] ?? c.temperature_2m));
+          const min = Math.round(Number(dy?.temperature_2m_min?.[0] ?? c.temperature_2m));
+          const rainy = Number(dy?.precipitation_probability_max?.[0] ?? 0) >= 40;
+          setWeather({ temp: now, min, max, word: wxWords[wk.key] ?? "", e: wk.e, rainy });
+        }
       } catch { /**/ }
     })();
     return () => { ok = false; };
@@ -259,7 +268,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           ? <p className="text-[24px] font-black leading-tight text-white">{personalizeName(title, name)}</p>
           : <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-amber-400">{name}!</span></p>}
         <p className="mt-1 text-[14px] font-semibold text-white/70">
-          {weather ? t.wxLine(city, weather.word, weather.e, weather.temp) : t.wxLoading(city)}
+          {weather ? t.wxLine(city, weather.word, weather.e, weather.min, weather.max, weather.rainy) : t.wxLoading(city)}
         </p>
         {caption.trim() && <p className="mt-2.5 whitespace-pre-wrap text-[15px] font-semibold leading-relaxed text-white/70">{caption}</p>}
       </div>

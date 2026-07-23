@@ -46,18 +46,27 @@ export async function GET(request: Request) {
     // 2) Wetter. 15 Minuten reichen — das ist eine Begrüßung, kein Flugwetterdienst.
     const wRes = await fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}`
-      + `&current=temperature_2m,weather_code&daily=sunrise,sunset&timezone=auto&forecast_days=1`,
+      + `&current=temperature_2m,weather_code`
+      + `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset`
+      + `&timezone=auto&forecast_days=1`,
       { next: { revalidate: 900 } },
     );
     const w = await wRes.json().catch(() => null);
     if (!w?.current) return NextResponse.json({ error: "Wetter nicht verfügbar." }, { status: 502 });
 
+    // Für die Morgen-VORHERSAGE: Tages-Wettercode + Hoch/Tief + Regenwahrscheinlichkeit.
+    const d = w.daily ?? {};
+    const dayCode = Number(d.weather_code?.[0] ?? w.current.weather_code ?? -1);
+    const num = (v: unknown) => (v == null || Number.isNaN(Number(v)) ? null : Math.round(Number(v)));
     return NextResponse.json({
       ort: String(place.name ?? city),
-      grad: String(Math.round(Number(w.current.temperature_2m ?? 0))),
-      wetter: codeToText(Number(w.current.weather_code ?? -1)),
-      sonnenaufgang: hhmm(w.daily?.sunrise?.[0] ?? ""),
-      sonnenuntergang: hhmm(w.daily?.sunset?.[0] ?? ""),
+      grad: String(Math.round(Number(w.current.temperature_2m ?? 0))), // aktuell (Fallback)
+      wetter: codeToText(dayCode),                                     // Tageszusammenfassung
+      max: num(d.temperature_2m_max?.[0]),
+      min: num(d.temperature_2m_min?.[0]),
+      regen: num(d.precipitation_probability_max?.[0]),               // % Regenwahrscheinlichkeit (Tag)
+      sonnenaufgang: hhmm(d.sunrise?.[0] ?? ""),
+      sonnenuntergang: hhmm(d.sunset?.[0] ?? ""),
     });
   } catch {
     return NextResponse.json({ error: "Wetter nicht verfügbar." }, { status: 502 });
