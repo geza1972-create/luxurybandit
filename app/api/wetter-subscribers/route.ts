@@ -15,13 +15,13 @@ export async function GET(request: Request) {
   return NextResponse.json({ subscribers }, { headers: { "Cache-Control": "no-store, max-age=0" } });
 }
 
-// POST { add: { name, phone?, city?, lang?, note? } }  → Abonnent anlegen
+// POST { add: { name, email?, phone?, city?, lang?, note? } }  → Abonnent anlegen
 // POST { remove: "<id>" }                              → Abonnent löschen
 export async function POST(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
   const modelId = modelOf(request);
   const body = (await request.json().catch(() => ({}))) as {
-    add?: { name?: string; phone?: string; city?: string; country?: string; lang?: string; note?: string };
+    add?: { name?: string; email?: string; phone?: string; city?: string; country?: string; lang?: string; note?: string };
     remove?: string;
   };
 
@@ -33,6 +33,7 @@ export async function POST(request: Request) {
     const sub: WetterSubscriber = {
       id: `sub-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
       name,
+      email: String(body.add.email ?? "").trim().slice(0, 160).toLowerCase(),
       phone: String(body.add.phone ?? "").trim().slice(0, 40),
       city: String(body.add.city ?? "").trim().slice(0, 120),
       country: String(body.add.country ?? "").trim().slice(0, 80),

@@ -59,6 +59,7 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
 
   // Formular
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
@@ -90,10 +91,10 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
     if (!name.trim()) { setError("Name fehlt."); return; }
     setBusy(true); setError("");
     try {
-      const r = await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify({ add: { name, phone, city, country, lang, note } }) });
+      const r = await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify({ add: { name, email, phone, city, country, lang, note } }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d?.error ?? "Speichern fehlgeschlagen."); return; }
-      setName(""); setPhone(""); setCity(""); setCountry(""); setNote(""); setLang("ro");
+      setName(""); setEmail(""); setPhone(""); setCity(""); setCountry(""); setNote(""); setLang("ro");
       await load();
     } catch { setError("Netzwerkfehler."); }
     finally { setBusy(false); }
@@ -164,6 +165,8 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
       <div className="mt-3 grid gap-2 rounded-xl border border-black/10 bg-black/[0.02] p-3">
         <p className="text-[11px] font-black uppercase tracking-wide text-white/55">Neuen Abonnenten hinzufügen</p>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="Name — z. B. Remus"
+          className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-black" />
+        <input value={email} onChange={e => setEmail(e.target.value)} placeholder="E-Mail (z. B. aus FB-Lead) — optional" type="email" inputMode="email"
           className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-black" />
         <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Telefon mit Vorwahl — z. B. +40 712 345 678" inputMode="tel"
           className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-black" />
