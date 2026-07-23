@@ -60,9 +60,12 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
   // Formular
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [birthdate, setBirthdate] = useState("");   // YYYY-MM-DD (wie im öffentlichen Formular)
+  const [gender, setGender] = useState("");          // m | f | x
   const [phone, setPhone] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
+  const [postal, setPostal] = useState("");
   const [lang, setLang] = useState<string>("ro");
   const [note, setNote] = useState("");
 
@@ -91,10 +94,10 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
     if (!name.trim()) { setError("Name fehlt."); return; }
     setBusy(true); setError("");
     try {
-      const r = await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify({ add: { name, email, phone, city, country, lang, note } }) });
+      const r = await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify({ add: { name, email, birthdate, gender, phone, city, country, postal, lang, note } }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d?.error ?? "Speichern fehlgeschlagen."); return; }
-      setName(""); setEmail(""); setPhone(""); setCity(""); setCountry(""); setNote(""); setLang("ro");
+      setName(""); setEmail(""); setBirthdate(""); setGender(""); setPhone(""); setCity(""); setCountry(""); setPostal(""); setNote(""); setLang("ro");
       await load();
     } catch { setError("Netzwerkfehler."); }
     finally { setBusy(false); }
@@ -168,6 +171,20 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
           className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-black" />
         <input value={email} onChange={e => setEmail(e.target.value)} placeholder="E-Mail (z. B. aus FB-Lead) — optional" type="email" inputMode="email"
           className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-black" />
+        <div className="flex gap-2">
+          <label className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-white/15 bg-white/[0.04] px-3 focus-within:border-black">
+            <span className="shrink-0 text-[11px] font-bold text-white/45">Geburtstag</span>
+            <input value={birthdate} onChange={e => setBirthdate(e.target.value)} type="date"
+              className="h-11 min-w-0 flex-1 bg-transparent text-[15px] font-semibold text-white outline-none [color-scheme:dark]" />
+          </label>
+          <select value={gender} onChange={e => setGender(e.target.value)}
+            className="h-11 rounded-lg border border-white/15 bg-white/[0.04] px-2 text-[14px] font-bold text-white outline-none focus:border-black">
+            <option value="" className="bg-[#0d0b0a]">Geschlecht</option>
+            <option value="m" className="bg-[#0d0b0a]">Männlich</option>
+            <option value="f" className="bg-[#0d0b0a]">Weiblich</option>
+            <option value="x" className="bg-[#0d0b0a]">Divers</option>
+          </select>
+        </div>
         <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Telefon mit Vorwahl — z. B. +40 712 345 678" inputMode="tel"
           className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-black" />
         <input value={city} onChange={e => setCity(e.target.value)} placeholder="Stadt (fürs Wetter) — z. B. Timișoara"
@@ -180,6 +197,8 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
             {LANGS.map(l => <option key={l} value={l} className="bg-[#0d0b0a]">{l.toUpperCase()}</option>)}
           </select>
         </div>
+        <input value={postal} onChange={e => setPostal(e.target.value)} placeholder="Postleitzahl (optional)"
+          className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-black" />
         <input value={note} onChange={e => setNote(e.target.value)} placeholder="Notiz (optional) — z. B. Freund, Test"
           className="h-11 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 text-[14px] font-medium text-white outline-none placeholder:text-white/35 focus:border-black" />
         <button type="button" onClick={() => void add()} disabled={busy}
