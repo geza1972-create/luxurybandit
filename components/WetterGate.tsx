@@ -202,6 +202,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);   // Bestätigungs-Mail raus → „prüfe deine E-Mail"
+  const [alreadyReg, setAlreadyReg] = useState(false);   // E-Mail schon registriert → Link erneut gemailt
   const [returningId, setReturningId] = useState("");   // Gerät ist schon angemeldet → Link statt Formular
   const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());   // gültiges E-Mail-Format?
 
@@ -234,6 +235,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
       if (!r.ok) { setError(d?.error ?? "…"); return; }
       // Meta-Pixel „Lead" → die Wetter-Kampagne kann auf echte Anmeldungen optimieren.
       trackMetaPixel("Lead", { content_category: "wetter", content_name: modelName });
+      setAlreadyReg(!!d.alreadyRegistered);   // schon dabei → wir haben den Zugangslink erneut gemailt
       setSent(true);   // Double-Opt-in: NICHT einloggen — erst nach Bestätigung.
     } catch { setError("…"); }
     finally { setBusy(false); }
@@ -262,8 +264,17 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
     <section className="lb-theme mx-auto mt-8 max-w-md px-5">
       <div className="rounded-2xl border border-black/10 bg-white p-6 text-center">
         <MailCheck className="mx-auto h-9 w-9 text-black" />
-        <p className="mt-3 text-[19px] font-black text-white">{t.sentTitle}</p>
-        <p className="mt-1.5 text-[14px] font-semibold leading-relaxed text-white/70">{t.sentBody(email.trim())}</p>
+        {alreadyReg ? (
+          <>
+            <p className="mt-3 text-[19px] font-black text-white">{(({ ro: "Ești deja înscris ✓", de: "Du bist schon dabei ✓", en: "You're already signed up ✓", es: "Ya estás registrado ✓", fr: "Tu es déjà inscrit ✓", pt: "Já estás inscrito ✓", pl: "Jesteś już zapisany ✓", it: "Sei già iscritto ✓" } as Record<string, string>)[L]) ?? "You're already signed up ✓"}</p>
+            <p className="mt-1.5 text-[14px] font-semibold leading-relaxed text-white/70">{(({ ro: `Ți-am retrimis linkul de acces la ${email.trim()}.`, de: `Wir haben dir deinen Zugangslink erneut an ${email.trim()} gemailt.`, en: `We've re-sent your access link to ${email.trim()}.`, es: `Te reenviamos tu enlace de acceso a ${email.trim()}.`, fr: `Nous t'avons renvoyé ton lien d'accès à ${email.trim()}.`, pt: `Reenviámos o teu link de acesso para ${email.trim()}.`, pl: `Ponownie wysłaliśmy Twój link dostępu na ${email.trim()}.`, it: `Ti abbiamo rinviato il link di accesso a ${email.trim()}.` } as Record<string, string>)[L]) ?? `We've re-sent your access link to ${email.trim()}.`}</p>
+          </>
+        ) : (
+          <>
+            <p className="mt-3 text-[19px] font-black text-white">{t.sentTitle}</p>
+            <p className="mt-1.5 text-[14px] font-semibold leading-relaxed text-white/70">{t.sentBody(email.trim())}</p>
+          </>
+        )}
       </div>
     </section>
   );

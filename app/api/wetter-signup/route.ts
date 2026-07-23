@@ -91,19 +91,27 @@ export async function POST(request: Request) {
     confirmToken,
     createdAt: new Date().toISOString(),
   };
+  const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || new URL(request.url).origin;
   try {
     const current = await readWetterSubscribers(modelId);
-    // Doppelte E-Mail? Dann NICHT neu anlegen — bestehende Bestätigung erneut schicken.
-    if (current.some(s => (s.email || "").toLowerCase() === email))
-      return NextResponse.json({ ok: true, pending: true, alreadyRegistered: true });
+    // Schon registriert (gleiche E-Mail)? KEIN Duplikat — passwortloses „Zugang zurück":
+    // den Zugangslink erneut mailen. Funktioniert auf jedem Gerät, ohne Passwort.
+    const existing = current.find(s => (s.email || "").toLowerCase() === email);
+    if (existing) {
+      let token = existing.confirmToken;
+      if (!token) { token = crypto.randomUUID().replace(/-/g, ""); existing.confirmToken = token; await writeWetterSubscribers(current, modelId); }
+      const relink = `${origin}/api/wetter-confirm?model=${encodeURIComponent(modelId)}&token=${encodeURIComponent(token)}`;
+      const remail = confirmEmail(lang, existing.name || name, "Bella", relink);
+      const resent = await sendEmail({ to: email, subject: remail.subject, html: remail.html }).catch(() => ({ ok: false } as const));
+      return NextResponse.json({ ok: true, pending: true, alreadyRegistered: true, emailSent: !!resent?.ok });
+    }
     await writeWetterSubscribers([sub, ...current], modelId);
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : "Anmeldung fehlgeschlagen." }, { status: 502 });
   }
 
-  // Bestätigungs-Mail schicken (Double-Opt-in). Der Link geht auf /api/wetter-confirm,
+  // (Neu-Anmeldung) Bestätigungs-Mail schicken (Double-Opt-in). Der Link geht auf /api/wetter-confirm,
   // das den Datensatz bestätigt und dann in die persönliche Ansicht (?s=) weiterleitet.
-  const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || new URL(request.url).origin;
   const link = `${origin}/api/wetter-confirm?model=${encodeURIComponent(modelId)}&token=${encodeURIComponent(confirmToken)}`;
   const mail = confirmEmail(lang, name, "Bella", link);
   const sent = await sendEmail({ to: email, subject: mail.subject, html: mail.html }).catch(() => ({ ok: false } as const));

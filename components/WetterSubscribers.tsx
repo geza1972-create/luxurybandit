@@ -77,7 +77,9 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
       setPin(p);
       setIsAdmin(!!p && !localStorage.getItem("lb_preview_model"));
     } catch { /**/ }
-    setOrigin(window.location.origin);
+    // Geteilte Links (Link kopieren / WhatsApp / Bot) gehen an echte Leute → NIE localhost.
+    const raw = window.location.origin;
+    setOrigin(/localhost|127\.0\.0\.1/.test(raw) ? "https://luxurybandit.com" : raw);
   }, []);
 
   const headers = () => ({ "Content-Type": "application/json", "x-try-look-admin-pin": pin });
