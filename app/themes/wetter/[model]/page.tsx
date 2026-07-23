@@ -12,6 +12,7 @@ import WetterGate from "@/components/WetterGate";
 import { buildBellaCard } from "@/lib/bella-card";
 import { personalize } from "@/lib/personalize";
 import { translateMany } from "@/lib/translate";
+import { fetchForecastLine } from "@/lib/wetter-forecast";
 import { readTryThisLookState, readCardStudioSlides, readWetterSubscribers, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
 
 // THEMA „Wetter am Morgen" — MODEL-AGNOSTISCH über /wetter/<model> (dieses Mal bella, kann jede sein).
@@ -83,8 +84,11 @@ export default async function WetterModelPage({ params, searchParams }: {
   let subName = String(sp.name ?? "").trim();
   let subCity = String(sp.city ?? "").trim();
   // Sprache: ?lang= gewinnt; sonst die Browsersprache (Accept-Language); sonst ro.
-  const browserLang = langFromAccept((await headers()).get("accept-language") || "");
+  const hdrs = await headers();
+  const browserLang = langFromAccept(hdrs.get("accept-language") || "");
   let subLang = String(sp.lang ?? "").trim() || browserLang;
+  // Stadt des Besuchers per IP (Vercel-Geo-Header) — für die Beispiel-Vorhersage.
+  const ipCity = decodeURIComponent(hdrs.get("x-vercel-ip-city") || "").trim();
 
   const state = await readTryThisLookState();
   const wanted = slugify(model);
@@ -159,6 +163,11 @@ export default async function WetterModelPage({ params, searchParams }: {
     ?? nonAd[0]
     ?? posts[0];
 
+  // Beispiel-VORHERSAGE für den BESUCHER (noch nicht angemeldet, also keine eigene Stadt):
+  // IP-Stadt (Vercel) → sonst Hauptstadt der Sprache. So sieht er sofort „das kriegst du täglich".
+  const FALLBACK_CITY: Record<string, string> = { ro: "București", de: "Berlin", en: "London", es: "Madrid", fr: "Paris", pt: "Lisboa", pl: "Warszawa", it: "Roma" };
+  const exampleForecast = recognized ? null : await fetchForecastLine(ipCity || FALLBACK_CITY[subLang] || "London", subLang);
+
   // Sprach-Umschalter: setzt ?lang=, behält alle anderen Parameter (s, admin, preview, …).
   const langHref = (l: string) => {
     const q = new URLSearchParams();
@@ -219,6 +228,7 @@ export default async function WetterModelPage({ params, searchParams }: {
             {previewMode === "visitor" ? (
               <>
                 {visitorPosts.length > 0 && <BellaPostsCarousel posts={visitorPosts} name={modelName} />}
+                {exampleForecast && <p className="mx-auto max-w-md px-5 pt-3 text-center text-[14px] font-bold text-white/80">📍 {exampleForecast.line}</p>}
                 <WetterGate modelId={modelId} modelName={modelName} lang={subLang} trialDays={trialDays} monthlyCents={monthlyCents} preview />
               </>
             ) : (
@@ -236,6 +246,7 @@ export default async function WetterModelPage({ params, searchParams }: {
             ) : (
               <BellaPostsCarousel posts={visitorPosts} name={modelName} />
             )}
+            {exampleForecast && <p className="mx-auto max-w-md px-5 pt-3 text-center text-[14px] font-bold text-white/80">📍 {exampleForecast.line}</p>}
             <WetterGate modelId={modelId} modelName={modelName} lang={subLang} trialDays={trialDays} monthlyCents={monthlyCents} />
           </>
         )}

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Send } from "lucide-react";
 import { CornerOrnaments } from "@/components/BoxOrnaments";
 import BellaPostsCarousel from "@/components/BellaPostsCarousel";
+import { wxKey, WX_WORDS, forecastLine } from "@/lib/wetter-forecast";
 
 // Was der ABONNENT auf /wetter/<model>?name=…&city=…&lang=… sieht:
 // persönlicher Gruß + Wetter aus seiner Stadt + Look vom Tag + Chat mit dem Model (im Abo unbegrenzt).
@@ -21,36 +22,11 @@ const personalizeName = (text: string, name: string) => text.replace(/\{\s*name\
 type Msg = { role: "user" | "assistant"; content: string };
 type Look = { kind: "image" | "video"; mediaUrl: string; posterUrl?: string };
 
-// Open-Meteo weather_code → sprach-neutraler Schlüssel + Emoji.
-function wxKey(code: number): { key: string; e: string } {
-  if (code === 0) return { key: "clear", e: "☀️" };
-  if (code <= 2) return { key: "partly", e: "🌤️" };
-  if (code === 3) return { key: "cloudy", e: "☁️" };
-  if (code <= 48) return { key: "fog", e: "🌫️" };
-  if (code <= 67) return { key: "rain", e: "🌧️" };
-  if (code <= 77) return { key: "snow", e: "❄️" };
-  if (code <= 82) return { key: "showers", e: "🌦️" };
-  if (code <= 99) return { key: "storm", e: "⛈️" };
-  return { key: "", e: "🌡️" };
-}
-
-// Wetter-Wörter pro Sprache (Emoji ist sprach-neutral).
-const WX: Record<string, Record<string, string>> = {
-  ro: { clear: "senin", partly: "parțial noros", cloudy: "noros", fog: "ceață", rain: "ploaie", snow: "ninsoare", showers: "averse", storm: "furtună", "": "" },
-  en: { clear: "clear", partly: "partly cloudy", cloudy: "cloudy", fog: "fog", rain: "rain", snow: "snow", showers: "showers", storm: "storm", "": "" },
-  de: { clear: "klar", partly: "teils bewölkt", cloudy: "bewölkt", fog: "Nebel", rain: "Regen", snow: "Schnee", showers: "Schauer", storm: "Gewitter", "": "" },
-  es: { clear: "despejado", partly: "parcialmente nublado", cloudy: "nublado", fog: "niebla", rain: "lluvia", snow: "nieve", showers: "chubascos", storm: "tormenta", "": "" },
-  fr: { clear: "dégagé", partly: "partiellement nuageux", cloudy: "nuageux", fog: "brouillard", rain: "pluie", snow: "neige", showers: "averses", storm: "orage", "": "" },
-  pt: { clear: "céu limpo", partly: "parcialmente nublado", cloudy: "nublado", fog: "nevoeiro", rain: "chuva", snow: "neve", showers: "aguaceiros", storm: "tempestade", "": "" },
-  pl: { clear: "bezchmurnie", partly: "częściowe zachmurzenie", cloudy: "pochmurno", fog: "mgła", rain: "deszcz", snow: "śnieg", showers: "przelotne opady", storm: "burza", "": "" },
-  it: { clear: "sereno", partly: "parzialmente nuvoloso", cloudy: "nuvoloso", fog: "nebbia", rain: "pioggia", snow: "neve", showers: "rovesci", storm: "temporale", "": "" },
-};
 
 // Alle sichtbaren Texte pro Sprache. Model-Name wird eingesetzt. Fallback: EN.
 type Copy = {
   greet: (n: string) => string;
   greetPre: string;   // Gruß ohne Name (Name danach in Gold)
-  wxLine: (city: string, word: string, emoji: string, min: number, max: number, rainy: boolean) => string;
   wxLoading: (city: string) => string;
   online: string;
   opener: (userName: string, model: string) => string;
@@ -61,7 +37,6 @@ const T: Record<string, Copy> = {
   ro: {
     greet: n => `Bună dimineața, ${n}!`,
     greetPre: "Bună dimineața,",
-    wxLine: (c, w, e, mn, mx, r) => `La ${c} azi ${w} ${e}, ${mn}–${mx}°${r ? ", posibil ploaie" : ""}.`,
     wxLoading: c => `La ${c}…`,
     online: "online",
     opener: (n) => `Bună dimineața, ${n}! Mă bucur că ești aici. Cum ai dormit?`,
@@ -71,7 +46,6 @@ const T: Record<string, Copy> = {
   de: {
     greet: n => `Guten Morgen, ${n}!`,
     greetPre: "Guten Morgen,",
-    wxLine: (c, w, e, mn, mx, r) => `In ${c} heute ${w} ${e}, ${mn}–${mx}°${r ? ", Regen möglich" : ""}.`,
     wxLoading: c => `In ${c}…`,
     online: "online",
     opener: (n) => `Guten Morgen, ${n}! Schön, dass du da bist. Wie hast du geschlafen?`,
@@ -81,7 +55,6 @@ const T: Record<string, Copy> = {
   en: {
     greet: n => `Good morning, ${n}!`,
     greetPre: "Good morning,",
-    wxLine: (c, w, e, mn, mx, r) => `In ${c} today ${w} ${e}, ${mn}–${mx}°${r ? ", rain likely" : ""}.`,
     wxLoading: c => `In ${c}…`,
     online: "online",
     opener: (n) => `Good morning, ${n}! So glad you're here. How did you sleep?`,
@@ -91,7 +64,6 @@ const T: Record<string, Copy> = {
   es: {
     greet: n => `¡Buenos días, ${n}!`,
     greetPre: "¡Buenos días,",
-    wxLine: (c, w, e, mn, mx, r) => `En ${c} hoy ${w} ${e}, ${mn}–${mx}°${r ? ", posible lluvia" : ""}.`,
     wxLoading: c => `En ${c}…`,
     online: "en línea",
     opener: (n) => `¡Buenos días, ${n}! Me alegra que estés aquí. ¿Qué tal dormiste?`,
@@ -101,7 +73,6 @@ const T: Record<string, Copy> = {
   fr: {
     greet: n => `Bonjour, ${n} !`,
     greetPre: "Bonjour,",
-    wxLine: (c, w, e, mn, mx, r) => `À ${c} aujourd'hui ${w} ${e}, ${mn}–${mx}°${r ? ", pluie possible" : ""}.`,
     wxLoading: c => `À ${c}…`,
     online: "en ligne",
     opener: (n) => `Bonjour, ${n} ! Contente que tu sois là. Tu as bien dormi ?`,
@@ -111,7 +82,6 @@ const T: Record<string, Copy> = {
   pt: {
     greet: n => `Bom dia, ${n}!`,
     greetPre: "Bom dia,",
-    wxLine: (c, w, e, mn, mx, r) => `Em ${c} hoje ${w} ${e}, ${mn}–${mx}°${r ? ", possível chuva" : ""}.`,
     wxLoading: c => `Em ${c}…`,
     online: "online",
     opener: (n) => `Bom dia, ${n}! Ainda bem que estás aqui. Dormiste bem?`,
@@ -121,7 +91,6 @@ const T: Record<string, Copy> = {
   pl: {
     greet: n => `Dzień dobry, ${n}!`,
     greetPre: "Dzień dobry,",
-    wxLine: (c, w, e, mn, mx, r) => `W ${c} dziś ${w} ${e}, ${mn}–${mx}°${r ? ", możliwy deszcz" : ""}.`,
     wxLoading: c => `W ${c}…`,
     online: "online",
     opener: (n) => `Dzień dobry, ${n}! Cieszę się, że jesteś. Jak spałeś?`,
@@ -131,7 +100,6 @@ const T: Record<string, Copy> = {
   it: {
     greet: n => `Buongiorno, ${n}!`,
     greetPre: "Buongiorno,",
-    wxLine: (c, w, e, mn, mx, r) => `A ${c} oggi ${w} ${e}, ${mn}–${mx}°${r ? ", possibile pioggia" : ""}.`,
     wxLoading: c => `A ${c}…`,
     online: "online",
     opener: (n) => `Buongiorno, ${n}! Che bello averti qui. Hai dormito bene?`,
@@ -149,7 +117,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
 }) {
   const L = (lang || DEFAULT_LANG).slice(0, 2).toLowerCase();
   const t = T[L] ?? T.en;
-  const wxWords = WX[L] ?? WX.en;
+  const wxWords = WX_WORDS[L] ?? WX_WORDS.en;
 
   // Login auf DIESEM Gerät merken: kommt der Abonnent per `?s=`-Link, speichern wir die
   // Kennung — beim nächsten Öffnen von /wetter/<model> erkennt ihn die Seite ohne Link.
@@ -268,7 +236,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           ? <p className="text-[24px] font-black leading-tight text-white">{personalizeName(title, name)}</p>
           : <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-amber-400">{name}!</span></p>}
         <p className="mt-1 text-[14px] font-semibold text-white/70">
-          {weather ? t.wxLine(city, weather.word, weather.e, weather.min, weather.max, weather.rainy) : t.wxLoading(city)}
+          {weather ? forecastLine(L, city, weather.word, weather.e, weather.min, weather.max, weather.rainy) : t.wxLoading(city)}
         </p>
         {caption.trim() && <p className="mt-2.5 whitespace-pre-wrap text-[15px] font-semibold leading-relaxed text-white/70">{caption}</p>}
       </div>
