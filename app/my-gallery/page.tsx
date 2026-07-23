@@ -15,6 +15,7 @@ type Item = {
   videoUrl?: string;
   lookName?: string;
   curatorId?: string;
+  curatorName?: string;
   feed?: boolean;
   public?: boolean;
 };
@@ -27,6 +28,21 @@ export default function MyGalleryPage() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<Item | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [query, setQuery] = useState("");   // Model-/Look-Suche (z. B. „Bella")
+
+  // Admin: Video öffentlich (gratis Teaser im Chat) ↔ privat (🔒 Abo) schalten.
+  const setPublic = async (it: Item, pub: boolean) => {
+    if (!pin) return;
+    setItems(list => list.map(x => x.id === it.id ? { ...x, public: pub, feed: pub ? true : false } : x));
+    const h = { "Content-Type": "application/json", "x-try-look-admin-pin": pin };
+    try {
+      await fetch("/api/try-this-look", { method: "POST", headers: h, body: JSON.stringify({ action: "set-generation-public", generationId: it.id, public: pub }) });
+      if (!pub) await fetch("/api/try-this-look", { method: "POST", headers: h, body: JSON.stringify({ action: "set-generation-feed", generationId: it.id, feed: false }) });
+    } catch { /* optimistisch — beim nächsten Laden korrekt */ }
+  };
+
+  const q = query.trim().toLowerCase();
+  const shown = q ? items.filter(it => (it.curatorName || "").toLowerCase().includes(q) || (it.lookName || "").toLowerCase().includes(q)) : items;
 
   useEffect(() => {
     let p = "";
@@ -87,7 +103,12 @@ export default function MyGalleryPage() {
         <h1 className="text-[22px] font-black">
           My Gallery {items.length > 0 && <span className="text-white/70">{items.length}</span>}
         </h1>
-        <p className="mt-0.5 text-[13px] font-semibold text-white/60">Tippe ein Video an — Vollbild und Download.</p>
+        <p className="mt-0.5 text-[13px] font-semibold text-white/60">Tippe ein Video an — Vollbild und Download.{pin && " Toggle: Public = gratis Teaser im Chat, Private = 🔒 Abo."}</p>
+
+        {(pin || token) && items.length > 0 && (
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Model suchen — z. B. Bella"
+            className="mt-3 h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[14px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-white/40" />
+        )}
 
         {loading ? (
           <p className="py-16 text-center text-[13px] font-bold text-white/40">Lädt…</p>
@@ -95,22 +116,31 @@ export default function MyGalleryPage() {
           <p className="py-16 text-center text-[13px] font-bold text-white/50">Melde dich an, um deine Try-ons zu sehen.</p>
         ) : items.length === 0 ? (
           <p className="py-16 text-center text-[13px] font-bold text-white/40">Noch keine Videos.</p>
+        ) : shown.length === 0 ? (
+          <p className="py-16 text-center text-[13px] font-bold text-white/40">Keine Treffer für „{query}".</p>
         ) : (
           <div className="mt-4 grid grid-cols-3 gap-2">
-            {items.map(it => (
-              <button key={it.id} type="button" onClick={() => setOpen(it)}
-                className="relative block aspect-[9/16] overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] active:opacity-80">
+            {shown.map(it => (
+              <div key={it.id} onClick={() => setOpen(it)}
+                className="relative block aspect-[9/16] cursor-pointer overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] active:opacity-80">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={it.imageUrl} alt={it.lookName ?? ""} loading="lazy" className="h-full w-full object-cover object-top" />
                 {it.videoUrl && (
-                  <span className="absolute inset-0 grid place-items-center text-white/90">
+                  <span className="pointer-events-none absolute inset-0 grid place-items-center text-white/90">
                     <Play className="h-7 w-7 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" fill="currentColor" />
                   </span>
                 )}
                 <span className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[8px] font-black backdrop-blur ${it.public ? "bg-amber-500 text-white" : it.feed ? "bg-amber-400 text-black" : "bg-black/70 text-white"}`}>
                   {it.public ? "Public" : it.feed ? "Show" : "Private"}
                 </span>
-              </button>
+                {/* Admin: 1-Klick Public ↔ Private (gratis Teaser ↔ Abo). */}
+                {pin && (
+                  <button type="button" onClick={(e) => { e.stopPropagation(); void setPublic(it, !it.public); }}
+                    className={`absolute inset-x-1 bottom-1 rounded-full py-1 text-[9px] font-black backdrop-blur active:scale-95 transition ${it.public ? "bg-black/70 text-white" : "bg-amber-500 text-white"}`}>
+                    {it.public ? "→ Privat 🔒" : "→ Public ✓"}
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         )}

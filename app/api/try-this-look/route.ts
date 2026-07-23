@@ -658,6 +658,8 @@ export async function GET(request: Request) {
     if (url.searchParams.get("adminPosts") === "1") {
       if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
       const lookById = new Map(state.looks.map(l => [l.id, l]));
+      // Model-Name je curatorId — fürs Suchfeld in „My Gallery" (nur Bellas Videos etc.).
+      const curName = new Map((state.curators ?? []).map(c => [c.id, ((c as any).modelName || [(c as any).firstName, (c as any).lastName].filter(Boolean).join(" ")).trim()]));
       const posts = (state.generations ?? [])
         .filter(g => !(g as any).hidden) // hard-deleted stay out; feed:false (Hidden) is INCLUDED
         .map(g => {
@@ -670,6 +672,7 @@ export async function GET(request: Request) {
             customerName: (g as any).customerName ?? "",
             ownerEmail: (g as any).ownerEmail ?? "", // who actually generated it (blank = admin pre-gen)
             curatorId: (g as any).curatorId ?? "",
+            curatorName: curName.get((g as any).curatorId ?? "") ?? "",
             lookName: g.lookName ?? look?.name ?? "",
             feed: (g as any).feed !== false,
             public: (g as any).public === true,
