@@ -41,8 +41,15 @@ export default function MyGalleryPage() {
     } catch { /* optimistisch — beim nächsten Laden korrekt */ }
   };
 
+  const [statusFilter, setStatusFilter] = useState<"all" | "public" | "private">("all");   // Freigabe-Status
   const q = query.trim().toLowerCase();
-  const shown = q ? items.filter(it => (it.curatorName || "").toLowerCase().includes(q) || (it.lookName || "").toLowerCase().includes(q)) : items;
+  const shown = items.filter(it => {
+    if (q && !((it.curatorName || "").toLowerCase().includes(q) || (it.lookName || "").toLowerCase().includes(q))) return false;
+    if (statusFilter === "public") return it.public === true;
+    if (statusFilter === "private") return it.public !== true;
+    return true;
+  });
+  const pubCount = items.filter(it => it.public === true).length;
 
   useEffect(() => {
     let p = "";
@@ -108,6 +115,14 @@ export default function MyGalleryPage() {
         {(pin || token) && items.length > 0 && (
           <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Model suchen — z. B. Bella"
             className="mt-3 h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[14px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-white/40" />
+        )}
+        {pin && items.length > 0 && (
+          <div className="mt-2 flex gap-2 text-[12px] font-black">
+            {([["all", `Alle ${items.length}`], ["public", `Public ${pubCount}`], ["private", `Private ${items.length - pubCount}`]] as const).map(([k, lbl]) => (
+              <button key={k} type="button" onClick={() => setStatusFilter(k)}
+                className={`rounded-full px-3.5 py-1.5 transition ${statusFilter === k ? "bg-amber-500 text-white" : "bg-white/10 text-white/70"}`}>{lbl}</button>
+            ))}
+          </div>
         )}
 
         {loading ? (
