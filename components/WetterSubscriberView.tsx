@@ -216,7 +216,10 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   // Look antippen → Try-on-/Abo-Funnel in NEUEM TAB, damit der Chat hier offen bleibt
   // (sonst ist er nach dem Video „raus"). Zusätzlich wird der Verlauf persistiert (s. u.).
   const openLook = (lookId: string, garment: string) => {
-    const qs = new URLSearchParams({ modelId, model: "", garment, modelName });
+    // Rücksprung-Ziel = diese Wetter-Seite (+ ?s=), damit „Chat with …" im Funnel hierher
+    // zurückführt und der persistierte Chat weiterläuft.
+    const back = subId ? `${window.location.pathname}?s=${encodeURIComponent(subId)}` : window.location.pathname;
+    const qs = new URLSearchParams({ modelId, model: "", garment, modelName, from: "wetter", wchat: back });
     window.open(`/try/${lookId}?${qs.toString()}`, "_blank", "noopener");
   };
 

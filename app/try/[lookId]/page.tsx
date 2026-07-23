@@ -81,6 +81,10 @@ export default function TryFunnelPage() {
   // Set when the user taps an outfit → the top shows the chosen outfit + model (a confirm view)
   // instead of the model coverflow. "Cancel" reveals the picker again.
   const pickedParam = (searchParams?.get("picked") ?? "") === "1";
+  // Kam der Nutzer aus dem Wetter-Chat? Dann führt „Chat with …" zurück DORTHIN (persistierter
+  // Chat lädt wieder) statt in den separaten /chat. Nur same-origin-Pfade (Anti-Open-Redirect).
+  const wchatRaw = searchParams?.get("wchat") ?? "";
+  const wchatBack = wchatRaw.startsWith("/") ? wchatRaw : "";
   const [gModels, setGModels] = useState<{ id: string; name: string; photoUrl: string; featured?: boolean; realModel?: boolean }[]>([]);
   const [isPaid, setIsPaid] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false); // $49/mo subscriber → unlimited chat
@@ -1231,7 +1235,7 @@ export default function TryFunnelPage() {
                         <Sparkles className="h-5 w-5" /> {L("Vezi-te pe TINE în video — $3.99 🎬", "See yourself in this video — $3.99 🎬")}
                       </button>
                       {chosenModelId && (
-                        <button type="button" onClick={() => router.push(`/chat/${chosenModelId}`)}
+                        <button type="button" onClick={() => router.push(wchatBack || `/chat/${chosenModelId}`)}
                           className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
                           <MessageCircle className="h-4 w-4" /> {L("Vorbește cu", "Chat with")} {chosenModelName ? chosenModelName.split(/\s+/)[0] : L("ea", "her")}
                         </button>
@@ -1244,7 +1248,7 @@ export default function TryFunnelPage() {
                         <Sparkles className="h-5 w-5" /> {L("Vezi videoul tău →", "View your video →")}
                       </button>
                       {chosenModelId && (
-                        <button type="button" onClick={() => router.push(`/chat/${chosenModelId}`)}
+                        <button type="button" onClick={() => router.push(wchatBack || `/chat/${chosenModelId}`)}
                           className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
                           <MessageCircle className="h-4 w-4" /> {L("Vorbește cu", "Chat with")} {chosenModelName ? chosenModelName.split(/\s+/)[0] : L("ea", "her")}
                         </button>
