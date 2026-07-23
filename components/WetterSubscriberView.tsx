@@ -39,6 +39,10 @@ const WX: Record<string, Record<string, string>> = {
   ro: { clear: "senin", partly: "parțial noros", cloudy: "noros", fog: "ceață", rain: "ploaie", snow: "ninsoare", showers: "averse", storm: "furtună", "": "" },
   en: { clear: "clear", partly: "partly cloudy", cloudy: "cloudy", fog: "fog", rain: "rain", snow: "snow", showers: "showers", storm: "storm", "": "" },
   de: { clear: "klar", partly: "teils bewölkt", cloudy: "bewölkt", fog: "Nebel", rain: "Regen", snow: "Schnee", showers: "Schauer", storm: "Gewitter", "": "" },
+  es: { clear: "despejado", partly: "parcialmente nublado", cloudy: "nublado", fog: "niebla", rain: "lluvia", snow: "nieve", showers: "chubascos", storm: "tormenta", "": "" },
+  fr: { clear: "dégagé", partly: "partiellement nuageux", cloudy: "nuageux", fog: "brouillard", rain: "pluie", snow: "neige", showers: "averses", storm: "orage", "": "" },
+  pt: { clear: "céu limpo", partly: "parcialmente nublado", cloudy: "nublado", fog: "nevoeiro", rain: "chuva", snow: "neve", showers: "aguaceiros", storm: "tempestade", "": "" },
+  pl: { clear: "bezchmurnie", partly: "częściowe zachmurzenie", cloudy: "pochmurno", fog: "mgła", rain: "deszcz", snow: "śnieg", showers: "przelotne opady", storm: "burza", "": "" },
 };
 
 // Alle sichtbaren Texte pro Sprache. Model-Name wird eingesetzt. Fallback: EN.
@@ -83,6 +87,46 @@ const T: Record<string, Copy> = {
     placeholder: m => `Message ${m}…`,
     aiNote: m => `✨ You're chatting with ${m}'s AI assistant — an AI persona, not the real person.`,
   },
+  es: {
+    greet: n => `¡Buenos días, ${n}!`,
+    greetPre: "¡Buenos días,",
+    wxLine: (c, w, e, t) => `En ${c} hoy está ${w} ${e}, ${t}°.`,
+    wxLoading: c => `En ${c}…`,
+    online: "en línea",
+    opener: (n) => `¡Buenos días, ${n}! Me alegra que estés aquí. ¿Qué tal dormiste?`,
+    placeholder: m => `Escríbele a ${m}…`,
+    aiNote: m => `✨ Estás chateando con la asistente AI de ${m} — una persona AI, no la persona real.`,
+  },
+  fr: {
+    greet: n => `Bonjour, ${n} !`,
+    greetPre: "Bonjour,",
+    wxLine: (c, w, e, t) => `À ${c} aujourd'hui c'est ${w} ${e}, ${t}°.`,
+    wxLoading: c => `À ${c}…`,
+    online: "en ligne",
+    opener: (n) => `Bonjour, ${n} ! Contente que tu sois là. Tu as bien dormi ?`,
+    placeholder: m => `Écris à ${m}…`,
+    aiNote: m => `✨ Tu discutes avec l'assistante AI de ${m} — une persona AI, pas la vraie personne.`,
+  },
+  pt: {
+    greet: n => `Bom dia, ${n}!`,
+    greetPre: "Bom dia,",
+    wxLine: (c, w, e, t) => `Em ${c} hoje está ${w} ${e}, ${t}°.`,
+    wxLoading: c => `Em ${c}…`,
+    online: "online",
+    opener: (n) => `Bom dia, ${n}! Ainda bem que estás aqui. Dormiste bem?`,
+    placeholder: m => `Escreve à ${m}…`,
+    aiNote: m => `✨ Estás a conversar com a assistente AI da ${m} — uma persona AI, não a pessoa real.`,
+  },
+  pl: {
+    greet: n => `Dzień dobry, ${n}!`,
+    greetPre: "Dzień dobry,",
+    wxLine: (c, w, e, t) => `W ${c} dziś jest ${w} ${e}, ${t}°.`,
+    wxLoading: c => `W ${c}…`,
+    online: "online",
+    opener: (n) => `Dzień dobry, ${n}! Cieszę się, że jesteś. Jak spałeś?`,
+    placeholder: m => `Napisz do ${m}…`,
+    aiNote: m => `✨ Rozmawiasz z asystentką AI ${m} — to persona AI, nie prawdziwa osoba.`,
+  },
 };
 
 export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", day = "", time = "", title = "", caption = "", firstMessage = "", dayContext = "" }: {
@@ -111,7 +155,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   const [unsubbing, setUnsubbing] = useState(false);
   const unsubscribe = async () => {
     if (!subId) return;
-    const ask = L === "de" ? "Keine Morgennachrichten mehr?" : L === "en" ? "Stop the morning messages?" : "Oprești mesajele de dimineață?";
+    const ask = (({ de: "Keine Morgennachrichten mehr?", en: "Stop the morning messages?", es: "¿Detener los mensajes de la mañana?", fr: "Arrêter les messages du matin ?", pt: "Parar as mensagens da manhã?", pl: "Zatrzymać poranne wiadomości?" } as Record<string, string>)[L]) ?? "Oprești mesajele de dimineață?";
     if (typeof window !== "undefined" && !window.confirm(ask)) return;
     setUnsubbing(true);
     try {
@@ -254,12 +298,12 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         <div className="mb-8 text-center">
           {unsubbed ? (
             <p className="text-[12px] font-black text-white/50">
-              {L === "de" ? "✓ Du bist abgemeldet — keine Nachrichten mehr." : L === "en" ? "✓ You're unsubscribed — no more messages." : "✓ Te-ai dezabonat — gata cu mesajele."}
+              {(({ de: "✓ Du bist abgemeldet — keine Nachrichten mehr.", en: "✓ You're unsubscribed — no more messages.", es: "✓ Te diste de baja — no más mensajes.", fr: "✓ Tu es désabonné — plus de messages.", pt: "✓ Cancelaste a subscrição — sem mais mensagens.", pl: "✓ Wypisano Cię — koniec wiadomości." } as Record<string, string>)[L]) ?? "✓ Te-ai dezabonat — gata cu mesajele."}
             </p>
           ) : (
             <button type="button" onClick={() => void unsubscribe()} disabled={unsubbing}
               className="text-[12px] font-bold text-white/40 underline underline-offset-2 disabled:opacity-50">
-              {L === "de" ? "Abmelden" : L === "en" ? "Unsubscribe" : "Dezabonează-te"}
+              {(({ de: "Abmelden", en: "Unsubscribe", es: "Darse de baja", fr: "Se désabonner", pt: "Cancelar", pl: "Wypisz się" } as Record<string, string>)[L]) ?? "Dezabonează-te"}
             </button>
           )}
         </div>

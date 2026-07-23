@@ -18,6 +18,22 @@ function confirmEmail(lang: string, name: string, model: string, link: string): 
     subject: `Confirm your sign-up with ${model}`,
     html: `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111">Hi ${name},<br><br>please confirm your email so ${model} can wake you every morning:<br><br>${btn}✅ Confirm email</a><br><br>If this wasn't you, just ignore this email.</div>`,
   };
+  if (lang === "es") return {
+    subject: `Confirma tu registro con ${model}`,
+    html: `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111">Hola ${name},<br><br>confirma tu email para que ${model} pueda despertarte cada mañana:<br><br>${btn}✅ Confirmar email</a><br><br>Si no fuiste tú, ignora este mensaje.</div>`,
+  };
+  if (lang === "fr") return {
+    subject: `Confirme ton inscription avec ${model}`,
+    html: `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111">Bonjour ${name},<br><br>confirme ton e-mail pour que ${model} puisse te réveiller chaque matin :<br><br>${btn}✅ Confirmer l'e-mail</a><br><br>Si ce n'était pas toi, ignore simplement ce message.</div>`,
+  };
+  if (lang === "pt") return {
+    subject: `Confirma a tua inscrição com ${model}`,
+    html: `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111">Olá ${name},<br><br>confirma o teu email para que a ${model} te possa acordar todas as manhãs:<br><br>${btn}✅ Confirmar email</a><br><br>Se não foste tu, ignora esta mensagem.</div>`,
+  };
+  if (lang === "pl") return {
+    subject: `Potwierdź zapis u ${model}`,
+    html: `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111">Cześć ${name},<br><br>potwierdź swój e-mail, aby ${model} mogła budzić Cię każdego ranka:<br><br>${btn}✅ Potwierdź e-mail</a><br><br>Jeśli to nie Ty, po prostu zignoruj tę wiadomość.</div>`,
+  };
   return {
     subject: `Confirmă-ți înscrierea la ${model}`,
     html: `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111">Bună ${name},<br><br>confirmă adresa de email ca ${model} să te trezească în fiecare dimineață:<br><br>${btn}✅ Confirmă emailul</a><br><br>Dacă nu ai fost tu, ignoră acest mesaj.</div>`,

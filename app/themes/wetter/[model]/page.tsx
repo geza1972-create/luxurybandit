@@ -36,10 +36,14 @@ export async function generateMetadata({ params }: { params: Promise<{ model: st
 
 // Browsersprache (Accept-Language) → unterstützte Sprache. Ohne ?lang= entscheidet der Browser.
 // Default ro (RO-Zielgruppe), aber de/en werden respektiert.
-function langFromAccept(accept: string): "ro" | "de" | "en" {
+// Unterstützte Sprachen des Wetter-Themas (ein Ort, damit Umschalter + Erkennung übereinstimmen).
+const LANGS = ["ro", "de", "en", "es", "fr", "pt", "pl"] as const;
+
+// Browsersprache (Accept-Language) → unterstützte Sprache. Ohne ?lang= entscheidet der Browser.
+function langFromAccept(accept: string): string {
   for (const part of accept.toLowerCase().split(",")) {
     const code = part.trim().split(";")[0].slice(0, 2);
-    if (code === "de" || code === "en" || code === "ro") return code;
+    if ((LANGS as readonly string[]).includes(code)) return code;
   }
   return "ro";
 }
@@ -49,6 +53,10 @@ const HEADER: Record<string, { title: string; tagline: string }> = {
   ro: { title: "Bună dimineața ☀️", tagline: "Un mesaj în fiecare dimineață" },
   de: { title: "Guten Morgen ☀️", tagline: "Jeden Morgen eine Nachricht" },
   en: { title: "Good morning ☀️", tagline: "A message every morning" },
+  es: { title: "Buenos días ☀️", tagline: "Un mensaje cada mañana" },
+  fr: { title: "Bonjour ☀️", tagline: "Un message chaque matin" },
+  pt: { title: "Bom dia ☀️", tagline: "Uma mensagem todas as manhãs" },
+  pl: { title: "Dzień dobry ☀️", tagline: "Wiadomość każdego ranka" },
 };
 
 // „E-Mail bestätigt"-Banner pro Sprache (nicht mehr halb rumänisch).
@@ -56,6 +64,10 @@ const CONFIRMED_TEXT: Record<string, string> = {
   ro: "✓ Email confirmat — bine ai venit!",
   de: "✓ E-Mail bestätigt — willkommen!",
   en: "✓ Email confirmed — welcome!",
+  es: "✓ Email confirmado — ¡bienvenido!",
+  fr: "✓ E-mail confirmé — bienvenue !",
+  pt: "✓ Email confirmado — bem-vindo!",
+  pl: "✓ E-mail potwierdzony — witaj!",
 };
 
 export default async function WetterModelPage({ params, searchParams }: {
@@ -166,11 +178,11 @@ export default async function WetterModelPage({ params, searchParams }: {
           <ModelCardHeader name={card.name} title={(HEADER[subLang] ?? HEADER.ro).title}
             tagline={(HEADER[subLang] ?? HEADER.ro).tagline} statusLabel="online" darkBg
             ownedName={card.owner || ""} isOwned={!!card.owner} />
-          {/* Sprach-Umschalter — oben rechts im Header. */}
-          <div className="absolute right-2 top-2 z-20 flex gap-1">
-            {["ro", "de", "en"].map(l => (
+          {/* Sprach-Umschalter — oben rechts im Header. Bei vielen Sprachen umbrechend. */}
+          <div className="absolute right-2 top-2 z-20 flex max-w-[132px] flex-wrap justify-end gap-1">
+            {LANGS.map(l => (
               <a key={l} href={langHref(l)}
-                className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wide backdrop-blur transition ${subLang === l ? "bg-amber-400 text-black" : "bg-white/10 text-white/80 ring-1 ring-white/15"}`}>{l}</a>
+                className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide backdrop-blur transition ${subLang === l ? "bg-amber-400 text-black" : "bg-white/10 text-white/80 ring-1 ring-white/15"}`}>{l}</a>
             ))}
           </div>
         </div>

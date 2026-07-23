@@ -65,6 +65,54 @@ const T: Record<string, Copy> = {
     tooYoung: "You must be at least 18.", mustAccept: "Please accept the terms.",
     consent: "I accept the", terms: "Terms", and: "and", privacy: "Privacy",
   },
+  es: {
+    title: m => `¿Quieres que ${m} te despierte cada mañana?`,
+    sub: "Un mensaje cada mañana — tu clima, un look nuevo, y puedes chatear con ella cuando quieras.",
+    name: "Tu nombre", email: "Email", birthdate: "Fecha de nacimiento", gender: "Género",
+    genderM: "Hombre", genderF: "Mujer", genderX: "Otro", city: "Tu ciudad (para el clima)", country: "País", postal: "Código postal (opcional)", phone: "Tu número (WhatsApp)",
+    cta: "Crear cuenta gratis", note: "Sin contraseña. Confirma tu email una vez.",
+    fillAll: "Completa todos los campos, por favor.", badEmail: "Email inválido.",
+    sentTitle: "Revisa tu email 📧", sentBody: e => `Te enviamos un enlace de confirmación a ${e}. ¡Confírmalo y listo!`,
+    back: "Ya estás registrado", open: "A tu mensaje de la mañana →",
+    tooYoung: "Debes tener al menos 18 años.", mustAccept: "Acepta los términos, por favor.",
+    consent: "Acepto los", terms: "Términos", and: "y", privacy: "Privacidad",
+  },
+  fr: {
+    title: m => `Envie que ${m} te réveille chaque matin ?`,
+    sub: "Un message chaque matin — ta météo, un nouveau look, et tu peux discuter avec elle à tout moment.",
+    name: "Ton prénom", email: "E-mail", birthdate: "Date de naissance", gender: "Genre",
+    genderM: "Homme", genderF: "Femme", genderX: "Autre", city: "Ta ville (pour la météo)", country: "Pays", postal: "Code postal (facultatif)", phone: "Ton numéro (WhatsApp)",
+    cta: "Créer un compte gratuit", note: "Sans mot de passe. Confirme ton e-mail une fois.",
+    fillAll: "Merci de remplir tous les champs.", badEmail: "E-mail invalide.",
+    sentTitle: "Vérifie ton e-mail 📧", sentBody: e => `Nous t'avons envoyé un lien de confirmation à ${e}. Confirme et c'est bon !`,
+    back: "Tu es déjà inscrit", open: "Vers ton message du matin →",
+    tooYoung: "Tu dois avoir au moins 18 ans.", mustAccept: "Merci d'accepter les conditions.",
+    consent: "J'accepte les", terms: "Conditions", and: "et", privacy: "Confidentialité",
+  },
+  pt: {
+    title: m => `Queres que a ${m} te acorde todas as manhãs?`,
+    sub: "Uma mensagem todas as manhãs — o teu tempo, um novo visual, e podes conversar com ela quando quiseres.",
+    name: "O teu nome", email: "Email", birthdate: "Data de nascimento", gender: "Género",
+    genderM: "Homem", genderF: "Mulher", genderX: "Outro", city: "A tua cidade (para o tempo)", country: "País", postal: "Código postal (opcional)", phone: "O teu número (WhatsApp)",
+    cta: "Criar conta grátis", note: "Sem palavra-passe. Confirma o teu email uma vez.",
+    fillAll: "Preenche todos os campos, por favor.", badEmail: "Email inválido.",
+    sentTitle: "Verifica o teu email 📧", sentBody: e => `Enviámos um link de confirmação para ${e}. Confirma e pronto!`,
+    back: "Já estás inscrito", open: "Para a tua mensagem da manhã →",
+    tooYoung: "Tens de ter pelo menos 18 anos.", mustAccept: "Aceita os termos, por favor.",
+    consent: "Aceito os", terms: "Termos", and: "e", privacy: "Privacidade",
+  },
+  pl: {
+    title: m => `Chcesz, żeby ${m} budziła Cię każdego ranka?`,
+    sub: "Wiadomość każdego ranka — Twoja pogoda, nowy look i możesz z nią pisać o każdej porze.",
+    name: "Twoje imię", email: "Email", birthdate: "Data urodzenia", gender: "Płeć",
+    genderM: "Mężczyzna", genderF: "Kobieta", genderX: "Inna", city: "Twoje miasto (dla pogody)", country: "Kraj", postal: "Kod pocztowy (opcjonalnie)", phone: "Twój numer (WhatsApp)",
+    cta: "Załóż darmowe konto", note: "Bez hasła. Potwierdź e-mail raz.",
+    fillAll: "Wypełnij wszystkie pola.", badEmail: "Nieprawidłowy e-mail.",
+    sentTitle: "Sprawdź e-mail 📧", sentBody: e => `Wysłaliśmy link potwierdzający na ${e}. Potwierdź i gotowe!`,
+    back: "Jesteś już zapisany", open: "Do Twojej porannej wiadomości →",
+    tooYoung: "Musisz mieć co najmniej 18 lat.", mustAccept: "Zaakceptuj regulamin.",
+    consent: "Akceptuję", terms: "Regulamin", and: "i", privacy: "Prywatność",
+  },
 };
 
 // Alter aus dem Geburtsdatum (YYYY-MM-DD). NaN, wenn kein gültiges Datum.
@@ -213,9 +261,9 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
           {email && !emailOk && <p className="-mt-1 text-[11px] font-bold text-red-500">{t.badEmail}</p>}
           {/* Geburtsdatum — Feldname bleibt links stehen (type=date hat eine Mindestbreite). */}
           {(() => {
-            const [dLbl, mLbl, yLbl] = (({ ro: ["Zi", "Lună", "An"], de: ["Tag", "Monat", "Jahr"], en: ["Day", "Month", "Year"] } as Record<string, string[]>)[L] ?? ["Day", "Month", "Year"]);
+            const [dLbl, mLbl, yLbl] = (({ ro: ["Zi", "Lună", "An"], de: ["Tag", "Monat", "Jahr"], en: ["Day", "Month", "Year"], es: ["Día", "Mes", "Año"], fr: ["Jour", "Mois", "Année"], pt: ["Dia", "Mês", "Ano"], pl: ["Dzień", "Miesiąc", "Rok"] } as Record<string, string[]>)[L] ?? ["Day", "Month", "Year"]);
             const nowY = new Date().getFullYear();
-            const hint = (({ ro: "Pentru urări de ziua ta și verificarea vârstei (18+).", de: "Für Geburtstagsgrüße & Altersprüfung (18+).", en: "For birthday wishes & age check (18+)." } as Record<string, string>)[L] ?? "For birthday wishes & age check (18+).");
+            const hint = (({ ro: "Pentru urări de ziua ta și verificarea vârstei (18+).", de: "Für Geburtstagsgrüße & Altersprüfung (18+).", en: "For birthday wishes & age check (18+).", es: "Para felicitaciones de cumpleaños y verificación de edad (18+).", fr: "Pour les vœux d'anniversaire et la vérification de l'âge (18+).", pt: "Para parabéns de aniversário e verificação de idade (18+).", pl: "Do życzeń urodzinowych i weryfikacji wieku (18+)." } as Record<string, string>)[L] ?? "For birthday wishes & age check (18+).");
             const sel = "min-w-0 flex-1 rounded-lg border border-black/15 bg-white px-2 py-2.5 text-[14px] font-semibold text-black outline-none focus:border-black";
             return (
               <>
