@@ -654,6 +654,29 @@ export async function GET(request: Request) {
       return NextResponse.json({ events: (state.events ?? []).slice(0, n), viewsByDay: (state as any).viewsByDay ?? {}, visitsByDay: (state as any).visitsByDay ?? {} });
     }
 
+    // ÖFFENTLICH: die kuratierten Videos EINES Models (für den Wetter-Chat).
+    // public → mit videoUrl (frei abspielbar). private → NUR Poster (locked) — die videoUrl
+    // wird NICHT rausgegeben, sonst könnte man das Abo umgehen. „?lingerie=1" filtert heiße Looks.
+    {
+      const cid = String(url.searchParams.get("modelVideos") ?? "").trim();
+      if (cid) {
+        const lookById = new Map(state.looks.map(l => [l.id, l]));
+        const isHot = (g: { lookId?: string }) => { const lk = lookById.get(String(g.lookId)) as { category?: string; lingerie?: boolean } | undefined; return !!lk && ((lk.category === "boudoir") || lk.lingerie === true); };
+        const onlyHot = url.searchParams.get("lingerie") === "1";
+        const mine = (state.generations ?? []).filter(g => (g as { curatorId?: string }).curatorId === cid && (g as { videoUrl?: string }).videoUrl && !(g as { hidden?: boolean }).hidden);
+        const hot = mine.filter(isHot);
+        const pool = onlyHot ? (hot.length ? hot : mine) : mine;
+        const videos = pool
+          .sort((a, b) => ((b as { public?: boolean }).public === true ? 1 : 0) - ((a as { public?: boolean }).public === true ? 1 : 0))
+          .slice(0, 8)
+          .map(g => {
+            const gg = g as { id: string; public?: boolean; imageUrl?: string; videoUrl?: string };
+            return { id: gg.id, locked: gg.public !== true, posterUrl: gg.imageUrl ?? "", videoUrl: gg.public === true ? (gg.videoUrl ?? "") : "" };
+          });
+        return NextResponse.json({ videos });
+      }
+    }
+
     // Admin: ALL posts (generations) incl. hidden — for the admin posts grid.
     if (url.searchParams.get("adminPosts") === "1") {
       if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });

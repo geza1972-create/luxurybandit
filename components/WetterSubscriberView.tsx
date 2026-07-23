@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Send, Lock } from "lucide-react";
+import { Loader2, Send, Lock, X, Play } from "lucide-react";
 import { CornerOrnaments } from "@/components/BoxOrnaments";
 import BellaPostsCarousel from "@/components/BellaPostsCarousel";
 import { wxKey, WX_WORDS, forecastLine } from "@/lib/wetter-forecast";
@@ -199,40 +199,24 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     try { localStorage.setItem(chatKey, JSON.stringify(messages.slice(-40))); } catch { /**/ }
   }, [messages, chatKey]);
 
-  // Look-Galerie für den „zeig dich in etwas Heißem"-Moment ([[SHOW_LINGERIE]]).
-  // Bellas eigene Lingerie/Boudoir-Looks; Fallback auf allgemeine, damit nie leer.
-  const [looksStrip, setLooksStrip] = useState<{ id: string; img: string }[]>([]);
+  // KURATIERTE Videos für den „zeig dich in etwas Heißem"-Moment ([[SHOW_LINGERIE]]):
+  // Public = gratis Teaser (direkt abspielbar), Private = 🔒 (Poster only, → Abo).
+  // Gesteuert über den Public/Private-Toggle in „My Gallery".
+  const [videos, setVideos] = useState<{ id: string; locked: boolean; posterUrl: string; videoUrl: string }[]>([]);
+  const [playing, setPlaying] = useState("");   // videoUrl im Vollbild-Player
   useEffect(() => {
     let ok = true;
-    fetch("/api/try-this-look").then(r => r.json()).then(d => {
-      const looks: Array<Record<string, unknown>> = Array.isArray(d.looks) ? d.looks : [];
-      const isLing = (l: Record<string, unknown>) => ((l.category === "boudoir") || l.lingerie === true) && (l.frontImageUrl || l.imageUrl) && l.published !== false;
-      const mine = looks.filter(l => String(l.curatorId ?? "") === modelId && isLing(l));
-      const src = mine.length ? mine : looks.filter(isLing);
-      if (ok) setLooksStrip(src.slice(0, 6).map(l => ({ id: String(l.id), img: String(l.frontImageUrl || l.imageUrl) })));
-    }).catch(() => {});
+    fetch(`/api/try-this-look?modelVideos=${encodeURIComponent(modelId)}&lingerie=1`)
+      .then(r => r.json())
+      .then(d => { if (ok && Array.isArray(d.videos)) setVideos(d.videos); })
+      .catch(() => {});
     return () => { ok = false; };
   }, [modelId]);
 
-  // Look antippen → Try-on-/Abo-Funnel in NEUEM TAB, damit der Chat hier offen bleibt
-  // (sonst ist er nach dem Video „raus"). Zusätzlich wird der Verlauf persistiert (s. u.).
-  const openLook = (lookId: string, garment: string) => {
-    // Abonnent hat seine E-Mail schon gegeben → als Lead an den Funnel weiterreichen
-    // (gleicher Origin, geteilter localStorage), damit KEINE neue Anmelde-Wall kommt.
-    try { if (email) localStorage.setItem("lb_lead_email", email); } catch { /**/ }
-    // Rücksprung-Ziel = diese Wetter-Seite (+ ?s=), damit „Chat with …" im Funnel hierher
-    // zurückführt und der persistierte Chat weiterläuft.
-    const back = subId ? `${window.location.pathname}?s=${encodeURIComponent(subId)}` : window.location.pathname;
-    const qs = new URLSearchParams({ modelId, model: "", garment, modelName, from: "wetter", wchat: back });
-    window.open(`/try/${lookId}?${qs.toString()}`, "_blank", "noopener");
-  };
-
-  // Gesperrter Look → Abo abschließen (Premium-Checkout mit der bekannten E-Mail; zurück hierher).
-  // Ohne E-Mail (z. B. Admin-Vorschau) → einfach den Funnel öffnen.
-  const openLocked = (lookId: string, garment: string) => {
+  // Gesperrtes Video → Abo abschließen (Premium-Checkout mit der bekannten E-Mail; zurück hierher).
+  const openLocked = () => {
     const ret = subId ? `${window.location.pathname}?s=${encodeURIComponent(subId)}` : window.location.pathname;
-    if (email) { void startPremiumCheckout(email, ret).catch(() => { const qs = new URLSearchParams({ modelId, model: "", garment, modelName, wchat: ret }); window.open(`/try/${lookId}?${qs.toString()}`, "_blank", "noopener"); }); }
-    else { const qs = new URLSearchParams({ modelId, model: "", garment, modelName, wchat: ret }); window.open(`/try/${lookId}?${qs.toString()}`, "_blank", "noopener"); }
+    if (email) void startPremiumCheckout(email, ret).catch(() => {});
   };
 
   const send = async () => {
@@ -318,27 +302,28 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
                     ? "lb-onmedia rounded-2xl rounded-tr-sm bg-[#1a160f] text-white"
                     : "rounded-2xl rounded-tl-sm bg-white/10 text-white/90"}`}>{text}</div>
                 </div>
-                {/* „Willst du mich in diesen Looks sehen?" — erste 2 gratis, Rest gesperrt (Abo-Anreiz). */}
-                {offers && looksStrip.length > 0 && (
+                {/* „Willst du mich in diesen Looks sehen?" — Public = gratis (direkt abspielbar),
+                    Private = 🔒 (→ Abo). Kuratiert über den Public/Private-Toggle in My Gallery. */}
+                {offers && videos.length > 0 && (
                   <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-                    {looksStrip.map((l, idx) => {
-                      const locked = idx >= 2;
-                      return (
-                        <button key={l.id} type="button" onClick={() => locked ? openLocked(l.id, l.img) : openLook(l.id, l.img)}
-                          className="group relative w-24 shrink-0 overflow-hidden rounded-xl border border-amber-300/40 bg-black/5 active:scale-95 transition">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={l.img} alt="" className={`aspect-[3/4] w-full object-cover ${locked ? "scale-105 blur-[7px]" : ""}`} />
-                          {locked ? (
-                            <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/35 text-white">
-                              <Lock className="h-5 w-5" />
-                              <span className="text-[9px] font-black uppercase tracking-wide">{unlockLbl}</span>
-                            </span>
-                          ) : (
+                    {videos.map(v => (
+                      <button key={v.id} type="button" onClick={() => v.locked ? openLocked() : setPlaying(v.videoUrl)}
+                        className="group relative w-24 shrink-0 overflow-hidden rounded-xl border border-amber-300/40 bg-black/5 active:scale-95 transition">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={v.posterUrl} alt="" className={`aspect-[3/4] w-full object-cover ${v.locked ? "scale-105 blur-[7px]" : ""}`} />
+                        {v.locked ? (
+                          <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/35 text-white">
+                            <Lock className="h-5 w-5" />
+                            <span className="text-[9px] font-black uppercase tracking-wide">{unlockLbl}</span>
+                          </span>
+                        ) : (
+                          <>
+                            <span className="pointer-events-none absolute inset-0 grid place-items-center text-white/90"><Play className="h-6 w-6 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" fill="currentColor" /></span>
                             <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-1.5 pb-1.5 pt-4 text-[10px] font-black leading-tight text-white">{seeLbl}</span>
-                          )}
-                        </button>
-                      );
-                    })}
+                          </>
+                        )}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
@@ -385,6 +370,20 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         </div>
       )}
       </div>
+
+      {/* Vollbild-Player für ein freies (Public) Video — kein Funnel, spielt direkt. */}
+      {playing && (
+        <div className="fixed inset-0 z-[130] flex flex-col bg-black/95" onClick={() => setPlaying("")}>
+          <div className="flex justify-end p-3">
+            <button type="button" onClick={() => setPlaying("")}
+              className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white active:scale-95"><X className="h-5 w-5" /></button>
+          </div>
+          <div className="flex flex-1 items-center justify-center p-3" onClick={e => e.stopPropagation()}>
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+            <video src={playing} controls autoPlay playsInline className="max-h-full max-w-full rounded-2xl" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
