@@ -44,16 +44,27 @@ export default function MyGalleryPage() {
 
   const [statusFilter, setStatusFilter] = useState<"all" | "public" | "private">("all");   // Freigabe-Status
   const [typeFilter, setTypeFilter] = useState<"all" | "video" | "slide">("all");          // Videos vs. Slides
+  const [catFilter, setCatFilter] = useState<"all" | "lingerie" | "reise" | "peter" | "andere">("all");
+  // Auto-Kategorie aus Name/Titel (+ Typ). Heuristik: „Peter" nur, wenn der Name es sagt.
+  const catOf = (it: Item): "lingerie" | "reise" | "peter" | "andere" => {
+    const s = `${it.lookName || ""}`.toLowerCase();
+    if (/\bpeter\b/.test(s)) return "peter";
+    if (/lingerie|boudoir|dessous|lace|thong|underwear|unterwäsche|bikini|swim|bh\b/.test(s)) return "lingerie";
+    if (/reise|urlaub|travel|beach|strand|island|insel|tenerife|monaco|paris|city|trip|vacation|holiday|journey|weather|wetter/.test(s) || it.type === "slide") return "reise";
+    return "andere";
+  };
   const q = query.trim().toLowerCase();
   const shown = items.filter(it => {
     if (q && !((it.curatorName || "").toLowerCase().includes(q) || (it.lookName || "").toLowerCase().includes(q))) return false;
     if (typeFilter !== "all" && (it.type ?? "video") !== typeFilter) return false;
+    if (catFilter !== "all" && catOf(it) !== catFilter) return false;
     if (statusFilter === "public") return it.public === true;
     if (statusFilter === "private") return it.public !== true;
     return true;
   });
   const pubCount = items.filter(it => it.public === true).length;
   const vidCount = items.filter(it => (it.type ?? "video") === "video").length;
+  const catCount = (c: "lingerie" | "reise" | "peter" | "andere") => items.filter(it => catOf(it) === c).length;
 
   useEffect(() => {
     let p = "";
@@ -153,6 +164,11 @@ export default function MyGalleryPage() {
             {([["all", "Alle Typen"], ["video", `Videos ${vidCount}`], ["slide", `Slides ${items.length - vidCount}`]] as const).map(([k, lbl]) => (
               <button key={k} type="button" onClick={() => setTypeFilter(k)}
                 className={`rounded-full px-3.5 py-1.5 transition ${typeFilter === k ? "bg-white/85 text-black" : "bg-white/10 text-white/70"}`}>{lbl}</button>
+            ))}
+            <span className="w-full" />
+            {([["all", "Alle Kategorien"], ["lingerie", `Lingerie ${catCount("lingerie")}`], ["reise", `Reise ${catCount("reise")}`], ["peter", `Peter ${catCount("peter")}`], ["andere", `Andere ${catCount("andere")}`]] as const).map(([k, lbl]) => (
+              <button key={k} type="button" onClick={() => setCatFilter(k)}
+                className={`rounded-full px-3.5 py-1.5 transition ${catFilter === k ? "bg-violet-500 text-white" : "bg-white/10 text-white/70"}`}>{lbl}</button>
             ))}
           </div>
         )}
