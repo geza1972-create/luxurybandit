@@ -5,6 +5,7 @@ import { Loader2, Send, Lock } from "lucide-react";
 import { CornerOrnaments } from "@/components/BoxOrnaments";
 import BellaPostsCarousel from "@/components/BellaPostsCarousel";
 import { wxKey, WX_WORDS, forecastLine } from "@/lib/wetter-forecast";
+import { startPremiumCheckout } from "@/lib/start-premium-checkout";
 
 // Was der ABONNENT auf /wetter/<model>?name=…&city=…&lang=… sieht:
 // persönlicher Gruß + Wetter aus seiner Stadt + Look vom Tag + Chat mit dem Model (im Abo unbegrenzt).
@@ -226,6 +227,14 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     window.open(`/try/${lookId}?${qs.toString()}`, "_blank", "noopener");
   };
 
+  // Gesperrter Look → Abo abschließen (Premium-Checkout mit der bekannten E-Mail; zurück hierher).
+  // Ohne E-Mail (z. B. Admin-Vorschau) → einfach den Funnel öffnen.
+  const openLocked = (lookId: string, garment: string) => {
+    const ret = subId ? `${window.location.pathname}?s=${encodeURIComponent(subId)}` : window.location.pathname;
+    if (email) { void startPremiumCheckout(email, ret).catch(() => { const qs = new URLSearchParams({ modelId, model: "", garment, modelName, wchat: ret }); window.open(`/try/${lookId}?${qs.toString()}`, "_blank", "noopener"); }); }
+    else { const qs = new URLSearchParams({ modelId, model: "", garment, modelName, wchat: ret }); window.open(`/try/${lookId}?${qs.toString()}`, "_blank", "noopener"); }
+  };
+
   const send = async () => {
     const text = input.trim();
     if (!text || sending) return;
@@ -315,7 +324,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
                     {looksStrip.map((l, idx) => {
                       const locked = idx >= 2;
                       return (
-                        <button key={l.id} type="button" onClick={() => openLook(l.id, l.img)}
+                        <button key={l.id} type="button" onClick={() => locked ? openLocked(l.id, l.img) : openLook(l.id, l.img)}
                           className="group relative w-24 shrink-0 overflow-hidden rounded-xl border border-amber-300/40 bg-black/5 active:scale-95 transition">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={l.img} alt="" className={`aspect-[3/4] w-full object-cover ${locked ? "scale-105 blur-[7px]" : ""}`} />

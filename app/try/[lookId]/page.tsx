@@ -85,6 +85,9 @@ export default function TryFunnelPage() {
   // Chat lädt wieder) statt in den separaten /chat. Nur same-origin-Pfade (Anti-Open-Redirect).
   const wchatRaw = searchParams?.get("wchat") ?? "";
   const wchatBack = wchatRaw.startsWith("/") ? wchatRaw : "";
+  // Kam der Nutzer aus dem Wetter-Chat (bekannter Abonnent)? Dann sind die Teaser-Looks frei —
+  // das 1-Gratis-Limit gilt für ihn nicht (er hat seine E-Mail schon gegeben).
+  const fromWetter = (searchParams?.get("from") ?? "") === "wetter";
   const [gModels, setGModels] = useState<{ id: string; name: string; photoUrl: string; featured?: boolean; realModel?: boolean }[]>([]);
   const [isPaid, setIsPaid] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false); // $49/mo subscriber → unlimited chat
@@ -373,13 +376,15 @@ export default function TryFunnelPage() {
       const authed = isAuthed();
       const leadEmail = (() => { try { return !!localStorage.getItem("lb_lead_email"); } catch { return false; } })();
       const leadUsed = (() => { try { return !!localStorage.getItem("lb_lead_used"); } catch { return false; } })();
-      const canFree = authed || !!adminPin || (leadEmail && !leadUsed);
+      // Wetter-Abonnent (from=wetter + bekannte E-Mail) → immer frei; sonst 1 Gratis pro Lead.
+      const canFree = authed || !!adminPin || (leadEmail && (fromWetter || !leadUsed));
       if (!canFree) {
         setGateEmailOnly(!leadEmail); // no email yet → email-only gate; email spent → full account
         setAwaitingEmail(true); setGateOpen(true); return;
       }
       // This reveal uses the one free email-lead pass (if not a real account) → mark it spent.
-      if (!authed && !adminPin && leadEmail) { try { localStorage.setItem("lb_lead_used", "1"); } catch { /**/ } }
+      // Wetter-Abonnenten verbrauchen das Limit NICHT (sie sollen die Teaser-Looks alle sehen).
+      if (!authed && !adminPin && leadEmail && !fromWetter) { try { localStorage.setItem("lb_lead_used", "1"); } catch { /**/ } }
       // Theatrical ~30s "unsharp → sharp" reveal of the REAL clip.
       logFunnelEvent("tryon_generated", { lookId, ...(chosenModelName ? { lookName: chosenModelName } : {}) }); // Insights "Generated a video"
       setAwaitingEmail(false);
