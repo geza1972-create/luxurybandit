@@ -179,10 +179,10 @@ export default async function WetterModelPage({ params, searchParams }: {
             tagline={(HEADER[subLang] ?? HEADER.ro).tagline} statusLabel="online" darkBg
             ownedName={card.owner || ""} isOwned={!!card.owner} />
           {/* Sprach-Umschalter — oben rechts im Header. Bei vielen Sprachen umbrechend. */}
-          <div className="absolute right-2 top-2 z-20 flex max-w-[132px] flex-wrap justify-end gap-1">
+          <div className="absolute right-2.5 top-2.5 z-20 flex max-w-[150px] flex-wrap justify-end gap-1.5">
             {LANGS.map(l => (
               <a key={l} href={langHref(l)}
-                className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide backdrop-blur transition ${subLang === l ? "bg-amber-400 text-black" : "bg-white/10 text-white/80 ring-1 ring-white/15"}`}>{l}</a>
+                className={`rounded-full px-2.5 py-1 text-[11px] font-black uppercase leading-none tracking-wide backdrop-blur transition ${subLang === l ? "bg-amber-400 text-black" : "bg-white/10 text-white/80 ring-1 ring-white/15"}`}>{l}</a>
             ))}
           </div>
         </div>
