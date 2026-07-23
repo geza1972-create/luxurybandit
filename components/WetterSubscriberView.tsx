@@ -183,6 +183,21 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages, sending]);
 
+  // Chatverlauf über Seitenwechsel/Tab hinweg behalten — damit er nach dem Look-Video
+  // NICHT „raus" ist, sondern das Gespräch weiterläuft. Key pro Model + Abonnent.
+  const chatKey = `lb_wetter_chat_${modelId}_${subId || name || "anon"}`;
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(chatKey);
+      if (raw) { const saved = JSON.parse(raw) as Msg[]; if (Array.isArray(saved) && saved.length > 1) setMessages(saved); }
+    } catch { /**/ }
+    // nur beim Mount wiederherstellen
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem(chatKey, JSON.stringify(messages.slice(-40))); } catch { /**/ }
+  }, [messages, chatKey]);
+
   // Look-Galerie für den „zeig dich in etwas Heißem"-Moment ([[SHOW_LINGERIE]]).
   // Bellas eigene Lingerie/Boudoir-Looks; Fallback auf allgemeine, damit nie leer.
   const [looksStrip, setLooksStrip] = useState<{ id: string; img: string }[]>([]);
@@ -198,10 +213,11 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     return () => { ok = false; };
   }, [modelId]);
 
-  // Look antippen → Try-on-/Abo-Funnel für dieses Model in dem Look.
+  // Look antippen → Try-on-/Abo-Funnel in NEUEM TAB, damit der Chat hier offen bleibt
+  // (sonst ist er nach dem Video „raus"). Zusätzlich wird der Verlauf persistiert (s. u.).
   const openLook = (lookId: string, garment: string) => {
     const qs = new URLSearchParams({ modelId, model: "", garment, modelName });
-    window.location.href = `/try/${lookId}?${qs.toString()}`;
+    window.open(`/try/${lookId}?${qs.toString()}`, "_blank", "noopener");
   };
 
   const send = async () => {
