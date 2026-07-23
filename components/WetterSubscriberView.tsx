@@ -113,8 +113,8 @@ const T: Record<string, Copy> = {
   },
 };
 
-export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", day = "", time = "", title = "", caption = "", firstMessage = "", dayContext = "" }: {
-  name: string; city: string; look: Look | null; lang?: string; modelId?: string; modelName?: string; subId?: string; day?: string; time?: string;
+export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", email = "", day = "", time = "", title = "", caption = "", firstMessage = "", dayContext = "" }: {
+  name: string; city: string; look: Look | null; lang?: string; modelId?: string; modelName?: string; subId?: string; email?: string; day?: string; time?: string;
   title?: string;         // „Titel" aus dem Beitrag — groß über dem Text
   caption?: string;       // „Text unter dem Bild" aus dem Beitrag
   firstMessage?: string;  // „Erste Nachricht im Chat" — Opener (leer = Standard-Gruß)
@@ -216,6 +216,9 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   // Look antippen → Try-on-/Abo-Funnel in NEUEM TAB, damit der Chat hier offen bleibt
   // (sonst ist er nach dem Video „raus"). Zusätzlich wird der Verlauf persistiert (s. u.).
   const openLook = (lookId: string, garment: string) => {
+    // Abonnent hat seine E-Mail schon gegeben → als Lead an den Funnel weiterreichen
+    // (gleicher Origin, geteilter localStorage), damit KEINE neue Anmelde-Wall kommt.
+    try { if (email) localStorage.setItem("lb_lead_email", email); } catch { /**/ }
     // Rücksprung-Ziel = diese Wetter-Seite (+ ?s=), damit „Chat with …" im Funnel hierher
     // zurückführt und der persistierte Chat weiterläuft.
     const back = subId ? `${window.location.pathname}?s=${encodeURIComponent(subId)}` : window.location.pathname;

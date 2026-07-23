@@ -83,6 +83,7 @@ export default async function WetterModelPage({ params, searchParams }: {
   // Alt-Links mit ?name=&city= bleiben gültig (Rückwärtskompatibilität).
   let subName = String(sp.name ?? "").trim();
   let subCity = String(sp.city ?? "").trim();
+  let subEmail = "";
   // Sprache: ?lang= gewinnt; sonst die Browsersprache (Accept-Language); sonst ro.
   const hdrs = await headers();
   const browserLang = langFromAccept(hdrs.get("accept-language") || "");
@@ -109,7 +110,7 @@ export default async function WetterModelPage({ params, searchParams }: {
   // dem Datensatz, NICHT aus der URL — Telefon bleibt privat. `?name=` bleibt als Alt-Link.
   if (subToken) {
     const sub = (await readWetterSubscribers(modelId)).find(s => s.id === subToken);
-    if (sub) { subName = sub.name || subName; subCity = sub.city || subCity; subLang = sub.lang || subLang; }
+    if (sub) { subName = sub.name || subName; subCity = sub.city || subCity; subLang = sub.lang || subLang; subEmail = sub.email || ""; }
   }
   const recognized = !!subToken || !!subName;   // eingeloggter Abonnent?
   const showAdmin = String(sp.admin ?? "") === "1";   // Admin-Werkzeuge NUR mit ?admin=1 — nie in der Kundenansicht
@@ -208,7 +209,7 @@ export default async function WetterModelPage({ params, searchParams }: {
           {justConfirmed && (
             <p className="mx-auto max-w-md px-4 pt-4 text-center text-[13px] font-black text-emerald-400">{CONFIRMED_TEXT[subLang] ?? CONFIRMED_TEXT.ro}</p>
           )}
-          <WetterSubscriberView name={subName} city={subCity} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken}
+          <WetterSubscriberView name={subName} city={subCity} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken} email={subEmail}
             day={dayLook?.day || ""} time={dayLook?.time || ""}
             title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.context || ""} dayContext={dayLook?.context || ""}
             look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />
