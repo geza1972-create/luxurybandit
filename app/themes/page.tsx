@@ -1,6 +1,6 @@
 import Link from "next/link";
 import TopNav from "@/components/TopNav";
-import { CloudSun, Sparkles, Flame, MapPin, KeyRound, Lock } from "lucide-react";
+import { CloudSun, Cake, Sparkles, Flame, MapPin, KeyRound, Lock } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
 import { readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, readTryThisLookState } from "@/lib/try-this-look-store";
@@ -46,6 +46,7 @@ export default async function ThemesCatalog() {
 
   const THEMES: Theme[] = [
     { icon: CloudSun, title: "Morning Weather", tagline: "Your weather, a new look & a chat — every morning.", href: "/themes/wetter/bella", cover: wetterCover, video: wetterVideo, poster: wetterPoster },
+    { icon: Cake, title: "Birthdays", tagline: "Auto birthday wishes — for you & your friends.", cover: ph(4) },
     { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every single day.", cover: ph(0) },
     { icon: Flame, title: "Lingerie Looks", tagline: "A daily intimate look — tasteful, private.", cover: ph(1) },
     { icon: MapPin, title: "City Secrets", tagline: "Learn a city every day — hidden gems & stories.", cover: ph(2) },
