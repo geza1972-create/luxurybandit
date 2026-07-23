@@ -146,6 +146,16 @@ function LabeledInput({ label, value, onChange, invalid = false, type = "text", 
   );
 }
 
+// Dezentes, helles Dropdown-Chevron (das native schwarze wirkte zu kräftig am Rand).
+// Zusammen mit `appearance-none` ersetzt es den fetten System-Pfeil durch ein feines graues.
+const CHEV = {
+  backgroundImage:
+    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23b0b0b0' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")",
+  backgroundRepeat: "no-repeat",
+  backgroundPosition: "right 0.55rem center",
+  backgroundSize: "13px",
+} as const;
+
 export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", preview = false, trialDays = 7, monthlyCents = 999 }: {
   modelId: string; modelName?: string; lang?: string; preview?: boolean; trialDays?: number; monthlyCents?: number;
 }) {
@@ -264,21 +274,21 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
             const [dLbl, mLbl, yLbl] = (({ ro: ["Zi", "Lună", "An"], de: ["Tag", "Monat", "Jahr"], en: ["Day", "Month", "Year"], es: ["Día", "Mes", "Año"], fr: ["Jour", "Mois", "Année"], pt: ["Dia", "Mês", "Ano"], pl: ["Dzień", "Miesiąc", "Rok"] } as Record<string, string[]>)[L] ?? ["Day", "Month", "Year"]);
             const nowY = new Date().getFullYear();
             const hint = (({ ro: "Pentru urări de ziua ta și verificarea vârstei (18+).", de: "Für Geburtstagsgrüße & Altersprüfung (18+).", en: "For birthday wishes & age check (18+).", es: "Para felicitaciones de cumpleaños y verificación de edad (18+).", fr: "Pour les vœux d'anniversaire et la vérification de l'âge (18+).", pt: "Para parabéns de aniversário e verificação de idade (18+).", pl: "Do życzeń urodzinowych i weryfikacji wieku (18+)." } as Record<string, string>)[L] ?? "For birthday wishes & age check (18+).");
-            const sel = "min-w-0 flex-1 rounded-lg border border-black/15 bg-white px-2 py-2.5 text-[14px] font-semibold text-black outline-none focus:border-black";
+            const sel = "min-w-0 flex-1 appearance-none rounded-lg border border-black/15 bg-white pl-2 pr-6 py-2.5 text-[14px] font-semibold text-black outline-none focus:border-black";
             return (
               <>
               <div className={`w-full rounded-xl border px-3 py-2.5 transition-colors ${birthdate ? "border-black bg-white" : triedSubmit ? "border-red-500 bg-white" : "border-white/15 bg-white/[0.04]"}`}>
                 <span className={`block text-[11px] font-bold ${birthdate ? "text-black/50" : "text-white/50"}`}>{t.birthdate}</span>
                 <div className="mt-1.5 flex gap-2">
-                  <select aria-label={dLbl} value={bDay} onChange={e => setBDay(e.target.value)} className={sel}>
+                  <select aria-label={dLbl} value={bDay} onChange={e => setBDay(e.target.value)} className={sel} style={CHEV}>
                     <option value="">{dLbl}</option>
                     {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
-                  <select aria-label={mLbl} value={bMonth} onChange={e => setBMonth(e.target.value)} className={sel}>
+                  <select aria-label={mLbl} value={bMonth} onChange={e => setBMonth(e.target.value)} className={sel} style={CHEV}>
                     <option value="">{mLbl}</option>
                     {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
-                  <select aria-label={yLbl} value={bYear} onChange={e => setBYear(e.target.value)} className={sel}>
+                  <select aria-label={yLbl} value={bYear} onChange={e => setBYear(e.target.value)} className={sel} style={CHEV}>
                     <option value="">{yLbl}</option>
                     {Array.from({ length: 90 }, (_, i) => String(nowY - 18 - i)).map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
@@ -289,8 +299,8 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
             );
           })()}
           {/* Geschlecht — volle Breite. */}
-          <select value={gender} onChange={e => setGender(e.target.value)} autoComplete="sex"
-            className={`h-14 w-full rounded-xl border px-4 text-[15px] font-bold text-white outline-none transition-colors focus:border-black focus:bg-white ${gender ? "border-black bg-white" : triedSubmit ? "border-red-500 bg-white" : "border-white/15 bg-white/[0.04]"}`}>
+          <select value={gender} onChange={e => setGender(e.target.value)} autoComplete="sex" style={CHEV}
+            className={`h-14 w-full appearance-none rounded-xl border pl-4 pr-9 text-[15px] font-bold text-white outline-none transition-colors focus:border-black focus:bg-white ${gender ? "border-black bg-white" : triedSubmit ? "border-red-500 bg-white" : "border-white/15 bg-white/[0.04]"}`}>
             <option value="" className="bg-[#0d0b0a]">{t.gender}</option>
             <option value="m" className="bg-[#0d0b0a]">{t.genderM}</option>
             <option value="f" className="bg-[#0d0b0a]">{t.genderF}</option>
@@ -302,8 +312,8 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
           <LabeledInput label={t.postal} value={postal} onChange={setPostal} autoComplete="postal-code" />
           {/* WhatsApp — Länder-Vorwahl (Flagge + Code) + Nummer. */}
           <div className="flex gap-2">
-            <select value={dial} onChange={e => setDial(e.target.value)} aria-label="Vorwahl"
-              className="h-14 w-[118px] shrink-0 rounded-xl border border-black bg-white px-2 text-[14px] font-bold text-white outline-none transition-colors focus:border-black">
+            <select value={dial} onChange={e => setDial(e.target.value)} aria-label="Vorwahl" style={CHEV}
+              className="h-14 w-[118px] shrink-0 appearance-none rounded-xl border border-black bg-white pl-2 pr-6 text-[14px] font-bold text-white outline-none transition-colors focus:border-black">
               {DIAL_OPTIONS.map(o => (
                 <option key={o.code} value={o.dial} className="bg-[#0d0b0a]">{flagEmoji(o.code)} {o.code} {o.dial}</option>
               ))}
