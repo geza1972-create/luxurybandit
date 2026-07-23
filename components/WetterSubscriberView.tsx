@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Lock } from "lucide-react";
 import { CornerOrnaments } from "@/components/BoxOrnaments";
 import BellaPostsCarousel from "@/components/BellaPostsCarousel";
 import { wxKey, WX_WORDS, forecastLine } from "@/lib/wetter-forecast";
@@ -18,6 +18,11 @@ const DEFAULT_LANG = "ro";
 
 // {Name} / {name} im Titel durch den echten Namen ersetzen (feste Vorgabe wird personalisiert).
 const personalizeName = (text: string, name: string) => text.replace(/\{\s*name\s*\}/gi, name);
+
+// Die KI beendet ihre Nachricht mit diesem Tag, wenn sie anbietet, sich „in etwas Heißem"
+// zu zeigen. Der Chat blendet den Tag aus und zeigt stattdessen eine Look-Galerie
+// (erste frei = Vorgeschmack, Rest gesperrt mit Schloss → Abo). Muss zu /api/model-chat passen.
+const LINGERIE_TAG = "[[SHOW_LINGERIE]]";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Look = { kind: "image" | "video"; mediaUrl: string; posterUrl?: string };
@@ -178,6 +183,27 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages, sending]);
 
+  // Look-Galerie für den „zeig dich in etwas Heißem"-Moment ([[SHOW_LINGERIE]]).
+  // Bellas eigene Lingerie/Boudoir-Looks; Fallback auf allgemeine, damit nie leer.
+  const [looksStrip, setLooksStrip] = useState<{ id: string; img: string }[]>([]);
+  useEffect(() => {
+    let ok = true;
+    fetch("/api/try-this-look").then(r => r.json()).then(d => {
+      const looks: Array<Record<string, unknown>> = Array.isArray(d.looks) ? d.looks : [];
+      const isLing = (l: Record<string, unknown>) => ((l.category === "boudoir") || l.lingerie === true) && (l.frontImageUrl || l.imageUrl) && l.published !== false;
+      const mine = looks.filter(l => String(l.curatorId ?? "") === modelId && isLing(l));
+      const src = mine.length ? mine : looks.filter(isLing);
+      if (ok) setLooksStrip(src.slice(0, 6).map(l => ({ id: String(l.id), img: String(l.frontImageUrl || l.imageUrl) })));
+    }).catch(() => {});
+    return () => { ok = false; };
+  }, [modelId]);
+
+  // Look antippen → Try-on-/Abo-Funnel für dieses Model in dem Look.
+  const openLook = (lookId: string, garment: string) => {
+    const qs = new URLSearchParams({ modelId, model: "", garment, modelName });
+    window.location.href = `/try/${lookId}?${qs.toString()}`;
+  };
+
   const send = async () => {
     const text = input.trim();
     if (!text || sending) return;
@@ -249,13 +275,44 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           <p className="text-[13px] font-black text-white">{modelName} <span className="font-bold text-emerald-600">{t.online}</span></p>
         </div>
         <div ref={scrollRef} className="relative max-h-[46vh] space-y-3 overflow-y-auto px-4 py-4">
-          {messages.map((m, i) => (
-            <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[82%] whitespace-pre-wrap px-3.5 py-2.5 text-sm font-medium ${m.role === "user"
-                ? "lb-onmedia rounded-2xl rounded-tr-sm bg-[#1a160f] text-white"
-                : "rounded-2xl rounded-tl-sm bg-white/10 text-white/90"}`}>{m.content}</div>
-            </div>
-          ))}
+          {messages.map((m, i) => {
+            const offers = m.role === "assistant" && m.content.includes(LINGERIE_TAG);
+            const text = offers ? m.content.replace(LINGERIE_TAG, "").trim() : m.content;
+            const seeLbl = (({ ro: "Vezi-mă 🔥", de: "Sieh mich 🔥", en: "See me 🔥", es: "Verme 🔥", fr: "Vois-moi 🔥", pt: "Vê-me 🔥", pl: "Zobacz 🔥", it: "Guardami 🔥" } as Record<string, string>)[L]) ?? "See me 🔥";
+            const unlockLbl = (({ ro: "Abonează-te", de: "Abo", en: "Unlock", es: "Desbloquear", fr: "Débloquer", pt: "Desbloquear", pl: "Odblokuj", it: "Sblocca" } as Record<string, string>)[L]) ?? "Unlock";
+            return (
+              <div key={i} className="space-y-2">
+                <div className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[82%] whitespace-pre-wrap px-3.5 py-2.5 text-sm font-medium ${m.role === "user"
+                    ? "lb-onmedia rounded-2xl rounded-tr-sm bg-[#1a160f] text-white"
+                    : "rounded-2xl rounded-tl-sm bg-white/10 text-white/90"}`}>{text}</div>
+                </div>
+                {/* „Willst du mich in diesen Looks sehen?" — erste 2 gratis, Rest gesperrt (Abo-Anreiz). */}
+                {offers && looksStrip.length > 0 && (
+                  <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+                    {looksStrip.map((l, idx) => {
+                      const locked = idx >= 2;
+                      return (
+                        <button key={l.id} type="button" onClick={() => openLook(l.id, l.img)}
+                          className="group relative w-24 shrink-0 overflow-hidden rounded-xl border border-amber-300/40 bg-black/5 active:scale-95 transition">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={l.img} alt="" className={`aspect-[3/4] w-full object-cover ${locked ? "scale-105 blur-[7px]" : ""}`} />
+                          {locked ? (
+                            <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/35 text-white">
+                              <Lock className="h-5 w-5" />
+                              <span className="text-[9px] font-black uppercase tracking-wide">{unlockLbl}</span>
+                            </span>
+                          ) : (
+                            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-1.5 pb-1.5 pt-4 text-[10px] font-black leading-tight text-white">{seeLbl}</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
           {sending && (
             <div className="flex justify-start">
               <div className="rounded-2xl rounded-tl-sm bg-white/10 px-4 py-3">
