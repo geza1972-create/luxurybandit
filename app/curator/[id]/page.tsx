@@ -1198,6 +1198,9 @@ export default function CuratorPublicPage() {
   }
   const customClips = [...visibleCustom, ...blurredCustom];
   const allCardClips = customClips.length ? customClips : cardClips;
+  // Ein Start-Look für den „Try on"-Button: bevorzugt EIN eigener Look von ihr, sonst irgendeiner
+  // mit Bild. Der Funnel öffnet mit ihr vorausgewählt (modelId) + Outfit-Picker (pick=1).
+  const tryOnLook = looks.find(l => l.curatorId === id && (l.frontImageUrl || l.imageUrl)) ?? looks.find(l => l.frontImageUrl || l.imageUrl) ?? null;
   // Data for the shareable collectible ModelCard (THE reusable card, same as the landing).
   const cardData = {
     id: profile.id,
@@ -1263,6 +1266,17 @@ export default function CuratorPublicPage() {
 
         {/* Book a Journey — travel program CTA (only for curators who offer one). */}
         {JOURNEY_CURATOR_IDS.has(id) && <BookJourneyCTA name={profile.firstName || "her"} />}
+
+        {/* Try-on — startet den Funnel mit ihr vorausgewählt + Outfit-Picker (kostenlos). */}
+        {tryOnLook && (
+          <div className="px-4">
+            <button type="button"
+              onClick={() => router.push(`/try/${tryOnLook.id}?garment=${encodeURIComponent(tryOnLook.frontImageUrl || tryOnLook.imageUrl)}&modelId=${encodeURIComponent(id)}&modelName=${encodeURIComponent(name)}&pick=1`)}
+              className="lb-gold mx-auto mt-3 flex w-full max-w-md items-center justify-center gap-2 rounded-full py-3.5 text-[15px] font-black shadow active:scale-95 transition">
+              <Play className="h-4 w-4" fill="currentColor" /> Try {name} on — free
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Profile header */}
