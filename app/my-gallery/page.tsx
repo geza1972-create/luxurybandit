@@ -11,6 +11,7 @@ import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 
 type Item = {
   id: string;
+  type?: "video" | "slide";   // Try-on-Video vs. Card-Studio-Slide (Urlaub/Peter-Fotos)
   imageUrl: string;
   videoUrl?: string;
   lookName?: string;
@@ -42,14 +43,17 @@ export default function MyGalleryPage() {
   };
 
   const [statusFilter, setStatusFilter] = useState<"all" | "public" | "private">("all");   // Freigabe-Status
+  const [typeFilter, setTypeFilter] = useState<"all" | "video" | "slide">("all");          // Videos vs. Slides
   const q = query.trim().toLowerCase();
   const shown = items.filter(it => {
     if (q && !((it.curatorName || "").toLowerCase().includes(q) || (it.lookName || "").toLowerCase().includes(q))) return false;
+    if (typeFilter !== "all" && (it.type ?? "video") !== typeFilter) return false;
     if (statusFilter === "public") return it.public === true;
     if (statusFilter === "private") return it.public !== true;
     return true;
   });
   const pubCount = items.filter(it => it.public === true).length;
+  const vidCount = items.filter(it => (it.type ?? "video") === "video").length;
 
   useEffect(() => {
     let p = "";
@@ -69,9 +73,32 @@ export default function MyGalleryPage() {
       : { Authorization: `Bearer ${token}` };
     fetch(url, { headers, cache: "no-store" })
       .then(r => r.json())
-      .then(d => {
+      .then(async d => {
         const raw = Array.isArray(d.posts) ? d.posts : Array.isArray(d.userGallery) ? d.userGallery : [];
-        setItems((raw as Item[]).filter(v => v.videoUrl || v.imageUrl));
+        const vids: Item[] = (raw as Item[]).filter(v => v.videoUrl || v.imageUrl).map(v => ({ ...v, type: "video" as const }));
+        setItems(vids);
+        // Admin: zusätzlich die Card-Studio-Slides (Urlaub/Peter-Fotos) je Model anhängen —
+        // damit ALLE Inhalte + Freigabe an EINEM Ort stehen. Slide: public = nicht privat.
+        if (!pin) return;
+        const nameById = new Map<string, string>();
+        vids.forEach(v => { if (v.curatorId) nameById.set(v.curatorId, v.curatorName || ""); });
+        const slideItems: Item[] = [];
+        for (const cid of [...nameById.keys()].filter(Boolean)) {
+          try {
+            const sd = await fetch(`/api/bella-carousel?model=${encodeURIComponent(cid)}`, { headers: { "x-try-look-admin-pin": pin }, cache: "no-store" }).then(r => r.json());
+            const slides: Array<Record<string, unknown>> = Array.isArray(sd?.slides) ? sd.slides : [];
+            slides.filter(s => !s.customer && (s.mediaUrl || s.posterUrl)).forEach(s => {
+              slideItems.push({
+                id: `slide:${cid}:${String(s.id)}`, type: "slide", curatorId: cid, curatorName: nameById.get(cid) || "",
+                lookName: String(s.title || ""),
+                imageUrl: String(s.kind === "video" ? (s.posterUrl || s.mediaUrl) : s.mediaUrl),
+                videoUrl: s.kind === "video" ? String(s.mediaUrl || "") : undefined,
+                public: s.private !== true,
+              });
+            });
+          } catch { /**/ }
+        }
+        if (slideItems.length) setItems(prev => [...prev, ...slideItems]);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -117,10 +144,15 @@ export default function MyGalleryPage() {
             className="mt-3 h-11 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[14px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-white/40" />
         )}
         {pin && items.length > 0 && (
-          <div className="mt-2 flex gap-2 text-[12px] font-black">
+          <div className="mt-2 flex flex-wrap gap-2 text-[12px] font-black">
             {([["all", `Alle ${items.length}`], ["public", `Public ${pubCount}`], ["private", `Private ${items.length - pubCount}`]] as const).map(([k, lbl]) => (
               <button key={k} type="button" onClick={() => setStatusFilter(k)}
                 className={`rounded-full px-3.5 py-1.5 transition ${statusFilter === k ? "bg-amber-500 text-white" : "bg-white/10 text-white/70"}`}>{lbl}</button>
+            ))}
+            <span className="w-px self-stretch bg-white/10" />
+            {([["all", "Alle Typen"], ["video", `Videos ${vidCount}`], ["slide", `Slides ${items.length - vidCount}`]] as const).map(([k, lbl]) => (
+              <button key={k} type="button" onClick={() => setTypeFilter(k)}
+                className={`rounded-full px-3.5 py-1.5 transition ${typeFilter === k ? "bg-white/85 text-black" : "bg-white/10 text-white/70"}`}>{lbl}</button>
             ))}
           </div>
         )}
@@ -148,12 +180,19 @@ export default function MyGalleryPage() {
                 <span className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[8px] font-black backdrop-blur ${it.public ? "bg-amber-500 text-white" : it.feed ? "bg-amber-400 text-black" : "bg-black/70 text-white"}`}>
                   {it.public ? "Public" : it.feed ? "Show" : "Private"}
                 </span>
-                {/* Admin: 1-Klick Public ↔ Private (gratis Teaser ↔ Abo). */}
-                {pin && (
+                {/* Typ-Tag: Card-Slide (Urlaub/Peter) unterscheiden. */}
+                {it.type === "slide" && (
+                  <span className="absolute right-1 top-1 rounded-full bg-white/85 px-1.5 py-0.5 text-[8px] font-black text-black backdrop-blur">Slide</span>
+                )}
+                {/* Admin: 1-Klick Public ↔ Private — nur bei VIDEOS (Slides werden im Card Studio verwaltet). */}
+                {pin && it.type !== "slide" && (
                   <button type="button" onClick={(e) => { e.stopPropagation(); void setPublic(it, !it.public); }}
                     className={`absolute inset-x-1 bottom-1 rounded-full py-1 text-[9px] font-black backdrop-blur active:scale-95 transition ${it.public ? "bg-black/70 text-white" : "bg-amber-500 text-white"}`}>
                     {it.public ? "→ Privat 🔒" : "→ Public ✓"}
                   </button>
+                )}
+                {pin && it.type === "slide" && (
+                  <span className="pointer-events-none absolute inset-x-1 bottom-1 rounded-full bg-black/60 py-1 text-center text-[8px] font-black text-white/80 backdrop-blur">Im Card Studio</span>
                 )}
               </div>
             ))}
