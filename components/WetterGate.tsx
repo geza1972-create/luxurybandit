@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Loader2, MailCheck } from "lucide-react";
 import { DIAL_CODES, flagEmoji } from "@/lib/countries";
 import { CornerOrnaments, DividerOrnament } from "@/components/BoxOrnaments";
+import { trackMetaPixel } from "@/lib/meta-pixel";
 
 // Vorwahl-Auswahl (Flagge + Code + Dial), RO zuerst. Aus der gemeinsamen Länder-Liste.
 const DIAL_OPTIONS = Object.entries(DIAL_CODES)
@@ -153,6 +154,8 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
       });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setError(d?.error ?? "…"); return; }
+      // Meta-Pixel „Lead" → die Wetter-Kampagne kann auf echte Anmeldungen optimieren.
+      trackMetaPixel("Lead", { content_category: "wetter", content_name: modelName });
       setSent(true);   // Double-Opt-in: NICHT einloggen — erst nach Bestätigung.
     } catch { setError("…"); }
     finally { setBusy(false); }
