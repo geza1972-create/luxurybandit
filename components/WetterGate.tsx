@@ -212,7 +212,9 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
     if (preview) { setChecking(false); return; }
     try {
       const id = localStorage.getItem(storeKey(modelId));
-      if (id) setReturningId(id);
+      // Schon auf diesem Gerät angemeldet → DIREKT in die persönliche Chat-Ansicht (?s=),
+      // kein Sackgassen-Kasten. setReturningId bleibt als Fallback, falls die Umleitung blockt.
+      if (id) { setReturningId(id); window.location.replace(`?s=${encodeURIComponent(id)}`); return; }
     } catch { /**/ }
     setChecking(false);
   }, [modelId, preview]);

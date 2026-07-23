@@ -83,22 +83,10 @@ export default function ModelChat({
   const [showEmoji, setShowEmoji] = useState(false);
   const [showGifts, setShowGifts] = useState(false);
   const [lingerieLooks, setLingerieLooks] = useState<{ id: string; img: string }[]>([]);
-  const [storySlides, setStorySlides] = useState<{ id: string; img: string; private: boolean }[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const first = modelFirstName || modelName || "She";
 
-  // Her Card-Studio story slides as a thumbnail strip up top — ALL of them, including
-  // private ones (shown blurred), so a visitor gets a taste of her whole story before chatting.
-  useEffect(() => {
-    if (!open || !curatorId) return;
-    fetch(`/api/bella-carousel?model=${encodeURIComponent(curatorId)}`).then(r => r.json()).then(d => {
-      const slides: Array<Record<string, unknown>> = Array.isArray(d?.slides) ? d.slides : [];
-      setStorySlides(slides
-        .filter(s => (s.mediaUrl || s.posterUrl))
-        .map(s => ({ id: String(s.id), img: String(s.kind === "video" ? (s.posterUrl || s.mediaUrl) : s.mediaUrl), private: s.private === true })));
-    }).catch(() => {});
-  }, [open, curatorId]);
 
   // Lazy-load a few lingerie looks the model can be tried on in — shown when she offers
   // to show herself "in something hot" (LINGERIE_TAG). No names/brands (licensing).
@@ -323,16 +311,6 @@ export default function ModelChat({
           </select>
           <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white active:scale-90 transition"><X className="h-5 w-5" /></button>
         </div>
-
-        {/* Her story slides — a thumbnail strip, all of them (private ones shown blurred). */}
-        {storySlides.length > 0 && (
-          <div className="flex gap-1.5 overflow-x-auto border-b border-white/10 px-3 py-2">
-            {storySlides.map(s => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img key={s.id} src={s.img} alt="" className={`aspect-[3/4] w-11 shrink-0 rounded-lg object-cover ${s.private ? "blur-md" : ""}`} />
-            ))}
-          </div>
-        )}
 
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto overscroll-contain px-4 py-4">
