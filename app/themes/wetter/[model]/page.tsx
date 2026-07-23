@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: { params: Promise<{ model: st
 // Browsersprache (Accept-Language) → unterstützte Sprache. Ohne ?lang= entscheidet der Browser.
 // Default ro (RO-Zielgruppe), aber de/en werden respektiert.
 // Unterstützte Sprachen des Wetter-Themas (ein Ort, damit Umschalter + Erkennung übereinstimmen).
-const LANGS = ["ro", "de", "en", "es", "fr", "pt", "pl"] as const;
+const LANGS = ["ro", "de", "en", "es", "fr", "pt", "pl", "it"] as const;
 
 // Browsersprache (Accept-Language) → unterstützte Sprache. Ohne ?lang= entscheidet der Browser.
 function langFromAccept(accept: string): string {
@@ -57,6 +57,7 @@ const HEADER: Record<string, { title: string; tagline: string }> = {
   fr: { title: "Bonjour ☀️", tagline: "Un message chaque matin" },
   pt: { title: "Bom dia ☀️", tagline: "Uma mensagem todas as manhãs" },
   pl: { title: "Dzień dobry ☀️", tagline: "Wiadomość każdego ranka" },
+  it: { title: "Buongiorno ☀️", tagline: "Un messaggio ogni mattina" },
 };
 
 // „E-Mail bestätigt"-Banner pro Sprache (nicht mehr halb rumänisch).
@@ -68,6 +69,7 @@ const CONFIRMED_TEXT: Record<string, string> = {
   fr: "✓ E-mail confirmé — bienvenue !",
   pt: "✓ Email confirmado — bem-vindo!",
   pl: "✓ E-mail potwierdzony — witaj!",
+  it: "✓ Email confermata — benvenuto!",
 };
 
 export default async function WetterModelPage({ params, searchParams }: {

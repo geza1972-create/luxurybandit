@@ -113,6 +113,18 @@ const T: Record<string, Copy> = {
     tooYoung: "Musisz mieć co najmniej 18 lat.", mustAccept: "Zaakceptuj regulamin.",
     consent: "Akceptuję", terms: "Regulamin", and: "i", privacy: "Prywatność",
   },
+  it: {
+    title: m => `Vuoi che ${m} ti svegli ogni mattina?`,
+    sub: "Un messaggio ogni mattina — il tuo meteo, un nuovo look, e puoi chattare con lei quando vuoi.",
+    name: "Il tuo nome", email: "Email", birthdate: "Data di nascita", gender: "Sesso",
+    genderM: "Uomo", genderF: "Donna", genderX: "Altro", city: "La tua città (per il meteo)", country: "Paese", postal: "Codice postale (opzionale)", phone: "Il tuo numero (WhatsApp)",
+    cta: "Crea account gratis", note: "Senza password. Conferma la tua email una volta.",
+    fillAll: "Compila tutti i campi, per favore.", badEmail: "Email non valida.",
+    sentTitle: "Controlla la tua email 📧", sentBody: e => `Ti abbiamo inviato un link di conferma a ${e}. Conferma e sei dentro!`,
+    back: "Sei già iscritto", open: "Al tuo messaggio del mattino →",
+    tooYoung: "Devi avere almeno 18 anni.", mustAccept: "Accetta i termini, per favore.",
+    consent: "Accetto i", terms: "Termini", and: "e", privacy: "Privacy",
+  },
 };
 
 // Alter aus dem Geburtsdatum (YYYY-MM-DD). NaN, wenn kein gültiges Datum.
@@ -271,9 +283,9 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
           {email && !emailOk && <p className="-mt-1 text-[11px] font-bold text-red-500">{t.badEmail}</p>}
           {/* Geburtsdatum — Feldname bleibt links stehen (type=date hat eine Mindestbreite). */}
           {(() => {
-            const [dLbl, mLbl, yLbl] = (({ ro: ["Zi", "Lună", "An"], de: ["Tag", "Monat", "Jahr"], en: ["Day", "Month", "Year"], es: ["Día", "Mes", "Año"], fr: ["Jour", "Mois", "Année"], pt: ["Dia", "Mês", "Ano"], pl: ["Dzień", "Miesiąc", "Rok"] } as Record<string, string[]>)[L] ?? ["Day", "Month", "Year"]);
+            const [dLbl, mLbl, yLbl] = (({ ro: ["Zi", "Lună", "An"], de: ["Tag", "Monat", "Jahr"], en: ["Day", "Month", "Year"], es: ["Día", "Mes", "Año"], fr: ["Jour", "Mois", "Année"], pt: ["Dia", "Mês", "Ano"], pl: ["Dzień", "Miesiąc", "Rok"], it: ["Giorno", "Mese", "Anno"] } as Record<string, string[]>)[L] ?? ["Day", "Month", "Year"]);
             const nowY = new Date().getFullYear();
-            const hint = (({ ro: "Pentru urări de ziua ta și verificarea vârstei (18+).", de: "Für Geburtstagsgrüße & Altersprüfung (18+).", en: "For birthday wishes & age check (18+).", es: "Para felicitaciones de cumpleaños y verificación de edad (18+).", fr: "Pour les vœux d'anniversaire et la vérification de l'âge (18+).", pt: "Para parabéns de aniversário e verificação de idade (18+).", pl: "Do życzeń urodzinowych i weryfikacji wieku (18+)." } as Record<string, string>)[L] ?? "For birthday wishes & age check (18+).");
+            const hint = (({ ro: "Pentru urări de ziua ta și verificarea vârstei (18+).", de: "Für Geburtstagsgrüße & Altersprüfung (18+).", en: "For birthday wishes & age check (18+).", es: "Para felicitaciones de cumpleaños y verificación de edad (18+).", fr: "Pour les vœux d'anniversaire et la vérification de l'âge (18+).", pt: "Para parabéns de aniversário e verificação de idade (18+).", pl: "Do życzeń urodzinowych i weryfikacji wieku (18+).", it: "Per gli auguri di compleanno e la verifica dell'età (18+)." } as Record<string, string>)[L] ?? "For birthday wishes & age check (18+).");
             const sel = "min-w-0 flex-1 appearance-none rounded-lg border border-black/15 bg-white pl-2 pr-6 py-2.5 text-[14px] font-semibold text-black outline-none focus:border-black";
             return (
               <>

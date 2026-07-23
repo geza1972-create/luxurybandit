@@ -34,6 +34,10 @@ function confirmEmail(lang: string, name: string, model: string, link: string): 
     subject: `Potwierdź zapis u ${model}`,
     html: `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111">Cześć ${name},<br><br>potwierdź swój e-mail, aby ${model} mogła budzić Cię każdego ranka:<br><br>${btn}✅ Potwierdź e-mail</a><br><br>Jeśli to nie Ty, po prostu zignoruj tę wiadomość.</div>`,
   };
+  if (lang === "it") return {
+    subject: `Conferma la tua iscrizione con ${model}`,
+    html: `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111">Ciao ${name},<br><br>conferma la tua email così ${model} può svegliarti ogni mattina:<br><br>${btn}✅ Conferma email</a><br><br>Se non sei stato tu, ignora semplicemente questo messaggio.</div>`,
+  };
   return {
     subject: `Confirmă-ți înscrierea la ${model}`,
     html: `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111">Bună ${name},<br><br>confirmă adresa de email ca ${model} să te trezească în fiecare dimineață:<br><br>${btn}✅ Confirmă emailul</a><br><br>Dacă nu ai fost tu, ignoră acest mesaj.</div>`,

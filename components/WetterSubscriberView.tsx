@@ -43,6 +43,7 @@ const WX: Record<string, Record<string, string>> = {
   fr: { clear: "dégagé", partly: "partiellement nuageux", cloudy: "nuageux", fog: "brouillard", rain: "pluie", snow: "neige", showers: "averses", storm: "orage", "": "" },
   pt: { clear: "céu limpo", partly: "parcialmente nublado", cloudy: "nublado", fog: "nevoeiro", rain: "chuva", snow: "neve", showers: "aguaceiros", storm: "tempestade", "": "" },
   pl: { clear: "bezchmurnie", partly: "częściowe zachmurzenie", cloudy: "pochmurno", fog: "mgła", rain: "deszcz", snow: "śnieg", showers: "przelotne opady", storm: "burza", "": "" },
+  it: { clear: "sereno", partly: "parzialmente nuvoloso", cloudy: "nuvoloso", fog: "nebbia", rain: "pioggia", snow: "neve", showers: "rovesci", storm: "temporale", "": "" },
 };
 
 // Alle sichtbaren Texte pro Sprache. Model-Name wird eingesetzt. Fallback: EN.
@@ -127,6 +128,16 @@ const T: Record<string, Copy> = {
     placeholder: m => `Napisz do ${m}…`,
     aiNote: m => `✨ Rozmawiasz z asystentką AI ${m} — to persona AI, nie prawdziwa osoba.`,
   },
+  it: {
+    greet: n => `Buongiorno, ${n}!`,
+    greetPre: "Buongiorno,",
+    wxLine: (c, w, e, t) => `A ${c} oggi c'è ${w} ${e}, ${t}°.`,
+    wxLoading: c => `A ${c}…`,
+    online: "online",
+    opener: (n) => `Buongiorno, ${n}! Che bello averti qui. Hai dormito bene?`,
+    placeholder: m => `Scrivi a ${m}…`,
+    aiNote: m => `✨ Stai chattando con l'assistente AI di ${m} — una persona AI, non la persona reale.`,
+  },
 };
 
 export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", day = "", time = "", title = "", caption = "", firstMessage = "", dayContext = "" }: {
@@ -155,7 +166,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   const [unsubbing, setUnsubbing] = useState(false);
   const unsubscribe = async () => {
     if (!subId) return;
-    const ask = (({ de: "Keine Morgennachrichten mehr?", en: "Stop the morning messages?", es: "¿Detener los mensajes de la mañana?", fr: "Arrêter les messages du matin ?", pt: "Parar as mensagens da manhã?", pl: "Zatrzymać poranne wiadomości?" } as Record<string, string>)[L]) ?? "Oprești mesajele de dimineață?";
+    const ask = (({ de: "Keine Morgennachrichten mehr?", en: "Stop the morning messages?", es: "¿Detener los mensajes de la mañana?", fr: "Arrêter les messages du matin ?", pt: "Parar as mensagens da manhã?", pl: "Zatrzymać poranne wiadomości?", it: "Fermare i messaggi del mattino?" } as Record<string, string>)[L]) ?? "Oprești mesajele de dimineață?";
     if (typeof window !== "undefined" && !window.confirm(ask)) return;
     setUnsubbing(true);
     try {
@@ -298,12 +309,12 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         <div className="mb-8 text-center">
           {unsubbed ? (
             <p className="text-[12px] font-black text-white/50">
-              {(({ de: "✓ Du bist abgemeldet — keine Nachrichten mehr.", en: "✓ You're unsubscribed — no more messages.", es: "✓ Te diste de baja — no más mensajes.", fr: "✓ Tu es désabonné — plus de messages.", pt: "✓ Cancelaste a subscrição — sem mais mensagens.", pl: "✓ Wypisano Cię — koniec wiadomości." } as Record<string, string>)[L]) ?? "✓ Te-ai dezabonat — gata cu mesajele."}
+              {(({ de: "✓ Du bist abgemeldet — keine Nachrichten mehr.", en: "✓ You're unsubscribed — no more messages.", es: "✓ Te diste de baja — no más mensajes.", fr: "✓ Tu es désabonné — plus de messages.", pt: "✓ Cancelaste a subscrição — sem mais mensagens.", pl: "✓ Wypisano Cię — koniec wiadomości.", it: "✓ Sei disiscritto — niente più messaggi." } as Record<string, string>)[L]) ?? "✓ Te-ai dezabonat — gata cu mesajele."}
             </p>
           ) : (
             <button type="button" onClick={() => void unsubscribe()} disabled={unsubbing}
               className="text-[12px] font-bold text-white/40 underline underline-offset-2 disabled:opacity-50">
-              {(({ de: "Abmelden", en: "Unsubscribe", es: "Darse de baja", fr: "Se désabonner", pt: "Cancelar", pl: "Wypisz się" } as Record<string, string>)[L]) ?? "Dezabonează-te"}
+              {(({ de: "Abmelden", en: "Unsubscribe", es: "Darse de baja", fr: "Se désabonner", pt: "Cancelar", pl: "Wypisz się", it: "Disiscriviti" } as Record<string, string>)[L]) ?? "Dezabonează-te"}
             </button>
           )}
         </div>

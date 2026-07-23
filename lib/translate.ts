@@ -4,7 +4,7 @@ import { readTranslationCache, writeTranslationCache } from "./try-this-look-sto
 // (OpenAI) und dann aus dem Cache geliefert — ab dem 2. Aufruf praktisch kostenlos.
 // Bewusst best-effort: bei jedem Fehler kommt der Originaltext zurück (nie ein leerer Text).
 
-const LANG_NAME: Record<string, string> = { ro: "Romanian", de: "German", en: "English" };
+const LANG_NAME: Record<string, string> = { ro: "Romanian", de: "German", en: "English", es: "Spanish", fr: "French", pt: "Portuguese", pl: "Polish", it: "Italian" };
 
 // Übersetzt mehrere Texte in EINEM Rutsch in die Zielsprache. Reihenfolge bleibt erhalten.
 export async function translateMany(texts: string[], lang: string): Promise<string[]> {
