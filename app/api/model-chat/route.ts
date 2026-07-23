@@ -200,21 +200,24 @@ export async function POST(request: Request) {
     try {
       const now = new Date().toISOString();
       const id = `${curatorId}:${visitorId}`;
-      const lastUser = history[history.length - 1].content;
       const st = await readTryThisLookState();
       const chats = st.modelChats ?? [];
       const existing = chats.find(c => c.id === id);
+      // GANZEN Verlauf speichern (nicht nur den letzten Austausch): der Client schickt die
+      // komplette History mit — inkl. Bellas Eröffnung. So sieht der Admin die volle Konversation.
+      const full = [
+        ...history.map(m => ({ role: m.role === "user" ? "user" as const : "assistant" as const, content: String(m.content), at: now })),
+        { role: "assistant" as const, content: reply, at: now },
+      ].slice(-MAX_LOG_MESSAGES);
       if (existing) {
         existing.userName = userName || existing.userName;
-        existing.messages.push({ role: "user", content: lastUser, at: now });
-        existing.messages.push({ role: "assistant", content: reply, at: now });
-        if (existing.messages.length > MAX_LOG_MESSAGES) existing.messages = existing.messages.slice(-MAX_LOG_MESSAGES);
+        existing.messages = full;
         existing.updatedAt = now;
       } else {
         const log: ModelChatLog = {
           id, curatorId, curatorName: modelName, visitorId, userName,
           createdAt: now, updatedAt: now,
-          messages: [{ role: "user", content: lastUser, at: now }, { role: "assistant", content: reply, at: now }],
+          messages: full,
         };
         chats.unshift(log);
       }
