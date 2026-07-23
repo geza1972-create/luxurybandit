@@ -696,6 +696,7 @@ export async function GET(request: Request) {
             ownerEmail: (g as any).ownerEmail ?? "", // who actually generated it (blank = admin pre-gen)
             curatorId: (g as any).curatorId ?? "",
             curatorName: curName.get((g as any).curatorId ?? "") ?? "",
+            garment: (g as any).garmentCat ?? "",   // manuell: "lingerie" | "normal" | ""
             lookName: g.lookName ?? look?.name ?? "",
             feed: (g as any).feed !== false,
             public: (g as any).public === true,
@@ -1632,6 +1633,19 @@ export async function POST(request: Request) {
       (gen as any).private = (payload as any).private === true;
       await saveTryThisLookState(state);
       return NextResponse.json({ ok: true, private: (gen as any).private });
+    }
+
+    // Admin: TAG a generated video as "lingerie" or "normal" (clothed) — a stored category
+    // the owner assigns by hand (select + move), overriding the name-based heuristic.
+    if (payload.action === "set-generation-garment") {
+      if (!(await isAdmin(request))) return NextResponse.json({ error: "Admin only." }, { status: 401 });
+      const genId = String((payload as { generationId?: string }).generationId ?? "").trim();
+      const gen = state.generations.find(g => g.id === genId) as { garmentCat?: string } | undefined;
+      if (!gen) return NextResponse.json({ error: "Generation not found." }, { status: 404 });
+      const g = String((payload as { garment?: string }).garment ?? "").trim();
+      gen.garmentCat = (g === "lingerie" || g === "normal") ? g : undefined;
+      await saveTryThisLookState(state);
+      return NextResponse.json({ ok: true, garment: gen.garmentCat });
     }
 
     // Admin: CONNECT a generated video to a look — sets the look's own videoUrl (+ poster)

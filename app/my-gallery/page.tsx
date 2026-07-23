@@ -17,6 +17,7 @@ type Item = {
   lookName?: string;
   curatorId?: string;
   curatorName?: string;
+  garment?: string;   // manuell zugewiesen: "lingerie" | "normal"
   feed?: boolean;
   public?: boolean;
 };
@@ -42,16 +43,55 @@ export default function MyGalleryPage() {
     } catch { /* optimistisch — beim nächsten Laden korrekt */ }
   };
 
+  // Mehrfachauswahl: auswählen → Bulk Public/Private oder Löschen. Nur VIDEOS (Slides = Card Studio).
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggleSel = (id: string) => setSelected(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const clearSel = () => { setSelected(new Set()); setSelectMode(false); };
+  const bulkPublic = async (pub: boolean) => {
+    if (!pin) return;
+    const ids = [...selected].filter(id => items.find(it => it.id === id)?.type !== "slide");
+    if (!ids.length) return;
+    setItems(list => list.map(x => ids.includes(x.id) ? { ...x, public: pub, feed: pub ? true : false } : x));
+    const h = { "Content-Type": "application/json", "x-try-look-admin-pin": pin };
+    for (const id of ids) {
+      try {
+        await fetch("/api/try-this-look", { method: "POST", headers: h, body: JSON.stringify({ action: "set-generation-public", generationId: id, public: pub }) });
+        if (!pub) await fetch("/api/try-this-look", { method: "POST", headers: h, body: JSON.stringify({ action: "set-generation-feed", generationId: id, feed: false }) });
+      } catch { /**/ }
+    }
+    clearSel();
+  };
+  const bulkDelete = async () => {
+    if (!pin) return;
+    const ids = [...selected].filter(id => items.find(it => it.id === id)?.type !== "slide");
+    if (!ids.length) return;
+    if (typeof window !== "undefined" && !window.confirm(`${ids.length} Video(s) endgültig löschen?`)) return;
+    setItems(list => list.filter(x => !ids.includes(x.id)));
+    const h = { "Content-Type": "application/json", "x-try-look-admin-pin": pin };
+    for (const id of ids) { try { await fetch("/api/try-this-look", { method: "POST", headers: h, body: JSON.stringify({ action: "delete-generation", id }) }); } catch { /**/ } }
+    clearSel();
+  };
+
   const [statusFilter, setStatusFilter] = useState<"all" | "public" | "private">("all");   // Freigabe-Status
   const [typeFilter, setTypeFilter] = useState<"all" | "video" | "slide">("all");          // Videos vs. Slides
-  const [catFilter, setCatFilter] = useState<"all" | "lingerie" | "reise" | "peter" | "andere">("all");
-  // Auto-Kategorie aus Name/Titel (+ Typ). Heuristik: „Peter" nur, wenn der Name es sagt.
-  const catOf = (it: Item): "lingerie" | "reise" | "peter" | "andere" => {
+  const [catFilter, setCatFilter] = useState<"all" | "lingerie" | "normal">("all");
+  // Kategorie: manuell zugewiesenes Tag (garment) gewinnt; sonst Heuristik aus Name/Titel.
+  const catOf = (it: Item): "lingerie" | "normal" => {
+    if (it.garment === "lingerie") return "lingerie";
+    if (it.garment === "normal") return "normal";
     const s = `${it.lookName || ""}`.toLowerCase();
-    if (/\bpeter\b/.test(s)) return "peter";
     if (/lingerie|boudoir|dessous|lace|thong|underwear|unterwäsche|bikini|swim|bh\b/.test(s)) return "lingerie";
-    if (/reise|urlaub|travel|beach|strand|island|insel|tenerife|monaco|paris|city|trip|vacation|holiday|journey|weather|wetter/.test(s) || it.type === "slide") return "reise";
-    return "andere";
+    return "normal";
+  };
+  const bulkGarment = async (garment: "lingerie" | "normal") => {
+    if (!pin) return;
+    const ids = [...selected].filter(id => items.find(it => it.id === id)?.type !== "slide");
+    if (!ids.length) return;
+    setItems(list => list.map(x => ids.includes(x.id) ? { ...x, garment } : x));
+    const h = { "Content-Type": "application/json", "x-try-look-admin-pin": pin };
+    for (const id of ids) { try { await fetch("/api/try-this-look", { method: "POST", headers: h, body: JSON.stringify({ action: "set-generation-garment", generationId: id, garment }) }); } catch { /**/ } }
+    clearSel();
   };
   const q = query.trim().toLowerCase();
   const shown = items.filter(it => {
@@ -64,7 +104,7 @@ export default function MyGalleryPage() {
   });
   const pubCount = items.filter(it => it.public === true).length;
   const vidCount = items.filter(it => (it.type ?? "video") === "video").length;
-  const catCount = (c: "lingerie" | "reise" | "peter" | "andere") => items.filter(it => catOf(it) === c).length;
+  const catCount = (c: "lingerie" | "normal") => items.filter(it => catOf(it) === c).length;
 
   useEffect(() => {
     let p = "";
@@ -145,9 +185,17 @@ export default function MyGalleryPage() {
       <TopNav />
 
       <div className="px-4 pt-4">
-        <h1 className="text-[22px] font-black">
-          My Gallery {items.length > 0 && <span className="text-white/70">{items.length}</span>}
-        </h1>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-[22px] font-black">
+            My Gallery {items.length > 0 && <span className="text-white/70">{items.length}</span>}
+          </h1>
+          {pin && items.length > 0 && (
+            <button type="button" onClick={() => { if (selectMode) clearSel(); else setSelectMode(true); }}
+              className={`shrink-0 rounded-full px-4 py-2 text-[12px] font-black transition ${selectMode ? "bg-white/85 text-black" : "bg-white/10 text-white/80"}`}>
+              {selectMode ? "Fertig" : "Auswählen"}
+            </button>
+          )}
+        </div>
         <p className="mt-0.5 text-[13px] font-semibold text-white/60">Tippe ein Video an — Vollbild und Download.{pin && " Toggle: Public = gratis Teaser im Chat, Private = 🔒 Abo."}</p>
 
         {(pin || token) && items.length > 0 && (
@@ -166,7 +214,7 @@ export default function MyGalleryPage() {
                 className={`rounded-full px-3.5 py-1.5 transition ${typeFilter === k ? "bg-white/85 text-black" : "bg-white/10 text-white/70"}`}>{lbl}</button>
             ))}
             <span className="w-full" />
-            {([["all", "Alle Kategorien"], ["lingerie", `Lingerie ${catCount("lingerie")}`], ["reise", `Reise ${catCount("reise")}`], ["peter", `Peter ${catCount("peter")}`], ["andere", `Andere ${catCount("andere")}`]] as const).map(([k, lbl]) => (
+            {([["all", "Alle"], ["lingerie", `Lingerie ${catCount("lingerie")}`], ["normal", `Normal ${catCount("normal")}`]] as const).map(([k, lbl]) => (
               <button key={k} type="button" onClick={() => setCatFilter(k)}
                 className={`rounded-full px-3.5 py-1.5 transition ${catFilter === k ? "bg-violet-500 text-white" : "bg-white/10 text-white/70"}`}>{lbl}</button>
             ))}
@@ -183,11 +231,18 @@ export default function MyGalleryPage() {
           <p className="py-16 text-center text-[13px] font-bold text-white/40">Keine Treffer für „{query}".</p>
         ) : (
           <div className="mt-4 grid grid-cols-3 gap-2">
-            {shown.map(it => (
-              <div key={it.id} onClick={() => setOpen(it)}
-                className="relative block aspect-[9/16] cursor-pointer overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] active:opacity-80">
+            {shown.map(it => {
+              const selectable = selectMode && it.type !== "slide";
+              const isSel = selected.has(it.id);
+              return (
+              <div key={it.id} onClick={() => selectable ? toggleSel(it.id) : setOpen(it)}
+                className={`relative block aspect-[9/16] cursor-pointer overflow-hidden rounded-xl border bg-white/[0.04] active:opacity-80 ${isSel ? "border-amber-400 ring-2 ring-amber-400" : "border-white/10"}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={it.imageUrl} alt={it.lookName ?? ""} loading="lazy" className="h-full w-full object-cover object-top" />
+                {/* Auswahl-Häkchen (nur Videos im Auswahl-Modus). */}
+                {selectMode && (
+                  <span className={`absolute right-1 top-1 z-10 grid h-5 w-5 place-items-center rounded-full text-[11px] font-black ${it.type === "slide" ? "bg-black/50 text-white/40" : isSel ? "bg-amber-400 text-black" : "bg-black/60 text-white ring-1 ring-white/60"}`}>{isSel ? "✓" : ""}</span>
+                )}
                 {it.videoUrl && (
                   <span className="pointer-events-none absolute inset-0 grid place-items-center text-white/90">
                     <Play className="h-7 w-7 drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" fill="currentColor" />
@@ -200,21 +255,40 @@ export default function MyGalleryPage() {
                 {it.type === "slide" && (
                   <span className="absolute right-1 top-1 rounded-full bg-white/85 px-1.5 py-0.5 text-[8px] font-black text-black backdrop-blur">Slide</span>
                 )}
-                {/* Admin: 1-Klick Public ↔ Private — nur bei VIDEOS (Slides werden im Card Studio verwaltet). */}
-                {pin && it.type !== "slide" && (
+                {/* Kategorie-Tag (Lingerie) als kleiner Hinweis. */}
+                {catOf(it) === "lingerie" && !selectMode && (
+                  <span className="absolute left-1 bottom-1 rounded-full bg-violet-500/90 px-1.5 py-0.5 text-[8px] font-black text-white backdrop-blur">Lingerie</span>
+                )}
+                {/* Admin: 1-Klick Public ↔ Private — nur bei VIDEOS, außerhalb des Auswahl-Modus. */}
+                {pin && !selectMode && it.type !== "slide" && (
                   <button type="button" onClick={(e) => { e.stopPropagation(); void setPublic(it, !it.public); }}
-                    className={`absolute inset-x-1 bottom-1 rounded-full py-1 text-[9px] font-black backdrop-blur active:scale-95 transition ${it.public ? "bg-black/70 text-white" : "bg-amber-500 text-white"}`}>
+                    className={`absolute inset-x-1 bottom-6 rounded-full py-1 text-[9px] font-black backdrop-blur active:scale-95 transition ${it.public ? "bg-black/70 text-white" : "bg-amber-500 text-white"}`}>
                     {it.public ? "→ Privat 🔒" : "→ Public ✓"}
                   </button>
                 )}
-                {pin && it.type === "slide" && (
+                {pin && !selectMode && it.type === "slide" && (
                   <span className="pointer-events-none absolute inset-x-1 bottom-1 rounded-full bg-black/60 py-1 text-center text-[8px] font-black text-white/80 backdrop-blur">Im Card Studio</span>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* Bulk-Aktionsleiste (Auswahl-Modus) — verschieben (Lingerie/Normal), Freigabe, Löschen. */}
+      {selectMode && selected.size > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-[110] border-t border-white/10 bg-[#0d0b0a]/95 px-3 py-3 backdrop-blur">
+          <div className="mb-2 text-center text-[12px] font-black text-white/70">{selected.size} ausgewählt</div>
+          <div className="flex flex-wrap justify-center gap-2 text-[12px] font-black">
+            <button type="button" onClick={() => void bulkGarment("lingerie")} className="rounded-full bg-violet-500 px-3.5 py-2 text-white active:scale-95">→ Lingerie</button>
+            <button type="button" onClick={() => void bulkGarment("normal")} className="rounded-full bg-white/15 px-3.5 py-2 text-white active:scale-95">→ Normal</button>
+            <button type="button" onClick={() => void bulkPublic(true)} className="rounded-full bg-amber-500 px-3.5 py-2 text-white active:scale-95">Public</button>
+            <button type="button" onClick={() => void bulkPublic(false)} className="rounded-full bg-white/15 px-3.5 py-2 text-white active:scale-95">Private</button>
+            <button type="button" onClick={() => void bulkDelete()} className="rounded-full bg-red-500/90 px-3.5 py-2 text-white active:scale-95">Löschen</button>
+          </div>
+        </div>
+      )}
 
       {/* Vollbild-Ansicht mit Download */}
       {open && (
