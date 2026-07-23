@@ -74,7 +74,7 @@ export default async function ThemesCatalog() {
             const active = !!t.href;
             const inner = (
               <>
-                <div className="relative aspect-[9/16] overflow-hidden lb-media-bg">
+                <div className="relative aspect-[3/4] overflow-hidden lb-media-bg">
                   {/* Cover: Werbevideo (aktiv) → Foto → Icon-Wasserzeichen (coming soon, kein Bild) */}
                   {t.video ? (
                     // eslint-disable-next-line jsx-a11y/media-has-caption
