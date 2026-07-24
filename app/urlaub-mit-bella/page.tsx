@@ -13,7 +13,7 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function UrlaubMitBellaPage() {
-  const { card } = await buildBellaCard();
+  const { card } = await buildBellaCard({ scope: "urlaub" });
   const first = (card?.name || "Bella").split(" ")[0];
 
   return (
@@ -41,7 +41,7 @@ export default async function UrlaubMitBellaPage() {
         </div>
 
         {/* Admin-only: manage the slides shown in her card carousel (Peter intro + videos) */}
-        <BellaCarouselAdmin title="🎴 Urlaub-Card Tool" />
+        <BellaCarouselAdmin heading="🎴 Urlaub-Card Tool" scope="urlaub" />
 
         {/* Booking (= registration) */}
         <BellaBooking firstName={first} />

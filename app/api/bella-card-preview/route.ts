@@ -12,6 +12,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const customer = url.searchParams.get("customer") || "";
   const modelId = url.searchParams.get("model") || undefined;
-  const { card } = await buildBellaCard({ modelId, surface: "profile", ...(customer ? { customer } : {}) });
+  const scope = url.searchParams.get("scope") || undefined;
+  const { card } = await buildBellaCard({ modelId, surface: "profile", scope, ...(customer ? { customer } : {}) });
   return NextResponse.json({ card });
 }

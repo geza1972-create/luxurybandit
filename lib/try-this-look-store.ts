@@ -1230,24 +1230,34 @@ async function writeTryThisLookState(state: TryThisLookState, opts: SaveOptions 
 // Every commit also writes a backup blob, so a bad commit is always recoverable.
 // Bella (the original) keeps the legacy path; every other model gets its own blob.
 const BELLA_STUDIO_ID = "curator-1783683672619-td4cy";
-function studioPath(modelId?: string) {
+// `scope` = eine Landing (z. B. "urlaub", "wetter"). Jede Landing bekommt so ihren EIGENEN
+// Card-Blob (card-studio-<model>-<scope>.json), getrennt von der Model-Standardkarte.
+function studioPath(modelId?: string, scope?: string) {
   const id = (modelId ?? "").trim();
-  return (!id || id === BELLA_STUDIO_ID) ? "try-this-look/card-studio.json" : `try-this-look/card-studio-${id.replace(/[^a-zA-Z0-9-]/g, "")}.json`;
+  const base = (!id || id === BELLA_STUDIO_ID) ? "card-studio" : `card-studio-${id.replace(/[^a-zA-Z0-9-]/g, "")}`;
+  const s = (scope ?? "").trim().replace(/[^a-zA-Z0-9-]/g, "");
+  return `try-this-look/${base}${s ? `-${s}` : ""}.json`;
 }
-const studioBackupPath = (modelId?: string) => studioPath(modelId).replace(/\.json$/, "-backup.json");
+const studioBackupPath = (modelId?: string, scope?: string) => studioPath(modelId, scope).replace(/\.json$/, "-backup.json");
 
-export async function readCardStudioSlides(modelId?: string): Promise<BellaSlide[]> {
+export async function readCardStudioSlides(modelId?: string, scope?: string): Promise<BellaSlide[]> {
   try {
-    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(studioPath(modelId))}`);
-    if (!res.ok) return [];
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(studioPath(modelId, scope))}`);
+    if (!res.ok) {
+      // Lazy-Fork-Migration: eine Landing, die noch nie bearbeitet wurde, erbt die
+      // Standardkarte des Models — so wirkt nichts „leer", bis der Admin sie einmal
+      // in ihren eigenen Blob speichert.
+      if (scope) return readCardStudioSlides(modelId);
+      return [];
+    }
     const data = await res.json().catch(() => null);
     return Array.isArray(data?.slides) ? (data.slides as BellaSlide[]) : [];
   } catch { return []; }
 }
 
-export async function readCardStudioBackup(modelId?: string): Promise<{ slides: BellaSlide[]; savedAt: string }> {
+export async function readCardStudioBackup(modelId?: string, scope?: string): Promise<{ slides: BellaSlide[]; savedAt: string }> {
   try {
-    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(studioBackupPath(modelId))}`);
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(studioBackupPath(modelId, scope))}`);
     if (!res.ok) return { slides: [], savedAt: "" };
     const data = await res.json().catch(() => null);
     return { slides: Array.isArray(data?.slides) ? (data.slides as BellaSlide[]) : [], savedAt: String(data?.savedAt ?? "") };
@@ -1256,9 +1266,9 @@ export async function readCardStudioBackup(modelId?: string): Promise<{ slides: 
 
 // Persist the full slide array in ONE write. Before overwriting, the current committed
 // version is copied to the backup blob (last-known-good), so nothing is ever lost silently.
-export async function writeCardStudioSlides(slides: BellaSlide[], modelId?: string): Promise<void> {
+export async function writeCardStudioSlides(slides: BellaSlide[], modelId?: string, scope?: string): Promise<void> {
   await ensureBucket();
-  const mainPath = studioPath(modelId), backupPath = studioBackupPath(modelId);
+  const mainPath = studioPath(modelId, scope), backupPath = studioBackupPath(modelId, scope);
   // 1) Back up the CURRENT committed version first (best-effort — never block the save).
   try {
     const cur = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(mainPath)}`);

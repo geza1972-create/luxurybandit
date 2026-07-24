@@ -8,9 +8,10 @@ export const BELLA_ID = "curator-1783683672619-td4cy";
 // Build Bella's REAL collectible ModelCard (the same card the /own-influencer landing shows):
 // her live Growth Score, serial, looks, story clips and ownership — straight from state.json.
 // Extracted so every landing page renders the identical card instead of a hand-rolled copy.
-export async function buildBellaCard(opts: { surface?: string; customer?: string; modelId?: string } = {}): Promise<{ card: ModelCardProps | null; story: ModelClip[]; intro: string }> {
+export async function buildBellaCard(opts: { surface?: string; customer?: string; modelId?: string; scope?: string } = {}): Promise<{ card: ModelCardProps | null; story: ModelClip[]; intro: string }> {
   const surface = opts.surface ?? "lp-journey";
   const modelId = opts.modelId || BELLA_ID;
+  const cardScope = (opts.scope ?? "").trim();
   const customerScope = (opts.customer ?? "").trim().toLowerCase();
   try {
     const state = await readTryThisLookState();
@@ -87,7 +88,7 @@ export async function buildBellaCard(opts: { surface?: string; customer?: string
     const bellaPhoto = (gina?.photoUrl ?? "") as string;
     const customClips: ModelClip[] = [];
     const blurredClips: ModelClip[] = [];   // hidden slides → VERY blurred teasers, always LAST
-    const cardStudioSlides = await readCardStudioSlides(modelId);
+    const cardStudioSlides = await readCardStudioSlides(modelId, cardScope);
     // NEWEST first — the card must always open with her latest post (ascending order = oldest
     // first, so sort ascending then REVERSE).
     const orderedSlides = [...cardStudioSlides].sort(

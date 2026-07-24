@@ -80,10 +80,11 @@ function normalizeSlide(raw: any): BellaSlide | null {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const model = url.searchParams.get("model") || undefined;   // which influencer's card (default Bella)
-  const all = await readCardStudioSlides(model);
+  const scope = url.searchParams.get("scope") || undefined;   // eine Landing → eigener Card-Blob (Lazy-Fork)
+  const all = await readCardStudioSlides(model, scope);
   if (await isAdminRequest(request)) {
     const state = await readTryThisLookState();
-    const backup = await readCardStudioBackup(model);
+    const backup = await readCardStudioBackup(model, scope);
     const curator = (state.curators ?? []).find(c => c.id === model);
     return NextResponse.json({
       slides: await signSlides(all, true),
@@ -96,7 +97,7 @@ export async function GET(request: Request) {
   // exactly like the admin — but only for her own blob (model must equal her resolved id).
   const ownerId = await resolveModelOwner(request);
   if (ownerId && model === ownerId) {
-    const backup = await readCardStudioBackup(model);
+    const backup = await readCardStudioBackup(model, scope);
     return NextResponse.json({ slides: await signSlides(all, true), owner: true, backup: { count: backup.slides.length, savedAt: backup.savedAt } });
   }
   const surface = url.searchParams.get("surface") || "lp-journey";
@@ -115,17 +116,20 @@ export async function POST(request: Request) {
   const admin = await isAdminRequest(request);
   const body = (await request.json().catch(() => ({}))) as {
     sign?: boolean; kind?: "image" | "video"; ext?: string;
-    commit?: any[]; restoreBackup?: boolean; removeBooking?: string; model?: string;
+    commit?: any[]; restoreBackup?: boolean; removeBooking?: string; model?: string; scope?: string;
     bulkSlides?: { ids?: string[]; patch?: { private?: boolean; garmentCat?: string; remove?: boolean } };
   };
   let model = (body.model || "").trim() || undefined;   // which influencer's card
+  // Eine Landing (z. B. "urlaub") → eigener Card-Blob. Nur für den Admin; ein Real-Model
+  // bearbeitet immer nur ihre Standardkarte (kein Landing-Scope).
+  let scope = (body.scope || "").trim() || undefined;
   // Non-admins: only a signed-in REAL MODEL may write, and ONLY her own blob. Her resolved id
   // overrides whatever `model` the client sent, so she can never touch another model's card.
   let isOwner = false;
   if (!admin) {
     const ownerId = await resolveModelOwner(request);
     if (!ownerId) return NextResponse.json({ error: "Sign in as a LuxuryBandit model." }, { status: 401 });
-    model = ownerId; isOwner = true;
+    model = ownerId; isOwner = true; scope = undefined;
   }
 
   // Prune a booking (admin only) — lives in the shared state.json, handled up front.
@@ -134,7 +138,7 @@ export async function POST(request: Request) {
     const st = await readTryThisLookState();
     st.tripBookings = (st.tripBookings ?? []).filter(b => b.id !== body.removeBooking);
     await saveTryThisLookState(st, { deletedBookingIds: [body.removeBooking] });
-    return NextResponse.json({ ok: true, slides: await signSlides(await readCardStudioSlides(model), true), bookings: st.tripBookings });
+    return NextResponse.json({ ok: true, slides: await signSlides(await readCardStudioSlides(model, scope), true), bookings: st.tripBookings });
   }
 
   // Bulk aus dem Owner-Overview (My Gallery): ausgewählte Slides löschen / privat-öffentlich /
@@ -143,7 +147,7 @@ export async function POST(request: Request) {
     if (!admin) return NextResponse.json({ error: "Admin access required." }, { status: 403 });
     const ids = new Set((body.bulkSlides.ids ?? []).map(String));
     const patch = body.bulkSlides.patch ?? {};
-    const all = await readCardStudioSlides(model);
+    const all = await readCardStudioSlides(model, scope);
     let next = all;
     if (patch.remove) {
       next = all.filter(s => !ids.has(s.id));
@@ -156,7 +160,7 @@ export async function POST(request: Request) {
         return upd;
       });
     }
-    await writeCardStudioSlides(next, model);
+    await writeCardStudioSlides(next, model, scope);
     return NextResponse.json({ ok: true, slides: await signSlides(next, true) });
   }
 
@@ -175,9 +179,9 @@ export async function POST(request: Request) {
 
   // Restore the last backup as the live library.
   if (body.restoreBackup) {
-    const backup = await readCardStudioBackup(model);
+    const backup = await readCardStudioBackup(model, scope);
     if (!backup.slides.length) return NextResponse.json({ error: "Kein Backup vorhanden." }, { status: 404 });
-    await writeCardStudioSlides(backup.slides, model);
+    await writeCardStudioSlides(backup.slides, model, scope);
     return NextResponse.json({ ok: true, slides: await signSlides(backup.slides, true) });
   }
 
@@ -189,7 +193,7 @@ export async function POST(request: Request) {
 
     // Figure out which slides are actually NEW in this commit (vs. edits to existing ones),
     // so credits/attribution/pending-review only apply to genuinely new uploads.
-    const existing = await readCardStudioSlides(model);
+    const existing = await readCardStudioSlides(model, scope);
     const existingIds = new Set(existing.map(s => s.id));
     const existingById = new Map(existing.map(s => [s.id, s]));
     const newSlides = slides.filter(s => !existingIds.has(s.id));
@@ -235,7 +239,7 @@ export async function POST(request: Request) {
       const scope = s.customer ?? "";
       const n = (seen.get(scope) ?? -1) + 1; seen.set(scope, n); s.order = n;
     }
-    await writeCardStudioSlides(slides, model);
+    await writeCardStudioSlides(slides, model, scope);
 
     // Notify her by email that LuxuryBandit gifted her new content (best-effort, never blocks the save).
     if (admin && newSlides.length) {

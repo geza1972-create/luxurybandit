@@ -56,7 +56,9 @@ const VID_PROMPT_DEFAULT = "Subtle, natural cinematic movement for 5 seconds; ge
 
 // Admin-only "Card Studio": generate/upload media into a LIBRARY, write AI captions, pick which
 // go on the card (per surface), hide/show, replace, and turn images into videos.
-export default function BellaCarouselAdmin({ title = "🎴 Card Studio" }: { title?: string } = {}) {
+export default function BellaCarouselAdmin({ heading = "🎴 Card Studio", scope }: { heading?: string; scope?: string } = {}) {
+  // `scope` = eine Landing (z. B. "urlaub") → eigener Card-Blob, getrennt von der Standardkarte.
+  const scopeQS = scope ? `&scope=${encodeURIComponent(scope)}` : "";
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
   const [slides, setSlides] = useState<Slide[]>([]);
@@ -110,7 +112,7 @@ export default function BellaCarouselAdmin({ title = "🎴 Card Studio" }: { tit
 
   const authH = () => ({ "Content-Type": "application/json", "x-try-look-admin-pin": pin() });
   // Admin GET sends the PIN → returns the FULL library (incl. hidden).
-  const load = () => fetch(`/api/bella-carousel?model=${encodeURIComponent(modelId)}`, { headers: { "x-try-look-admin-pin": pin() } }).then(r => r.json()).then(d => { setSlides(d.slides ?? []); setBackup(d.backup ?? { count: 0, savedAt: "" }); setDirty(false); }).catch(() => {});
+  const load = () => fetch(`/api/bella-carousel?model=${encodeURIComponent(modelId)}${scopeQS}`, { headers: { "x-try-look-admin-pin": pin() } }).then(r => r.json()).then(d => { setSlides(d.slides ?? []); setBackup(d.backup ?? { count: 0, savedAt: "" }); setDirty(false); }).catch(() => {});
   const loadCustomers = () => fetch("/api/customers", { headers: { "x-try-look-admin-pin": pin() } }).then(r => r.json()).then(d => setCustomers(d.customers ?? [])).catch(() => {});
   useEffect(() => {
     setIsAdmin(!!pin());
@@ -141,12 +143,12 @@ export default function BellaCarouselAdmin({ title = "🎴 Card Studio" }: { tit
 
   // Live ModelCard preview of the SELECTED model's card (any model, not just Bella).
   const loadPreview = (cust: string) => {
-    fetch(`/api/bella-card-preview?model=${encodeURIComponent(modelId)}${cust ? `&customer=${encodeURIComponent(cust)}` : ""}`, { headers: { "x-try-look-admin-pin": pin() } })
+    fetch(`/api/bella-card-preview?model=${encodeURIComponent(modelId)}${cust ? `&customer=${encodeURIComponent(cust)}` : ""}${scopeQS}`, { headers: { "x-try-look-admin-pin": pin() } })
       .then(r => r.json()).then(d => setPreview(d.card ?? null)).catch(() => setPreview(null));
   };
   useEffect(() => { if (isAdmin) void loadPreview(customer); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [customer, isAdmin, modelId]);
 
-  const post = (payload: object) => fetch("/api/bella-carousel", { method: "POST", headers: authH(), body: JSON.stringify({ ...payload, model: modelId }) }).then(r => r.json());
+  const post = (payload: object) => fetch("/api/bella-carousel", { method: "POST", headers: authH(), body: JSON.stringify({ ...payload, model: modelId, scope }) }).then(r => r.json());
 
   // ── Draft model ──────────────────────────────────────────────────────────
   // Every edit below changes ONLY the local draft (no server write) and flags `dirty`.
@@ -407,7 +409,7 @@ export default function BellaCarouselAdmin({ title = "🎴 Card Studio" }: { tit
     <div className="mt-8 rounded-2xl border border-dashed border-amber-400/50 bg-amber-400/[0.04] p-4">
       <div className="flex items-center gap-2">
         <span className="rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-black">Admin</span>
-        <p className="text-[15px] font-black text-white">{title}</p>
+        <p className="text-[15px] font-black text-white">{heading}</p>
       </div>
       <p className="mt-1 text-[12px] font-medium text-white/85">Model wählen → Foto/Video + Story hinzufügen → unten <b className="text-green-300">Übernehmen</b>. Nichts geht live, bis du übernimmst (+ automatisches Backup).</p>
 
