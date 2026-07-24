@@ -3,7 +3,6 @@ import { headers } from "next/headers";
 import TopNav from "@/components/TopNav";
 import ModelCardHeader from "@/components/ModelCardHeader";
 import BellaSimpleStudio from "@/components/BellaSimpleStudio";
-import BellaCarouselAdmin from "@/components/BellaCarouselAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
 import WetterStats from "@/components/WetterStats";
 import WetterTrack from "@/components/WetterTrack";
@@ -260,7 +259,6 @@ export default async function WetterModelPage({ params, searchParams }: {
         <div className="lb-theme space-y-4 px-4 pb-16 pt-4">
           <WetterStats modelId={modelId} />
           <BellaSimpleStudio modelId={modelId} modelName={modelName} />
-          <BellaCarouselAdmin heading="🎴 Wetter-Card Tool" scope="wetter" />
           <WetterSubscribers modelId={modelId} modelSlug={model} modelName={modelName} trialDays={trialDays} />
         </div>
       )}
