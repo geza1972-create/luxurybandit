@@ -86,11 +86,12 @@ export default function MyGalleryPage() {
 
   const [statusFilter, setStatusFilter] = useState<"all" | "public" | "private">("all");   // Freigabe-Status
   const [typeFilter, setTypeFilter] = useState<"all" | "video" | "slide">("all");          // Videos vs. Slides
-  const [catFilter, setCatFilter] = useState<"all" | "lingerie" | "normal">("all");
-  // Kategorie: manuell zugewiesenes Tag (garment) gewinnt; sonst Heuristik aus Name/Titel.
-  const catOf = (it: Item): "lingerie" | "normal" => {
+  const [catFilter, setCatFilter] = useState<"all" | "lingerie" | "normal" | "reise">("all");
+  // Kategorie ≈ Theme: manuelles Tag gewinnt; Card-Slides = Reise (Story-Tool); sonst Video-Heuristik.
+  const catOf = (it: Item): "lingerie" | "normal" | "reise" => {
     if (it.garment === "lingerie") return "lingerie";
     if (it.garment === "normal") return "normal";
+    if (it.type === "slide") return "reise";   // Card-Studio-Content ist Reise/Story — außer manuell umgetaggt
     const s = `${it.lookName || ""}`.toLowerCase();
     if (/lingerie|boudoir|dessous|lace|thong|underwear|unterwäsche|bikini|swim|bh\b/.test(s)) return "lingerie";
     return "normal";
@@ -115,7 +116,7 @@ export default function MyGalleryPage() {
   });
   const pubCount = items.filter(it => it.public === true).length;
   const vidCount = items.filter(it => (it.type ?? "video") === "video").length;
-  const catCount = (c: "lingerie" | "normal") => items.filter(it => catOf(it) === c).length;
+  const catCount = (c: "lingerie" | "normal" | "reise") => items.filter(it => catOf(it) === c).length;
 
   useEffect(() => {
     let p = "";
@@ -226,7 +227,7 @@ export default function MyGalleryPage() {
                 className={`rounded-full px-3.5 py-1.5 transition ${typeFilter === k ? "bg-white/85 text-black" : "bg-white/10 text-white/70"}`}>{lbl}</button>
             ))}
             <span className="w-full" />
-            {([["all", "Alle"], ["lingerie", `Lingerie ${catCount("lingerie")}`], ["normal", `Normal ${catCount("normal")}`]] as const).map(([k, lbl]) => (
+            {([["all", "Alle"], ["lingerie", `Lingerie ${catCount("lingerie")}`], ["normal", `Normal ${catCount("normal")}`], ["reise", `Reise ${catCount("reise")}`]] as const).map(([k, lbl]) => (
               <button key={k} type="button" onClick={() => setCatFilter(k)}
                 className={`rounded-full px-3.5 py-1.5 transition ${catFilter === k ? "bg-violet-500 text-white" : "bg-white/10 text-white/70"}`}>{lbl}</button>
             ))}
