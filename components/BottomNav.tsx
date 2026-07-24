@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid, Crown, UserPlus, Film, Layers, CloudSun } from "lucide-react";
+import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid, Crown, UserPlus, Film, Layers, CloudSun, Palmtree } from "lucide-react";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -322,6 +322,24 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-sm font-black text-white">My morning message</span>
                 </button>
               )}
+              {/* Admin-Shortcut: „Urlaub mit Bella"-Landing verwalten (Card-Tool + Reise-Bucher). */}
+              {isStaff && (
+                <button type="button" onClick={() => navigate("/urlaub-mit-bella?admin=1")}
+                  className="flex w-full items-center gap-3 px-5 py-3 text-left text-white/60 active:bg-white/[0.06] transition">
+                  <Palmtree className="h-4 w-4 shrink-0 text-violet-400" />
+                  <span className="text-[13px] font-bold">Holiday with Bella — manage</span>
+                </button>
+              )}
+              {/* Try-On — der Anprobier-Funnel (eigene Theme-Landing folgt noch). */}
+              {isStaff && (
+                <button type="button" onClick={() => navigate(TRYON_FUNNEL)}
+                  className="flex w-full items-center gap-3 px-5 py-3 text-left text-white/60 active:bg-white/[0.06] transition">
+                  <Shirt className="h-4 w-4 shrink-0 text-violet-400" />
+                  <span className="text-[13px] font-bold">Try-On — manage</span>
+                </button>
+              )}
+              {/* „Das was noch kommt": weitere Themen (Birthdays, Luxury Looks …) leben im
+                  Themes-Katalog /themes als coming-soon — hier nur die aktiven Shortcuts. */}
               {/* Reels — the swipeable video/story feed. Not for a model (her Home covers her needs). */}
               {!isCurator && (
                 <button type="button" onClick={() => navigate("/stores?view=feeds")}
