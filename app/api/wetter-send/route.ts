@@ -13,7 +13,8 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as { modelId?: string; modelSlug?: string; s?: string; all?: boolean };
   const modelId = String(body.modelId ?? "").trim();
   const modelSlug = String(body.modelSlug ?? "").trim() || "bella";
-  const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || new URL(request.url).origin;
+  // Links gehen per WhatsApp an echte Leute → NIE localhost. Prod-URL erzwingen.
+  const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://luxurybandit.com";
   const link = (s: WetterSubscriber) => `${origin}/themes/wetter/${encodeURIComponent(modelSlug)}?s=${encodeURIComponent(s.id)}`;
 
   // „An alle": nur Nummer + E-Mail bestätigt + nicht abgemeldet (Anti-Spam).

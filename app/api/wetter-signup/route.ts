@@ -91,7 +91,8 @@ export async function POST(request: Request) {
     confirmToken,
     createdAt: new Date().toISOString(),
   };
-  const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || new URL(request.url).origin;
+  // Bestätigungs-Link geht per Mail an echte Leute → NIE localhost. Prod-URL erzwingen.
+  const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://luxurybandit.com";
   try {
     const current = await readWetterSubscribers(modelId);
     // Schon registriert (gleiche E-Mail)? KEIN Duplikat — passwortloses „Zugang zurück":
