@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
   const instruction =
     `You are ${model}, an AI influencer who sends her subscriber a personal "good morning" message every day. ` +
-    `${imageUrl ? "Look CAREFULLY at the attached photo and describe EXACTLY what she is really wearing (the exact garment and its colour, e.g. blue lingerie) and her actual setting — never invent a different outfit or place than the photo shows." : "Invent a glamorous everyday morning scene (a nice city, a nice outfit)."} ` +
+    `${imageUrl ? "Look at the attached photo and mention what she is wearing (the garment type and its colour, e.g. a blue lingerie set) and her setting — but in a TASTEFUL, fashion-editorial tone: focus on the style, mood and colour, keep it PG-13, never explicit, never describe her body. Don't invent a different outfit or place than the photo shows." : "Invent a glamorous everyday morning scene (a nice city, a nice outfit)."} ` +
     (mode === "chat"
       ? `\nYou are writing the CHAT part: how she talks to him today (her day-context) and her first good-morning chat message.`
       : `\nYou are writing the POST part: the title shown big over the photo and the caption under it.`) +
@@ -61,7 +61,17 @@ export async function POST(request: Request) {
     const p = await res.json();
     if (!res.ok) return NextResponse.json({ error: p?.error?.message ?? "AI request failed." }, { status: 502 });
     const text = String(p?.choices?.[0]?.message?.content ?? "").replace(/^```json\s*|\s*```$/g, "").trim();
-    const j = JSON.parse(text);
+    // Robust: die KI liefert manchmal statt JSON eine Ablehnung („I'm sorry…") oder reinen Text.
+    // Ablehnung → klare Meldung; reiner Text → als Caption/Context retten (kein JSON-Crash mehr).
+    let j: { title?: string; context?: string; firstMessage?: string; caption?: string };
+    try {
+      j = JSON.parse(text);
+    } catch {
+      if (/^\s*(i'?m sorry|i am sorry|sorry|i can'?t|i cannot|i'?m unable|as an ai)/i.test(text)) {
+        return NextResponse.json({ error: "Die KI hat den Vorschlag abgelehnt (heikler Bildinhalt). Formuliere die Anweisung neutraler oder tippe den Text selbst." }, { status: 422 });
+      }
+      j = mode === "chat" ? { context: text } : { caption: text };
+    }
     return NextResponse.json({
       title: String(j.title ?? "").slice(0, 200),
       context: String(j.context ?? "").slice(0, 2000),
