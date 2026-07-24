@@ -41,7 +41,7 @@ export default async function UrlaubMitBellaPage() {
         </div>
 
         {/* Admin-only: manage the slides shown in her card carousel (Peter intro + videos) */}
-        <BellaCarouselAdmin />
+        <BellaCarouselAdmin title="🎴 Urlaub-Card Tool" />
 
         {/* Booking (= registration) */}
         <BellaBooking firstName={first} />

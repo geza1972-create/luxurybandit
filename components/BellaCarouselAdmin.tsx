@@ -56,7 +56,7 @@ const VID_PROMPT_DEFAULT = "Subtle, natural cinematic movement for 5 seconds; ge
 
 // Admin-only "Card Studio": generate/upload media into a LIBRARY, write AI captions, pick which
 // go on the card (per surface), hide/show, replace, and turn images into videos.
-export default function BellaCarouselAdmin() {
+export default function BellaCarouselAdmin({ title = "🎴 Card Studio" }: { title?: string } = {}) {
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
   const [slides, setSlides] = useState<Slide[]>([]);
@@ -407,7 +407,7 @@ export default function BellaCarouselAdmin() {
     <div className="mt-8 rounded-2xl border border-dashed border-amber-400/50 bg-amber-400/[0.04] p-4">
       <div className="flex items-center gap-2">
         <span className="rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-black">Admin</span>
-        <p className="text-[15px] font-black text-white">🎴 Card Studio</p>
+        <p className="text-[15px] font-black text-white">{title}</p>
       </div>
       <p className="mt-1 text-[12px] font-medium text-white/85">Model wählen → Foto/Video + Story hinzufügen → unten <b className="text-green-300">Übernehmen</b>. Nichts geht live, bis du übernimmst (+ automatisches Backup).</p>
 

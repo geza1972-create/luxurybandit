@@ -166,7 +166,7 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
       <p className="mt-0.5 text-[12px] font-semibold text-white/60">Wer bekommt die tägliche Nachricht von {modelName}. „📧 Per E-Mail" an alle mit E-Mail, „🤖 Bot" per WhatsApp, oder einzeln „Senden" (öffnet WhatsApp).</p>
       {/* 📧 E-Mail: die tägliche „Guten Morgen"-Mail an ALLE mit E-Mail (Hostinger-SMTP). Braucht SMTP_*-Env. */}
       <button type="button" onClick={() => void mailSend()} disabled={mailBusy}
-        className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#1a160f] text-[13px] font-black text-white active:scale-95 transition disabled:opacity-50">
+        className="lb-onmedia mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#1a160f] text-[13px] font-black text-white active:scale-95 transition disabled:opacity-50">
         {mailBusy ? "Sendet…" : "📧 An alle per E-Mail senden"}
       </button>
       {mailMsg && <p className="mt-1.5 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{mailMsg}</p>}
