@@ -338,6 +338,14 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-[13px] font-bold">Try-On — manage</span>
                 </button>
               )}
+              {/* Your Idol as an AI-Model — Idol-Foto hochladen → chatten → umziehen → Video. */}
+              {isStaff && (
+                <button type="button" onClick={() => navigate("/your-idol")}
+                  className="flex w-full items-center gap-3 px-5 py-3 text-left text-white/60 active:bg-white/[0.06] transition">
+                  <Sparkles className="h-4 w-4 shrink-0 text-violet-400" />
+                  <span className="text-[13px] font-bold">Your Idol (AI-Model)</span>
+                </button>
+              )}
               {/* „Das was noch kommt": weitere Themen (Birthdays, Luxury Looks …) leben im
                   Themes-Katalog /themes als coming-soon — hier nur die aktiven Shortcuts. */}
               {/* Reels — the swipeable video/story feed. Not for a model (her Home covers her needs). */}

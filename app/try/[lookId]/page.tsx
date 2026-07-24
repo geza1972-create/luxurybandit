@@ -78,6 +78,9 @@ export default function TryFunnelPage() {
   // Garment-first (from the Garderobe tab): the garment is chosen but not the model yet →
   // step 2 shows a model picker.
   const pickModel = (searchParams?.get("pick") ?? "") === "1";
+  // „Your Idol as an AI-Model": kein Model-Grid — der Nutzer lädt DIREKT das Foto seines Idols
+  // hoch (wird zum `avatar`). Danach läuft alles wie beim eigenen Foto (Chat, Umziehen, Video).
+  const idol = (searchParams?.get("idol") ?? "") === "1";
   // Set when the user taps an outfit → the top shows the chosen outfit + model (a confirm view)
   // instead of the model coverflow. "Cancel" reveals the picker again.
   const pickedParam = (searchParams?.get("picked") ?? "") === "1";
@@ -285,7 +288,7 @@ export default function TryFunnelPage() {
       // visitors to a look that DOES (admins stay — they produce the content). Keeps utm/lang.
       try {
         const staff = !!localStorage.getItem("luxurybandit-try-look-admin-pin") && !localStorage.getItem("lb_preview_model");
-        if (d?.look && d.hasVideo === false && !staff && d.fallbackLookId && d.fallbackLookId !== lookId) {
+        if (d?.look && d.hasVideo === false && !staff && !idol && d.fallbackLookId && d.fallbackLookId !== lookId) {
           router.replace(`/try/${d.fallbackLookId}${window.location.search}`);
           return;
         }
@@ -868,8 +871,18 @@ export default function TryFunnelPage() {
       {step === 2 && (
         <div className="px-4 pb-64 pt-2">
           {/* Reserve two lines so a longer name (which wraps) doesn't shift the carousel down. */}
-          <h1 className="text-[22px] font-black leading-tight">{!avatar && chosenModelName && !((pickModel || chooseModel) && !pickedModel) ? L(`Vezi-o pe ${chosenModelName.split(/\s+/)[0]} în cele mai tari ținute 🔥`, `Watch ${chosenModelName.split(/\s+/)[0]} in her hottest looks 🔥`) : L("Cine s-o poarte?", "Who should wear it?")}</h1>
-          {(pickModel || chooseModel) && !pickedModel && !avatar ? (
+          <h1 className="text-[22px] font-black leading-tight">{idol && !avatar ? L("Idolul tau ca AI-Model", "Your idol as an AI-Model") : !avatar && chosenModelName && !((pickModel || chooseModel) && !pickedModel) ? L(`Vezi-o pe ${chosenModelName.split(/\s+/)[0]} în cele mai tari ținute 🔥`, `Watch ${chosenModelName.split(/\s+/)[0]} in her hottest looks 🔥`) : L("Cine s-o poarte?", "Who should wear it?")}</h1>
+          {idol && !avatar ? (
+            // „Your Idol as an AI-Model": kein Model-Grid — direkt das Idol-Foto hochladen.
+            <>
+              <p className="mt-2 text-[14px] font-bold text-white/85">{L("Incarca poza idolului tau — devine AI-modelul tau: vorbesti cu ea, o imbraci, o animezi intr-un clip.", "Upload your idol's photo — she becomes your AI model: chat with her, dress her, animate her into a video.")}</p>
+              <button type="button" onClick={() => fileRef.current?.click()}
+                className="mx-auto mt-6 flex aspect-[9/16] w-[62vw] max-w-[260px] flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-amber-400/40 bg-amber-400/[0.06] active:scale-[0.98] transition">
+                <ImageUp className="h-10 w-10 text-amber-400" />
+                <span className="text-[14px] font-black text-amber-400">📸 {L("Incarca poza", "Upload photo")}</span>
+              </button>
+            </>
+          ) : (pickModel || chooseModel) && !pickedModel && !avatar ? (
             <>
               <p className="mt-2 text-[13px] font-bold text-white/85">Pick a model to wear this piece.</p>
               <div className="mt-4 grid grid-cols-3 gap-2">
