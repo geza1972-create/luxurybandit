@@ -286,9 +286,16 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
     if (!window.confirm("Den GANZEN Beitrag löschen — Bild und Text?\n\nNur ein neues Bild? Dann „Bild tauschen“ nehmen.")) return;
     setPosts(ps => ps.filter(p => p.id !== id));
     try {
-      await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify({ remove: id }) });
+      const r = await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify({ remove: id }) });
+      if (!r.ok) {
+        // Server hat NICHT gelöscht → echten Grund zeigen und die Liste zurückholen (Beitrag kommt sichtbar wieder).
+        const d = await r.json().catch(() => ({} as { error?: string }));
+        setError(d?.error ?? `Löschen fehlgeschlagen (${r.status}).`);
+        void load();
+        return;
+      }
       router.refresh();
-    } catch { setError("Löschen fehlgeschlagen."); void load(); }
+    } catch { setError("Löschen fehlgeschlagen (Netzwerk)."); void load(); }
   };
 
   // ↑↓ — Reihenfolge der bereits übernommenen Beiträge bestimmen. Entwürfe bleiben oben

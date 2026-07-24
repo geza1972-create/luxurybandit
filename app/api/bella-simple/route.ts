@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const all = await readCardStudioSlides(BELLA_ID).catch(() => [] as BellaSlide[]);
+  const all = await readCardStudioSlides(modelId).catch(() => [] as BellaSlide[]);   // denselben Blob lesen, den wir schreiben
 
   if (body.add?.path) {
     const kind = body.add.kind === "video" ? "video" : "image";
