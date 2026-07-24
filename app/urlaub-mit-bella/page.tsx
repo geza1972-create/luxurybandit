@@ -1,6 +1,7 @@
 import ModelCard from "@/components/ModelCard";
 import BellaBooking from "@/components/BellaBooking";
 import BellaCarouselAdmin from "@/components/BellaCarouselAdmin";
+import WetterSubscribers from "@/components/WetterSubscribers";
 import LandingHeader from "@/components/LandingHeader";
 import { buildBellaCard } from "@/lib/bella-card";
 
@@ -42,6 +43,11 @@ export default async function UrlaubMitBellaPage() {
 
         {/* Admin-only: manage the slides shown in her card carousel (Peter intro + videos) */}
         <BellaCarouselAdmin heading="🎴 Urlaub-Card Tool" scope="urlaub" />
+
+        {/* Admin-only: die Abonnenten-Liste unten — wie beim Wetter (blendet sich selbst aus). */}
+        <div className="lb-theme mt-4">
+          <WetterSubscribers />
+        </div>
 
         {/* Booking (= registration) */}
         <BellaBooking firstName={first} />

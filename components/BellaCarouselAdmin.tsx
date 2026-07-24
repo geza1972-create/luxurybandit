@@ -406,7 +406,9 @@ export default function BellaCarouselAdmin({ heading = "🎴 Card Studio", scope
   const chosen = garments.find(g => g.id === garmentId);
 
   return (
-    <div className="mt-8 rounded-2xl border border-dashed border-amber-400/50 bg-amber-400/[0.04] p-4">
+    // Weiße Box + dunkle Schrift wie alle Admin-Tools (Beiträge, Abonnenten): die Seite MUSS
+    // diesen Block in `.lb-theme` wrappen — der flippt text-white → dunkel (immer aktiv).
+    <div className="lb-theme mt-8 rounded-2xl border border-dashed border-amber-400/50 bg-white p-4">
       <div className="flex items-center gap-2">
         <span className="rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-black">Admin</span>
         <p className="text-[15px] font-black text-white">{heading}</p>

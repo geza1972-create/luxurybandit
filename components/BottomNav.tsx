@@ -330,20 +330,20 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-[13px] font-bold">Holiday with Bella — manage</span>
                 </button>
               )}
-              {/* Try-On — der Anprobier-Funnel (eigene Theme-Landing folgt noch). */}
+              {/* Try-On — die Theme-Landing mit Admin-Werkzeugen (Card-Tool + Abonnenten). */}
               {isStaff && (
-                <button type="button" onClick={() => navigate(TRYON_FUNNEL)}
+                <button type="button" onClick={() => navigate("/themes/tryon?admin=1")}
                   className="flex w-full items-center gap-3 px-5 py-3 text-left text-white/60 active:bg-white/[0.06] transition">
                   <Shirt className="h-4 w-4 shrink-0 text-violet-400" />
                   <span className="text-[13px] font-bold">Try-On — manage</span>
                 </button>
               )}
-              {/* Your Idol as an AI-Model — Idol-Foto hochladen → chatten → umziehen → Video. */}
+              {/* Your Idol as an AI-Model — Landing mit Admin-Werkzeugen (Card-Tool + Abonnenten). */}
               {isStaff && (
-                <button type="button" onClick={() => navigate("/your-idol")}
+                <button type="button" onClick={() => navigate("/your-idol?admin=1")}
                   className="flex w-full items-center gap-3 px-5 py-3 text-left text-white/60 active:bg-white/[0.06] transition">
                   <Sparkles className="h-4 w-4 shrink-0 text-violet-400" />
-                  <span className="text-[13px] font-bold">Your Idol (AI-Model)</span>
+                  <span className="text-[13px] font-bold">Your Idol — manage</span>
                 </button>
               )}
               {/* „Das was noch kommt": weitere Themen (Birthdays, Luxury Looks …) leben im
