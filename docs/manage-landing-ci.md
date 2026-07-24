@@ -10,9 +10,11 @@ Referenz ist die **Wetter**-Seite (`app/themes/wetter/[model]/page.tsx`). Neue T
 <main className="lb-bg min-h-screen text-white">   {/* NIE bg-[#0d0b0a] — das ist flach; lb-bg = Marken-Gradient */}
   <TopNav />                                        {/* Booking-Landings dürfen LandingHeader nutzen */}
   <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
-    {/* Hero / Kundenansicht … */}
-    {showAdmin && (
-      <div className="mt-8 space-y-4">
+    {showAdmin && <ManageViewToggle view={view} />}
+    {showCustomer ? (
+      <div className={showAdmin ? "mt-4" : ""}>{/* Hero / Kundenansicht / Funnel-CTA */}</div>
+    ) : (
+      <div className="mt-4 space-y-4">
         <BellaCarouselAdmin heading="🎴 <Theme>-Card Tool" scope="<scope>" />
         <div className="lb-theme"><WetterSubscribers /></div>
       </div>
@@ -21,10 +23,18 @@ Referenz ist die **Wetter**-Seite (`app/themes/wetter/[model]/page.tsx`). Neue T
 </main>
 ```
 
+Mit:
+```tsx
+const showAdmin = String(sp.admin ?? "") === "1";
+const view = sp.view === "kunde" ? "kunde" : "admin";   // Umschalter, Standard = Admin-Tools
+const showCustomer = !showAdmin || view === "kunde";
+```
+
 - **Root:** immer `lb-bg` (nicht `bg-[#0d0b0a]`). `lb-bg` = dunkler Marken-Gradient mit Gold-Schimmer.
 - **Container:** `mx-auto w-full max-w-[440px] px-4 pb-24 pt-8`.
-- **Admin-Gate:** `const showAdmin = String(sp.admin ?? "") === "1"` → Tools nur mit `?admin=1`
-  (die Tools blenden sich zusätzlich ohne Admin-PIN selbst aus).
+- **Admin-Gate:** `?admin=1` → Tools (self-hide zusätzlich ohne PIN).
+- **Kunde/Admin-Umschalter** (`components/ManageViewToggle.tsx`) — Pflicht, wie Wetter: mit `?admin=1`
+  oben ein Toggle 👤 Kunde / 🛠 Admin (`?view=kunde` | `?view=admin`, Standard admin). Kunde = Hero/Funnel, Admin = Card-Tool + Abonnenten.
 
 ## 2. Card-Tool (eigener Blob pro Landing)
 
@@ -57,7 +67,7 @@ Referenz ist die **Wetter**-Seite (`app/themes/wetter/[model]/page.tsx`). Neue T
 - [ ] Root `lb-bg min-h-screen text-white`
 - [ ] `TopNav` (oder `LandingHeader` bei Booking-Landings) oben
 - [ ] Container `max-w-[440px] px-4 pb-24 pt-8`
-- [ ] `?admin=1`-Gate für die Tools
+- [ ] `?admin=1`-Gate für die Tools + `<ManageViewToggle view={view} />` (Kunde/Admin, wie Wetter)
 - [ ] `<BellaCarouselAdmin scope="<neu>" />` mit eigenem Blob-Scope
 - [ ] `<div className="lb-theme"><WetterSubscribers /></div>` darunter
 - [ ] Tool-Boxen = `bg-white` + `lb-theme` (dunkle Schrift), `lb-onmedia` für Text auf Medien
