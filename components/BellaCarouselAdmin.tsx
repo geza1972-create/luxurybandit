@@ -27,7 +27,7 @@ function PromptLibrary({ kind, current, prompts, onSave, onPick, onDelete }: {
     <div className="mt-1.5">
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => onSave(current)} disabled={!current.trim() || saved}
-          className="rounded-md border border-amber-400/40 bg-amber-400/10 px-2.5 py-1 text-[11px] font-black text-amber-300 active:scale-95 disabled:opacity-40">
+          className="rounded-md border border-amber-400/40 bg-amber-400/10 px-2.5 py-1 text-[11px] font-black text-amber-600 active:scale-95 disabled:opacity-40">
           {saved ? "✓ Gespeichert" : "💾 Prompt speichern"}
         </button>
         {list.length > 0 && (
@@ -38,11 +38,11 @@ function PromptLibrary({ kind, current, prompts, onSave, onPick, onDelete }: {
         )}
       </div>
       {open && list.length > 0 && (
-        <div className="mt-1.5 max-h-56 space-y-1 overflow-y-auto rounded-lg border border-white/10 bg-black/20 p-1.5">
+        <div className="mt-1.5 max-h-56 space-y-1 overflow-y-auto rounded-lg border border-white/10 bg-black/[0.04] p-1.5">
           {list.map(p => (
-            <div key={p.id} className={`flex items-start gap-1.5 rounded border bg-black/20 p-1.5 ${p.text === current.trim() ? "border-amber-400/50" : "border-white/10"}`}>
+            <div key={p.id} className={`flex items-start gap-1.5 rounded border bg-black/[0.04] p-1.5 ${p.text === current.trim() ? "border-amber-400/50" : "border-white/10"}`}>
               <button type="button" onClick={() => { onPick(p.text); setOpen(false); }} className="min-w-0 flex-1 whitespace-pre-wrap break-words text-left text-[11px] leading-snug text-white/85">{p.text}</button>
-              <button type="button" onClick={() => onDelete(p.id)} aria-label="Löschen" className="shrink-0 rounded border border-red-400/40 px-1.5 text-[11px] font-black text-red-300 active:scale-95">✕</button>
+              <button type="button" onClick={() => onDelete(p.id)} aria-label="Löschen" className="shrink-0 rounded border border-red-400/40 px-1.5 text-[11px] font-black text-red-600 active:scale-95">✕</button>
             </div>
           ))}
         </div>
@@ -413,16 +413,16 @@ export default function BellaCarouselAdmin({ heading = "🎴 Card Studio", scope
         <span className="rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-black">Admin</span>
         <p className="text-[15px] font-black text-white">{heading}</p>
       </div>
-      <p className="mt-1 text-[12px] font-medium text-white/85">Model wählen → Foto/Video + Story hinzufügen → unten <b className="text-green-300">Übernehmen</b>. Nichts geht live, bis du übernimmst (+ automatisches Backup).</p>
+      <p className="mt-1 text-[12px] font-medium text-white/85">Model wählen → Foto/Video + Story hinzufügen → unten <b className="text-green-700">Übernehmen</b>. Nichts geht live, bis du übernimmst (+ automatisches Backup).</p>
 
       <button type="button" onClick={() => { const mn = models.find(m => m.id === modelId)?.name || "Bella"; setNlSubject(`A new look from ${mn} 💛`); setNlResult(""); setShowNewsletter(true); }}
-        className="mt-3 w-full rounded-xl border border-sky-400/40 bg-sky-500/10 py-2.5 text-[13px] font-black text-sky-200 active:scale-[0.98]">
+        className="mt-3 w-full rounded-xl border border-sky-400/40 bg-sky-500/10 py-2.5 text-[13px] font-black text-sky-700 active:scale-[0.98]">
         📧 Newsletter senden („Neuer Look")
       </button>
 
       {/* Model selector — which influencer's card you're editing. */}
       <div className="mt-3 rounded-xl border border-violet-400/25 bg-violet-500/[0.05] p-2.5">
-        <label className="text-[11px] font-black uppercase tracking-wide text-violet-200/70">Model</label>
+        <label className="text-[11px] font-black uppercase tracking-wide text-violet-700/70">Model</label>
         <div className="mt-1 flex items-center gap-2">
           {(() => { const m = models.find(x => x.id === modelId); return m?.photoUrl
             // eslint-disable-next-line @next/next/no-img-element
@@ -461,10 +461,10 @@ export default function BellaCarouselAdmin({ heading = "🎴 Card Studio", scope
         )}
 
         {showPreview && (preview
-          ? <div className="mt-2 rounded-2xl bg-black/20 p-2"><ModelCard {...preview} isMember canDownload showDates /></div>
+          ? <div className="mt-2 rounded-2xl bg-black/[0.04] p-2"><ModelCard {...preview} isMember canDownload showDates /></div>
           : <p className="mt-2 rounded-lg border border-dashed border-white/10 py-3 text-center text-[12px] text-white/75">Keine Vorschau verfügbar.</p>)}
       </div>
-      <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-2.5">
+      <div className="mt-3 rounded-xl border border-white/10 bg-black/[0.04] p-2.5">
         <button type="button" onClick={() => setShowCustomer(v => !v)} className="flex w-full items-center justify-between text-left active:scale-[0.99]">
           <span className="text-[11px] font-black uppercase tracking-wide text-white/85">⚙ Erweitert · Persönliche Kunden-Karte{customer ? ` · ${customer}` : ""}</span>
           <span className="text-[12px] font-black text-white/80">{showCustomer ? "▲" : "▼"}</span>
@@ -481,10 +481,10 @@ export default function BellaCarouselAdmin({ heading = "🎴 Card Studio", scope
           const c = customers.find(x => x.email === customer);
           if (!customer) return <p className="mt-1 text-[11px] font-medium text-white/80">{customers.length} User. Slides hier gelten für alle (öffentlich).</p>;
           return (
-            <div className="mt-2 rounded-lg border border-white/10 bg-black/20 p-2.5 text-[12px]">
+            <div className="mt-2 rounded-lg border border-white/10 bg-black/[0.04] p-2.5 text-[12px]">
               <p className="font-black text-white">{c?.name || "(kein Name)"} <span className="font-medium text-white/85">· {c?.provider || "?"}</span></p>
               <p className="text-white/75">{customer}{c?.createdAt ? ` · registriert ${new Date(c.createdAt).toLocaleDateString("de-DE")}` : ""}</p>
-              <p className="mt-1 font-bold text-amber-300">🎬 {c?.videoNote || "—"}</p>
+              <p className="mt-1 font-bold text-amber-600">🎬 {c?.videoNote || "—"}</p>
               {(c?.purchases?.length ?? 0) > 0 ? (
                 <ul className="mt-1 space-y-0.5 text-white/80">
                   {c!.purchases.map((p, i) => <li key={i}>• {p.label}{p.date ? ` (${new Date(p.date).toLocaleDateString("de-DE")})` : ""}</li>)}
@@ -500,7 +500,7 @@ export default function BellaCarouselAdmin({ heading = "🎴 Card Studio", scope
                 className="rounded-lg bg-[#c9a23f] px-3 py-2 text-[12px] font-black text-black active:scale-95 disabled:opacity-40">
                 {notifyBusy ? "Sendet…" : "📧 „Dein Feed ist online“ senden"}
               </button>
-              {notifyDone && <span className="text-[12px] font-bold text-amber-300">{notifyDone}</span>}
+              {notifyDone && <span className="text-[12px] font-bold text-amber-600">{notifyDone}</span>}
             </div>
             {(() => {
               const em = customers.find(x => x.email === customer)?.emails ?? [];
@@ -510,7 +510,7 @@ export default function BellaCarouselAdmin({ heading = "🎴 Card Studio", scope
                     className="text-[12px] font-black text-white/85 active:scale-95">📋 Gesendete E-Mails ({em.length}) {showEmails ? "▲" : "▼"}</button>
                   {showEmails && (
                     em.length ? (
-                      <ul className="mt-1 space-y-1 rounded-lg border border-white/10 bg-black/20 p-2 text-[12px]">
+                      <ul className="mt-1 space-y-1 rounded-lg border border-white/10 bg-black/[0.04] p-2 text-[12px]">
                         {em.map((m, i) => (
                           <li key={i} className="flex items-center justify-between gap-2">
                             <span className="min-w-0 truncate text-white/80">{m.subject}</span>
@@ -532,7 +532,7 @@ export default function BellaCarouselAdmin({ heading = "🎴 Card Studio", scope
         onChange={e => { const f = e.target.files?.[0]; if (f) void doReplace(f); }} />
 
       {/* Lingerie generator (advanced, collapsed by default) */}
-      <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3">
+      <div className="mt-3 rounded-xl border border-white/10 bg-black/[0.04] p-3">
         <button type="button" onClick={() => setShowGen(v => !v)} className="flex w-full items-center justify-between text-left active:scale-[0.99]">
           <span className="text-[12px] font-black text-white/80">⚙ Erweitert · KI-Bild generieren (Lingerie try-on)</span>
           <span className="text-[12px] font-black text-white/80">{showGen ? "▲" : "▼"}</span>
@@ -546,7 +546,7 @@ export default function BellaCarouselAdmin({ heading = "🎴 Card Studio", scope
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={chosen.thumb} alt="" className="h-12 w-9 shrink-0 rounded object-cover" />
               <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-white">{chosen.name}</span>
-              <span className="shrink-0 text-[12px] font-black text-amber-300">ändern</span>
+              <span className="shrink-0 text-[12px] font-black text-amber-600">ändern</span>
             </>
           ) : (
             <span className="flex-1 text-[13px] font-bold text-white/85">📂 Teil aus Galerie wählen{garments.length ? ` (${garments.length})` : "…"}</span>
@@ -575,13 +575,13 @@ export default function BellaCarouselAdmin({ heading = "🎴 Card Studio", scope
               <button type="button" onClick={() => void saveToLibrary("image", gen.path, gen.garmentName, gen.imageUrl)} disabled={busy === "lib"}
                 className="rounded-lg bg-amber-400 py-2 text-[12px] font-black text-black active:scale-95 disabled:opacity-40">{busy === "lib" ? "…" : "In Bibliothek"}</button>
               <button type="button" onClick={() => void makeVideoFromGen()} disabled={vidBusy}
-                className="rounded-lg border border-violet-400/50 bg-violet-500/10 py-2 text-[12px] font-black text-violet-200 active:scale-95 disabled:opacity-40">{vidBusy ? "Macht Video… (~2 Min)" : "🎥 Bewegungs-Video"}</button>
+                className="rounded-lg border border-violet-400/50 bg-violet-500/10 py-2 text-[12px] font-black text-violet-700 active:scale-95 disabled:opacity-40">{vidBusy ? "Macht Video… (~2 Min)" : "🎥 Bewegungs-Video"}</button>
               <button type="button" onClick={() => void generateLingerie()} disabled={genBusy}
                 className="rounded-lg border border-white/20 py-2 text-[12px] font-black text-white/80 active:scale-95 disabled:opacity-40">↻ Neu</button>
             </div>
             {genVideo?.url && (
               <div className="mt-3 rounded-lg border border-amber-400/30 bg-black/30 p-2">
-                <p className="text-[11px] font-black uppercase tracking-wide text-amber-300/80">Video</p>
+                <p className="text-[11px] font-black uppercase tracking-wide text-amber-600/80">Video</p>
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                 <video src={genVideo.url} controls playsInline className="mt-1.5 w-full rounded-lg" />
                 <div className="mt-2 flex gap-2">
@@ -602,7 +602,7 @@ export default function BellaCarouselAdmin({ heading = "🎴 Card Studio", scope
 
       {/* Upload image */}
       <div className="mt-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.04] p-3">
-        <p className="text-[12px] font-black text-amber-200">🖼 Foto hochladen</p>
+        <p className="text-[12px] font-black text-amber-700">🖼 Foto hochladen</p>
         <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titel (optional, EN)"
           className="mt-2 h-10 w-full rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[13px] font-bold text-white outline-none placeholder:text-white/50 focus:border-amber-400" />
         <textarea value={imgCaption} onChange={e => setImgCaption(e.target.value)} placeholder="Story (English) — leer lassen = KI schreibt sie"
@@ -629,7 +629,7 @@ export default function BellaCarouselAdmin({ heading = "🎴 Card Studio", scope
 
       {/* Upload video */}
       <div className="mt-3 rounded-xl border border-violet-400/20 bg-violet-500/[0.04] p-3">
-        <p className="text-[12px] font-black text-violet-200">🎬 Video hochladen</p>
+        <p className="text-[12px] font-black text-violet-700">🎬 Video hochladen</p>
         <input value={vidCaption} onChange={e => setVidCaption(e.target.value)} placeholder="Story (English) — leer lassen = KI schreibt sie"
           className="mt-2 h-10 w-full rounded-lg border border-white/15 bg-white/[0.04] px-2.5 text-[13px] font-medium text-white outline-none placeholder:text-white/50 focus:border-amber-400" />
         {stagedVid ? (
@@ -756,7 +756,7 @@ export default function BellaCarouselAdmin({ heading = "🎴 Card Studio", scope
             </div>
           </div>
           <div className="border-t border-white/10 p-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 1rem)" }}>
-            {nlResult && <p className="mb-2 text-center text-[12px] font-bold text-sky-300">{nlResult}</p>}
+            {nlResult && <p className="mb-2 text-center text-[12px] font-bold text-sky-700">{nlResult}</p>}
             <button type="button" onClick={() => void sendNewsletter()} disabled={nlBusy || !nlRecipients().length || !nlMessage.trim()}
               className="w-full rounded-xl bg-sky-500 py-3.5 text-[15px] font-black text-white shadow ring-1 ring-sky-300/40 active:scale-[0.98] disabled:opacity-40">
               {nlBusy ? "Sendet…" : `📧 An ${nlRecipients().length} User senden`}
@@ -865,7 +865,7 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
   const rowBusy = busy === slide.id || busy === "vid-" + slide.id;
 
   return (
-    <div className={`rounded-xl border p-2.5 ${slide.hidden ? "border-white/10 bg-black/10 opacity-70" : "border-amber-400/20 bg-black/20"}`}>
+    <div className={`rounded-xl border p-2.5 ${slide.hidden ? "border-white/10 bg-black/[0.02] opacity-70" : "border-amber-400/20 bg-black/[0.04]"}`}>
       <div className="flex gap-3">
         <div className="flex flex-col justify-center gap-1">
           <button type="button" onClick={() => onMove("up")} disabled={first || busy === "order-" + slide.id} aria-label="Nach oben"
@@ -890,7 +890,7 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
             className="mt-1.5 min-h-[5rem] w-full resize-y overflow-hidden rounded border border-white/15 bg-white/[0.04] px-2 py-1.5 text-[12px] leading-snug text-white outline-none placeholder:text-white/50 focus:border-amber-400" />
           <button type="button" onClick={() => void aiText()} disabled={aiBusy || (!caption.trim() && !(slide.kind === "image" && slide.mediaUrl))}
             title="Aus deiner Anweisung Titel + Story schreiben (Englisch)"
-            className="mt-1.5 w-full rounded border border-amber-400/50 bg-amber-400/10 py-1.5 text-[12px] font-black text-amber-300 active:scale-95 disabled:opacity-40">
+            className="mt-1.5 w-full rounded border border-amber-400/50 bg-amber-400/10 py-1.5 text-[12px] font-black text-amber-600 active:scale-95 disabled:opacity-40">
             {aiBusy ? "✨ Schreibt…" : "✨ Titel + Story schreiben"}
           </button>
         </div>
@@ -905,18 +905,18 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
         </button>
         <button type="button" onClick={() => onUpdate({ private: !slide.private })}
           title={slide.private ? "Privat — nur Super-Follower/Mitglieder sehen es (sonst gesperrt)" : "Öffentlich sichtbar"}
-          className={`rounded-full px-2.5 py-1 text-[11px] font-black active:scale-95 ${slide.private ? "bg-fuchsia-500/25 text-fuchsia-200 ring-1 ring-fuchsia-400/40" : "bg-white/10 text-white/85"}`}>
+          className={`rounded-full px-2.5 py-1 text-[11px] font-black active:scale-95 ${slide.private ? "bg-fuchsia-500/25 text-fuchsia-700 ring-1 ring-fuchsia-400/40" : "bg-white/10 text-white/85"}`}>
           {slide.private ? "🔒 Privat" : "🔓 Öffentlich"}
         </button>
         {dateLabel && <span className="text-[10px] font-bold text-white/75" title="Zeitstempel (bestimmt die Reihenfolge)">🕒 {dateLabel}</span>}
         <span className="ml-auto flex gap-1.5">
           {slide.kind === "image" && (
             <button type="button" onClick={() => setVidOpen(v => !v)} disabled={rowBusy}
-              className={`rounded border px-2 py-1 text-[11px] font-black active:scale-95 disabled:opacity-40 ${vidOpen ? "border-violet-400 bg-violet-500/25 text-violet-100" : "border-violet-400/50 text-violet-200"}`}>{busy === "vid-" + slide.id ? "Video…" : "🎬 Video"}</button>
+              className={`rounded border px-2 py-1 text-[11px] font-black active:scale-95 disabled:opacity-40 ${vidOpen ? "border-violet-400 bg-violet-500/25 text-violet-700" : "border-violet-400/50 text-violet-700"}`}>{busy === "vid-" + slide.id ? "Video…" : "🎬 Video"}</button>
           )}
           <button type="button" onClick={onInstagram} disabled={igBusy || !canIg}
             title={canIg ? "Auf Instagram posten" : "Erst „Übernehmen“ drücken"}
-            className="rounded border border-pink-400/50 bg-gradient-to-r from-fuchsia-500/15 to-orange-400/15 px-2 py-1 text-[11px] font-black text-pink-200 active:scale-95 disabled:opacity-30">
+            className="rounded border border-pink-400/50 bg-gradient-to-r from-fuchsia-500/15 to-orange-400/15 px-2 py-1 text-[11px] font-black text-pink-700 active:scale-95 disabled:opacity-30">
             {igBusy ? "IG…" : igDone ? "✓ IG" : "📷 IG"}
           </button>
           <button type="button" onClick={onReplace} disabled={rowBusy}
@@ -924,7 +924,7 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
             className="rounded border border-white/20 px-2 py-1 text-[11px] font-black text-white/85 active:scale-95 disabled:opacity-40">🔄 Tauschen</button>
           <button type="button" onClick={onRemove} disabled={rowBusy}
             title="Diesen Slide löschen (danach Übernehmen)"
-            className="rounded border border-red-400/50 bg-red-500/10 px-2 py-1 text-[11px] font-black text-red-300 active:scale-95 disabled:opacity-40">🗑 Löschen</button>
+            className="rounded border border-red-400/50 bg-red-500/10 px-2 py-1 text-[11px] font-black text-red-600 active:scale-95 disabled:opacity-40">🗑 Löschen</button>
         </span>
       </div>
 
@@ -936,7 +936,7 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
             const on = slide.pages == null ? true : slide.pages.includes(su.key);
             return (
               <button key={su.key} type="button" onClick={() => togglePage(su.key)}
-                className={`rounded-full px-2 py-1 text-[11px] font-black active:scale-95 ${on ? "bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/40" : "bg-white/5 text-white/80"}`}>
+                className={`rounded-full px-2 py-1 text-[11px] font-black active:scale-95 ${on ? "bg-amber-400/20 text-amber-600 ring-1 ring-amber-400/40" : "bg-white/5 text-white/80"}`}>
                 {su.label}
               </button>
             );
@@ -947,7 +947,7 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
       {/* Make-video panel — enter the MOTION prompt (e.g. "she slowly turns around") before generating. */}
       {slide.kind === "image" && vidOpen && (
         <div className="mt-2 rounded-lg border border-violet-400/30 bg-violet-500/[0.06] p-2">
-          <label className="block text-[11px] font-black uppercase tracking-wide text-violet-200/80">🎥 Bewegungs-Video · Bewegungs-Prompt (z.B. „she turns 360 degrees, 8 seconds“)</label>
+          <label className="block text-[11px] font-black uppercase tracking-wide text-violet-700/80">🎥 Bewegungs-Video · Bewegungs-Prompt (z.B. „she turns 360 degrees, 8 seconds“)</label>
           <textarea value={vidText} onChange={e => setVidText(e.target.value)}
             className="mt-1 h-14 w-full rounded border border-white/15 bg-white/[0.04] px-2 py-1 text-[12px] text-white outline-none focus:border-violet-400" />
           <PromptLibrary kind="video" current={vidText} prompts={prompts} onSave={onSavePrompt} onPick={setVidText} onDelete={onDeletePrompt} />
@@ -958,7 +958,7 @@ function SlideRow({ slide, busy, first, last, onUpdate, onReplace, onRemove, onM
 
           {/* Human voice — she SPEAKS your lines (PixVerse lip-sync). */}
           <div className="mt-3 border-t border-white/10 pt-2">
-            <label className="block text-[11px] font-black uppercase tracking-wide text-fuchsia-200/80">🗣 Sprech-Video · sie spricht deinen Text (mit Stimme)</label>
+            <label className="block text-[11px] font-black uppercase tracking-wide text-fuchsia-700/80">🗣 Sprech-Video · sie spricht deinen Text (mit Stimme)</label>
             <p className="mt-0.5 text-[10px] text-white/75">Pausen mit Satzzeichen: Komma = kurz, Punkt = länger, „…" = deutliche Pause.</p>
             <textarea value={lines} onChange={e => setLines(e.target.value)} placeholder="Zeilen eingeben, z.B. „Hi… I love traveling the world. Would you like to come with me?“"
               className="mt-1 h-16 w-full rounded border border-white/15 bg-white/[0.04] px-2 py-1 text-[12px] text-white outline-none placeholder:text-white/50 focus:border-fuchsia-400" />
