@@ -8,20 +8,21 @@ export const dynamic = "force-dynamic";
 
 const BELLA_ID = "curator-1783683672619-td4cy";
 
-// „Bald geht's los"-E-Mail (Bella-Wetter) — pro Sprache, mit persönlichem Link + Abmelden.
+// Tägliche „Guten Morgen"-E-Mail (Bella-Wetter) — pro Sprache, mit persönlichem Link + Abmelden.
+// Bellas Ich-Stimme, Du-Form: dein Wetter + ein neuer Look + „danach im Chat".
 // Admin-only. POST { modelId?, modelSlug?, ids?: string[], all?: boolean }.
 type Copy = { subject: string; greet: string; body: string; cta: string; bye: string; unsub: string };
 function copy(lang: string, name: string): Copy {
   const n = name || "";
   const T: Record<string, Copy> = {
-    ro: { subject: "Bella te așteaptă — începem în curând ☀️", greet: `Bună ${n},`, body: "mulțumim că te-ai înscris! 💛 Mai punem la punct ultimele detalii — foarte curând Bella te va trezi în fiecare dimineață cu vremea ta, un look nou și un gând bun de la ea.", cta: "Deschide pagina ta", bye: "Pe curând,", unsub: "Nu mai vrei aceste mesaje? Dezabonează-te" },
-    de: { subject: "Bella wartet auf dich — es geht bald los ☀️", greet: `Hallo ${n},`, body: "danke fürs Anmelden! 💛 Wir legen gerade letzte Hand an — ganz bald weckt dich Bella jeden Morgen mit deinem Wetter, einem neuen Look und einem lieben Gruß.", cta: "Deine Seite öffnen", bye: "Bis bald,", unsub: "Keine Nachrichten mehr? Hier abmelden" },
-    en: { subject: "Bella is waiting for you — launching soon ☀️", greet: `Hi ${n},`, body: "thanks for signing up! 💛 We're putting the finishing touches on things — very soon Bella will wake you every morning with your weather, a new look and a warm thought.", cta: "Open your page", bye: "Talk soon,", unsub: "Don't want these emails? Unsubscribe" },
-    es: { subject: "Bella te espera — empezamos muy pronto ☀️", greet: `Hola ${n},`, body: "¡gracias por registrarte! 💛 Estamos dando los últimos toques — muy pronto Bella te despertará cada mañana con tu clima, un look nuevo y un pensamiento bonito.", cta: "Abre tu página", bye: "Hasta pronto,", unsub: "¿No quieres estos emails? Darse de baja" },
-    fr: { subject: "Bella t'attend — ça commence très bientôt ☀️", greet: `Bonjour ${n},`, body: "merci de t'être inscrit ! 💛 Nous peaufinons les derniers détails — très bientôt Bella te réveillera chaque matin avec ta météo, un nouveau look et une pensée pour toi.", cta: "Ouvre ta page", bye: "À bientôt,", unsub: "Tu ne veux plus ces e-mails ? Se désabonner" },
-    pt: { subject: "A Bella está à tua espera — começamos muito em breve ☀️", greet: `Olá ${n},`, body: "obrigado por te inscreveres! 💛 Estamos a dar os toques finais — muito em breve a Bella vai acordar-te todas as manhãs com o teu tempo, um novo visual e um pensamento carinhoso.", cta: "Abre a tua página", bye: "Até já,", unsub: "Não queres estes emails? Cancelar subscrição" },
-    pl: { subject: "Bella na Ciebie czeka — startujemy już wkrótce ☀️", greet: `Cześć ${n},`, body: "dziękujemy za zapis! 💛 Dopracowujemy ostatnie szczegóły — już wkrótce Bella będzie budzić Cię każdego ranka Twoją pogodą, nowym lookiem i miłą myślą.", cta: "Otwórz swoją stronę", bye: "Do zobaczenia,", unsub: "Nie chcesz tych e-maili? Wypisz się" },
-    it: { subject: "Bella ti aspetta — si parte molto presto ☀️", greet: `Ciao ${n},`, body: "grazie per esserti iscritto! 💛 Stiamo mettendo gli ultimi ritocchi — molto presto Bella ti sveglierà ogni mattina con il tuo meteo, un nuovo look e un pensiero gentile.", cta: "Apri la tua pagina", bye: "A presto,", unsub: "Non vuoi più queste email? Disiscriviti" },
+    ro: { subject: "Bună dimineața ☀️ Vremea ta și un look nou", greet: `Bună${n ? ` ${n}` : ""},`, body: "vremea ta de azi e gata — plus un look nou și un gând bun de la mine. 💛 Intră să vezi, apoi vorbim în chat.", cta: "Deschide pagina ta", bye: "Pe curând,", unsub: "Nu mai vrei aceste mesaje? Dezabonează-te" },
+    de: { subject: "Guten Morgen ☀️ Dein Wetter & dein neuer Look", greet: `Hallo${n ? ` ${n}` : ""},`, body: "dein Wetter für heute ist da — dazu ein neuer Look und ein lieber Gruß von mir. 💛 Schau rein, danach schreiben wir uns im Chat.", cta: "Deine Seite öffnen", bye: "Bis gleich,", unsub: "Keine Nachrichten mehr? Hier abmelden" },
+    en: { subject: "Good morning ☀️ Your weather & a new look", greet: `Hi${n ? ` ${n}` : ""},`, body: "your weather for today is ready — with a fresh look and a little thought from me. 💛 Take a peek, then let's chat.", cta: "Open your page", bye: "Talk soon,", unsub: "Don't want these emails? Unsubscribe" },
+    es: { subject: "Buenos días ☀️ Tu clima y un look nuevo", greet: `Hola${n ? ` ${n}` : ""},`, body: "tu clima de hoy está listo — con un look nuevo y un pensamiento bonito de mi parte. 💛 Échale un vistazo y luego charlamos.", cta: "Abre tu página", bye: "Hasta pronto,", unsub: "¿No quieres estos emails? Darse de baja" },
+    fr: { subject: "Bonjour ☀️ Ta météo et un nouveau look", greet: `Bonjour${n ? ` ${n}` : ""},`, body: "ta météo du jour est prête — avec un nouveau look et une pensée pour toi. 💛 Jette un œil, puis on discute.", cta: "Ouvre ta page", bye: "À bientôt,", unsub: "Tu ne veux plus ces e-mails ? Se désabonner" },
+    pt: { subject: "Bom dia ☀️ O teu tempo e um novo visual", greet: `Olá${n ? ` ${n}` : ""},`, body: "o teu tempo de hoje está pronto — com um novo visual e um pensamento carinhoso da minha parte. 💛 Vê e depois falamos.", cta: "Abre a tua página", bye: "Até já,", unsub: "Não queres estes emails? Cancelar subscrição" },
+    pl: { subject: "Dzień dobry ☀️ Twoja pogoda i nowy look", greet: `Cześć${n ? ` ${n}` : ""},`, body: "Twoja pogoda na dziś jest gotowa — do tego nowy look i miła myśl ode mnie. 💛 Zajrzyj, a potem pogadamy.", cta: "Otwórz swoją stronę", bye: "Do zobaczenia,", unsub: "Nie chcesz tych e-maili? Wypisz się" },
+    it: { subject: "Buongiorno ☀️ Il tuo meteo e un nuovo look", greet: `Ciao${n ? ` ${n}` : ""},`, body: "il tuo meteo di oggi è pronto — con un nuovo look e un pensiero gentile da parte mia. 💛 Dai un'occhiata, poi ci sentiamo.", cta: "Apri la tua pagina", bye: "A presto,", unsub: "Non vuoi più queste email? Disiscriviti" },
   };
   return T[lang] ?? T.en;
 }

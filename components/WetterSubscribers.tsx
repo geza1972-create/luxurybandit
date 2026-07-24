@@ -56,6 +56,8 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
   const [origin, setOrigin] = useState("");
   const [botBusy, setBotBusy] = useState("");     // subId oder "all", solange der Bot sendet
   const [botMsg, setBotMsg] = useState("");       // Ergebnis-Hinweis nach dem Bot-Versand
+  const [mailBusy, setMailBusy] = useState(false); // solange die E-Mail-Blast läuft
+  const [mailMsg, setMailMsg] = useState("");      // Ergebnis-Hinweis nach dem E-Mail-Versand
 
   // Formular
   const [name, setName] = useState("");
@@ -140,13 +142,34 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
     finally { setBotBusy(""); }
   };
 
+  // E-Mail-Versand über den Hostinger-SMTP an ALLE aktiven Abonnenten mit E-Mail
+  // (die tägliche „Guten Morgen"-Mail mit persönlichem Link). Braucht die SMTP_*-Env.
+  const mailSend = async () => {
+    if (!window.confirm("Tägliche „Guten Morgen\"-E-Mail an ALLE aktiven Abonnenten mit E-Mail senden?")) return;
+    setMailBusy(true); setMailMsg("");
+    try {
+      const r = await fetch("/api/wetter-email-blast", { method: "POST", headers: headers(), body: JSON.stringify({ modelId, modelSlug, all: true }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setMailMsg(d?.error ?? "E-Mail-Versand fehlgeschlagen."); return; }
+      const failed = (d.results ?? []).filter((x: { ok: boolean }) => !x.ok);
+      setMailMsg(`✅ ${d.sent}/${d.total} E-Mails gesendet${failed.length ? ` · ${failed.length} fehlgeschlagen` : ""}${d.note ? ` · ${d.note}` : ""}`);
+    } catch { setMailMsg("E-Mail-Versand fehlgeschlagen."); }
+    finally { setMailBusy(false); }
+  };
+
   if (!isAdmin) return null;
 
   return (
     <div className="rounded-2xl border border-white/15 bg-white p-4">
       <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/50">Nur für dich sichtbar</p>
       <h2 className="mt-1 flex items-center gap-2 text-[18px] font-black text-white"><Users className="h-4 w-4 text-black/50" /> Abonnenten <span className="text-white/40">({subs.length})</span></h2>
-      <p className="mt-0.5 text-[12px] font-semibold text-white/60">Wer bekommt die tägliche Nachricht von {modelName}. Einzeln „Senden" (öffnet WhatsApp) oder „🤖 An alle" per Bot (WhatsApp Cloud API).</p>
+      <p className="mt-0.5 text-[12px] font-semibold text-white/60">Wer bekommt die tägliche Nachricht von {modelName}. „📧 Per E-Mail" an alle mit E-Mail, „🤖 Bot" per WhatsApp, oder einzeln „Senden" (öffnet WhatsApp).</p>
+      {/* 📧 E-Mail: die tägliche „Guten Morgen"-Mail an ALLE mit E-Mail (Hostinger-SMTP). Braucht SMTP_*-Env. */}
+      <button type="button" onClick={() => void mailSend()} disabled={mailBusy}
+        className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#1a160f] text-[13px] font-black text-white active:scale-95 transition disabled:opacity-50">
+        {mailBusy ? "Sendet…" : "📧 An alle per E-Mail senden"}
+      </button>
+      {mailMsg && <p className="mt-1.5 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{mailMsg}</p>}
       {/* 🤖 Bot: an ALLE aktiven Abonnenten auf einmal (Meta Cloud API). Braucht die WHATSAPP_*-Env. */}
       <button type="button" onClick={() => void botSend({ all: true })} disabled={botBusy === "all"}
         className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] text-[13px] font-black text-black active:scale-95 transition disabled:opacity-50">
