@@ -165,7 +165,10 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
   // `return null` here — the Account sheet (opened via the "lb-open-account" event from
   // the feed's top header) must stay mounted, otherwise admins on the /admin-mirrored
   // feed (/admin/stores) can't open their account menu at all.
-  const hideChrome = !forceShow && (
+  // Manage-/Admin-Views (?admin=1) behalten IMMER das Menü — auch auf Pfaden, die es sonst
+  // ausblenden (z. B. /themes/tryon). So haben alle Card-Tool-Seiten dasselbe Menü (CI).
+  const adminView = (searchParams.get("admin") ?? "") === "1";
+  const hideChrome = !forceShow && !adminView && (
     // (Admin pages keep the bottom nav too — the admin wants to jump around from anywhere.)
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/login") ||

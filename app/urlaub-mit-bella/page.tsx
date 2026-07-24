@@ -18,7 +18,7 @@ export default async function UrlaubMitBellaPage() {
   const first = (card?.name || "Bella").split(" ")[0];
 
   return (
-    <main className="min-h-screen bg-[#0d0b0a] text-white">
+    <main className="lb-bg min-h-screen text-white">
       <LandingHeader />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
         {/* Hero */}

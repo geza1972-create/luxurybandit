@@ -24,7 +24,7 @@ export default async function TryOnThemePage({ searchParams }: {
   const showAdmin = String(sp.admin ?? "") === "1";   // Admin-Werkzeuge NUR mit ?admin=1
 
   return (
-    <main className="min-h-screen bg-[#0d0b0a] text-white">
+    <main className="lb-bg min-h-screen text-white">
       <TopNav />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
         {/* Hero */}
