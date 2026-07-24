@@ -89,6 +89,7 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
   const [appliedId, setAppliedId] = useState("");
   const [suggestingId, setSuggestingId] = useState("");   // „✨ KI-Vorschlag" läuft für diesen Beitrag
   const [error, setError] = useState("");
+  const [confirmDelId, setConfirmDelId] = useState("");   // Zwei-Tipp-Löschen (kein window.confirm — auf Handy oft unterdrückt)
   const [zoom, setZoom] = useState<{ url: string; kind: "image" | "video" } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const replaceRef = useRef<HTMLInputElement>(null);
@@ -283,7 +284,7 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
       setDirtyIds(ids => ids.filter(x => x !== id));
       return;
     }
-    if (!window.confirm("Den GANZEN Beitrag löschen — Bild und Text?\n\nNur ein neues Bild? Dann „Bild tauschen“ nehmen.")) return;
+    setConfirmDelId("");
     setPosts(ps => ps.filter(p => p.id !== id));
     try {
       const r = await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify({ remove: id }) });
@@ -449,9 +450,16 @@ export default function BellaSimpleStudio({ modelId = "curator-1783683672619-td4
                       </button>
                     </>
                   )}
-                  <button type="button" onClick={() => void remove(p.id)}
-                    className="flex h-10 items-center gap-1.5 rounded-lg border border-red-400/40 px-3 text-[12px] font-black text-red-300 active:scale-95 transition">
-                    <Trash2 className="h-3.5 w-3.5" /> {istEntwurf(p.id) ? "Verwerfen" : "Beitrag löschen"}
+                  <button type="button"
+                    onClick={() => {
+                      // Entwurf: sofort verwerfen. Sonst: erster Tipp schärft, zweiter löscht (kein window.confirm).
+                      if (istEntwurf(p.id)) { void remove(p.id); return; }
+                      if (confirmDelId === p.id) { void remove(p.id); return; }
+                      setConfirmDelId(p.id);
+                      setTimeout(() => setConfirmDelId(x => (x === p.id ? "" : x)), 4000);
+                    }}
+                    className={`flex h-10 items-center gap-1.5 rounded-lg border px-3 text-[12px] font-black active:scale-95 transition ${confirmDelId === p.id ? "border-red-500 bg-red-500 text-white" : "border-red-400/40 text-red-300"}`}>
+                    <Trash2 className="h-3.5 w-3.5" /> {istEntwurf(p.id) ? "Verwerfen" : confirmDelId === p.id ? "Wirklich löschen?" : "Beitrag löschen"}
                   </button>
                   {/* Speichern gilt NUR für diesen Beitrag. */}
                   {/* Solange das Bild noch hochlädt, darf hier NICHT gespeichert werden —
