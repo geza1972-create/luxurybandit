@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { addDailySignup } from "@/lib/try-this-look-store";
 import { notifyAdminWhatsApp } from "@/lib/notify-admin";
+import { dialInfo } from "@/lib/dial-code";
 
 export const runtime = "nodejs";
 
@@ -96,13 +97,19 @@ export async function POST(request: Request) {
       const f = mapFields(data.field_data);
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email) && !f.whatsapp) continue; // ohne Kontakt kein Lead
 
+      // REGEL: Keine Stadt/kein Land angegeben → Land + Sprache aus der Telefon-Vorwahl
+      // (die bestimmt dann den Wetter-Ort). Angegebene Werte haben immer Vorrang.
+      const dial = dialInfo(f.whatsapp);
+      const country = f.country || dial?.country || "";
+      const lang = dial?.lang || "ro";
+
       const isNew = await addDailySignup({
         email: f.email || `lead-${leadId}@meta.local`, // Platzhalter, falls nur Telefon vorliegt
-        firstName: f.firstName, city: f.city, country: f.country, whatsapp: f.whatsapp,
-        lang: "ro", source: "meta-lead-ad",
+        firstName: f.firstName, city: f.city, country, whatsapp: f.whatsapp,
+        lang, source: "meta-lead-ad",
       });
       if (isNew) {
-        const loc = [f.city, f.country].filter(Boolean).join(", ");
+        const loc = [f.city, country].filter(Boolean).join(", ");
         try {
           notifyAdminWhatsApp(`🎯 Neuer Meta-Lead: ${f.firstName || "(ohne Namen)"}${f.whatsapp ? ` · 📱 ${f.whatsapp}` : ""}${f.email ? ` · ${f.email}` : ""}${loc ? ` · ${loc}` : ""}`);
         } catch { /* egal */ }
