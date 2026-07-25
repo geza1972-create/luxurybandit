@@ -51,7 +51,9 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [sent, setSent] = useState<Record<string, boolean>>({});   // lokal abgehakt = „heute gesendet"
+  const [sent, setSent] = useState<Record<string, boolean>>({});   // nach Versand grün markiert = „heute gesendet"
+  const [selected, setSelected] = useState<Set<string>>(new Set()); // Kästchen = ausgewählt zum Senden
+  const [armSend, setArmSend] = useState("");                       // Zwei-Tipp-Bestätigung (kein window.confirm — Handy)
   const [copiedId, setCopiedId] = useState("");
   const [origin, setOrigin] = useState("");
   const [botBusy, setBotBusy] = useState("");     // subId oder "all", solange der Bot sendet
@@ -126,10 +128,15 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
     catch { window.prompt("Link kopieren:", personalLink(s)); }
   };
 
-  // Bot-Versand über die WhatsApp Cloud API (Meta) — einzeln ({ s }) oder an alle ({ all:true }).
-  const botSend = async (payload: { s?: string; all?: boolean }) => {
-    const key = payload.all ? "all" : String(payload.s ?? "");
-    if (payload.all && !window.confirm("Tägliche Nachricht per WhatsApp-Bot an ALLE aktiven Abonnenten senden?")) return;
+  // Auswahl: nur Abonnenten mit Nummer, die nicht abgemeldet sind, sind sendbar.
+  const selectable = subs.filter(s => !!s.phone && !s.unsubscribed);
+  const allSelected = selectable.length > 0 && selectable.every(s => selected.has(s.id));
+  const toggleSel = (id: string) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const selectAll = () => setSelected(allSelected ? new Set() : new Set(selectable.map(s => s.id)));
+
+  // Bot-Versand über die WhatsApp Cloud API (Meta) — einzeln ({ s }), an eine Auswahl ({ ids }) oder an alle ({ all:true }).
+  const botSend = async (payload: { s?: string; all?: boolean; ids?: string[] }) => {
+    const key = payload.all ? "all" : payload.ids ? "selected" : String(payload.s ?? "");
     setBotBusy(key); setBotMsg("");
     try {
       const r = await fetch("/api/wetter-send", { method: "POST", headers: headers(), body: JSON.stringify({ modelId, modelSlug, ...payload }) });
@@ -137,9 +144,20 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
       if (!r.ok) { setBotMsg(d?.error ?? "Bot-Versand fehlgeschlagen."); return; }
       const failed = (d.results ?? []).filter((x: { ok: boolean }) => !x.ok);
       setBotMsg(`✅ ${d.sent}/${d.total} gesendet${failed.length ? ` · ${failed.length} fehlgeschlagen (${failed.map((x: { name: string }) => x.name).join(", ")})` : ""}${d.note ? ` · ${d.note}` : ""}`);
-      if (payload.s && d.sent) setSent(prev => ({ ...prev, [payload.s as string]: true }));
+      // Erfolgreich Versendete grün abhaken; bei Auswahl-Versand die Auswahl leeren.
+      const doneIds = payload.ids ?? (payload.s ? [payload.s] : []);
+      if (d.sent && doneIds.length) setSent(prev => { const n = { ...prev }; doneIds.forEach(i => { n[i] = true; }); return n; });
+      if (payload.ids) setSelected(new Set());
     } catch { setBotMsg("Bot-Versand fehlgeschlagen."); }
     finally { setBotBusy(""); }
+  };
+
+  // „An N senden": erster Tipp schärft (Handy-sicher, kein window.confirm), zweiter sendet.
+  const sendSelected = () => {
+    if (selected.size === 0) return;
+    if (armSend !== "selected") { setArmSend("selected"); setTimeout(() => setArmSend(a => (a === "selected" ? "" : a)), 4000); return; }
+    setArmSend("");
+    void botSend({ ids: [...selected] });
   };
 
   // E-Mail-Versand über den Hostinger-SMTP an ALLE aktiven Abonnenten mit E-Mail
@@ -163,18 +181,25 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
     <div className="rounded-2xl border border-white/15 bg-white p-4">
       <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/50">Nur für dich sichtbar</p>
       <h2 className="mt-1 flex items-center gap-2 text-[18px] font-black text-white"><Users className="h-4 w-4 text-black/50" /> Abonnenten <span className="text-white/40">({subs.length})</span></h2>
-      <p className="mt-0.5 text-[12px] font-semibold text-white/60">Wer bekommt die tägliche Nachricht von {modelName}. „📧 Per E-Mail" an alle mit E-Mail, „🤖 Bot" per WhatsApp, oder einzeln „Senden" (öffnet WhatsApp).</p>
+      <p className="mt-0.5 text-[12px] font-semibold text-white/60">Wer bekommt die tägliche Nachricht von {modelName}. Wähle unten die Empfänger (einzeln oder „Alle") und sende per WhatsApp-Bot, oder „📧 Per E-Mail" an alle mit E-Mail.</p>
       {/* 📧 E-Mail: die tägliche „Guten Morgen"-Mail an ALLE mit E-Mail (Hostinger-SMTP). Braucht SMTP_*-Env. */}
       <button type="button" onClick={() => void mailSend()} disabled={mailBusy}
         className="lb-onmedia mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#1a160f] text-[13px] font-black text-white active:scale-95 transition disabled:opacity-50">
         {mailBusy ? "Sendet…" : "📧 An alle per E-Mail senden"}
       </button>
       {mailMsg && <p className="mt-1.5 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{mailMsg}</p>}
-      {/* 🤖 Bot: an ALLE aktiven Abonnenten auf einmal (Meta Cloud API). Braucht die WHATSAPP_*-Env. */}
-      <button type="button" onClick={() => void botSend({ all: true })} disabled={botBusy === "all"}
-        className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] text-[13px] font-black text-black active:scale-95 transition disabled:opacity-50">
-        {botBusy === "all" ? "Sendet…" : "🤖 An alle senden (Bot)"}
-      </button>
+      {/* 🤖 Bot-Versand an die AUSGEWÄHLTEN (Kästchen unten). „Alle" wählt alle Sendbaren. */}
+      <div className="mt-2 flex items-center gap-2">
+        <button type="button" onClick={selectAll}
+          className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-white/20 px-3 text-[12px] font-black text-white/80 active:scale-95 transition">
+          {allSelected ? "Keine" : "Alle"} <span className="text-white/40">({selectable.length})</span>
+        </button>
+        <span className="text-[12px] font-black text-white/60">{selected.size} ausgewählt</span>
+        <button type="button" onClick={sendSelected} disabled={selected.size === 0 || botBusy === "selected"}
+          className={`ml-auto flex h-10 items-center justify-center gap-1.5 rounded-lg px-3 text-[12px] font-black active:scale-95 transition disabled:opacity-40 ${armSend === "selected" ? "bg-red-500 text-white" : "bg-[#25D366] text-black"}`}>
+          {botBusy === "selected" ? "Sendet…" : armSend === "selected" ? `Wirklich an ${selected.size}?` : `🤖 An ${selected.size} senden`}
+        </button>
+      </div>
       {botMsg && <p className="mt-1.5 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{botMsg}</p>}
       {/* Schnell-Überblick: an wen NICHT mehr senden. */}
       {(() => {
@@ -244,11 +269,11 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
           {subs.map(s => {
             const wa = waLink(s);
             return (
-              <div key={s.id} className={`min-w-0 overflow-hidden rounded-xl border p-2.5 ${s.unsubscribed ? "border-red-500/20 bg-red-500/[0.04] opacity-60" : sent[s.id] ? "border-emerald-400/30 bg-emerald-400/[0.06]" : "border-white/10 bg-white/[0.03]"}`}>
+              <div key={s.id} className={`min-w-0 overflow-hidden rounded-xl border p-2.5 ${s.unsubscribed ? "border-red-500/20 bg-red-500/[0.04] opacity-60" : selected.has(s.id) ? "border-emerald-400/60 bg-emerald-400/[0.09]" : sent[s.id] ? "border-emerald-400/30 bg-emerald-400/[0.06]" : "border-white/10 bg-white/[0.03]"}`}>
               <div className="flex items-start gap-2">
-                {/* Abhaken = „heute gesendet" (lokal). */}
-                <button type="button" onClick={() => setSent(m => ({ ...m, [s.id]: !m[s.id] }))} aria-label="Als gesendet markieren"
-                  className={`mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md border-2 transition ${sent[s.id] ? "border-emerald-400 bg-emerald-400 text-black" : "border-white/30 text-transparent"}`}>
+                {/* Kästchen = zum Senden AUSWÄHLEN. Abgemeldete / ohne Nummer sind nicht wählbar. */}
+                <button type="button" onClick={() => toggleSel(s.id)} disabled={!!s.unsubscribed || !s.phone} aria-label="Zum Senden auswählen"
+                  className={`mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md border-2 transition disabled:opacity-30 ${selected.has(s.id) ? "border-emerald-400 bg-emerald-400 text-black" : sent[s.id] ? "border-emerald-400/50 text-emerald-400" : "border-white/30 text-transparent"}`}>
                   <Check className="h-4 w-4" />
                 </button>
                 <div className="min-w-0 flex-1 space-y-0.5">

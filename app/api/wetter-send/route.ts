@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
   if (!whatsappCloudConfigured()) return NextResponse.json({ error: "WhatsApp-Bot nicht eingerichtet — Env-Variablen fehlen (WHATSAPP_TOKEN / WHATSAPP_PHONE_NUMBER_ID / WHATSAPP_TEMPLATE)." }, { status: 400 });
 
-  const body = (await request.json().catch(() => ({}))) as { modelId?: string; modelSlug?: string; s?: string; all?: boolean };
+  const body = (await request.json().catch(() => ({}))) as { modelId?: string; modelSlug?: string; s?: string; all?: boolean; ids?: string[] };
   const modelId = String(body.modelId ?? "").trim();
   const modelSlug = String(body.modelSlug ?? "").trim() || "bella";
   // Links gehen per WhatsApp an echte Leute → NIE localhost. Prod-URL erzwingen.
@@ -22,9 +22,14 @@ export async function POST(request: Request) {
   const eligibleAll = (s: WetterSubscriber) => !!s.phone && s.confirmed === true && s.unsubscribed !== true;
   const eligibleOne = (s: WetterSubscriber) => !!s.phone && s.unsubscribed !== true;
   const subs = await readWetterSubscribers(modelId);
+  // Auswahl (ids) ODER an alle ODER einzeln. Bei einer bewussten Auswahl reicht
+  // Nummer + nicht abgemeldet (Bestätigung egal — der Admin wählt bewusst).
+  const idSet = Array.isArray(body.ids) ? new Set(body.ids.map(String)) : null;
   const targets = body.all
     ? subs.filter(eligibleAll)
-    : subs.filter(s => s.id === String(body.s ?? "") && eligibleOne(s));
+    : idSet && idSet.size
+      ? subs.filter(s => idSet.has(s.id) && eligibleOne(s))
+      : subs.filter(s => s.id === String(body.s ?? "") && eligibleOne(s));
 
   if (targets.length === 0) return NextResponse.json({ sent: 0, total: 0, results: [], note: "Keine passenden Empfänger (Nummer + bestätigt + nicht abgemeldet)." });
 
