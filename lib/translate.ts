@@ -13,13 +13,21 @@ export async function translateMany(texts: string[], lang: string): Promise<stri
   if (!target) return out;                                  // Sprache nicht unterstützt → Original
   if (!texts.some(t => t && t.trim())) return out;          // nichts zu tun
 
+  // Schutz vor „Identitäts-Vergiftung": Die Beiträge werden auf RUMÄNISCH verfasst.
+  // Fragt man GPT „RO→RO", dreht es den bereits rumänischen Text gelegentlich fälschlich
+  // ins Englische und cached das DAUERHAFT (Cache wird nie neu übersetzt) → jeder RO-Leser
+  // sähe Englisch. Enthält der Text rumänische Diakritika und ist RO das Ziel, ist er schon
+  // rumänisch → Original behalten, gar nicht erst die API fragen.
+  const alreadyTarget = (t: string) => lang === "ro" && /[ăâîșțĂÂÎȘȚ]/.test(t);
+
   const cache = await readTranslationCache();
   const misses: { i: number; text: string; key: string }[] = [];
   texts.forEach((t, i) => {
     if (!t || !t.trim()) { out[i] = t; return; }
     const key = `${lang}::${t}`;
-    if (cache[key] != null) out[i] = cache[key];
-    else misses.push({ i, text: t, key });
+    if (cache[key] != null) { out[i] = cache[key]; return; }
+    if (alreadyTarget(t)) { out[i] = t; return; }   // schon in Zielsprache → Original, keine API
+    misses.push({ i, text: t, key });
   });
 
   if (misses.length && process.env.OPENAI_API_KEY) {
@@ -31,7 +39,7 @@ export async function translateMany(texts: string[], lang: string): Promise<stri
           model: "gpt-4o-mini", temperature: 0,
           messages: [{
             role: "user",
-            content: `Translate each string in this JSON array into ${target}. Keep emojis, names and tone. If a string is already in ${target}, return it unchanged. Return ONLY a JSON array of the translated strings, same length and order.\n\n${JSON.stringify(misses.map(m => m.text))}`,
+            content: `Translate each string in this JSON array into ${target}. Keep emojis, names and tone. If a string is ALREADY in ${target}, return it EXACTLY unchanged — never translate it into any other language. The output must be in ${target} only. Return ONLY a JSON array of the translated strings, same length and order.\n\n${JSON.stringify(misses.map(m => m.text))}`,
           }],
         }),
       });
