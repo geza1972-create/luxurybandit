@@ -153,24 +153,28 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
   };
 
   // „An N senden": erster Tipp schärft (Handy-sicher, kein window.confirm), zweiter sendet.
-  const sendSelected = () => {
+  // channel „mail" = E-Mail (funktioniert immer), „bot" = WhatsApp (nur Test-Nummern-Liste).
+  const sendSelected = (channel: "mail" | "bot") => {
     if (selected.size === 0) return;
-    if (armSend !== "selected") { setArmSend("selected"); setTimeout(() => setArmSend(a => (a === "selected" ? "" : a)), 4000); return; }
+    if (armSend !== channel) { setArmSend(channel); setTimeout(() => setArmSend(a => (a === channel ? "" : a)), 4000); return; }
     setArmSend("");
-    void botSend({ ids: [...selected] });
+    if (channel === "mail") void mailSend({ ids: [...selected] });
+    else void botSend({ ids: [...selected] });
   };
 
   // E-Mail-Versand über den Hostinger-SMTP an ALLE aktiven Abonnenten mit E-Mail
   // (die tägliche „Guten Morgen"-Mail mit persönlichem Link). Braucht die SMTP_*-Env.
-  const mailSend = async () => {
-    if (!window.confirm("Tägliche „Guten Morgen\"-E-Mail an ALLE aktiven Abonnenten mit E-Mail senden?")) return;
+  const mailSend = async (payload: { ids?: string[]; all?: boolean }) => {
     setMailBusy(true); setMailMsg("");
     try {
-      const r = await fetch("/api/wetter-email-blast", { method: "POST", headers: headers(), body: JSON.stringify({ modelId, modelSlug, all: true }) });
+      const r = await fetch("/api/wetter-email-blast", { method: "POST", headers: headers(), body: JSON.stringify({ modelId, modelSlug, ...payload }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setMailMsg(d?.error ?? "E-Mail-Versand fehlgeschlagen."); return; }
       const failed = (d.results ?? []).filter((x: { ok: boolean }) => !x.ok);
       setMailMsg(`✅ ${d.sent}/${d.total} E-Mails gesendet${failed.length ? ` · ${failed.length} fehlgeschlagen` : ""}${d.note ? ` · ${d.note}` : ""}`);
+      const doneIds = payload.ids ?? [];
+      if (d.sent && doneIds.length) setSent(prev => { const n = { ...prev }; doneIds.forEach(i => { n[i] = true; }); return n; });
+      if (payload.ids) setSelected(new Set());
     } catch { setMailMsg("E-Mail-Versand fehlgeschlagen."); }
     finally { setMailBusy(false); }
   };
@@ -181,25 +185,27 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
     <div className="rounded-2xl border border-white/15 bg-white p-4">
       <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/50">Nur für dich sichtbar</p>
       <h2 className="mt-1 flex items-center gap-2 text-[18px] font-black text-white"><Users className="h-4 w-4 text-black/50" /> Abonnenten <span className="text-white/40">({subs.length})</span></h2>
-      <p className="mt-0.5 text-[12px] font-semibold text-white/60">Wer bekommt die tägliche Nachricht von {modelName}. Wähle unten die Empfänger (einzeln oder „Alle") und sende per WhatsApp-Bot, oder „📧 Per E-Mail" an alle mit E-Mail.</p>
-      {/* 📧 E-Mail: die tägliche „Guten Morgen"-Mail an ALLE mit E-Mail (Hostinger-SMTP). Braucht SMTP_*-Env. */}
-      <button type="button" onClick={() => void mailSend()} disabled={mailBusy}
-        className="lb-onmedia mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[#1a160f] text-[13px] font-black text-white active:scale-95 transition disabled:opacity-50">
-        {mailBusy ? "Sendet…" : "📧 An alle per E-Mail senden"}
-      </button>
-      {mailMsg && <p className="mt-1.5 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{mailMsg}</p>}
-      {/* 🤖 Bot-Versand an die AUSGEWÄHLTEN (Kästchen unten). „Alle" wählt alle Sendbaren. */}
+      <p className="mt-0.5 text-[12px] font-semibold text-white/60">Wer bekommt die tägliche Nachricht von {modelName}. Wähle unten die Empfänger (einzeln oder „Alle") und sende — <b>per E-Mail (empfohlen, geht an alle)</b>. Der WhatsApp-Bot erreicht mit der Test-Nummer nur die bei Meta freigegebenen Nummern.</p>
+      {/* Empfänger-Auswahl (Kästchen unten). „Alle" wählt alle mit Nummer/E-Mail. */}
       <div className="mt-2 flex items-center gap-2">
         <button type="button" onClick={selectAll}
           className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-white/20 px-3 text-[12px] font-black text-white/80 active:scale-95 transition">
           {allSelected ? "Keine" : "Alle"} <span className="text-white/40">({selectable.length})</span>
         </button>
         <span className="text-[12px] font-black text-white/60">{selected.size} ausgewählt</span>
-        <button type="button" onClick={sendSelected} disabled={selected.size === 0 || botBusy === "selected"}
-          className={`ml-auto flex h-10 items-center justify-center gap-1.5 rounded-lg px-3 text-[12px] font-black active:scale-95 transition disabled:opacity-40 ${armSend === "selected" ? "bg-red-500 text-white" : "bg-[#25D366] text-black"}`}>
-          {botBusy === "selected" ? "Sendet…" : armSend === "selected" ? `Wirklich an ${selected.size}?` : `🤖 An ${selected.size} senden`}
+      </div>
+      {/* Zwei Kanäle für die AUSGEWÄHLTEN. E-Mail primär (geht wirklich raus), Bot zweitrangig. */}
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        <button type="button" onClick={() => sendSelected("mail")} disabled={selected.size === 0 || mailBusy}
+          className={`flex h-10 items-center justify-center gap-1.5 rounded-lg px-3 text-[12px] font-black active:scale-95 transition disabled:opacity-40 ${armSend === "mail" ? "bg-red-500 text-white" : "lb-onmedia bg-[#1a160f] text-white"}`}>
+          {mailBusy ? "Sendet…" : armSend === "mail" ? `Wirklich an ${selected.size}?` : `📧 E-Mail an ${selected.size}`}
+        </button>
+        <button type="button" onClick={() => sendSelected("bot")} disabled={selected.size === 0 || botBusy === "selected"}
+          className={`flex h-10 items-center justify-center gap-1.5 rounded-lg px-3 text-[12px] font-black active:scale-95 transition disabled:opacity-40 ${armSend === "bot" ? "bg-red-500 text-white" : "bg-[#25D366] text-black"}`}>
+          {botBusy === "selected" ? "Sendet…" : armSend === "bot" ? `Wirklich an ${selected.size}?` : `🤖 WhatsApp an ${selected.size}`}
         </button>
       </div>
+      {mailMsg && <p className="mt-1.5 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{mailMsg}</p>}
       {botMsg && <p className="mt-1.5 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{botMsg}</p>}
       {/* Schnell-Überblick: an wen NICHT mehr senden. */}
       {(() => {
