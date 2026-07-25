@@ -209,7 +209,7 @@ export default async function WetterModelPage({ params, searchParams }: {
           {justConfirmed && (
             <p className="mx-auto max-w-md px-4 pt-4 text-center text-[13px] font-black text-emerald-400">{CONFIRMED_TEXT[subLang] ?? CONFIRMED_TEXT.ro}</p>
           )}
-          <WetterSubscriberView name={subName} city={subCity} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken} email={subEmail}
+          <WetterSubscriberView name={subName} city={subCity || ipCity || FALLBACK_CITY[subLang] || "London"} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken} email={subEmail}
             day={dayLook?.day || ""} time={dayLook?.time || ""}
             title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.context || ""} dayContext={dayLook?.context || ""}
             look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />
