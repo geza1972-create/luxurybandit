@@ -18,7 +18,17 @@ const DEFAULT_MODEL_ID = "curator-1783683672619-td4cy"; // Bella = Fallback/erst
 const DEFAULT_LANG = "ro";
 
 // {Name} / {name} im Titel durch den echten Namen ersetzen (feste Vorgabe wird personalisiert).
-const personalizeName = (text: string, name: string) => text.replace(/\{\s*name\s*\}/gi, name);
+// Kein Name bekannt? Dann Platzhalter SAMT davorstehendem Komma entfernen und Satzzeichen
+// glätten — sonst käme „Guten Morgen, !" beim Abonnenten an.
+const personalizeName = (text: string, name: string) => {
+  const n = (name || "").trim();
+  if (n) return text.replace(/\{\s*name\s*\}/gi, n);
+  return text
+    .replace(/[,،]?\s*\{\s*name\s*\}/gi, "")   // „, {Name}" bzw. „{Name}" weg
+    .replace(/\s+([!?.,])/g, "$1")             // Leerzeichen vor Satzzeichen
+    .replace(/,\s*([!?])/g, "$1")              // „, !" → „!"
+    .trim();
+};
 
 // Die KI beendet ihre Nachricht mit diesem Tag, wenn sie anbietet, sich „in etwas Heißem"
 // zu zeigen. Der Chat blendet den Tag aus und zeigt stattdessen eine Look-Galerie
@@ -275,10 +285,14 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         {dateLabel && <p className="mb-1 text-[11px] font-black uppercase tracking-[0.14em] text-amber-400">📅 {dateLabel}</p>}
         {title.trim()
           ? <p className="text-[24px] font-black leading-tight text-white">{personalizeName(title, name)}</p>
-          : <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-amber-400">{name}!</span></p>}
-        <p className="mt-1 text-[14px] font-semibold text-white/70">
-          {weather ? forecastLine(L, city, weather.word, weather.e, weather.min, weather.max, weather.rainy) : t.wxLoading(city)}
-        </p>
+          : name.trim()
+            ? <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-amber-400">{name}!</span></p>
+            : <p className="text-[24px] font-black leading-tight text-white">{t.greetPre.replace(/[,،]\s*$/, "")}!</p>}
+        {city.trim() && (
+          <p className="mt-1 text-[14px] font-semibold text-white/70">
+            {weather ? forecastLine(L, city, weather.word, weather.e, weather.min, weather.max, weather.rainy) : t.wxLoading(city)}
+          </p>
+        )}
         {caption.trim() && <p className="mt-2.5 whitespace-pre-wrap text-[15px] font-semibold leading-relaxed text-white/70">{caption}</p>}
       </div>
 
