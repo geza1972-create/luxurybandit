@@ -182,7 +182,7 @@ export default async function WetterModelPage({ params, searchParams }: {
     // Seite: DUNKLER Kopfbereich (Header mit weißem Namen), darunter HELLER Inhalt.
     // Nur Logo oben (TopNav noMenu) — das Menü bleibt UNTEN (BottomNav), kein Doppel-Menü.
     <main className="lb-bg text-white">
-      <WetterTrack modelId={modelId} />
+      <WetterTrack modelId={modelId} subId={subToken} src={String(sp.src ?? "")} />
       <TopNav />
 
       {/* Kopf — volle Breite (NICHT in einer Box). Dunkel, Name weiß. */}

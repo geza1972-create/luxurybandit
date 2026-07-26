@@ -1472,6 +1472,38 @@ export async function writeWetterSubscribers(subscribers: WetterSubscriber[], mo
   if (!res.ok) throw new Error("Abonnenten konnten nicht gespeichert werden.");
 }
 
+// ── Wetter-Klick-Tracking ───────────────────────────────────────────────────
+// EIGENER Blob (nicht die Abonnentenliste anfassen → nie clobbern). Map je Abonnent:
+// { count, lastAt, src }. „geöffnet" = er hat den Link (E-Mail/WhatsApp) angeklickt.
+export type WetterClick = { count: number; lastAt: string; src?: string };
+function wetterClicksPath(modelId?: string) {
+  const id = (modelId ?? "").trim();
+  return (!id || id === BELLA_STUDIO_ID)
+    ? "try-this-look/wetter-clicks.json"
+    : `try-this-look/wetter-clicks-${id.replace(/[^a-zA-Z0-9-]/g, "")}.json`;
+}
+export async function readWetterClicks(modelId?: string): Promise<Record<string, WetterClick>> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(wetterClicksPath(modelId))}`);
+    if (!res.ok) return {};
+    const data = await res.json().catch(() => null);
+    return (data && typeof data === "object" && data.clicks && typeof data.clicks === "object") ? data.clicks as Record<string, WetterClick> : {};
+  } catch { return {}; }
+}
+export async function recordWetterClick(subId: string, src: string, modelId?: string): Promise<void> {
+  const id = String(subId || "").trim();
+  if (!id) return;
+  await ensureBucket();
+  const clicks = await readWetterClicks(modelId);
+  const prev = clicks[id];
+  clicks[id] = { count: (prev?.count ?? 0) + 1, lastAt: new Date().toISOString(), src: String(src || prev?.src || "") };
+  await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(wetterClicksPath(modelId))}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body: JSON.stringify({ clicks, updatedAt: new Date().toISOString() }),
+  }).catch(() => {});
+}
+
 // ── Übersetzungs-Cache ──────────────────────────────────────────────────────
 // Beitrags-Texte werden EINMAL pro Sprache übersetzt und hier gespeichert, damit
 // nicht jeder Seitenaufruf eine (kostenpflichtige) Übersetzung auslöst. Key = "<lang>::<text>".

@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   for (const s of targets) {
     const lang = (s.lang || "en").slice(0, 5);   // Standard = EN, wenn keine Sprache bekannt
     const c = copy(lang, s.name || "");
-    const link = `${origin}/themes/wetter/${encodeURIComponent(modelSlug)}?s=${encodeURIComponent(s.id)}`;
+    const link = `${origin}/themes/wetter/${encodeURIComponent(modelSlug)}?s=${encodeURIComponent(s.id)}&src=email`;
     const unsub = `${origin}/api/wetter-unsubscribe?model=${encodeURIComponent(modelId)}&s=${encodeURIComponent(s.id)}&lang=${encodeURIComponent(lang)}`;
     const r = await sendEmail({ to: s.email as string, subject: c.subject, html: buildHtml(c, link, unsub) }).catch(() => ({ ok: false, error: "send failed" as string }));
     results.push({ id: s.id, email: s.email as string, ok: !!(r as { ok?: boolean }).ok, error: (r as { error?: string }).error });

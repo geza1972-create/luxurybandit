@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   const modelSlug = String(body.modelSlug ?? "").trim() || "bella";
   // Links gehen per WhatsApp an echte Leute → NIE localhost. Prod-URL erzwingen.
   const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://luxurybandit.com";
-  const link = (s: WetterSubscriber) => `${origin}/themes/wetter/${encodeURIComponent(modelSlug)}?s=${encodeURIComponent(s.id)}`;
+  const link = (s: WetterSubscriber) => `${origin}/themes/wetter/${encodeURIComponent(modelSlug)}?s=${encodeURIComponent(s.id)}&src=wa`;
 
   // „An alle": nur Nummer + E-Mail bestätigt + nicht abgemeldet (Anti-Spam).
   // Einzel-Klick (Admin wählt bewusst): nur Nummer + nicht abgemeldet (Bestätigung egal → Test).

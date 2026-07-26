@@ -48,6 +48,7 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
   const [isAdmin, setIsAdmin] = useState(false);
   const [pin, setPin] = useState("");
   const [subs, setSubs] = useState<Sub[]>([]);
+  const [clicks, setClicks] = useState<Record<string, { count: number; lastAt: string; src?: string }>>({});   // wer den Link geöffnet hat
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -91,7 +92,7 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
   const load = async () => {
     try {
       const r = await fetch(apiUrl, { headers: { "x-try-look-admin-pin": pin }, cache: "no-store" });
-      if (r.ok) { const d = await r.json(); setSubs(d.subscribers ?? []); }
+      if (r.ok) { const d = await r.json(); setSubs(d.subscribers ?? []); setClicks(d.clicks ?? {}); }
     } catch { /**/ } finally { setLoading(false); }
   };
   useEffect(() => { if (isAdmin && pin) void load(); else setLoading(false); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [isAdmin, pin]);
@@ -184,7 +185,9 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
   return (
     <div className="rounded-2xl border border-white/15 bg-white p-4">
       <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/50">Nur für dich sichtbar</p>
-      <h2 className="mt-1 flex items-center gap-2 text-[18px] font-black text-white"><Users className="h-4 w-4 text-black/50" /> Abonnenten <span className="text-white/40">({subs.length})</span></h2>
+      <h2 className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[18px] font-black text-white"><Users className="h-4 w-4 text-black/50" /> Abonnenten <span className="text-white/40">({subs.length})</span>
+        {(() => { const opened = subs.filter(s => clicks[s.id]).length; return opened > 0 ? <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[11px] font-black text-emerald-400">👁 {opened} geöffnet</span> : null; })()}
+      </h2>
       <p className="mt-0.5 text-[12px] font-semibold text-white/60">Wer bekommt die tägliche Nachricht von {modelName}. Wähle unten die Empfänger (einzeln oder „Alle") und sende — <b>per E-Mail (empfohlen, geht an alle)</b>. Der WhatsApp-Bot erreicht mit der Test-Nummer nur die bei Meta freigegebenen Nummern.</p>
       {/* Empfänger-Auswahl (Kästchen unten). „Alle" wählt alle mit Nummer/E-Mail. */}
       <div className="mt-2 flex items-center gap-2">
@@ -294,6 +297,12 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
                         : s.email && (s.confirmed
                           ? <span className="rounded-full bg-emerald-400/15 px-1.5 py-0.5 text-[9px] font-black text-emerald-400">✓ bestätigt</span>
                           : <span className="rounded-full bg-black/[0.07] px-1.5 py-0.5 text-[9px] font-black text-black/55">⏳ unbestätigt</span>)}
+                    {/* Hat den Link (E-Mail/WhatsApp) geöffnet? */}
+                    {clicks[s.id] && (
+                      <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-black text-emerald-500" title={`${clicks[s.id].count}× · ${clicks[s.id].src || ""}`}>
+                        👁 geöffnet {new Date(clicks[s.id].lastAt).toLocaleDateString()}
+                      </span>
+                    )}
                   </p>
                   {/* E-Mail + Telefon VOLLSTÄNDIG (umbrechend, nicht abgeschnitten). */}
                   {s.email && <p className="break-all text-[12px] font-semibold text-white/65">✉ {s.email}</p>}

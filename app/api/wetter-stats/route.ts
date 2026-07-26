@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readWetterStats, bumpWetterStat } from "@/lib/try-this-look-store";
+import { readWetterStats, bumpWetterStat, recordWetterClick } from "@/lib/try-this-look-store";
 import { isAdminRequest } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
@@ -18,8 +18,13 @@ export async function GET(request: Request) {
 // POST { modelId, kind: "view" | "chat" }  (öffentlich) → einen Zähler hochzählen.
 // Der Client sendet NICHT, wenn es die Admin-Session ist (kein Verfälschen).
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { modelId?: string; kind?: string };
+  const body = (await request.json().catch(() => ({}))) as { modelId?: string; kind?: string; subId?: string; src?: string };
   const modelId = String(body.modelId ?? "").trim() || BELLA_ID;
+  // „click" = ein Abonnent hat seinen Link (E-Mail/WhatsApp) geöffnet → pro Person loggen.
+  if (body.kind === "click") {
+    await recordWetterClick(String(body.subId ?? ""), String(body.src ?? ""), modelId);
+    return NextResponse.json({ ok: true });
+  }
   const kind = body.kind === "chat" ? "chat" : "view";
   await bumpWetterStat(kind, modelId);
   return NextResponse.json({ ok: true });

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readWetterSubscribers, writeWetterSubscribers, type WetterSubscriber } from "@/lib/try-this-look-store";
+import { readWetterSubscribers, writeWetterSubscribers, readWetterClicks, type WetterSubscriber } from "@/lib/try-this-look-store";
 import { isAdminRequest } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
@@ -11,8 +11,9 @@ const modelOf = (request: Request) => new URL(request.url).searchParams.get("mod
 // GET  ?model=<id>            → { subscribers: [...] }
 export async function GET(request: Request) {
   if (!(await isAdminRequest(request))) return NextResponse.json({ error: "Admin access required." }, { status: 401 });
-  const subscribers = await readWetterSubscribers(modelOf(request));
-  return NextResponse.json({ subscribers }, { headers: { "Cache-Control": "no-store, max-age=0" } });
+  const modelId = modelOf(request);
+  const [subscribers, clicks] = await Promise.all([readWetterSubscribers(modelId), readWetterClicks(modelId)]);
+  return NextResponse.json({ subscribers, clicks }, { headers: { "Cache-Control": "no-store, max-age=0" } });
 }
 
 // POST { add: { name, email?, phone?, city?, lang?, note? } }  → Abonnent anlegen
