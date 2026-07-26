@@ -107,12 +107,21 @@ export default async function WetterModelPage({ params, searchParams }: {
   const modelId = curator.id;
   const modelName = String(curator.modelName || curator.firstName || "Model").split(" ")[0];
 
-  // Cross-Sell: Teaser für das bezahlte Model (Aria) auf Bellas Wetter-Seite → ihr Profil (Chat 3,99/Tag + Try-ons).
-  const CROSS_ID = "curator-1783844821720-bf178";
-  const crossM = (state.curators ?? []).find(c => (c as { id?: string }).id === CROSS_ID) as { id: string; photoPath?: string; modelName?: string; firstName?: string } | undefined;
-  const crossImg = crossM?.photoPath ? await getSignedUrl(crossM.photoPath).catch(() => "") : "";
-  const crossName = String(crossM?.modelName || crossM?.firstName || "").split(" ")[0];   // echter Anzeigename (Aria)
-  const crossTeaser = (crossM && crossImg && crossName && modelId !== CROSS_ID) ? { name: crossName, img: crossImg, href: `/curator/${crossM.id}` } : null;
+  // Cross-Sell-SLIDER: mehrere bezahlte Models auf Bellas Wetter-Seite → je ihr Profil (Chat 3,99/Tag + Try-ons).
+  // Aria zuerst (aus der Werbung), dann weitere aktive Models mit Foto. Gedeckelt auf 12 (Signieren).
+  const CROSS_FEATURED_ID = "curator-1783844821720-bf178";   // Aria
+  const crossCandidates = (state.curators ?? []).filter(c => {
+    const cc = c as { id?: string; status?: string; photoPath?: string };
+    return cc.id !== modelId && !!cc.photoPath && (cc.status === undefined || cc.status === "active");
+  }) as { id: string; photoPath?: string; modelName?: string; firstName?: string }[];
+  const crossOrdered = [...crossCandidates]
+    .sort((a, b) => (a.id === CROSS_FEATURED_ID ? -1 : 0) - (b.id === CROSS_FEATURED_ID ? -1 : 0))
+    .slice(0, 12);
+  const crossModels = (await Promise.all(crossOrdered.map(async c => {
+    const img = c.photoPath ? await getSignedUrl(c.photoPath).catch(() => "") : "";
+    const name = String(c.modelName || c.firstName || "").split(" ")[0];
+    return (img && name) ? { name, img, href: `/curator/${c.id}` } : null;
+  }))).filter((x): x is { name: string; img: string; href: string } => !!x);
 
   // Kennung → Abonnenten-Datensatz (Login). Name/Stadt/Sprache kommen serverseitig aus
   // dem Datensatz, NICHT aus der URL — Telefon bleibt privat. `?name=` bleibt als Alt-Link.
@@ -230,7 +239,7 @@ export default async function WetterModelPage({ params, searchParams }: {
             <p className="mx-auto max-w-md px-4 pt-4 text-center text-[13px] font-black text-emerald-400">{CONFIRMED_TEXT[subLang] ?? CONFIRMED_TEXT.en}</p>
           )}
           <WetterSubscriberView name={subName} city={subCity || ipCity || FALLBACK_CITY[subLang] || "London"} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken} email={subEmail}
-            locked={locked} paid={paid} modelSlug={model} monthlyCents={2400} crossTeaser={crossTeaser}
+            locked={locked} paid={paid} modelSlug={model} monthlyCents={2400} crossModels={crossModels}
             day={dayLook?.day || ""} time={dayLook?.time || ""}
             title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.context || ""} dayContext={dayLook?.context || ""}
             look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />

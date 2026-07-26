@@ -124,7 +124,7 @@ const T: Record<string, Copy> = {
   },
 };
 
-export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", email = "", day = "", time = "", title = "", caption = "", firstMessage = "", dayContext = "", locked = false, paid = false, modelSlug = "", monthlyCents = 2400, crossTeaser = null }: {
+export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", email = "", day = "", time = "", title = "", caption = "", firstMessage = "", dayContext = "", locked = false, paid = false, modelSlug = "", monthlyCents = 2400, crossModels = [] }: {
   name: string; city: string; look: Look | null; lang?: string; modelId?: string; modelName?: string; subId?: string; email?: string; day?: string; time?: string;
   title?: string;         // „Titel" aus dem Beitrag — groß über dem Text
   caption?: string;       // „Text unter dem Bild" aus dem Beitrag
@@ -134,7 +134,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   paid?: boolean;         // zahlender Abonnent → kein Tages-Chatlimit
   modelSlug?: string;     // für die Rückkehr-URL des Abo-Checkouts
   monthlyCents?: number;  // Abo-Preis (24 € = 2400) für den Freischalt-Button
-  crossTeaser?: { name: string; img: string; href: string } | null;  // Cross-Sell zu einem bezahlten Model (Aria)
+  crossModels?: { name: string; img: string; href: string }[];  // Cross-Sell-Slider zu bezahlten Models
 }) {
   const L = (lang || DEFAULT_LANG).slice(0, 2).toLowerCase();
   const t = T[L] ?? T.en;
@@ -406,28 +406,26 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         {caption.trim() && <p className="mt-2.5 whitespace-pre-wrap text-[15px] font-semibold leading-relaxed text-white/70">{caption}</p>}
       </div>
 
-      {/* Cross-Sell: bezahltes Model (Aria) — Teaser → ihr Profil (Chat + Try-ons). */}
-      {crossTeaser && (() => {
-        const c = crossTeaser;
-        const tt = (({
-          ro: { line: `Prietena lui ${modelName}, ${c.name} 🔥 — vorbește cu ea și probează ținute pe tine.`, cta: "Vezi-o" },
-          de: { line: `${modelName}s Freundin ${c.name} 🔥 — chatte mit ihr & probier Looks an dir.`, cta: "Ansehen" },
-          en: { line: `${modelName}'s friend ${c.name} 🔥 — chat with her & try looks on yourself.`, cta: "See her" },
-          es: { line: `La amiga de ${modelName}, ${c.name} 🔥 — habla con ella y pruébate looks.`, cta: "Verla" },
-          fr: { line: `L'amie de ${modelName}, ${c.name} 🔥 — discute avec elle & essaie des looks.`, cta: "La voir" },
-          pt: { line: `A amiga da ${modelName}, ${c.name} 🔥 — fala com ela e experimenta looks.`, cta: "Ver" },
-          pl: { line: `Przyjaciółka ${modelName}, ${c.name} 🔥 — pogadaj i przymierz looki.`, cta: "Zobacz" },
-          it: { line: `L'amica di ${modelName}, ${c.name} 🔥 — chatta con lei e prova i look.`, cta: "Vedila" },
-        } as Record<string, { line: string; cta: string }>)[L]) ?? { line: `${modelName}'s friend ${c.name} 🔥 — chat with her & try looks on yourself.`, cta: "See her" };
+      {/* Cross-Sell-SLIDER: bezahlte Models → je ihr Profil (Chat + Try-ons). Horizontal scrollbar. */}
+      {crossModels.length > 0 && (() => {
+        const heading = (({ ro: "Descoperă mai multe modele 🔥", de: "Entdecke mehr Models 🔥", en: "Discover more models 🔥", es: "Descubre más modelos 🔥", fr: "Découvre plus de modèles 🔥", pt: "Descobre mais modelos 🔥", pl: "Odkryj więcej modelek 🔥", it: "Scopri più modelle 🔥" } as Record<string, string>)[L]) ?? "Discover more models 🔥";
         return (
-          <a href={c.href} className="mb-8 mt-2 flex items-center gap-3 rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-400/12 to-transparent p-3 transition active:scale-[0.99]">
-            <img src={c.img} alt={c.name} className="h-16 w-16 shrink-0 rounded-xl object-cover" />
-            <div className="min-w-0 flex-1">
-              <p className="text-[15px] font-black text-white">✨ {c.name}</p>
-              <p className="mt-0.5 text-[12px] font-semibold leading-snug text-white/70">{tt.line}</p>
+          <div className="mb-8 mt-3">
+            <p className="mb-2 px-0.5 text-[13px] font-black text-white">{heading}</p>
+            <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {crossModels.map(m => (
+                <a key={m.href} href={m.href} className="group w-[128px] shrink-0 snap-start">
+                  <div className="relative overflow-hidden rounded-2xl border border-amber-400/25">
+                    <img src={m.img} alt={m.name} className="aspect-[3/4] w-full object-cover" />
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-2.5 pb-2 pt-6">
+                      <p className="truncate text-[14px] font-black text-white">{m.name}</p>
+                    </div>
+                    <span className="lb-gold absolute right-1.5 top-1.5 rounded-full px-2 py-0.5 text-[10px] font-black">🔥</span>
+                  </div>
+                </a>
+              ))}
             </div>
-            <span className="lb-gold shrink-0 rounded-full px-3.5 py-2 text-[12px] font-black">{tt.cta} →</span>
-          </a>
+          </div>
         );
       })()}
 
