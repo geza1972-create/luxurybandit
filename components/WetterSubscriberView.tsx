@@ -142,7 +142,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     try { localStorage.setItem(`lb_wetter_sub_${modelId}`, subId); } catch { /**/ }
   }, [subId, modelId]);
 
-  const [weather, setWeather] = useState<{ temp: number; min: number; max: number; word: string; e: string; rainy: boolean } | null>(null);
+  const [weather, setWeather] = useState<{ temp: number; min: number; max: number; word: string; e: string; rainy: boolean; place: string } | null>(null);
   const tzRef = useRef<string>("");   // Zeitzone der Stadt — fürs spätere „Morgen"-Timing pro Land.
 
   // Selbst-Abmeldung (der Abonnent stoppt die tägliche Nachricht direkt hier).
@@ -164,10 +164,17 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   useEffect(() => {
     if (!city) return;
     let ok = true;
+    // Hauptstadt je Sprache — Rückfall, wenn die Stadt unbekannt/falsch geschrieben ist
+    // (z. B. „Timisora"), damit die Vorhersage NIE ewig im Ladezustand hängt.
+    const CAPITAL: Record<string, string> = { ro: "București", de: "Berlin", en: "London", es: "Madrid", fr: "Paris", pt: "Lisboa", pl: "Warszawa", it: "Roma" };
+    const geocode = async (q: string) => {
+      const g = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=${encodeURIComponent(L)}`).then(r => r.json());
+      return g?.results?.[0] ?? null;
+    };
     (async () => {
       try {
-        const g = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=${encodeURIComponent(L)}`).then(r => r.json());
-        const loc = g?.results?.[0];
+        let loc = await geocode(city);
+        if (!loc) loc = await geocode(CAPITAL[L] ?? "London");   // Stadt nicht gefunden → Hauptstadt der Sprache
         if (!loc) return;
         tzRef.current = String(loc.timezone || "");   // ← Zeitzone mit abgefangen (steht bereit für die DB).
         const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=1`).then(r => r.json());
@@ -180,7 +187,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           const max = Math.round(Number(dy?.temperature_2m_max?.[0] ?? c.temperature_2m));
           const min = Math.round(Number(dy?.temperature_2m_min?.[0] ?? c.temperature_2m));
           const rainy = Number(dy?.precipitation_probability_max?.[0] ?? 0) >= 40;
-          setWeather({ temp: now, min, max, word: wxWords[wk.key] ?? "", e: wk.e, rainy });
+          setWeather({ temp: now, min, max, word: wxWords[wk.key] ?? "", e: wk.e, rainy, place: String(loc.name || city) });
         }
       } catch { /**/ }
     })();
@@ -290,7 +297,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             : <p className="text-[24px] font-black leading-tight text-white">{t.greetPre.replace(/[,،]\s*$/, "")}!</p>}
         {city.trim() && (
           <p className="mt-1 text-[14px] font-semibold text-white/70">
-            {weather ? forecastLine(L, city, weather.word, weather.e, weather.min, weather.max, weather.rainy) : t.wxLoading(city)}
+            {weather ? forecastLine(L, weather.place, weather.word, weather.e, weather.min, weather.max, weather.rainy) : t.wxLoading(city)}
           </p>
         )}
         {caption.trim() && <p className="mt-2.5 whitespace-pre-wrap text-[15px] font-semibold leading-relaxed text-white/70">{caption}</p>}
