@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { UserPlus, MessageCircle, Send, Lock, Crown, Maximize2, MapPin } from "lucide-react";
+import { MessageCircle, Send, Lock, Crown, Maximize2, MapPin } from "lucide-react";
 import ModelCardHeader, { MONO_URL } from "./ModelCardHeader";
 
 // Kopf und LB-Monogramm liegen jetzt in ModelCardHeader — Bellas Seite benutzt
@@ -45,7 +45,7 @@ export default function ModelCard({
   id, serial, name, photo, video = "", poster = "", thumbs = [], clips = [],
   isMember = false, onLockedClick, valueLabel,
   looks = 0, bio = "", brands = "", createdAt = "", tagline = "Your vibe, every day 💛", realModel = false, forSale = false, canDownload = false,
-  following = false, onSuperFollow, onChat, country = "", owner = "", ownerId = "", ownerHideName = false, ownerSince = "",
+  onChat, country = "", owner = "", ownerId = "", ownerHideName = false, ownerSince = "",
   title = "", intro = "", sponsor = "", showProfileLink = false, showDates = false, hideOwner = false,
 }: ModelCardProps) {
   const geo = countryInfo(country);
@@ -344,18 +344,12 @@ export default function ModelCard({
       {/* Social-reach vanity stats REMOVED (2026-07-16): no fake followers/likes/views anywhere —
           brand partners must only ever see real, verifiable numbers. */}
 
-      <div className="mt-2.5 flex gap-2 px-3 pb-3">
-        {onSuperFollow ? (
-          <button type="button" onClick={onSuperFollow} className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-white/25 bg-black py-2 text-center text-[13px] font-black text-white active:scale-95 transition">
-            <UserPlus className="h-4 w-4" /> {following ? "Super Following" : "Super Follow"}
-          </button>
-        ) : (
-          <Link href={profile} className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-white/25 bg-black py-2 text-center text-[13px] font-black text-white active:scale-95 transition"><UserPlus className="h-4 w-4" /> Super Follow</Link>
-        )}
+      {/* NUR Chat — groß & gold (Super Follow entfernt). */}
+      <div className="mt-2.5 px-3 pb-3">
         {onChat ? (
-          <button type="button" onClick={onChat} className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-white/25 bg-black py-2 text-center text-[13px] font-black text-white active:scale-95 transition"><MessageCircle className="h-4 w-4" /> Chat with my AI</button>
+          <button type="button" onClick={onChat} className="lb-gold flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[15px] font-black shadow active:scale-95 transition"><MessageCircle className="h-5 w-5" /> Chat with my AI</button>
         ) : (
-          <Link href={profile} className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-white/25 bg-black py-2 text-center text-[13px] font-black text-white active:scale-95 transition"><MessageCircle className="h-4 w-4" /> Chat with my AI</Link>
+          <Link href={profile} className="lb-gold flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[15px] font-black shadow active:scale-95 transition"><MessageCircle className="h-5 w-5" /> Chat with my AI</Link>
         )}
       </div>
 

@@ -1316,18 +1316,7 @@ export default function CuratorPublicPage() {
             {hideBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : profile.ownerHideName ? "🙈 Name hidden — only ID" : "Hide my sponsor name"}
           </button>
         )}
-        {/* Want her exclusively? → her dedicated "Own her" landing + booking page. */}
-        {profile.forSale && !isOwn && (
-          <div className="mt-1 flex flex-col items-center gap-2">
-            <a href={`/own/${id}`} title={`Own ${name}`}
-              className="lb-gold inline-flex items-center justify-center rounded-full px-6 py-3 text-[14px] font-black shadow active:scale-95 transition">
-              Sponsor {name} — get in touch
-            </a>
-            <p className="max-w-xs text-center text-[12px] font-semibold leading-relaxed text-white/85">
-              You sponsor her monthly Growth Score{profile.growPriceLabel ? ` (${profile.growPriceLabel})` : ""} — in return she promotes your products and you can direct her looks.
-            </p>
-          </div>
-        )}
+        {/* Sponsor/Growth-Score-CTA entfernt (2026-07-26) — Monetarisierung läuft über Chat (24 €) + Try-on (3,99 €). */}
         <div className="mt-2 flex items-center gap-3 text-[11px] font-bold text-white/80">
           {profile.genderFocus && <span className="rounded-full bg-white/10 px-2.5 py-1">{profile.genderFocus}</span>}
           {profile.instagram && (
