@@ -162,6 +162,22 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   };
   const lk = LOCK[L] ?? LOCK.en;
   const [showLock, setShowLock] = useState(false);   // Overlay „Credits verbraucht" erst NACH Klick aufs Video
+  const [chatUnlock, setChatUnlock] = useState(false); // im Chat: nach dem 1. Sende-Versuch den Freischalt-Button zeigen
+  // Bellas persönliche „Credits verbraucht"-Antwort, wenn ein gesperrter Abonnent zu senden versucht.
+  const creditsMsg = ((): string => {
+    const n = name.trim() || "";
+    const nm = n ? `${n}, ` : "";
+    return (({
+      ro: `Îmi pare rău ${nm}ți-ai consumat toate creditele 😢 Mi-ar plăcea să vorbim mai departe — dar aplicația asta costă bani. Hai să continuăm: te rog, fii drăguț și acoperă costurile serverului. 💛`,
+      de: `Es tut mir leid ${nm}du hast alle Credits verbraucht 😢 Ich würde so gern mit dir weiterschreiben — aber diese Software kostet leider Geld. Lass uns weiterchatten, sei bitte so lieb und übernimm die Serverkosten. 💛`,
+      en: `I'm so sorry ${nm}you've used all your credits 😢 I'd love to keep chatting with you — but this software costs money. Let's keep going: please be sweet and cover the server costs. 💛`,
+      es: `Lo siento ${nm}has usado todos tus créditos 😢 Me encantaría seguir hablando contigo — pero este software cuesta dinero. Sigamos: por favor sé bueno y cubre los costes del servidor. 💛`,
+      fr: `Je suis désolée ${nm}tu as utilisé tous tes crédits 😢 J'adorerais continuer à te parler — mais ce logiciel coûte de l'argent. Continuons : sois gentil et prends en charge les frais de serveur. 💛`,
+      pt: `Desculpa ${nm}usaste todos os teus créditos 😢 Adorava continuar a falar contigo — mas este software custa dinheiro. Vamos continuar: por favor, sê querido e cobre os custos do servidor. 💛`,
+      pl: `Przepraszam ${nm}wykorzystałeś wszystkie kredyty 😢 Chętnie pisałabym z Tobą dalej — ale to oprogramowanie kosztuje. Kontynuujmy: bądź kochany i pokryj koszty serwera. 💛`,
+      it: `Mi dispiace ${nm}hai usato tutti i tuoi crediti 😢 Mi piacerebbe continuare a parlare con te — ma questo software costa. Continuiamo: per favore, sii gentile e copri i costi del server. 💛`,
+    } as Record<string, string>)[L]) ?? `I'm so sorry ${nm}you've used all your credits 😢 This software costs money — please help cover the server costs so we can keep chatting. 💛`;
+  })();
   const [unlocking, setUnlocking] = useState(false);
   const unlock = async () => {
     setUnlocking(true);
@@ -267,6 +283,14 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   const send = async () => {
     const text = input.trim();
     if (!text || sending) return;
+    // GESPERRT: er darf schreiben, aber statt der KI antwortet Bella persönlich, dass die
+    // Credits verbraucht sind → danach der Freischalt-Button. Kein API-Aufruf (keine Kosten).
+    if (locked) {
+      setMessages(m => [...m, { role: "user" as const, content: text }, { role: "assistant" as const, content: creditsMsg }]);
+      setInput("");
+      setChatUnlock(true);
+      return;
+    }
     // Chat-Sitzung EINMAL zählen (nicht als Admin) → Wetter-Insights.
     try {
       const ck = `lb_wetter_chatted_${modelId}`;
@@ -415,24 +439,23 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             </div>
           )}
         </div>
-        {locked ? (
-          /* Gesperrt: kein Eingabefeld → Freischalten. */
-          <div className="relative flex flex-col items-center gap-2 border-t border-black/10 px-4 py-4 text-center">
-            <p className="flex items-center gap-1.5 text-[13px] font-black text-white/85"><Lock className="h-4 w-4" /> {lk.chat}</p>
+        {/* Eingabe bleibt IMMER frei — auch gesperrt darf er schreiben. Beim Senden antwortet
+            dann Bella persönlich („Credits verbraucht") und der Freischalt-Button erscheint. */}
+        <div className="relative flex items-end gap-1.5 border-t border-black/10 px-3 py-3">
+          <textarea value={input} onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
+            rows={1} placeholder={t.placeholder(modelName)}
+            className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-black/15 bg-white px-4 py-3 text-sm font-medium text-black outline-none focus:border-black placeholder:text-black/40" />
+          <button type="button" onClick={() => void send()} disabled={sending || !input.trim()}
+            className="lb-gold grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-40 active:scale-90 transition">
+            {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+          </button>
+        </div>
+        {locked && chatUnlock && (
+          <div className="flex flex-col items-center gap-1.5 px-4 pb-3 pt-1 text-center">
             <button type="button" onClick={() => void unlock()} disabled={unlocking}
               className="lb-gold flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black disabled:opacity-60">
               {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : lk.cta}
-            </button>
-          </div>
-        ) : (
-          <div className="relative flex items-end gap-1.5 border-t border-black/10 px-3 py-3">
-            <textarea value={input} onChange={e => setInput(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
-              rows={1} placeholder={t.placeholder(modelName)}
-              className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-black/15 bg-white px-4 py-3 text-sm font-medium text-black outline-none focus:border-black placeholder:text-black/40" />
-            <button type="button" onClick={() => void send()} disabled={sending || !input.trim()}
-              className="lb-gold grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-40 active:scale-90 transition">
-              {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
             </button>
           </div>
         )}
