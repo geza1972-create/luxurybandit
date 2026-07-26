@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Loader2, MailCheck } from "lucide-react";
 import { DIAL_CODES, flagEmoji } from "@/lib/countries";
 import { CornerOrnaments, DividerOrnament } from "@/components/BoxOrnaments";
+import CityAutocomplete from "@/components/CityAutocomplete";
 import { trackMetaPixel } from "@/lib/meta-pixel";
 
 // Vorwahl-Auswahl (Flagge + Code + Dial), RO zuerst. Aus der gemeinsamen Länder-Liste.
@@ -333,7 +334,7 @@ export default function WetterGate({ modelId, modelName = "Bella", lang = "ro", 
           </select>
           {/* Adresse — Reihenfolge Land → Stadt → PLZ (Browser-Autofill über autoComplete). */}
           <LabeledInput label={t.country} value={country} onChange={setCountry} autoComplete="country-name" invalid={triedSubmit && !country.trim()} />
-          <LabeledInput label={t.city} value={city} onChange={setCity} autoComplete="address-level2" invalid={triedSubmit && !city.trim()} />
+          <CityAutocomplete label={t.city} value={city} onChange={setCity} lang={L} invalid={triedSubmit && !city.trim()} />
           <LabeledInput label={t.postal} value={postal} onChange={setPostal} autoComplete="postal-code" />
           {/* WhatsApp — Länder-Vorwahl (Flagge + Code) + Nummer. */}
           <div className="flex gap-2">
