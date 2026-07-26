@@ -8,23 +8,32 @@ type ChatMsg = { role: "user" | "assistant"; content: string };
 // Inline chat box embedded right under the thumbs on a model's profile — same UX as the
 // Wetter subscriber chat (no modal, no name gate: she greets, you type, she replies). Uses the
 // same /api/model-chat backend (her real persona), so it behaves like the full ModelChat.
-const LANGS = ["en", "ro", "de", "fr", "es", "it"] as const;
+// Same 8 languages as the Wetter page, with the same visible language switcher.
+const LANGS = ["ro", "de", "en", "es", "fr", "pt", "pl", "it"] as const;
 type Lang = (typeof LANGS)[number];
+const LABEL: Record<Lang, string> = {
+  ro: "Română", de: "Deutsch", en: "English", es: "Español",
+  fr: "Français", pt: "Português", pl: "Polski", it: "Italiano",
+};
 const GREET: Record<Lang, string> = {
-  en: "Hey you 💛 I'm so happy you're here. What do you want to talk about?",
   ro: "Bună 💛 mă bucur că ești aici. Despre ce vrei să vorbim?",
   de: "Hey du 💛 schön, dass du da bist. Worüber wollen wir reden?",
-  fr: "Coucou 💛 contente que tu sois là. De quoi veux-tu parler ?",
+  en: "Hey you 💛 I'm so happy you're here. What do you want to talk about?",
   es: "Hola 💛 me alegra que estés aquí. ¿De qué quieres hablar?",
+  fr: "Coucou 💛 contente que tu sois là. De quoi veux-tu parler ?",
+  pt: "Oi 💛 fico feliz que você esteja aqui. Sobre o que quer falar?",
+  pl: "Hej 💛 cieszę się, że tu jesteś. O czym chcesz porozmawiać?",
   it: "Ciao 💛 sono felice che tu sia qui. Di cosa vuoi parlare?",
 };
 const PLACEHOLDER: Record<Lang, (n: string) => string> = {
-  en: n => `Message ${n}…`, ro: n => `Scrie-i lui ${n}…`, de: n => `Nachricht an ${n}…`,
-  fr: n => `Message à ${n}…`, es: n => `Mensaje para ${n}…`, it: n => `Messaggio a ${n}…`,
+  ro: n => `Scrie-i lui ${n}…`, de: n => `Nachricht an ${n}…`, en: n => `Message ${n}…`,
+  es: n => `Mensaje para ${n}…`, fr: n => `Message à ${n}…`, pt: n => `Mensagem para ${n}…`,
+  pl: n => `Wiadomość do ${n}…`, it: n => `Messaggio a ${n}…`,
 };
 const FREE_LEFT: Record<Lang, (n: number) => string> = {
-  en: n => `${n} free messages left`, ro: n => `${n} mesaje gratuite rămase`, de: n => `${n} Gratis-Nachrichten übrig`,
-  fr: n => `${n} messages gratuits restants`, es: n => `${n} mensajes gratis restantes`, it: n => `${n} messaggi gratuiti rimasti`,
+  ro: n => `${n} mesaje gratuite rămase`, de: n => `${n} Gratis-Nachrichten übrig`, en: n => `${n} free messages left`,
+  es: n => `${n} mensajes gratis restantes`, fr: n => `${n} messages gratuits restants`, pt: n => `${n} mensagens grátis restantes`,
+  pl: n => `${n} darmowych wiadomości`, it: n => `${n} messaggi gratuiti rimasti`,
 };
 
 export default function ModelChatInline({
@@ -39,9 +48,15 @@ export default function ModelChatInline({
   freeLimit?: number;
   onNeedPremium: () => void;
 }) {
-  const [lang] = useState<Lang>(() => {
+  const [lang, setLang] = useState<Lang>(() => {
     try { const b = (navigator.language || "en").slice(0, 2).toLowerCase() as Lang; return LANGS.includes(b) ? b : "en"; } catch { return "en"; }
   });
+  // Switch language → she greets & replies in it (like Wetter). If she's only greeted so far,
+  // re-render the greeting in the new language; an ongoing chat just switches for future replies.
+  const changeLang = (next: Lang) => {
+    setLang(next);
+    setMessages(m => (m.length === 1 && m[0].role === "assistant") ? [{ role: "assistant", content: GREET[next] }] : m);
+  };
   const visitorId = (() => {
     if (typeof window === "undefined") return "anon";
     try { let v = localStorage.getItem("lb_visitor"); if (!v) { v = (crypto.randomUUID?.() ?? String(Date.now())); localStorage.setItem("lb_visitor", v); } return v; } catch { return "anon"; }
@@ -109,6 +124,14 @@ export default function ModelChatInline({
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13px] font-black text-black">{first}</p>
           <p className="text-[10px] font-bold text-emerald-600">online now</p>
+        </div>
+        {/* Sprach-Umschalter — dieselben 8 Sprachen wie bei Wetter; sie chattet in der gewählten. */}
+        <div className="relative shrink-0">
+          <select value={lang} onChange={e => changeLang(e.target.value as Lang)} aria-label="Sprache wählen"
+            className="h-8 appearance-none rounded-full border border-black/15 bg-white pl-3 pr-6 text-[12px] font-black uppercase tracking-wide text-black outline-none active:scale-95">
+            {LANGS.map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
+          </select>
+          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-black/50">▾</span>
         </div>
       </div>
 
