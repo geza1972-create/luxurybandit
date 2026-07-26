@@ -20,13 +20,17 @@ Video gibt es NUR als Einzelkauf.
 - **Chat-Modell:** Claude **Haiku 4.5** (`app/api/app-chat|model-chat|mai-ieftin-chat`). Für Persona-Chat ~ebenbürtig zu ChatGPT, sehr günstig.
 - Optionales Chat-Credit-Limit ist eine *spätere* Idee — im Moment: **eine** Abo-Stufe (24 €), Zugang endet nach 7 E-Mails ohne Abo.
 
-### ⚠️ NOCH NICHT GEBAUT: der Wetter-Paywall
-`WetterGate` macht bisher NUR die kostenlose Anmeldung (`/api/wetter-signup`). Es gibt
-**keine** „nach 7 E-Mails → 24 €"-Sperre und **keinen** Wetter-Abo-Checkout. Zu bauen:
-1. pro Abonnent **gesendete E-Mails zählen** (in `wetter-email-blast` hochzählen).
-2. Ab der 8. Öffnung/Nachricht → **Paywall** statt Inhalt (Stripe-Checkout mit obiger Preis-ID, `mode:subscription`).
-3. **Stripe-Webhook** markiert Abonnent als zahlend → Inhalt wieder frei.
-Der **Try-on-3,99-Checkout** existiert schon (betrags-basiert, `avatar-face-checkout`/`model-video-checkout`, 399 Cent) → nur die EUR-Preis-ID einsetzen (`priceId` statt `amount`).
+### ✅ GEBAUT (2026-07-26): weicher Wetter-Paywall nach 7 ÖFFNUNGEN
+Regel: „7 mal geöffnet" = **Klicks** aus dem Klick-Tracking (`wetter-clicks.json`), NICHT gesendete Mails.
+Öffnungen 1–7 gratis; ab der 8. sind **Video + Chat gesperrt** (Poster + Gruß + Wetter + Text bleiben frei).
+- Sperre-Logik: `app/themes/wetter/[model]/page.tsx` (`FREE_OPENS = 7`, `locked = opens >= 7 && !paid`; Server sieht die vorherigen Öffnungen → sperrt ab dem 8.).
+- Sperr-UI: `components/WetterSubscriberView.tsx` (`locked`-Prop) — Poster mit Schloss + „🔓 Freischalten 24 €/Monat", Chat-Eingabe → Freischalt-Button. 8 Sprachen.
+- Checkout: `app/api/wetter-abo-checkout/route.ts` → `createSubscriptionCheckout` mit `price_1TxPxR…` (Env `STRIPE_WETTER_ABO_PRICE_ID` überschreibt), metadata `{kind:"wetter-abo", subId, modelId}`.
+- Freischalten: `app/api/stripe-webhook/route.ts` setzt bei `kind:"wetter-abo"` → `setWetterPaid` (`wetter-paid.json`). `?wetterpaid=1` schaltet auf der Rückkehr sofort optimistisch frei.
+- **Owner-To-do (live):** Stripe-Webhook muss `checkout.session.completed` an `/api/stripe-webhook` liefern (für andere Flows schon konfiguriert); einmal echt durchtesten.
+
+### Try-on 3,99 € — Preis-ID noch nicht eingesetzt
+Der Try-on-Checkout existiert betrags-basiert (`avatar-face-checkout`/`model-video-checkout`, 399 Cent, wahrscheinlich USD). Auf die EUR-Preis-ID `price_1TxPzv…` umstellen (`priceId` statt `amount`) steht noch aus.
 
 ### ❌ ABGESCHAFFT: Premium $49/Monat (40 Videos/Monat)
 Das Video-Abo ($49/Mo, 1. Monat $8, Gutschein `CjOJYKVV`) wird **nicht mehr angeboten**.
