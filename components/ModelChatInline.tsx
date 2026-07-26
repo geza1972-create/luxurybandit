@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Loader2, Send } from "lucide-react";
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
@@ -9,12 +10,14 @@ type ChatMsg = { role: "user" | "assistant"; content: string };
 // Wetter subscriber chat (no modal, no name gate: she greets, you type, she replies). Uses the
 // same /api/model-chat backend (her real persona), so it behaves like the full ModelChat.
 // Same 8 languages as the Wetter page, with the same visible language switcher.
+//
+// Monetisation (decided 2026-07-26):
+//  • Bella = free: chats via the AI up to `freeLimit`, then a 24 € soft wall.
+//  • Every OTHER model = paid: she greets, the visitor may write ONCE, she replies once
+//    ("I'm not free — chat for 24 €, or try Bella for free"), then the wall.
+//  • Unlock = the SAME 24 €/month Wetter abo (/api/model-chat-abo-checkout, popup + poll).
 const LANGS = ["ro", "de", "en", "es", "fr", "pt", "pl", "it"] as const;
 type Lang = (typeof LANGS)[number];
-const LABEL: Record<Lang, string> = {
-  ro: "Română", de: "Deutsch", en: "English", es: "Español",
-  fr: "Français", pt: "Português", pl: "Polski", it: "Italiano",
-};
 const GREET: Record<Lang, string> = {
   ro: "Bună 💛 mă bucur că ești aici. Despre ce vrei să vorbim?",
   de: "Hey du 💛 schön, dass du da bist. Worüber wollen wir reden?",
@@ -35,9 +38,40 @@ const FREE_LEFT: Record<Lang, (n: number) => string> = {
   es: n => `${n} mensajes gratis restantes`, fr: n => `${n} messages gratuits restants`, pt: n => `${n} mensagens grátis restantes`,
   pl: n => `${n} darmowych wiadomości`, it: n => `${n} messaggi gratuiti rimasti`,
 };
+// The single "I'm not free" reply a paid model gives to the visitor's first message.
+const CANNED: Record<Lang, string> = {
+  de: "Ich bin leider nicht gratis 💛 aber ich chatte super gern mit dir. Für 24 €/Monat gehöre ich ganz dir. Wenn du lieber kostenlos chatten willst, dann versuch es mit Bella 💕",
+  en: "I'm not free, sweetie 💛 but I'd love to chat with you. For €24/month I'm all yours. If you'd rather chat for free, try Bella 💕",
+  ro: "Nu sunt gratis, dragule 💛 dar mi-ar plăcea să vorbesc cu tine. Pentru 24 €/lună sunt toată a ta. Dacă preferi să vorbești gratis, încearcă cu Bella 💕",
+  es: "No soy gratis, cariño 💛 pero me encantaría hablar contigo. Por 24 €/mes soy toda tuya. Si prefieres chatear gratis, prueba con Bella 💕",
+  fr: "Je ne suis pas gratuite, chéri 💛 mais j'adorerais discuter avec toi. Pour 24 €/mois je suis toute à toi. Si tu préfères discuter gratuitement, essaie avec Bella 💕",
+  pt: "Eu não sou grátis, querido 💛 mas adoraria conversar com você. Por 24 €/mês sou toda sua. Se preferir conversar de graça, experimente a Bella 💕",
+  pl: "Nie jestem darmowa, kochanie 💛 ale chętnie z tobą porozmawiam. Za 24 €/miesiąc jestem cała twoja. Jeśli wolisz czatować za darmo, spróbuj z Bellą 💕",
+  it: "Non sono gratis, tesoro 💛 ma mi piacerebbe chiacchierare con te. Per 24 €/mese sono tutta tua. Se preferisci chattare gratis, prova con Bella 💕",
+};
+// Bella's soft wall after her free messages run out.
+const KEEP: Record<Lang, string> = {
+  de: "Ich rede so gern mit dir 💛 Für 24 €/Monat chatten wir unbegrenzt weiter.",
+  en: "I love talking to you 💛 For €24/month we chat unlimited.",
+  ro: "Îmi place să vorbesc cu tine 💛 Pentru 24 €/lună vorbim nelimitat.",
+  es: "Me encanta hablar contigo 💛 Por 24 €/mes chateamos sin límite.",
+  fr: "J'adore te parler 💛 Pour 24 €/mois on discute sans limite.",
+  pt: "Adoro falar com você 💛 Por 24 €/mês conversamos sem limite.",
+  pl: "Uwielbiam z tobą rozmawiać 💛 Za 24 €/miesiąc czatujemy bez limitu.",
+  it: "Adoro parlare con te 💛 Per 24 €/mese chattiamo senza limiti.",
+};
+const UNLOCK: Record<Lang, string> = {
+  de: "24 € – schalt mich frei", en: "€24 — unlock me", ro: "24 € — deblochează-mă", es: "24 € — desbloquéame",
+  fr: "24 € — débloque-moi", pt: "24 € — desbloqueie-me", pl: "24 € — odblokuj mnie", it: "24 € — sbloccami",
+};
+const BELLA_CTA: Record<Lang, string> = {
+  de: "Gratis mit Bella chatten", en: "Chat free with Bella", ro: "Chat gratuit cu Bella", es: "Chatea gratis con Bella",
+  fr: "Discuter gratis avec Bella", pt: "Conversar grátis com Bella", pl: "Czatuj za darmo z Bellą", it: "Chatta gratis con Bella",
+};
 
 export default function ModelChatInline({
-  curatorId, modelName, first, avatarUrl, isPaid = false, isOwn = false, freeLimit = 10, onNeedPremium,
+  curatorId, modelName, first, avatarUrl, isPaid = false, isOwn = false, freeLimit = 1,
+  bella = false, bellaHref = "", onNeedPremium,
 }: {
   curatorId: string;
   modelName: string;
@@ -45,14 +79,14 @@ export default function ModelChatInline({
   avatarUrl?: string;
   isPaid?: boolean;
   isOwn?: boolean;
-  freeLimit?: number;
-  onNeedPremium: () => void;
+  freeLimit?: number;   // Bella only: free messages before the soft wall (paid models get 1).
+  bella?: boolean;      // true = Bella → free AI chat; false = paid model → 1 reply then wall.
+  bellaHref?: string;   // where "Chat free with Bella" links.
+  onNeedPremium: () => void; // fallback if the checkout can't start.
 }) {
   const [lang, setLang] = useState<Lang>(() => {
     try { const b = (navigator.language || "en").slice(0, 2).toLowerCase() as Lang; return LANGS.includes(b) ? b : "en"; } catch { return "en"; }
   });
-  // Switch language → she greets & replies in it (like Wetter). If she's only greeted so far,
-  // re-render the greeting in the new language; an ongoing chat just switches for future replies.
   const changeLang = (next: Lang) => {
     setLang(next);
     setMessages(m => (m.length === 1 && m[0].role === "assistant") ? [{ role: "assistant", content: GREET[next] }] : m);
@@ -67,18 +101,56 @@ export default function ModelChatInline({
   const [sending, setSending] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState("");
+  const [unlocked, setUnlocked] = useState(false); // paid the 24 € abo → unlimited chat with HER
+  const [buying, setBuying] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Pick up an existing/returned 24 € unlock for THIS model.
+  useEffect(() => {
+    try { if (localStorage.getItem(`lb_modelchat_paid_${curatorId}`) === "1") setUnlocked(true); } catch { /**/ }
+    try { const p = new URLSearchParams(window.location.search); if (p.get("chatpaid") === "1") { localStorage.setItem(`lb_modelchat_paid_${curatorId}`, "1"); setUnlocked(true); } } catch { /**/ }
+  }, [curatorId]);
 
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages, sending]);
 
+  const paidAccess = isPaid || isOwn || unlocked;
   const userTurns = messages.filter(m => m.role === "user").length;
-  const locked = !isOwn && !isPaid && userTurns >= freeLimit;
+  // Wall: paid models allow 1 line; Bella allows `freeLimit`; unlocked/own/subscriber = never.
+  const wall = !paidAccess && (bella ? userTurns >= freeLimit : userTurns >= 1);
+
+  // Start the 24 € abo (same Wetter price) — popup + poll, unlocks live on payment.
+  const buyAbo = async () => {
+    if (buying) return;
+    setBuying(true);
+    try {
+      const returnPath = typeof window !== "undefined" ? window.location.pathname : `/curator/${curatorId}`;
+      const r = await fetch("/api/model-chat-abo-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ curatorId, returnPath }) }).then(x => x.json()).catch(() => null);
+      if (!r?.url || !r?.sessionId) { onNeedPremium(); setBuying(false); return; }
+      const popup = window.open(r.url, "lb-modelabo", "width=460,height=760");
+      const started = Date.now();
+      const poll = setInterval(async () => {
+        const st = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(r.sessionId)}`).then(x => x.json()).catch(() => ({}));
+        if (st?.paid) {
+          clearInterval(poll); try { popup?.close(); } catch { /**/ }
+          try { localStorage.setItem(`lb_modelchat_paid_${curatorId}`, "1"); } catch { /**/ }
+          setUnlocked(true); setBuying(false);
+        } else if ((popup && popup.closed) || Date.now() - started > 6 * 60 * 1000) {
+          clearInterval(poll); setBuying(false);
+        }
+      }, 2000);
+    } catch { setBuying(false); }
+  };
 
   const sendMessage = async () => {
     const text = input.trim();
-    if (!text || sending) return;
-    if (locked) { onNeedPremium(); return; }
+    if (!text || sending || wall) return;
     setError("");
+    // Paid model, free visitor: exactly ONE reply, then the wall. No AI call (no cost).
+    if (!paidAccess && !bella) {
+      setMessages(m => [...m, { role: "user", content: text }, { role: "assistant", content: CANNED[lang] }]);
+      setInput("");
+      return;
+    }
     const next = [...messages, { role: "user" as const, content: text }];
     setMessages(next); setInput(""); setSending(true);
     try {
@@ -160,11 +232,20 @@ export default function ModelChatInline({
 
       {/* Composer / paywall */}
       <div className="border-t border-black/10 bg-white px-3 py-2.5">
-        {locked ? (
-          <button type="button" onClick={onNeedPremium}
-            className="flex h-11 w-full items-center justify-center rounded-full bg-black text-[13px] font-black text-white active:scale-95 transition">
-            Chatte weiter mit {first}
-          </button>
+        {wall ? (
+          <div className="space-y-2">
+            {bella && <p className="px-1 text-center text-[12px] font-bold text-black/70">{KEEP[lang]}</p>}
+            <button type="button" onClick={() => void buyAbo()} disabled={buying}
+              className="flex h-11 w-full items-center justify-center rounded-full bg-black text-[13px] font-black text-white disabled:opacity-40 active:scale-95 transition">
+              {buying ? <Loader2 className="h-5 w-5 animate-spin" /> : `💛 ${UNLOCK[lang]}`}
+            </button>
+            {!bella && bellaHref && (
+              <Link href={bellaHref}
+                className="flex h-11 w-full items-center justify-center rounded-full border border-black/20 bg-white text-[13px] font-black text-black active:scale-95 transition">
+                {BELLA_CTA[lang]}
+              </Link>
+            )}
+          </div>
         ) : (
           <div className="flex items-end gap-1.5">
             <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={onKey} rows={1}
@@ -176,7 +257,7 @@ export default function ModelChatInline({
             </button>
           </div>
         )}
-        {!isOwn && !isPaid && !locked && userTurns > 0 && (
+        {bella && !paidAccess && !wall && userTurns > 0 && (
           <p className="mt-1.5 text-center text-[10px] font-bold text-black/45">{FREE_LEFT[lang](Math.max(0, freeLimit - userTurns))}</p>
         )}
         <p className="mt-1.5 text-center text-[10px] font-bold text-black/50">✨ {first}&apos;s AI — an AI persona, not the real person.</p>

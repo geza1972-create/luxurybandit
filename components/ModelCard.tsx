@@ -317,7 +317,7 @@ export default function ModelCard({
         )}
         {tryOnHref && (
           <Link href={tryOnHref} className="lb-gold flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[15px] font-black shadow active:scale-95 transition">
-            <Play className="h-5 w-5" fill="currentColor" /> {tryOnLabel || `Sieh dir ${name.split(" ")[0]} in anderen Klamotten an`}
+            <Play className="h-5 w-5" fill="currentColor" /> {tryOnLabel || `See ${name.split(" ")[0]} in other outfits`}
           </Link>
         )}
       </div>

@@ -14,8 +14,11 @@ import ModelChatInline from "@/components/ModelChatInline";
 import ModelCard from "@/components/ModelCard";
 import BookJourneyCTA from "@/components/BookJourneyCTA";
 
+// Bella = the ONE free-chat model (daily message + 50 free chats/day); every other model's chat
+// costs 24 €. Her profile is where "Chat free with Bella" points.
+const BELLA_ID = "curator-1783683672619-td4cy";
 // Curators who offer a bookable travel journey → show the "Book a Journey" CTA on their profile.
-const JOURNEY_CURATOR_IDS = new Set(["curator-1783683672619-td4cy"]); // Bella
+const JOURNEY_CURATOR_IDS = new Set([BELLA_ID]); // Bella
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { influencerPriceCents, fmtPriceCents } from "@/lib/influencer-price";
 import { LOOK_CATEGORIES, categorizeLook, isLookCategory, type LookCategory } from "@/lib/look-category";
@@ -1270,9 +1273,10 @@ export default function CuratorPublicPage() {
           following={following} onSuperFollow={() => void handleFollow()}
           onChat={() => router.push(`/chat/${id}`)}
           tryOnHref={tryOnLook ? `/try/${tryOnLook.id}?model=${encodeURIComponent(profile.photoUrl || profile.photoFullUrl || "")}&garment=${encodeURIComponent(tryOnLook.frontImageUrl || tryOnLook.imageUrl || "")}&modelId=${encodeURIComponent(id)}&modelName=${encodeURIComponent(displayName)}` : ""}
-          tryOnLabel={`Sieh dir ${displayName} in anderen Klamotten an`}
+          tryOnLabel={`See ${displayName} in other outfits`}
           chatSlot={<ModelChatInline curatorId={id} modelName={displayName} first={displayName.split(" ")[0]}
             avatarUrl={profile.photoUrl || profile.photoFullUrl || ""} isPaid={isMember} isOwn={isOwn}
+            bella={id === BELLA_ID} bellaHref={`/curator/${BELLA_ID}`} freeLimit={id === BELLA_ID ? 50 : 1}
             onNeedPremium={() => setShowSubscribe(true)} />} />
 
         {/* Book a Journey — travel program CTA (only for curators who offer one). */}
