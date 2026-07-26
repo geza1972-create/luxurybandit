@@ -1,0 +1,43 @@
+import { NextResponse } from "next/server";
+import { createSubscriptionCheckout } from "@/lib/stripe";
+import { readWetterSubscribers } from "@/lib/try-this-look-store";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const BELLA_ID = "curator-1783683672619-td4cy";
+// Wetter-Abo = 24 €/Monat (Owner-Preis in Stripe). Env überschreibt, sonst dieser Fallback.
+const PRICE_ID = process.env.STRIPE_WETTER_ABO_PRICE_ID?.trim() || "price_1TxPxR1jPNCWoiztgmJMNNdF";
+
+// POST { subId, modelId?, modelSlug? } → startet das 24-€-Abo (Stripe Checkout, mode:subscription).
+// Nach Zahlung markiert der Stripe-Webhook den Abonnenten als „paid" → Chat + Video wieder frei.
+export async function POST(request: Request) {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
+  }
+  const body = (await request.json().catch(() => ({}))) as { subId?: string; modelId?: string; modelSlug?: string };
+  const subId = String(body.subId ?? "").trim();
+  if (!subId) return NextResponse.json({ error: "subId fehlt." }, { status: 400 });
+  const modelId = String(body.modelId ?? "").trim() || BELLA_ID;
+  const modelSlug = String(body.modelSlug ?? "").trim() || "bella";
+
+  // E-Mail des Abonnenten für den Checkout (aus dem Datensatz).
+  const sub = (await readWetterSubscribers(modelId)).find(s => s.id === subId);
+  const email = (sub?.email || "").trim();
+
+  const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
+  const back = `${origin}/themes/wetter/${encodeURIComponent(modelSlug)}?s=${encodeURIComponent(subId)}`;
+
+  try {
+    const { id, url } = await createSubscriptionCheckout({
+      priceId: PRICE_ID,
+      email: email || undefined,
+      successUrl: `${back}&wetterpaid=1&cs={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${back}&wettercancelled=1`,
+      metadata: { kind: "wetter-abo", subId, modelId },
+    });
+    return NextResponse.json({ url, sessionId: id });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Could not start checkout." }, { status: 502 });
+  }
+}

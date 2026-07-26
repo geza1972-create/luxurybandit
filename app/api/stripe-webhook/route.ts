@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
+import { setWetterPaid } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
 
@@ -63,10 +64,21 @@ export async function POST(request: Request) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-    const kind = String((session.metadata as Record<string, unknown> | undefined)?.kind ?? "") || "subscription/other";
+    const meta = (session.metadata as Record<string, unknown> | undefined) ?? {};
+    const kind = String(meta?.kind ?? "") || "subscription/other";
     const ref = String(session.client_reference_id ?? "").trim();
-    // Log-only — fulfilment happens client-side (checkout-status) or via PremiumSync.
-    console.info(`[stripe-webhook] checkout.session.completed (${kind}) — ${session.id}${ref ? ` · ${ref}` : ""} · no action (fulfilled elsewhere)`);
+    // Wetter-Abo (24 €): Abonnenten als zahlend markieren → Chat + Video wieder frei.
+    if (kind === "wetter-abo") {
+      const subId = String(meta?.subId ?? "").trim();
+      const modelId = String(meta?.modelId ?? "").trim() || undefined;
+      if (subId) {
+        try { await setWetterPaid(subId, modelId); console.info(`[stripe-webhook] wetter-abo bezahlt → freigeschaltet: ${subId}`); }
+        catch (e) { console.warn("[stripe-webhook] setWetterPaid fehlgeschlagen", e); }
+      }
+    } else {
+      // Log-only — fulfilment happens client-side (checkout-status) or via PremiumSync.
+      console.info(`[stripe-webhook] checkout.session.completed (${kind}) — ${session.id}${ref ? ` · ${ref}` : ""} · no action (fulfilled elsewhere)`);
+    }
   }
 
   return NextResponse.json({ received: true });

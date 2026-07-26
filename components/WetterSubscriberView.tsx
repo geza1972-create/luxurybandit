@@ -124,12 +124,15 @@ const T: Record<string, Copy> = {
   },
 };
 
-export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", email = "", day = "", time = "", title = "", caption = "", firstMessage = "", dayContext = "" }: {
+export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", email = "", day = "", time = "", title = "", caption = "", firstMessage = "", dayContext = "", locked = false, modelSlug = "", monthlyCents = 2400 }: {
   name: string; city: string; look: Look | null; lang?: string; modelId?: string; modelName?: string; subId?: string; email?: string; day?: string; time?: string;
   title?: string;         // „Titel" aus dem Beitrag — groß über dem Text
   caption?: string;       // „Text unter dem Bild" aus dem Beitrag
   firstMessage?: string;  // „Erste Nachricht im Chat" — Opener (leer = Standard-Gruß)
   dayContext?: string;    // „Ihr Tag heute" — steuert den Chat
+  locked?: boolean;       // nach 7 Öffnungen ohne Abo: Chat + Video gesperrt (Bild + Text bleiben)
+  modelSlug?: string;     // für die Rückkehr-URL des Abo-Checkouts
+  monthlyCents?: number;  // Abo-Preis (24 € = 2400) für den Freischalt-Button
 }) {
   const L = (lang || DEFAULT_LANG).slice(0, 2).toLowerCase();
   const t = T[L] ?? T.en;
@@ -144,6 +147,30 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
 
   const [weather, setWeather] = useState<{ temp: number; min: number; max: number; word: string; e: string; rainy: boolean; place: string } | null>(null);
   const tzRef = useRef<string>("");   // Zeitzone der Stadt — fürs spätere „Morgen"-Timing pro Land.
+
+  // Paywall-Texte + Freischalten. Nach 7 Öffnungen sind Video + Chat gesperrt.
+  const priceLabel = `${Math.round(monthlyCents / 100)} €`;
+  const LOCK: Record<string, { headline: string; sub: string; cta: string; chat: string }> = {
+    ro: { headline: "Deblochează videoul și chatul", sub: `Continuă cu ${priceLabel}/lună — video complet + chat nelimitat cu ${modelName}.`, cta: `🔓 Deblochează — ${priceLabel}/lună`, chat: "Deblochează pentru a continua conversația" },
+    de: { headline: "Video & Chat freischalten", sub: `Weiter für ${priceLabel}/Monat — komplettes Video + unbegrenzter Chat mit ${modelName}.`, cta: `🔓 Freischalten — ${priceLabel}/Monat`, chat: "Zum Weiterchatten freischalten" },
+    en: { headline: "Unlock video & chat", sub: `Continue for ${priceLabel}/month — full video + unlimited chat with ${modelName}.`, cta: `🔓 Unlock — ${priceLabel}/month`, chat: "Unlock to keep chatting" },
+    es: { headline: "Desbloquea vídeo y chat", sub: `Continúa por ${priceLabel}/mes — vídeo completo + chat ilimitado con ${modelName}.`, cta: `🔓 Desbloquear — ${priceLabel}/mes`, chat: "Desbloquea para seguir chateando" },
+    fr: { headline: "Débloque la vidéo et le chat", sub: `Continue pour ${priceLabel}/mois — vidéo complète + chat illimité avec ${modelName}.`, cta: `🔓 Débloquer — ${priceLabel}/mois`, chat: "Débloque pour continuer à discuter" },
+    pt: { headline: "Desbloqueia vídeo e chat", sub: `Continua por ${priceLabel}/mês — vídeo completo + chat ilimitado com ${modelName}.`, cta: `🔓 Desbloquear — ${priceLabel}/mês`, chat: "Desbloqueia para continuar a conversar" },
+    pl: { headline: "Odblokuj wideo i czat", sub: `Kontynuuj za ${priceLabel}/mies. — pełne wideo + nielimitowany czat z ${modelName}.`, cta: `🔓 Odblokuj — ${priceLabel}/mies.`, chat: "Odblokuj, aby dalej czatować" },
+    it: { headline: "Sblocca video e chat", sub: `Continua per ${priceLabel}/mese — video completo + chat illimitata con ${modelName}.`, cta: `🔓 Sblocca — ${priceLabel}/mese`, chat: "Sblocca per continuare a chattare" },
+  };
+  const lk = LOCK[L] ?? LOCK.en;
+  const [unlocking, setUnlocking] = useState(false);
+  const unlock = async () => {
+    setUnlocking(true);
+    try {
+      const r = await fetch("/api/wetter-abo-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subId, modelId, modelSlug }) });
+      const d = await r.json().catch(() => ({}));
+      if (d?.url) { window.location.href = d.url; return; }
+    } catch { /**/ }
+    setUnlocking(false);
+  };
 
   // Selbst-Abmeldung (der Abonnent stoppt die tägliche Nachricht direkt hier).
   const [unsubbed, setUnsubbed] = useState(false);
@@ -280,10 +307,26 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     <div className="mx-auto max-w-md">
       {/* VIDEO zuerst — klebt direkt am Header (Muster), Video full, Sound oben links,
           Vergrößern oben rechts. KEIN Text im Bild (Overlay leer) → alle Texte kommen darunter. */}
-      {look && (
+      {look && (locked ? (
+        /* Gesperrt: nur das Poster-Bild + Freischalt-Overlay (kein Video-Abspielen). */
+        <div className="relative">
+          {look.posterUrl
+            ? <img src={look.posterUrl} alt="" className="max-h-[70vh] w-full object-cover" />
+            : <div className="aspect-[3/4] w-full bg-black/50" />}
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/55 px-6 text-center backdrop-blur-[3px]">
+            <Lock className="h-8 w-8 text-white" />
+            <p className="text-[19px] font-black leading-tight text-white">{lk.headline}</p>
+            <p className="max-w-xs text-[13px] font-semibold text-white/85">{lk.sub}</p>
+            <button type="button" onClick={() => void unlock()} disabled={unlocking}
+              className="lb-gold mt-1 flex h-12 items-center justify-center gap-2 rounded-full px-6 text-[14px] font-black disabled:opacity-60">
+              {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : lk.cta}
+            </button>
+          </div>
+        </div>
+      ) : (
         <BellaPostsCarousel name={modelName}
           posts={[{ id: "day", kind: look.kind, title: "", caption: "", mediaUrl: look.mediaUrl, posterUrl: look.posterUrl }]} />
-      )}
+      ))}
 
       <div className="px-4">
       {/* ALLE Texte UNTER dem Video: Datum · TITEL = der Gruß (Vorgabe, {Name} personalisiert) ·
@@ -362,16 +405,27 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             </div>
           )}
         </div>
-        <div className="relative flex items-end gap-1.5 border-t border-black/10 px-3 py-3">
-          <textarea value={input} onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
-            rows={1} placeholder={t.placeholder(modelName)}
-            className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-black/15 bg-white px-4 py-3 text-sm font-medium text-black outline-none focus:border-black placeholder:text-black/40" />
-          <button type="button" onClick={() => void send()} disabled={sending || !input.trim()}
-            className="lb-gold grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-40 active:scale-90 transition">
-            {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-          </button>
-        </div>
+        {locked ? (
+          /* Gesperrt: kein Eingabefeld → Freischalten. */
+          <div className="relative flex flex-col items-center gap-2 border-t border-black/10 px-4 py-4 text-center">
+            <p className="flex items-center gap-1.5 text-[13px] font-black text-white/85"><Lock className="h-4 w-4" /> {lk.chat}</p>
+            <button type="button" onClick={() => void unlock()} disabled={unlocking}
+              className="lb-gold flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black disabled:opacity-60">
+              {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : lk.cta}
+            </button>
+          </div>
+        ) : (
+          <div className="relative flex items-end gap-1.5 border-t border-black/10 px-3 py-3">
+            <textarea value={input} onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
+              rows={1} placeholder={t.placeholder(modelName)}
+              className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-black/15 bg-white px-4 py-3 text-sm font-medium text-black outline-none focus:border-black placeholder:text-black/40" />
+            <button type="button" onClick={() => void send()} disabled={sending || !input.trim()}
+              className="lb-gold grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-40 active:scale-90 transition">
+              {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+            </button>
+          </div>
+        )}
         <p className="px-9 pb-4 pt-1 text-center text-[11px] font-bold text-white/80">{t.aiNote(modelName)}</p>
       </div>
 

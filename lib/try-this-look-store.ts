@@ -1504,6 +1504,39 @@ export async function recordWetterClick(subId: string, src: string, modelId?: st
   }).catch(() => {});
 }
 
+// ── Wetter-Abo „bezahlt"-Status ─────────────────────────────────────────────
+// EIGENER Blob (Abonnentenliste nie anfassen). Map je Abonnent: { since }.
+// Wird vom Stripe-Webhook gesetzt, sobald das 24-€-Abo bezahlt ist → schaltet
+// Chat + Video wieder frei (nach den 7 Gratis-Öffnungen).
+export type WetterPaid = { since: string };
+function wetterPaidPath(modelId?: string) {
+  const id = (modelId ?? "").trim();
+  return (!id || id === BELLA_STUDIO_ID)
+    ? "try-this-look/wetter-paid.json"
+    : `try-this-look/wetter-paid-${id.replace(/[^a-zA-Z0-9-]/g, "")}.json`;
+}
+export async function readWetterPaid(modelId?: string): Promise<Record<string, WetterPaid>> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(wetterPaidPath(modelId))}`);
+    if (!res.ok) return {};
+    const data = await res.json().catch(() => null);
+    return (data && typeof data === "object" && data.paid && typeof data.paid === "object") ? data.paid as Record<string, WetterPaid> : {};
+  } catch { return {}; }
+}
+export async function setWetterPaid(subId: string, modelId?: string): Promise<void> {
+  const id = String(subId || "").trim();
+  if (!id) return;
+  await ensureBucket();
+  const paid = await readWetterPaid(modelId);
+  if (paid[id]) return;   // schon freigeschaltet
+  paid[id] = { since: new Date().toISOString() };
+  await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(wetterPaidPath(modelId))}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body: JSON.stringify({ paid, updatedAt: new Date().toISOString() }),
+  }).catch(() => {});
+}
+
 // ── Übersetzungs-Cache ──────────────────────────────────────────────────────
 // Beitrags-Texte werden EINMAL pro Sprache übersetzt und hier gespeichert, damit
 // nicht jeder Seitenaufruf eine (kostenpflichtige) Übersetzung auslöst. Key = "<lang>::<text>".

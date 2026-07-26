@@ -14,7 +14,7 @@ import { personalize } from "@/lib/personalize";
 import { translateMany } from "@/lib/translate";
 import { fetchForecastLine } from "@/lib/wetter-forecast";
 import WetterLangSwitcher from "@/components/WetterLangSwitcher";
-import { readTryThisLookState, readCardStudioSlides, readWetterSubscribers, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
+import { readTryThisLookState, readCardStudioSlides, readWetterSubscribers, readWetterClicks, readWetterPaid, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
 
 // THEMA „Wetter am Morgen" — MODEL-AGNOSTISCH über /wetter/<model> (dieses Mal bella, kann jede sein).
 // Besucher = Karussell + RO-Signup (Lead). Abonnent (?name=&city=&lang=) = Gruß + Wetter + Look + Chat.
@@ -114,6 +114,19 @@ export default async function WetterModelPage({ params, searchParams }: {
     if (sub) { subName = sub.name || subName; subCity = sub.city || subCity; subLang = sub.lang || subLang; subEmail = sub.email || ""; }
   }
   const recognized = !!subToken || !!subName;   // eingeloggter Abonnent?
+
+  // WEICHER PAYWALL: Öffnungen 1–7 gratis; ab der 8. sind Chat + Video gesperrt (Bild + Nachricht
+  // bleiben), bis das 24-€-Abo bezahlt ist. „Öffnung" = Klick-Zähler aus dem Klick-Tracking.
+  // Der Server sieht die VORHERIGEN Öffnungen (der aktuelle Klick wird clientseitig geloggt) →
+  // Schwelle >= 7 sperrt genau ab dem 8. Öffnen. `?wetterpaid=1` schaltet nach der Zahlung sofort frei.
+  const FREE_OPENS = 7;
+  let locked = false;
+  if (subToken) {
+    const [clicks, paidMap] = await Promise.all([readWetterClicks(modelId), readWetterPaid(modelId)]);
+    const opens = clicks[subToken]?.count ?? 0;
+    const paid = !!paidMap[subToken] || String(sp.wetterpaid ?? "") === "1";
+    locked = opens >= FREE_OPENS && !paid;
+  }
   const showAdmin = String(sp.admin ?? "") === "1";   // Admin-Werkzeuge NUR mit ?admin=1 — nie in der Kundenansicht
   const justConfirmed = String(sp.confirmed ?? "") === "1";   // gerade E-Mail bestätigt
   const previewMode = String(sp.preview ?? "") === "visitor" ? "visitor" : "subscriber";   // Admin-Vorschau: was der User sieht
@@ -209,6 +222,7 @@ export default async function WetterModelPage({ params, searchParams }: {
             <p className="mx-auto max-w-md px-4 pt-4 text-center text-[13px] font-black text-emerald-400">{CONFIRMED_TEXT[subLang] ?? CONFIRMED_TEXT.en}</p>
           )}
           <WetterSubscriberView name={subName} city={subCity || ipCity || FALLBACK_CITY[subLang] || "London"} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken} email={subEmail}
+            locked={locked} modelSlug={model} monthlyCents={2400}
             day={dayLook?.day || ""} time={dayLook?.time || ""}
             title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.context || ""} dayContext={dayLook?.context || ""}
             look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />
