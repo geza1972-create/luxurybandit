@@ -107,6 +107,13 @@ export default async function WetterModelPage({ params, searchParams }: {
   const modelId = curator.id;
   const modelName = String(curator.modelName || curator.firstName || "Model").split(" ")[0];
 
+  // Cross-Sell: Teaser für das bezahlte Model (Aria) auf Bellas Wetter-Seite → ihr Profil (Chat 3,99/Tag + Try-ons).
+  const CROSS_ID = "curator-1783844821720-bf178";
+  const crossM = (state.curators ?? []).find(c => (c as { id?: string }).id === CROSS_ID) as { id: string; photoPath?: string; modelName?: string; firstName?: string } | undefined;
+  const crossImg = crossM?.photoPath ? await getSignedUrl(crossM.photoPath).catch(() => "") : "";
+  const crossName = String(crossM?.modelName || crossM?.firstName || "").split(" ")[0];   // echter Anzeigename (Aria)
+  const crossTeaser = (crossM && crossImg && crossName && modelId !== CROSS_ID) ? { name: crossName, img: crossImg, href: `/curator/${crossM.id}` } : null;
+
   // Kennung → Abonnenten-Datensatz (Login). Name/Stadt/Sprache kommen serverseitig aus
   // dem Datensatz, NICHT aus der URL — Telefon bleibt privat. `?name=` bleibt als Alt-Link.
   if (subToken) {
@@ -223,7 +230,7 @@ export default async function WetterModelPage({ params, searchParams }: {
             <p className="mx-auto max-w-md px-4 pt-4 text-center text-[13px] font-black text-emerald-400">{CONFIRMED_TEXT[subLang] ?? CONFIRMED_TEXT.en}</p>
           )}
           <WetterSubscriberView name={subName} city={subCity || ipCity || FALLBACK_CITY[subLang] || "London"} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken} email={subEmail}
-            locked={locked} paid={paid} modelSlug={model} monthlyCents={2400}
+            locked={locked} paid={paid} modelSlug={model} monthlyCents={2400} crossTeaser={crossTeaser}
             day={dayLook?.day || ""} time={dayLook?.time || ""}
             title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.context || ""} dayContext={dayLook?.context || ""}
             look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />
