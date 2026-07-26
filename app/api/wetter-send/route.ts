@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
   const results: { id: string; name: string; ok: boolean; error?: string }[] = [];
   for (const s of targets) {
-    const r = await sendWhatsAppTemplate({ to: s.phone as string, lang: s.lang || "ro", bodyParams: [s.name || "", link(s)] });
+    const r = await sendWhatsAppTemplate({ to: s.phone as string, lang: s.lang || "en", bodyParams: [s.name || "", link(s)] });
     results.push({ id: s.id, name: s.name || "", ok: r.ok, error: r.error });
   }
   return NextResponse.json({ sent: results.filter(r => r.ok).length, total: targets.length, results });

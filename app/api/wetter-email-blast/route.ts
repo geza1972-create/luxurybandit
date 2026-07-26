@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
   const results: { id: string; email: string; ok: boolean; error?: string }[] = [];
   for (const s of targets) {
-    const lang = (s.lang || "ro").slice(0, 5);
+    const lang = (s.lang || "en").slice(0, 5);   // Standard = EN, wenn keine Sprache bekannt
     const c = copy(lang, s.name || "");
     const link = `${origin}/themes/wetter/${encodeURIComponent(modelSlug)}?s=${encodeURIComponent(s.id)}`;
     const unsub = `${origin}/api/wetter-unsubscribe?model=${encodeURIComponent(modelId)}&s=${encodeURIComponent(s.id)}&lang=${encodeURIComponent(lang)}`;

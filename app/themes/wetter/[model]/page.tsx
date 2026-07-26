@@ -13,6 +13,7 @@ import { buildBellaCard } from "@/lib/bella-card";
 import { personalize } from "@/lib/personalize";
 import { translateMany } from "@/lib/translate";
 import { fetchForecastLine } from "@/lib/wetter-forecast";
+import WetterLangSwitcher from "@/components/WetterLangSwitcher";
 import { readTryThisLookState, readCardStudioSlides, readWetterSubscribers, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
 
 // THEMA „Wetter am Morgen" — MODEL-AGNOSTISCH über /wetter/<model> (dieses Mal bella, kann jede sein).
@@ -46,7 +47,7 @@ function langFromAccept(accept: string): string {
     const code = part.trim().split(";")[0].slice(0, 2);
     if ((LANGS as readonly string[]).includes(code)) return code;
   }
-  return "ro";
+  return "en";   // Standard = EN, wenn der Browser keine unterstützte Sprache meldet
 }
 
 // Kopf-Texte pro Sprache (Thema „Wetter am Morgen").
@@ -187,15 +188,13 @@ export default async function WetterModelPage({ params, searchParams }: {
       {/* Kopf — volle Breite (NICHT in einer Box). Dunkel, Name weiß. */}
       {card && (
         <div className="relative">
-          <ModelCardHeader name={card.name} title={(HEADER[subLang] ?? HEADER.ro).title}
-            tagline={(HEADER[subLang] ?? HEADER.ro).tagline} statusLabel="online" darkBg
+          <ModelCardHeader name={card.name} title={(HEADER[subLang] ?? HEADER.en).title}
+            tagline={(HEADER[subLang] ?? HEADER.en).tagline} statusLabel="online" darkBg
             ownedName={card.owner || ""} isOwned={!!card.owner} />
-          {/* Sprach-Umschalter — oben rechts im Header. Bei vielen Sprachen umbrechend. */}
-          <div className="absolute right-2.5 top-2.5 z-20 flex max-w-[150px] flex-wrap justify-end gap-1.5">
-            {LANGS.map(l => (
-              <a key={l} href={langHref(l)}
-                className={`rounded-full px-2.5 py-1 text-[11px] font-black uppercase leading-none tracking-wide backdrop-blur transition ${subLang === l ? "bg-amber-400 text-black" : "bg-white/10 text-white/80 ring-1 ring-white/15"}`}>{l}</a>
-            ))}
+          {/* Sprach-Umschalter — oben rechts im Header. Ein natives Auswahlfeld statt vieler
+              winziger Chips → auf dem iPhone mit EINEM Tipp bedienbar (großer iOS-Picker). */}
+          <div className="absolute right-2.5 top-2.5 z-20">
+            <WetterLangSwitcher options={LANGS.map(l => ({ code: l, href: langHref(l) }))} current={subLang} />
           </div>
         </div>
       )}
@@ -207,7 +206,7 @@ export default async function WetterModelPage({ params, searchParams }: {
           /* EINGELOGGTER ABONNENT: Gruß + Wetter + Look + Chat. subId → Gerät merkt sich den Login. */
           <>
           {justConfirmed && (
-            <p className="mx-auto max-w-md px-4 pt-4 text-center text-[13px] font-black text-emerald-400">{CONFIRMED_TEXT[subLang] ?? CONFIRMED_TEXT.ro}</p>
+            <p className="mx-auto max-w-md px-4 pt-4 text-center text-[13px] font-black text-emerald-400">{CONFIRMED_TEXT[subLang] ?? CONFIRMED_TEXT.en}</p>
           )}
           <WetterSubscriberView name={subName} city={subCity || ipCity || FALLBACK_CITY[subLang] || "London"} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken} email={subEmail}
             day={dayLook?.day || ""} time={dayLook?.time || ""}

@@ -80,7 +80,7 @@ export async function POST(request: Request) {
   if (body.accepted !== true)
     return NextResponse.json({ error: "Bitte akzeptiere die AGB und den Datenschutz." }, { status: 400 });
 
-  const lang = String(body.lang ?? "ro").trim().slice(0, 5) || "ro";
+  const lang = String(body.lang ?? "en").trim().slice(0, 5) || "en";   // Standard = EN
   const confirmToken = crypto.randomUUID().replace(/-/g, "");
   const sub: WetterSubscriber = {
     id: `sub-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,

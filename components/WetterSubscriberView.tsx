@@ -15,7 +15,7 @@ import { startPremiumCheckout } from "@/lib/start-premium-checkout";
 // Bedingungs-Wörter pro Sprache; Zeitzone der Stadt mit abgefangen (spätere „Morgen"-Zustellung).
 
 const DEFAULT_MODEL_ID = "curator-1783683672619-td4cy"; // Bella = Fallback/erstes Model
-const DEFAULT_LANG = "ro";
+const DEFAULT_LANG = "en";   // Standard = EN, wenn keine Sprache übergeben
 
 // {Name} / {name} im Titel durch den echten Namen ersetzen (feste Vorgabe wird personalisiert).
 // Kein Name bekannt? Dann Platzhalter SAMT davorstehendem Komma entfernen und Satzzeichen

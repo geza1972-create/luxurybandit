@@ -101,7 +101,7 @@ export async function POST(request: Request) {
       // (die bestimmt dann den Wetter-Ort). Angegebene Werte haben immer Vorrang.
       const dial = dialInfo(f.whatsapp);
       const country = f.country || dial?.country || "";
-      const lang = dial?.lang || "ro";
+      const lang = dial?.lang || "en";   // unbekannte Vorwahl → Standard EN
 
       const isNew = await addDailySignup({
         email: f.email || `lead-${leadId}@meta.local`, // Platzhalter, falls nur Telefon vorliegt
