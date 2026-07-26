@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCheckoutSession, stripeConfigured } from "@/lib/stripe";
-import { grantVideoCredits, readTryThisLookState, saveTryThisLookState } from "@/lib/try-this-look-store";
+import { grantVideoCredits, readTryThisLookState, saveTryThisLookState, readKissLog, writeKissLog } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,6 +44,18 @@ export async function GET(request: Request) {
           // Buying an AI face ($9.99) INCLUDES one free video generation (idempotent per session).
           if (creatorEmail) { const res = await grantVideoCredits(creatorEmail, sessionId, 1); credits = res.credits; }
         }
+      }
+    }
+
+    // Kiss-Video bezahlt → den Log-Eintrag als bezahlt markieren (idempotent: paid bleibt true).
+    if (paid && s.metadata.kind === "kiss-video") {
+      const genId = String(s.metadata.genId ?? "").trim();
+      if (genId) {
+        try {
+          const entries = await readKissLog();
+          const e = entries.find(x => x.id === genId);
+          if (e && e.paid !== true) { e.paid = true; await writeKissLog(entries); }
+        } catch { /* Log ist Best-effort — die Freischaltung beim Kunden blockiert das nie */ }
       }
     }
 

@@ -3,14 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles } from "lucide-react";
 
-// „Kiss any Model" — Funnel: Model wählen + eigenes Foto → Pixverse V6 Fusion (gleiche
-// Pipeline wie Try-On: /api/generate-tryon-video, zwei Referenzen an @-Tokens, Raw-Prompt,
-// 360p = Pixverse-Minimum; ein 320p-Tier gibt es nicht).
-//
-// Monetarisierung (wie Try-On): JEDER darf generieren (1 Gratis-Lauf pro Gerät als Kosten-
-// bremse; wer schon gezahlt hat, darf weiter generieren). Das fertige Video läuft VERPIXELT
-// — „🔓 Unlock — $3.99" öffnet Stripe im Popup, wir pollen /api/checkout-status, bei `paid`
-// wird sanft entblurrt. Admin/Staff sieht alles klar und generiert unbegrenzt.
+// „Kiss any Model" — Funnel mit FAKE-FIRST-Monetarisierung (Owner-Entscheidung):
+// Der Besucher wählt Model + eigenes Foto → wir spielen eine RENDER-SHOW (kostet nichts,
+// KEIN API-Call) → „Dein Video ist fertig" läuft VERPIXELT (in Wahrheit das Model-Foto
+// hinter starkem Blur) → „🔓 Unlock — $3.99" (Stripe-Popup + Status-Poll) → ERST NACH der
+// Zahlung startet die ECHTE Pixverse-Generierung (gleiche Pipeline wie Try-On: zwei
+// Referenzen an @-Tokens, Raw-Prompt, 360p = Pixverse-Minimum) → Video klar anzeigen.
+// Staff (Admin-PIN) überspringt alles: echte Generierung sofort, unverpixelt.
 // Welche Models im Grid stehen, wählt der Admin im Kiss-Models-Tool (/api/kiss-config).
 
 type Model = { id: string; name: string; photoUrl: string };
@@ -36,21 +35,31 @@ async function fileToDataUrl(file: File, max = 1000, quality = 0.85): Promise<st
   return c.toDataURL("image/jpeg", quality);
 }
 
+// Die Render-Show: gestaffelte Status-Texte, damit es sich wie eine echte Generierung anfühlt.
+const RENDER_STEPS: [number, string][] = [
+  [0, "Analyzing your photo …"],
+  [4000, "Matching the two of you …"],
+  [9000, "Rendering the kiss …"],
+  [14000, "Finishing touches …"],
+];
+const RENDER_MS = 17000; // Gesamtdauer der Show (~17 s)
+
 export default function KissFunnel() {
   const [models, setModels] = useState<Model[]>([]);
   const [picked, setPicked] = useState<Model | null>(null);
   const [photo, setPhoto] = useState("");          // eigenes Foto (Data-URL)
   const [isStaff, setIsStaff] = useState(false);
   const [pin, setPin] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState("");        // Fortschritts-/Fehlertext
-  const [videoUrl, setVideoUrl] = useState("");
-  const [unlocked, setUnlocked] = useState(false); // bezahlt → entblurrt
+  const [busy, setBusy] = useState(false);         // Render-Show oder echte Generierung läuft
+  const [status, setStatus] = useState("");
+  const [teaser, setTeaser] = useState(false);     // Fake-„fertig": verpixeltes Ergebnis + Kauf-CTA
+  const [videoUrl, setVideoUrl] = useState("");    // ECHTES Video (erst nach Zahlung / Staff)
+  const [genId, setGenId] = useState("");          // Kiss-Log-Eintrag dieser Generierung
   const [payBusy, setPayBusy] = useState(false);
-  const [gensUsed, setGensUsed] = useState(0);     // Gratis-Läufe dieses Geräts
-  const [paidAny, setPaidAny] = useState(false);   // hat schon mal bezahlt → darf weiter generieren
   const fileRef = useRef<HTMLInputElement>(null);
-  const pollRef = useRef(0);
+  const runRef = useRef(0);
+  const swipeRef = useRef(0);      // Coverflow: Pointer-X beim Swipe-Start
+  const swipedRef = useRef(false); // ein Swipe war's → den nachlaufenden Klick schlucken
 
   useEffect(() => {
     // Model-Grid: Admin-Auswahl aus /api/kiss-config (leer = alle Models).
@@ -60,25 +69,24 @@ export default function KissFunnel() {
     ]).then(([m, c]) => {
       const all: Model[] = (Array.isArray(m.models) ? m.models : []).filter((x: Model) => !!x.photoUrl);
       const wanted: string[] = Array.isArray(c.modelIds) ? c.modelIds : [];
-      setModels(wanted.length ? wanted.map(id => all.find(x => x.id === id)).filter(Boolean) as Model[] : all);
+      const list = wanted.length ? wanted.map(id => all.find(x => x.id === id)).filter(Boolean) as Model[] : all;
+      setModels(list);
+      // Coverflow: die vorderste Karte IST die Auswahl → mit dem ersten Model starten.
+      if (list.length) setPicked(p => p ?? list[0]);
     });
     try {
       const p = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "";
       setPin(p); setIsStaff(!!p && !localStorage.getItem("lb_preview_model"));
-      setGensUsed(Number(localStorage.getItem("lb_kiss_gens") ?? 0) || 0);
-      setPaidAny(localStorage.getItem("lb_kiss_paid_any") === "1");
     } catch { /**/ }
-    return () => { pollRef.current = -1; };
+    return () => { runRef.current = -1; };
   }, []);
 
   const onFile = async (f?: File | null) => { if (f) try { setPhoto(await fileToDataUrl(f)); } catch { /**/ } };
 
-  // Kostenbremse: 1 Gratis-Lauf pro Gerät; wer schon bezahlt hat (oder Staff ist) darf weiter.
-  const mayGenerate = isStaff || paidAny || gensUsed < 1;
-
-  const generate = async () => {
-    if (!picked || !photo || busy || !mayGenerate) return;
-    setBusy(true); setVideoUrl(""); setUnlocked(false); setStatus("Starting …");
+  // ECHTE Generierung (Pixverse) — läuft nur nach Zahlung oder für Staff.
+  const realGenerate = async (token: number): Promise<void> => {
+    if (!picked || !photo) return;
+    setStatus("Rendering your kiss in full quality … (~1–3 min)");
     try {
       // Gleiche Pipeline wie Try-On: person = Model (@person), garment = dein Foto (@Bild2).
       const start = await fetch("/api/generate-tryon-video", {
@@ -87,29 +95,55 @@ export default function KissFunnel() {
         body: JSON.stringify({ lookId: KISS_LOOK_ID, person: picked.photoUrl, garment: photo, prompt: KISS_PROMPT }),
       }).then(r => r.json());
       if (!start?.videoId) { setStatus(start?.error || "Could not start."); setBusy(false); return; }
-      try { const n = gensUsed + 1; setGensUsed(n); localStorage.setItem("lb_kiss_gens", String(n)); } catch { /**/ }
-      setStatus("Rendering your kiss … (~1–3 min)");
-      // Pollen wie der Try-On-Funnel (alle 5 s, max ~6 Min).
-      const token = Date.now(); pollRef.current = token;
       for (let i = 0; i < 72; i++) {
         await new Promise(r => setTimeout(r, 5000));
-        if (pollRef.current !== token) return; // Seite verlassen / neuer Lauf
+        if (runRef.current !== token) return;
         const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || "")}`).then(r => r.json()).catch(() => null);
-        if (p?.status === "done" && p.videoUrl) { setVideoUrl(p.videoUrl); setUnlocked(isStaff); setStatus(""); setBusy(false); return; }
+        if (p?.status === "done" && p.videoUrl) {
+          setVideoUrl(p.videoUrl); setTeaser(false); setStatus(""); setBusy(false);
+          // Video-URL im Log nachtragen (Staff: Eintrag jetzt erst anlegen).
+          try {
+            if (genId) await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ update: genId, videoUrl: p.videoUrl }) });
+            else await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelId: picked.id, modelName: picked.name, videoUrl: p.videoUrl }) });
+          } catch { /**/ }
+          return;
+        }
         if (p?.status === "failed") { setStatus(p.error || "Generation failed."); setBusy(false); return; }
       }
       setStatus("Timeout — please try again later."); setBusy(false);
-    } catch {
-      setStatus("Network error."); setBusy(false);
-    }
+    } catch { setStatus("Network error."); setBusy(false); }
   };
 
-  // 🔓 Bezahlen: Stripe-Checkout im Popup + Status-Poll — bei `paid` wird entblurrt.
+  // Klick auf „Generate": Staff → echte Generierung. Besucher → NUR die Render-Show
+  // (kein API-Call, keine Kosten) und danach der verpixelte Teaser + Kauf-CTA.
+  const generate = async () => {
+    if (!picked || !photo || busy) return;
+    setBusy(true); setTeaser(false); setVideoUrl(""); setGenId(""); setStatus("");
+    const token = Date.now(); runRef.current = token;
+
+    if (isStaff) { await realGenerate(token); return; }
+
+    // Fake-Render-Show: gestaffelte Texte, dann „fertig" (verpixelt).
+    for (const [at, text] of RENDER_STEPS) {
+      setTimeout(() => { if (runRef.current === token) setStatus(text); }, at);
+    }
+    setTimeout(async () => {
+      if (runRef.current !== token) return;
+      setBusy(false); setStatus(""); setTeaser(true);
+      // Interesse fürs Admin-Tool loggen (noch ohne Video — das echte rendert nach dem Kauf).
+      try {
+        const log = await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelId: picked.id, modelName: picked.name }) }).then(r => r.json());
+        if (log?.id && runRef.current === token) setGenId(log.id);
+      } catch { /**/ }
+    }, RENDER_MS);
+  };
+
+  // 🔓 Bezahlen: Stripe-Popup + Status-Poll — bei `paid` startet die ECHTE Generierung.
   const unlock = async () => {
     if (payBusy) return;
     setPayBusy(true); setStatus("");
     try {
-      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).then(r => r.json());
+      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ genId }) }).then(r => r.json());
       if (!start?.url || !start?.sessionId) { setStatus(start?.error || "Checkout could not start."); setPayBusy(false); return; }
       const popup = window.open(start.url, "_blank", "popup,width=480,height=780");
       if (!popup) { window.location.href = start.url; return; } // Popup blockiert → gleiche Seite
@@ -117,10 +151,13 @@ export default function KissFunnel() {
         await new Promise(r => setTimeout(r, 3000));
         const s = await fetch(`/api/checkout-status?session_id=${encodeURIComponent(start.sessionId)}`).then(r => r.json()).catch(() => null);
         if (s?.paid) {
-          setUnlocked(true); setPaidAny(true);
-          try { localStorage.setItem("lb_kiss_paid_any", "1"); } catch { /**/ }
           try { popup.close(); } catch { /**/ }
-          setPayBusy(false); return;
+          setPayBusy(false);
+          // Bezahlt → JETZT das echte Video rendern.
+          setBusy(true);
+          const token = Date.now(); runRef.current = token;
+          await realGenerate(token);
+          return;
         }
         if (popup.closed && i > 2) break; // Popup zu ohne Zahlung → aufhören zu pollen
       }
@@ -130,21 +167,45 @@ export default function KissFunnel() {
 
   return (
     <div className="mt-8">
-      {/* 1) Model wählen */}
+      {/* 1) Model wählen — das 3D-Coverflow aus dem Try-On-Funnel: die Gewählte steht groß
+          vorn, die Nachbarinnen kippen seitlich weg; Tipp auf eine Seitenkarte oder Swipe
+          holt sie nach vorn (= Auswahl). */}
       <p className="text-[12px] font-black uppercase tracking-wide text-white/50">1 · Pick her</p>
-      <div className="mt-2 grid grid-cols-3 gap-2">
-        {models.slice(0, 12).map(m => (
-          <button key={m.id} type="button" onClick={() => setPicked(m)}
-            className={`overflow-hidden rounded-2xl border transition active:scale-[0.98] ${picked?.id === m.id ? "border-[#c9a23f]" : "border-white/10"}`}>
-            <div className="relative aspect-[9/16] w-full">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={m.photoUrl} alt={m.name} className="h-full w-full object-cover object-top" />
-              {picked?.id === m.id && <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-[#c9a23f]"><Check className="h-3.5 w-3.5 text-black" /></span>}
-            </div>
-            <div className="px-1.5 py-1"><span className="lb-onmedia line-clamp-1 text-[11px] font-black">{m.name}</span></div>
-          </button>
-        ))}
-      </div>
+      <p className="mt-1 text-[13px] font-bold text-white/85">Swipe the models — your pick stands up front.</p>
+      {(() => {
+        if (models.length === 0) return <div className="grid h-[46vw] max-h-[240px] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>;
+        const active = Math.max(0, models.findIndex(m => m.id === picked?.id));
+        const slide = (dir: number) => {
+          const ni = Math.min(models.length - 1, Math.max(0, active + dir));
+          if (ni !== active) setPicked(models[ni]);
+        };
+        return (
+          <div className="relative mx-auto mt-2 h-[72vw] max-h-[300px] select-none overflow-hidden touch-pan-y" style={{ perspective: "1100px" }}
+            onPointerDown={(e) => { swipeRef.current = e.clientX; swipedRef.current = false; }}
+            onPointerUp={(e) => { const dx = e.clientX - swipeRef.current; if (Math.abs(dx) > 30) { swipedRef.current = true; slide(dx < 0 ? 1 : -1); } }}>
+            {models.map((m, i) => {
+              const off = i - active;
+              if (Math.abs(off) > 2) return null;
+              const isActive = off === 0;
+              return (
+                <div key={m.id}
+                  onClick={() => { if (swipedRef.current) { swipedRef.current = false; return; } if (!isActive) setPicked(m); }}
+                  className="absolute left-1/2 top-1/2 w-[54%] max-w-[220px] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-2xl transition-all duration-300 ease-out"
+                  style={{ transform: `translate(-50%,-50%) translateX(${off * 56}%) rotateY(${-off * 38}deg) scale(${isActive ? 1 : 0.82})`, zIndex: 20 - Math.abs(off), opacity: Math.abs(off) === 2 ? 0.45 : 1, cursor: "pointer" }}>
+                  <div className="relative aspect-[3/4] w-full">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={m.photoUrl} alt={m.name} draggable={false} className="h-full w-full object-cover object-top" />
+                    {isActive && <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-[#c9a23f] shadow"><Check className="h-4 w-4 text-black" /></span>}
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pb-2 pt-6">
+                      <p className="lb-onmedia truncate text-[13px] font-black">{m.name}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       {/* 2) Eigenes Foto */}
       <p className="mt-5 text-[12px] font-black uppercase tracking-wide text-white/50">2 · Your photo</p>
@@ -164,46 +225,45 @@ export default function KissFunnel() {
 
       {/* 3) Generieren */}
       <p className="mt-5 text-[12px] font-black uppercase tracking-wide text-white/50">3 · The kiss</p>
-      {mayGenerate ? (
-        <button type="button" onClick={() => void generate()} disabled={!picked || !photo || busy}
-          className="lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-50">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "💋"} {busy ? "Rendering …" : "Generate the kiss video"}
-        </button>
-      ) : (
-        <div className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full border border-white/15 text-[13px] font-black text-white/60">
-          <Lock className="h-4 w-4" /> Free video used — unlock below to make more
-        </div>
-      )}
+      <button type="button" onClick={() => void generate()} disabled={!picked || !photo || busy}
+        className="lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-50">
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "💋"} {busy ? "Rendering …" : "Generate the kiss video"}
+      </button>
       {status && <p className="mt-2 text-center text-[12px] font-bold text-white/60">{status}</p>}
 
-      {/* Rendering-Platzhalter (der „Radar": pulsierende Fläche mit Funkeln) */}
+      {/* Render-Show (pulsierende Fläche mit Funkeln) */}
       {busy && !videoUrl && (
         <div className="mx-auto mt-4 grid aspect-[3/4] w-[64vw] max-w-[280px] animate-pulse place-items-center rounded-3xl border border-amber-400/20 bg-gradient-to-b from-amber-400/[0.10] to-white/[0.03]">
           <Sparkles className="h-8 w-8 text-amber-400/70" />
         </div>
       )}
 
-      {/* Ergebnis: verpixelt bis bezahlt (Staff sieht klar) */}
-      {videoUrl && (
+      {/* Fake-Teaser: „fertig", aber verpixelt (Model-Foto hinter starkem Blur) + Kauf-CTA */}
+      {teaser && !videoUrl && picked && (
         <div className="mx-auto mt-4 w-fit">
           <div className="relative overflow-hidden rounded-3xl border border-white/10">
-            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-            <video src={videoUrl} controls={unlocked} autoPlay loop muted={!unlocked} playsInline
-              className={`aspect-[3/4] max-h-[60vh] w-auto transition-[filter] duration-1000 ${unlocked ? "" : "blur-2xl scale-110"}`} />
-            {!unlocked && (
-              <div className="absolute inset-0 grid place-items-center bg-black/30">
-                <div className="px-6 text-center">
-                  <Lock className="mx-auto h-8 w-8 text-amber-400" />
-                  <p className="lb-onmedia mt-2 text-[15px] font-black">Your kiss video is ready 💋</p>
-                  <button type="button" onClick={() => void unlock()} disabled={payBusy}
-                    className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition disabled:opacity-60">
-                    {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Unlock your video — $3.99
-                  </button>
-                  <p className="lb-onmedia mt-2 text-[11px] font-bold opacity-80">Secure checkout by Stripe</p>
-                </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={picked.photoUrl} alt="" className="aspect-[3/4] max-h-[60vh] w-auto blur-2xl scale-110 object-cover" />
+            <div className="absolute inset-0 grid place-items-center bg-black/30">
+              <div className="px-6 text-center">
+                <Lock className="mx-auto h-8 w-8 text-amber-400" />
+                <p className="lb-onmedia mt-2 text-[15px] font-black">Your kiss video is ready 💋</p>
+                <button type="button" onClick={() => void unlock()} disabled={payBusy}
+                  className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition disabled:opacity-60">
+                  {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Unlock your video — $3.99
+                </button>
+                <p className="lb-onmedia mt-2 text-[11px] font-bold opacity-80">Secure checkout by Stripe</p>
               </div>
-            )}
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* Das ECHTE Video (nach Zahlung / Staff) — klar */}
+      {videoUrl && (
+        <div className="mx-auto mt-4 w-fit overflow-hidden rounded-3xl border border-white/10">
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+          <video src={videoUrl} controls autoPlay loop playsInline className="aspect-[3/4] max-h-[60vh] w-auto" />
         </div>
       )}
     </div>

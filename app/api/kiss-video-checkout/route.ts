@@ -15,6 +15,8 @@ export async function POST(request: Request) {
   if (!stripeConfigured()) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
+  const body = (await request.json().catch(() => ({}))) as { genId?: string };
+  const genId = String(body?.genId ?? "").trim();
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
   try {
     const { id, url } = await createTryonCheckout({
@@ -23,7 +25,7 @@ export async function POST(request: Request) {
       productName: "LuxuryBandit — your kiss video",
       successUrl: `${origin}/pay-done?paid=1`,
       cancelUrl: `${origin}/pay-done?cancelled=1`,
-      metadata: { kind: "kiss-video" },
+      metadata: { kind: "kiss-video", ...(genId ? { genId } : {}) },
     });
     return NextResponse.json({ url, sessionId: id });
   } catch (e) {

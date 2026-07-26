@@ -1288,6 +1288,36 @@ export async function writeKissConfig(config: KissConfig): Promise<void> {
   if (!response.ok) throw new Error(`Kiss-Config konnte nicht gespeichert werden (${response.status}).`);
 }
 
+// ── Kiss-Log: jede fertige Kiss-Generierung (fürs Admin-Tool: wer/wann/Model/bezahlt) ──
+const KISS_LOG_PATH = "try-this-look/kiss-log.json";
+export type KissLogEntry = {
+  id: string;
+  createdAt: string;
+  modelId?: string;
+  modelName?: string;
+  videoUrl?: string;      // persistierte (langlebige) Video-URL
+  paid?: boolean;         // per Stripe freigeschaltet
+};
+
+export async function readKissLog(): Promise<KissLogEntry[]> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(KISS_LOG_PATH)}`);
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => null);
+    return Array.isArray(data?.entries) ? (data.entries as KissLogEntry[]) : [];
+  } catch { return []; }
+}
+
+export async function writeKissLog(entries: KissLogEntry[]): Promise<void> {
+  await ensureBucket();
+  const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(KISS_LOG_PATH)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body: JSON.stringify({ entries: entries.slice(0, 500), savedAt: new Date().toISOString() }),
+  });
+  if (!response.ok) throw new Error(`Kiss-Log konnte nicht gespeichert werden (${response.status}).`);
+}
+
 // Persist the full slide array in ONE write. Before overwriting, the current committed
 // version is copied to the backup blob (last-known-good), so nothing is ever lost silently.
 export async function writeCardStudioSlides(slides: BellaSlide[], modelId?: string, scope?: string): Promise<void> {

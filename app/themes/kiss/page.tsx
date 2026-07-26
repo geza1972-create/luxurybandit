@@ -1,8 +1,7 @@
 import TopNav from "@/components/TopNav";
 import KissFunnel from "@/components/KissFunnel";
-import BellaCarouselAdmin from "@/components/BellaCarouselAdmin";
 import KissModelsAdmin from "@/components/KissModelsAdmin";
-import WetterSubscribers from "@/components/WetterSubscribers";
+import KissUsersAdmin from "@/components/KissUsersAdmin";
 import ManageViewToggle from "@/components/ManageViewToggle";
 
 // THEMA „Kiss any Model" — Landing im Wetter-Muster: oben die Kundenansicht (Hero + der
@@ -45,13 +44,11 @@ export default async function KissThemePage({ searchParams }: {
             <KissFunnel />
           </div>
         ) : (
-          <div className="mt-4 space-y-4">
-            <BellaCarouselAdmin heading="🎴 Kiss-Card Tool" scope="kiss" />
-            {/* Welche Models im Kiss-Grid stehen (Admin wählt aus) + die User-Liste drunter. */}
-            <div className="lb-theme space-y-4">
-              <KissModelsAdmin />
-              <WetterSubscribers />
-            </div>
+          // Kiss-eigene Tools (KEIN Card-Tool, KEINE Wetter-Abonnenten — passt hier nicht):
+          // oben die Model-Auswahl fürs Grid, darunter die echten Kiss-Nutzungen.
+          <div className="lb-theme mt-4 space-y-4">
+            <KissModelsAdmin />
+            <KissUsersAdmin />
           </div>
         )}
       </div>
