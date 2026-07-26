@@ -6,21 +6,27 @@ schauen (und gegen den Code prüfen). Stand: 2026-07-26.
 > „Anzeige-Preis im Code" ≠ „tatsächliche Abbuchung". Die echte Abbuchung läuft über
 > **Stripe** (Preis-ID + ggf. Gutschein). Den Stripe-Teil legt der Owner an, nicht Claude.
 
-## AKTUELLES MODELL (entschieden 2026-07-26) — Abo = Reden, Video = Einzelkauf
+## AKTUELLES MODELL (final entschieden 2026-07-26) — Abo = Reden, Video = Einzelkauf
 
 Kernidee: **Videogenerierung ist zu teuer fürs Abo** (Dollar-Beträge pro Clip). Das Abo
-verkauft daher **tägliche Nachrichten + Chat** (Haiku-Chat kostet Bruchteile eines Cents).
+verkauft **tägliche Nachrichten + Chat** (Haiku-Chat kostet Bruchteile eines Cents).
 Video gibt es NUR als Einzelkauf.
 
-| Stufe | Preis | Enthält | Video? |
+| Produkt | Preis | Trial / Regel | Stripe-Preis-ID (Owner angelegt) |
 |---|---|---|---|
-| **Basis** | **9,99 €/Monat** (7 Tage gratis) | tägliche Nachricht + Chat **mit Credit-Limit** | nein |
-| **Plus** | **24 €/Monat** | deutlich mehr Chat-Credits (evtl. schlaueres Modell) | nein |
-| **Try-on-Video** | **$3.99 pro Stück** (Einzelkauf, kein Abo) | ein generiertes Try-on-Video | — |
+| **Wetter-Abo** | **24 €/Monat** | **nach 7 gesendeten E-Mails** (die ersten 7 gratis, dann zahlen). **KEIN 9,99.** | `price_1TxPxR1jPNCWoiztgmJMNNdF` (recurring) |
+| **Try-on-Video** | **3,99 €** einmalig | Einzelkauf, kein Abo | `price_1TxPzv1jPNCWoiztQNJKUeh8` (one-off) |
 
-- **Chat-Modell:** Claude **Haiku 4.5** (`app/api/app-chat|model-chat|mai-ieftin-chat`). Für Persona-Chat ~ebenbürtig zu ChatGPT, sehr günstig. „Plus" könnte einzelne Chats auf Sonnet routen.
-- **Chat-Limit:** pro Abonnent Credits zählen (1 Credit ≈ 1 Nachricht). Bei 0 → Upsell auf 24 € **oder** drosseln. (Zahlen/Verhalten noch festzulegen.)
-- **Video** = bestehender **$3.99 Pay-per-Try-on** (You-in-Video-Funnel + Stripe), NICHT im Abo.
+- **Chat-Modell:** Claude **Haiku 4.5** (`app/api/app-chat|model-chat|mai-ieftin-chat`). Für Persona-Chat ~ebenbürtig zu ChatGPT, sehr günstig.
+- Optionales Chat-Credit-Limit ist eine *spätere* Idee — im Moment: **eine** Abo-Stufe (24 €), Zugang endet nach 7 E-Mails ohne Abo.
+
+### ⚠️ NOCH NICHT GEBAUT: der Wetter-Paywall
+`WetterGate` macht bisher NUR die kostenlose Anmeldung (`/api/wetter-signup`). Es gibt
+**keine** „nach 7 E-Mails → 24 €"-Sperre und **keinen** Wetter-Abo-Checkout. Zu bauen:
+1. pro Abonnent **gesendete E-Mails zählen** (in `wetter-email-blast` hochzählen).
+2. Ab der 8. Öffnung/Nachricht → **Paywall** statt Inhalt (Stripe-Checkout mit obiger Preis-ID, `mode:subscription`).
+3. **Stripe-Webhook** markiert Abonnent als zahlend → Inhalt wieder frei.
+Der **Try-on-3,99-Checkout** existiert schon (betrags-basiert, `avatar-face-checkout`/`model-video-checkout`, 399 Cent) → nur die EUR-Preis-ID einsetzen (`priceId` statt `amount`).
 
 ### ❌ ABGESCHAFFT: Premium $49/Monat (40 Videos/Monat)
 Das Video-Abo ($49/Mo, 1. Monat $8, Gutschein `CjOJYKVV`) wird **nicht mehr angeboten**.
@@ -40,9 +46,10 @@ Zahler separat behandeln (Owner/Stripe). Alt-Fundstellen: `app/try/[lookId]/page
 | **Try-on Preis-Leiter** (GEPLANT) | Foto gratis 3/Tag · Lingerie $2.90 · Video $4.90 · 360° $7.90 | Konzept, deferred |
 
 ## Merksätze
-- **Zwei verschiedene 9,99er:** Wetter-/Themen-Abo (9,99 €) ≠ Starter-Influencer-Abo (9,99 €).
-- **Kein Video im Abo mehr** — Video ist immer Einzelkauf $3.99.
-- Wetter-Abo-Preis/Trial liegen in `state.pricing` (`wetterAboMonthlyCents ?? 999`, `wetterAboTrialDays ?? 7`) → im Admin änderbar.
+- **Wetter-Abo = 24 €** (nicht mehr 9,99). Das einzige verbleibende 9,99-Produkt ist das Starter-Influencer-Abo.
+- **Kein Video im Abo** — Video ist immer Einzelkauf 3,99 €.
+- **Trial = 7 E-Mails, NICHT 7 Tage.** Der alte Code nutzt `wetterAboTrialDays` (Tage) — muss auf E-Mail-Zählung umgebaut werden.
+- Wetter-Abo-Preis liegt in `state.pricing.wetterAboMonthlyCents` (Alt-Default 999 → auf 2400 setzen oder über die Stripe-Preis-ID).
 - **Nichts in Stripe anlegen/ändern ohne Owner-Freigabe.** Claude hat keinen Stripe-Zugang.
 
 ## Offene To-dos aus diesem Modell
