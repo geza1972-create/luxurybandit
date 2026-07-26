@@ -60,6 +60,7 @@ export default function KissFunnel() {
   const runRef = useRef(0);
   const swipeRef = useRef(0);      // Coverflow: Pointer-X beim Swipe-Start
   const swipedRef = useRef(false); // ein Swipe war's → den nachlaufenden Klick schlucken
+  const resultRef = useRef<HTMLDivElement>(null); // Radar/Ergebnis — der Screen springt dorthin
 
   useEffect(() => {
     // Model-Grid: Admin-Auswahl aus /api/kiss-config (leer = alle Models).
@@ -101,6 +102,7 @@ export default function KissFunnel() {
         const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || "")}`).then(r => r.json()).catch(() => null);
         if (p?.status === "done" && p.videoUrl) {
           setVideoUrl(p.videoUrl); setTeaser(false); setStatus(""); setBusy(false);
+          setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
           // Video-URL im Log nachtragen (Staff: Eintrag jetzt erst anlegen).
           try {
             if (genId) await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ update: genId, videoUrl: p.videoUrl }) });
@@ -114,14 +116,16 @@ export default function KissFunnel() {
     } catch { setStatus("Network error."); setBusy(false); }
   };
 
-  // Klick auf „Generate": Staff → echte Generierung. Besucher → NUR die Render-Show
-  // (kein API-Call, keine Kosten) und danach der verpixelte Teaser + Kauf-CTA.
+  // Klick auf „Generate": IMMER erst die Fake-Render-Show (Radar-Scan wie im Try-On,
+  // kein API-Call, keine Kosten) — auch für Staff, damit der Owner den Kunden-Flow sieht.
+  // Das ECHTE Rendern passiert erst beim Freischalten (Kunde: nach Stripe; Staff: gratis).
   const generate = async () => {
     if (!picked || !photo || busy) return;
     setBusy(true); setTeaser(false); setVideoUrl(""); setGenId(""); setStatus("");
     const token = Date.now(); runRef.current = token;
 
-    if (isStaff) { await realGenerate(token); return; }
+    // Der Screen springt runter zum Radar (wie im Try-On).
+    setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
 
     // Fake-Render-Show: gestaffelte Texte, dann „fertig" (verpixelt).
     for (const [at, text] of RENDER_STEPS) {
@@ -130,6 +134,7 @@ export default function KissFunnel() {
     setTimeout(async () => {
       if (runRef.current !== token) return;
       setBusy(false); setStatus(""); setTeaser(true);
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
       // Interesse fürs Admin-Tool loggen (noch ohne Video — das echte rendert nach dem Kauf).
       try {
         const log = await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelId: picked.id, modelName: picked.name }) }).then(r => r.json());
@@ -138,9 +143,16 @@ export default function KissFunnel() {
     }, RENDER_MS);
   };
 
-  // 🔓 Bezahlen: Stripe-Popup + Status-Poll — bei `paid` startet die ECHTE Generierung.
+  // 🔓 Freischalten: Kunde → Stripe-Popup + Status-Poll, bei `paid` startet die ECHTE
+  // Generierung. Staff → gratis direkt zur echten Generierung (kein Stripe).
   const unlock = async () => {
     if (payBusy) return;
+    if (isStaff) {
+      setBusy(true);
+      const token = Date.now(); runRef.current = token;
+      await realGenerate(token);
+      return;
+    }
     setPayBusy(true); setStatus("");
     try {
       const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ genId }) }).then(r => r.json());
@@ -231,41 +243,65 @@ export default function KissFunnel() {
       </button>
       {status && <p className="mt-2 text-center text-[12px] font-bold text-white/60">{status}</p>}
 
-      {/* Render-Show (pulsierende Fläche mit Funkeln) */}
-      {busy && !videoUrl && (
-        <div className="mx-auto mt-4 grid aspect-[3/4] w-[64vw] max-w-[280px] animate-pulse place-items-center rounded-3xl border border-amber-400/20 bg-gradient-to-b from-amber-400/[0.10] to-white/[0.03]">
-          <Sparkles className="h-8 w-8 text-amber-400/70" />
-        </div>
-      )}
-
-      {/* Fake-Teaser: „fertig", aber verpixelt (Model-Foto hinter starkem Blur) + Kauf-CTA */}
-      {teaser && !videoUrl && picked && (
-        <div className="mx-auto mt-4 w-fit">
-          <div className="relative overflow-hidden rounded-3xl border border-white/10">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={picked.photoUrl} alt="" className="aspect-[3/4] max-h-[60vh] w-auto blur-2xl scale-110 object-cover" />
-            <div className="absolute inset-0 grid place-items-center bg-black/30">
-              <div className="px-6 text-center">
-                <Lock className="mx-auto h-8 w-8 text-amber-400" />
-                <p className="lb-onmedia mt-2 text-[15px] font-black">Your kiss video is ready 💋</p>
-                <button type="button" onClick={() => void unlock()} disabled={payBusy}
-                  className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition disabled:opacity-60">
-                  {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Unlock your video — $3.99
-                </button>
-                <p className="lb-onmedia mt-2 text-[11px] font-bold opacity-80">Secure checkout by Stripe</p>
+      {/* Ergebnisbereich — der Screen springt hierher (Radar → Teaser → echtes Video). */}
+      <div ref={resultRef}>
+        {/* Radar-Scan (wie der Try-On-„Reveal"): Scanner-Balken + Sucher-Ecken über dem Model-Foto. */}
+        {busy && !videoUrl && picked && (
+          <div className="mx-auto mt-4 w-fit">
+            <div className="relative overflow-hidden rounded-3xl border border-white/10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={picked.photoUrl} alt="" className="aspect-[3/4] max-h-[60vh] w-auto object-cover object-top blur-[6px] brightness-75" />
+              {/* Weißer Scanner-Balken, fährt runter und wieder hoch. */}
+              <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-white shadow-[0_0_18px_5px_rgba(255,255,255,0.7)]" />
+              <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-14 -translate-y-1/2 bg-gradient-to-b from-transparent via-white/15 to-transparent" />
+              {/* Kamera-Sucher-Ecken. */}
+              <div className="pointer-events-none absolute left-3 top-3 z-20 h-6 w-6 rounded-tl-lg border-l-2 border-t-2 border-white/90" />
+              <div className="pointer-events-none absolute right-3 top-3 z-20 h-6 w-6 rounded-tr-lg border-r-2 border-t-2 border-white/90" />
+              <div className="pointer-events-none absolute bottom-3 left-3 z-20 h-6 w-6 rounded-bl-lg border-b-2 border-l-2 border-white/90" />
+              <div className="pointer-events-none absolute bottom-3 right-3 z-20 h-6 w-6 rounded-br-lg border-b-2 border-r-2 border-white/90" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-center justify-center gap-2 bg-gradient-to-t from-black/70 to-transparent p-4 pt-12 text-white">
+                <Sparkles className="h-4 w-4 animate-pulse" />
+                <span className="text-[12px] font-black">{status || "Rendering …"}</span>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Das ECHTE Video (nach Zahlung / Staff) — klar */}
-      {videoUrl && (
-        <div className="mx-auto mt-4 w-fit overflow-hidden rounded-3xl border border-white/10">
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-          <video src={videoUrl} controls autoPlay loop playsInline className="aspect-[3/4] max-h-[60vh] w-auto" />
-        </div>
-      )}
+        {/* Fake-Teaser: „fertig", aber verpixelt (Model-Foto hinter starkem Blur) + Kauf-CTA */}
+        {teaser && !videoUrl && picked && (
+          <div className="mx-auto mt-4 w-fit">
+            <div className="relative overflow-hidden rounded-3xl border border-white/10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={picked.photoUrl} alt="" className="aspect-[3/4] max-h-[60vh] w-auto blur-2xl scale-110 object-cover" />
+              <div className="absolute inset-0 grid place-items-center bg-black/30">
+                <div className="px-6 text-center">
+                  <Lock className="mx-auto h-8 w-8 text-amber-400" />
+                  <p className="lb-onmedia mt-2 text-[15px] font-black">Your kiss video is ready 💋</p>
+                  <button type="button" onClick={() => void unlock()} disabled={payBusy}
+                    className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition disabled:opacity-60">
+                    {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} {isStaff ? "Reveal (Admin — free)" : "Unlock your video — $3.99"}
+                  </button>
+                  {!isStaff && <p className="lb-onmedia mt-2 text-[11px] font-bold opacity-80">Secure checkout by Stripe</p>}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Das ECHTE Video (nach Zahlung / Admin-Reveal) — klar + Download. */}
+        {videoUrl && (
+          <div className="mx-auto mt-4 w-fit">
+            <div className="overflow-hidden rounded-3xl border border-white/10">
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              <video src={videoUrl} controls autoPlay loop playsInline className="aspect-[3/4] max-h-[60vh] w-auto" />
+            </div>
+            <a href={videoUrl} download="kiss-video.mp4" target="_blank" rel="noreferrer"
+              className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition">
+              ⬇ Download your video
+            </a>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
