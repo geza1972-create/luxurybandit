@@ -121,10 +121,11 @@ export default async function WetterModelPage({ params, searchParams }: {
   // Schwelle >= 7 sperrt genau ab dem 8. Öffnen. `?wetterpaid=1` schaltet nach der Zahlung sofort frei.
   const FREE_OPENS = 7;
   let locked = false;
+  let paid = false;
   if (subToken) {
     const [clicks, paidMap] = await Promise.all([readWetterClicks(modelId), readWetterPaid(modelId)]);
     const opens = clicks[subToken]?.count ?? 0;
-    const paid = !!paidMap[subToken] || String(sp.wetterpaid ?? "") === "1";
+    paid = !!paidMap[subToken] || String(sp.wetterpaid ?? "") === "1";
     locked = opens >= FREE_OPENS && !paid;
   }
   const showAdmin = String(sp.admin ?? "") === "1";   // Admin-Werkzeuge NUR mit ?admin=1 — nie in der Kundenansicht
@@ -222,7 +223,7 @@ export default async function WetterModelPage({ params, searchParams }: {
             <p className="mx-auto max-w-md px-4 pt-4 text-center text-[13px] font-black text-emerald-400">{CONFIRMED_TEXT[subLang] ?? CONFIRMED_TEXT.en}</p>
           )}
           <WetterSubscriberView name={subName} city={subCity || ipCity || FALLBACK_CITY[subLang] || "London"} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken} email={subEmail}
-            locked={locked} modelSlug={model} monthlyCents={2400}
+            locked={locked} paid={paid} modelSlug={model} monthlyCents={2400}
             day={dayLook?.day || ""} time={dayLook?.time || ""}
             title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.context || ""} dayContext={dayLook?.context || ""}
             look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />

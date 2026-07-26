@@ -124,13 +124,14 @@ const T: Record<string, Copy> = {
   },
 };
 
-export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", email = "", day = "", time = "", title = "", caption = "", firstMessage = "", dayContext = "", locked = false, modelSlug = "", monthlyCents = 2400 }: {
+export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", email = "", day = "", time = "", title = "", caption = "", firstMessage = "", dayContext = "", locked = false, paid = false, modelSlug = "", monthlyCents = 2400 }: {
   name: string; city: string; look: Look | null; lang?: string; modelId?: string; modelName?: string; subId?: string; email?: string; day?: string; time?: string;
   title?: string;         // „Titel" aus dem Beitrag — groß über dem Text
   caption?: string;       // „Text unter dem Bild" aus dem Beitrag
   firstMessage?: string;  // „Erste Nachricht im Chat" — Opener (leer = Standard-Gruß)
   dayContext?: string;    // „Ihr Tag heute" — steuert den Chat
-  locked?: boolean;       // nach 7 Öffnungen ohne Abo: Chat + Video gesperrt (Bild + Text bleiben)
+  locked?: boolean;       // Video: nach 7 Öffnungen ohne Abo gesperrt (Bild + Text bleiben)
+  paid?: boolean;         // zahlender Abonnent → kein Tages-Chatlimit
   modelSlug?: string;     // für die Rückkehr-URL des Abo-Checkouts
   monthlyCents?: number;  // Abo-Preis (24 € = 2400) für den Freischalt-Button
 }) {
@@ -163,6 +164,29 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   const lk = LOCK[L] ?? LOCK.en;
   const [showLock, setShowLock] = useState(false);   // Overlay „Credits verbraucht" erst NACH Klick aufs Video
   const [chatUnlock, setChatUnlock] = useState(false); // im Chat: nach dem 1. Sende-Versuch den Freischalt-Button zeigen
+
+  // Gratis-Chat = 50 Nachrichten PRO TAG (client-seitig, resetet um Mitternacht). Zahler = unbegrenzt.
+  // „Erst-mal"-Lösung; bei vielen Usern auf serverseitiges Limit umstellen.
+  const DAILY_CHAT_LIMIT = 50;
+  const chatDayKey = `lb_wetter_chatmsgs_${modelId}_${subId}`;
+  const [chatCount, setChatCount] = useState(0);
+  useEffect(() => {
+    if (!subId) return;
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const raw = localStorage.getItem(chatDayKey);
+      const d = raw ? (JSON.parse(raw) as { date: string; count: number }) : null;
+      setChatCount(d && d.date === today ? Number(d.count) || 0 : 0);
+    } catch { /**/ }
+  }, [subId, modelId, chatDayKey]);
+  const bumpChat = () => {
+    setChatCount(c => {
+      const n = c + 1;
+      try { localStorage.setItem(chatDayKey, JSON.stringify({ date: new Date().toISOString().slice(0, 10), count: n })); } catch { /**/ }
+      return n;
+    });
+  };
+  const chatBlocked = !paid && !!subId && chatCount >= DAILY_CHAT_LIMIT;
   // Bellas persönliche „Credits verbraucht"-Antwort, wenn ein gesperrter Abonnent zu senden versucht.
   const creditsMsg = ((): string => {
     const n = name.trim() || "";
@@ -283,14 +307,15 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   const send = async () => {
     const text = input.trim();
     if (!text || sending) return;
-    // GESPERRT: er darf schreiben, aber statt der KI antwortet Bella persönlich, dass die
-    // Credits verbraucht sind → danach der Freischalt-Button. Kein API-Aufruf (keine Kosten).
-    if (locked) {
+    // TAGESLIMIT ERREICHT (50 Gratis-Nachrichten): er darf schreiben, aber statt der KI antwortet
+    // Bella persönlich, dass die Credits verbraucht sind → Freischalt-Button. Kein API-Aufruf.
+    if (chatBlocked) {
       setMessages(m => [...m, { role: "user" as const, content: text }, { role: "assistant" as const, content: creditsMsg }]);
       setInput("");
       setChatUnlock(true);
       return;
     }
+    bumpChat();   // eine der 50 Gratis-Nachrichten des Tages verbraucht
     // Chat-Sitzung EINMAL zählen (nicht als Admin) → Wetter-Insights.
     try {
       const ck = `lb_wetter_chatted_${modelId}`;
@@ -451,7 +476,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
           </button>
         </div>
-        {locked && chatUnlock && (
+        {chatBlocked && chatUnlock && (
           <div className="flex flex-col items-center gap-1.5 px-4 pb-3 pt-1 text-center">
             <button type="button" onClick={() => void unlock()} disabled={unlocking}
               className="lb-gold flex h-12 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black disabled:opacity-60">
