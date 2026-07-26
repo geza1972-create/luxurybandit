@@ -1,6 +1,6 @@
 import Link from "next/link";
 import TopNav from "@/components/TopNav";
-import { CloudSun, Cake, Sparkles, Flame, MapPin, KeyRound, Lock, Palmtree, Shirt, Star } from "lucide-react";
+import { CloudSun, Cake, Sparkles, Flame, MapPin, KeyRound, Lock, Palmtree, Shirt, Star, Heart } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
 import { readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, readTryThisLookState } from "@/lib/try-this-look-store";
@@ -49,6 +49,7 @@ export default async function ThemesCatalog() {
     { icon: Palmtree, title: "Holiday with Bella", tagline: "She travels for you — daily videos & stories from Tenerife.", href: "/urlaub-mit-bella", cover: ph(5), chips: "♥ Tenerife · Videos · Stories" },
     { icon: Shirt, title: "Try-On", tagline: "Pick a look, pick a model — watch her wear it in a video.", href: "/themes/tryon", cover: ph(6), chips: "♥ Look · Model · Video" },
     { icon: Star, title: "Your Idol", tagline: "Upload her photo — she becomes your AI model.", href: "/your-idol", cover: ph(7), chips: "♥ Upload · Chat · Video" },
+    { icon: Heart, title: "Kiss any Model", tagline: "Your photo + her — a tender kiss in one video.", href: "/themes/kiss", cover: ph(8), chips: "♥ Pick her · Your photo · Kiss" },
     { icon: Cake, title: "Birthdays", tagline: "Auto birthday wishes — for you & your friends.", cover: ph(4) },
     { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every single day.", cover: ph(0) },
     { icon: Flame, title: "Lingerie Looks", tagline: "A daily intimate look — tasteful, private.", cover: ph(1) },
