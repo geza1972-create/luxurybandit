@@ -1,6 +1,6 @@
 import Link from "next/link";
 import TopNav from "@/components/TopNav";
-import { CloudSun, Cake, Sparkles, Flame, MapPin, KeyRound, Lock } from "lucide-react";
+import { CloudSun, Cake, Sparkles, Flame, MapPin, KeyRound, Lock, Palmtree, Shirt, Star } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
 import { readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, readTryThisLookState } from "@/lib/try-this-look-store";
@@ -16,7 +16,7 @@ export const metadata = {
   openGraph: { title: "LuxuryBandit Topics", description: "Daily content from your favorite influencer — pick a topic." },
 };
 
-type Theme = { icon: LucideIcon; title: string; tagline: string; href?: string; cover?: string; video?: string; poster?: string };
+type Theme = { icon: LucideIcon; title: string; tagline: string; href?: string; cover?: string; video?: string; poster?: string; chips?: string };
 
 export default async function ThemesCatalog() {
   // Cover fürs aktive „Wetter"-Thema: das WERBEVIDEO (ad-Slide) — genau das, was der
@@ -46,6 +46,9 @@ export default async function ThemesCatalog() {
 
   const THEMES: Theme[] = [
     { icon: CloudSun, title: "Morning Weather", tagline: "Your weather, a new look & a chat — every morning.", href: "/themes/wetter/bella", cover: wetterCover, video: wetterVideo, poster: wetterPoster },
+    { icon: Palmtree, title: "Holiday with Bella", tagline: "She travels for you — daily videos & stories from Tenerife.", href: "/urlaub-mit-bella", cover: ph(5), chips: "♥ Tenerife · Videos · Stories" },
+    { icon: Shirt, title: "Try-On", tagline: "Pick a look, pick a model — watch her wear it in a video.", href: "/themes/tryon", cover: ph(6), chips: "♥ Look · Model · Video" },
+    { icon: Star, title: "Your Idol", tagline: "Upload her photo — she becomes your AI model.", href: "/your-idol", cover: ph(7), chips: "♥ Upload · Chat · Video" },
     { icon: Cake, title: "Birthdays", tagline: "Auto birthday wishes — for you & your friends.", cover: ph(4) },
     { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every single day.", cover: ph(0) },
     { icon: Flame, title: "Lingerie Looks", tagline: "A daily intimate look — tasteful, private.", cover: ph(1) },
@@ -64,7 +67,7 @@ export default async function ThemesCatalog() {
         </h1>
         <p className="mt-2 max-w-xl text-[14px] font-semibold leading-relaxed text-white/60">
           Each topic sends daily content from your favorite influencer — plus a chat with her.
-          <span className="font-black text-white"> Morning Weather</span> is live; more are on the way.
+          <span className="font-black text-white"> Morning Weather, Holiday, Try-On &amp; Your Idol</span> are live; more are on the way.
         </p>
 
         {/* Karten EXAKT im Stil der Models-Galerie: Bild oben (Badge + Pille), Text darunter, kein Rahmen. */}
@@ -98,7 +101,7 @@ export default async function ThemesCatalog() {
                   <p className="truncate text-[13px] font-black text-white">{t.title}</p>
                   <p className="truncate text-[11px] font-bold text-white/80">{t.tagline}</p>
                   <p className="mt-0.5 truncate text-[9px] font-black uppercase tracking-wide text-amber-400/70">
-                    {active ? "♥ Weather · New look · Chat" : "Coming soon"}
+                    {active ? (t.chips || "♥ Weather · New look · Chat") : "Coming soon"}
                   </p>
                 </div>
               </>
