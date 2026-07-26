@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MessageCircle, Send, Lock, Crown, Maximize2, MapPin } from "lucide-react";
+import { MessageCircle, Send, Lock, Crown, Maximize2, MapPin, Play } from "lucide-react";
 import ModelCardHeader, { MONO_URL } from "./ModelCardHeader";
 
 // Kopf und LB-Monogramm liegen jetzt in ModelCardHeader — Bellas Seite benutzt
@@ -22,6 +22,8 @@ export type ModelCardProps = {
   valueLabel: string; looks?: number; bio?: string; brands?: string;
   createdAt?: string; tagline?: string; realModel?: boolean; forSale?: boolean; canDownload?: boolean;
   following?: boolean; onSuperFollow?: () => void; onChat?: () => void; country?: string;
+  tryOnHref?: string; tryOnLabel?: string; // "See her in other outfits" CTA under the thumbs (profile only)
+  chatSlot?: ReactNode; // inline chat box rendered under the thumbs (profile only); falls back to a Chat button
   owner?: string; ownerId?: string; ownerHideName?: boolean; ownerSince?: string;
   title?: string; // her brand title / role, e.g. "Monaco Influencer"
   intro?: string; // her self-introduction — shown as a slide right after the card face
@@ -46,6 +48,7 @@ export default function ModelCard({
   isMember = false, onLockedClick, valueLabel,
   looks = 0, bio = "", brands = "", createdAt = "", tagline = "Your vibe, every day 💛", realModel = false, forSale = false, canDownload = false,
   onChat, country = "", owner = "", ownerId = "", ownerHideName = false, ownerSince = "",
+  tryOnHref = "", tryOnLabel = "", chatSlot = null,
   title = "", intro = "", sponsor = "", showProfileLink = false, showDates = false, hideOwner = false,
 }: ModelCardProps) {
   const geo = countryInfo(country);
@@ -208,10 +211,8 @@ export default function ModelCard({
                       <>
                         {/* Her intro lives HERE on the card face (no separate ABOUT slide). */}
                         <p className={`font-semibold text-white/85 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)] ${intro ? "line-clamp-4 text-[12.5px] leading-snug" : "text-[13px]"}`}>{intro || tagline}</p>
-                        {hideOwner ? null : isOwned ? (
+                        {!hideOwner && isOwned && (
                           <p className="mt-1.5 text-[13px] font-black text-amber-300 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)]">Sponsored by {ownedName}{ownerSince ? <span className="font-bold text-white/85"> · since {ownerSince}</span> : null}</p>
-                        ) : (
-                          <p className="mt-1.5 text-[14px] font-black text-amber-300 [text-shadow:_0_1px_8px_rgba(0,0,0,0.95)]">No sponsor yet — be the first sponsor</p>
                         )}
                       </>
                     ) : (
@@ -306,6 +307,21 @@ export default function ModelCard({
         </div>
       )}
 
+      {/* Chat + Try-on — direkt unter den Thumbs. Chat als Inline-Box (wie Wetter) wenn geliefert,
+          sonst als Button; Try-on als goldener Button. */}
+      <div className="mt-2.5 space-y-2 px-3 pb-1">
+        {chatSlot ? chatSlot : onChat ? (
+          <button type="button" onClick={onChat} className="lb-gold flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[15px] font-black shadow active:scale-95 transition"><MessageCircle className="h-5 w-5" /> Chat with my AI</button>
+        ) : (
+          <Link href={profile} className="lb-gold flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[15px] font-black shadow active:scale-95 transition"><MessageCircle className="h-5 w-5" /> Chat with my AI</Link>
+        )}
+        {tryOnHref && (
+          <Link href={tryOnHref} className="lb-gold flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[15px] font-black shadow active:scale-95 transition">
+            <Play className="h-5 w-5" fill="currentColor" /> {tryOnLabel || `Sieh dir ${name.split(" ")[0]} in anderen Klamotten an`}
+          </Link>
+        )}
+      </div>
+
       {/* Card info — her "profile data": serial, created date, description, brands */}
       <div className="border-b border-white/10 px-4 py-3">
         <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wide text-white/85">
@@ -343,15 +359,6 @@ export default function ModelCard({
 
       {/* Social-reach vanity stats REMOVED (2026-07-16): no fake followers/likes/views anywhere —
           brand partners must only ever see real, verifiable numbers. */}
-
-      {/* NUR Chat — groß & gold (Super Follow entfernt). */}
-      <div className="mt-2.5 px-3 pb-3">
-        {onChat ? (
-          <button type="button" onClick={onChat} className="lb-gold flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[15px] font-black shadow active:scale-95 transition"><MessageCircle className="h-5 w-5" /> Chat with my AI</button>
-        ) : (
-          <Link href={profile} className="lb-gold flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[15px] font-black shadow active:scale-95 transition"><MessageCircle className="h-5 w-5" /> Chat with my AI</Link>
-        )}
-      </div>
 
       {/* Landing/gallery: jump to her FULL profile — everything about her lives there
           (all looks & videos; admins/creators edit photo, texts and videos in place). */}

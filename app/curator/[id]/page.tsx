@@ -10,6 +10,7 @@ import { logFunnelEvent } from "@/lib/track-funnel";
 import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
+import ModelChatInline from "@/components/ModelChatInline";
 import ModelCard from "@/components/ModelCard";
 import BookJourneyCTA from "@/components/BookJourneyCTA";
 
@@ -1200,7 +1201,11 @@ export default function CuratorPublicPage() {
   const allCardClips = customClips.length ? customClips : cardClips;
   // Ein Start-Look für den „Try on"-Button: bevorzugt EIN eigener Look von ihr, sonst irgendeiner
   // mit Bild. Der Funnel öffnet mit ihr vorausgewählt (modelId) + Outfit-Picker (pick=1).
-  const tryOnLook = looks.find(l => l.curatorId === id && (l.frontImageUrl || l.imageUrl)) ?? looks.find(l => l.frontImageUrl || l.imageUrl) ?? null;
+  // Bevorzugt EIN eigener Look von ihr; sonst IRGENDEIN veröffentlichter Look aus dem ganzen Portal
+  // (allLooks) — so erscheint der „Sieh dir … in anderen Klamotten an"-Button auf JEDEM Profil,
+  // auch bei Models ohne eigene Garderobe (der Funnel öffnet mit ihr als Model + Outfit-Picker).
+  const tryOnLook = looks.find(l => l.curatorId === id && (l.frontImageUrl || l.imageUrl))
+    ?? allLooks.find(l => l.frontImageUrl || l.imageUrl) ?? null;
   // Data for the shareable collectible ModelCard (THE reusable card, same as the landing).
   const cardData = {
     id: profile.id,
@@ -1260,23 +1265,18 @@ export default function CuratorPublicPage() {
             <ArrowLeft className="h-4 w-4" />
           </button>
         )}
+        {/* Chat + Try-on sitzen jetzt IN der Card, direkt unter den Thumbs. Try-on-Text = deutsch. */}
         <ModelCard {...cardData} isMember={isMember} showDates={isAdmin} onLockedClick={() => setShowSubscribe(true)}
           following={following} onSuperFollow={() => void handleFollow()}
-          onChat={() => router.push(`/chat/${id}`)} />
+          onChat={() => router.push(`/chat/${id}`)}
+          tryOnHref={tryOnLook ? `/try/${tryOnLook.id}?model=${encodeURIComponent(profile.photoUrl || profile.photoFullUrl || "")}&garment=${encodeURIComponent(tryOnLook.frontImageUrl || tryOnLook.imageUrl || "")}&modelId=${encodeURIComponent(id)}&modelName=${encodeURIComponent(displayName)}` : ""}
+          tryOnLabel={`Sieh dir ${displayName} in anderen Klamotten an`}
+          chatSlot={<ModelChatInline curatorId={id} modelName={displayName} first={displayName.split(" ")[0]}
+            avatarUrl={profile.photoUrl || profile.photoFullUrl || ""} isPaid={isMember} isOwn={isOwn}
+            onNeedPremium={() => setShowSubscribe(true)} />} />
 
         {/* Book a Journey — travel program CTA (only for curators who offer one). */}
         {JOURNEY_CURATOR_IDS.has(id) && <BookJourneyCTA name={profile.firstName || "her"} />}
-
-        {/* Try-on — startet den Funnel mit ihr vorausgewählt + Outfit-Picker (kostenlos). */}
-        {tryOnLook && (
-          <div className="px-4">
-            <button type="button"
-              onClick={() => router.push(`/try/${tryOnLook.id}?garment=${encodeURIComponent(tryOnLook.frontImageUrl || tryOnLook.imageUrl)}&modelId=${encodeURIComponent(id)}&modelName=${encodeURIComponent(name)}&pick=1`)}
-              className="lb-gold mx-auto mt-3 flex w-full max-w-md items-center justify-center gap-2 rounded-full py-3.5 text-[15px] font-black shadow active:scale-95 transition">
-              <Play className="h-4 w-4" fill="currentColor" /> Try {name} on — free
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Profile header */}
