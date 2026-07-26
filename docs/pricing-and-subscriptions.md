@@ -1,31 +1,54 @@
 # Preise & Abos — Quelle der Wahrheit
 
 Alle Geldflüsse von LuxuryBandit an EINER Stelle. Bei jeder Preisfrage ZUERST hier
-schauen (und gegen den Code prüfen — Werte können sich ändern). Stand: 2026-07-26.
+schauen (und gegen den Code prüfen). Stand: 2026-07-26.
 
-> Wichtig: „Anzeige-Preis im Code" ≠ „tatsächliche Abbuchung". Die echte Abbuchung
-> läuft über **Stripe** (Preis-ID + ggf. Gutschein). Code-Text und Stripe müssen
-> übereinstimmen — den Stripe-Teil legt der Owner im Stripe-Dashboard an, nicht Claude.
+> „Anzeige-Preis im Code" ≠ „tatsächliche Abbuchung". Die echte Abbuchung läuft über
+> **Stripe** (Preis-ID + ggf. Gutschein). Den Stripe-Teil legt der Owner an, nicht Claude.
 
-## Übersicht
+## AKTUELLES MODELL (entschieden 2026-07-26) — Abo = Reden, Video = Einzelkauf
 
-| Produkt | Preis | Testphase / Rabatt | Wo im Code | Admin-konfigurierbar? |
-|---|---|---|---|---|
-| **Wetter-/Themen-Abo** (Bella & Co., tägliche Nachricht) | **9,99 €/Monat** | **7 Tage gratis** | `app/themes/wetter/[model]/page.tsx` → `wetterAboMonthlyCents ?? 999`, `wetterAboTrialDays ?? 7`; UI `components/WetterGate.tsx` | **Ja** — `state.pricing.wetterAboMonthlyCents` / `wetterAboTrialDays` |
-| **Premium** (Try-on-Videos, entsperrt alles + Community) | **$49/Monat** | **1. Monat $8** (Stripe-Gutschein `CjOJYKVV`), 40 Videos/Monat | Anzeige hardcodiert in `app/try/[lookId]/page.tsx`, `app/stores/page.tsx`, `app/terms/page.tsx`, `app/grow-card/page.tsx` u. a. (String „$49") | Nein (hardcodierte Texte + Stripe-Preis) |
-| **You-in-Video** (Selbst im Video, Face-Swap) | **$3.99** einmalig | — | `app/you-in-video/page.tsx` (`PRICE_LABEL`), `app/try/[lookId]/page.tsx` | Nein |
-| **Paid Chat-Pass** (Chat mit fremdem Influencer) | **$3.99 / 30 Min** | eigener Influencer = gratis unbegrenzt; sonst 10 Nachrichten gratis | `app/curator/[id]/page.tsx` (`chatPassCents` 399); Owner-Anteil 30 % | teils |
-| **SuperFollow / „Own influencer"-Abo** | **$4.99/Monat** (Default 499) | 1. Monat $8 | `app/curator/[id]/page.tsx` (`superFollowCents` 499) | ja (pro Curator) |
-| **Starter-Influencer-Abo** („Own an AI Influencer", Ad-Test) | **€9.99/Monat** | manuell erfüllt (Test) | `app/own-influencer/page.tsx` (`subscriptionMonthlyCents`) | ja |
-| **Try-on Preis-Leiter** (GEPLANT, noch nicht live) | normales Foto gratis (3/Tag) · Lingerie **$2.90** · Video **$4.90** · 360° **$7.90** | — | Konzept, via Stripe (deferred) | — |
+Kernidee: **Videogenerierung ist zu teuer fürs Abo** (Dollar-Beträge pro Clip). Das Abo
+verkauft daher **tägliche Nachrichten + Chat** (Haiku-Chat kostet Bruchteile eines Cents).
+Video gibt es NUR als Einzelkauf.
+
+| Stufe | Preis | Enthält | Video? |
+|---|---|---|---|
+| **Basis** | **9,99 €/Monat** (7 Tage gratis) | tägliche Nachricht + Chat **mit Credit-Limit** | nein |
+| **Plus** | **24 €/Monat** | deutlich mehr Chat-Credits (evtl. schlaueres Modell) | nein |
+| **Try-on-Video** | **$3.99 pro Stück** (Einzelkauf, kein Abo) | ein generiertes Try-on-Video | — |
+
+- **Chat-Modell:** Claude **Haiku 4.5** (`app/api/app-chat|model-chat|mai-ieftin-chat`). Für Persona-Chat ~ebenbürtig zu ChatGPT, sehr günstig. „Plus" könnte einzelne Chats auf Sonnet routen.
+- **Chat-Limit:** pro Abonnent Credits zählen (1 Credit ≈ 1 Nachricht). Bei 0 → Upsell auf 24 € **oder** drosseln. (Zahlen/Verhalten noch festzulegen.)
+- **Video** = bestehender **$3.99 Pay-per-Try-on** (You-in-Video-Funnel + Stripe), NICHT im Abo.
+
+### ❌ ABGESCHAFFT: Premium $49/Monat (40 Videos/Monat)
+Das Video-Abo ($49/Mo, 1. Monat $8, Gutschein `CjOJYKVV`) wird **nicht mehr angeboten**.
+Video läuft ausschließlich à la carte für $3.99. **Noch im Code vorhanden** (Anzeige-Texte
+„$49/month" + Paywall) → muss entfernt/umgebaut werden; bestehende Stripe-Abos + laufende
+Zahler separat behandeln (Owner/Stripe). Alt-Fundstellen: `app/try/[lookId]/page.tsx`,
+`app/stores/page.tsx`, `app/terms/page.tsx`, `app/grow-card/page.tsx`.
+
+## Weitere Geldflüsse (unverändert)
+
+| Produkt | Preis | Wo im Code |
+|---|---|---|
+| **You-in-Video** (Face-Swap, = der $3.99-Try-on) | **$3.99** einmalig | `app/you-in-video/page.tsx` (`PRICE_LABEL`), `app/try/[lookId]/page.tsx` |
+| **Paid Chat-Pass** (Chat mit FREMDEM Influencer) | **$3.99 / 30 Min** (eigener = gratis; sonst 10 gratis) | `app/curator/[id]/page.tsx` (`chatPassCents` 399), Owner-Anteil 30 % |
+| **SuperFollow / „Own influencer"** | **$4.99/Monat** (Default 499) | `app/curator/[id]/page.tsx` (`superFollowCents`) |
+| **Starter-Influencer-Abo** (Ad-Test) | **€9.99/Monat** | `app/own-influencer/page.tsx` (`subscriptionMonthlyCents`) |
+| **Try-on Preis-Leiter** (GEPLANT) | Foto gratis 3/Tag · Lingerie $2.90 · Video $4.90 · 360° $7.90 | Konzept, deferred |
 
 ## Merksätze
-- **Zwei verschiedene 9,99er nicht verwechseln:** Wetter-/Themen-Abo (9,99 €) und Starter-Influencer-Abo (9,99 €) sind unterschiedliche Produkte.
-- **Premium (49 $) ≠ Wetter-Abo (9,99 €).** Premium schaltet Try-on-Videos frei; das Wetter-Abo ist die tägliche Morgen-Nachricht.
-- Preise, die in `state.pricing` liegen, kann der Owner im Admin ändern; hardcodierte (Premium-Texte) nur im Code.
-- **Nichts in Stripe anlegen ohne ausdrückliche Owner-Freigabe.** Claude hat keinen Stripe-Zugang und gibt keine Zahlungsdaten ein.
+- **Zwei verschiedene 9,99er:** Wetter-/Themen-Abo (9,99 €) ≠ Starter-Influencer-Abo (9,99 €).
+- **Kein Video im Abo mehr** — Video ist immer Einzelkauf $3.99.
+- Wetter-Abo-Preis/Trial liegen in `state.pricing` (`wetterAboMonthlyCents ?? 999`, `wetterAboTrialDays ?? 7`) → im Admin änderbar.
+- **Nichts in Stripe anlegen/ändern ohne Owner-Freigabe.** Claude hat keinen Stripe-Zugang.
 
-## Offene Idee (2026-07-26, nicht gebaut)
-Wetter-Testphase **pro Person** an **Anzahl gesendeter Mails** koppeln (z. B. 7 Mails gratis, dann Abo) statt „7 Tage global", weil laufend neue Leads dazukommen. Machbar, da wir seit 2026-07-26 pro Abonnent Öffnungen/Sends tracken können.
+## Offene To-dos aus diesem Modell
+1. **Chat-Credit-Limit pro Abonnent** bauen (zählen, bei 0 → 24 € Upsell / Drosselung). Zahlen offen.
+2. **24 €-Stufe** anlegen (mehr Credits, evtl. Sonnet).
+3. **Premium $49 aus dem Code entfernen** (Texte + Paywall) + Alt-Zahler/Stripe klären.
+4. Optional: Wetter-Testphase **pro Person nach 7 gesendeten Mails** statt 7 Tage global.
 
-Verwandte Memories: `premium-subscription`, `bella-topic-subscription-system`, `monetization-tryon-pricing`, `paid-chat-pass`, `starter-influencer-subscription-adtest`.
+Verwandte Memories: `pricing-source-of-truth`, `premium-subscription`, `bella-topic-subscription-system`, `paid-chat-pass`, `ai-model-chat`.
