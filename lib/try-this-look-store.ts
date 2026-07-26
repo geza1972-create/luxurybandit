@@ -1264,6 +1264,30 @@ export async function readCardStudioBackup(modelId?: string, scope?: string): Pr
   } catch { return { slides: [], savedAt: "" }; }
 }
 
+// ── Kiss-Theme-Config (eigener kleiner Blob, KEIN state.json-Feld → keine Whitelist-Falle) ──
+// Der Admin wählt, welche Models im Kiss-Funnel-Grid angeboten werden (leer = alle).
+const KISS_CONFIG_PATH = "try-this-look/kiss-config.json";
+export type KissConfig = { modelIds: string[] };
+
+export async function readKissConfig(): Promise<KissConfig> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(KISS_CONFIG_PATH)}`);
+    if (!res.ok) return { modelIds: [] };
+    const data = await res.json().catch(() => null);
+    return { modelIds: Array.isArray(data?.modelIds) ? data.modelIds.map(String) : [] };
+  } catch { return { modelIds: [] }; }
+}
+
+export async function writeKissConfig(config: KissConfig): Promise<void> {
+  await ensureBucket();
+  const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(KISS_CONFIG_PATH)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body: JSON.stringify({ modelIds: config.modelIds.slice(0, 100), savedAt: new Date().toISOString() }),
+  });
+  if (!response.ok) throw new Error(`Kiss-Config konnte nicht gespeichert werden (${response.status}).`);
+}
+
 // Persist the full slide array in ONE write. Before overwriting, the current committed
 // version is copied to the backup blob (last-known-good), so nothing is ever lost silently.
 export async function writeCardStudioSlides(slides: BellaSlide[], modelId?: string, scope?: string): Promise<void> {
