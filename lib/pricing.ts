@@ -7,7 +7,9 @@
  * wird gezogen), der laufende Preis trägt das Produkt.
  *
  * Umsetzung in Stripe (macht der Owner, Claude hat keinen Zugang):
- *   1. Preis 49 €/Monat anlegen → Env `STRIPE_TOPIC_ABO_PRICE_ID`
+ *   1. Preis 49 €/Monat, Steuer INKLUSIVE (Owner 27.07.2026: Verbraucher sehen den
+ *      Endpreis) → `price_1TxvSi1jPNCWoiztEHBpgDhj`, überschreibbar per
+ *      `STRIPE_TOPIC_ABO_PRICE_ID`
  *   2. Gutschein „30 € einmalig" anlegen (49 − 30 = 19 € im ersten Monat) und die
  *      Coupon-ID unter dem Anzeigen-Code eintragen:
  *      `STRIPE_PROMO_CODES={"DEINCODE":"<coupon-id>"}`
@@ -29,7 +31,7 @@ export const PRICE_LINE_CODE_DE = "19 € im ersten Monat, danach 49 €/Monat";
 export function topicPriceId(): string {
   // KEIN Rueckfall auf die alte 24-EUR-Preis-ID — die ist abgeschafft. Fehlt die Env,
   // gilt der neue 49-EUR-Preis, damit nie wieder heimlich der alte Preis kassiert wird.
-  return process.env.STRIPE_TOPIC_ABO_PRICE_ID?.trim() || "price_1TxuJo1jPNCWoiztbO6FAeUT";
+  return process.env.STRIPE_TOPIC_ABO_PRICE_ID?.trim() || "price_1TxvSi1jPNCWoiztEHBpgDhj";
 }
 
 /**
