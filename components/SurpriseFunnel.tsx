@@ -23,7 +23,7 @@ export const surprisePrompt = (name: string) => {
   const line = name.trim()
     ? `says out loud, clearly and warmly: "Hello ${name.trim()}, how are you?"`
     : `says out loud, clearly and warmly: "Hello, how are you?"`;
-  return `@person wears the outfit from @Bild2 and stands in a warmly lit bedroom with soft evening light, looks straight into the camera, smiles and ${line} Her lips move in sync with the words. Keep @person face and hair exactly as in the reference, and keep the outfit from @Bild2 exactly as it is. Fluid natural motion, cinematic, photorealistic, shallow depth of field. Fixed camera, no zoom. No text or logos.`;
+  return `@person stands in a warmly lit bedroom with soft evening light, looks straight into the camera, smiles and ${line} Her lips move in sync with the words. Keep @person face, hair, body and outfit EXACTLY as in the reference photo — do not change her face and do not change what she is wearing. Fluid natural motion, cinematic, photorealistic, shallow depth of field. Fixed camera, no zoom. No text or logos.`;
 };
 
 const CONSENT_TEXT =
@@ -113,13 +113,35 @@ export default function SurpriseFunnel({ example = "" }: { example?: string }) {
   };
 
   // ECHTE Generierung — läuft erst nach Zahlung (oder für Staff).
+  //
+  // ZWEI SCHRITTE, unsere eigene Pipeline (nicht zwei Referenzen an Pixverse werfen —
+  // dabei erfindet Pixverse Gesichter neu):
+  //   1) ANZIEHEN: FASHN setzt das gewählte Set auf IHR Foto → fertiges Foto von ihr.
+  //   2) ANIMIEREN: dieses EINE Foto geht als Referenz ins Video, sie spricht ihn an.
   const realGenerate = async (token: number) => {
-    setStatus("Rendering your video … (~1–3 min)");
+    const H = { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) };
     try {
+      setStatus("Putting the set on your photo …");
+      const toFile = async (src: string, name: string) => {
+        const blob = await fetch(src).then(r => r.blob());
+        return new File([blob], name, { type: blob.type || "image/jpeg" });
+      };
+      const fd = new FormData();
+      fd.append("modelImage", await toFile(photo, "person.jpg"));           // sie
+      fd.append("image", await toFile(picked!.imageUrl!, "garment.jpg"));   // das Set
+      fd.append("lookId", picked!.id);
+      const dressed = await fetch("/api/generate-fashn", {
+        method: "POST", body: fd, ...(pin ? { headers: { "x-try-look-admin-pin": pin } } : {}),
+      }).then(r => r.json());
+      if (runRef.current !== token) return;
+      const dressedImage: string = dressed?.image || dressed?.imageUrl || "";
+      if (!dressedImage) { setStatus(dressed?.error || "Could not put the set on your photo. Try a full-body photo."); setBusy(false); return; }
+
+      setStatus("Bringing it to life … (~1–3 min)");
       const start = await fetch("/api/generate-tryon-video", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-        body: JSON.stringify({ lookId: picked?.id || LOOK_ID, person: photo, garment: picked?.imageUrl || photo, prompt: surprisePrompt(himName) }),
+        method: "POST", headers: H,
+        // EINE Referenz (das angezogene Foto) auf beide Slots — der Prompt nennt nur @person.
+        body: JSON.stringify({ lookId: picked?.id || LOOK_ID, person: dressedImage, garment: dressedImage, prompt: surprisePrompt(himName) }),
       }).then(r => r.json());
       if (!start?.videoId) { setStatus(start?.error || "Could not start."); setBusy(false); return; }
       for (let i = 0; i < 72; i++) {

@@ -49,18 +49,16 @@ export default async function SurpriseThemePage({ searchParams }: {
               You decide how much you show. 3.99 € per video, and the link disappears after 7 days.
             </Fine>
 
-            <SurpriseFunnel example={example} />
-
+            {/* Das Ergebnis steht GANZ OBEN (Owner): erst sehen, was rauskommt, dann lesen. */}
             {exampleVideo && (
-              <div className="mt-12">
-                <SectionTitle>This is what he gets</SectionTitle>
-                <Lead>She looks into the camera and says his name — that is the whole surprise.</Lead>
-                <div className="mt-3 overflow-hidden rounded-2xl border border-white/10">
-                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                  <video src={exampleVideo} controls loop playsInline preload="metadata" className="aspect-[3/4] w-full object-cover" />
-                </div>
+              <div className="mt-5 overflow-hidden rounded-2xl border border-white/10">
+                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                <video src={exampleVideo} controls loop playsInline preload="metadata" className="aspect-[3/4] w-full object-cover" />
               </div>
             )}
+
+            <SurpriseFunnel example={example} />
+
 
             <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
               <div>
