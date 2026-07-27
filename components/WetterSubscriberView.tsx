@@ -6,6 +6,7 @@ import { CornerOrnaments } from "@/components/BoxOrnaments";
 import BellaPostsCarousel from "@/components/BellaPostsCarousel";
 import { wxKey, WX_WORDS, forecastLine } from "@/lib/wetter-forecast";
 import { startPremiumCheckout } from "@/lib/start-premium-checkout";
+import AgeGate, { ageVerified } from "@/components/AgeGate";
 
 // Was der ABONNENT auf /wetter/<model>?name=…&city=…&lang=… sieht:
 // persönlicher Gruß + Wetter aus seiner Stadt + Look vom Tag + Chat mit dem Model (im Abo unbegrenzt).
@@ -174,7 +175,8 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   };
   const lk = LOCK[L] ?? LOCK.en;
   const [showLock, setShowLock] = useState(false);   // Overlay „Credits verbraucht" erst NACH Klick aufs Video
-  const [chatUnlock, setChatUnlock] = useState(false); // im Chat: nach dem 1. Sende-Versuch den Freischalt-Button zeigen
+  const [chatUnlock, setChatUnlock] = useState(false);   // im Chat: nach dem 1. Sende-Versuch den Freischalt-Button zeigen
+  const [needAge, setNeedAge] = useState(false);         // 18+-Abfrage vor der ersten Chat-Nachricht
 
   // Gratis-Chat = 50 Nachrichten PRO TAG (client-seitig, resetet um Mitternacht). Zahler = unbegrenzt.
   // „Erst-mal"-Lösung; bei vielen Usern auf serverseitiges Limit umstellen.
@@ -318,6 +320,10 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   const send = async () => {
     const text = input.trim();
     if (!text || sending) return;
+    // 18+ NUR für den CHAT: die Bilder zeigen nicht mehr als ein Strandfoto — der Chat
+    // dagegen ist erwachsen (flirtend). Abfrage vor der ERSTEN Nachricht, einmal pro Gerät;
+    // nach der Bestätigung wird die Nachricht automatisch abgeschickt (onDone).
+    if (!ageVerified()) { setNeedAge(true); return; }
     // TAGESLIMIT ERREICHT (50 Gratis-Nachrichten): er darf schreiben, aber statt der KI antwortet
     // Bella persönlich, dass die Credits verbraucht sind → Freischalt-Button. Kein API-Aufruf.
     if (chatBlocked) {
@@ -538,6 +544,10 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         )}
         <p className="px-9 pb-4 pt-1 text-center text-[11px] font-bold text-white/80">{t.aiNote(modelName)}</p>
       </div>
+
+      {/* 18+-Abfrage NUR fürs Chatten (Bilder bleiben frei). Nach „Ja" wird die Nachricht,
+          die die Abfrage ausgelöst hat, automatisch abgeschickt. */}
+      {needAge && <AgeGate lang={L} onDone={() => { setNeedAge(false); void send(); }} />}
 
       {/* Selbst-Abmeldung — der Abonnent stoppt die tägliche Nachricht direkt hier. */}
       {subId && (

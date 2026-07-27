@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import AgeGate, { ageVerified } from "@/components/AgeGate";
 import { useRouter } from "next/navigation";
 import { Loader2, X, Send, Lock, Sparkles, Smile, Gift } from "lucide-react";
 
@@ -78,6 +79,8 @@ export default function ModelChat({
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [needAge, setNeedAge] = useState(false);   // 18+-Abfrage vor der ersten Chat-Nachricht
+  const [pendingText, setPendingText] = useState("");  // Nachricht, die auf die Bestätigung wartet
   const [streaming, setStreaming] = useState(false); // true once the reply starts arriving
   const [error, setError] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
@@ -228,6 +231,8 @@ export default function ModelChat({
   const sendMessage = async (textArg?: string) => {
     const text = (textArg ?? input).trim();
     if (!text || sending) return;
+    // 18+ gilt fürs CHATTEN (nicht für Bilder) — einmal pro Gerät, danach automatisch weiter.
+    if (!ageVerified()) { setPendingText(text); setNeedAge(true); return; }
     if (locked) { onNeedPremium(); return; }
     setError("");
     setShowEmoji(false); setShowGifts(false);
@@ -454,6 +459,8 @@ export default function ModelChat({
           <p className="mt-1.5 text-center text-[11px] font-bold text-white/85">✨ You&apos;re chatting with {first}&apos;s AI Assistant — an AI persona, not the real person.</p>
         </div>
       </div>
+      {/* 18+ nur fürs Chatten; nach „Ja" wird die wartende Nachricht abgeschickt. */}
+      {needAge && <AgeGate onDone={() => { setNeedAge(false); const p = pendingText; setPendingText(""); if (p) void sendMessage(p); }} />}
     </div>
   );
 }

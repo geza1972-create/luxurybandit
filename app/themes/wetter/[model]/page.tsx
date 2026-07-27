@@ -6,7 +6,6 @@ import BellaSimpleStudio from "@/components/BellaSimpleStudio";
 import WetterSubscribers from "@/components/WetterSubscribers";
 import WetterStats from "@/components/WetterStats";
 import WetterTrack from "@/components/WetterTrack";
-import AgeGate from "@/components/AgeGate";
 import BellaPostsCarousel from "@/components/BellaPostsCarousel";
 import WetterSubscriberView from "@/components/WetterSubscriberView";
 import WetterGate from "@/components/WetterGate";
@@ -214,10 +213,8 @@ export default async function WetterModelPage({ params, searchParams }: {
     // Nur Logo oben (TopNav noMenu) — das Menü bleibt UNTEN (BottomNav), kein Doppel-Menü.
     <main className="lb-bg text-white">
       <WetterTrack modelId={modelId} subId={subToken} src={String(sp.src ?? "")} />
-      {/* 18+-Bestätigung, BEVOR Dessous-Inhalte sichtbar werden. Genau hier landet der
-          Klick aus der Tages-E-Mail, deren Teaser den Look von heute zeigt. Einmal pro
-          Gerät; Admins und Crawler sind ausgenommen. */}
-      <AgeGate lang={subLang} />
+      {/* KEINE Alters-Abfrage auf die BILDER: die Looks zeigen nicht mehr, als man am
+          Strand sieht. Gegated wird der CHAT — siehe WetterSubscriberView. */}
       <TopNav />
 
       {/* Kopf — volle Breite (NICHT in einer Box). Dunkel, Name weiß. */}

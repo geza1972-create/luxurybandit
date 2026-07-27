@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import AgeGate, { ageVerified } from "@/components/AgeGate";
 import Link from "next/link";
 import { Loader2, Send } from "lucide-react";
 
@@ -99,6 +100,7 @@ export default function ModelChatInline({
   const [messages, setMessages] = useState<ChatMsg[]>([{ role: "assistant", content: GREET[lang] }]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [needAge, setNeedAge] = useState(false);   // 18+-Abfrage vor der ersten Chat-Nachricht
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState("");
   const [unlocked, setUnlocked] = useState(false); // paid the 24 € abo → unlimited chat with HER
@@ -144,6 +146,8 @@ export default function ModelChatInline({
   const sendMessage = async () => {
     const text = input.trim();
     if (!text || sending || wall) return;
+    // 18+ gilt fürs CHATTEN (nicht für Bilder) — einmal pro Gerät, danach automatisch weiter.
+    if (!ageVerified()) { setNeedAge(true); return; }
     setError("");
     // Paid model, free visitor: exactly ONE reply, then the wall. No AI call (no cost).
     if (!paidAccess && !bella) {
@@ -262,6 +266,8 @@ export default function ModelChatInline({
         )}
         <p className="mt-1.5 text-center text-[10px] font-bold text-black/50">✨ {first}&apos;s AI — an AI persona, not the real person.</p>
       </div>
+      {/* 18+ nur fürs Chatten; nach „Ja" wird die Nachricht direkt abgeschickt. */}
+      {needAge && <AgeGate lang={lang} onDone={() => { setNeedAge(false); void sendMessage(); }} />}
     </div>
   );
 }

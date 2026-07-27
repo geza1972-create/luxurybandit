@@ -27,7 +27,17 @@ const GATE: Record<string, GateCopy> = {
   it: { q: "Hai 18 anni o più?", sub: "LuxuryBandit è solo per adulti (18+). Conferma la tua età per continuare.", yes: "Sì, ho 18 anni o più", no: "No", sorry: "Ci dispiace", denied: "LuxuryBandit è solo per adulti (18+). Non puoi usare questo sito.", back: "Indietro" },
 };
 
-export default function AgeGate({ lang = "en" }: { lang?: string }) {
+// Ist das Alter auf diesem Gerät schon bestätigt? (Admins gelten als bestätigt.)
+export function ageVerified(): boolean {
+  try {
+    if (localStorage.getItem(OK_KEY) === "1") return true;
+    return ADMIN_KEYS.some(k => !!localStorage.getItem(k));
+  } catch { return false; }
+}
+
+// `onDone` wird nach der Bestätigung aufgerufen — so kann der Aufrufer die Aktion
+// fortsetzen, die die Abfrage ausgelöst hat (z. B. die erste Chat-Nachricht senden).
+export default function AgeGate({ lang = "en", onDone }: { lang?: string; onDone?: () => void }) {
   const t = GATE[lang] ?? GATE.en;
   // Render nothing until mounted so we never hydrate a mismatched overlay.
   const [ready, setReady] = useState(false);
@@ -52,6 +62,7 @@ export default function AgeGate({ lang = "en" }: { lang?: string }) {
     try { localStorage.setItem(OK_KEY, "1"); } catch { /* ignore */ }
     try { window.dispatchEvent(new Event("lb-age-ok")); } catch { /**/ } // let the cookie banner appear now
     setOpen(false);
+    onDone?.();
   };
 
   return (
