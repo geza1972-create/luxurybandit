@@ -63,8 +63,12 @@ export default function HolidayFunnel() {
     fetch("/api/try-this-look?models=1", { cache: "no-store" })
       .then(r => r.json())
       .then(m => {
-        const all: Model[] = (Array.isArray(m.models) ? m.models : []).filter((x: Model) => !!x.photoUrl);
-        setModels(all.slice(0, 40));
+        let all: Model[] = (Array.isArray(m.models) ? m.models : []).filter((x: Model) => !!x.photoUrl);
+        // ALLE Models, kein Deckel — es waren 46, ich hatte auf 40 abgeschnitten.
+        // Bella steht vorn (Gesicht des Portals), der Rest bleibt in Katalog-Reihenfolge.
+        const bella = all.findIndex(x => x.id === "curator-1783683672619-td4cy" || /^bella\b/i.test(x.name));
+        if (bella > 0) all = [all[bella], ...all.slice(0, bella), ...all.slice(bella + 1)];
+        setModels(all);
       })
       .catch(() => {});
     try {

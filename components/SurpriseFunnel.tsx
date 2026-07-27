@@ -80,7 +80,8 @@ export default function SurpriseFunnel({ example = "" }: { example?: string }) {
           .filter((l: { imageUrl?: string }) => !!l.imageUrl)
           .map((l: Look & { lingerie?: boolean; category?: string }) =>
             ({ id: l.id, name: l.name, imageUrl: l.imageUrl, hot: l.lingerie === true || l.category === "boudoir" }));
-        setLooks([...all.filter(l => l.hot), ...all.filter(l => !l.hot)].slice(0, 80));
+        // ALLE Teile aus dem Katalog (kein Deckel) — Dessous vorn, dann der Rest.
+        setLooks([...all.filter(l => l.hot), ...all.filter(l => !l.hot)]);
       })
       .catch(() => {});
     return () => { runRef.current = -1; };
