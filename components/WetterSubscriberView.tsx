@@ -561,49 +561,49 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           Gratis-Versprechens. Übersetzt, weil die Abonnenten EU-weit sitzen. */}
       {(() => {
         const P: Record<string, { h: string; sub: string; inAbo: string; items: [string, string, string][] }> = {
-          ro: { h: "Descoperă ceva nou \u2728", sub: "5 videoclipuri pe lună, 24 €.", inAbo: "În abonament", items: [
+          ro: { h: "Descoperă ceva nou \u2728", sub: "5 videoclipuri pe lună, 24 €.", inAbo: "Continuă", items: [
             ["\u2728", "Probează o ținută", "Alege un look și un model — îl vezi într-un video."],
             ["\uD83D\uDC8B", "Sărută orice model", "Sau vedeta ta preferată — încarcă o poză."],
             ["\u2B50", "Idolul tău cu tine", "Voi doi împreună, într-un singur video."],
             ["\uD83D\uDD25", "Lenjerie", "O vezi în lenjerie — orice look, în video."],
           ] },
-          de: { h: "Entdecke Neues \u2728", sub: "5 Videos im Monat, 24 €.", inAbo: "Im Abo", items: [
+          de: { h: "Entdecke Neues \u2728", sub: "5 Videos im Monat, 24 €.", inAbo: "Weiter", items: [
             ["\u2728", "Outfit anprobieren", "Look und Model wählen — du siehst es im Video."],
             ["\uD83D\uDC8B", "Küsse jedes Model", "Oder deinen Superstar — lade einfach ein Foto hoch."],
             ["\u2B50", "Dein Idol mit dir", "Ihr beide zusammen, in einem Video."],
             ["\uD83D\uDD25", "Lingerie", "Sieh sie in Lingerie — jeder Look, im Video."],
           ] },
-          en: { h: "Discover something new \u2728", sub: "5 videos a month, €24.", inAbo: "In your plan", items: [
+          en: { h: "Discover something new \u2728", sub: "5 videos a month, €24.", inAbo: "Continue", items: [
             ["\u2728", "Try on a look", "Pick a look and a model — see it in a video."],
             ["\uD83D\uDC8B", "Kiss any model", "Or your favourite superstar — just upload a photo."],
             ["\u2B50", "Your idol with you", "The two of you together, in one video."],
             ["\uD83D\uDD25", "Lingerie", "See her in lingerie — any look, in a video."],
           ] },
-          es: { h: "Descubre algo nuevo \u2728", sub: "5 vídeos al mes, 24 €.", inAbo: "En tu plan", items: [
+          es: { h: "Descubre algo nuevo \u2728", sub: "5 vídeos al mes, 24 €.", inAbo: "Continuar", items: [
             ["\u2728", "Prueba un look", "Elige un look y una modelo — lo ves en un vídeo."],
             ["\uD83D\uDC8B", "Besa a cualquier modelo", "O a tu estrella favorita — sube una foto."],
             ["\u2B50", "Tu ídolo contigo", "Los dos juntos, en un vídeo."],
             ["\uD83D\uDD25", "Lencería", "Verla en lencería — cualquier look, en vídeo."],
           ] },
-          fr: { h: "Découvre du nouveau \u2728", sub: "5 vidéos par mois, 24 €.", inAbo: "Dans ton abo", items: [
+          fr: { h: "Découvre du nouveau \u2728", sub: "5 vidéos par mois, 24 €.", inAbo: "Continuer", items: [
             ["\u2728", "Essaie une tenue", "Choisis un look et un modèle — tu le vois en vidéo."],
             ["\uD83D\uDC8B", "Embrasse un modèle", "Ou ta star préférée — envoie une photo."],
             ["\u2B50", "Ton idole avec toi", "Vous deux ensemble, en vidéo."],
             ["\uD83D\uDD25", "Lingerie", "La voir en lingerie — n'importe quel look, en vidéo."],
           ] },
-          pt: { h: "Descobre algo novo \u2728", sub: "5 vídeos por mês, 24 €.", inAbo: "Na tua subscrição", items: [
+          pt: { h: "Descobre algo novo \u2728", sub: "5 vídeos por mês, 24 €.", inAbo: "Continuar", items: [
             ["\u2728", "Experimenta um visual", "Escolhe um visual e uma modelo — vês num vídeo."],
             ["\uD83D\uDC8B", "Beija qualquer modelo", "Ou a tua estrela favorita — envia uma foto."],
             ["\u2B50", "O teu ídolo contigo", "Vocês os dois juntos, num vídeo."],
             ["\uD83D\uDD25", "Lingerie", "Vê-la em lingerie — qualquer visual, em vídeo."],
           ] },
-          pl: { h: "Odkryj coś nowego \u2728", sub: "5 filmów miesięcznie, 24 €.", inAbo: "W abonamencie", items: [
+          pl: { h: "Odkryj coś nowego \u2728", sub: "5 filmów miesięcznie, 24 €.", inAbo: "Dalej", items: [
             ["\u2728", "Przymierz stylizację", "Wybierz look i modelkę — zobaczysz to na wideo."],
             ["\uD83D\uDC8B", "Pocałuj modelkę", "Albo swoją gwiazdę — wystarczy zdjęcie."],
             ["\u2B50", "Twój idol z Tobą", "Wy dwoje razem, na jednym wideo."],
             ["\uD83D\uDD25", "Bielizna", "Zobacz ją w bieliźnie — każdy look, na wideo."],
           ] },
-          it: { h: "Scopri qualcosa di nuovo \u2728", sub: "5 video al mese, 24 €.", inAbo: "Nel tuo abbonamento", items: [
+          it: { h: "Scopri qualcosa di nuovo \u2728", sub: "5 video al mese, 24 €.", inAbo: "Continua", items: [
             ["\u2728", "Prova un look", "Scegli un look e una modella — lo vedi in un video."],
             ["\uD83D\uDC8B", "Bacia una modella", "O la tua star preferita — carica una foto."],
             ["\u2B50", "Il tuo idolo con te", "Voi due insieme, in un video."],

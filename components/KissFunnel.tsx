@@ -6,8 +6,8 @@ import { Loader2, ImageUp, Lock, RefreshCw, Check, Sparkles } from "lucide-react
 // „Kiss any Model" — Funnel mit FAKE-FIRST-Monetarisierung (Owner-Entscheidung):
 // Der Besucher wählt Model + eigenes Foto → wir spielen eine RENDER-SHOW (kostet nichts,
 // KEIN API-Call) → „Dein Video ist fertig" läuft VERPIXELT (in Wahrheit das Model-Foto
-// hinter starkem Blur) → „🔓 Unlock — $3.99" (Stripe-Popup + Status-Poll) → ERST NACH der
-// Zahlung startet die ECHTE Pixverse-Generierung (gleiche Pipeline wie Try-On: zwei
+// hinter starkem Blur) → „🔓 Unlock — Abo" (Stripe-Popup + Status-Poll) → ERST NACH der
+// Zahlung (24-€-Abo, 5 Videos/Monat) startet die ECHTE Pixverse-Generierung (gleiche Pipeline wie Try-On: zwei
 // Referenzen an @-Tokens, Raw-Prompt, 360p = Pixverse-Minimum) → Video klar anzeigen.
 // Staff (Admin-PIN) überspringt alles: echte Generierung sofort, unverpixelt.
 // Welche Models im Grid stehen, wählt der Admin im Kiss-Models-Tool (/api/kiss-config).
@@ -196,7 +196,7 @@ export default function KissFunnel({ variant = "kiss" }: { variant?: FunnelVaria
     }
     setPayBusy(true); setStatus("");
     try {
-      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ genId }) }).then(r => r.json());
+      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ genId, subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: window.location.pathname + window.location.search }) }).then(r => r.json());
       if (!start?.url || !start?.sessionId) { setStatus(start?.error || "Checkout could not start."); setPayBusy(false); return; }
       const popup = window.open(start.url, "_blank", "popup,width=480,height=780");
       if (!popup) { window.location.href = start.url; return; } // Popup blockiert → gleiche Seite
@@ -353,7 +353,7 @@ export default function KissFunnel({ variant = "kiss" }: { variant?: FunnelVaria
                   <p className="lb-onmedia mt-2 text-[15px] font-black">{V.ready}</p>
                   <button type="button" onClick={() => void unlock()} disabled={payBusy}
                     className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition disabled:opacity-60">
-                    {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} {isStaff ? "Reveal (Admin — free)" : "Unlock your video — $3.99"}
+                    {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} {isStaff ? "Reveal (Admin — free)" : "Unlock — 5 videos a month, €24"}
                   </button>
                   {!isStaff && <p className="lb-onmedia mt-2 text-[11px] font-bold opacity-80">Secure checkout by Stripe</p>}
                 </div>

@@ -1,31 +1,32 @@
 import { NextResponse } from "next/server";
-import { createTryonCheckout, stripeConfigured } from "@/lib/stripe";
+import { createSubscriptionCheckout } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// $3.99-Checkout: EIN Kiss-Video freischalten (das Ergebnis läuft verpixelt, bis bezahlt ist).
-// Popup-Flow wie model-video-checkout: Client öffnet `url` im Popup und pollt
-// /api/checkout-status?session_id= bis `paid` — dann wird das Video entblurrt.
-// Preis ist serverseitig fixiert — dem Client nie vertrauen. (Preis-Quelle:
-// docs/pricing-and-subscriptions.md — Video = 3,99 Einzelkauf, kein Abo.)
-const PRICE_CENTS = 399;
+// ABO statt Einzelkauf (Owner-Entscheidung 2026-07-27): dasselbe 24-€-Abo wie beim Wetter,
+// darin sind 5 Videos pro Monat enthalten. Der frühere 3,99-Einzelkauf ist damit abgelöst.
+// Preis-ID identisch mit wetter-abo-checkout — es ist EIN Abo, nicht zwei.
+const PRICE_ID = process.env.STRIPE_WETTER_ABO_PRICE_ID?.trim() || "price_1TxPxR1jPNCWoiztgmJMNNdF";
 
+// POST { genId?, subId?, returnTo? } → startet das Abo. Nach Zahlung schaltet der
+// Stripe-Webhook frei; der Client pollt /api/checkout-status.
 export async function POST(request: Request) {
-  if (!stripeConfigured()) {
+  if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { genId?: string };
+  const body = (await request.json().catch(() => ({}))) as { genId?: string; subId?: string; returnTo?: string };
   const genId = String(body?.genId ?? "").trim();
+  const subId = String(body?.subId ?? "").trim();
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
+  const back = String(body?.returnTo ?? "").startsWith("/") ? `${origin}${body.returnTo}` : `${origin}/themes/kiss`;
   try {
-    const { id, url } = await createTryonCheckout({
-      amount: PRICE_CENTS,
-      currency: "usd",
-      productName: "LuxuryBandit — your kiss video",
-      successUrl: `${origin}/pay-done?paid=1`,
-      cancelUrl: `${origin}/pay-done?cancelled=1`,
-      metadata: { kind: "kiss-video", ...(genId ? { genId } : {}) },
+    const { id, url } = await createSubscriptionCheckout({
+      priceId: PRICE_ID,
+      successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&cs={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
+      // kind bleibt "wetter-abo", damit der bestehende Webhook den Abonnenten freischaltet.
+      metadata: { kind: "wetter-abo", ...(subId ? { subId } : {}), ...(genId ? { genId } : {}) },
     });
     return NextResponse.json({ url, sessionId: id });
   } catch (e) {
