@@ -44,7 +44,7 @@ const fileToDataUrl = (f: File) => new Promise<string>((res, rej) => {
   const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f);
 });
 
-export default function ChatFunnel() {
+export default function ChatFunnel({ code = "" }: { code?: string }) {
   const [models, setModels] = useState<Model[]>([]);
   const [pickIdx, setPickIdx] = useState(0);
   const [useCustom, setUseCustom] = useState(false);
@@ -180,7 +180,7 @@ export default function ChatFunnel() {
     try {
       const start = await fetch(endpoint, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ returnTo: window.location.pathname + window.location.search }),
+        body: JSON.stringify({ code, returnTo: window.location.pathname + window.location.search }),
       }).then(r => r.json());
       if (!start?.url || !start?.sessionId) { setStatus(start?.error || "Checkout could not start."); setPayBusy(false); return; }
       const popup = window.open(start.url, "_blank", "popup,width=480,height=780");

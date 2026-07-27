@@ -16,7 +16,14 @@ export const metadata = {
   alternates: { canonical: "/themes/chat" },
 };
 
-export default async function ChatThemePage() {
+export default async function ChatThemePage({ searchParams }: {
+  searchParams?: Promise<Record<string, string | undefined>>;
+}) {
+  // Aktionscode aus der Anzeige — er probiert erst gratis, der Rabatt gilt trotzdem,
+  // wenn er später freischaltet.
+  const sp = (await searchParams) ?? {};
+  const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);
+
   // Beispiele oben als Slider: echte Ergebnisse aus derselben Anzieh-Pipeline, die der
   // Kunde benutzt. Fehlen sie im Storage, erscheint der Slider einfach nicht.
   const photos = (await Promise.all([
@@ -64,7 +71,14 @@ export default async function ChatThemePage() {
           </div>
         )}
 
-        <ChatFunnel />
+        {code && (
+          <p className="mt-4 rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/10 px-4 py-3 text-[13px] font-bold leading-snug text-[#f6cf51]">
+            Code {code.toUpperCase()} is yours: chatting is free anyway — when you want the videos,
+            your first month is 19 € instead of 49 €.
+          </p>
+        )}
+
+        <ChatFunnel code={code} />
 
         <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
           <div>

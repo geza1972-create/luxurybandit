@@ -17,7 +17,12 @@ export const metadata = {
   alternates: { canonical: "/themes/holiday" },
 };
 
-export default async function HolidayThemePage() {
+export default async function HolidayThemePage({ searchParams }: {
+  searchParams?: Promise<Record<string, string | undefined>>;
+}) {
+  const sp = (await searchParams) ?? {};
+  const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);
+
   // Beispiele stehen UNTEN (Owner): erst machen lassen, dann zeigen, was rauskommt.
   // Beispiel-Slider: so viele, wie im Storage liegen (example, -2, -3, -4 …).
   const examples = (await Promise.all([
@@ -54,7 +59,7 @@ export default async function HolidayThemePage() {
           </div>
         )}
 
-        <HolidayFunnel />
+        <HolidayFunnel code={code} />
 
 
         <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
