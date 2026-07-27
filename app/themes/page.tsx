@@ -1,6 +1,6 @@
 import Link from "next/link";
 import TopNav from "@/components/TopNav";
-import { CloudSun, Cake, Sparkles, Flame, MapPin, KeyRound, Lock, Palmtree, Shirt, Star, Heart } from "lucide-react";
+import { CloudSun, Cake, Sparkles, Flame, MapPin, Lock, Palmtree, Shirt, Star, Heart } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
 import { readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, readTryThisLookState, readKissConfig } from "@/lib/try-this-look-store";
@@ -17,6 +17,9 @@ export const metadata = {
 };
 
 type Theme = { icon: LucideIcon; title: string; tagline: string; href?: string; cover?: string; video?: string; poster?: string; chips?: string; cover2?: string };
+
+// Alle Karten, die ins Anprobieren führen, zeigen auf denselben Funnel-Einstieg.
+const TRYON = "/try/look-1784191032626-70e3608b?pick=1";
 
 export default async function ThemesCatalog() {
   // Cover fürs aktive „Wetter"-Thema: das WERBEVIDEO (ad-Slide) — genau das, was der
@@ -70,11 +73,12 @@ export default async function ThemesCatalog() {
   } catch { /**/ }
 
   // Vom Owner gelieferte Theme-Videos, fest im Storage abgelegt.
-  let birthdayVideo = "", cityVideo = "";
+  let birthdayVideo = "", cityVideo = "", luxuryVideo = "";
   try {
-    [birthdayVideo, cityVideo] = await Promise.all([
+    [birthdayVideo, cityVideo, luxuryVideo] = await Promise.all([
       getSignedUrl("try-this-look/videos/birthday-bella-cake.mp4").catch(() => ""),
       getSignedUrl("try-this-look/videos/city-secrets.mp4").catch(() => ""),
+      getSignedUrl("try-this-look/videos/luxury-looks.mp4").catch(() => ""),
     ]);
   } catch { /**/ }
 
@@ -92,16 +96,15 @@ export default async function ThemesCatalog() {
     { icon: Palmtree, title: "Holiday with Bella", tagline: "She travels for you — daily videos & stories from Tenerife.", href: "/urlaub-mit-bella", cover: ph(5), video: urlaubVideo || undefined, chips: "♥ Tenerife · Videos · Stories" },
     // Direkt in den Funnel: /themes/tryon wäre nur eine Zwischenseite mit noch einem Button.
     // Die Landing bleibt für die Admin-Werkzeuge erreichbar (Menü → „Try-On — manage").
-    { icon: Shirt, title: "Try-On", tagline: "Pick a look, pick a model — watch her wear it in a video.", href: "/try/look-1784191032626-70e3608b?pick=1", cover: tryonDressed || ph(6), cover2: tryonLingerie || undefined, chips: "♥ Look · Model · Video" },
+    { icon: Shirt, title: "Try-On", tagline: "Pick a look, pick a model — watch her wear it in a video.", href: TRYON, cover: tryonDressed || ph(6), cover2: tryonLingerie || undefined, chips: "♥ Look · Model · Video" },
     { icon: Star, title: "Your Idol", tagline: "Upload her photo — she becomes your AI model.", href: "/your-idol", cover: ph(7), chips: "♥ Upload · Chat · Video" },
     { icon: Heart, title: "Kiss any Model", tagline: "Your photo + her — a tender kiss in one video.", href: "/themes/kiss", cover: kissCover || ph(8), video: kissVideo || undefined, chips: "♥ Pick her · Your photo · Kiss" },
     { icon: Cake, title: "Birthdays", tagline: "Auto birthday wishes — for you & your friends.", cover: ph(4), video: birthdayVideo || undefined },
-    { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every single day.", cover: ph(0) },
+    { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every day — see it on her, in a video.", href: TRYON, cover: ph(0), video: luxuryVideo || undefined, chips: "♥ Look · Model · Video" },
     // Lingerie-Karte zeigt Bella in Lingerie und führt DIREKT in den Try-on-Funnel
     // (dort wählt er Look + Model) — kein „coming soon" mehr.
-    { icon: Flame, title: "Lingerie Looks", tagline: "See her in lingerie — any look, in a video.", href: "/try/look-1784191032626-70e3608b?pick=1", cover: tryonLingerie || ph(1), chips: "♥ Lingerie · Model · Video" },
+    { icon: Flame, title: "Lingerie Looks", tagline: "See her in lingerie — any look, in a video.", href: TRYON, cover: tryonLingerie || ph(1), chips: "♥ Lingerie · Model · Video" },
     { icon: MapPin, title: "City Secrets", tagline: "Learn a city every day — hidden gems & stories.", cover: ph(2), video: cityVideo || undefined },
-    { icon: KeyRound, title: "Secrets", tagline: "A little secret she shares only with you.", cover: ph(3) },
   ];
 
   return (
