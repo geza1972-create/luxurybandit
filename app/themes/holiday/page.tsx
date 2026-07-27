@@ -1,4 +1,6 @@
 import TopNav from "@/components/TopNav";
+import { resolveLang } from "@/lib/lang-server";
+import SubscribeCta from "@/components/SubscribeCta";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
 import HolidayFunnel from "@/components/HolidayFunnel";
 import { HOLIDAY_SCENES } from "@/lib/holiday-scenes";
@@ -21,6 +23,7 @@ export default async function HolidayThemePage({ searchParams }: {
   searchParams?: Promise<Record<string, string | undefined>>;
 }) {
   const sp = (await searchParams) ?? {};
+  const L = await resolveLang();   // Sprache der Seite (Cookie) — für den Kaufknopf
   const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);
 
   // Beispiele stehen UNTEN (Owner): erst machen lassen, dann zeigen, was rauskommt.
@@ -61,6 +64,8 @@ export default async function HolidayThemePage({ searchParams }: {
 
         <HolidayFunnel code={code} />
 
+
+        <SubscribeCta code={code} lang={L} topic="holiday" />
 
         <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
           <div>

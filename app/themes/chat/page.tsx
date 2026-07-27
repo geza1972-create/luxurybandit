@@ -1,4 +1,5 @@
 import TopNav from "@/components/TopNav";
+import SubscribeCta from "@/components/SubscribeCta";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
 import ChatFunnel from "@/components/ChatFunnel";
 import { getSignedUrl } from "@/lib/try-this-look-store";
@@ -101,6 +102,8 @@ export default async function ChatThemePage({ searchParams }: {
         )}
 
         <ChatFunnel code={code} />
+
+        <SubscribeCta code={code} lang={L} />
 
         <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
           <div>

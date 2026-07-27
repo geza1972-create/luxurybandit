@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { headers } from "next/headers";
 import TopNav from "@/components/TopNav";
 import ModelCardHeader from "@/components/ModelCardHeader";
@@ -170,6 +171,10 @@ export default async function WetterModelPage({ params, searchParams }: {
     const sub = (await readWetterSubscribers(modelId)).find(s => s.id === subToken);
     if (sub) {
       subName = sub.name || subName; subCity = sub.city || subCity; subLang = sub.lang || subLang; subEmail = sub.email || "";
+      // Die im Kopf gewählte Sprache schlägt den Datensatz — sonst steht oben „DE" und der
+      // Text bleibt englisch (gefunden 28.07.2026).
+      const picked = (await cookies()).get("lb_lang")?.value ?? "";
+      if (["ro","de","en","es","fr","pt","pl","it"].includes(picked)) subLang = picked;
       askName = !String(sub.name ?? "").trim() || String(sub.name ?? "") === String(sub.email ?? "").split("@")[0];
       askBirthdate = !String(sub.birthdate ?? "").trim();
       askGender = !String(sub.gender ?? "").trim();
@@ -293,14 +298,11 @@ export default async function WetterModelPage({ params, searchParams }: {
             locked={locked} paid={paid} modelSlug={model} monthlyCents={4900} crossModels={crossModels} kissTeaser={kissTeaser} kissTeaserIsVideo={kissTeaserIsVideo} tryonTeaser={tryonTeaser} tryonLingerie={tryonLingerie} idolTeaser={idolTeaser} lingerieTeaser={lingerieTeaser}
             day={dayLook?.day || ""} time={dayLook?.time || ""}
             title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.context || ""} dayContext={dayLook?.context || ""}
-            look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />
-          {/* Fehlende Angaben nachfragen — und im selben Kasten das Abbestellen anbieten. */}
-          {askProfile && (
-            <div className="mx-auto max-w-md px-4">
+            look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null}
+            profileAsk={askProfile ? (
               <WetterProfileAsk sub={subToken} modelId={modelId} lang={subLang}
                 askName={askName} askBirthdate={askBirthdate} askGender={askGender} askCity={askCity} askPhone={askPhone} />
-            </div>
-          )}
+            ) : null} />
           </>
         ) : showAdmin ? (
           /* ADMIN-VORSCHAU: umschaltbar zwischen Besucher (Anmeldung) und Abonnent (täglich).

@@ -1,4 +1,6 @@
 import TopNav from "@/components/TopNav";
+import { resolveLang } from "@/lib/lang-server";
+import SubscribeCta from "@/components/SubscribeCta";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
 import KissFunnel from "@/components/KissFunnel";
 import KissModelsAdmin from "@/components/KissModelsAdmin";
@@ -25,6 +27,7 @@ export default async function YourIdolPage({ searchParams }: {
   searchParams?: Promise<Record<string, string | undefined>>;
 }) {
   const sp = (await searchParams) ?? {};
+  const L = await resolveLang();   // Sprache der Seite (Cookie) — für den Kaufknopf
   const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);   // Aktionscode aus der Anzeige
   const showAdmin = String(sp.admin ?? "") === "1";
   const view = sp.view === "kunde" ? "kunde" : "admin";
@@ -70,6 +73,8 @@ export default async function YourIdolPage({ searchParams }: {
                 </div>
               </div>
             )}
+            <SubscribeCta code={code} lang={L} />
+
             <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
               <div>
                 <SectionTitle>An AI deepfake video of you and your idol</SectionTitle>

@@ -139,7 +139,7 @@ const T: Record<string, Copy> = {
   },
 };
 
-export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", email = "", day = "", time = "", title = "", caption = "", firstMessage = "", dayContext = "", locked = false, paid = false, modelSlug = "", monthlyCents = 2400, crossModels = [], kissTeaser = "", kissTeaserIsVideo = false, tryonTeaser = "", tryonLingerie = "", idolTeaser = "", lingerieTeaser = "" }: {
+export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", email = "", day = "", time = "", title = "", caption = "", firstMessage = "", dayContext = "", locked = false, paid = false, modelSlug = "", monthlyCents = 4900, profileAsk = null, crossModels = [], kissTeaser = "", kissTeaserIsVideo = false, tryonTeaser = "", tryonLingerie = "", idolTeaser = "", lingerieTeaser = "" }: {
   name: string; city: string; look: Look | null; lang?: string; modelId?: string; modelName?: string; subId?: string; email?: string; day?: string; time?: string;
   title?: string;         // „Titel" aus dem Beitrag — groß über dem Text
   caption?: string;       // „Text unter dem Bild" aus dem Beitrag
@@ -148,6 +148,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   locked?: boolean;       // Video: nach 7 Öffnungen ohne Abo gesperrt (Bild + Text bleiben)
   paid?: boolean;         // zahlender Abonnent → kein Tages-Chatlimit
   modelSlug?: string;     // für die Rückkehr-URL des Abo-Checkouts
+  profileAsk?: React.ReactNode;   // „Woher soll das Wetter kommen?" — steht VOR der Werbung
   monthlyCents?: number;  // Abo-Preis (24 € = 2400) für den Freischalt-Button
   crossModels?: { name: string; img: string; href: string }[];  // Cross-Sell-Slider zu bezahlten Models
   kissTeaser?: string;          // Poster der Kiss-Karte (Bild oder Video)
@@ -533,6 +534,38 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         <p className="px-9 pb-4 pt-1 text-center text-[11px] font-bold text-white/80">{t.aiNote(modelName)}</p>
       </div>
 
+      {/* Erst die eigenen Angaben, dann die Werbung: wer gerade seine Stadt einträgt, ist
+          aufmerksam — genau davor gehört der Kaufknopf, nicht dahinter. */}
+      {profileAsk && <div className="mx-auto max-w-md px-4">{profileAsk}</div>}
+
+      {/* ABONNIEREN — die Seite hatte keinen einzigen Kaufknopf: der Freischalt-Knopf tauchte
+          erst auf, wenn die Sperre griff. Wer vorher kaufen WOLLTE, konnte es gar nicht. */}
+      {!paid && (() => {
+        const S: Record<string, { h: string; p: string; cta: string }> = {
+          ro: { h: `Vrei mai mult de la ${modelName}?`, p: "25 de videoclipuri pe lună în toate temele — chatul rămâne gratuit.", cta: "Abonează-te — 49 €/lună" },
+          de: { h: `Mehr von ${modelName}?`, p: "25 Videos im Monat über alle Themen — Chatten bleibt gratis.", cta: "Abo starten — 49 €/Monat" },
+          en: { h: `Want more from ${modelName}?`, p: "25 videos a month across all topics — chatting stays free.", cta: "Subscribe — €49/month" },
+          es: { h: `¿Quieres más de ${modelName}?`, p: "25 vídeos al mes en todos los temas — chatear sigue siendo gratis.", cta: "Suscríbete — 49 €/mes" },
+          fr: { h: `Envie de plus avec ${modelName} ?`, p: "25 vidéos par mois sur tous les thèmes — le chat reste gratuit.", cta: "S'abonner — 49 €/mois" },
+          pt: { h: `Queres mais da ${modelName}?`, p: "25 vídeos por mês em todos os temas — conversar continua grátis.", cta: "Subscrever — 49 €/mês" },
+          pl: { h: `Chcesz więcej od ${modelName}?`, p: "25 filmów miesięcznie we wszystkich tematach — czat pozostaje darmowy.", cta: "Subskrybuj — 49 €/miesiąc" },
+          it: { h: `Vuoi di più da ${modelName}?`, p: "25 video al mese in tutti i temi — chattare resta gratis.", cta: "Abbonati — 49 €/mese" },
+        };
+        const x = S[L] ?? S.en;
+        return (
+          <div className="mx-auto mt-6 max-w-md px-4">
+            <div className="rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.08] p-4 text-center">
+              <p className="text-[16px] font-black text-white">{x.h}</p>
+              <p className="mt-1 text-[13px] font-bold leading-snug text-white/85">{x.p}</p>
+              <button type="button" onClick={() => void unlock()}
+                className="lb-gold mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition">
+                {x.cta}
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Cross-Sell-SLIDER: bezahlte Models → je ihr Profil (Chat + Try-ons). Kompakt
           gehalten (96px statt 128px), damit die Mitmach-Themen darunter Platz behalten. */}
       {crossModels.length > 0 && (() => {
@@ -561,49 +594,49 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           Gratis-Versprechens. Übersetzt, weil die Abonnenten EU-weit sitzen. */}
       {(() => {
         const P: Record<string, { h: string; sub: string; inAbo: string; items: [string, string, string][] }> = {
-          ro: { h: "Descoperă ceva nou \u2728", sub: "5 videoclipuri pe lună, 24 €.", inAbo: "Continuă", items: [
+          ro: { h: "Descoperă ceva nou \u2728", sub: "25 de videoclipuri pe lună, 49 €. Chatul e gratuit.", inAbo: "Continuă", items: [
             ["\u2728", "Probează o ținută", "Alege un look și un model — îl vezi într-un video."],
             ["\uD83D\uDC8B", "Sărută orice model", "Sau vedeta ta preferată — încarcă o poză."],
             ["\u2B50", "Idolul tău cu tine", "Voi doi împreună, într-un singur video."],
             ["\uD83D\uDD25", "Lenjerie", "O vezi în lenjerie — orice look, în video."],
           ] },
-          de: { h: "Entdecke Neues \u2728", sub: "5 Videos im Monat, 24 €.", inAbo: "Weiter", items: [
+          de: { h: "Entdecke Neues \u2728", sub: "25 Videos im Monat, 49 €. Chatten ist gratis.", inAbo: "Weiter", items: [
             ["\u2728", "Outfit anprobieren", "Look und Model wählen — du siehst es im Video."],
             ["\uD83D\uDC8B", "Küsse jedes Model", "Oder deinen Superstar — lade einfach ein Foto hoch."],
             ["\u2B50", "Dein Idol mit dir", "Ihr beide zusammen, in einem Video."],
             ["\uD83D\uDD25", "Lingerie", "Sieh sie in Lingerie — jeder Look, im Video."],
           ] },
-          en: { h: "Discover something new \u2728", sub: "5 videos a month, €24.", inAbo: "Continue", items: [
+          en: { h: "Discover something new \u2728", sub: "25 videos a month, €49. Chatting is free.", inAbo: "Continue", items: [
             ["\u2728", "Try on a look", "Pick a look and a model — see it in a video."],
             ["\uD83D\uDC8B", "Kiss any model", "Or your favourite superstar — just upload a photo."],
             ["\u2B50", "Your idol with you", "The two of you together, in one video."],
             ["\uD83D\uDD25", "Lingerie", "See her in lingerie — any look, in a video."],
           ] },
-          es: { h: "Descubre algo nuevo \u2728", sub: "5 vídeos al mes, 24 €.", inAbo: "Continuar", items: [
+          es: { h: "Descubre algo nuevo \u2728", sub: "25 vídeos al mes, 49 €. Chatear es gratis.", inAbo: "Continuar", items: [
             ["\u2728", "Prueba un look", "Elige un look y una modelo — lo ves en un vídeo."],
             ["\uD83D\uDC8B", "Besa a cualquier modelo", "O a tu estrella favorita — sube una foto."],
             ["\u2B50", "Tu ídolo contigo", "Los dos juntos, en un vídeo."],
             ["\uD83D\uDD25", "Lencería", "Verla en lencería — cualquier look, en vídeo."],
           ] },
-          fr: { h: "Découvre du nouveau \u2728", sub: "5 vidéos par mois, 24 €.", inAbo: "Continuer", items: [
+          fr: { h: "Découvre du nouveau \u2728", sub: "25 vidéos par mois, 49 €. Le chat est gratuit.", inAbo: "Continuer", items: [
             ["\u2728", "Essaie une tenue", "Choisis un look et un modèle — tu le vois en vidéo."],
             ["\uD83D\uDC8B", "Embrasse un modèle", "Ou ta star préférée — envoie une photo."],
             ["\u2B50", "Ton idole avec toi", "Vous deux ensemble, en vidéo."],
             ["\uD83D\uDD25", "Lingerie", "La voir en lingerie — n'importe quel look, en vidéo."],
           ] },
-          pt: { h: "Descobre algo novo \u2728", sub: "5 vídeos por mês, 24 €.", inAbo: "Continuar", items: [
+          pt: { h: "Descobre algo novo \u2728", sub: "25 vídeos por mês, 49 €. Conversar é grátis.", inAbo: "Continuar", items: [
             ["\u2728", "Experimenta um visual", "Escolhe um visual e uma modelo — vês num vídeo."],
             ["\uD83D\uDC8B", "Beija qualquer modelo", "Ou a tua estrela favorita — envia uma foto."],
             ["\u2B50", "O teu ídolo contigo", "Vocês os dois juntos, num vídeo."],
             ["\uD83D\uDD25", "Lingerie", "Vê-la em lingerie — qualquer visual, em vídeo."],
           ] },
-          pl: { h: "Odkryj coś nowego \u2728", sub: "5 filmów miesięcznie, 24 €.", inAbo: "Dalej", items: [
+          pl: { h: "Odkryj coś nowego \u2728", sub: "25 filmów miesięcznie, 49 €. Czat jest darmowy.", inAbo: "Dalej", items: [
             ["\u2728", "Przymierz stylizację", "Wybierz look i modelkę — zobaczysz to na wideo."],
             ["\uD83D\uDC8B", "Pocałuj modelkę", "Albo swoją gwiazdę — wystarczy zdjęcie."],
             ["\u2B50", "Twój idol z Tobą", "Wy dwoje razem, na jednym wideo."],
             ["\uD83D\uDD25", "Bielizna", "Zobacz ją w bieliźnie — każdy look, na wideo."],
           ] },
-          it: { h: "Scopri qualcosa di nuovo \u2728", sub: "5 video al mese, 24 €.", inAbo: "Continua", items: [
+          it: { h: "Scopri qualcosa di nuovo \u2728", sub: "25 video al mese, 49 €. Chattare è gratis.", inAbo: "Continua", items: [
             ["\u2728", "Prova un look", "Scegli un look e una modella — lo vedi in un video."],
             ["\uD83D\uDC8B", "Bacia una modella", "O la tua star preferita — carica una foto."],
             ["\u2B50", "Il tuo idolo con te", "Voi due insieme, in un video."],
