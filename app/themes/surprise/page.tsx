@@ -1,8 +1,6 @@
 import TopNav from "@/components/TopNav";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
 import SurpriseFunnel from "@/components/SurpriseFunnel";
-import SurpriseAdmin from "@/components/SurpriseAdmin";
-import ManageViewToggle from "@/components/ManageViewToggle";
 import { getSignedUrl } from "@/lib/try-this-look-store";
 
 // THEMA „Surprise him" (ehemals City Secrets) — SIE lädt ihr eigenes Foto hoch, zahlt
@@ -18,13 +16,7 @@ export const metadata = {
   alternates: { canonical: "/themes/surprise" },
 };
 
-export default async function SurpriseThemePage({ searchParams }: {
-  searchParams?: Promise<Record<string, string | undefined>>;
-}) {
-  const sp = (await searchParams) ?? {};
-  const showAdmin = String(sp.admin ?? "") === "1";
-  const view = sp.view === "kunde" ? "kunde" : "admin";
-  const showCustomer = !showAdmin || view === "kunde";
+export default async function SurpriseThemePage() {
   // Beispielfoto (Gina in Rot) — liegt im Storage unter diesem festen Pfad. Fehlt es,
   // zeigt die Upload-Karte einfach nur die Aufforderung.
   const example = (await getSignedUrl("try-this-look/uploads/surprise-example.jpg").catch(() => "")) || "";
@@ -35,18 +27,15 @@ export default async function SurpriseThemePage({ searchParams }: {
     <main className="lb-bg min-h-screen text-white">
       <TopNav />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
-        {showAdmin && <ManageViewToggle view={view} />}
-
-        {showCustomer ? (
-          <div className={showAdmin ? "mt-4" : ""}>
+        <div>
             <Kicker>LuxuryBandit · Surprise</Kicker>
             <H1>Surprise him <Y>tonight</Y></H1>
             <Lead>
-              One photo of you is enough. We turn it into a short, moving video — and he gets a
-              plain email with a link only he can open. No post, no feed, no gallery.
+              One photo of you is enough. Pick a set, type his name — and you say it out loud in a
+              short video that is yours to download and send to him yourself.
             </Lead>
             <Fine>
-              You decide how much you show. 3.99 € per video, and the link disappears after 7 days.
+              You decide how much you show. 3.99 € per video. Nothing is posted anywhere.
             </Fine>
 
             {/* Das Ergebnis steht GANZ OBEN (Owner): erst sehen, was rauskommt, dann lesen. */}
@@ -64,20 +53,17 @@ export default async function SurpriseThemePage({ searchParams }: {
               <div>
                 <SectionTitle>How it stays private</SectionTitle>
                 <Lead>
-                  The email carries no preview image — if it pops up on his lock screen, there is
-                  nothing to see, only a line and a link. The link is a random address nobody can
-                  guess, it is not listed anywhere, and it dies after seven days. He can delete it
-                  earlier with one tap, and so can you: write to us and the file goes too.
+                  We do not send it for you and we do not publish it: the video lands as a download
+                  on your phone, and you decide who ever sees it. It appears in no feed, no gallery
+                  and no profile. Want the file gone from our side too? Write to us and it is deleted.
                 </Lead>
               </div>
               <div>
                 <SectionTitle>Only for photos of yourself</SectionTitle>
                 <Lead>
-                  Before anything renders you confirm that the photo shows you, that you are 18 or
-                  older, and that he wants to receive it. That confirmation is stored with the
-                  video. Sending someone else&apos;s intimate picture is a criminal offence in most
-                  countries — every email we send says so, and carries a report button that kills
-                  the link immediately.
+                  Before anything renders you confirm that the photo shows you and that you are 18 or
+                  older. Please keep it that way: making an intimate video of someone else, or passing
+                  one on without their consent, is a criminal offence in most countries.
                 </Lead>
               </div>
               <div>
@@ -89,12 +75,7 @@ export default async function SurpriseThemePage({ searchParams }: {
                 </Lead>
               </div>
             </section>
-          </div>
-        ) : (
-          <div className="lb-theme mt-4 space-y-4">
-            <SurpriseAdmin />
-          </div>
-        )}
+        </div>
       </div>
     </main>
   );

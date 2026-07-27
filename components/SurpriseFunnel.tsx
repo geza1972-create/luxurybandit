@@ -1,18 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Lock, Sparkles, ImageUp, RefreshCw, Mail, Check, Wand2 } from "lucide-react";
+import { Loader2, Lock, Sparkles, ImageUp, RefreshCw, Check, Download } from "lucide-react";
 
 type Look = { id: string; name?: string; imageUrl?: string };
 
 /**
- * „Surprise him" — SIE lädt ihr eigenes Foto hoch, gibt seine E-Mail ein und schickt ihm
- * ein privates Video. Gleiches Schema wie Kiss/Idol/Birthday: Radar-Show → verpixelter
- * Teaser → 3,99 € → ERST DANN echter Render → Versand als privater Link.
+ * „Surprise him" — SIE lädt ihr Foto hoch, wählt ein Lingerie-Set, gibt seinen Vornamen ein
+ * und bekommt ein Video, in dem sie ihn anspricht. Gleiches Schema wie Kiss/Idol/Birthday:
+ * Radar-Show → verpixelter Teaser → 3,99 € → ERST DANN echter Render → Download.
  *
- * Die Zustimmung ist hier keine Formalie: Das Video zeigt eine echte Person und geht an
- * eine fremde E-Mail-Adresse. Ohne Häkchen läuft nichts, und der Wortlaut wandert in den
- * Nachweis (surprise-log.json). Der Empfänger kann den Link jederzeit töten.
+ * BEWUSST EINFACH (Owner, 27.07.2026): KEIN E-Mail-Versand, KEIN Nachrichtenfeld. Sie lädt
+ * das Video runter und verschickt es selbst — weniger Felder, weniger Abbrüche, und das
+ * intime Material verlässt unsere Seite nur über ihre Hand.
+ *
+ * Die Zustimmung bleibt: das Video zeigt eine echte Person. Ohne Häkchen läuft nichts.
  */
 
 const LOOK_ID = "look-1784191032626-70e3608b";   // Referenz-Look fürs Routing der Video-Route
@@ -33,7 +35,7 @@ export const surprisePrompt = (name: string) => {
 };
 
 const CONSENT_TEXT =
-  "This is me in the photo, I am 18 or older, the person I am sending it to wants to receive it, and I take responsibility for sending it.";
+  "This is me in the photo, I am 18 or older, and I take responsibility for what I do with the video.";
 
 const RENDER_STEPS: [number, string][] = [
   [0, "Reading your photo …"],
@@ -49,14 +51,9 @@ const fileToDataUrl = (f: File) => new Promise<string>((res, rej) => {
 
 export default function SurpriseFunnel({ example = "" }: { example?: string }) {
   const [photo, setPhoto] = useState("");
-  const [email, setEmail] = useState("");
-  const [fromName, setFromName] = useState("");
   const [himName, setHimName] = useState("");           // sein Vorname — sie spricht ihn im Video an
   const [looks, setLooks] = useState<Look[]>([]);       // Lingerie-Sets aus dem Katalog
   const [pickIdx, setPickIdx] = useState(0);            // die vordere Karte IST die Auswahl
-  const [message, setMessage] = useState("");           // ihre Zeile an ihn (optional)
-  const [ideas, setIdeas] = useState<string[]>([]);     // KI-Vorschläge zum Antippen
-  const [ideaBusy, setIdeaBusy] = useState(false);
   const [consent, setConsent] = useState(false);
   const [isStaff, setIsStaff] = useState(false);
   const [pin, setPin] = useState("");
@@ -65,11 +62,7 @@ export default function SurpriseFunnel({ example = "" }: { example?: string }) {
   const [teaser, setTeaser] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
   const [payBusy, setPayBusy] = useState(false);
-  const [sendBusy, setSendBusy] = useState(false);
-  const [sent, setSent] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const swipeRef = useRef(0);      // Coverflow: Pointer-X beim Swipe-Start
-  const swipedRef = useRef(false); // Swipe erkannt → nachlaufenden Klick schlucken
   const runRef = useRef(0);
   const resultRef = useRef<HTMLDivElement>(null);
 
@@ -92,31 +85,11 @@ export default function SurpriseFunnel({ example = "" }: { example?: string }) {
     return () => { runRef.current = -1; };
   }, []);
 
-  const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
   const picked = looks[pickIdx];
-  const ready = !!photo && !!picked?.imageUrl && emailOk && consent && !!himName.trim();
+  const ready = !!photo && !!picked?.imageUrl && consent && !!himName.trim();
 
   const onFile = async (f?: File | null) => { if (f) try { setPhoto(await fileToDataUrl(f)); } catch { /**/ } };
 
-  // Vorschläge holen — sie tippt selbst ODER nimmt einen und ändert ihn noch.
-  const suggest = async () => {
-    if (ideaBusy) return;
-    setIdeaBusy(true);
-    try {
-      // Sprache = die GEWÄHLTE (Cookie), sonst Englisch — wie überall seit dem Umschalter.
-      // Die Browsersprache darf hier nicht entscheiden, sonst kommen deutsche Vorschläge
-      // auf einer englischen Seite.
-      const m = document.cookie.match(/(?:^|; )lb_lang=([^;]*)/);
-      const lang = m ? decodeURIComponent(m[1]).slice(0, 2) : "en";
-      const d = await fetch("/api/surprise-message", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lang, hint: message.trim() }),
-      }).then(r => r.json());
-      setIdeas(Array.isArray(d?.lines) ? d.lines : []);
-      if (d?.error && !d?.lines) setStatus(d.error);
-    } catch { setStatus("Network error."); }
-    setIdeaBusy(false);
-  };
 
   // ECHTE Generierung — läuft erst nach Zahlung (oder für Staff).
   //
@@ -168,7 +141,7 @@ export default function SurpriseFunnel({ example = "" }: { example?: string }) {
   // Generieren = IMMER erst die Fake-Show (auch für Staff), damit der Kundenweg sichtbar bleibt.
   const generate = () => {
     if (!ready || busy) return;
-    setBusy(true); setTeaser(false); setVideoUrl(""); setSent(false); setStatus("");
+    setBusy(true); setTeaser(false); setVideoUrl(""); setStatus("");
     const token = Date.now(); runRef.current = token;
     setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
     for (const [at, text] of RENDER_STEPS) setTimeout(() => { if (runRef.current === token) setStatus(text); }, at);
@@ -207,21 +180,6 @@ export default function SurpriseFunnel({ example = "" }: { example?: string }) {
     } catch { setStatus("Network error."); setPayBusy(false); }
   };
 
-  // Versand: neutrale Mail mit privatem Link (kein Vorschaubild, 7 Tage gültig).
-  const send = async () => {
-    if (!videoUrl || sendBusy) return;
-    setSendBusy(true); setStatus("");
-    try {
-      const r = await fetch("/api/surprise-send", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ videoUrl, to: email.trim(), fromName: fromName.trim(), message: message.trim(), consentText: CONSENT_TEXT }),
-      });
-      const d = await r.json().catch(() => ({}));
-      if (r.ok && d?.ok) { setSent(true); setStatus(""); }
-      else setStatus(d?.error || "Could not send.");
-    } catch { setStatus("Network error."); }
-    setSendBusy(false);
-  };
 
   const input = "mt-2 h-12 w-full rounded-xl border border-white/30 bg-white/[0.08] px-4 text-[15px] font-semibold text-white outline-none placeholder:text-white/60 focus:border-[#f6cf51]";
 
@@ -254,80 +212,44 @@ export default function SurpriseFunnel({ example = "" }: { example?: string }) {
 
       {/* 2 — Lingerie aus dem Katalog wählen (Coverflow wie im Try-On/Kiss) */}
       <p className="mt-6 text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">2 · Pick your lingerie</p>
-      <p className="mt-1 text-[13px] font-bold text-white">Swipe the sets — the one up front is the one you will wear.</p>
+      <p className="mt-1 text-[13px] font-bold text-white">Swipe and tap the set you want to wear.</p>
       {looks.length === 0 ? (
-        <div className="grid h-[46vw] max-h-[240px] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>
+        <div className="grid h-24 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>
       ) : (
-        <div className="relative mx-auto mt-2 h-[72vw] max-h-[300px] select-none overflow-hidden touch-pan-y" style={{ perspective: "1100px" }}
-          onPointerDown={e => { swipeRef.current = e.clientX; swipedRef.current = false; }}
-          onPointerUp={e => {
-            const dx = e.clientX - swipeRef.current;
-            if (Math.abs(dx) > 30) { swipedRef.current = true; setPickIdx(i => Math.min(looks.length - 1, Math.max(0, i + (dx < 0 ? 1 : -1)))); }
-          }}>
+        // GARDEROBE = EINFACHER SLIDER (Owner-Regel): eine Reihe, horizontal wischen,
+        // Antippen wählt. Kein 3D-Coverflow — das ist die Kiss-Optik und gehört nicht hierher.
+        <div className="-mx-4 mt-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]{display:none}">
           {looks.map((l, i) => {
-            const off = i - pickIdx;
-            if (Math.abs(off) > 2) return null;
-            const isActive = off === 0;
+            const on = i === pickIdx;
             return (
-              <div key={l.id}
-                onClick={() => { if (swipedRef.current) { swipedRef.current = false; return; } if (!isActive) setPickIdx(i); }}
-                className="absolute left-1/2 top-1/2 w-[54%] max-w-[220px] overflow-hidden rounded-2xl border border-white/15 bg-white/[0.06] shadow-2xl transition-all duration-300 ease-out"
-                style={{ transform: `translate(-50%,-50%) translateX(${off * 56}%) rotateY(${-off * 38}deg) scale(${isActive ? 1 : 0.82})`, zIndex: 20 - Math.abs(off), opacity: Math.abs(off) === 2 ? 0.45 : 1, cursor: "pointer" }}>
-                <div className="relative aspect-[3/4] w-full">
+              <button key={l.id} type="button" onClick={() => setPickIdx(i)}
+                className={`relative w-[104px] shrink-0 snap-start overflow-hidden rounded-xl border-2 bg-white transition ${on ? "border-[#f6cf51]" : "border-white/20"}`}>
+                <span className="block aspect-[3/4] w-full">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={l.imageUrl} alt="" draggable={false} className="h-full w-full object-cover" />
-                  {isActive && <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-[#f6cf51] shadow"><Check className="h-4 w-4 text-black" /></span>}
-                </div>
-              </div>
+                </span>
+                {on && (
+                  <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-[#f6cf51] shadow">
+                    <Check className="h-3.5 w-3.5 text-black" />
+                  </span>
+                )}
+              </button>
             );
           })}
         </div>
       )}
 
-      {/* 3 — wohin */}
-      <p className="mt-6 text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">3 · Where it goes</p>
+      {/* 3 — sein Vorname: mehr braucht es nicht. Kein Versand, keine Nachricht —
+          sie lädt das Video runter und schickt es selbst, wie sie will. */}
+      <p className="mt-6 text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">3 · His name</p>
       <input value={himName} onChange={e => setHimName(e.target.value)} maxLength={30}
         placeholder="His first name — she says it in the video" className={input} />
-      <input value={email} onChange={e => setEmail(e.target.value)} type="email" inputMode="email" autoComplete="off"
-        placeholder="His email address" className={input} />
-      <input value={fromName} onChange={e => setFromName(e.target.value)} maxLength={40}
-        placeholder="Your name (optional — he sees who it's from)" className={input} />
       <p className="mt-2 text-[13px] font-bold leading-snug text-white/70">
-        In the video you say: “Hello {himName.trim() || "…"}, how are you?” — then he gets a plain email with a private link — no preview picture, nothing visible in a
-        notification. The link works for 7 days, then it disappears. He can delete it any time.
+        In the video you say: “Hello {himName.trim() || "…"}, how are you?”
       </p>
 
-      {/* Ihre Zeile — selbst tippen oder einen Vorschlag antippen und anpassen */}
-      <p className="mt-6 text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">4 · Your message</p>
-      <textarea value={message} onChange={e => setMessage(e.target.value)} maxLength={140} rows={2}
-        placeholder="Write him a line — or let us suggest one."
-        className="mt-2 w-full resize-none rounded-xl border border-white/30 bg-white/[0.08] px-4 py-3 text-[15px] font-semibold text-white outline-none placeholder:text-white/60 focus:border-[#f6cf51]" />
-      <div className="mt-2 flex items-center justify-between gap-3">
-        <button type="button" onClick={() => void suggest()} disabled={ideaBusy}
-          className="flex h-9 items-center gap-1.5 rounded-full border border-[#f6cf51]/40 px-3 text-[12px] font-black text-[#f6cf51] active:scale-95 transition disabled:opacity-50">
-          {ideaBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
-          {ideas.length ? "Other ideas" : "Suggest a line"}
-        </button>
-        <span className="text-[11px] font-bold text-white/60">{message.length}/140</span>
-      </div>
-      {ideas.length > 0 && (
-        <ul className="mt-2 space-y-1.5">
-          {ideas.map((l, i) => (
-            <li key={i}>
-              <button type="button" onClick={() => setMessage(l)}
-                className="w-full rounded-xl border border-white/25 bg-white/[0.07] px-3 py-2.5 text-left text-[13px] font-bold leading-snug text-white active:scale-[0.99] transition">
-                {l}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <p className="mt-1.5 text-[12px] font-bold leading-snug text-white/70">
-        Optional. Keep it safe for a lock screen — the line is visible in his email.
-      </p>
-
-      {/* 5 — Zustimmung + generieren */}
-      <p className="mt-6 text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">5 · Your video</p>
+      {/* 4 — Zustimmung + generieren */}
+      <p className="mt-6 text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">4 · Your video</p>
       <label className="mt-2 flex cursor-pointer items-start gap-2.5 rounded-2xl border border-white/25 bg-white/[0.07] p-3">
         <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}
           className="mt-0.5 h-4 w-4 shrink-0 accent-[#f6cf51]" />
@@ -384,20 +306,10 @@ export default function SurpriseFunnel({ example = "" }: { example?: string }) {
               {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
               <video src={videoUrl} controls autoPlay loop playsInline className="aspect-[3/4] max-h-[60vh] w-auto" />
             </div>
-            {sent ? (
-              <p className="mt-3 flex items-center justify-center gap-2 text-[14px] font-black text-[#f6cf51]">
-                <Check className="h-4 w-4" /> Sent to {email.trim()}
-              </p>
-            ) : (
-              <button type="button" onClick={() => void send()} disabled={sendBusy}
-                className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition disabled:opacity-60">
-                {sendBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} Send it to him
-              </button>
-            )}
             <a href={videoUrl} download="my-video.mp4" target="_blank" rel="noreferrer"
               className="mt-2 block text-center text-[12px] font-bold text-white/60 underline">Download for yourself</a>
-            <p className="mx-auto mt-3 max-w-[280px] text-center text-[12px] font-bold leading-snug text-white/70">
-              Nothing is posted anywhere. It exists as your download and as one private link for him.
+            <p className="mx-auto mt-3 max-w-[290px] text-center text-[12px] font-bold leading-snug text-white/70">
+              Nothing is posted anywhere. It is yours — send it to him however you like.
             </p>
           </div>
         )}
