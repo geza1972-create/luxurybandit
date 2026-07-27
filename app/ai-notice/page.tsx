@@ -56,9 +56,13 @@ export default function AiNoticePage() {
 
       <h2>Your choices</h2>
       <p>
-        You can stop the daily emails at any time using the unsubscribe link in each message, and you
-        can stop chatting at any time. Questions? Write to{" "}
-        <a href="mailto:support@luxurybandit.com">support@luxurybandit.com</a>.
+        You can stop the daily emails at any time — every message has a one-click unsubscribe link at
+        the bottom, or use our <a href="/unsubscribe"><strong>unsubscribe page</strong></a>. You can
+        stop chatting at any time.
+      </p>
+      <p>
+        Questions about how we use AI? Reach us through our{" "}
+        <a href="/contact"><strong>contact form</strong></a>.
       </p>
     </InfoPage>
   );

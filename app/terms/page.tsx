@@ -114,7 +114,7 @@ export default function TermsPage() {
         Questions? Reach us via our <a href="/contact">contact form</a>.
       </p>
 
-      <p className="mt-6 text-xs text-black/40">Last updated: 17 July 2026</p>
+      <p className="mt-6 text-xs text-black/40">Last updated: 27 July 2026</p>
     </InfoPage>
   );
 }
