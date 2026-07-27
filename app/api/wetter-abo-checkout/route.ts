@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { couponFor } from "@/lib/promo";
 import { createSubscriptionCheckout } from "@/lib/stripe";
 import { readWetterSubscribers } from "@/lib/try-this-look-store";
 
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { subId?: string; modelId?: string; modelSlug?: string };
+  const body = (await request.json().catch(() => ({}))) as { subId?: string; modelId?: string; modelSlug?: string; code?: string };
   const subId = String(body.subId ?? "").trim();
   if (!subId) return NextResponse.json({ error: "subId fehlt." }, { status: 400 });
   const modelId = String(body.modelId ?? "").trim() || BELLA_ID;
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
     const { id, url } = await createSubscriptionCheckout({
       priceId: PRICE_ID,
       email: email || undefined,
+      coupon: couponFor(String((body as { code?: string })?.code ?? "")),
       successUrl: `${back}&wetterpaid=1&cs={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${back}&wettercancelled=1`,
       metadata: { kind: "wetter-abo", subId, modelId },

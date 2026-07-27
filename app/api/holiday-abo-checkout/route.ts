@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSubscriptionCheckout, stripeConfigured } from "@/lib/stripe";
+import { couponFor } from "@/lib/promo";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,13 +22,15 @@ export async function POST(request: Request) {
   if (!stripeConfigured()) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { returnTo?: string; email?: string };
+  const body = (await request.json().catch(() => ({}))) as { returnTo?: string; email?: string; code?: string };
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
   const back = String(body?.returnTo ?? "").startsWith("/") ? `${origin}${body.returnTo}` : `${origin}/themes/holiday`;
   try {
     const { id, url } = await createSubscriptionCheckout({
       priceId: PRICE_ID,
       email: String(body?.email ?? "").trim() || undefined,
+      // Aktionscode aus der Anzeige → Gutschein (Zuordnung liegt serverseitig, siehe lib/promo).
+      coupon: couponFor(String(body?.code ?? "")),
       successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1`,
       cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
       metadata: { kind: "holiday-abo", topic: "holiday" },
