@@ -16,21 +16,26 @@
  * niemand steht vor einer kaputten Kasse.
  */
 
+// Fest hinterlegt, damit ein Code auch dann gilt, wenn die Env in der Produktion fehlt —
+// genau daran ist der 19-EUR-Preis am 27.07.2026 live gescheitert. Env ergaenzt/ueberschreibt.
+const BUILTIN: Record<string, string> = { BELLA: "Mr0NlGBT" };
+
 export function couponFor(code: string): string | undefined {
   const key = (code ?? "").trim().toUpperCase();
   if (!key) return undefined;
   try {
     const raw = process.env.STRIPE_PROMO_CODES?.trim();
-    if (!raw) return undefined;
-    const map = JSON.parse(raw) as Record<string, string>;
+    const map = { ...BUILTIN, ...(raw ? (JSON.parse(raw) as Record<string, string>) : {}) };
     const hit = Object.entries(map).find(([k]) => k.trim().toUpperCase() === key);
     return hit?.[1]?.trim() || undefined;
   } catch {
-    return undefined;   // kaputtes JSON darf keinen Checkout verhindern
+    // kaputtes JSON in der Env darf den Kauf nicht verhindern — dann gelten die festen Codes
+    const hit = Object.entries(BUILTIN).find(([k]) => k === key);
+    return hit?.[1];
   }
 }
 
 /** Gibt es überhaupt Codes? (Für Hinweise in der Oberfläche.) */
 export function promoConfigured(): boolean {
-  return !!process.env.STRIPE_PROMO_CODES?.trim();
+  return true;   // die festen Codes gelten immer
 }

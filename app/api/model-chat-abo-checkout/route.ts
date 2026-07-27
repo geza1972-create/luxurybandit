@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { topicPriceId } from "@/lib/pricing";
 import { createSubscriptionCheckout } from "@/lib/stripe";
 
 export const runtime = "nodejs";
@@ -7,7 +8,8 @@ export const dynamic = "force-dynamic";
 // Model-Chat-Abo = DASSELBE 24-€-Wetter-Abo (Owner-Entscheidung 2026-07-26). Env überschreibt,
 // sonst dieser Fallback-Preis. Wer 24 € zahlt, chattet unbegrenzt mit dem Model (Stripe sammelt
 // die E-Mail selbst; hier gibt es keine vorab bekannte Adresse).
-const PRICE_ID = process.env.STRIPE_WETTER_ABO_PRICE_ID?.trim() || "price_1TxPxR1jPNCWoiztgmJMNNdF";
+// Ein Preis fuer alle Themen (lib/pricing): 49 EUR/Monat. Die alte 24-EUR-ID ist raus.
+const PRICE_ID = topicPriceId();
 
 // POST { curatorId, returnPath? } → startet das 24-€-Abo (Stripe Checkout, mode:subscription).
 export async function POST(request: Request) {

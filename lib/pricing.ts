@@ -27,11 +27,9 @@ export const PRICE_LINE_CODE_DE = "19 € im ersten Monat, danach 49 €/Monat";
 
 /** Die Preis-ID des laufenden Themen-Abos (49 €). */
 export function topicPriceId(): string {
-  return (
-    process.env.STRIPE_TOPIC_ABO_PRICE_ID?.trim() ||
-    process.env.STRIPE_WETTER_ABO_PRICE_ID?.trim() ||
-    "price_1TxPxR1jPNCWoiztgmJMNNdF"
-  );
+  // KEIN Rueckfall auf die alte 24-EUR-Preis-ID — die ist abgeschafft. Fehlt die Env,
+  // gilt der neue 49-EUR-Preis, damit nie wieder heimlich der alte Preis kassiert wird.
+  return process.env.STRIPE_TOPIC_ABO_PRICE_ID?.trim() || "price_1TxuJo1jPNCWoiztbO6FAeUT";
 }
 
 /**

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { topicPriceId } from "@/lib/pricing";
 import { createSubscriptionCheckout } from "@/lib/stripe";
 
 export const runtime = "nodejs";
@@ -7,7 +8,8 @@ export const dynamic = "force-dynamic";
 // ABO statt Einzelkauf (Owner-Entscheidung 2026-07-27): dasselbe 24-€-Abo wie beim Wetter,
 // darin sind 5 Videos pro Monat enthalten. Der frühere 3,99-Einzelkauf ist damit abgelöst.
 // Preis-ID identisch mit wetter-abo-checkout — es ist EIN Abo, nicht zwei.
-const PRICE_ID = process.env.STRIPE_WETTER_ABO_PRICE_ID?.trim() || "price_1TxPxR1jPNCWoiztgmJMNNdF";
+// Ein Preis fuer alle Themen (lib/pricing): 49 EUR/Monat. Die alte 24-EUR-ID ist raus.
+const PRICE_ID = topicPriceId();
 
 // POST { genId?, subId?, returnTo? } → startet das Abo. Nach Zahlung schaltet der
 // Stripe-Webhook frei; der Client pollt /api/checkout-status.
