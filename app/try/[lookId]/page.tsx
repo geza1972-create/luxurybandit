@@ -878,8 +878,12 @@ export default function TryFunnelPage() {
                 setStep(2);
                 return;
               }
-              // Exiting the funnel (step ≤ 2, incl. straight from an ad link) → the Models gallery.
-              router.push("/stores?view=models");
+              // Funnel verlassen: ZURÜCK dorthin, wo er herkam (z. B. die Wetter-Seite) — vorher
+              // sprang der Pfeil hart in die Models-Galerie, das fühlte sich an wie „geht nicht
+              // zurück". Nur ohne Historie (Direktaufruf aus einer Anzeige) in die Galerie.
+              let hasHistory = false;
+              try { hasHistory = window.history.length > 1; } catch { /**/ }
+              if (hasHistory) router.back(); else router.push("/stores?view=models");
             }}
             className="grid h-9 w-9 place-items-center rounded-full bg-white/10 active:opacity-70">
             <ArrowLeft className="h-4 w-4" />
@@ -941,6 +945,12 @@ export default function TryFunnelPage() {
             </>
           ) : (pickModel || chooseModel) && !pickedModel && !avatar ? (
             <>
+              {/* Der Text der früheren Try-On-Landing steht jetzt HIER über der Model-Auswahl —
+                  so entfällt die Zwischenseite, ohne dass die Erklärung verloren geht. */}
+              <p className="mt-2 text-[15px] font-medium leading-snug text-white/80">
+                {L("Alege un look și un model — și o vezi purtându-l într-un video. Se întoarce, merge, din toate unghiurile.",
+                   "Pick a look, pick a model — and watch her wear it in a video. Turnaround, walk, every angle.")}
+              </p>
               <p className="mt-2 text-[13px] font-bold text-white/85">Pick a model to wear this piece.</p>
               <div className="mt-4 grid grid-cols-3 gap-2">
                 {(() => {
@@ -1053,7 +1063,7 @@ export default function TryFunnelPage() {
                 {chosenModelLocked
                   ? <><Crown className="h-5 w-5" /> Unlock with Premium</>
                   : isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
-                  : <><Play className="h-5 w-5 fill-current" /> GO<span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">{L("Gratis", "Free")}</span></>}
+                  : <><Play className="h-5 w-5 fill-current" /> GO{/* „Gratis" NUR beim Katalog-Model: eigenes Foto (Idol/Your photo) ist der BEZAHLTE Weg — dort wäre das Label eine Falschaussage. */ !avatar && !idol && <span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">{L("Gratis", "Free")}</span>}</>}
               </button>
             </>
           ) : (
@@ -1061,6 +1071,12 @@ export default function TryFunnelPage() {
             // her neighbours angle back on both sides. Tap a side card (or an arrow) to bring
             // her forward — that selects her. Locked models (not Gina) show a padlock.
             <>
+              {/* Der Text der früheren Try-On-Landing steht jetzt HIER über der Model-Auswahl —
+                  so entfällt die Zwischenseite, ohne dass die Erklärung verloren geht. */}
+              <p className="mt-2 text-[15px] font-medium leading-snug text-white/80">
+                {L("Alege un look și un model — și o vezi purtându-l într-un video. Se întoarce, merge, din toate unghiurile.",
+                   "Pick a look, pick a model — and watch her wear it in a video. Turnaround, walk, every angle.")}
+              </p>
               <p className="mt-2 text-[13px] font-bold text-white/85">Swipe the models — your pick stands up front. Tap “Start” to see her wear it, free.</p>
               {(() => {
                 const om = [...gModels].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
@@ -1591,7 +1607,7 @@ export default function TryFunnelPage() {
                   {chosenModelLocked
                     ? <><Crown className="h-5 w-5" /> Unlock with Premium</>
                     : isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
-                    : <><Play className="h-5 w-5 fill-current" /> GO<span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">{L("Gratis", "Free")}</span></>}
+                    : <><Play className="h-5 w-5 fill-current" /> GO{/* „Gratis" NUR beim Katalog-Model: eigenes Foto (Idol/Your photo) ist der BEZAHLTE Weg — dort wäre das Label eine Falschaussage. */ !avatar && !idol && <span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">{L("Gratis", "Free")}</span>}</>}
                 </button>
               </>
             )

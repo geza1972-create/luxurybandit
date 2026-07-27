@@ -36,6 +36,10 @@ const personalizeName = (text: string, name: string) => {
 // (erste frei = Vorgeschmack, Rest gesperrt mit Schloss → Abo). Muss zu /api/model-chat passen.
 const LINGERIE_TAG = "[[SHOW_LINGERIE]]";
 
+// Direkt in den Anprobier-Funnel — die Landing /themes/tryon wäre nur eine
+// Zwischenseite mit einem weiteren Button (Owner: „ist zu viel").
+const TRYON_FUNNEL = "/try/look-1784191032626-70e3608b?pick=1";
+
 // "notice" = eingeschobene KI-Erinnerung (keine Chat-Blase, wird nicht ans Modell gesendet)
 type Msg = { role: "user" | "assistant" | "notice"; content: string };
 type Look = { kind: "image" | "video"; mediaUrl: string; posterUrl?: string };
@@ -594,7 +598,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           <div className="mb-8 mt-3">
             <p className="mb-2 px-0.5 text-[13px] font-black text-white">{p.h}</p>
             <div className="grid grid-cols-2 gap-2.5">
-              {card("/themes/tryon", "✨", p.tT, p.tS, tryonTeaser, false, tryonLingerie)}
+              {card(TRYON_FUNNEL, "✨", p.tT, p.tS, tryonTeaser, false, tryonLingerie)}
               {card("/themes/kiss", "💋", p.kT, p.kS, kissTeaser, kissTeaserIsVideo)}
             </div>
           </div>

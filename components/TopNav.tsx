@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Search, Send, Instagram } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Search, Send, Instagram, ChevronLeft } from "lucide-react";
 
 /**
  * The ONE shared top bar for every page. Left: LB logo + wordmark → home. Right:
@@ -15,11 +16,18 @@ import { Search, Send, Instagram } from "lucide-react";
 export default function TopNav({
   subtitle = "The influencer marketplace",
   actions,
+  back = true,
 }: {
   subtitle?: string;
   actions?: React.ReactNode;          // override the default 3 CI icons
+  back?: boolean;                     // Zurück-Pfeil (an, außer man setzt back={false})
 }) {
   const router = useRouter();
+  // ZURÜCK: Regel im Haus — jede Seite braucht einen sichtbaren Rückweg. Auf den Browser-
+  // Button ist kein Verlass (In-App-Browser von Instagram/Facebook haben oft keinen).
+  // Nur zeigen, wenn es auch etwas zum Zurückgehen gibt (Direktaufruf hat keine Historie).
+  const [canBack, setCanBack] = useState(false);
+  useEffect(() => { try { setCanBack(window.history.length > 1); } catch { /**/ } }, []);
   const ig = process.env.NEXT_PUBLIC_INSTAGRAM_HANDLE ?? "luxurybandit";
   const share = () => {
     try {
@@ -33,6 +41,12 @@ export default function TopNav({
   return (
     <header data-topnav="1" className="sticky top-0 z-30 border-b border-white/10 bg-[#0d0b0a]/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5">
+        {back && canBack && (
+          <button type="button" onClick={() => router.back()} aria-label="Back"
+            className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/70 active:scale-90 transition hover:text-white">
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+        )}
         {/* Brand → the marketplace. Target its real route (not "/") so client-side nav
             lands there directly, instead of the old root→/stores redirect chain. */}
         <button type="button" onClick={() => router.push("/stores?view=models")} aria-label="Home"

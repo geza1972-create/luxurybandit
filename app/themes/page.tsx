@@ -16,7 +16,7 @@ export const metadata = {
   openGraph: { title: "LuxuryBandit Topics", description: "Daily content from your favorite influencer — pick a topic." },
 };
 
-type Theme = { icon: LucideIcon; title: string; tagline: string; href?: string; cover?: string; video?: string; poster?: string; chips?: string };
+type Theme = { icon: LucideIcon; title: string; tagline: string; href?: string; cover?: string; video?: string; poster?: string; chips?: string; cover2?: string };
 
 export default async function ThemesCatalog() {
   // Cover fürs aktive „Wetter"-Thema: das WERBEVIDEO (ad-Slide) — genau das, was der
@@ -47,6 +47,28 @@ export default async function ThemesCatalog() {
   // Kiss-Teaser (vom Admin im Kiss-Medien-Tool hochgeladen) als Cover der Kiss-Karte.
   // Er darf BILD ODER VIDEO sein — ein Video muss ins `video`-Feld, sonst landet eine
   // .mp4 in einem <img> und die Karte zeigt ein kaputtes Bild.
+  // Try-On-Karte: dieselbe Überblendung wie im Wetter — Bella im weißen Kleid ↔ in Lingerie.
+  const WHITE_DRESS = "try-this-look/uploads/1784915142061-c0ea5633-a652-40bb-8476-bebf69c64658.jpg";
+  let tryonDressed = "", tryonLingerie = "";
+  try {
+    const slides = (await readCardStudioSlides(BELLA_ID)).filter(isPublicBellaPost);
+    const pickPath = (x: { kind?: string; path?: string; posterPath?: string }) => (x.kind === "video" ? x.posterPath : x.path) || "";
+    const normal = slides.find(x => x.garmentCat === "normal" && pickPath(x));
+    tryonDressed = (await getSignedUrl((normal && pickPath(normal)) || WHITE_DRESS).catch(() => "")) || "";
+    const ling = slides.find(x => x.garmentCat === "lingerie" && pickPath(x));
+    if (ling) tryonLingerie = (await getSignedUrl(pickPath(ling)).catch(() => "")) || "";
+  } catch { /**/ }
+
+  // Holiday-Karte: eines der Urlaubs-Videos (Peter & Bella) — die liegen auf der Fläche
+  // „lp-journey" und haben kein Poster, also spielt die Karte das Video direkt ab.
+  let urlaubVideo = "";
+  try {
+    const all = await readCardStudioSlides(BELLA_ID);
+    const j = all.find(x => x.kind === "video" && !x.customer && !x.hidden && !x.private && !x.pendingApproval
+      && (x.pages ?? []).includes("lp-journey") && x.path);
+    if (j) urlaubVideo = (await getSignedUrl(j.path).catch(() => "")) || "";
+  } catch { /**/ }
+
   let kissCover = "", kissVideo = "";
   try {
     const kc = await readKissConfig();
@@ -58,8 +80,10 @@ export default async function ThemesCatalog() {
 
   const THEMES: Theme[] = [
     { icon: CloudSun, title: "Morning Weather", tagline: "Your weather, a new look & a chat — every morning.", href: "/themes/wetter/bella", cover: wetterCover, video: wetterVideo, poster: wetterPoster },
-    { icon: Palmtree, title: "Holiday with Bella", tagline: "She travels for you — daily videos & stories from Tenerife.", href: "/urlaub-mit-bella", cover: ph(5), chips: "♥ Tenerife · Videos · Stories" },
-    { icon: Shirt, title: "Try-On", tagline: "Pick a look, pick a model — watch her wear it in a video.", href: "/themes/tryon", cover: ph(6), chips: "♥ Look · Model · Video" },
+    { icon: Palmtree, title: "Holiday with Bella", tagline: "She travels for you — daily videos & stories from Tenerife.", href: "/urlaub-mit-bella", cover: ph(5), video: urlaubVideo || undefined, chips: "♥ Tenerife · Videos · Stories" },
+    // Direkt in den Funnel: /themes/tryon wäre nur eine Zwischenseite mit noch einem Button.
+    // Die Landing bleibt für die Admin-Werkzeuge erreichbar (Menü → „Try-On — manage").
+    { icon: Shirt, title: "Try-On", tagline: "Pick a look, pick a model — watch her wear it in a video.", href: "/try/look-1784191032626-70e3608b?pick=1", cover: tryonDressed || ph(6), cover2: tryonLingerie || undefined, chips: "♥ Look · Model · Video" },
     { icon: Star, title: "Your Idol", tagline: "Upload her photo — she becomes your AI model.", href: "/your-idol", cover: ph(7), chips: "♥ Upload · Chat · Video" },
     { icon: Heart, title: "Kiss any Model", tagline: "Your photo + her — a tender kiss in one video.", href: "/themes/kiss", cover: kissCover || ph(8), video: kissVideo || undefined, chips: "♥ Pick her · Your photo · Kiss" },
     { icon: Cake, title: "Birthdays", tagline: "Auto birthday wishes — for you & your friends.", cover: ph(4) },
@@ -98,8 +122,12 @@ export default async function ThemesCatalog() {
                       autoPlay muted loop playsInline preload="metadata"
                       className="h-full w-full object-cover object-top" />
                   ) : t.cover ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={t.cover} alt="" className={`h-full w-full object-cover object-top ${active ? "" : "brightness-[0.8]"}`} />
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {t.cover2 && <img src={t.cover2} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={t.cover} alt="" className={"absolute inset-0 h-full w-full object-cover object-top " + (active ? "" : "brightness-[0.8] ") + (t.cover2 ? "lb-swap-top" : "")} />
+                    </>
                   ) : (
                     <div className="absolute inset-0 grid place-items-center"><Icon className="h-16 w-16 text-white/10" strokeWidth={1.25} /></div>
                   )}
