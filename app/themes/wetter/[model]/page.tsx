@@ -15,7 +15,6 @@ import { buildBellaCard } from "@/lib/bella-card";
 import { personalize } from "@/lib/personalize";
 import { translateMany } from "@/lib/translate";
 import { fetchForecastLine } from "@/lib/wetter-forecast";
-import WetterLangSwitcher from "@/components/WetterLangSwitcher";
 import { readTryThisLookState, readCardStudioSlides, readWetterSubscribers, readWetterClicks, readWetterPaid, readKissConfig, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
 
 // THEMA „Wetter am Morgen" — MODEL-AGNOSTISCH über /wetter/<model> (dieses Mal bella, kann jede sein).
@@ -277,11 +276,8 @@ export default async function WetterModelPage({ params, searchParams }: {
           <ModelCardHeader name={card.name} title={(HEADER[subLang] ?? HEADER.en).title}
             tagline={(HEADER[subLang] ?? HEADER.en).tagline} statusLabel="online" darkBg
             ownedName={card.owner || ""} isOwned={!!card.owner} />
-          {/* Sprach-Umschalter — oben rechts im Header. Ein natives Auswahlfeld statt vieler
-              winziger Chips → auf dem iPhone mit EINEM Tipp bedienbar (großer iOS-Picker). */}
-          <div className="absolute right-2.5 top-2.5 z-20">
-            <WetterLangSwitcher options={LANGS.map(l => ({ code: l, href: langHref(l) }))} current={subLang} />
-          </div>
+          {/* Der eigene Sprach-Umschalter ist RAUS (28.07.2026): seit der globale Wähler
+              in der Kopfzeile steht, gab es zwei auf einem Bildschirm. Einer reicht. */}
         </div>
       )}
 
