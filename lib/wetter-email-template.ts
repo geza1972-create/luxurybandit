@@ -15,7 +15,7 @@ export function copy(lang: string, name: string): Copy {
       wx: "Vremea ta de azi", wxCity: "Vremea ta în {city}", look: "Un look nou, doar pentru tine", chat: "Și un chat cu mine, când vrei",
       cta: "Deschide pagina ta", bye: "Pe curând,", unsub: "Nu mai vrei aceste mesaje? Dezabonează-te" },
     de: { subject: c("Guten Morgen") + " ☀️ Dein Wetter & dein neuer Look", preheader: "Dein Wetter, ein neuer Look und ein lieber Gruß von mir.",
-      greet: c("Hallo") + ",", lead: "Dein Morgen ist fertig ☀️", body: "Ich habe alles für heute vorbereitet. Schau kurz rein — und sag mir, wie du ihn findest.",
+      greet: c("Hallo") + ",", lead: "Dein Morgen wartet ☀️", body: "Ich habe alles für heute vorbereitet — schau kurz rein und sag mir, wie dir mein neuer Look gefällt.",
       wx: "Dein Wetter für heute", wxCity: "Dein Wetter in {city}", look: "Ein neuer Look, nur für dich", chat: "Und ein Chat mit mir, wann du magst",
       cta: "Deine Seite öffnen", bye: "Bis gleich,", unsub: "Keine Nachrichten mehr? Hier abmelden" },
     en: { subject: c("Good morning") + " ☀️ Your weather & a new look", preheader: "Your weather, a new look and a little thought from me.",
