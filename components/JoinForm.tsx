@@ -76,7 +76,9 @@ export default function JoinForm({ code = "", topic = "chat", presetEmail = "", 
   };
 
   const submit = async () => {
-    if (!emailOk || !consent || busy) return;
+    if (busy) return;
+    if (!emailOk) { setError("Please enter a valid email address."); return; }
+    if (!consent) { setError("Please tick the box so we may write to you."); return; }
     setBusy(true); setError(""); setStep("sending");
     trackMetaPixel("InitiateCheckout", { value: code ? 19 : 49, currency: "EUR", content_category: "topic-abo", content_name: pickedTopic });
     // Kontakt ZUERST sichern: wer im Stripe-Fenster abspringt, ist dann trotzdem erreichbar.
@@ -164,10 +166,11 @@ export default function JoinForm({ code = "", topic = "chat", presetEmail = "", 
                 <Row on={wantsIn === "later"} title="Maybe — show me first" onClick={() => setWantsIn("later")} />
                 <Row on={wantsIn === "no"} title="No, too expensive" onClick={() => setWantsIn("no")} />
               </div>
-              <button type="button" disabled={!wantsIn} className={`${blue} mt-5`}
-                onClick={() => setStep(wantsIn === "no" ? "bye" : "q2")}>
+              <button type="button" className={`${blue} mt-5`}
+                onClick={() => { if (!wantsIn) { setError("Please pick one."); return; } setError(""); setStep(wantsIn === "no" ? "bye" : "q2"); }}>
                 Continue <ChevronRight className="h-4 w-4" />
               </button>
+              {error && <p className="mt-2 text-[13px] font-medium text-red-600">{error}</p>}
             </div>
           </>
         )}
@@ -201,7 +204,8 @@ export default function JoinForm({ code = "", topic = "chat", presetEmail = "", 
                   <Row key={id} on={lang === id} title={label} onClick={() => rememberLang(id)} />
                 ))}
               </div>
-              <button type="button" disabled={!lang} className={`${blue} mt-5`} onClick={() => setStep("contact")}>
+              <button type="button" className={`${blue} mt-5`}
+                onClick={() => { if (!lang) { setError("Please pick a language."); return; } setError(""); setStep("contact"); }}>
                 Continue <ChevronRight className="h-4 w-4" />
               </button>
             </div>
@@ -260,7 +264,7 @@ export default function JoinForm({ code = "", topic = "chat", presetEmail = "", 
               </p>
             ) : null}
 
-            <button type="button" onClick={() => void submit()} disabled={!emailOk || !consent || busy} className={`${blue} mt-4`}>
+            <button type="button" onClick={() => void submit()} disabled={busy} className={`${blue} mt-4`}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {busy ? "Opening checkout …" : code ? "Start — 19 € first month" : "Start — 49 €/month"}
             </button>

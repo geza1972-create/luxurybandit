@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       priceId: topicPriceId(),
       email: email || undefined,
       coupon: couponFor(String((body as { code?: string })?.code ?? "")) ?? firstMonthCoupon(),
-      successUrl: subId ? `${back}&wetterpaid=1&cs={CHECKOUT_SESSION_ID}` : `${back}${back.includes("?") ? "&" : "?"}paid=1`,
+      successUrl: subId ? `${back}&wetterpaid=1&cs={CHECKOUT_SESSION_ID}` : `${back}${back.includes("?") ? "&" : "?"}paid=1&cs={CHECKOUT_SESSION_ID}`,
       cancelUrl: subId ? `${back}&wettercancelled=1` : `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
       metadata: { kind: "wetter-abo", ...(subId ? { subId } : {}), modelId },
     });

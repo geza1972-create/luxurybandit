@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       // Aktionscode aus der Anzeige schlägt den Standard; sonst gilt der
       // Einstiegs-Gutschein nur, falls gesetzt — sonst gilt der volle Preis.
       coupon: couponFor(String(body?.code ?? "")) ?? firstMonthCoupon(),
-      successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1`,
+      successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1&cs={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
       metadata: { kind: "holiday-abo", topic: "holiday" },
     });
