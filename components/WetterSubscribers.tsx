@@ -37,6 +37,9 @@ const sendText = (lang: string, name: string, link: string) => {
   );
 };
 
+// Die eigene Adresse des Owners — ihr Eintrag steht in der Liste immer an erster Stelle.
+const OWNER_EMAIL = (process.env.NEXT_PUBLIC_ADMIN_EMAIL ?? "geza1972@gmail.com").trim().toLowerCase();
+
 // Test abgelaufen? (bestätigt, nicht abgemeldet, älter als trialDays)
 const trialExpired = (s: Sub, trialDays: number) =>
   !!s.confirmed && !s.unsubscribed && !!s.createdAt &&
@@ -251,6 +254,14 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
           {botBusy === "selected" ? "Sendet…" : armSend === "bot" ? `Wirklich an ${selected.size}?` : `🤖 WhatsApp an ${selected.size}`}
         </button>
       </div>
+      {/* TEST an mich selbst: schickt die heutige Mail nur an die Owner-Adresse. Ein Tap,
+          ohne Auswahl, ohne Risiko, dass versehentlich die ganze Liste losgeht. */}
+      <button type="button"
+        onClick={() => { const me = subs.find(x => String(x.email ?? "").toLowerCase() === OWNER_EMAIL); if (me) void mailSend({ ids: [me.id] }); else setMailMsg(`${OWNER_EMAIL} steht nicht in der Liste — oben eintragen, dann testen.`); }}
+        disabled={mailBusy}
+        className="mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-lg border border-white/25 px-3 text-[12px] font-black text-white/85 active:scale-95 transition disabled:opacity-40">
+        🧪 {mailBusy ? "Sendet…" : "Testmail an mich"}
+      </button>
       {mailMsg && <p className="mt-1.5 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{mailMsg}</p>}
       {botMsg && <p className="mt-1.5 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{botMsg}</p>}
       {/* Schnell-Überblick: an wen NICHT mehr senden. */}
@@ -328,7 +339,12 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
         <p className="py-6 text-center text-[12px] font-bold text-white/40">Noch keine Abonnenten. Trag dich oben selbst ein und teste.</p>
       ) : (
         <div className="mt-3 grid grid-cols-1 gap-2">
-          {subs.map(s => {
+          {/* Owner-Eintrag (Gerry) steht IMMER oben — er testet den Versand an sich selbst,
+              und in einer Liste mit 50 Namen sucht man ihn sonst jedes Mal. */}
+          {[...subs].sort((a, b) => {
+            const own = (x: typeof a) => (String(x.email ?? "").toLowerCase() === OWNER_EMAIL ? 0 : 1);
+            return own(a) - own(b);
+          }).map(s => {
             const wa = waLink(s);
             return (
               <div key={s.id} className={`min-w-0 overflow-hidden rounded-xl border p-2.5 ${s.unsubscribed ? "border-red-500/20 bg-red-500/[0.04] opacity-60" : selected.has(s.id) ? "border-emerald-400/60 bg-emerald-400/[0.09]" : sent[s.id] ? "border-emerald-400/30 bg-emerald-400/[0.06]" : "border-white/10 bg-white/[0.03]"}`}>
