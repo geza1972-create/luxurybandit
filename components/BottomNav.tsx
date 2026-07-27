@@ -306,7 +306,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               <button type="button" onClick={() => navigate("/themes")}
                 className="flex w-full items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <Layers className="h-5 w-5 shrink-0 text-amber-400" />
-                <span className="text-sm font-black text-white">Themes</span>
+                {/* Wort im UI ist überall „Topics" (Route bleibt /themes) — vorher hieß es
+                    hier „Themes" und auf der Startseite „topics". Ein Ding, ein Name. */}
+                <span className="text-sm font-black text-white">Topics</span>
               </button>
               {/* Admin-Shortcut: Wetter-am-Morgen verwalten (?admin=1). */}
               {isStaff && (
@@ -488,19 +490,25 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-sm font-black text-white">My Influencer profile</span>
                 </button>
               ) : (
-                <button type="button" onClick={() => navigate(slug ? `/${slug}/myaccount` : "/user/myaccount")}
+                // NICHT ANGEMELDET → direkt auf /account: dort steht die Anmeldung selbst
+                // (E-Mail → Link schicken oder Passwort zurücksetzen). Vorher landete man auf
+                // /user/myaccount, das nur nach /login weitergeleitet hat — für jemanden, der
+                // nie ein Passwort gesetzt hat, eine Sackgasse.
+                <button type="button" onClick={() => navigate(signedIn ? (slug ? `/${slug}/myaccount` : "/user/myaccount") : "/account")}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                   <Settings className="h-5 w-5 text-white/85 shrink-0" />
-                  <span className="text-sm font-black text-white">Account</span>
+                  <span className="text-sm font-black text-white">{signedIn ? "Account" : "Sign in / My account"}</span>
                 </button>
               )}
               {/* Meine Themen — Abos (24 €/Thema), Verlängerung und Kündigen. Steht IMMER
                   da, auch ohne Login: die Seite selbst führt durch die Anmeldung. */}
-              <button type="button" onClick={() => navigate("/account")}
-                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                <CreditCard className="h-5 w-5 text-white/85 shrink-0" />
-                <span className="text-sm font-black text-white">My topics & billing</span>
-              </button>
+              {signedIn && (
+                <button type="button" onClick={() => navigate("/account")}
+                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                  <CreditCard className="h-5 w-5 text-white/85 shrink-0" />
+                  <span className="text-sm font-black text-white">My topics & billing</span>
+                </button>
+              )}
               {/* My subscriptions — the models this user subscribes to (any account type). */}
               {subCount > 0 && (
                 <button type="button" onClick={() => navigate("/user/subscriptions")}
@@ -533,13 +541,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <LogOut className="h-5 w-5 text-red-400 shrink-0" />
                   <span className="text-sm font-black text-red-500">Sign out</span>
                 </button>
-              ) : (
-                <button type="button" onClick={() => navigate("/stores?panel=account")}
-                  className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <User className="h-5 w-5 text-white/85 shrink-0" />
-                  <span className="text-sm font-black text-white">Sign in</span>
-                </button>
-              )}
+              ) : null /* Nicht angemeldet: der EINE Weg steht weiter oben
+                          („Sign in / My account" → /account). Ein zweiter Sign-in-Eintrag
+                          hier führte ins alte /stores-Panel und verwirrte nur. */}
             </div>
 
             {/* Info & legal */}

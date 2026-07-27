@@ -34,7 +34,8 @@ export default function BuyerAccount() {
 
   useEffect(() => {
     const s = getStoredAuthSession();
-    if (!s) { router.replace("/login?returnTo=/user/myaccount"); return; }
+    // Kein Login? Auf /account — dort meldet man sich ohne Passwort per Link an.
+    if (!s) { router.replace("/account"); return; }
     setEmail(s.user?.email ?? "");
     setToken(s.access_token ?? "");
     try { setName((s.user as { user_metadata?: { username?: string; full_name?: string } })?.user_metadata?.username || ""); } catch { /**/ }
