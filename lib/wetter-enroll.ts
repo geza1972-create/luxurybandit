@@ -1,4 +1,4 @@
-import { readWetterSubscribers, writeWetterSubscribers, type WetterSubscriber } from "@/lib/try-this-look-store";
+import { readWetterSubscribers, writeWetterSubscribers, readTryThisLookState, type WetterSubscriber } from "@/lib/try-this-look-store";
 
 /**
  * JEDER Kunde bekommt das tägliche Wetter (Owner, 2026-07-27): egal über welches Thema er
@@ -15,9 +15,18 @@ export async function enrollWetter(opts: {
   name?: string;
   lang?: string;
   note?: string;          // woher er kommt, z. B. „kiss-abo"
-}): Promise<"added" | "exists" | "unsubscribed" | "invalid"> {
+}): Promise<"added" | "exists" | "unsubscribed" | "invalid" | "model"> {
   const email = (opts.email ?? "").trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return "invalid";
+
+  // MODELS bekommen keine Kunden-Tagespost (Owner). Ihre Adressen stehen in den
+  // Kurator-Datensätzen; kauft eine Model selbst etwas, wird sie NICHT Abonnentin.
+  try {
+    const state = await readTryThisLookState();
+    const isModel = (state.curators ?? []).some((c: Record<string, unknown>) =>
+      ["email", "contactEmail", "loginEmail"].some(k => String(c?.[k] ?? "").trim().toLowerCase() === email));
+    if (isModel) return "model";
+  } catch { /* im Zweifel weiter — der Abmelde-Link bleibt in jeder Mail */ }
 
   const current = await readWetterSubscribers();
   const found = current.find(s => (s.email ?? "").trim().toLowerCase() === email);

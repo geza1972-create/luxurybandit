@@ -5,6 +5,7 @@ import ModelCardHeader from "@/components/ModelCardHeader";
 import BellaSimpleStudio from "@/components/BellaSimpleStudio";
 import WetterSubscribers from "@/components/WetterSubscribers";
 import WetterStats from "@/components/WetterStats";
+import WetterProfileAsk from "@/components/WetterProfileAsk";
 import WetterTrack from "@/components/WetterTrack";
 import BellaPostsCarousel from "@/components/BellaPostsCarousel";
 import WetterSubscriberView from "@/components/WetterSubscriberView";
@@ -162,10 +163,21 @@ export default async function WetterModelPage({ params, searchParams }: {
 
   // Kennung → Abonnenten-Datensatz (Login). Name/Stadt/Sprache kommen serverseitig aus
   // dem Datensatz, NICHT aus der URL — Telefon bleibt privat. `?name=` bleibt als Alt-Link.
+  // Was FEHLT im Datensatz? Wer über ein anderes Thema hereinkam, hat nur E-Mail und Name —
+  // Stadt, Telefon, Alter, Geschlecht fragen wir hier nach (dieselben Felder wie im Formular).
+  let askName = false, askBirthdate = false, askGender = false, askCity = false, askPhone = false;
   if (subToken) {
     const sub = (await readWetterSubscribers(modelId)).find(s => s.id === subToken);
-    if (sub) { subName = sub.name || subName; subCity = sub.city || subCity; subLang = sub.lang || subLang; subEmail = sub.email || ""; }
+    if (sub) {
+      subName = sub.name || subName; subCity = sub.city || subCity; subLang = sub.lang || subLang; subEmail = sub.email || "";
+      askName = !String(sub.name ?? "").trim() || String(sub.name ?? "") === String(sub.email ?? "").split("@")[0];
+      askBirthdate = !String(sub.birthdate ?? "").trim();
+      askGender = !String(sub.gender ?? "").trim();
+      askCity = !String(sub.city ?? "").trim();
+      askPhone = !String(sub.phone ?? "").trim();
+    }
   }
+  const askProfile = !!subToken && (askName || askBirthdate || askGender || askCity || askPhone);
   const recognized = !!subToken || !!subName;   // eingeloggter Abonnent?
 
   // WEICHER PAYWALL: Öffnungen 1–7 gratis; ab der 8. sind Chat + Video gesperrt (Bild + Nachricht
@@ -282,6 +294,13 @@ export default async function WetterModelPage({ params, searchParams }: {
             day={dayLook?.day || ""} time={dayLook?.time || ""}
             title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.context || ""} dayContext={dayLook?.context || ""}
             look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />
+          {/* Fehlende Angaben nachfragen — und im selben Kasten das Abbestellen anbieten. */}
+          {askProfile && (
+            <div className="mx-auto max-w-md px-4">
+              <WetterProfileAsk sub={subToken} modelId={modelId} lang={subLang}
+                askName={askName} askBirthdate={askBirthdate} askGender={askGender} askCity={askCity} askPhone={askPhone} />
+            </div>
+          )}
           </>
         ) : showAdmin ? (
           /* ADMIN-VORSCHAU: umschaltbar zwischen Besucher (Anmeldung) und Abonnent (täglich).

@@ -10,7 +10,14 @@ const BELLA_ID = "curator-1783683672619-td4cy";
 // Setzt `unsubscribed` (kein Löschen → der Admin sieht es und sendet nicht weiter).
 // POST { modelId, s }  (s = die Abonnenten-Kennung aus dem Link)
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { modelId?: string; s?: string; email?: string; phone?: string };
+  const body = (await request.json().catch(() => ({}))) as {
+    modelId?: string; s?: string; email?: string; phone?: string; interests?: string[];
+  };
+  // Abmelden heißt NICHT „weg": er bleibt Kunde. Was er stattdessen hören will (neue
+  // Klamotten, neue Themen, Angebote), merken wir uns am Datensatz — Owner-Vorgabe.
+  const interests = Array.isArray(body.interests)
+    ? body.interests.map(v => String(v).trim().slice(0, 20)).filter(v => ["clothes", "topics", "deals"].includes(v))
+    : [];
   const modelId = String(body.modelId ?? "").trim() || BELLA_ID;
   const id = String(body.s ?? "").trim();
 
@@ -34,7 +41,9 @@ export async function POST(request: Request) {
         const mailOk = (s.email ?? "").trim().toLowerCase() === email;
         const phoneOk = !!s.phone && tail(s.phone) === want;
         if (mailOk && phoneOk && !s.unsubscribed) {
-          s.unsubscribed = true; s.unsubscribedAt = new Date().toISOString(); changed = true;
+          s.unsubscribed = true; s.unsubscribedAt = new Date().toISOString();
+          if (interests.length) s.interests = interests;
+          changed = true;
         }
       }
       if (changed) await writeWetterSubscribers(subs, modelId);
@@ -49,6 +58,7 @@ export async function POST(request: Request) {
     if (!sub) return NextResponse.json({ ok: true });   // idempotent (nichts zu tun)
     if (!sub.unsubscribed) {
       sub.unsubscribed = true;
+      if (interests.length) sub.interests = interests;
       sub.unsubscribedAt = new Date().toISOString();
       await writeWetterSubscribers(subs, modelId);
     }
@@ -79,7 +89,12 @@ export async function GET(request: Request) {
     try {
       const subs = await readWetterSubscribers(modelId);
       const sub = subs.find(s => s.id === id);
-      if (sub && !sub.unsubscribed) { sub.unsubscribed = true; sub.unsubscribedAt = new Date().toISOString(); await writeWetterSubscribers(subs, modelId); }
+      if (sub && !sub.unsubscribed) {
+        sub.unsubscribed = true;
+        sub.unsubscribedAt = new Date().toISOString();
+        // Kein Body im Mail-Link → keine Interessen. Die stellt er auf /unsubscribe ein.
+        await writeWetterSubscribers(subs, modelId);
+      }
     } catch { /* best-effort — die Seite zeigt trotzdem Bestätigung */ }
   }
   const msg = M[lang] ?? M.ro;

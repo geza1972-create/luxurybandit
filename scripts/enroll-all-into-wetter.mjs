@@ -65,12 +65,26 @@ for (let page = 1; page <= 10; page++) {
 }
 console.log(`Supabase-Konten: ${authMails.size} Adressen`);
 
+// ── 3b) MODELS ausschließen ────────────────────────────────────────────────────────
+// Models/Kuratorinnen sind keine Kundinnen — sie dürfen die Werbe-Tagespost nicht bekommen
+// (Owner). Adressen kommen aus den Kurator-Datensätzen in state.json.
+const modelMails = new Set();
+try {
+  const st = await (await fetch(`${SB}/storage/v1/object/${BUCKET}/try-this-look/state.json`, { headers: sbHeaders })).json();
+  for (const c of st.curators ?? []) {
+    for (const k of ["email", "contactEmail", "loginEmail"]) {
+      if (c?.[k]) modelMails.add(String(c[k]).trim().toLowerCase());
+    }
+  }
+} catch { /* dann eben ohne — lieber weniger eintragen als falsch */ }
+console.log(`Models/Kuratorinnen (nicht eintragen): ${modelMails.size}`);
+
 // ── 4) Differenz ───────────────────────────────────────────────────────────────────
 const all = new Map([...authMails, ...stripeMails]); // Stripe gewinnt (bessere Herkunft)
 // Test- und Systemadressen bekommen KEINE Tagespost (mailinator, unser eigenes Support-
 // Postfach, offensichtliche Platzhalter) — sonst schickt sich die Seite selbst Werbung.
 const SKIP = /(^support@luxurybandit\.com$)|(mailinator\.com$)|(^bella@gina\.com$)|(\+test)|(^test@)/i;
-const fresh = [...all.entries()].filter(([e]) => !known.has(e) && !SKIP.test(e));
+const fresh = [...all.entries()].filter(([e]) => !known.has(e) && !SKIP.test(e) && !modelMails.has(e));
 console.log(`\nNEU einzutragen: ${fresh.length}`);
 for (const [e, m] of fresh.slice(0, 40)) console.log(`  + ${e}${m.name ? ` (${m.name})` : ""} · ${m.note}`);
 if (fresh.length > 40) console.log(`  … und ${fresh.length - 40} weitere`);

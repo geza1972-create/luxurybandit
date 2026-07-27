@@ -1504,6 +1504,7 @@ export type WetterSubscriber = {
   acceptedTerms?: boolean; // AGB + Datenschutz beim Anmelden akzeptiert
   confirmed?: boolean;    // Double-Opt-in: E-Mail bestätigt? (gegen Spam/Fake)
   confirmToken?: string;  // Einmal-Token im Bestätigungslink
+  interests?: string[];   // was er STATT der Tagespost hören will: "clothes" | "topics" | "deals"
   unsubscribed?: boolean; // hat sich selbst abgemeldet → NICHT mehr senden
   unsubscribedAt?: string;
   createdAt: string;
