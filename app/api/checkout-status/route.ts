@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCheckoutSession, stripeConfigured } from "@/lib/stripe";
-import { grantVideoCredits, readTryThisLookState, saveTryThisLookState, readKissLog, writeKissLog } from "@/lib/try-this-look-store";
+import { grantMonthlySubscriptionCredits, grantVideoCredits, readTryThisLookState, saveTryThisLookState, readKissLog, writeKissLog } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +17,16 @@ export async function GET(request: Request) {
   try {
     const s = await getCheckoutSession(sessionId);
     const paid = s.paymentStatus === "paid" || s.paymentStatus === "no_payment_required";
+
+    // THEMEN-ABO (chat/holiday/wetter/…): schreibt dem Kaeufer die 25 Videos des Monats gut.
+    // Das Abo gilt themenuebergreifend — ein Guthaben, egal in welchem Thema er generiert.
+    if (paid && /-abo$/.test(String(s.metadata.kind ?? ""))) {
+      const email = (s.customerEmail || s.clientReferenceId || "").trim().toLowerCase();
+      if (email) {
+        try { await grantMonthlySubscriptionCredits(email); }
+        catch (e) { console.warn("[checkout-status] Monatsguthaben fehlgeschlagen", e); }
+      }
+    }
 
     // $8 video pack → grant the credits (idempotent per session id) to the buyer email.
     let credits: number | undefined;

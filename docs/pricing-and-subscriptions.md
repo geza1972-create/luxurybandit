@@ -23,8 +23,17 @@ Technisch: `lib/pricing.ts` ist die einzige Quelle.
 - `STRIPE_FIRST_MONTH_COUPON` bleibt LEER, solange der Rabatt nur mit Code gelten soll
 Ein unbekannter Code bricht den Kauf nicht ab — es gilt dann der volle Preis.
 
-Ein Nutzer kann **mehrere Themen** abonnieren und zahlt **pro Thema**. Jedes Abo ist in
-Stripe ein eigenes Abo und wird einzeln gekündigt.
+**EIN Abo für ALLES (Owner 27.07.2026):** Für die 49 € darf er **25 Videos im Monat**
+generieren — **quer über alle Themen zusammen**, nicht pro Thema. Ob Holiday, Kiss, Chat
+oder Surprise ist egal, es ist ein Topf. Jedes Video darüber hinaus kostet 3,99 €.
+
+**Chatten ist GRATIS.** Kein Nachrichtenlimit als Kasse; es bleibt nur eine Tagesbremse
+(200 Nachrichten) gegen Skripte. Das Abo verkauft Generierungen, nicht Reden — Chat kostet
+uns Bruchteile eines Cents, Videos kosten echtes Geld.
+
+Technisch: `SUBSCRIPTION_MONTHLY_CREDITS = 25` (lib/try-this-look-store.ts, per Env
+überschreibbar). `/api/checkout-status` schreibt das Monatsguthaben bei JEDEM `*-abo`-Kauf
+gut — idempotent pro Kalendermonat und E-Mail (`videoCredits.balances`).
 
 Verwaltung: **`/account`** („My topics & billing") — Liste aller Themen-Abos des Kunden mit
 Preis, nächster Abbuchung und Kündigen-Knopf (`components/MyTopics.tsx`,

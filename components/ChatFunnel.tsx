@@ -21,13 +21,14 @@ type Msg = { role: "user" | "assistant" | "notice"; content: string };
  * Server. Wer den Browser wechselt, fängt bei 0 an. Ein echter Zähler pro Kunde fehlt noch.
  */
 
-const FREE_MSGS = 10;          // dann Abo
+// Chat ist GRATIS (Owner 27.07.2026) — bezahlt wird nur das Generieren.
+// Das Tageslimit bleibt als Bremse gegen Skripte, nicht als Kasse.
 // Tageslimit im Abo: großzügig gerechnet auf ZWEI STUNDEN Schreiben am Stück (Owner) —
 // bei ~30 s pro Runde sind das gut 200 Nachrichten. Ein normaler Nutzer merkt das nie;
 // es bremst nur Skripte, die sonst unbegrenzt auf unsere Kosten laufen würden.
 const DAILY_MSGS = 200;
 const DAY_KEY = "lb_chat_day";
-const LOOKS_INCLUDED = 5;      // pro Monat im Abo
+const LOOKS_INCLUDED = 25;     // Videos/Generierungen pro Monat im Abo — themenuebergreifend
 const USED_LOOKS_KEY = "lb_chat_looks";
 const PAID_KEY = "lb_chat_abo";
 const REMIND_EVERY = 15;       // KI-Hinweis im Verlauf
@@ -109,9 +110,8 @@ export default function ChatFunnel() {
   const herName = useCustom ? (customName.trim() || "her") : (picked?.name?.split(" ")[0] ?? "");
   const herPhoto = useCustom ? customPhoto : (picked?.photoUrl ?? "");
   const chosen = !!herPhoto;
-  const userMsgs = msgs.filter(m => m.role === "user").length;
-  const wall = !paid && !isStaff && userMsgs >= FREE_MSGS;
-  const dayFull = !isStaff && (paid || isStaff) && today >= DAILY_MSGS;
+  const wall = false;   // Chat kostet nichts
+  const dayFull = !isStaff && today >= DAILY_MSGS;
   const looksLeft = Math.max(0, LOOKS_INCLUDED - usedLooks);
 
   const onModelFile = async (f?: File | null) => { if (f) try { setCustomPhoto(await fileToDataUrl(f)); setUseCustom(true); } catch { /**/ } };
@@ -389,9 +389,7 @@ export default function ChatFunnel() {
               </div>
               {chosen && (
                 <p className="mt-1.5 text-[11px] font-bold text-black/50">
-                  {paid || isStaff
-                    ? `Subscription active · ${Math.max(0, DAILY_MSGS - today)} messages left today`
-                    : `${Math.max(0, FREE_MSGS - userMsgs)} free messages left`}
+                  {`Chatting is free · ${Math.max(0, DAILY_MSGS - today)} messages left today`}
                   {" · "}Any language — she answers in yours.
                 </p>
               )}

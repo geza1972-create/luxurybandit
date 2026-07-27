@@ -49,7 +49,7 @@ export default function OfferRedeem({ initialCode = "" }: { initialCode?: string
         placeholder="The code from the ad" autoCapitalize="characters"
         className="mt-2 h-12 w-full rounded-xl border border-white/30 bg-white/[0.08] px-4 text-[15px] font-black uppercase tracking-wide text-white outline-none placeholder:text-white/60 placeholder:normal-case placeholder:font-semibold focus:border-[#f6cf51]" />
       <p className="mt-1.5 text-[12px] font-bold text-white/70">
-        With a code the first month is 19 €. Without one you simply start at the normal 49 € a month.
+        With a code the first month is 19 €, then 49 €. You get 25 videos a month across all topics; chatting costs nothing.
       </p>
 
       <p className="mt-6 text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">2 · Your topic</p>
