@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSubscriptionCheckout, stripeConfigured } from "@/lib/stripe";
 import { couponFor } from "@/lib/promo";
+import { topicPriceId, firstMonthCoupon } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,10 +13,8 @@ export const dynamic = "force-dynamic";
  * Bis eine eigene Preis-ID existiert, läuft es über dieselbe 24-€-Preis-ID wie das
  * Wetter-Abo; `metadata.topic` trennt die Themen für die Konto-Übersicht (/account).
  */
-const PRICE_ID =
-  process.env.STRIPE_CHAT_ABO_PRICE_ID?.trim() ||
-  process.env.STRIPE_WETTER_ABO_PRICE_ID?.trim() ||
-  "price_1TxPxR1jPNCWoiztgmJMNNdF";
+// Preis kommt aus lib/pricing (49 €/Monat laufend).
+const PRICE_ID = topicPriceId();
 
 export async function POST(request: Request) {
   if (!stripeConfigured()) {
@@ -26,10 +25,12 @@ export async function POST(request: Request) {
   const back = String(body?.returnTo ?? "").startsWith("/") ? `${origin}${body.returnTo}` : `${origin}/themes/chat`;
   try {
     const { id, url } = await createSubscriptionCheckout({
-      priceId: PRICE_ID,
+      priceId: topicPriceId(),
       email: String(body?.email ?? "").trim() || undefined,
       // Aktionscode aus der Anzeige → Gutschein (Zuordnung liegt serverseitig, siehe lib/promo).
-      coupon: couponFor(String(body?.code ?? "")),
+      // Aktionscode aus der Anzeige schlägt den Standard; sonst gilt der
+      // Einstiegs-Gutschein: 8 € im ersten Monat, danach 49 €.
+      coupon: couponFor(String(body?.code ?? "")) ?? firstMonthCoupon(),
       successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1`,
       cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
       metadata: { kind: "chat-abo", topic: "chat" },

@@ -42,7 +42,7 @@ const FREE_LEFT: Record<Lang, (n: number) => string> = {
 // The single "I'm not free" reply a paid model gives to the visitor's first message.
 const CANNED: Record<Lang, string> = {
   de: "Ich bin leider nicht gratis 💛 aber ich chatte super gern mit dir. Für 24 €/Monat gehöre ich ganz dir. Wenn du lieber kostenlos chatten willst, dann versuch es mit Bella 💕",
-  en: "I'm not free, sweetie 💛 but I'd love to chat with you. For €24/month I'm all yours. If you'd rather chat for free, try Bella 💕",
+  en: "I'm not free, sweetie 💛 but I'd love to chat with you. For 8 € the first month, then 49 €, I'm all yours. If you'd rather chat for free, try Bella 💕",
   ro: "Nu sunt gratis, dragule 💛 dar mi-ar plăcea să vorbesc cu tine. Pentru 24 €/lună sunt toată a ta. Dacă preferi să vorbești gratis, încearcă cu Bella 💕",
   es: "No soy gratis, cariño 💛 pero me encantaría hablar contigo. Por 24 €/mes soy toda tuya. Si prefieres chatear gratis, prueba con Bella 💕",
   fr: "Je ne suis pas gratuite, chéri 💛 mais j'adorerais discuter avec toi. Pour 24 €/mois je suis toute à toi. Si tu préfères discuter gratuitement, essaie avec Bella 💕",
@@ -53,7 +53,7 @@ const CANNED: Record<Lang, string> = {
 // Bella's soft wall after her free messages run out.
 const KEEP: Record<Lang, string> = {
   de: "Ich rede so gern mit dir 💛 Für 24 €/Monat chatten wir unbegrenzt weiter.",
-  en: "I love talking to you 💛 For €24/month we chat unlimited.",
+  en: "I love talking to you 💛 8 € the first month, then 49 € — and we chat unlimited.",
   ro: "Îmi place să vorbesc cu tine 💛 Pentru 24 €/lună vorbim nelimitat.",
   es: "Me encanta hablar contigo 💛 Por 24 €/mes chateamos sin límite.",
   fr: "J'adore te parler 💛 Pour 24 €/mois on discute sans limite.",

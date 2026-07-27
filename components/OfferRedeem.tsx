@@ -49,7 +49,7 @@ export default function OfferRedeem({ initialCode = "" }: { initialCode?: string
         placeholder="The code from the ad" autoCapitalize="characters"
         className="mt-2 h-12 w-full rounded-xl border border-white/30 bg-white/[0.08] px-4 text-[15px] font-black uppercase tracking-wide text-white outline-none placeholder:text-white/60 placeholder:normal-case placeholder:font-semibold focus:border-[#f6cf51]" />
       <p className="mt-1.5 text-[12px] font-bold text-white/70">
-        No code? You can still start — you simply pay the normal 24 € a month.
+        No code? You can still start — the normal price is 8 € for the first month, then 49 € a month.
       </p>
 
       <p className="mt-6 text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">2 · Your topic</p>
@@ -73,7 +73,7 @@ export default function OfferRedeem({ initialCode = "" }: { initialCode?: string
 
       <button type="button" onClick={() => void start()} disabled={busy}
         className="lb-gold mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-60">
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Start — 24 €/month
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Start — 8 € first month
       </button>
       {status && <p className="mt-2 text-center text-[13px] font-bold text-white/80">{status}</p>}
       <p className="mt-3 text-center text-[12px] font-bold text-white/70">

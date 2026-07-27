@@ -24,7 +24,7 @@ export default function AccountPage() {
         <Kicker>LuxuryBandit · Account</Kicker>
         <H1>My <Y>topics</Y></H1>
         <Lead>Everything you subscribe to, in one place — with the cancel button right next to it.</Lead>
-        <Fine>Each topic is its own subscription at 24 € per month. Cancelling one leaves the others running.</Fine>
+        <Fine>Each topic is its own subscription: 8 € the first month, then 49 € a month. Cancelling one leaves the others running.</Fine>
 
         <MyTopics />
       </div>

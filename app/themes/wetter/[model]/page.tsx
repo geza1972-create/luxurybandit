@@ -198,7 +198,7 @@ export default async function WetterModelPage({ params, searchParams }: {
   const previewMode = String(sp.preview ?? "") === "visitor" ? "visitor" : "subscriber";   // Admin-Vorschau: was der User sieht
   // Preis/Trial aus der dynamischen Admin-Preisliste (für die Kleingedruckt-Zeile).
   const trialDays = Number((state as { pricing?: { wetterAboTrialDays?: number } }).pricing?.wetterAboTrialDays ?? 7);
-  const monthlyCents = Number((state as { pricing?: { wetterAboMonthlyCents?: number } }).pricing?.wetterAboMonthlyCents ?? 999);
+  const monthlyCents = Number((state as { pricing?: { wetterAboMonthlyCents?: number } }).pricing?.wetterAboMonthlyCents ?? 4900);
 
   const [slides, card] = await Promise.all([
     readCardStudioSlides(modelId).catch(() => [] as BellaSlide[]),
@@ -290,7 +290,7 @@ export default async function WetterModelPage({ params, searchParams }: {
             <p className="mx-auto max-w-md px-4 pt-4 text-center text-[13px] font-black text-emerald-400">{CONFIRMED_TEXT[subLang] ?? CONFIRMED_TEXT.en}</p>
           )}
           <WetterSubscriberView name={subName} city={subCity || ipCity || FALLBACK_CITY[subLang] || "London"} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken} email={subEmail}
-            locked={locked} paid={paid} modelSlug={model} monthlyCents={2400} crossModels={crossModels} kissTeaser={kissTeaser} kissTeaserIsVideo={kissTeaserIsVideo} tryonTeaser={tryonTeaser} tryonLingerie={tryonLingerie} idolTeaser={idolTeaser} lingerieTeaser={lingerieTeaser}
+            locked={locked} paid={paid} modelSlug={model} monthlyCents={4900} crossModels={crossModels} kissTeaser={kissTeaser} kissTeaserIsVideo={kissTeaserIsVideo} tryonTeaser={tryonTeaser} tryonLingerie={tryonLingerie} idolTeaser={idolTeaser} lingerieTeaser={lingerieTeaser}
             day={dayLook?.day || ""} time={dayLook?.time || ""}
             title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.context || ""} dayContext={dayLook?.context || ""}
             look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />

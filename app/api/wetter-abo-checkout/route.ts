@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { couponFor } from "@/lib/promo";
+import { topicPriceId, firstMonthCoupon } from "@/lib/pricing";
 import { createSubscriptionCheckout } from "@/lib/stripe";
 import { readWetterSubscribers } from "@/lib/try-this-look-store";
 
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 const BELLA_ID = "curator-1783683672619-td4cy";
 // Wetter-Abo = 24 €/Monat (Owner-Preis in Stripe). Env überschreibt, sonst dieser Fallback.
-const PRICE_ID = process.env.STRIPE_WETTER_ABO_PRICE_ID?.trim() || "price_1TxPxR1jPNCWoiztgmJMNNdF";
+const PRICE_ID = topicPriceId();
 
 // POST { subId, modelId?, modelSlug? } → startet das 24-€-Abo (Stripe Checkout, mode:subscription).
 // Nach Zahlung markiert der Stripe-Webhook den Abonnenten als „paid" → Chat + Video wieder frei.
@@ -31,9 +32,9 @@ export async function POST(request: Request) {
 
   try {
     const { id, url } = await createSubscriptionCheckout({
-      priceId: PRICE_ID,
+      priceId: topicPriceId(),
       email: email || undefined,
-      coupon: couponFor(String((body as { code?: string })?.code ?? "")),
+      coupon: couponFor(String((body as { code?: string })?.code ?? "")) ?? firstMonthCoupon(),
       successUrl: `${back}&wetterpaid=1&cs={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${back}&wettercancelled=1`,
       metadata: { kind: "wetter-abo", subId, modelId },

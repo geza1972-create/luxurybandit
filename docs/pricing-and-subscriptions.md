@@ -6,9 +6,19 @@ schauen (und gegen den Code prüfen). Stand: 2026-07-26.
 > „Anzeige-Preis im Code" ≠ „tatsächliche Abbuchung". Die echte Abbuchung läuft über
 > **Stripe** (Preis-ID + ggf. Gutschein). Den Stripe-Teil legt der Owner an, nicht Claude.
 
-## THEMEN-ABO = 24 € PRO THEMA (Owner, 2026-07-27)
+## THEMEN-ABO = 8 € ERSTER MONAT, DANN 49 €/MONAT (Owner, 27.07.2026 — löst die 24 € ab)
 
-**Der Standardpreis für jedes Themen-Abo ist 24 €/Monat.** Es gibt keine 19,99-Stufe und
+**Jedes Themen-Abo: 8 € im ersten Monat, danach 49 €/Monat.** Begründung des Owners: Ein
+verschenkter oder dauerhaft niedriger Preis bringt Leute, die nie zahlen. Der günstige
+Einstieg qualifiziert (die Karte wird gezogen), der laufende Preis trägt das Produkt.
+
+Technisch: `lib/pricing.ts` ist die einzige Quelle. `STRIPE_TOPIC_ABO_PRICE_ID` = der
+49-€-Preis, `STRIPE_FIRST_MONTH_COUPON` = Gutschein über 41 € einmalig (49 − 41 = 8 €).
+Fehlt der Gutschein, zahlt der Kunde sofort 49 € — der Kauf bricht nicht ab. Ein
+Aktionscode aus einer Anzeige (`lib/promo.ts`) schlägt den Standard-Gutschein.
+
+### ALT (überholt): 24 € pro Thema
+**Der frühere Standardpreis war 24 €/Monat.** Es gibt keine 19,99-Stufe und
 kein Bündel. Ein Nutzer kann **mehrere Themen** abonnieren und zahlt dann **pro Thema
 24 €** (zwei Themen = 48 €/Monat). Jedes Abo ist in Stripe ein eigenes Abo und wird
 einzeln gekündigt.
