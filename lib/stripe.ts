@@ -219,3 +219,55 @@ export async function getCheckoutSession(id: string): Promise<{
     customerEmail: String(s.customer_details?.email ?? s.customer_email ?? ""),
   };
 }
+
+// ── Themen-Abos eines Nutzers ────────────────────────────────────────────────────────
+// Jedes Thema ist ein EIGENES Abo zu 24 €/Monat (Owner-Regel): wer Wetter und Kuss will,
+// hat zwei Abos und zahlt zweimal. Deshalb hier eine LISTE pro Kunde, keine Ja/Nein-Frage.
+// Quelle der Wahrheit ist Stripe — kein Spiegel in einer JSON-Datei, der veralten kann.
+export type TopicSubscription = {
+  id: string;
+  topic: string;            // metadata.topic oder aus kind abgeleitet ("wetter-abo" → "wetter")
+  kind: string;             // metadata.kind, so wie der Checkout es gesetzt hat
+  status: string;
+  amount: number;           // Cent
+  currency: string;
+  currentPeriodEnd: number; // Unix-Sekunden
+  cancelAtPeriodEnd: boolean;
+  created: number;
+};
+
+export async function listTopicSubscriptions(email: string): Promise<TopicSubscription[]> {
+  const e = email.trim().toLowerCase();
+  if (!e) return [];
+  const custs = await stripeRequest("GET", `/customers?email=${encodeURIComponent(e)}&limit=100`);
+  const customers: any[] = Array.isArray(custs?.data) ? custs.data : [];
+  const out: TopicSubscription[] = [];
+  for (const c of customers) {
+    const subs = await stripeRequest("GET", `/subscriptions?customer=${encodeURIComponent(String(c.id))}&status=all&limit=100`);
+    for (const s of (Array.isArray(subs?.data) ? subs.data : []) as any[]) {
+      if (!["active", "trialing", "past_due"].includes(String(s.status))) continue;
+      const item = Array.isArray(s.items?.data) ? s.items.data[0] : null;
+      const kind = String(s.metadata?.kind ?? "");
+      out.push({
+        id: String(s.id),
+        topic: String(s.metadata?.topic ?? kind.replace(/-abo$/, "") ?? ""),
+        kind,
+        status: String(s.status),
+        amount: Number(item?.price?.unit_amount ?? 0),
+        currency: String(item?.price?.currency ?? "eur"),
+        currentPeriodEnd: Number(s.current_period_end ?? 0),
+        cancelAtPeriodEnd: !!s.cancel_at_period_end,
+        created: Number(s.created ?? 0),
+      });
+    }
+  }
+  return out.sort((a, b) => b.created - a.created);
+}
+
+/** Kündigen ZUM PERIODENENDE — der bezahlte Monat bleibt ihm. */
+export async function cancelSubscription(subscriptionId: string): Promise<boolean> {
+  const id = subscriptionId.trim();
+  if (!id) return false;
+  const res = await stripeRequest("POST", `/subscriptions/${encodeURIComponent(id)}`, { cancel_at_period_end: "true" });
+  return !!res?.id;
+}

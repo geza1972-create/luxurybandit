@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid, Crown, UserPlus, Film, Layers, CloudSun, Palmtree, Heart, Cake, Gift } from "lucide-react";
+import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid, Crown, UserPlus, Film, Layers, CloudSun, Palmtree, Heart, Cake, Gift, CreditCard } from "lucide-react";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -494,6 +494,13 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-sm font-black text-white">Account</span>
                 </button>
               )}
+              {/* Meine Themen — Abos (24 €/Thema), Verlängerung und Kündigen. Steht IMMER
+                  da, auch ohne Login: die Seite selbst führt durch die Anmeldung. */}
+              <button type="button" onClick={() => navigate("/account")}
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                <CreditCard className="h-5 w-5 text-white/85 shrink-0" />
+                <span className="text-sm font-black text-white">My topics & billing</span>
+              </button>
               {/* My subscriptions — the models this user subscribes to (any account type). */}
               {subCount > 0 && (
                 <button type="button" onClick={() => navigate("/user/subscriptions")}

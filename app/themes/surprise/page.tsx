@@ -67,6 +67,14 @@ export default async function SurpriseThemePage() {
                 </Lead>
               </div>
               <div>
+                <SectionTitle>She says his name out loud</SectionTitle>
+                <Lead>
+                  Type his first name and the video speaks it: “Hello Michael, how are you?” — your
+                  face, your voice moment, his name. That is what turns a nice clip into something he
+                  knows was made for him alone. Nothing generic, no template greeting.
+                </Lead>
+              </div>
+              <div>
                 <SectionTitle>A romantic surprise idea that is actually yours</SectionTitle>
                 <Lead>
                   Not a template, not a card: it is your photo, moving, in your own light. Upload it,

@@ -6,7 +6,26 @@ schauen (und gegen den Code prüfen). Stand: 2026-07-26.
 > „Anzeige-Preis im Code" ≠ „tatsächliche Abbuchung". Die echte Abbuchung läuft über
 > **Stripe** (Preis-ID + ggf. Gutschein). Den Stripe-Teil legt der Owner an, nicht Claude.
 
-## AKTUELLES MODELL (final entschieden 2026-07-26) — Abo = Reden, Video = Einzelkauf
+## THEMEN-ABO = 24 € PRO THEMA (Owner, 2026-07-27)
+
+**Der Standardpreis für jedes Themen-Abo ist 24 €/Monat.** Es gibt keine 19,99-Stufe und
+kein Bündel. Ein Nutzer kann **mehrere Themen** abonnieren und zahlt dann **pro Thema
+24 €** (zwei Themen = 48 €/Monat). Jedes Abo ist in Stripe ein eigenes Abo und wird
+einzeln gekündigt.
+
+Verwaltung: **`/account`** („My topics & billing") — Liste aller Themen-Abos des Kunden mit
+Preis, nächster Abbuchung und Kündigen-Knopf (`components/MyTopics.tsx`,
+`app/api/my-topics/route.ts`, Stripe-Helfer `listTopicSubscriptions` / `cancelSubscription`).
+Gekündigt wird **zum Periodenende**, der bezahlte Monat bleibt.
+
+Anmeldung ohne Passwort-Wissen: E-Mail eintippen → **Magic Link** („Send me a sign-in
+link") oder **Passwort-Reset**. Wer über einen Themen-Checkout kam, hat nie ein Passwort
+gesetzt — deshalb ist der Magic Link der Hauptweg. Die E-Mail muss die sein, mit der bezahlt
+wurde; darüber findet Stripe die Abos.
+
+**Offen:** Der Zähler „5 Videos/Monat" existiert weiterhin NICHT — bezahlt = unbegrenzt.
+
+## ÄLTERES MODELL (2026-07-26) — Abo = Reden, Video = Einzelkauf
 
 Kernidee: **Videogenerierung ist zu teuer fürs Abo** (Dollar-Beträge pro Clip). Das Abo
 verkauft **tägliche Nachrichten + Chat** (Haiku-Chat kostet Bruchteile eines Cents).
