@@ -30,6 +30,10 @@ export default async function BirthdayThemePage({ searchParams }: {
   const modelPhoto = bella?.photoPath ? (await getSignedUrl(bella.photoPath).catch(() => "")) || "" : "";
   const modelName = String(bella?.modelName || bella?.firstName || "Bella").split(" ")[0];
   const example = await getSignedUrl("try-this-look/videos/birthday-bella-cake.mp4").catch(() => "");
+  // REFERENZ für Pixverse = ein Standbild AUS dem Geburtstagsvideo (Torte, Kerzen, festliche
+  // Szene). Damit übernimmt die Generierung genau diesen Look — und der Owner hat getestet,
+  // dass sie den Namen dann auch ausspricht. Ihr Profilfoto wäre die falsche Szene.
+  const refPhoto = (await getSignedUrl("try-this-look/uploads/birthday-bella-cake-poster.jpg").catch(() => "")) || modelPhoto;
 
   return (
     <main className="lb-bg min-h-screen text-white">
@@ -48,7 +52,7 @@ export default async function BirthdayThemePage({ searchParams }: {
               name, in her own video. Then send it to them.
             </p>
 
-            <BirthdayFunnel modelPhoto={modelPhoto} modelName={modelName} />
+            <BirthdayFunnel modelPhoto={refPhoto} modelName={modelName} />
 
             {example && (
               <div className="mt-12">

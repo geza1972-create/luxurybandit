@@ -14,8 +14,10 @@ const BIRTHDAY_LOOK_ID = "look-1784191032626-70e3608b";   // Referenz-Look fürs
 
 // Prompt: sie gratuliert mit Namen. Beide @-Token zeigen auf dasselbe Bild (die Route bindet
 // immer zwei Referenzen) — im Text kommt nur @person vor.
+// Der Name MUSS im Prompt stehen — vom Owner getestet: Pixverse spricht ihn dann aus,
+// sofern als Referenz ein Standbild aus dem Geburtstagsvideo mitgeht (festliche Szene).
 export const birthdayPrompt = (name: string) =>
-  `@person stands in a festive room with balloons, candles and warm golden lights, holding a birthday cake. She smiles happily at the camera, waves, and says out loud: "Happy birthday to you, dear ${name}!" Keep @person face and appearance exactly the same throughout. Fixed camera, no zoom, no camera movement. Fluid natural motion, photorealistic, high-end look. No text or logos.`;
+  `@person looks into the camera in the festive room with the birthday cake and candles, smiles warmly and says out loud, clearly and cheerfully: "Happy birthday to you, dear ${name}! Happy birthday, ${name}!" Her lips move in sync with the words. Keep @person face, outfit and the room exactly the same throughout. Fixed camera, no zoom, no camera movement. Fluid natural motion, photorealistic, high-end look. No text or logos.`;
 
 const RENDER_STEPS: [number, string][] = [
   [0, "Preparing the room …"],
@@ -52,7 +54,7 @@ export default function BirthdayFunnel({ modelPhoto, modelName = "Bella" }: { mo
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-        // Beide Referenzen = ihr Foto; der Prompt nennt nur @person.
+        // Beide Referenzen = das Standbild aus dem Geburtstagsvideo; der Prompt nennt nur @person.
         body: JSON.stringify({ lookId: BIRTHDAY_LOOK_ID, person: modelPhoto, garment: modelPhoto, prompt: birthdayPrompt(name.trim()) }),
       }).then(r => r.json());
       if (!start?.videoId) { setStatus(start?.error || "Could not start."); setBusy(false); return; }
