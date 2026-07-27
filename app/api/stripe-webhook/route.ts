@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
+import { enrollWetter } from "@/lib/wetter-enroll";
 import { setWetterPaid } from "@/lib/try-this-look-store";
 
 export const runtime = "nodejs";
@@ -78,6 +79,17 @@ export async function POST(request: Request) {
     } else {
       // Log-only — fulfilment happens client-side (checkout-status) or via PremiumSync.
       console.info(`[stripe-webhook] checkout.session.completed (${kind}) — ${session.id}${ref ? ` · ${ref}` : ""} · no action (fulfilled elsewhere)`);
+    }
+
+    // JEDER Kunde — egal welches Thema, Abo oder Einzelkauf — kommt in die Wetter-Liste und
+    // bekommt die Tagespost (Owner). Abgemeldete werden dabei nicht reaktiviert.
+    const buyerEmail = String((session.customer_details as { email?: string } | undefined)?.email ?? session.customer_email ?? "").trim();
+    const buyerName = String((session.customer_details as { name?: string } | undefined)?.name ?? "").trim();
+    if (buyerEmail) {
+      try {
+        const r = await enrollWetter({ email: buyerEmail, name: buyerName, note: kind });
+        console.info(`[stripe-webhook] wetter enroll (${kind}) ${buyerEmail} → ${r}`);
+      } catch (e) { console.warn("[stripe-webhook] wetter enroll fehlgeschlagen", e); }
     }
   }
 
