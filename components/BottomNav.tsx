@@ -294,9 +294,9 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
             </div>
             {/* Menu items */}
             <div className="grid divide-y divide-white/10">
-              {/* Home — moved here from the old white bottom bar. (Try-Ons lives below as a
-                  single sign-in-gated entry; showing it logged-out made no sense.) */}
-              <button type="button" onClick={() => navigate("/stores?view=models")}
+              {/* Home = STARTSEITE, und die sind seit 2026-07-27 die Themen (/themes).
+                  Zu den Models führt der Button oben auf der Startseite + „Models" unten. */}
+              <button type="button" onClick={() => navigate("/themes")}
                 className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
                 <Home className="h-5 w-5 shrink-0 text-white/85" />
                 <span className="text-sm font-black text-white">Home</span>

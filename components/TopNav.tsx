@@ -13,8 +13,10 @@ import { Search, Send, Instagram, ChevronLeft } from "lucide-react";
  * Floating-Button). Page-specific chrome (search fields, filter chips, tabs)
  * lives in a SEPARATE row BELOW this bar.
  */
+const MOTTO = "The influencer marketplace";
+
 export default function TopNav({
-  subtitle = "The influencer marketplace",
+  subtitle,
   actions,
   back = true,
 }: {
@@ -47,9 +49,9 @@ export default function TopNav({
             <ChevronLeft className="h-6 w-6" />
           </button>
         )}
-        {/* Brand → the marketplace. Target its real route (not "/") so client-side nav
-            lands there directly, instead of the old root→/stores redirect chain. */}
-        <button type="button" onClick={() => router.push("/stores?view=models")} aria-label="Home"
+        {/* Brand → STARTSEITE = die Themen (/themes). Direkt die echte Route, nicht "/",
+            damit die Client-Navigation nicht erst über den Redirect läuft. */}
+        <button type="button" onClick={() => router.push("/themes")} aria-label="Home"
           className="flex min-w-0 items-center gap-2 active:opacity-70 transition-opacity">
           <span className="relative h-9 w-9 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -59,7 +61,11 @@ export default function TopNav({
           </span>
           <span className="min-w-0 text-left">
             <span className="block whitespace-nowrap text-sm font-black uppercase leading-none tracking-widest text-white">LuxuryBandit</span>
-            {subtitle ? <span className="mt-0.5 block truncate text-[10px] font-black uppercase leading-tight tracking-[0.14em] text-[#c9a23f]/80">{subtitle}</span> : null}
+            {/* Das MOTTO steht IMMER unter dem Wortmark (Owner-Regel) — ein Seitenname
+                kommt allenfalls dahinter, ersetzt es aber nie. */}
+            <span className="mt-0.5 block truncate text-[10px] font-black uppercase leading-tight tracking-[0.14em] text-[#c9a23f]/80">
+              {MOTTO}{subtitle ? ` · ${subtitle}` : ""}
+            </span>
           </span>
         </button>
 
