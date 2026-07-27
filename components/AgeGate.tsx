@@ -13,7 +13,22 @@ const ADMIN_KEYS = ["luxurybandit-try-look-admin-pin", "x-try-look-admin-pin"];
 // consume content — bypass the gate so the page renders for them. Real users still get it.
 const BOT_RE = /bot|crawl|spider|slurp|mediapartners|facebookexternalhit|whatsapp|telegram|twitterbot|linkedinbot|applebot|preview|headless|phantom|scan|monitor|ahrefs|semrush|screaming|aliexpress|alibaba|yandex|baidu|petalbot/i;
 
-export default function AgeGate() {
+// Übersetzt, weil die Wetter-Abonnenten EU-weit sitzen (RO/FR/IT/PL/ES/PT/DE) — eine
+// englische Abfrage würde viele einfach abspringen lassen.
+type GateCopy = { q: string; sub: string; yes: string; no: string; sorry: string; denied: string; back: string };
+const GATE: Record<string, GateCopy> = {
+  ro: { q: "Ai 18 ani sau mai mult?", sub: "LuxuryBandit este doar pentru adulți (18+). Confirmă vârsta ca să continui.", yes: "Da, am 18 ani sau mai mult", no: "Nu", sorry: "Ne pare rău", denied: "LuxuryBandit este doar pentru adulți (18+). Nu poți folosi acest site.", back: "Înapoi" },
+  de: { q: "Bist du 18 Jahre oder älter?", sub: "LuxuryBandit ist nur für Erwachsene (18+). Bitte bestätige dein Alter, um fortzufahren.", yes: "Ja, ich bin 18 oder älter", no: "Nein", sorry: "Schade", denied: "LuxuryBandit ist nur für Erwachsene (18+). Du kannst diese Seite nicht nutzen.", back: "Zurück" },
+  en: { q: "Are you 18 or older?", sub: "LuxuryBandit is for adults only (18+). Please confirm your age to continue.", yes: "Yes, I'm 18 or older", no: "No", sorry: "Sorry", denied: "LuxuryBandit is for adults only (18+). You can't use this site.", back: "Back" },
+  es: { q: "¿Tienes 18 años o más?", sub: "LuxuryBandit es solo para adultos (18+). Confirma tu edad para continuar.", yes: "Sí, tengo 18 años o más", no: "No", sorry: "Lo sentimos", denied: "LuxuryBandit es solo para adultos (18+). No puedes usar este sitio.", back: "Volver" },
+  fr: { q: "As-tu 18 ans ou plus ?", sub: "LuxuryBandit est réservé aux adultes (18+). Confirme ton âge pour continuer.", yes: "Oui, j'ai 18 ans ou plus", no: "Non", sorry: "Désolé", denied: "LuxuryBandit est réservé aux adultes (18+). Tu ne peux pas utiliser ce site.", back: "Retour" },
+  pt: { q: "Tens 18 anos ou mais?", sub: "O LuxuryBandit é apenas para adultos (18+). Confirma a tua idade para continuar.", yes: "Sim, tenho 18 anos ou mais", no: "Não", sorry: "Lamentamos", denied: "O LuxuryBandit é apenas para adultos (18+). Não podes usar este site.", back: "Voltar" },
+  pl: { q: "Czy masz 18 lat lub więcej?", sub: "LuxuryBandit jest tylko dla dorosłych (18+). Potwierdź swój wiek, aby kontynuować.", yes: "Tak, mam 18 lat lub więcej", no: "Nie", sorry: "Przykro nam", denied: "LuxuryBandit jest tylko dla dorosłych (18+). Nie możesz korzystać z tej strony.", back: "Wróć" },
+  it: { q: "Hai 18 anni o più?", sub: "LuxuryBandit è solo per adulti (18+). Conferma la tua età per continuare.", yes: "Sì, ho 18 anni o più", no: "No", sorry: "Ci dispiace", denied: "LuxuryBandit è solo per adulti (18+). Non puoi usare questo sito.", back: "Indietro" },
+};
+
+export default function AgeGate({ lang = "en" }: { lang?: string }) {
+  const t = GATE[lang] ?? GATE.en;
   // Render nothing until mounted so we never hydrate a mismatched overlay.
   const [ready, setReady] = useState(false);
   const [open, setOpen] = useState(false);
@@ -46,37 +61,37 @@ export default function AgeGate() {
         <div className="mb-1 inline-flex items-center gap-1.5 rounded-full bg-black px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-white">18+</div>
         {denied ? (
           <>
-            <p className="mt-2 text-xl font-black leading-tight text-black">Sorry</p>
+            <p className="mt-2 text-xl font-black leading-tight text-black">{t.sorry}</p>
             <p className="mt-1.5 text-[13px] font-bold leading-relaxed text-black/55">
-              LuxuryBandit is for adults only (18+). You can&apos;t use this site.
+              {t.denied}
             </p>
             <button
               type="button"
               onClick={() => setDenied(false)}
               className="mt-4 flex h-12 w-full items-center justify-center rounded-full border border-black/15 text-sm font-black text-black/60 transition-transform active:scale-95"
             >
-              Back
+              {t.back}
             </button>
           </>
         ) : (
           <>
-            <p className="mt-2 text-xl font-black leading-tight text-black">Are you 18 or older?</p>
+            <p className="mt-2 text-xl font-black leading-tight text-black">{t.q}</p>
             <p className="mt-1.5 text-[13px] font-bold leading-relaxed text-black/55">
-              LuxuryBandit is for adults only (18+). Please confirm your age to continue.
+              {t.sub}
             </p>
             <button
               type="button"
               onClick={confirm}
               className="mt-4 flex h-12 w-full items-center justify-center rounded-full bg-black text-sm font-black text-white transition-transform active:scale-95"
             >
-              Yes, I&apos;m 18 or older
+              {t.yes}
             </button>
             <button
               type="button"
               onClick={() => setDenied(true)}
               className="mt-2 flex h-12 w-full items-center justify-center rounded-full text-sm font-black text-black/45 transition-transform active:scale-95"
             >
-              No
+              {t.no}
             </button>
           </>
         )}
