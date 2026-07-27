@@ -1,12 +1,15 @@
+import Link from "next/link";
 import TopNav from "@/components/TopNav";
 import KissFunnel from "@/components/KissFunnel";
 import KissModelsAdmin from "@/components/KissModelsAdmin";
 import KissUsersAdmin from "@/components/KissUsersAdmin";
+import KissMediaAdmin from "@/components/KissMediaAdmin";
 import ManageViewToggle from "@/components/ManageViewToggle";
+import { readKissConfig, getSignedUrl, type KissConfig } from "@/lib/try-this-look-store";
 
 // THEMA „Kiss any Model" — Landing im Wetter-Muster: oben die Kundenansicht (Hero + der
-// Kiss-Funnel: Model wählen → eigenes Foto → Pixverse-Video, 360p-Teststufe), darunter NUR
-// mit ?admin=1 die Admin-Werkzeuge (eigenes Card-Tool scope="kiss" + Abonnenten).
+// Kiss-Funnel; darunter Beispiel-Videos + Cross-Selling zu Try-On & Wetter), mit ?admin=1
+// die Admin-Werkzeuge (Medien: Teaser + Beispiele · Models-Auswahl · Kiss-Nutzungen).
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +25,10 @@ export default async function KissThemePage({ searchParams }: {
   const showAdmin = String(sp.admin ?? "") === "1";   // Admin-Werkzeuge NUR mit ?admin=1
   const view = sp.view === "kunde" ? "kunde" : "admin";
   const showCustomer = !showAdmin || view === "kunde";
+
+  // Beispiel-Videos (Admin-gepflegt) — signierte URLs frisch pro Request.
+  const config: KissConfig = await readKissConfig().catch(() => ({ modelIds: [] }));
+  const examples: string[] = (await Promise.all((config.examplePaths ?? []).map((p: string) => getSignedUrl(p).catch(() => "")))).filter(Boolean);
 
   return (
     <main className="lb-bg min-h-screen text-white">
@@ -40,13 +47,47 @@ export default async function KissThemePage({ searchParams }: {
               Pick her, upload your photo — and watch the two of you share a tender kiss in a video. Your little movie moment.
             </p>
 
-            {/* Der Kiss-Funnel: Model-Grid + eigenes Foto + Generieren (Testphase: staff-only) */}
+            {/* Der Kiss-Funnel (Coverflow + Foto + Fake-Render → $3.99) */}
             <KissFunnel />
+
+            {/* Beispiel-Videos (Admin lädt sie im Kiss-Medien-Tool hoch) */}
+            {examples.length > 0 && (
+              <div className="mt-12">
+                <p className="text-[12px] font-black uppercase tracking-wide text-white/50">See it in action</p>
+                <h2 className="mt-1 text-[22px] font-black leading-tight">Real kiss videos 💋</h2>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {examples.map((url, i) => (
+                    <div key={i} className="overflow-hidden rounded-2xl border border-white/10">
+                      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                      <video src={url} muted loop playsInline autoPlay preload="metadata" className="aspect-[3/4] w-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Cross-Selling: die anderen Live-Themen */}
+            <div className="mt-12">
+              <p className="text-[12px] font-black uppercase tracking-wide text-white/50">More with her</p>
+              <h2 className="mt-1 text-[22px] font-black leading-tight">You might also love</h2>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Link href="/themes/tryon" className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 active:scale-[0.98] transition">
+                  <span className="text-[22px]">✨</span>
+                  <p className="mt-1 text-[14px] font-black">Try-On</p>
+                  <p className="mt-0.5 text-[11px] font-bold leading-snug text-white/60">See any look on your dream model — in a video.</p>
+                </Link>
+                <Link href="/themes/wetter/bella" className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 active:scale-[0.98] transition">
+                  <span className="text-[22px]">☀️</span>
+                  <p className="mt-1 text-[14px] font-black">Morning Weather</p>
+                  <p className="mt-0.5 text-[11px] font-bold leading-snug text-white/60">Wake up to her message — your weather, a new look, a chat.</p>
+                </Link>
+              </div>
+            </div>
           </div>
         ) : (
-          // Kiss-eigene Tools (KEIN Card-Tool, KEINE Wetter-Abonnenten — passt hier nicht):
-          // oben die Model-Auswahl fürs Grid, darunter die echten Kiss-Nutzungen.
+          // Kiss-eigene Tools: Medien (Teaser + Beispiel-Videos) → Models-Auswahl → Nutzungen.
           <div className="lb-theme mt-4 space-y-4">
+            <KissMediaAdmin />
             <KissModelsAdmin />
             <KissUsersAdmin />
           </div>

@@ -1265,16 +1265,21 @@ export async function readCardStudioBackup(modelId?: string, scope?: string): Pr
 }
 
 // ── Kiss-Theme-Config (eigener kleiner Blob, KEIN state.json-Feld → keine Whitelist-Falle) ──
-// Der Admin wählt, welche Models im Kiss-Funnel-Grid angeboten werden (leer = alle).
+// modelIds = welche Models im Kiss-Funnel stehen (leer = alle); teaserPath = das Theme-
+// Teaser-Bild (Cover im Themes-Katalog); examplePaths = Beispiel-Videos der Landing.
 const KISS_CONFIG_PATH = "try-this-look/kiss-config.json";
-export type KissConfig = { modelIds: string[] };
+export type KissConfig = { modelIds: string[]; teaserPath?: string; examplePaths?: string[] };
 
 export async function readKissConfig(): Promise<KissConfig> {
   try {
     const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(KISS_CONFIG_PATH)}`);
     if (!res.ok) return { modelIds: [] };
     const data = await res.json().catch(() => null);
-    return { modelIds: Array.isArray(data?.modelIds) ? data.modelIds.map(String) : [] };
+    return {
+      modelIds: Array.isArray(data?.modelIds) ? data.modelIds.map(String) : [],
+      teaserPath: String(data?.teaserPath ?? "").trim() || undefined,
+      examplePaths: Array.isArray(data?.examplePaths) ? data.examplePaths.map(String).filter(Boolean) : [],
+    };
   } catch { return { modelIds: [] }; }
 }
 
@@ -1283,7 +1288,12 @@ export async function writeKissConfig(config: KissConfig): Promise<void> {
   const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(KISS_CONFIG_PATH)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
-    body: JSON.stringify({ modelIds: config.modelIds.slice(0, 100), savedAt: new Date().toISOString() }),
+    body: JSON.stringify({
+      modelIds: config.modelIds.slice(0, 100),
+      teaserPath: config.teaserPath || undefined,
+      examplePaths: (config.examplePaths ?? []).slice(0, 20),
+      savedAt: new Date().toISOString(),
+    }),
   });
   if (!response.ok) throw new Error(`Kiss-Config konnte nicht gespeichert werden (${response.status}).`);
 }

@@ -202,11 +202,10 @@ export default function KissFunnel() {
         const uploadIdx = Math.min(2, cards.length);
         cards.splice(uploadIdx, 0, YOURMODEL);
         const active = useCustom ? uploadIdx : Math.max(0, cards.findIndex(m => m.id === picked?.id));
+        // Nach-vorn-holen zentriert NUR (auch die „Your model"-Karte — Owner-Vorgabe);
+        // das Upload-Fenster öffnet erst der Tipp auf die bereits VORDERE Karte (im onClick).
         const setFront = (m: Model) => {
-          if (m.id === "__yourmodel") {
-            if (customModel) setUseCustom(true); else modelFileRef.current?.click();
-            return;
-          }
+          if (m.id === "__yourmodel") { setUseCustom(true); return; }
           setUseCustom(false); setPicked(m);
         };
         const slide = (dir: number) => {
@@ -229,10 +228,11 @@ export default function KissFunnel() {
                   style={{ transform: `translate(-50%,-50%) translateX(${off * 56}%) rotateY(${-off * 38}deg) scale(${isActive ? 1 : 0.82})`, zIndex: 20 - Math.abs(off), opacity: Math.abs(off) === 2 ? 0.45 : 1, cursor: "pointer" }}>
                   <div className="relative aspect-[3/4] w-full">
                     {isUpload && !customModel ? (
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-amber-400/[0.06] px-3 text-center">
+                      // Solide Fläche (nicht transparent — Owner-Vorgabe): warmes Dunkelbraun.
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-[#241c11] px-3 text-center">
                         <ImageUp className="h-9 w-9 text-amber-400" />
                         <span className="text-[13px] font-black text-amber-300">Your model</span>
-                        <span className="text-[10px] font-bold text-white/75">Upload her photo</span>
+                        <span className="text-[11px] font-bold leading-snug text-white/80">Kiss any superstar — just upload a screenshot.</span>
                       </div>
                     ) : (<>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
