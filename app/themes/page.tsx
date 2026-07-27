@@ -260,29 +260,49 @@ export default async function ThemesCatalog() {
             Echter, lesbarer Text für Suchmaschinen UND Menschen: was LuxuryBandit ist
             und was die App kann. Bewusst als normale Überschriften + Absätze (kein
             versteckter Keyword-Block) — Google straft verborgenen Text ab. */}
-        <section className="mt-14 border-t border-white/10 pt-8">
-          <h2 className="text-[20px] font-black leading-tight">{c.whatH}</h2>
-          <p className="mt-2 text-[14px] font-medium leading-relaxed text-white/70">
-            {c.whatP} <Link href="/ai-notice" className="underline">AI Notice</Link>.
-          </p>
+        <section className="mt-14 space-y-11 border-t border-white/10 pt-10">
+          {/* Gelb + Weiß, große Überschriften: Balken in CI-Gelb, Headline weiß, die
+              Begriffe der Liste gelb — Fließtext bleibt weiß gedämpft (lesbar). */}
+          <div>
+            <span className="block h-1 w-10 rounded-full bg-[#f6cf51]" />
+            <h2 className="mt-4 text-[30px] font-black leading-[1.06]">{c.whatH}</h2>
+            <p className="mt-3 text-[16px] font-medium leading-relaxed text-white/75">
+              {c.whatP} <Link href="/ai-notice" className="font-black text-[#f6cf51] underline underline-offset-2">AI Notice</Link>.
+            </p>
+          </div>
 
-          <h2 className="mt-8 text-[20px] font-black leading-tight">{c.canH}</h2>
-          <ul className="mt-2 space-y-2 text-[14px] font-medium leading-relaxed text-white/70">
-            {c.items.map(([t, d]) => (
-              <li key={t}><strong className="text-white">{t}</strong> — {d}</li>
-            ))}
-          </ul>
+          <div>
+            <span className="block h-1 w-10 rounded-full bg-[#f6cf51]" />
+            <h2 className="mt-4 text-[30px] font-black leading-[1.06]">{c.canH}</h2>
+            <ul className="mt-4 space-y-3.5">
+              {c.items.map(([t, d]) => (
+                <li key={t} className="flex gap-3 border-b border-white/[0.07] pb-3.5 last:border-0 last:pb-0">
+                  <span className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#f6cf51]" />
+                  <span className="min-w-0">
+                    <strong className="block text-[16px] font-black leading-tight text-[#f6cf51]">{t}</strong>
+                    <span className="mt-0.5 block text-[15px] font-medium leading-relaxed text-white/70">{d}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-          <h2 className="mt-8 text-[20px] font-black leading-tight">{c.costH}</h2>
-          <p className="mt-2 text-[14px] font-medium leading-relaxed text-white/70">
-            {c.costP} <Link href="/unsubscribe" className="underline">Unsubscribe</Link>.
-          </p>
+          <div>
+            <span className="block h-1 w-10 rounded-full bg-[#f6cf51]" />
+            <h2 className="mt-4 text-[30px] font-black leading-[1.06]">{c.costH}</h2>
+            <p className="mt-3 text-[16px] font-medium leading-relaxed text-white/75">
+              {c.costP} <Link href="/unsubscribe" className="font-black text-[#f6cf51] underline underline-offset-2">Unsubscribe</Link>.
+            </p>
+          </div>
 
-          <h2 className="mt-8 text-[20px] font-black leading-tight">{c.noteH}</h2>
-          <p className="mt-2 text-[14px] font-medium leading-relaxed text-white/70">
-            {c.noteP} <Link href="/terms" className="underline">Terms</Link> ·{" "}
-            <Link href="/privacy" className="underline">Privacy</Link>
-          </p>
+          <div>
+            <span className="block h-1 w-10 rounded-full bg-[#f6cf51]" />
+            <h2 className="mt-4 text-[30px] font-black leading-[1.06]">{c.noteH}</h2>
+            <p className="mt-3 text-[16px] font-medium leading-relaxed text-white/75">
+              {c.noteP} <Link href="/terms" className="font-black text-[#f6cf51] underline underline-offset-2">Terms</Link> ·{" "}
+              <Link href="/privacy" className="font-black text-[#f6cf51] underline underline-offset-2">Privacy</Link>
+            </p>
+          </div>
         </section>
 
         <p className="mt-8 text-[12px] font-semibold text-white/40">
