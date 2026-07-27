@@ -39,22 +39,20 @@ export default async function HolidayThemePage() {
           made is marked so you never get the same video twice.
         </Fine>
 
-        <HolidayFunnel />
-
+        {/* Beispiele GANZ OBEN als Slider (Owner): wischen, sehen was rauskommt, dann machen. */}
         {examples.length > 0 && (
-          <div className="mt-14">
-            <SectionTitle>Two of the moments</SectionTitle>
-            <Lead>Made with our model and a stand-in — yours has your own face in it.</Lead>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {examples.map((url, i) => (
-                <div key={i} className="overflow-hidden rounded-2xl border border-white/10">
-                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                  <video src={url} muted loop playsInline autoPlay preload="metadata" className="aspect-[3/4] w-full object-cover" />
-                </div>
-              ))}
-            </div>
+          <div className="-mx-4 mt-5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2">
+            {examples.map((url, i) => (
+              <div key={i} className="w-[62%] max-w-[240px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10">
+                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                <video src={url} muted loop playsInline autoPlay preload="metadata" className="aspect-[3/4] w-full object-cover" />
+              </div>
+            ))}
           </div>
         )}
+
+        <HolidayFunnel />
+
 
         <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
           <div>
