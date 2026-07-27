@@ -15,8 +15,10 @@ import { readKissConfig, getSignedUrl, type KissConfig } from "@/lib/try-this-lo
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Kiss any Model — your photo, her kiss, one video | LuxuryBandit",
-  description: "Pick a model, upload your photo — and watch the two of you share a kiss in a video.",
+  title: "Kiss video AI generator — your photo, her kiss, one AI video | LuxuryBandit",
+  description: "AI kiss video maker online: pick a model or upload a screenshot of any star, add your photo, and the kiss video AI generator turns the two of you into one video.",
+  keywords: ["kiss video ai", "kiss video ai generator", "kiss video ai free online", "ai kiss video maker", "face swap kiss video", "ai video generator", "deepfake kiss video", "ai model kiss"],
+  alternates: { canonical: "/themes/kiss" },
 };
 
 export default async function KissThemePage({ searchParams }: {
@@ -81,6 +83,25 @@ export default async function KissThemePage({ searchParams }: {
                 </Link>
               </div>
             </div>
+            <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
+              <div>
+                <SectionTitle>Kiss video AI generator — online, no app</SectionTitle>
+                <Lead>
+                  An AI kiss video maker that works with your own photo: pick one of our AI models or
+                  upload a screenshot of any star, add a picture of yourself, and the kiss video AI
+                  generator renders the two of you sharing one tender kiss. Face swap kiss videos
+                  straight in the browser — nothing to install.
+                </Lead>
+              </div>
+              <div>
+                <SectionTitle>One of a kind — and the expensive AI behind it</SectionTitle>
+                <Lead>
+                  No other platform puts a whole AI influencer at your side: she chats, she wears
+                  what you choose, she stars in your videos. We deliberately run the priciest video
+                  models available, because cheap ones lose the face. AI-generated, private, yours.
+                </Lead>
+              </div>
+            </section>
           </div>
         ) : (
           // Kiss-eigene Tools: Medien (Teaser + Beispiel-Videos) → Models-Auswahl → Nutzungen.

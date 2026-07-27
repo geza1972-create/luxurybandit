@@ -15,8 +15,10 @@ import { getSignedUrl } from "@/lib/try-this-look-store";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Your Idol with you — one video, the two of you | LuxuryBandit",
-  description: "Pick your idol, upload your photo — and see the two of you together in a video.",
+  title: "Deepfake video generator — you and your idol in one AI video | LuxuryBandit",
+  description: "Free-to-start AI face swap video: upload one screenshot of any star and a photo of yourself, and the AI video generator puts the two of you together at a party.",
+  keywords: ["deepfake video generator", "deepfake maker", "face swap video ai", "face swap ai free", "ai video generator", "ai video maker", "put yourself in a video", "ai model generator", "celebrity ai video"],
+  alternates: { canonical: "/your-idol" },
 };
 
 export default async function YourIdolPage({ searchParams }: {
@@ -67,6 +69,28 @@ export default async function YourIdolPage({ searchParams }: {
                 </div>
               </div>
             )}
+            <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
+              <div>
+                <SectionTitle>An AI deepfake video of you and your idol</SectionTitle>
+                <Lead>
+                  This is a deepfake video generator built for one thing: putting you next to the
+                  person you admire. Upload one screenshot — a singer, an actress, an athlete, an
+                  influencer — add a photo of yourself, and the AI face swap video puts the two of
+                  you at the same party. No app, no editing, no green screen: it runs in your
+                  browser and you get a finished AI video.
+                </Lead>
+              </div>
+              <div>
+                <SectionTitle>Built on the most expensive video AI there is</SectionTitle>
+                <Lead>
+                  There is nothing else quite like LuxuryBandit: an AI influencer marketplace where
+                  the same woman greets you in the morning, wears the looks you pick, chats with you
+                  and stars in your videos. We pay for the top-tier video models instead of the cheap
+                  ones — that is why a face keeps its likeness and a mouth moves with the words.
+                  Every result is AI-generated and stays private.
+                </Lead>
+              </div>
+            </section>
           </div>
         ) : (
           <div className="lb-theme mt-4 space-y-4">

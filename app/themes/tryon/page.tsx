@@ -1,5 +1,6 @@
 import Link from "next/link";
 import TopNav from "@/components/TopNav";
+import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import BellaCarouselAdmin from "@/components/BellaCarouselAdmin";
 import WetterSubscribers from "@/components/WetterSubscribers";
 import ManageViewToggle from "@/components/ManageViewToggle";
@@ -14,8 +15,10 @@ export const dynamic = "force-dynamic";
 const TRYON_FUNNEL = "/try/look-1784191032626-70e3608b?pick=1";
 
 export const metadata = {
-  title: "Try-On — see any look on your dream model | LuxuryBandit",
-  description: "Pick a look, pick a model — watch her wear it in a video. Your look, brought to life.",
+  title: "Try on AI clothes — virtual try-on video with an AI model | LuxuryBandit",
+  description: "AI outfit try-on: pick a look, pick an AI model, and watch her wear it in a video — turnaround, walk, every angle. Virtual try-on online, including lingerie looks.",
+  keywords: ["try on ai clothes", "try on ai", "virtual try on ai", "ai outfit try on", "ai model try on", "lingerie try on ai", "ai fashion video", "ai video generator", "ai model generator"],
+  alternates: { canonical: "/themes/tryon" },
 };
 
 export default async function TryOnThemePage({ searchParams }: {
@@ -48,6 +51,24 @@ export default async function TryOnThemePage({ searchParams }: {
               ▶ Start the try-on — free
             </Link>
             <p className="mt-2 text-center text-[12px] font-semibold text-white/50">The first video is free. No sign-up needed to look around.</p>
+            <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
+              <div>
+                <SectionTitle>Try on AI clothes — virtual try-on in a video</SectionTitle>
+                <Lead>
+                  Pick a look, pick an AI model, and watch her wear it: the virtual try-on renders a
+                  real video, not a flat photo montage — turnaround, walk, every angle. Everyday
+                  outfits, luxury looks and lingerie try-ons, all with AI models, all in the browser.
+                </Lead>
+              </div>
+              <div>
+                <SectionTitle>The only place where she also talks back</SectionTitle>
+                <Lead>
+                  Other try-on tools stop at the picture. Here the AI model you dressed also chats
+                  with you, sends you a message every morning and stars in your own videos — powered
+                  by the most expensive video AI we can buy, so the garment and the face survive.
+                </Lead>
+              </div>
+            </section>
           </div>
         ) : (
           <div className="mt-4 space-y-4">

@@ -14,8 +14,10 @@ export const dynamic = "force-dynamic";
 const BELLA_ID = "curator-1783683672619-td4cy";
 
 export const metadata = {
-  title: "Birthday video — she says it by name | LuxuryBandit",
-  description: "Enter a name and she wishes them a happy birthday in a personal video. Send it to them.",
+  title: "Birthday video maker with a name — AI happy birthday video | LuxuryBandit",
+  description: "Personalised birthday video message: type the name, and the AI birthday video maker has her say happy birthday out loud, by name. One video, 3.99 €, ready to send.",
+  keywords: ["birthday video maker", "birthday video message", "personalized birthday video", "ai birthday video", "happy birthday video with name", "birthday video maker online", "ai video generator"],
+  alternates: { canonical: "/themes/birthday" },
 };
 
 export default async function BirthdayThemePage({ searchParams }: {
@@ -62,6 +64,24 @@ export default async function BirthdayThemePage({ searchParams }: {
                 </div>
               </div>
             )}
+            <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
+              <div>
+                <SectionTitle>Birthday video maker that says the name out loud</SectionTitle>
+                <Lead>
+                  A personalised birthday video message without templates: type the name, and the AI
+                  birthday video maker has her wish them a happy birthday out loud — by name, lips in
+                  sync, cake and candles included. One video, 3.99 €, then share it wherever you like.
+                </Lead>
+              </div>
+              <div>
+                <SectionTitle>Why this is unlike anything else</SectionTitle>
+                <Lead>
+                  LuxuryBandit is an AI influencer marketplace, not a video app: the same woman sends
+                  you a message every morning, wears the looks you pick, chats with you — and here she
+                  sings out a birthday. Built on the most expensive AI video models on the market.
+                </Lead>
+              </div>
+            </section>
           </div>
         ) : (
           <div className="lb-theme mt-4 space-y-4">
