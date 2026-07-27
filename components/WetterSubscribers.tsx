@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Loader2, Plus, Trash2, MessageCircle, Check, Users, Copy } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Loader2, Plus, Trash2, MessageCircle, Check, Users, Copy, Upload } from "lucide-react";
 
 // Admin-Panel: die Abonnenten von „Wetter am Morgen" PRO MODEL — hinzufügen, löschen,
 // abhaken und die tägliche Nachricht MANUELL per WhatsApp senden (wa.me-Link mit dem
@@ -61,6 +61,9 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
   const [botMsg, setBotMsg] = useState("");       // Ergebnis-Hinweis nach dem Bot-Versand
   const [mailBusy, setMailBusy] = useState(false); // solange die E-Mail-Blast läuft
   const [mailMsg, setMailMsg] = useState("");      // Ergebnis-Hinweis nach dem E-Mail-Versand
+  const [impBusy, setImpBusy] = useState(false);   // Meta-CSV-Import läuft
+  const [impMsg, setImpMsg] = useState("");        // Ergebnis des Imports
+  const csvRef = useRef<HTMLInputElement>(null);
 
   // Formular
   const [name, setName] = useState("");
@@ -180,6 +183,46 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
     finally { setMailBusy(false); }
   };
 
+  // Meta-Lead-CSV importieren. Metas Export ist UTF-16 + TAB-getrennt (Excel-Variante);
+  // Komma-CSV wird ebenfalls erkannt. Spalten: email, full_name, phone_number, city.
+  // Der Server dedupliziert per E-Mail/Telefon — dieselbe Datei zweimal schadet nicht.
+  const importCsv = async (file: File) => {
+    setImpBusy(true); setImpMsg("");
+    try {
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      // UTF-16 erkennen: BOM oder viele Null-Bytes (Metas Excel-Export).
+      const isUtf16 = (bytes[0] === 0xff && bytes[1] === 0xfe) || (bytes[0] === 0xfe && bytes[1] === 0xff)
+        || bytes.slice(0, 200).filter(b => b === 0).length > 20;
+      const text = new TextDecoder(isUtf16 ? "utf-16" : "utf-8").decode(bytes);
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) { setImpMsg("Datei enthält keine Zeilen."); return; }
+      const sep = lines[0].includes("\t") ? "\t" : ",";
+      const strip = (s: string) => s.trim().replace(/^"|"$/g, "").trim();
+      const head = lines[0].split(sep).map(h => strip(h).toLowerCase());
+      const col = (...names: string[]) => head.findIndex(h => names.includes(h));
+      const iMail = col("email", "e-mail"), iName = col("full_name", "name"), iPhone = col("phone_number", "phone"), iCity = col("city");
+      if (iMail < 0 && iPhone < 0) { setImpMsg("Weder E-Mail- noch Telefon-Spalte gefunden."); return; }
+      const rows = lines.slice(1).map(l => l.split(sep).map(strip));
+      const addMany = rows.map(r => ({
+        email: iMail >= 0 ? (r[iMail] ?? "") : "",
+        name: iName >= 0 ? (r[iName] ?? "") : "",
+        // Meta schreibt "p:+40712…" — das Präfix entfernen.
+        phone: iPhone >= 0 ? (r[iPhone] ?? "").replace(/^p:/i, "") : "",
+        city: iCity >= 0 ? (r[iCity] ?? "") : "",
+        note: `Meta-Lead · ${file.name.slice(0, 60)}`,
+      })).filter(x => x.email || x.phone);
+      if (!addMany.length) { setImpMsg("Keine verwertbaren Zeilen gefunden."); return; }
+      const r = await fetch(apiUrl, { method: "POST", headers: headers(), body: JSON.stringify({ addMany }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setImpMsg(d?.error ?? "Import fehlgeschlagen."); return; }
+      setImpMsg(`✅ ${d.added} neu importiert · ${d.skipped} übersprungen (schon vorhanden) · ${d.total} gesamt.`);
+      await load();
+    } catch (e) {
+      setImpMsg(`Import fehlgeschlagen: ${e instanceof Error ? e.message : "unbekannt"}`);
+    } finally { setImpBusy(false); }
+  };
+
   if (!isAdmin) return null;
 
   return (
@@ -222,6 +265,16 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
           </p>
         ) : null;
       })()}
+
+      {/* Meta-Lead-CSV importieren (Sammel-Import, dedupliziert serverseitig) */}
+      <button type="button" onClick={() => csvRef.current?.click()} disabled={impBusy}
+        className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-black/15 bg-black/[0.03] text-[13px] font-black text-white/80 active:scale-95 transition disabled:opacity-50">
+        {impBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+        {impBusy ? "Importiere…" : "Meta-Lead-CSV importieren"}
+      </button>
+      <input ref={csvRef} type="file" accept=".csv,text/csv,text/plain" className="hidden"
+        onChange={e => { const f = e.target.files?.[0]; if (f) void importCsv(f); e.target.value = ""; }} />
+      {impMsg && <p className="mt-1.5 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{impMsg}</p>}
 
       {/* Hinzufügen */}
       <div className="mt-3 grid gap-2 rounded-xl border border-black/10 bg-black/[0.02] p-3">
