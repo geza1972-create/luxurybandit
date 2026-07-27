@@ -13,7 +13,7 @@ import { Loader2, Lock, MessageCircle, CloudSun, Palmtree, Check } from "lucide-
  */
 
 const TOPICS = [
-  { id: "chat",    label: "Chat with an AI girl",     hint: "Write with her every day · 5 looks a month", icon: MessageCircle, endpoint: "/api/chat-abo-checkout" },
+  { id: "chat",    label: "Chat with an AI girl",     hint: "Write with her every day · chatting is free", icon: MessageCircle, endpoint: "/api/chat-abo-checkout" },
   { id: "holiday", label: "Holiday with your dream girl", hint: "You and her — 25 moments to pick from",  icon: Palmtree,      endpoint: "/api/holiday-abo-checkout" },
   { id: "wetter",  label: "Morning Weather",          hint: "Her message every morning · chat",           icon: CloudSun,      endpoint: "/api/wetter-abo-checkout" },
 ];
@@ -48,9 +48,18 @@ export default function OfferRedeem({ initialCode = "" }: { initialCode?: string
       <input value={code} onChange={e => setCode(e.target.value)} maxLength={40}
         placeholder="The code from the ad" autoCapitalize="characters"
         className="mt-2 h-12 w-full rounded-xl border border-white/30 bg-white/[0.08] px-4 text-[15px] font-black uppercase tracking-wide text-white outline-none placeholder:text-white/60 placeholder:normal-case placeholder:font-semibold focus:border-[#f6cf51]" />
-      <p className="mt-1.5 text-[12px] font-bold text-white/70">
-        With a code the first month is 19 €, then 49 €. You get 25 videos a month across all topics; chatting costs nothing.
-      </p>
+      {/* Die Anzeige verspricht 19 € — dieselbe Zahl muss hier stehen, sonst bricht das
+          Versprechen genau an der Stelle, an der er zahlen soll. */}
+      {code.trim() ? (
+        <p className="mt-2 rounded-xl border border-[#f6cf51]/40 bg-[#f6cf51]/10 px-3 py-2.5 text-[13px] font-bold leading-snug text-[#f6cf51]">
+          Code {code.trim().toUpperCase()} applied: <span className="font-black">19 € for your first month</span>,
+          then 49 €/month — 25 videos a month across all topics, chatting free.
+        </p>
+      ) : (
+        <p className="mt-1.5 text-[12px] font-bold text-white/70">
+          With a code the first month is 19 €, then 49 €. You get 25 videos a month across all topics; chatting costs nothing.
+        </p>
+      )}
 
       <p className="mt-6 text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">2 · Your topic</p>
       <div className="mt-2 grid gap-2">
@@ -73,7 +82,7 @@ export default function OfferRedeem({ initialCode = "" }: { initialCode?: string
 
       <button type="button" onClick={() => void start()} disabled={busy}
         className="lb-gold mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-60">
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Start now
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} {code.trim() ? "Start — 19 € first month" : "Start — 49 €/month"}
       </button>
       {status && <p className="mt-2 text-center text-[13px] font-bold text-white/80">{status}</p>}
       <p className="mt-3 text-center text-[12px] font-bold text-white/70">
