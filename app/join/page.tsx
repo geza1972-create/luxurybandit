@@ -21,10 +21,12 @@ export default async function JoinPage({ searchParams }: {
   const email = String(sp.email ?? "").trim().slice(0, 160);
   const name = String(sp.name ?? sp.first ?? "").trim().slice(0, 60);
   const paid = String(sp.paid ?? "") === "1";   // Rückkehr von Stripe
+  // ?fast=1 → er kam aus dem Meta-Formular und hat die Fragen dort schon beantwortet.
+  const fast = String(sp.fast ?? "") === "1";
 
   return (
     <main className="lb-bg min-h-screen">
-      <JoinForm code={code} topic={topic} presetEmail={email} presetName={name} paid={paid} />
+      <JoinForm code={code} topic={topic} presetEmail={email} presetName={name} paid={paid} fast={fast} />
     </main>
   );
 }

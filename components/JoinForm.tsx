@@ -34,10 +34,12 @@ const Q_LANG: [string, string][] = [
   ["en", "English"], ["de", "Deutsch"], ["ro", "Română"], ["es", "Español"],
 ];
 
-export default function JoinForm({ code = "", topic = "chat", presetEmail = "", presetName = "", paid = false }: {
+export default function JoinForm({ code = "", topic = "chat", presetEmail = "", presetName = "", paid = false, fast = false }: {
   code?: string; topic?: string; presetEmail?: string; presetName?: string; paid?: boolean;
+  /** true = aus dem Meta-Formular: Fragen ueberspringen, direkt zur Bestaetigung. */
+  fast?: boolean;
 }) {
-  const [step, setStep] = useState<Step>(paid ? "done" : "intro");
+  const [step, setStep] = useState<Step>(paid ? "done" : fast ? "contact" : "intro");
 
   // PIXEL — ohne diese Meldungen kann Meta nicht auf Käufe optimieren, und genau das ist
   // der Sinn der Anzeige. ViewContent beim Öffnen, InitiateCheckout beim Absenden,
@@ -236,9 +238,14 @@ export default function JoinForm({ code = "", topic = "chat", presetEmail = "", 
 
         {(step === "contact" || step === "sending") && (
           <>
-            <Head back="q3" />
+            {!fast && <Head back="q3" />}
           <div className="px-6 pb-6 pt-2">
-            <p className="text-[15px] font-bold">Where should we set it up?</p>
+            <p className="text-[15px] font-bold">{fast ? "One last step" : "Where should we set it up?"}</p>
+            {fast && (
+              <p className="mt-1 text-[13px] leading-snug text-black/60">
+                Confirm your email and you are in — 19 € for your first month instead of 49 €.
+              </p>
+            )}
             <label className="mt-4 block text-[13px] font-medium text-black/60">
               First name
               <input value={name} onChange={e => setName(e.target.value)} className={field} placeholder="Your first name" autoComplete="given-name" />
