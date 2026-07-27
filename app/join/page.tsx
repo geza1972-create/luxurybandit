@@ -18,10 +18,12 @@ export default async function JoinPage({ searchParams }: {
   const sp = (await searchParams) ?? {};
   const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);
   const topic = String(sp.topic ?? "chat").trim().slice(0, 20);
+  const email = String(sp.email ?? "").trim().slice(0, 160);
+  const name = String(sp.name ?? sp.first ?? "").trim().slice(0, 60);
 
   return (
     <main className="lb-bg min-h-screen">
-      <JoinForm code={code} topic={topic} />
+      <JoinForm code={code} topic={topic} presetEmail={email} presetName={name} />
     </main>
   );
 }

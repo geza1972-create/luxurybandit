@@ -18,11 +18,15 @@ import { Loader2, ChevronRight, Check } from "lucide-react";
 
 type Step = "intro" | "join" | "contact" | "sending";
 
-export default function JoinForm({ code = "", topic = "chat" }: { code?: string; topic?: string }) {
+export default function JoinForm({ code = "", topic = "chat", presetEmail = "", presetName = "" }: {
+  code?: string; topic?: string; presetEmail?: string; presetName?: string;
+}) {
   const [step, setStep] = useState<Step>("intro");
   const [wantsIn, setWantsIn] = useState<"yes" | "later" | "">("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  // Vorausgefuellt, wenn der Link die Daten mitbringt (Mail an Leads) — spart die
+  // zweite Eingabe derselben Adresse.
+  const [name, setName] = useState(presetName);
+  const [email, setEmail] = useState(presetEmail);
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
