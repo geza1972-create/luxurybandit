@@ -47,6 +47,12 @@ export default function TermsPage() {
         than a live conversation with a real person. AI results may contain inaccuracies and should not
         be relied on as real photos or advice.
       </p>
+      <p>
+        The AI persona will never claim to have feelings for you or to be in a relationship with you,
+        and it will never send sexually explicit content. You must confirm that you are 18 or older
+        before using the chat. For details on how we use AI and where we tell you about it, see our{" "}
+        <a href="/ai-notice"><strong>AI Notice</strong></a>.
+      </p>
 
       <h2>5. Models &amp; earnings</h2>
       <p>
