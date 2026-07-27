@@ -19,9 +19,12 @@ export const metadata = {
 
 export default async function HolidayThemePage() {
   // Beispiele stehen UNTEN (Owner): erst machen lassen, dann zeigen, was rauskommt.
+  // Beispiel-Slider: so viele, wie im Storage liegen (example, -2, -3, -4 …).
   const examples = (await Promise.all([
     getSignedUrl("try-this-look/videos/holiday-example.mp4").catch(() => ""),
     getSignedUrl("try-this-look/videos/holiday-example-2.mp4").catch(() => ""),
+    getSignedUrl("try-this-look/videos/holiday-example-3.mp4").catch(() => ""),
+    getSignedUrl("try-this-look/videos/holiday-example-4.mp4").catch(() => ""),
   ])).filter(Boolean) as string[];
 
   return (
