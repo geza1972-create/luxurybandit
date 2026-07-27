@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { readTryThisLookState } from "@/lib/try-this-look-store";
+import { readTryThisLookState, readCardStudioSlides, getSignedUrl } from "@/lib/try-this-look-store";
 import { categorizeLook } from "@/lib/look-category";
 
 export const runtime = "nodejs";
@@ -19,6 +19,22 @@ export async function GET(request: Request) {
   const limit = Math.min(24, Math.max(1, Number(url.searchParams.get("limit") ?? "8") || 8));
 
   try {
+    // 1) SPRECHENDE Clips zuerst: Bellas Tagesvideos aus dem Card-Tool — dort redet sie in
+    //    die Kamera, und genau das soll das Chat-Thema zeigen. Eigene Inhalte, keine
+    //    Nutzer-Try-ons. Privates und Verstecktes bleibt draußen.
+    const speaking = (await readCardStudioSlides().catch(() => []))
+      .filter(sl => {
+        const x = sl as Record<string, unknown>;
+        return x.kind === "video" && !!x.path && x.private !== true && x.hidden !== true;
+      })
+      .slice(0, limit);
+    const speakingItems = (await Promise.all(speaking.map(async sl => {
+      const x = sl as Record<string, unknown>;
+      const video = (await getSignedUrl(String(x.path)).catch(() => "")) || "";
+      const poster = x.posterPath ? (await getSignedUrl(String(x.posterPath)).catch(() => "")) || "" : "";
+      return { id: String(x.id ?? ""), video, poster };
+    }))).filter(x => x.video);
+
     const state = await readTryThisLookState();
     const looks = new Map((state.looks ?? []).map(l => [l.id, l]));
 
@@ -41,10 +57,11 @@ export async function GET(request: Request) {
           poster: String(gg.imageUrl ?? ""),
         };
       })
-      .filter(x => x.video || x.poster)
-      .slice(0, limit);
+      .filter(x => x.video || x.poster);
 
-    return NextResponse.json({ items });
+    // Sprechende Clips vorn, dann die Try-on-Clips — zusammen auf `limit` gekürzt.
+    const merged = [...speakingItems, ...items].slice(0, limit);
+    return NextResponse.json({ items: merged });
   } catch {
     return NextResponse.json({ items: [] });
   }
