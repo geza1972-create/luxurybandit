@@ -23,7 +23,13 @@ export const surprisePrompt = (name: string) => {
   const line = name.trim()
     ? `says out loud, clearly and warmly: "Hello ${name.trim()}, how are you?"`
     : `says out loud, clearly and warmly: "Hello, how are you?"`;
-  return `@person stands in a warmly lit bedroom with soft evening light, looks straight into the camera, smiles and ${line} Her lips move in sync with the words. Keep @person face, hair, body and outfit EXACTLY as in the reference photo — do not change her face and do not change what she is wearing. Fluid natural motion, cinematic, photorealistic, shallow depth of field. Fixed camera, no zoom. No text or logos.`;
+  // BILDAUSSCHNITT — der Trick, der wirklich funktioniert (Owner): explizit sagen, WIE WEIT
+  // die Frau zu sehen ist und dass von unten nach oben gefilmt wird. Ohne diesen Satz
+  // klebt Pixverse an einem Brustporträt, egal wie das Referenzfoto aussieht.
+  const framing =
+    `Show the woman from her knees up to her head, full figure in frame, filmed from below ` +
+    `pointing slightly upwards, low camera angle tilting up.`;
+  return `${framing} @person stands in a warmly lit bedroom with soft evening light, looks straight into the camera, smiles and ${line} Her lips move in sync with the words. Keep @person face, hair, body and outfit EXACTLY as in the reference photo — do not change her face and do not change what she is wearing. Fluid natural motion, cinematic, photorealistic. Fixed camera, no zoom. No text or logos.`;
 };
 
 const CONSENT_TEXT =
