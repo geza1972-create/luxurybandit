@@ -369,7 +369,7 @@ export default function ChatFunnel({ code = "" }: { code?: string }) {
           ) : wall ? (
             <div className="text-center">
               <p className="text-[13px] font-black text-black">Keep talking to {herName}</p>
-              <p className="mt-0.5 text-[12px] font-bold leading-snug text-black/60">49 € a month — every day, plus {LOOKS_INCLUDED} new looks on her.</p>
+              <p className="mt-0.5 text-[12px] font-bold leading-snug text-black/60">49 € a month — every day, plus your 25 videos a month across all topics.</p>
               <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
                 className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-black text-[13px] font-black text-white active:scale-95 transition disabled:opacity-40">
                 {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Unlock — 49 €/month
@@ -402,8 +402,8 @@ export default function ChatFunnel({ code = "" }: { code?: string }) {
       <p className={`mt-6 ${label}`}>3 · Dress her</p>
       <p className="mt-1 text-[13px] font-bold text-white">
         {paid || isStaff
-          ? `${looksLeft} of ${LOOKS_INCLUDED} looks left this month — every extra one is 3.99 €.`
-          : `${LOOKS_INCLUDED} looks a month are included in the subscription.`}
+          ? `${looksLeft} of ${LOOKS_INCLUDED} left this month (all topics together) — every extra one is 3.99 €.`
+          : `$25 videos & looks a month are included — across all topics.`}
       </p>
       {looks.length === 0 ? (
         <div className="grid h-24 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>

@@ -7,7 +7,8 @@ import { trObject } from "@/lib/tr-object";
 
 // THEMA „Chat with an AI girl" — der Chat ist die Hauptsache, das Anziehen die Zugabe.
 // Er wählt eine Frau aus dem Katalog oder lädt eine eigene hoch, schreibt täglich mit ihr
-// und steckt sie in neue Looks: 24 €/Monat inkl. 5 Looks, jeder weitere 3,99 €.
+// und steckt sie in neue Looks: 49 €/Monat inkl. 25 Videos/Looks über ALLE Themen,
+// jedes weitere 3,99 €. Chatten ist gratis.
 
 export const dynamic = "force-dynamic";
 
