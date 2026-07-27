@@ -67,23 +67,32 @@ export function buildHtml(c: Copy, link: string, unsub: string, hero: string, ci
     + `<table role="presentation" width="520" cellpadding="0" cellspacing="0" border="0" style="width:520px;max-width:94%;background:#16120f;border-radius:18px;overflow:hidden">`
     // Marke
     + `<tr><td style="padding:20px 24px 0;font-size:11px;font-weight:bold;letter-spacing:3px;color:#c9a23f">LUXURYBANDIT</td></tr>`
-    // Poster
-    + (hero
-      ? `<tr><td style="padding:14px 14px 0"><img src="${hero}" width="492" alt="${esc(modelName)}" style="display:block;width:100%;max-width:492px;height:auto;border-radius:14px;border:0;outline:none;text-decoration:none"></td></tr>`
-      : "")
-    // Text
-    + `<tr><td style="padding:22px 24px 0">`
-    + `<p style="margin:0 0 6px;font-size:15px;color:#b9b1a4">${esc(c.greet)}</p>`
-    + `<h1 style="margin:0 0 10px;font-size:24px;line-height:1.2;color:#ffffff;font-weight:bold">${c.lead}</h1>`
-    + `<p style="margin:0 0 16px;font-size:15px;line-height:1.55;color:#d8d2c6">${c.body}</p>`
-    + `<table role="presentation" cellpadding="0" cellspacing="0" border="0">${row("☀", wx)}${row("✦", c.look)}${row("💬", c.chat)}</table>`
+    // Anrede + Aufmacher (kurz, damit der Teaser gleich folgt)
+    + `<tr><td style="padding:16px 24px 0">`
+    + `<p style="margin:0 0 4px;font-size:15px;color:#b9b1a4">${esc(c.greet)}</p>`
+    + `<h1 style="margin:0;font-size:24px;line-height:1.2;color:#ffffff;font-weight:bold">${c.lead}</h1>`
     + `</td></tr>`
-    // Gold-Button (Tabelle, damit Outlook die Rundung/Farbe rendert)
-    + `<tr><td align="center" style="padding:24px">`
+    // Poster — VERSCHWOMMEN (serverseitig ins JPEG gebacken) und ANKLICKBAR: das ganze
+    // Bild ist der Link zum Beitrag, direkt darunter der Button. Kein CSS-Blur, kein
+    // Text über dem Bild — beides überlebt Outlook/Gmail nicht.
+    + (hero
+      ? `<tr><td style="padding:14px 14px 0">`
+        + `<a href="${link}" style="display:block;text-decoration:none">`
+        + `<img src="${hero}" width="492" alt="${esc(modelName)}" style="display:block;width:100%;max-width:492px;height:auto;border-radius:14px;border:0;outline:none;text-decoration:none">`
+        + `</a></td></tr>`
+      : "")
+    // Gold-Button direkt unter dem Teaser (Tabelle, damit Outlook Rundung/Farbe rendert)
+    + `<tr><td align="center" style="padding:16px 24px 4px">`
     + `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>`
     + `<td align="center" bgcolor="#c9a23f" style="border-radius:999px">`
     + `<a href="${link}" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:bold;color:#0d0b0a;text-decoration:none;border-radius:999px">${c.cta} →</a>`
     + `</td></tr></table></td></tr>`
+    // Text + die drei Punkte
+    + `<tr><td style="padding:14px 24px 0">`
+    + `<p style="margin:0 0 14px;font-size:15px;line-height:1.55;color:#d8d2c6">${c.body}</p>`
+    + `<table role="presentation" cellpadding="0" cellspacing="0" border="0">${row("☀", wx)}${row("✦", c.look)}${row("💬", c.chat)}</table>`
+    + `</td></tr>`
+    + `<tr><td style="height:20px"></td></tr>`
     // Gruß
     + `<tr><td style="padding:0 24px 24px;font-size:14px;color:#b9b1a4">${esc(c.bye)}<br><span style="color:#ffffff;font-weight:bold">${esc(modelName)}</span> · LuxuryBandit</td></tr>`
     + `</table>`

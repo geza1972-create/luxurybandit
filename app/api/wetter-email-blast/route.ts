@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/admin-auth";
-import { readWetterSubscribers, readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, type WetterSubscriber } from "@/lib/try-this-look-store";
+import { readWetterSubscribers, readCardStudioSlides, getSignedUrl, createSignedUploadUrl, isPublicBellaPost, sortBellaPosts, type WetterSubscriber } from "@/lib/try-this-look-store";
+import sharp from "sharp";
 import { sendEmail } from "@/lib/email-send";
 
 export const runtime = "nodejs";
@@ -44,7 +45,21 @@ export async function POST(request: Request) {
       ?? nonAd[0] ?? slides[0];
     // Video → Poster, Bild → das Bild selbst.
     const path = pick ? (pick.kind === "video" ? (pick.posterPath || "") : pick.path) : "";
-    if (path) hero = (await getSignedUrl(path, 60 * 60 * 24 * 365).catch(() => "")) || "";
+    // TEASER: Das Poster kommt VERSCHWOMMEN in die Mail — CSS-Blur (`filter`) wird von
+    // Gmail/Outlook entfernt, also backen wir die Unschärfe fest ins JPEG. Das hält die
+    // Mail jugendfrei fürs Postfach (Spam-Einstufung!) und macht neugierig aufs Klicken.
+    if (path) {
+      const src = await getSignedUrl(path, 60 * 10).catch(() => "");
+      if (src) {
+        const raw = Buffer.from(await (await fetch(src)).arrayBuffer());
+        const blurred = await sharp(raw).resize({ width: 600 }).blur(24).jpeg({ quality: 72 }).toBuffer();
+        const up = await createSignedUploadUrl("uploads", "jpg");
+        const put = await fetch(up.uploadUrl, { method: "PUT", headers: { "Content-Type": "image/jpeg", "x-upsert": "true" }, body: new Uint8Array(blurred) });
+        if (put.ok) hero = (await getSignedUrl(up.path, 60 * 60 * 24 * 365).catch(() => "")) || "";
+      }
+    }
+    // Bewusst KEIN Fallback aufs scharfe Original: schlägt der Blur fehl, geht die Mail
+    // lieber ganz ohne Bild raus, als ein freizügiges Foto ins Postfach zu schicken.
   } catch { /* ohne Bild ist die Mail trotzdem gültig */ }
   try {
     const st = await import("@/lib/try-this-look-store").then(m => m.readTryThisLookState());
