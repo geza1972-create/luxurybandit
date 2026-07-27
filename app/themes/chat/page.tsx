@@ -1,6 +1,7 @@
 import TopNav from "@/components/TopNav";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
 import ChatFunnel from "@/components/ChatFunnel";
+import { getSignedUrl } from "@/lib/try-this-look-store";
 
 // THEMA „Chat with an AI girl" — der Chat ist die Hauptsache, das Anziehen die Zugabe.
 // Er wählt eine Frau aus dem Katalog oder lädt eine eigene hoch, schreibt täglich mit ihr
@@ -15,7 +16,14 @@ export const metadata = {
   alternates: { canonical: "/themes/chat" },
 };
 
-export default function ChatThemePage() {
+export default async function ChatThemePage() {
+  // Beispiele oben als Slider: echte Ergebnisse aus derselben Anzieh-Pipeline, die der
+  // Kunde benutzt. Fehlen sie im Storage, erscheint der Slider einfach nicht.
+  const examples = (await Promise.all([
+    getSignedUrl("try-this-look/uploads/chat-example-1.jpg").catch(() => ""),
+    getSignedUrl("try-this-look/uploads/chat-example-2.jpg").catch(() => ""),
+  ])).filter(Boolean) as string[];
+
   return (
     <main className="lb-bg min-h-screen text-white">
       <TopNav />
@@ -32,6 +40,17 @@ export default function ChatThemePage() {
           talking — plus 5 new looks on her. Every look after that is 3.99 €. She is an AI
           character, and she says so herself every so often.
         </Fine>
+
+        {examples.length > 0 && (
+          <div className="-mx-4 mt-5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2">
+            {examples.map((url, i) => (
+              <div key={i} className="w-[62%] max-w-[240px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" className="aspect-[3/4] w-full object-cover object-top" />
+              </div>
+            ))}
+          </div>
+        )}
 
         <ChatFunnel />
 

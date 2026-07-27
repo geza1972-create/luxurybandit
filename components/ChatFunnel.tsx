@@ -32,6 +32,11 @@ const USED_LOOKS_KEY = "lb_chat_looks";
 const PAID_KEY = "lb_chat_abo";
 const REMIND_EVERY = 15;       // KI-Hinweis im Verlauf
 
+const CHAT_LANGS: [string, string][] = [
+  ["en", "EN"], ["de", "DE"], ["ro", "RO"], ["es", "ES"],
+  ["fr", "FR"], ["it", "IT"], ["pt", "PT"], ["pl", "PL"],
+];
+
 const AI_NOTICE = "Just so you know: I'm an AI character — everything here is generated. Enjoy it for what it is 💛";
 
 const fileToDataUrl = (f: File) => new Promise<string>((res, rej) => {
@@ -57,6 +62,7 @@ export default function ChatFunnel() {
   const [isStaff, setIsStaff] = useState(false);
   const [pin, setPin] = useState("");
   const [status, setStatus] = useState("");
+  const [chatLang, setChatLang] = useState("en");   // Startsprache ihrer Antworten
   const [today, setToday] = useState(0);          // heute schon geschrieben
   const modelFileRef = useRef<HTMLInputElement>(null);
   const swipeRef = useRef(0);
@@ -85,6 +91,13 @@ export default function ChatFunnel() {
       const p = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "";
       setPin(p); setIsStaff(!!p && !localStorage.getItem("lb_preview_model"));
       setPaid(localStorage.getItem(PAID_KEY) === "1");
+      // Startsprache = die gewählte Seitensprache (Cookie), sonst Browser, sonst EN.
+      const m2 = document.cookie.match(/(?:^|; )lb_lang=([^;]*)/);
+      const fromCookie = m2 ? decodeURIComponent(m2[1]).slice(0, 2) : "";
+      const nav = (navigator.language || "en").slice(0, 2);
+      const want = CHAT_LANGS.some(([c]) => c === fromCookie) ? fromCookie
+        : CHAT_LANGS.some(([c]) => c === nav) ? nav : "en";
+      setChatLang(want);
       const raw = JSON.parse(localStorage.getItem(DAY_KEY) || "{}");
       const stamp = new Date().toISOString().slice(0, 10);
       setToday(raw?.day === stamp ? Number(raw.n) || 0 : 0);
@@ -123,6 +136,7 @@ export default function ChatFunnel() {
         modelNameHint: useCustom ? (customName.trim() || "she") : "",
         messages: next.filter(m => m.role !== "notice").map(m => ({ role: m.role, content: m.content })),
         visitorId: "chat-theme",
+        lang: chatLang,
       };
       // Die Chat-Route STREAMT reinen Text (text/plain), sie gibt kein JSON zurück —
       // mit r.json() landet man im catch und die Antwort verschwindet (Bug 27.07.2026).
@@ -206,6 +220,9 @@ export default function ChatFunnel() {
       fd.append("modelImage", await toFile(herPhoto, "person.jpg"));
       fd.append("image", await toFile(look.imageUrl, "garment.jpg"));
       fd.append("lookId", look.id);
+      fd.append("mode", "fashion-model");
+      fd.append("aspectRatio", "9:16");
+      fd.append("prompt", "Dress the person from the model photo in the garment shown in the reference image. Keep her face, hair and body exactly as they are. Natural light, photorealistic, full body in frame.");
       const d = await fetch("/api/generate-fashn", {
         method: "POST", body: fd, ...(pin ? { headers: { "x-try-look-admin-pin": pin } } : {}),
       }).then(r => r.json());
@@ -287,59 +304,100 @@ export default function ChatFunnel() {
 
       {/* 2 — der Chat: die Hauptsache */}
       <p className={`mt-6 ${label}`}>2 · Talk to her</p>
-      <div className="mt-2 rounded-2xl border border-white/20 bg-white/[0.06] p-3">
-        <div ref={feedRef} className="max-h-[46vh] min-h-[120px] space-y-2 overflow-y-auto pr-1">
+      <div className="mt-2 overflow-hidden rounded-2xl border border-black/10 bg-white text-black shadow-sm">
+        {/* Kopf — wie im bestehenden Chat: Foto, Name, „online now". */}
+        <div className="flex items-center gap-3 border-b border-black/10 px-3 py-2.5">
+          <div className="relative aspect-[3/4] w-9 shrink-0 overflow-hidden rounded-lg bg-black/5">
+            {herPhoto
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={herPhoto} alt="" className="h-full w-full object-cover object-top" />
+              : null}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[14px] font-black">{herName || "Pick her"}</p>
+            <p className="flex items-center gap-1.5 text-[11px] font-bold text-black/50">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> online now
+            </p>
+          </div>
+          {/* Sprache — sie folgt ohnehin dem, was man schreibt; das hier setzt die Sprache,
+              in der sie ANFÄNGT. Gleiche Stelle wie im bestehenden Chat. */}
+          <select value={chatLang} onChange={e => setChatLang(e.target.value)} aria-label="Language"
+            className="h-8 shrink-0 appearance-none rounded-full border border-black/15 bg-white pl-3 pr-6 text-[12px] font-black uppercase tracking-wide text-black outline-none active:scale-95">
+            {CHAT_LANGS.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+          </select>
+        </div>
+
+        {/* Verlauf */}
+        <div ref={feedRef} className="max-h-[300px] min-h-[140px] space-y-2.5 overflow-y-auto overscroll-contain bg-neutral-50 px-3 py-3">
           {msgs.length === 0 ? (
-            <p className="py-6 text-center text-[13px] font-bold text-white/70">
+            <p className="py-8 text-center text-[13px] font-bold text-black/50">
               {chosen ? `Say hi to ${herName} — she answers in your language, every day.` : "Pick her first, then start talking."}
             </p>
           ) : msgs.map((m, i) =>
             m.role === "notice" ? (
-              <p key={i} className="mx-auto my-1 max-w-[85%] rounded-xl border border-[#f6cf51]/40 bg-[#f6cf51]/10 px-3 py-2 text-center text-[11px] font-bold leading-snug text-[#f6cf51]">{m.content}</p>
+              <p key={i} className="mx-auto my-1 max-w-[85%] rounded-xl bg-black/[0.06] px-3 py-2 text-center text-[11px] font-bold leading-snug text-black/60">{m.content}</p>
             ) : (
-              <p key={i} className={`max-w-[85%] rounded-2xl px-3 py-2 text-[14px] font-medium leading-snug ${m.role === "user" ? "ml-auto bg-[#f6cf51] text-black" : "bg-white/10 text-white"}`}>{m.content}</p>
+              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[82%] whitespace-pre-wrap px-3 py-2 text-[13px] font-medium ${m.role === "user"
+                  ? "rounded-2xl rounded-tr-sm bg-black text-white"
+                  : "rounded-2xl rounded-tl-sm bg-white text-black ring-1 ring-black/10"}`}>{m.content}</div>
+              </div>
             )
           )}
-          {sending && <p className="max-w-[60%] rounded-2xl bg-white/10 px-3 py-2 text-[14px] text-white/70">…</p>}
+          {sending && (
+            <div className="flex justify-start">
+              <div className="rounded-2xl rounded-tl-sm bg-white px-3.5 py-2.5 ring-1 ring-black/10">
+                <span className="flex gap-1">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-black/40 [animation-delay:-0.3s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-black/40 [animation-delay:-0.15s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-black/40" />
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
-        {dayFull ? (
-          <div className="mt-3 rounded-xl border border-white/25 bg-white/[0.06] p-3 text-center">
-            <p className="text-[14px] font-black text-white">That&apos;s a lot of talking for one day 💛</p>
-            <p className="mt-0.5 text-[12px] font-bold leading-snug text-white/80">
-              {herName} is back tomorrow — your subscription keeps running, nothing is lost.
-            </p>
-          </div>
-        ) : wall ? (
-          <div className="mt-3 rounded-xl border border-[#f6cf51]/40 bg-[#f6cf51]/10 p-3 text-center">
-            <Lock className="mx-auto h-5 w-5 text-[#f6cf51]" />
-            <p className="mt-1 text-[14px] font-black text-white">Keep talking to {herName}</p>
-            <p className="mt-0.5 text-[12px] font-bold leading-snug text-white/80">24 € a month — chat every day, and {LOOKS_INCLUDED} new looks on her included.</p>
-            <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
-              className="lb-gold mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition disabled:opacity-60">
-              {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Unlock — €24/month
-            </button>
-          </div>
-        ) : (
-          <div className="mt-3 flex items-center gap-2">
-            <input value={draft} onChange={e => setDraft(e.target.value)} disabled={!chosen || sending}
-              onKeyDown={e => { if (e.key === "Enter") void send(); }}
-              placeholder={chosen ? `Write to ${herName} …` : "Pick her first"}
-              className="h-11 min-w-0 flex-1 rounded-full border border-white/30 bg-white/[0.08] px-4 text-[15px] font-semibold text-white outline-none placeholder:text-white/60 focus:border-[#f6cf51]" />
-            <button type="button" onClick={() => void send()} disabled={!chosen || !draft.trim() || sending}
-              className="lb-gold grid h-11 w-11 shrink-0 place-items-center rounded-full active:scale-95 transition disabled:opacity-50">
-              <Send className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-        {!wall && chosen && (
-          <p className="mt-2 text-[12px] font-bold text-white/70">
-            {paid || isStaff
-              ? `Subscription active · ${Math.max(0, DAILY_MSGS - today)} messages left today`
-              : `${Math.max(0, FREE_MSGS - userMsgs)} free messages left.`}
-            {" · "}Write in any language — she answers in yours.
-          </p>
-        )}
+        {/* Eingabe / Wand */}
+        <div className="border-t border-black/10 px-3 py-2.5">
+          {dayFull ? (
+            <div className="rounded-xl bg-black/[0.05] p-3 text-center">
+              <p className="text-[13px] font-black text-black">That&apos;s a lot of talking for one day 💛</p>
+              <p className="mt-0.5 text-[12px] font-bold leading-snug text-black/60">
+                {herName} is back tomorrow — your subscription keeps running.
+              </p>
+            </div>
+          ) : wall ? (
+            <div className="text-center">
+              <p className="text-[13px] font-black text-black">Keep talking to {herName}</p>
+              <p className="mt-0.5 text-[12px] font-bold leading-snug text-black/60">24 € a month — every day, plus {LOOKS_INCLUDED} new looks on her.</p>
+              <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
+                className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-black text-[13px] font-black text-white active:scale-95 transition disabled:opacity-40">
+                {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Unlock — €24/month
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-end gap-2">
+                <textarea value={draft} onChange={e => setDraft(e.target.value)} disabled={!chosen || sending} rows={1}
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
+                  placeholder={chosen ? `Write to ${herName} …` : "Pick her first"}
+                  className="max-h-24 min-h-[42px] flex-1 resize-none rounded-2xl border border-black/15 bg-white px-3.5 py-2.5 text-[13px] font-medium text-black outline-none placeholder:text-black/40 focus:border-black" />
+                <button type="button" onClick={() => void send()} disabled={!chosen || !draft.trim() || sending}
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-black text-white active:scale-90 transition disabled:opacity-30">
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+              {chosen && (
+                <p className="mt-1.5 text-[11px] font-bold text-black/50">
+                  {paid || isStaff
+                    ? `Subscription active · ${Math.max(0, DAILY_MSGS - today)} messages left today`
+                    : `${Math.max(0, FREE_MSGS - userMsgs)} free messages left`}
+                  {" · "}Any language — she answers in yours.
+                </p>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* 3 — anziehen */}

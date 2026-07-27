@@ -1057,11 +1057,11 @@ export default function TryFunnelPage() {
               </div>
 
               {/* GO — inline, right under the images (NOT sticky). */}
-              {chosenModelLocked && <p className="mt-4 text-center text-[12px] font-black text-amber-400/90">👑 Premium model · first month $8</p>}
+              {chosenModelLocked && <p className="mt-4 text-center text-[12px] font-black text-[#f6cf51]">This model: 3,99 € per video</p>}
               <button type="button" onClick={() => { logFunnelEvent("tryon_click", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) }); if (chosenModelLocked) { setLockedNudge(true); setShowPremium(true); return; } goStep3(); }}
                 className="lb-gold mx-auto mt-4 flex h-14 w-full max-w-sm items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
                 {chosenModelLocked
-                  ? <><Crown className="h-5 w-5" /> Unlock with Premium</>
+                  ? <><Crown className="h-5 w-5" /> Unlock — 3,99 €</>
                   : isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
                   : <><Play className="h-5 w-5 fill-current" /> GO{/* „Gratis" NUR beim Katalog-Model: eigenes Foto (Idol/Your photo) ist der BEZAHLTE Weg — dort wäre das Label eine Falschaussage. */ !avatar && !idol && <span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">{L("Gratis", "Free")}</span>}</>}
               </button>
@@ -1136,7 +1136,7 @@ export default function TryFunnelPage() {
                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/45 px-4 text-center">
                                   <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-black shadow-lg"><Crown className="h-6 w-6" /></span>
                                   <span className="text-[13px] font-black uppercase tracking-wide text-amber-300">Premium</span>
-                                  {isActive && <span className="text-[11px] font-bold leading-snug text-white/80">This is a Premium feature. Unlock to try her on.</span>}
+                                  {isActive && <span className="text-[11px] font-bold leading-snug text-white/85">Her video costs 3,99 € — tap to unlock.</span>}
                                 </div>
                               )
                               : !m.realModel && <span className="absolute left-2 top-2 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-black text-white">Free</span>}
@@ -1362,7 +1362,7 @@ export default function TryFunnelPage() {
       {step === 4 && (
         <div className="px-4 pb-28 pt-2">
           <h1 className="text-center text-[26px] font-black">Create your video</h1>
-          <p className="mt-1 text-center text-[13px] font-bold text-white/85">{(packCredits ?? 0) > 0 ? "Ready to go — this uses 1 video credit." : "Go Premium — first month just $8, then $49/month."}</p>
+          <p className="mt-1 text-center text-[13px] font-bold text-white/85">{(packCredits ?? 0) > 0 ? "Ready to go — this uses 1 video credit." : "One video: 3.99 € — no subscription needed."}</p>
 
           {(packCredits ?? 0) > 0 ? (
             /* Has credits → just generate. */
@@ -1371,14 +1371,15 @@ export default function TryFunnelPage() {
               <p className="mt-1 text-[12px] font-bold text-white/85">Generating this video uses 1 credit.</p>
             </div>
           ) : (
-            /* No credits → Premium subscription (first month $8, then $49/mo → 40 videos). */
-            <div className="mx-auto mt-6 max-w-sm rounded-3xl border border-amber-400/30 bg-amber-400/[0.06] p-6 text-center">
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400">Premium</p>
-              <p className="mt-1.5 flex items-end justify-center gap-1.5"><span className="text-4xl font-black text-white">$8</span><span className="mb-1 text-sm font-bold text-white/85">first month</span></p>
-              <p className="mt-0.5 text-[12px] font-bold text-white/85">then $49/month · 40 try-on videos every month</p>
+            /* Kein Guthaben → EINZELKAUF 3,99 €. Das alte Premium-Abo ($49, erster Monat $8)
+               ist seit 26.07.2026 abgeschafft — hier standen bis jetzt noch die alten Preise. */
+            <div className="mx-auto mt-6 max-w-sm rounded-3xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-6 text-center">
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">This video</p>
+              <p className="mt-1.5 flex items-end justify-center gap-1.5"><span className="text-4xl font-black text-white">3,99 €</span><span className="mb-1 text-sm font-bold text-white/85">once</span></p>
+              <p className="mt-0.5 text-[12px] font-bold text-white/85">No subscription — you pay for this video and it is yours.</p>
               <div className="mt-4 grid gap-2 text-left">
-                {["40 try-on videos every month", "Every model, look & full video unlocked", "First month $8 · cancel anytime"].map(perk => (
-                  <div key={perk} className="flex items-center gap-2.5"><Check className="h-4 w-4 shrink-0 text-amber-400" /><span className="text-[13px] font-bold text-white/80">{perk}</span></div>
+                {["Your model in the look you picked", "Full video, yours to download", "Want it daily instead? Any topic is 24 €/month"].map(perk => (
+                  <div key={perk} className="flex items-center gap-2.5"><Check className="h-4 w-4 shrink-0 text-[#f6cf51]" /><span className="text-[13px] font-bold text-white/85">{perk}</span></div>
                 ))}
               </div>
             </div>
@@ -1594,7 +1595,7 @@ export default function TryFunnelPage() {
                   </p>
                 )}
                 {!adminProduce && chosenModelLocked && (
-                  <p className="mb-2 text-center text-[12px] font-black text-amber-400/90">👑 Premium model · first month $8</p>
+                  <p className="mb-2 text-center text-[12px] font-black text-[#f6cf51]">This model: 3,99 € per video</p>
                 )}
                 {lockedNudge && chosenModelLocked && (
                   <div className="mb-2 flex items-center gap-2 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-3 py-2.5 text-[12px] font-black text-amber-200">
@@ -1605,7 +1606,7 @@ export default function TryFunnelPage() {
                 <button type="button" onClick={() => { logFunnelEvent("tryon_click", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) }); if (chosenModelLocked) { setLockedNudge(true); setShowPremium(true); return; } goStep3(); }}
                   className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
                   {chosenModelLocked
-                    ? <><Crown className="h-5 w-5" /> Unlock with Premium</>
+                    ? <><Crown className="h-5 w-5" /> Unlock — 3,99 €</>
                     : isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
                     : <><Play className="h-5 w-5 fill-current" /> GO{/* „Gratis" NUR beim Katalog-Model: eigenes Foto (Idol/Your photo) ist der BEZAHLTE Weg — dort wäre das Label eine Falschaussage. */ !avatar && !idol && <span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">{L("Gratis", "Free")}</span>}</>}
                 </button>
@@ -1615,7 +1616,7 @@ export default function TryFunnelPage() {
           {step === 4 && !(adminPin && !previewAsUser) && (
             <button type="button" onClick={() => void startPaidGenerate()} disabled={payBusy || packCredits === null}
               className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform disabled:opacity-60">
-              {payBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : ((packCredits ?? 0) > 0 ? "Generate my video →" : "Start Premium — $8 first month")}
+              {payBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : ((packCredits ?? 0) > 0 ? "Generate my video →" : "Get this video — 3,99 €")}
             </button>
           )}
         </div>
