@@ -17,27 +17,35 @@ export async function POST(request: Request) {
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: "Payments are not set up yet (STRIPE_SECRET_KEY missing)." }, { status: 503 });
   }
-  const body = (await request.json().catch(() => ({}))) as { subId?: string; modelId?: string; modelSlug?: string; code?: string };
+  const body = (await request.json().catch(() => ({}))) as {
+    subId?: string; modelId?: string; modelSlug?: string; code?: string; email?: string; returnTo?: string;
+  };
   const subId = String(body.subId ?? "").trim();
-  if (!subId) return NextResponse.json({ error: "subId fehlt." }, { status: 400 });
   const modelId = String(body.modelId ?? "").trim() || BELLA_ID;
   const modelSlug = String(body.modelSlug ?? "").trim() || "bella";
 
-  // E-Mail des Abonnenten für den Checkout (aus dem Datensatz).
-  const sub = (await readWetterSubscribers(modelId)).find(s => s.id === subId);
-  const email = (sub?.email || "").trim();
+  // ZWEI WEGE hierher:
+  //  a) aus der Wetter-Seite: `subId` ist bekannt, die E-Mail steht im Datensatz
+  //  b) aus dem Anmeldeformular /join: es gibt noch keinen Abonnenten, nur die E-Mail
+  // Früher war `subId` Pflicht — damit scheiterte jede Anmeldung über /join mit dem
+  // Thema „Morgen-Nachricht" an einem 400er (gefunden 28.07.2026).
+  const sub = subId ? (await readWetterSubscribers(modelId)).find(s => s.id === subId) : undefined;
+  const email = (sub?.email || String(body.email ?? "")).trim();
+  if (!subId && !email) return NextResponse.json({ error: "subId oder E-Mail nötig." }, { status: 400 });
 
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
-  const back = `${origin}/themes/wetter/${encodeURIComponent(modelSlug)}?s=${encodeURIComponent(subId)}`;
+  const back = subId
+    ? `${origin}/themes/wetter/${encodeURIComponent(modelSlug)}?s=${encodeURIComponent(subId)}`
+    : `${origin}${String(body.returnTo ?? "").startsWith("/") ? body.returnTo : "/join?paid=1"}`;
 
   try {
     const { id, url } = await createSubscriptionCheckout({
       priceId: topicPriceId(),
       email: email || undefined,
       coupon: couponFor(String((body as { code?: string })?.code ?? "")) ?? firstMonthCoupon(),
-      successUrl: `${back}&wetterpaid=1&cs={CHECKOUT_SESSION_ID}`,
-      cancelUrl: `${back}&wettercancelled=1`,
-      metadata: { kind: "wetter-abo", subId, modelId },
+      successUrl: subId ? `${back}&wetterpaid=1&cs={CHECKOUT_SESSION_ID}` : `${back}${back.includes("?") ? "&" : "?"}paid=1`,
+      cancelUrl: subId ? `${back}&wettercancelled=1` : `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,
+      metadata: { kind: "wetter-abo", ...(subId ? { subId } : {}), modelId },
     });
     return NextResponse.json({ url, sessionId: id });
   } catch (e) {
