@@ -209,12 +209,17 @@ export default function HolidayFunnel() {
         const cards = [...models];
         const upIdx = Math.min(2, cards.length);
         cards.splice(upIdx, 0, UPLOAD);
-        const active = useCustom ? upIdx : Math.min(pickIdx, cards.length - 1);
+        // ACHTUNG: `cards` enthält die Upload-Karte, `models` nicht. Beide Indizes sind ab
+        // dieser Position um eins verschoben — ohne Umrechnung legt sich „Your own" über das
+        // gewählte Model (Bug 27.07.2026).
+        const toCard = (mi: number) => (mi < upIdx ? mi : mi + 1);
+        const toModel = (ci: number) => (ci < upIdx ? ci : ci - 1);
+        const active = useCustom ? upIdx : Math.min(toCard(pickIdx), cards.length - 1);
         const front = (i: number) => {
           const m = cards[i];
           if (m.id === "__own") { setUseCustom(true); return; }
           setUseCustom(false);
-          setPickIdx(models.findIndex(x => x.id === m.id));
+          setPickIdx(Math.max(0, Math.min(models.length - 1, toModel(i))));
         };
         return (
           <div className="relative mx-auto mt-2 h-[72vw] max-h-[300px] select-none overflow-hidden touch-pan-y" style={{ perspective: "1100px" }}
