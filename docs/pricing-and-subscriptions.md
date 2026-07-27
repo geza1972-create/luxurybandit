@@ -14,9 +14,12 @@ oder dauerhaft niedriger Preis bringt Leute, die nie zahlen — der Code qualifi
 Karte wird gezogen), der laufende Preis trägt das Produkt. Das alte 24-€-Modell ist weg.
 
 Technisch: `lib/pricing.ts` ist die einzige Quelle.
-- `STRIPE_TOPIC_ABO_PRICE_ID` = der 49-€-Preis (legt der Owner in Stripe an)
-- `STRIPE_PROMO_CODES={"<CODE>":"<coupon-id>"}` = Anzeigen-Code → Gutschein über 30 €
-  einmalig (49 − 30 = 19 € im ersten Monat), siehe `lib/promo.ts`
+- `STRIPE_TOPIC_ABO_PRICE_ID=price_1TxuJo1jPNCWoiztbO6FAeUT` — „Luxurybandit Premium Abo",
+  49 €/Monat (vom Owner am 27.07.2026 angelegt)
+- `STRIPE_PROMO_CODES={"BELLA":"Mr0NlGBT"}` — Anzeigen-Code **BELLA** → Gutschein
+  „Promo" (30 € einmalig) ⇒ **19 € im ersten Monat**, danach 49 €
+- **Geprüft am 27.07.2026** mit zwei echten Checkout-Sitzungen:
+  mit Code 49 € − 30 € = **19 €**, ohne Code **49 €**
 - `STRIPE_FIRST_MONTH_COUPON` bleibt LEER, solange der Rabatt nur mit Code gelten soll
 Ein unbekannter Code bricht den Kauf nicht ab — es gilt dann der volle Preis.
 
