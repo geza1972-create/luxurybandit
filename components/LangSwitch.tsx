@@ -24,9 +24,8 @@ export default function LangSwitch() {
     try {
       const m = document.cookie.match(new RegExp(`(?:^|; )${LANG_COOKIE}=([^;]*)`));
       const fromCookie = m ? decodeURIComponent(m[1]) : "";
-      if (isLang(fromCookie)) { setLang(fromCookie); return; }
-      const nav = (navigator.language || "en").slice(0, 2);
-      if (isLang(nav)) setLang(nav);
+      if (isLang(fromCookie)) setLang(fromCookie);
+      // Ohne Cookie bleibt es "en" — Englisch ist der Standard, nicht die Browsersprache.
     } catch { /**/ }
   }, []);
 

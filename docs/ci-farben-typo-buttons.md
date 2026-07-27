@@ -74,14 +74,14 @@ Alle Landings sehen dadurch gleich aus, egal wer sie baut.
 | Kicker über der H1 | `<Kicker>` | `text-[11px] font-black uppercase tracking-[0.2em]` in CI-Gelb |
 | Seiten-H1 (genau eine) | `<H1>` | `text-[34px] font-black leading-[1.05]`, weiß |
 | Hervorgehobenes Wort | `<Y>` | CI-Gelb `#f6cf51` |
-| Abschnittsüberschrift | `<SectionTitle>` | gelber Balken (`h-1 w-10`) + `text-[30px] font-black` weiß |
+| Abschnittsüberschrift | `<SectionTitle>` | gelber Balken (`h-1 w-10`) + `text-[30px] font-black` **gelb-weiß**: Anfang weiß, Schluss der Zeile in CI-Gelb (macht die Komponente selbst) |
 | Fließtext / Lead | `<Lead>` | `text-[16px] font-medium leading-relaxed text-white/75` |
 | Kleingedrucktes | `<Fine>` | `text-[13px] font-bold text-white/55` |
 | Schritt-Label im Funnel | `<StepLabel>` | `text-[12px] font-black uppercase tracking-wide text-white/50` |
 | Link im Text | `<YLink>` | gelb, fett, unterstrichen |
 
 Regeln:
-- **Headlines sind weiß, Akzente gelb** — nie eine ganze Überschrift in Gelb.
+- **Headlines sind GELB-WEISS**: Zeilenanfang weiß, das Ende in CI-Gelb. Nie eine ganze Überschrift komplett gelb, nie eine komplett weiß.
 - Genau **eine** `<H1>` pro Landing; alles Weitere ist `<SectionTitle>`.
 - Kein `text-[22px]`/`text-[20px]` mehr für Abschnitte — das war der alte, zu kleine Stand.
 - Über einer `<SectionTitle>` kein zusätzliches Mini-Label („See it in action") — der gelbe Balken ist die Gliederung.

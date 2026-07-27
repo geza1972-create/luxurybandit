@@ -26,15 +26,30 @@ export function H1({ children, className = "" }: { children: ReactNode; classNam
   return <h1 className={`mt-2 text-[34px] font-black leading-[1.05] ${className}`}>{children}</h1>;
 }
 
-/** Abschnittsüberschrift: gelber Balken + große weiße Headline. */
+/**
+ * Abschnittsüberschrift: gelber Balken + große Headline in GELB-WEISS — der Anfang
+ * weiß, das letzte Wort im CI-Gelb (Owner-Vorgabe: „Headline gelb weiss").
+ * Steht ein fertiges JSX drin, wird es unverändert gerendert (dann selbst <Y> setzen).
+ */
 export function SectionTitle({ children, as = "h2", className = "" }: {
   children: ReactNode; as?: "h2" | "h3"; className?: string;
 }) {
   const Tag = as;
+  let content: ReactNode = children;
+  if (typeof children === "string") {
+    const words = children.trim().split(/\s+/);
+    // Gelb wird der SCHLUSS der Zeile. Ist das letzte Wort ein Füllwort („it?", „es"),
+    // kommt das Wort davor mit dazu — sonst leuchtet ausgerechnet das Nichtssagende.
+    let take = 1;
+    const bare = (w: string) => w.replace(/[^\p{L}\p{N}]/gu, "");
+    if (words.length > 2 && bare(words[words.length - 1]).length < 4) take = 2;
+    const tail = words.splice(-take).join(" ");
+    content = words.length ? <>{words.join(" ")} <Y>{tail}</Y></> : <Y>{tail}</Y>;
+  }
   return (
     <div className={className}>
       <span className="block h-1 w-10 rounded-full bg-[#f6cf51]" />
-      <Tag className="mt-4 text-[30px] font-black leading-[1.06]">{children}</Tag>
+      <Tag className="mt-4 text-[30px] font-black leading-[1.06]">{content}</Tag>
     </div>
   );
 }

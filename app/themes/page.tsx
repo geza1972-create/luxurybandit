@@ -191,11 +191,9 @@ export default async function ThemesCatalog() {
       <TopNav back={false} />
 
       <div className="mx-auto max-w-3xl px-4 pb-24 pt-6">
-        <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#f6cf51]">{c.kicker}</p>
-        <h1 className="mt-1 text-[28px] font-black leading-tight tracking-tight">
-          {c.h1a} <span className="text-[#f6cf51]">{c.h1b}</span>
-        </h1>
-        <p className="mt-2 max-w-xl text-[14px] font-semibold leading-relaxed text-white/60">{c.intro}</p>
+        <Kicker>{c.kicker}</Kicker>
+        <H1>{c.h1a} <Y>{c.h1b}</Y></H1>
+        <Lead className="max-w-xl">{c.intro}</Lead>
 
         {/* Startseite → zu den Models. Zwei Wege, weil beides gefragt ist: die ganze
             Galerie und der Chat-Einstieg. */}

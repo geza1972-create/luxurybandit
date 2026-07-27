@@ -1,10 +1,10 @@
 /**
  * SPRACHE — eine Quelle für alle Seiten.
  *
- * Reihenfolge: 1) die vom Nutzer GEWÄHLTE Sprache (Cookie `lb_lang`, gesetzt vom
- * Umschalter in der TopNav), 2) sonst die Browsersprache (Accept-Language),
- * 3) sonst Englisch. Die Wahl muss die Browsersprache überstimmen — sonst kann
- * ein Rumäne, der auf Englisch lesen will, nicht umschalten.
+ * STANDARD IST ENGLISCH. Nur die vom Nutzer GEWÄHLTE Sprache (Cookie `lb_lang`,
+ * gesetzt vom Umschalter in der TopNav) weicht davon ab — die Browsersprache
+ * entscheidet nicht. `langFromAccept` bleibt für Stellen, die bewusst die
+ * Browsersprache lesen (z. B. Sprache einer E-Mail aus der Telefonvorwahl).
  */
 export const LANGS = ["en", "de", "ro", "es", "fr", "pt", "pl", "it"] as const;
 export type Lang = (typeof LANGS)[number];
