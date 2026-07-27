@@ -67,13 +67,17 @@ export default function ChatFunnel() {
     Promise.all([
       fetch("/api/try-this-look?models=1", { cache: "no-store" }).then(r => r.json()).catch(() => ({})),
       fetch("/api/try-this-look", { cache: "no-store" }).then(r => r.json()).catch(() => ({})),
-    ]).then(([m, st]) => {
+      // Freigabeliste: nur SAUBERE Kleidungsfotos in den Anzieh-Slider (keine Bilder mit
+      // fremder Frau darin). Fehlt die Liste, zeigen wir alles statt nichts.
+      fetch("/api/wardrobe-garments", { cache: "no-store" }).then(r => r.json()).catch(() => ({ ids: null })),
+    ]).then(([m, st, wg]) => {
       let all: Model[] = (Array.isArray(m.models) ? m.models : []).filter((x: Model) => !!x.photoUrl);
       const bella = all.findIndex(x => x.id === "curator-1783683672619-td4cy" || /^bella\b/i.test(x.name));
       if (bella > 0) all = [all[bella], ...all.slice(0, bella), ...all.slice(bella + 1)];
       setModels(all);
+      const ok: Set<string> | null = Array.isArray(wg?.ids) ? new Set(wg.ids.map(String)) : null;
       const ls: Look[] = (Array.isArray(st?.looks) ? st.looks : [])
-        .filter((l: { imageUrl?: string }) => !!l.imageUrl)
+        .filter((l: { id: string; imageUrl?: string }) => !!l.imageUrl && (!ok || ok.has(l.id)))
         .map((l: Look) => ({ id: l.id, name: l.name, imageUrl: l.imageUrl }));
       setLooks(ls);
     });

@@ -73,11 +73,15 @@ export default function SurpriseFunnel({ example = "" }: { example?: string }) {
     } catch { /**/ }
     // ALLE Kleidungsstücke aus dem Katalog (Owner): Kleider, Outfits UND Dessous — sie
     // entscheidet selbst, wie viel sie zeigt. Dessous stehen vorn, weil sie hier gemeint sind.
-    fetch("/api/try-this-look", { cache: "no-store" })
-      .then(r => r.json())
-      .then(d => {
+    Promise.all([
+      fetch("/api/try-this-look", { cache: "no-store" }).then(r => r.json()).catch(() => ({})),
+      // Nur saubere Kleidungsfotos — Bilder mit fremder Frau gehören nicht in die Auswahl.
+      fetch("/api/wardrobe-garments", { cache: "no-store" }).then(r => r.json()).catch(() => ({ ids: null })),
+    ])
+      .then(([d, wg]) => {
+        const ok: Set<string> | null = Array.isArray(wg?.ids) ? new Set(wg.ids.map(String)) : null;
         const all: (Look & { hot?: boolean })[] = (Array.isArray(d?.looks) ? d.looks : [])
-          .filter((l: { imageUrl?: string }) => !!l.imageUrl)
+          .filter((l: { id: string; imageUrl?: string }) => !!l.imageUrl && (!ok || ok.has(l.id)))
           .map((l: Look & { lingerie?: boolean; category?: string }) =>
             ({ id: l.id, name: l.name, imageUrl: l.imageUrl, hot: l.lingerie === true || l.category === "boudoir" }));
         // ALLE Teile aus dem Katalog (kein Deckel) — Dessous vorn, dann der Rest.
