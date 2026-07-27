@@ -151,6 +151,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       paid,
+      // E-Mail der Zahlung: damit die Seite den Kunden nach der Rückkehr kennt und ihn
+      // seinem Guthaben zuordnen kann (er hat sich ja nirgends angemeldet).
+      email: (s.customerEmail || s.clientReferenceId || "").trim().toLowerCase() || undefined,
       status: s.status,
       tier: s.metadata.tier ?? "",
       lookId: s.metadata.lookId ?? "",

@@ -1,6 +1,7 @@
 import TopNav from "@/components/TopNav";
 import { resolveLang } from "@/lib/lang-server";
 import SubscribeCta from "@/components/SubscribeCta";
+import PaidReturn from "@/components/PaidReturn";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
 import HolidayFunnel from "@/components/HolidayFunnel";
 import { HOLIDAY_SCENES } from "@/lib/holiday-scenes";
@@ -45,6 +46,7 @@ export default async function HolidayThemePage({ searchParams }: {
           Not her holiday — yours. Upload your photo, pick the woman you want beside you, then
           pick the moment: a walk on the beach, holding hands, a kiss, coffee, dancing.
         </Lead>
+        <PaidReturn lang={L} />
         <Fine>
           {HOLIDAY_SCENES.length} moments to choose from — nothing random, and what you already
           made is marked so you never get the same video twice.

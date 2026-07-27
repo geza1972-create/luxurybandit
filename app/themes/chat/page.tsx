@@ -1,5 +1,6 @@
 import TopNav from "@/components/TopNav";
 import SubscribeCta from "@/components/SubscribeCta";
+import PaidReturn from "@/components/PaidReturn";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
 import ChatFunnel from "@/components/ChatFunnel";
 import { getSignedUrl } from "@/lib/try-this-look-store";
@@ -65,6 +66,7 @@ export default async function ChatThemePage({ searchParams }: {
         <Kicker>{t.kicker}</Kicker>
         <H1>{t.h1a} <Y>{t.h1b}</Y></H1>
         <Lead>{t.lead}</Lead>
+        <PaidReturn lang={L} />
         <Fine>{t.fine}</Fine>
 
         {(photos.length > 0 || clips.length > 0) && (
