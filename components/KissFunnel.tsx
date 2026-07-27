@@ -17,6 +17,11 @@ type Model = { id: string; name: string; photoUrl: string };
 // Referenz-Look fürs Billing/Routing der Route (gleicher Default wie der Try-On-Funnel).
 const KISS_LOOK_ID = "look-1784191032626-70e3608b";
 
+// Platzhalter im Upload-Feld: ein MÄNNERGESICHT (Peter), abgedunkelt hinterlegt. Ohne das
+// laden Nutzer erfahrungsgemäß noch ein Model hoch statt sich selbst. Als statische Datei
+// im Repo, damit die URL nie abläuft (signierte Storage-Links tun das).
+const PLACEHOLDER_MAN = "/kiss-placeholder.jpg";
+
 // Pixverse-Prompt (V6, Raw): @person = das Model (1. Referenz), @Bild2 = das hochgeladene
 // Foto (2. Referenz — Token „Bild2" ist einer der erlaubten Binder der Route). NEUTRALE
 // Wortwahl (keine Intim-/Haut-Wörter — Pixverse flaggt sie), feste Kamera (kein Zoom),
@@ -260,11 +265,18 @@ export default function KissFunnel() {
       {/* 2) Eigenes Foto */}
       <p className="mt-5 text-[12px] font-black uppercase tracking-wide text-white/50">2 · Your photo</p>
       <button type="button" onClick={() => fileRef.current?.click()}
-        className="mx-auto mt-2 flex aspect-square w-[46vw] max-w-[210px] flex-col items-center justify-center gap-2 overflow-hidden rounded-3xl border-2 border-dashed border-amber-400/40 bg-amber-400/[0.06] active:scale-[0.98] transition">
+        className="relative mx-auto mt-2 flex aspect-square w-[46vw] max-w-[210px] flex-col items-center justify-center gap-2 overflow-hidden rounded-3xl border-2 border-dashed border-amber-400/40 bg-amber-400/[0.06] active:scale-[0.98] transition">
         {photo
           // eslint-disable-next-line @next/next/no-img-element
           ? <img src={photo} alt="" className="h-full w-full object-cover" />
-          : (<><ImageUp className="h-8 w-8 text-amber-400" /><span className="text-[13px] font-black text-amber-400">Upload photo</span></>)}
+          : (<>
+              {/* Platzhalter-Gesicht (abgedunkelt): zeigt auf einen Blick, dass hier ein
+                  MANN bzw. der Nutzer selbst hingehört — nicht noch ein Model. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={PLACEHOLDER_MAN} alt="" className="absolute inset-0 h-full w-full object-cover opacity-25 grayscale" />
+              <ImageUp className="relative h-8 w-8 text-amber-400" />
+              <span className="relative text-[13px] font-black text-amber-400">Upload your photo</span>
+            </>)}
       </button>
       {photo && (
         <button type="button" onClick={() => fileRef.current?.click()} className="mx-auto mt-2 flex items-center gap-1.5 text-[12px] font-black text-white/60">

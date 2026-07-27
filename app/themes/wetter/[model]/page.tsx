@@ -131,14 +131,23 @@ export default async function WetterModelPage({ params, searchParams }: {
   // Try-On-Karte ANIMIERT: sie blendet zwischen „angezogen" und „in Lingerie" hin und her —
   // das zeigt in zwei Sekunden, was Try-On kann. „Angezogen" = ihr Profilfoto, „Lingerie" =
   // der erste als `lingerie` markierte Beitrag.
+  // „Angezogen" = Bella im weißen Kleid (Owner-Wunsch). Reihenfolge, damit du es später
+  // ohne Code ändern kannst: 1) ein Beitrag, den du als `normal` markierst · 2) sonst das
+  // weiße Kleid vom 25.07. · 3) sonst ihr Profilfoto.
+  const WHITE_DRESS = "try-this-look/uploads/1784915142061-c0ea5633-a652-40bb-8476-bebf69c64658.jpg";
   let tryonDressed = "", tryonLingerie = "";
   try {
-    const me = (state.curators ?? []).find(c => (c as { id?: string }).id === modelId) as { photoPath?: string } | undefined;
-    if (me?.photoPath) tryonDressed = (await getSignedUrl(me.photoPath).catch(() => "")) || "";
     const slides = (await readCardStudioSlides(modelId)).filter(isPublicBellaPost);
-    const ling = slides.find(s => s.garmentCat === "lingerie" && (s.kind === "video" ? s.posterPath : s.path));
-    const lp = ling ? (ling.kind === "video" ? ling.posterPath : ling.path) : "";
-    if (lp) tryonLingerie = (await getSignedUrl(lp).catch(() => "")) || "";
+    const pick = (s: BellaSlide) => (s.kind === "video" ? s.posterPath : s.path) || "";
+    const normal = slides.find(s => s.garmentCat === "normal" && pick(s));
+    const dressedPath = (normal && pick(normal)) || WHITE_DRESS;
+    tryonDressed = (await getSignedUrl(dressedPath).catch(() => "")) || "";
+    if (!tryonDressed) {
+      const me = (state.curators ?? []).find(c => (c as { id?: string }).id === modelId) as { photoPath?: string } | undefined;
+      if (me?.photoPath) tryonDressed = (await getSignedUrl(me.photoPath).catch(() => "")) || "";
+    }
+    const ling = slides.find(s => s.garmentCat === "lingerie" && pick(s));
+    if (ling) tryonLingerie = (await getSignedUrl(pick(ling)).catch(() => "")) || "";
   } catch { /**/ }
   tryonTeaser = tryonDressed || tryonLingerie;
 

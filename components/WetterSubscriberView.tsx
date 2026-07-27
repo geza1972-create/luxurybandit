@@ -578,7 +578,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       {alt2 && <img src={alt2} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={media} alt="" className={`absolute inset-0 h-full w-full object-cover object-top `} />
+                      <img src={media} alt="" className={"absolute inset-0 h-full w-full object-cover object-top " + (alt2 ? "lb-swap-top" : "")} />
                     </>))
                 : <span className="grid h-full w-full place-items-center text-[26px]">{emoji}</span>}
               <span className="absolute left-1.5 top-1.5 text-[16px] drop-shadow">{emoji}</span>
