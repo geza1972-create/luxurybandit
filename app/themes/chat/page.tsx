@@ -2,6 +2,8 @@ import TopNav from "@/components/TopNav";
 import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
 import ChatFunnel from "@/components/ChatFunnel";
 import { getSignedUrl } from "@/lib/try-this-look-store";
+import { resolveLang } from "@/lib/lang-server";
+import { trObject } from "@/lib/tr-object";
 
 // THEMA „Chat with an AI girl" — der Chat ist die Hauptsache, das Anziehen die Zugabe.
 // Er wählt eine Frau aus dem Katalog oder lädt eine eigene hoch, schreibt täglich mit ihr
@@ -23,6 +25,25 @@ export default async function ChatThemePage({ searchParams }: {
   // wenn er später freischaltet.
   const sp = (await searchParams) ?? {};
   const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);
+
+  // TEXTE: englisch im Code, zur Laufzeit übersetzt (Dauer-Cache) — sonst altert jede
+  // Änderung sofort in sieben Sprachen und niemand pflegt es nach.
+  const L = await resolveLang();
+  const t = await trObject({
+    kicker: "LuxuryBandit · Chat",
+    h1a: "Chat with an", h1b: "AI girl",
+    lead: "Pick one of our models — or upload a photo of the woman you have in mind — and write with her every day. Write in German, English, Romanian, Spanish, French, Italian, Polish — she answers in whatever language you use, and switches the moment you do.",
+    fine: "Chatting is free. The subscription is for the pictures and videos: 49 € a month gives you 25 generations across ALL topics together. Every one beyond that is 3.99 €. She is an AI character, and she says so herself every so often.",
+    codeNote: `Your code ${code.toUpperCase()} is active: chatting is free anyway — when you want the videos, your first month is 19 € instead of 49 €.`,
+    s1h: "Any woman, not just ours",
+    s1p: "Our catalogue has 46 models you can start with. If none of them is the one you picture, upload a single photo and give her a name — from that moment she is your AI girl, and she is the one who answers you.",
+    s2h: "She speaks your language",
+    s2p: "Nearly every language works: start in German and she writes German, switch to English mid-conversation and she follows you. No settings, no language picker — just write the way you normally would.",
+    s3h: "She wears what you choose",
+    s3p: "Every dress, outfit and lingerie set in our wardrobe can go on her: pick one, and a minute later you have the photo of her in it. They come out of your 25 a month — the same pot you use for videos in every other topic.",
+    s4h: "Flirty, but honest",
+    s4p: "She flirts, she asks about your day, she teases. What she never does is claim she missed you or that she has feelings — and every so often she reminds you in the chat that she is an AI. That is deliberate: nobody should fall for something that cannot love them back.",
+  }, L);
 
   // Beispiele oben als Slider: echte Ergebnisse aus derselben Anzieh-Pipeline, die der
   // Kunde benutzt. Fehlen sie im Storage, erscheint der Slider einfach nicht.

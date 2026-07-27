@@ -5,6 +5,7 @@ import { CloudSun, Cake, Sparkles, Flame, MapPin, Lock, Palmtree, Shirt, Star, H
 import type { LucideIcon } from "lucide-react";
 import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
 import { resolveLang } from "@/lib/lang-server";
+import { trObject } from "@/lib/tr-object";
 import { readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, readTryThisLookState, readKissConfig } from "@/lib/try-this-look-store";
 
 // Katalog aller „Themen" als bildstarke Galerie (wie die Reel-/Models-Galerie).
@@ -218,6 +219,23 @@ export default async function ThemesCatalog({ searchParams }: {
     { icon: Gift, title: "Surprise him", tagline: "Your photo → a private video only he can open.", href: "/themes/surprise", cover: ph(2), video: surpriseVideo || undefined, chips: "♥ Your photo · Private link · 3,99 €" },
   ];
 
+  // KARTENTEXTE übersetzen (Titel, Untertitel, Chips) — sie standen bisher nur englisch da,
+  // während der Rest der Seite in acht Sprachen läuft. Ein Aufruf für alle Karten, danach
+  // aus dem Dauer-Cache. Der Herz-/Trenner-Schmuck der Chips bleibt unangetastet.
+  const flat: Record<string, string> = {};
+  THEMES.forEach((t, i) => {
+    flat[`t${i}`] = t.title;
+    flat[`g${i}`] = t.tagline;
+    if (t.chips) flat[`c${i}`] = t.chips.replace(/^♥\s*/, "");
+  });
+  const tr = await trObject(flat, L);
+  const THEMES_L: Theme[] = THEMES.map((t, i) => ({
+    ...t,
+    title: tr[`t${i}`] || t.title,
+    tagline: tr[`g${i}`] || t.tagline,
+    chips: t.chips ? `♥ ${tr[`c${i}`] || t.chips.replace(/^♥\s*/, "")}` : t.chips,
+  }));
+
   return (
     <main className="lb-bg min-h-[100dvh] text-white">
       {/* Startseite: kein Zurück-Pfeil, hier endet der Weg nach hinten. */}
@@ -251,7 +269,7 @@ export default async function ThemesCatalog({ searchParams }: {
 
         {/* Karten EXAKT im Stil der Models-Galerie: Bild oben (Badge + Pille), Text darunter, kein Rahmen. */}
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {THEMES.map((t) => {
+          {THEMES_L.map((t) => {
             const Icon = t.icon;
             const active = !!t.href;
             const inner = (
