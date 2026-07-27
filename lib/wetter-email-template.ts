@@ -4,46 +4,56 @@
 export type Copy = {
   subject: string; preheader: string; greet: string; lead: string; body: string;
   wx: string; wxCity: string; look: string; chat: string;
-  cta: string; bye: string; unsub: string;
+  cta: string; bye: string; unsub: string; ai: string;
 };
 export function copy(lang: string, name: string): Copy {
   const n = name || "";
-  // „Guten Morgen, Marek" — schlicht und persönlich. KEINE Software-Sprache
-  // („Ich habe alles für dich vorbereitet") — sie schreibt selbst, warm und neugierig-machend.
+  // „Guten Morgen, Marek" — schlicht und persönlich. KEINE Software-Sprache, aber auch
+  // BEWUSST KEINE Beziehungs-/Sehnsuchts-Sprache („ich habe an dich gedacht"): sie ist eine
+  // KI-Persona, und Nachrichten dürfen keine echte Zuneigung vortäuschen. Der Aufmacher
+  // benennt den INHALT (Wetter + Look), nicht Gefühle. Dazu der KI-Hinweis in der Fußzeile.
   const c = (s: string) => (n ? `${s}, ${n}` : s);
   const T: Record<string, Copy> = {
-    ro: { subject: c("Bună dimineața") + " \u2600\uFE0F", preheader: "Am ceva nou pe mine \u2014 vrei să vezi?",
-      greet: c("Bună dimineața"), lead: "M-am gândit la tine \u2600\uFE0F", body: "Abia începe ziua și eu sunt deja trează. Am ceva nou pe mine \u2014 vrei să vezi?",
-      wx: "Cum e vremea azi", wxCity: "Cum e vremea în {city}", look: "Look-ul meu de azi", chat: "Și un chat cu mine, dacă vrei",
-      cta: "Arată-mi", bye: "Pe curând,", unsub: "Nu mai vrei aceste mesaje? Dezabonează-te" },
-    de: { subject: c("Guten Morgen") + " \u2600\uFE0F", preheader: "Ich habe etwas Neues an \u2014 willst du sehen?",
-      greet: c("Guten Morgen"), lead: "Ich habe an dich gedacht \u2600\uFE0F", body: "Der Tag fängt gerade erst an und ich bin schon wach. Ich habe etwas Neues an \u2014 willst du sehen?",
-      wx: "Wie das Wetter heute wird", wxCity: "Wie das Wetter in {city} wird", look: "Mein neuer Look von heute", chat: "Und ein Chat mit mir, wenn du magst",
-      cta: "Zeig es mir", bye: "Bis gleich,", unsub: "Keine Nachrichten mehr? Hier abmelden" },
-    en: { subject: c("Good morning") + " \u2600\uFE0F", preheader: "I am wearing something new \u2014 want to see?",
-      greet: c("Good morning"), lead: "I was thinking about you \u2600\uFE0F", body: "The day is just starting and I am already awake. I am wearing something new \u2014 want to see?",
-      wx: "How the weather looks today", wxCity: "How the weather looks in {city}", look: "My new look for today", chat: "And a chat with me, if you like",
-      cta: "Show me", bye: "Talk soon,", unsub: "Don't want these emails? Unsubscribe" },
-    es: { subject: c("Buenos días") + " \u2600\uFE0F", preheader: "Llevo algo nuevo \u2014 ¿quieres verlo?",
-      greet: c("Buenos días"), lead: "He pensado en ti \u2600\uFE0F", body: "El día acaba de empezar y yo ya estoy despierta. Llevo algo nuevo \u2014 ¿quieres verlo?",
-      wx: "Qué tiempo hace hoy", wxCity: "Qué tiempo hace en {city}", look: "Mi look de hoy", chat: "Y un chat conmigo, si te apetece",
-      cta: "Muéstramelo", bye: "Hasta pronto,", unsub: "¿No quieres estos emails? Darse de baja" },
-    fr: { subject: c("Bonjour") + " \u2600\uFE0F", preheader: "Je porte quelque chose de nouveau \u2014 tu veux voir ?",
-      greet: c("Bonjour"), lead: "J'ai pensé à toi \u2600\uFE0F", body: "La journée commence à peine et je suis déjà réveillée. Je porte quelque chose de nouveau \u2014 tu veux voir ?",
-      wx: "Le temps qu'il fait aujourd'hui", wxCity: "Le temps qu'il fait à {city}", look: "Mon nouveau look du jour", chat: "Et un chat avec moi, si tu veux",
-      cta: "Montre-moi", bye: "À tout de suite,", unsub: "Tu ne veux plus ces e-mails ? Se désabonner" },
-    pt: { subject: c("Bom dia") + " \u2600\uFE0F", preheader: "Tenho algo novo vestido \u2014 queres ver?",
-      greet: c("Bom dia"), lead: "Estive a pensar em ti \u2600\uFE0F", body: "O dia está a começar e eu já estou acordada. Tenho algo novo vestido \u2014 queres ver?",
-      wx: "Como está o tempo hoje", wxCity: "Como está o tempo em {city}", look: "O meu look de hoje", chat: "E uma conversa comigo, se quiseres",
-      cta: "Mostra-me", bye: "Até já,", unsub: "Não queres estes emails? Cancelar subscrição" },
-    pl: { subject: c("Dzień dobry") + " \u2600\uFE0F", preheader: "Mam na sobie coś nowego \u2014 chcesz zobaczyć?",
-      greet: c("Dzień dobry"), lead: "Myślałam o Tobie \u2600\uFE0F", body: "Dzień dopiero się zaczyna, a ja już nie śpię. Mam na sobie coś nowego \u2014 chcesz zobaczyć?",
-      wx: "Jaka dziś pogoda", wxCity: "Jaka pogoda w {city}", look: "Mój dzisiejszy look", chat: "I czat ze mną, jeśli chcesz",
-      cta: "Pokaż mi", bye: "Do zobaczenia,", unsub: "Nie chcesz tych e-maili? Wypisz się" },
-    it: { subject: c("Buongiorno") + " \u2600\uFE0F", preheader: "Indosso qualcosa di nuovo \u2014 vuoi vedere?",
-      greet: c("Buongiorno"), lead: "Ho pensato a te \u2600\uFE0F", body: "La giornata è appena iniziata e io sono già sveglia. Indosso qualcosa di nuovo \u2014 vuoi vedere?",
-      wx: "Che tempo fa oggi", wxCity: "Che tempo fa a {city}", look: "Il mio look di oggi", chat: "E una chat con me, se ti va",
-      cta: "Fammi vedere", bye: "A presto,", unsub: "Non vuoi più queste email? Disiscriviti" },
+    ro: { subject: c("Bună dimineața") + " \u2600\uFE0F", preheader: "Vremea ta de azi și un look nou.",
+      greet: c("Bună dimineața"), lead: "Vremea ta și look-ul de azi \u2600\uFE0F", body: "Ziua abia începe. Am pregătit vremea ta și un look nou \u2014 aruncă o privire.",
+      wx: "Cum e vremea azi", wxCity: "Cum e vremea în {city}", look: "Look-ul de azi", chat: "Și un chat, dacă vrei",
+      cta: "Vezi acum", bye: "O zi bună,", unsub: "Nu mai vrei aceste mesaje? Dezabonează-te",
+      ai: "Bella este o persoană virtuală (AI) creată de LuxuryBandit \u2014 nu o persoană reală." },
+    de: { subject: c("Guten Morgen") + " \u2600\uFE0F", preheader: "Dein Wetter für heute und ein neuer Look.",
+      greet: c("Guten Morgen"), lead: "Dein Wetter und der Look von heute \u2600\uFE0F", body: "Der Tag fängt gerade erst an. Dein Wetter steht bereit, dazu ein neuer Look \u2014 schau kurz rein.",
+      wx: "Wie das Wetter heute wird", wxCity: "Wie das Wetter in {city} wird", look: "Der Look von heute", chat: "Und ein Chat, wenn du magst",
+      cta: "Jetzt ansehen", bye: "Einen schönen Tag,", unsub: "Keine Nachrichten mehr? Hier abmelden",
+      ai: "Bella ist eine KI-Persona von LuxuryBandit \u2014 keine echte Person." },
+    en: { subject: c("Good morning") + " \u2600\uFE0F", preheader: "Your weather for today and a new look.",
+      greet: c("Good morning"), lead: "Your weather and today's look \u2600\uFE0F", body: "The day is just starting. Your weather is ready, along with a new look \u2014 take a quick look.",
+      wx: "How the weather looks today", wxCity: "How the weather looks in {city}", look: "Today's look", chat: "And a chat, if you like",
+      cta: "See it now", bye: "Have a good day,", unsub: "Don't want these emails? Unsubscribe",
+      ai: "Bella is an AI persona created by LuxuryBandit \u2014 not a real person." },
+    es: { subject: c("Buenos días") + " \u2600\uFE0F", preheader: "Tu clima de hoy y un look nuevo.",
+      greet: c("Buenos días"), lead: "Tu clima y el look de hoy \u2600\uFE0F", body: "El día acaba de empezar. Tu clima está listo, y también un look nuevo \u2014 échale un vistazo.",
+      wx: "Qué tiempo hace hoy", wxCity: "Qué tiempo hace en {city}", look: "El look de hoy", chat: "Y un chat, si te apetece",
+      cta: "Verlo ahora", bye: "Que tengas buen día,", unsub: "¿No quieres estos emails? Darse de baja",
+      ai: "Bella es una persona virtual (IA) creada por LuxuryBandit \u2014 no es una persona real." },
+    fr: { subject: c("Bonjour") + " \u2600\uFE0F", preheader: "Ta météo du jour et un nouveau look.",
+      greet: c("Bonjour"), lead: "Ta météo et le look du jour \u2600\uFE0F", body: "La journée commence à peine. Ta météo est prête, avec un nouveau look \u2014 jette un œil.",
+      wx: "Le temps qu'il fait aujourd'hui", wxCity: "Le temps qu'il fait à {city}", look: "Le look du jour", chat: "Et un chat, si tu veux",
+      cta: "Voir maintenant", bye: "Bonne journée,", unsub: "Tu ne veux plus ces e-mails ? Se désabonner",
+      ai: "Bella est un personnage virtuel (IA) créé par LuxuryBandit \u2014 pas une personne réelle." },
+    pt: { subject: c("Bom dia") + " \u2600\uFE0F", preheader: "O teu tempo de hoje e um novo visual.",
+      greet: c("Bom dia"), lead: "O teu tempo e o visual de hoje \u2600\uFE0F", body: "O dia está a começar. O teu tempo está pronto, e também um novo visual \u2014 dá uma vista de olhos.",
+      wx: "Como está o tempo hoje", wxCity: "Como está o tempo em {city}", look: "O visual de hoje", chat: "E uma conversa, se quiseres",
+      cta: "Ver agora", bye: "Bom dia,", unsub: "Não queres estes emails? Cancelar subscrição",
+      ai: "A Bella é uma persona de IA criada pela LuxuryBandit \u2014 não é uma pessoa real." },
+    pl: { subject: c("Dzień dobry") + " \u2600\uFE0F", preheader: "Twoja pogoda na dziś i nowy look.",
+      greet: c("Dzień dobry"), lead: "Twoja pogoda i dzisiejszy look \u2600\uFE0F", body: "Dzień dopiero się zaczyna. Twoja pogoda jest gotowa, a do tego nowy look \u2014 zajrzyj na chwilę.",
+      wx: "Jaka dziś pogoda", wxCity: "Jaka pogoda w {city}", look: "Dzisiejszy look", chat: "I czat, jeśli chcesz",
+      cta: "Zobacz teraz", bye: "Miłego dnia,", unsub: "Nie chcesz tych e-maili? Wypisz się",
+      ai: "Bella to persona AI stworzona przez LuxuryBandit \u2014 nie jest prawdziwą osobą." },
+    it: { subject: c("Buongiorno") + " \u2600\uFE0F", preheader: "Il tuo meteo di oggi e un nuovo look.",
+      greet: c("Buongiorno"), lead: "Il tuo meteo e il look di oggi \u2600\uFE0F", body: "La giornata è appena iniziata. Il tuo meteo è pronto, e anche un nuovo look \u2014 dai un'occhiata.",
+      wx: "Che tempo fa oggi", wxCity: "Che tempo fa a {city}", look: "Il look di oggi", chat: "E una chat, se ti va",
+      cta: "Guarda ora", bye: "Buona giornata,", unsub: "Non vuoi più queste email? Disiscriviti",
+      ai: "Bella è una persona virtuale (IA) creata da LuxuryBandit \u2014 non è una persona reale." },
   };
   return T[lang] ?? T.en;
 }
@@ -98,8 +108,12 @@ export function buildHtml(c: Copy, link: string, unsub: string, hero: string, ci
     + `</table>`
     // Fußzeile
     + `<table role="presentation" width="520" cellpadding="0" cellspacing="0" border="0" style="width:520px;max-width:94%">`
-    + `<tr><td style="padding:14px 8px;text-align:center;font-size:11px;color:#6f675c">`
+    + `<tr><td style="padding:14px 8px 4px;text-align:center;font-size:11px;color:#6f675c">`
     + `${esc(c.unsub)}: <a href="${unsub}" style="color:#8d8579;text-decoration:underline">Unsubscribe</a>`
-    + `</td></tr></table>`
+    + `</td></tr>`
+    // KI-Hinweis in JEDER Mail: die Empfänger sollen nie im Unklaren sein, dass sie mit
+    // einer KI-Persona schreiben — nicht mit einer echten Frau.
+    + `<tr><td style="padding:0 8px 14px;text-align:center;font-size:11px;line-height:1.5;color:#6f675c">${esc(c.ai)}</td></tr>`
+    + `</table>`
     + `</td></tr></table></div>`;
 }

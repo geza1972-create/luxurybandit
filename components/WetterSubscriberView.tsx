@@ -35,7 +35,8 @@ const personalizeName = (text: string, name: string) => {
 // (erste frei = Vorgeschmack, Rest gesperrt mit Schloss → Abo). Muss zu /api/model-chat passen.
 const LINGERIE_TAG = "[[SHOW_LINGERIE]]";
 
-type Msg = { role: "user" | "assistant"; content: string };
+// "notice" = eingeschobene KI-Erinnerung (keine Chat-Blase, wird nicht ans Modell gesendet)
+type Msg = { role: "user" | "assistant" | "notice"; content: string };
 type Look = { kind: "image" | "video"; mediaUrl: string; posterUrl?: string };
 
 
@@ -48,6 +49,7 @@ type Copy = {
   opener: (userName: string, model: string) => string;
   placeholder: (model: string) => string;
   aiNote: (model: string) => string;
+  aiRemind: (model: string) => string;   // wiederkehrende Erinnerung bei Vielschreibern
 };
 const T: Record<string, Copy> = {
   ro: {
@@ -58,6 +60,7 @@ const T: Record<string, Copy> = {
     opener: (n) => `Bună dimineața, ${n}! Mă bucur că ești aici. Cum ai dormit?`,
     placeholder: m => `Scrie-i lui ${m}…`,
     aiNote: m => `✨ Vorbești cu asistentul AI al lui ${m} — o persona AI, nu persoana reală.`,
+    aiRemind: m => `Doar ca să știi: ${m} este o persona AI, nu o persoană reală. Îți răspunde un program.`,
   },
   de: {
     greet: n => `Guten Morgen, ${n}!`,
@@ -67,6 +70,7 @@ const T: Record<string, Copy> = {
     opener: (n) => `Guten Morgen, ${n}! Schön, dass du da bist. Wie hast du geschlafen?`,
     placeholder: m => `Schreib ${m}…`,
     aiNote: m => `✨ Du chattest mit ${m}s KI-Assistentin — eine KI-Persona, nicht die echte Person.`,
+    aiRemind: m => `Nur damit du es weißt: ${m} ist eine KI-Persona, keine echte Person. Dir antwortet ein Programm.`,
   },
   en: {
     greet: n => `Good morning, ${n}!`,
@@ -76,6 +80,7 @@ const T: Record<string, Copy> = {
     opener: (n) => `Good morning, ${n}! So glad you're here. How did you sleep?`,
     placeholder: m => `Message ${m}…`,
     aiNote: m => `✨ You're chatting with ${m}'s AI assistant — an AI persona, not the real person.`,
+    aiRemind: m => `Just so you know: ${m} is an AI persona, not a real person. A program is replying to you.`,
   },
   es: {
     greet: n => `¡Buenos días, ${n}!`,
@@ -85,6 +90,7 @@ const T: Record<string, Copy> = {
     opener: (n) => `¡Buenos días, ${n}! Me alegra que estés aquí. ¿Qué tal dormiste?`,
     placeholder: m => `Escríbele a ${m}…`,
     aiNote: m => `✨ Estás chateando con la asistente AI de ${m} — una persona AI, no la persona real.`,
+    aiRemind: m => `Solo para que lo sepas: ${m} es una persona virtual (IA), no una persona real. Te responde un programa.`,
   },
   fr: {
     greet: n => `Bonjour, ${n} !`,
@@ -94,6 +100,7 @@ const T: Record<string, Copy> = {
     opener: (n) => `Bonjour, ${n} ! Contente que tu sois là. Tu as bien dormi ?`,
     placeholder: m => `Écris à ${m}…`,
     aiNote: m => `✨ Tu discutes avec l'assistante AI de ${m} — une persona AI, pas la vraie personne.`,
+    aiRemind: m => `Pour info : ${m} est un personnage virtuel (IA), pas une personne réelle. C'est un programme qui te répond.`,
   },
   pt: {
     greet: n => `Bom dia, ${n}!`,
@@ -103,6 +110,7 @@ const T: Record<string, Copy> = {
     opener: (n) => `Bom dia, ${n}! Ainda bem que estás aqui. Dormiste bem?`,
     placeholder: m => `Escreve à ${m}…`,
     aiNote: m => `✨ Estás a conversar com a assistente AI da ${m} — uma persona AI, não a pessoa real.`,
+    aiRemind: m => `Só para saberes: a ${m} é uma persona de IA, não uma pessoa real. Quem te responde é um programa.`,
   },
   pl: {
     greet: n => `Dzień dobry, ${n}!`,
@@ -112,6 +120,7 @@ const T: Record<string, Copy> = {
     opener: (n) => `Dzień dobry, ${n}! Cieszę się, że jesteś. Jak spałeś?`,
     placeholder: m => `Napisz do ${m}…`,
     aiNote: m => `✨ Rozmawiasz z asystentką AI ${m} — to persona AI, nie prawdziwa osoba.`,
+    aiRemind: m => `Tak dla jasności: ${m} to persona AI, nie prawdziwa osoba. Odpowiada Ci program.`,
   },
   it: {
     greet: n => `Buongiorno, ${n}!`,
@@ -121,6 +130,7 @@ const T: Record<string, Copy> = {
     opener: (n) => `Buongiorno, ${n}! Che bello averti qui. Hai dormito bene?`,
     placeholder: m => `Scrivi a ${m}…`,
     aiNote: m => `✨ Stai chattando con l'assistente AI di ${m} — una persona AI, non la persona reale.`,
+    aiRemind: m => `Giusto perché tu lo sappia: ${m} è una persona virtuale (IA), non una persona reale. Ti risponde un programma.`,
   },
 };
 
@@ -325,8 +335,19 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         fetch("/api/wetter-stats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelId, kind: "chat" }) }).catch(() => {});
       }
     } catch { /**/ }
-    const next = [...messages, { role: "user" as const, content: text }];
-    setMessages(next); setInput(""); setSending(true);
+    // Hinweise (role "notice") gehören NICHT in den Verlauf fürs Modell — sonst
+    // kommentiert die Persona den Warnhinweis, statt normal weiterzuschreiben.
+    const next = [...messages.filter(m => m.role !== "notice"), { role: "user" as const, content: text }];
+    setMessages(m => [...m, { role: "user" as const, content: text }]); setInput(""); setSending(true);
+    // WIEDERKEHRENDE KI-ERINNERUNG: Wer viel und über Tage hinweg schreibt, soll regelmäßig
+    // daran erinnert werden, dass hier ein Programm antwortet — nicht eine echte Frau. Der
+    // Zähler läuft über ALLE Tage (localStorage), nicht nur die aktuelle Sitzung.
+    try {
+      const wk = `lb_wetter_aiwarn_${modelId}_${subId || name || "anon"}`;
+      const total = (Number(localStorage.getItem(wk)) || 0) + 1;
+      localStorage.setItem(wk, String(total));
+      if (total % 15 === 0) setMessages(m => [...m, { role: "notice" as const, content: t.aiRemind(modelName) }]);
+    } catch { /**/ }
     try {
       const res = await fetch("/api/model-chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -438,6 +459,13 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         </div>
         <div ref={scrollRef} className="relative max-h-[46vh] space-y-3 overflow-y-auto px-4 py-4">
           {messages.map((m, i) => {
+            // KI-Erinnerung: bewusst KEINE Chat-Blase — sie soll erkennbar von der Plattform
+            // kommen und nicht von „ihr", sonst wirkt der Hinweis wie Teil des Rollenspiels.
+            if (m.role === "notice") return (
+              <div key={i} className="my-1 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-center text-[11px] font-bold leading-snug text-amber-200">
+                ⚠️ {m.content}
+              </div>
+            );
             const offers = m.role === "assistant" && m.content.includes(LINGERIE_TAG);
             const text = offers ? m.content.replace(LINGERIE_TAG, "").trim() : m.content;
             const seeLbl = (({ ro: "Vezi-mă 🔥", de: "Sieh mich 🔥", en: "See me 🔥", es: "Verme 🔥", fr: "Vois-moi 🔥", pt: "Vê-me 🔥", pl: "Zobacz 🔥", it: "Guardami 🔥" } as Record<string, string>)[L]) ?? "See me 🔥";
