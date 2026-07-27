@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Holiday with your dream girl — you and her, 25 moments | LuxuryBandit",
-  description: "Upload your photo, pick her, pick the moment — a walk on the beach, a kiss, coffee, dancing. You make the videos yourself: 8 € the first month, then 49 € a month; every extra video 3.99 €.",
+  description: "Upload your photo, pick her, pick the moment — a walk on the beach, a kiss, coffee, dancing. You make the videos yourself: 49 € a month, every extra video 3.99 €.",
   keywords: ["ai video generator", "ai girlfriend video", "holiday video with ai model", "put yourself in a video", "ai model video maker", "face swap video ai", "virtual girlfriend photos"],
   alternates: { canonical: "/themes/holiday" },
 };
@@ -70,8 +70,8 @@ export default async function HolidayThemePage() {
           <div>
             <SectionTitle>What it costs</SectionTitle>
             <Lead>
-              The first video starts your Holiday subscription: 8 € for the first month, then 49 €
-              a month — the same as every topic here. Every extra video after that is 3.99 €. You can cancel the
+              The first video starts your Holiday subscription at 49 € a month — the same as every
+              topic here. Every extra video after that is 3.99 €. You can cancel the
               subscription in your account at any time; the month you paid for stays yours.
             </Lead>
           </div>

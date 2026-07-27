@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       email: String(body?.email ?? "").trim() || undefined,
       // Aktionscode aus der Anzeige → Gutschein (Zuordnung liegt serverseitig, siehe lib/promo).
       // Aktionscode aus der Anzeige schlägt den Standard; sonst gilt der
-      // Einstiegs-Gutschein: 8 € im ersten Monat, danach 49 €.
+      // Einstiegs-Gutschein nur, falls gesetzt — sonst gilt der volle Preis.
       coupon: couponFor(String(body?.code ?? "")) ?? firstMonthCoupon(),
       successUrl: `${back}${back.includes("?") ? "&" : "?"}paid=1`,
       cancelUrl: `${back}${back.includes("?") ? "&" : "?"}cancelled=1`,

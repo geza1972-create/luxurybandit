@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Chat with an AI girl — talk every day, dress her in new looks | LuxuryBandit",
-  description: "Pick any woman or upload your own photo of her, then text her every day. Your AI girl answers in your language and wears the looks you choose: 8 € first month, then 49 € a month incl. 5 looks; every extra look 3.99 €.",
+  description: "Pick any woman or upload your own photo of her, then text her every day. Your AI girl answers in your language and wears the looks you choose: 49 € a month incl. 5 looks; every extra look 3.99 €.",
   keywords: ["chat with ai girl", "ai girlfriend chat", "ai chat girl", "virtual girlfriend app", "ai companion chat", "ai model chat", "dress up ai model", "ai influencer chat"],
   alternates: { canonical: "/themes/chat" },
 };
@@ -40,7 +40,7 @@ export default async function ChatThemePage() {
           Polish — she answers in whatever language you use, and switches the moment you do.
         </Lead>
         <Fine>
-          8 € for the first month, then 49 € a month: chat every day — up to 200 messages a day,
+          49 € a month: chat every day — up to 200 messages a day,
           which is roughly two hours of talking — plus 5 new looks on her. Every look after that is 3.99 €. She is an AI
           character, and she says so herself every so often.
         </Fine>

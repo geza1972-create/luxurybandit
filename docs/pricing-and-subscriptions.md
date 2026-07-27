@@ -6,22 +6,22 @@ schauen (und gegen den Code prüfen). Stand: 2026-07-26.
 > „Anzeige-Preis im Code" ≠ „tatsächliche Abbuchung". Die echte Abbuchung läuft über
 > **Stripe** (Preis-ID + ggf. Gutschein). Den Stripe-Teil legt der Owner an, nicht Claude.
 
-## THEMEN-ABO = 8 € ERSTER MONAT, DANN 49 €/MONAT (Owner, 27.07.2026 — löst die 24 € ab)
+## THEMEN-ABO = 49 EUR/MONAT, MIT AKTIONSCODE 19 EUR IM ERSTEN MONAT (Owner, 27.07.2026)
 
-**Jedes Themen-Abo: 8 € im ersten Monat, danach 49 €/Monat.** Begründung des Owners: Ein
-verschenkter oder dauerhaft niedriger Preis bringt Leute, die nie zahlen. Der günstige
-Einstieg qualifiziert (die Karte wird gezogen), der laufende Preis trägt das Produkt.
+**Standard: 49 €/Monat pro Thema.** Wer über eine Anzeige mit **Aktionscode** kommt, zahlt
+im **ersten Monat 19 €**, danach ebenfalls 49 €. Begründung des Owners: ein verschenkter
+oder dauerhaft niedriger Preis bringt Leute, die nie zahlen — der Code qualifiziert (die
+Karte wird gezogen), der laufende Preis trägt das Produkt. Das alte 24-€-Modell ist weg.
 
-Technisch: `lib/pricing.ts` ist die einzige Quelle. `STRIPE_TOPIC_ABO_PRICE_ID` = der
-49-€-Preis, `STRIPE_FIRST_MONTH_COUPON` = Gutschein über 41 € einmalig (49 − 41 = 8 €).
-Fehlt der Gutschein, zahlt der Kunde sofort 49 € — der Kauf bricht nicht ab. Ein
-Aktionscode aus einer Anzeige (`lib/promo.ts`) schlägt den Standard-Gutschein.
+Technisch: `lib/pricing.ts` ist die einzige Quelle.
+- `STRIPE_TOPIC_ABO_PRICE_ID` = der 49-€-Preis (legt der Owner in Stripe an)
+- `STRIPE_PROMO_CODES={"<CODE>":"<coupon-id>"}` = Anzeigen-Code → Gutschein über 30 €
+  einmalig (49 − 30 = 19 € im ersten Monat), siehe `lib/promo.ts`
+- `STRIPE_FIRST_MONTH_COUPON` bleibt LEER, solange der Rabatt nur mit Code gelten soll
+Ein unbekannter Code bricht den Kauf nicht ab — es gilt dann der volle Preis.
 
-### ALT (überholt): 24 € pro Thema
-**Der frühere Standardpreis war 24 €/Monat.** Es gibt keine 19,99-Stufe und
-kein Bündel. Ein Nutzer kann **mehrere Themen** abonnieren und zahlt dann **pro Thema
-24 €** (zwei Themen = 48 €/Monat). Jedes Abo ist in Stripe ein eigenes Abo und wird
-einzeln gekündigt.
+Ein Nutzer kann **mehrere Themen** abonnieren und zahlt **pro Thema**. Jedes Abo ist in
+Stripe ein eigenes Abo und wird einzeln gekündigt.
 
 Verwaltung: **`/account`** („My topics & billing") — Liste aller Themen-Abos des Kunden mit
 Preis, nächster Abbuchung und Kündigen-Knopf (`components/MyTopics.tsx`,

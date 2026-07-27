@@ -369,10 +369,10 @@ export default function ChatFunnel() {
           ) : wall ? (
             <div className="text-center">
               <p className="text-[13px] font-black text-black">Keep talking to {herName}</p>
-              <p className="mt-0.5 text-[12px] font-bold leading-snug text-black/60">8 € the first month, then 49 € — every day, plus {LOOKS_INCLUDED} new looks on her.</p>
+              <p className="mt-0.5 text-[12px] font-bold leading-snug text-black/60">49 € a month — every day, plus {LOOKS_INCLUDED} new looks on her.</p>
               <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
                 className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-black text-[13px] font-black text-white active:scale-95 transition disabled:opacity-40">
-                {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Unlock — 8 € first month
+                {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Unlock — 49 €/month
               </button>
             </div>
           ) : (
@@ -429,7 +429,7 @@ export default function ChatFunnel() {
       <button type="button" onClick={() => void dressHer()} disabled={!chosen || dressBusy}
         className="lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-50">
         {dressBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shirt className="h-4 w-4" />}
-        {dressBusy ? "Dressing her …" : !paid && !isStaff ? "Dress her — 8 € first month" : looksLeft > 0 ? `Put this on ${herName || "her"}` : "One more look — €3.99"}
+        {dressBusy ? "Dressing her …" : !paid && !isStaff ? "Dress her — 49 €/month" : looksLeft > 0 ? `Put this on ${herName || "her"}` : "One more look — €3.99"}
       </button>
       {status && <p className="mt-2 text-center text-[13px] font-bold text-white/80">{status}</p>}
 
