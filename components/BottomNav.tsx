@@ -367,6 +367,14 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-[13px] font-bold">Birthdays — manage</span>
                 </button>
               )}
+              {/* Holiday with your dream girl — er macht die Videos selbst (25 Momente). */}
+              {isStaff && (
+                <button type="button" onClick={() => navigate("/themes/holiday")}
+                  className="flex w-full items-center gap-3 px-5 py-3 text-left text-white/60 active:bg-white/[0.06] transition">
+                  <Palmtree className="h-4 w-4 shrink-0 text-emerald-400" />
+                  <span className="text-[13px] font-bold">Holiday — open</span>
+                </button>
+              )}
               {/* Surprise him — sie schickt ihm ein privates Video (3,99 €). */}
               {isStaff && (
                 <button type="button" onClick={() => navigate("/themes/surprise?admin=1")}
