@@ -298,3 +298,13 @@ svg {
 /* Inputs: placeholder + caret readable on dark */
 .lb-dark input, .lb-dark textarea, .lb-dark select { color: #e7e7ea; caret-color: #e7e7ea; }
 .lb-dark input::placeholder, .lb-dark textarea::placeholder { color: rgba(231, 231, 235, 0.4); }
+
+/* Try-On-Teaser: blendet sanft zwischen „angezogen" und „in Lingerie" hin und her —
+   zeigt in zwei Sekunden, was Try-On macht. Nur für die Werbekarte im Wetter-Thema. */
+@keyframes lb-swap {
+  0%, 42%   { opacity: 1; }
+  50%, 92%  { opacity: 0; }
+  100%      { opacity: 1; }
+}
+.lb-swap-top { animation: lb-swap 5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .lb-swap-top { animation: none; } }

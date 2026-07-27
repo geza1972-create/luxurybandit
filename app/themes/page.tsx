@@ -44,11 +44,16 @@ export default async function ThemesCatalog() {
   } catch { /**/ }
   const ph = (i: number) => placeholders[i % Math.max(1, placeholders.length)] || undefined;
 
-  // Kiss-Teaser-Bild (vom Admin im Kiss-Medien-Tool hochgeladen) als Cover der Kiss-Karte.
-  let kissCover = "";
+  // Kiss-Teaser (vom Admin im Kiss-Medien-Tool hochgeladen) als Cover der Kiss-Karte.
+  // Er darf BILD ODER VIDEO sein — ein Video muss ins `video`-Feld, sonst landet eine
+  // .mp4 in einem <img> und die Karte zeigt ein kaputtes Bild.
+  let kissCover = "", kissVideo = "";
   try {
     const kc = await readKissConfig();
-    if (kc.teaserPath) kissCover = await getSignedUrl(kc.teaserPath).catch(() => "");
+    if (kc.teaserPath) {
+      const url = await getSignedUrl(kc.teaserPath).catch(() => "");
+      if (/\.(mp4|webm|mov)$/i.test(kc.teaserPath)) kissVideo = url; else kissCover = url;
+    }
   } catch { /**/ }
 
   const THEMES: Theme[] = [
@@ -56,7 +61,7 @@ export default async function ThemesCatalog() {
     { icon: Palmtree, title: "Holiday with Bella", tagline: "She travels for you — daily videos & stories from Tenerife.", href: "/urlaub-mit-bella", cover: ph(5), chips: "♥ Tenerife · Videos · Stories" },
     { icon: Shirt, title: "Try-On", tagline: "Pick a look, pick a model — watch her wear it in a video.", href: "/themes/tryon", cover: ph(6), chips: "♥ Look · Model · Video" },
     { icon: Star, title: "Your Idol", tagline: "Upload her photo — she becomes your AI model.", href: "/your-idol", cover: ph(7), chips: "♥ Upload · Chat · Video" },
-    { icon: Heart, title: "Kiss any Model", tagline: "Your photo + her — a tender kiss in one video.", href: "/themes/kiss", cover: kissCover || ph(8), chips: "♥ Pick her · Your photo · Kiss" },
+    { icon: Heart, title: "Kiss any Model", tagline: "Your photo + her — a tender kiss in one video.", href: "/themes/kiss", cover: kissCover || ph(8), video: kissVideo || undefined, chips: "♥ Pick her · Your photo · Kiss" },
     { icon: Cake, title: "Birthdays", tagline: "Auto birthday wishes — for you & your friends.", cover: ph(4) },
     { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every single day.", cover: ph(0) },
     { icon: Flame, title: "Lingerie Looks", tagline: "A daily intimate look — tasteful, private.", cover: ph(1) },

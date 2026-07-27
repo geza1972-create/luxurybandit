@@ -14,7 +14,7 @@ import { personalize } from "@/lib/personalize";
 import { translateMany } from "@/lib/translate";
 import { fetchForecastLine } from "@/lib/wetter-forecast";
 import WetterLangSwitcher from "@/components/WetterLangSwitcher";
-import { readTryThisLookState, readCardStudioSlides, readWetterSubscribers, readWetterClicks, readWetterPaid, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
+import { readTryThisLookState, readCardStudioSlides, readWetterSubscribers, readWetterClicks, readWetterPaid, readKissConfig, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
 
 // THEMA „Wetter am Morgen" — MODEL-AGNOSTISCH über /wetter/<model> (dieses Mal bella, kann jede sein).
 // Besucher = Karussell + RO-Signup (Lead). Abonnent (?name=&city=&lang=) = Gruß + Wetter + Look + Chat.
@@ -108,15 +108,40 @@ export default async function WetterModelPage({ params, searchParams }: {
   const modelName = String(curator.modelName || curator.firstName || "Model").split(" ")[0];
 
   // Cross-Sell-SLIDER: mehrere bezahlte Models auf Bellas Wetter-Seite → je ihr Profil (Chat 3,99/Tag + Try-ons).
-  // Aria zuerst (aus der Werbung), dann weitere aktive Models mit Foto. Gedeckelt auf 12 (Signieren).
+  // Aria zuerst (aus der Werbung), dann ALLE weiteren aktiven Models mit Foto — kein Deckel
+  // mehr (Owner-Wunsch). Die Bilder werden parallel signiert; der Slider scrollt horizontal.
   const CROSS_FEATURED_ID = "curator-1783844821720-bf178";   // Aria
   const crossCandidates = (state.curators ?? []).filter(c => {
     const cc = c as { id?: string; status?: string; photoPath?: string };
     return cc.id !== modelId && !!cc.photoPath && (cc.status === undefined || cc.status === "active");
   }) as { id: string; photoPath?: string; modelName?: string; firstName?: string }[];
   const crossOrdered = [...crossCandidates]
-    .sort((a, b) => (a.id === CROSS_FEATURED_ID ? -1 : 0) - (b.id === CROSS_FEATURED_ID ? -1 : 0))
-    .slice(0, 12);
+    .sort((a, b) => (a.id === CROSS_FEATURED_ID ? -1 : 0) - (b.id === CROSS_FEATURED_ID ? -1 : 0));
+  // Poster für die beiden Mitmach-Karten unter dem Chat:
+  //  · Kiss  → der Theme-Teaser aus dem Kiss-Medien-Tool (Bild ODER Video)
+  //  · Try-On → das Look-Bild des Funnel-Standardlooks
+  let kissTeaser = "", kissTeaserIsVideo = false, tryonTeaser = "";
+  try {
+    const kc = await readKissConfig();
+    if (kc.teaserPath) {
+      kissTeaser = (await getSignedUrl(kc.teaserPath).catch(() => "")) || "";
+      kissTeaserIsVideo = /\.(mp4|webm|mov)$/i.test(kc.teaserPath);
+    }
+  } catch { /**/ }
+  // Try-On-Karte ANIMIERT: sie blendet zwischen „angezogen" und „in Lingerie" hin und her —
+  // das zeigt in zwei Sekunden, was Try-On kann. „Angezogen" = ihr Profilfoto, „Lingerie" =
+  // der erste als `lingerie` markierte Beitrag.
+  let tryonDressed = "", tryonLingerie = "";
+  try {
+    const me = (state.curators ?? []).find(c => (c as { id?: string }).id === modelId) as { photoPath?: string } | undefined;
+    if (me?.photoPath) tryonDressed = (await getSignedUrl(me.photoPath).catch(() => "")) || "";
+    const slides = (await readCardStudioSlides(modelId)).filter(isPublicBellaPost);
+    const ling = slides.find(s => s.garmentCat === "lingerie" && (s.kind === "video" ? s.posterPath : s.path));
+    const lp = ling ? (ling.kind === "video" ? ling.posterPath : ling.path) : "";
+    if (lp) tryonLingerie = (await getSignedUrl(lp).catch(() => "")) || "";
+  } catch { /**/ }
+  tryonTeaser = tryonDressed || tryonLingerie;
+
   const crossModels = (await Promise.all(crossOrdered.map(async c => {
     const img = c.photoPath ? await getSignedUrl(c.photoPath).catch(() => "") : "";
     const name = String(c.modelName || c.firstName || "").split(" ")[0];
@@ -241,7 +266,7 @@ export default async function WetterModelPage({ params, searchParams }: {
             <p className="mx-auto max-w-md px-4 pt-4 text-center text-[13px] font-black text-emerald-400">{CONFIRMED_TEXT[subLang] ?? CONFIRMED_TEXT.en}</p>
           )}
           <WetterSubscriberView name={subName} city={subCity || ipCity || FALLBACK_CITY[subLang] || "London"} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken} email={subEmail}
-            locked={locked} paid={paid} modelSlug={model} monthlyCents={2400} crossModels={crossModels}
+            locked={locked} paid={paid} modelSlug={model} monthlyCents={2400} crossModels={crossModels} kissTeaser={kissTeaser} kissTeaserIsVideo={kissTeaserIsVideo} tryonTeaser={tryonTeaser} tryonLingerie={tryonLingerie}
             day={dayLook?.day || ""} time={dayLook?.time || ""}
             title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.context || ""} dayContext={dayLook?.context || ""}
             look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />
