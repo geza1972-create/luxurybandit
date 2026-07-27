@@ -112,10 +112,13 @@ Dokument als Nachweis belastbar bleibt.
    bestehen unabhängig davon fort, heben eine solche Antwort aber nicht auf.
    *Empfehlung: bei direkter Frage wahrheitsgemäß antworten.*
 
-2. **Keine Alterskontrolle aktiv.**
-   Die Komponente `components/AgeGate.tsx` existiert, ist aber **an keiner Stelle
-   eingebunden** (Stand 2026-07-27 geprüft). Es findet derzeit **keine** 18+-Abfrage statt,
-   obwohl Inhalte und Chat-Ton erwachsenes Publikum adressieren.
+2. **Alterskontrolle — teilweise gelöst (2026-07-27).**
+   Die 18+-Abfrage (`components/AgeGate.tsx`) war zuvor an keiner Stelle eingebunden. Sie
+   wird jetzt auf `app/themes/wetter/[model]` gerendert — also genau dort, wo der Klick aus
+   der Tages-E-Mail landet und wo Dessous-Inhalte gezeigt werden. Sie erscheint in 8
+   Sprachen, einmal pro Gerät; Administratoren und Suchmaschinen-Crawler sind ausgenommen.
+   **Noch offen:** Andere Bereiche mit vergleichbaren Inhalten (Feed, Try-on-Funnel,
+   `/themes/kiss`) sind derzeit **nicht** durch die Abfrage geschützt.
 
 3. **Die wiederkehrende Erinnerung ist browsergebunden.**
    Der Zähler liegt im lokalen Speicher des Geräts. Bei Gerätewechsel oder gelöschten
