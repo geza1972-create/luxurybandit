@@ -71,15 +71,16 @@ export default function SurpriseFunnel({ example = "" }: { example?: string }) {
       const p = localStorage.getItem("luxurybandit-try-look-admin-pin") ?? "";
       setPin(p); setIsStaff(!!p && !localStorage.getItem("lb_preview_model"));
     } catch { /**/ }
-    // Lingerie-Sets aus dem Katalog — sie wählt eins aus dem Slider, es landet auf IHREM Foto.
+    // ALLE Kleidungsstücke aus dem Katalog (Owner): Kleider, Outfits UND Dessous — sie
+    // entscheidet selbst, wie viel sie zeigt. Dessous stehen vorn, weil sie hier gemeint sind.
     fetch("/api/try-this-look", { cache: "no-store" })
       .then(r => r.json())
       .then(d => {
-        const all: Look[] = (Array.isArray(d?.looks) ? d.looks : [])
-          .filter((l: { lingerie?: boolean; category?: string; imageUrl?: string }) =>
-            !!l.imageUrl && (l.lingerie === true || l.category === "boudoir"))
-          .map((l: Look) => ({ id: l.id, name: l.name, imageUrl: l.imageUrl }));
-        setLooks(all.slice(0, 40));
+        const all: (Look & { hot?: boolean })[] = (Array.isArray(d?.looks) ? d.looks : [])
+          .filter((l: { imageUrl?: string }) => !!l.imageUrl)
+          .map((l: Look & { lingerie?: boolean; category?: string }) =>
+            ({ id: l.id, name: l.name, imageUrl: l.imageUrl, hot: l.lingerie === true || l.category === "boudoir" }));
+        setLooks([...all.filter(l => l.hot), ...all.filter(l => !l.hot)].slice(0, 80));
       })
       .catch(() => {});
     return () => { runRef.current = -1; };
@@ -200,7 +201,7 @@ export default function SurpriseFunnel({ example = "" }: { example?: string }) {
               )}
               <ImageUp className="relative h-8 w-8 text-[#f6cf51]" />
               <span className="relative px-4 text-center text-[13px] font-black text-[#f6cf51]">Upload a photo of yourself</span>
-              <span className="relative px-5 text-center text-[12px] font-bold leading-snug text-white">A full-body photo works best — the lingerie is put on YOU.</span>
+              <span className="relative px-5 text-center text-[12px] font-bold leading-snug text-white">A full-body photo works best — the outfit is put on YOU.</span>
             </>)}
       </button>
       {photo && (
@@ -211,8 +212,8 @@ export default function SurpriseFunnel({ example = "" }: { example?: string }) {
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => void onFile(e.target.files?.[0])} />
 
       {/* 2 — Lingerie aus dem Katalog wählen (Coverflow wie im Try-On/Kiss) */}
-      <p className="mt-6 text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">2 · Pick your lingerie</p>
-      <p className="mt-1 text-[13px] font-bold text-white">Swipe and tap the set you want to wear.</p>
+      <p className="mt-6 text-[12px] font-black uppercase tracking-wide text-[#f6cf51]">2 · Pick what you wear</p>
+      <p className="mt-1 text-[13px] font-bold text-white">Swipe and tap what you want to wear — a dress, an outfit, or lingerie.</p>
       {looks.length === 0 ? (
         <div className="grid h-24 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>
       ) : (
