@@ -28,6 +28,8 @@ export default async function SurpriseThemePage({ searchParams }: {
   // Beispielfoto (Gina in Rot) — liegt im Storage unter diesem festen Pfad. Fehlt es,
   // zeigt die Upload-Karte einfach nur die Aufforderung.
   const example = (await getSignedUrl("try-this-look/uploads/surprise-example.jpg").catch(() => "")) || "";
+  // Beispielvideo: genau das, was hinten rauskommt (Gina im roten Set, sie spricht ihn an).
+  const exampleVideo = (await getSignedUrl("try-this-look/videos/surprise-example.mp4").catch(() => "")) || "";
 
   return (
     <main className="lb-bg min-h-screen text-white">
@@ -48,6 +50,17 @@ export default async function SurpriseThemePage({ searchParams }: {
             </Fine>
 
             <SurpriseFunnel example={example} />
+
+            {exampleVideo && (
+              <div className="mt-12">
+                <SectionTitle>This is what he gets</SectionTitle>
+                <Lead>She looks into the camera and says his name — that is the whole surprise.</Lead>
+                <div className="mt-3 overflow-hidden rounded-2xl border border-white/10">
+                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                  <video src={exampleVideo} controls loop playsInline preload="metadata" className="aspect-[3/4] w-full object-cover" />
+                </div>
+              </div>
+            )}
 
             <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
               <div>
