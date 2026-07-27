@@ -33,9 +33,17 @@ export async function POST(request: Request) {
   let modelName = "Bella";
   try {
     const slides = (await readCardStudioSlides(modelId)).filter(isPublicBellaPost).sort(sortBellaPosts);
-    // Video → Poster, Bild → das Bild selbst. Erster Beitrag, der eins von beidem hat.
-    const usable = slides.find(s => (s.kind === "video" ? s.posterPath : s.path));
-    const path = usable ? (usable.kind === "video" ? usable.posterPath : usable.path) : "";
+    // GENAU dieselbe Auswahl wie die Abonnentenseite: der Beitrag von HEUTE (day == heute),
+    // sonst der neueste vergangene, sonst der erste. Ad-Beiträge (Besucher-Werbung) nie.
+    // Sonst verschickt die Mail das Poster von gestern, während die Seite das neue zeigt.
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const nonAd = slides.filter(s => (s as { ad?: boolean }).ad !== true);
+    const pick =
+      nonAd.find(s => s.day === todayISO)
+      ?? [...nonAd].filter(s => s.day && s.day <= todayISO).sort((a, b) => String(b.day).localeCompare(String(a.day)))[0]
+      ?? nonAd[0] ?? slides[0];
+    // Video → Poster, Bild → das Bild selbst.
+    const path = pick ? (pick.kind === "video" ? (pick.posterPath || "") : pick.path) : "";
     if (path) hero = (await getSignedUrl(path, 60 * 60 * 24 * 365).catch(() => "")) || "";
   } catch { /* ohne Bild ist die Mail trotzdem gültig */ }
   try {
