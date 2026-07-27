@@ -149,11 +149,12 @@ export default async function ThemesCatalog() {
   } catch { /**/ }
 
   // Vom Owner gelieferte Theme-Videos, fest im Storage abgelegt.
-  let birthdayVideo = "", cityVideo = "", luxuryVideo = "", idolVideo = "", lingerieVideo = "";
+  let birthdayVideo = "", surpriseVideo = "", luxuryVideo = "", idolVideo = "", lingerieVideo = "";
   try {
-    [birthdayVideo, cityVideo, luxuryVideo, idolVideo, lingerieVideo] = await Promise.all([
+    [birthdayVideo, surpriseVideo, luxuryVideo, idolVideo, lingerieVideo] = await Promise.all([
       getSignedUrl("try-this-look/videos/birthday-bella-cake.mp4").catch(() => ""),
-      getSignedUrl("try-this-look/videos/city-secrets.mp4").catch(() => ""),
+      // „Surprise him" zeigt genau das, was hinten rauskommt — das Beispielvideo.
+      getSignedUrl("try-this-look/videos/surprise-example.mp4").catch(() => ""),
       getSignedUrl("try-this-look/videos/luxury-looks.mp4").catch(() => ""),
       getSignedUrl("try-this-look/videos/your-idol-with-you.mp4").catch(() => ""),
       getSignedUrl("try-this-look/videos/lingerie-looks.mp4").catch(() => ""),
@@ -184,7 +185,7 @@ export default async function ThemesCatalog() {
     { icon: Flame, title: "Lingerie Looks", tagline: "See her in lingerie — any look, in a video.", href: TRYON, cover: tryonLingerie || ph(1), video: lingerieVideo || undefined, chips: "♥ Lingerie · Model · Video" },
     // „City Secrets" ist zu „Surprise him" geworden (Owner, 27.07.2026): SIE lädt ihr
     // eigenes Foto hoch und schickt IHM ein privates Video — 3,99 € pro Video.
-    { icon: Gift, title: "Surprise him", tagline: "Your photo → a private video only he can open.", href: "/themes/surprise", cover: ph(2), video: cityVideo || undefined, chips: "♥ Your photo · Private link · 3,99 €" },
+    { icon: Gift, title: "Surprise him", tagline: "Your photo → a private video only he can open.", href: "/themes/surprise", cover: ph(2), video: surpriseVideo || undefined, chips: "♥ Your photo · Private link · 3,99 €" },
   ];
 
   return (
