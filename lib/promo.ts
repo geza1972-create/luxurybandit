@@ -18,7 +18,13 @@
 
 // Fest hinterlegt, damit ein Code auch dann gilt, wenn die Env in der Produktion fehlt —
 // genau daran ist der 19-EUR-Preis am 27.07.2026 live gescheitert. Env ergaenzt/ueberschreibt.
-const BUILTIN: Record<string, string> = { BELLA: "Mr0NlGBT" };
+const BUILTIN: Record<string, string> = {
+  BELLA: "Mr0NlGBT",        // Anzeige: 30 € einmalig  → 19 € im ersten Monat
+  // ADMIN-Codes zum DURCHTESTEN bis zur echten Zahlung (100 %, dauerhaft). Bewusst hier
+  // und nicht in der Env, damit der Owner auch in der Produktion testen kann.
+  ADMIN100: "hvJ8ZO7c",
+  ADMIN1972: "c1YEsyFu",
+};
 
 export function couponFor(code: string): string | undefined {
   const key = (code ?? "").trim().toUpperCase();
