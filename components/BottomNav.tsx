@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid, Crown, UserPlus, Film, Layers, CloudSun, Palmtree, Heart } from "lucide-react";
+import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid, Crown, UserPlus, Film, Layers, CloudSun, Palmtree, Heart, Cake } from "lucide-react";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -357,7 +357,15 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-[13px] font-bold">Kiss — manage</span>
                 </button>
               )}
-              {/* „Das was noch kommt": weitere Themen (Birthdays, Luxury Looks …) leben im
+              {/* Birthdays — Name eingeben, sie gratuliert, teilen (3,99 € pro Video). */}
+              {isStaff && (
+                <button type="button" onClick={() => navigate("/themes/birthday?admin=1")}
+                  className="flex w-full items-center gap-3 px-5 py-3 text-left text-white/60 active:bg-white/[0.06] transition">
+                  <Cake className="h-4 w-4 shrink-0 text-violet-400" />
+                  <span className="text-[13px] font-bold">Birthdays — manage</span>
+                </button>
+              )}
+              {/* „Das was noch kommt": weitere Themen (Luxury Looks …) leben im
                   Themes-Katalog /themes als coming-soon — hier nur die aktiven Shortcuts. */}
               {/* Reels — the swipeable video/story feed. Not for a model (her Home covers her needs). */}
               {!isCurator && (

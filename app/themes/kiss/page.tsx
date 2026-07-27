@@ -47,7 +47,7 @@ export default async function KissThemePage({ searchParams }: {
               Pick her, upload your photo — and watch the two of you share a tender kiss in a video. Your little movie moment.
             </p>
 
-            {/* Der Kiss-Funnel (Coverflow + Foto + Fake-Render → $3.99) */}
+            {/* Der Kiss-Funnel (Coverflow + Foto + Fake-Render → Abo 24 €) */}
             <KissFunnel />
 
             {/* Beispiel-Videos (Admin lädt sie im Kiss-Medien-Tool hoch) */}
