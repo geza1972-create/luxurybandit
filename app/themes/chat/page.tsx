@@ -62,19 +62,10 @@ export default async function ChatThemePage({ searchParams }: {
     <main className="lb-bg min-h-screen text-white">
       <TopNav />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
-        <Kicker>LuxuryBandit · Chat</Kicker>
-        <H1>Chat with an <Y>AI girl</Y></H1>
-        <Lead>
-          Pick one of our models — or upload a photo of the woman you have in mind — and write
-          with her every day. Write in German, English, Romanian, Spanish, French, Italian,
-          Polish — she answers in whatever language you use, and switches the moment you do.
-        </Lead>
-        <Fine>
-          Chatting is free. The subscription is for the pictures and videos: 49 € a month gives you
-          25 generations across ALL topics together — here, in Holiday, in Kiss, wherever you like.
-          Every one beyond that is 3.99 €. She is an AI
-          character, and she says so herself every so often.
-        </Fine>
+        <Kicker>{t.kicker}</Kicker>
+        <H1>{t.h1a} <Y>{t.h1b}</Y></H1>
+        <Lead>{t.lead}</Lead>
+        <Fine>{t.fine}</Fine>
 
         {(photos.length > 0 || clips.length > 0) && (
           <div className="-mx-4 mt-5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2">
@@ -95,49 +86,29 @@ export default async function ChatThemePage({ searchParams }: {
         )}
 
         {code && (
-          <p className="mt-4 rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/10 px-4 py-3 text-[13px] font-bold leading-snug text-[#f6cf51]">
-            Code {code.toUpperCase()} is yours: chatting is free anyway — when you want the videos,
-            your first month is 19 € instead of 49 €.
-          </p>
+          <p className="mt-4 rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/10 px-4 py-3 text-[13px] font-bold leading-snug text-[#f6cf51]">{t.codeNote}</p>
         )}
 
-        <ChatFunnel code={code} />
+        <ChatFunnel code={code} lang={L} />
 
         <SubscribeCta code={code} lang={L} />
 
         <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
           <div>
-            <SectionTitle>Any woman, not just ours</SectionTitle>
-            <Lead>
-              Our catalogue has 46 models you can start with. If none of them is the one you picture,
-              upload a single photo and give her a name — from that moment she is your AI girl, and
-              she is the one who answers you.
-            </Lead>
+            <SectionTitle>{t.s1h}</SectionTitle>
+            <Lead>{t.s1p}</Lead>
           </div>
           <div>
-            <SectionTitle>She speaks your language</SectionTitle>
-            <Lead>
-              Nearly every language works: start in German and she writes German, switch to English
-              mid-conversation and she follows you. No settings, no language picker — just write the
-              way you normally would.
-            </Lead>
+            <SectionTitle>{t.s2h}</SectionTitle>
+            <Lead>{t.s2p}</Lead>
           </div>
           <div>
-            <SectionTitle>She wears what you choose</SectionTitle>
-            <Lead>
-              Every dress, outfit and lingerie set in our wardrobe can go on her: pick one, and a
-              minute later you have the photo of her in it. Five of those are included every month,
-              each extra one is 3.99 € — and you can show them to her in the chat.
-            </Lead>
+            <SectionTitle>{t.s3h}</SectionTitle>
+            <Lead>{t.s3p}</Lead>
           </div>
           <div>
-            <SectionTitle>Flirty, but honest</SectionTitle>
-            <Lead>
-              She flirts, she asks about your day, she teases. What she never does is claim she
-              missed you or that she has feelings — and every so often she reminds you in the chat
-              that she is an AI. That is deliberate: nobody should fall for something that cannot
-              love them back.
-            </Lead>
+            <SectionTitle>{t.s4h}</SectionTitle>
+            <Lead>{t.s4p}</Lead>
           </div>
         </section>
       </div>
