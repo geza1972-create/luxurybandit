@@ -10,21 +10,30 @@ const BELLA_ID = "curator-1783683672619-td4cy";
 // Setzt `unsubscribed` (kein Löschen → der Admin sieht es und sendet nicht weiter).
 // POST { modelId, s }  (s = die Abonnenten-Kennung aus dem Link)
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { modelId?: string; s?: string; email?: string };
+  const body = (await request.json().catch(() => ({}))) as { modelId?: string; s?: string; email?: string; phone?: string };
   const modelId = String(body.modelId ?? "").trim() || BELLA_ID;
   const id = String(body.s ?? "").trim();
 
-  // Abmelden per E-ADRESSE (öffentliche Seite /unsubscribe — wer den Link aus der Mail
-  // nicht mehr hat). Antwortet IMMER mit ok, auch wenn die Adresse unbekannt ist: sonst
-  // ließe sich hier abfragen, wer Abonnent ist.
+  // Abmelden über die öffentliche Seite /unsubscribe (wer den Link aus der Mail nicht mehr
+  // hat). Verlangt E-Mail UND Telefonnummer — mit der E-Mail allein könnte sonst jeder
+  // jeden fremden Abonnenten abmelden. Antwortet IMMER mit ok, auch wenn nichts passt:
+  // sonst ließe sich hier abfragen, wer Abonnent ist.
   const email = String(body.email ?? "").trim().toLowerCase();
-  if (!id && email) {
+  const phone = String(body.phone ?? "").trim();
+  if (!id && (email || phone)) {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return NextResponse.json({ error: "invalid-email" }, { status: 400 });
+    // Vergleich über die letzten 8 Ziffern — so passen +40 712…, 0040 712… und 0712…
+    // aufeinander, ohne dass der Nutzer das Format treffen muss.
+    const tail = (v: string) => v.replace(/[^\d]/g, "").slice(-8);
+    const want = tail(phone);
+    if (want.length < 6) return NextResponse.json({ error: "invalid-phone" }, { status: 400 });
     try {
       const subs = await readWetterSubscribers(modelId);
       let changed = false;
       for (const s of subs) {
-        if ((s.email ?? "").trim().toLowerCase() === email && !s.unsubscribed) {
+        const mailOk = (s.email ?? "").trim().toLowerCase() === email;
+        const phoneOk = !!s.phone && tail(s.phone) === want;
+        if (mailOk && phoneOk && !s.unsubscribed) {
           s.unsubscribed = true; s.unsubscribedAt = new Date().toISOString(); changed = true;
         }
       }

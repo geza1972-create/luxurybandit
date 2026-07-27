@@ -9,6 +9,7 @@ import TopNav from "@/components/TopNav";
 // hier nicht abfragen lässt, wer Abonnent ist.
 export default function UnsubscribePage() {
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
@@ -17,11 +18,12 @@ export default function UnsubscribePage() {
     e.preventDefault();
     const value = email.trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) { setError("Please enter a valid email address."); return; }
+    if (phone.replace(/[^\d]/g, "").length < 6) { setError("Please enter the phone number you signed up with."); return; }
     setBusy(true); setError("");
     try {
       const r = await fetch("/api/wetter-unsubscribe", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: value }),
+        body: JSON.stringify({ email: value, phone: phone.trim() }),
       });
       if (!r.ok) { setError("Something went wrong. Please try again."); return; }
       setDone(true);
@@ -45,12 +47,19 @@ export default function UnsubscribePage() {
           <>
             <h1 className="text-[28px] font-black leading-tight">Unsubscribe</h1>
             <p className="mt-2 text-[14px] font-medium leading-snug text-white/70">
-              Enter the email address that receives the daily message and we&apos;ll stop sending it.
+              Enter the email address <strong className="text-white">and</strong> the phone number you
+              signed up with, and we&apos;ll stop the daily message. We ask for both so that nobody can
+              unsubscribe someone else.
             </p>
             <form onSubmit={submit} className="mt-5 grid gap-3" noValidate>
               <input
                 value={email} onChange={e => { setEmail(e.target.value); setError(""); }}
                 type="email" inputMode="email" autoComplete="email" placeholder="Your email address"
+                className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]"
+              />
+              <input
+                value={phone} onChange={e => { setPhone(e.target.value); setError(""); }}
+                type="tel" inputMode="tel" autoComplete="tel" placeholder="Your phone number"
                 className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]"
               />
               <button type="submit" disabled={busy}
