@@ -1965,3 +1965,40 @@ export async function spendVideoCredit(email: string): Promise<number | null> {
   await saveTryThisLookState(state);
   return vc.balances[e];
 }
+
+// ── Surprise-Log („Surprise him"): wer hat wem ein privates Video geschickt ────────────
+// Bewusst schlank: KEIN Foto, KEIN Video-Inhalt hier — nur der Verweis auf die Datei,
+// der Empfänger und das Ablaufdatum. Der Link ist der einzige Zugang; läuft er ab oder
+// wird gemeldet, ist das Video über die Seite nicht mehr erreichbar.
+const SURPRISE_LOG_PATH = "try-this-look/surprise-log.json";
+export type SurpriseEntry = {
+  id: string;              // = Token in der URL /s/<token>
+  createdAt: string;
+  expiresAt: string;       // 7 Tage nach dem Versand
+  toEmail: string;         // Empfänger (für Meldungen/Löschanfragen)
+  fromName?: string;       // optional, wie sie sich nennt
+  videoPath?: string;      // Pfad im Storage (wird beim Ansehen frisch signiert)
+  videoUrl?: string;       // Fallback: langlebige signierte URL
+  consentText?: string;    // exakter Wortlaut, dem sie zugestimmt hat (Nachweis)
+  revoked?: boolean;       // gemeldet/zurückgezogen → Link tot
+  opened?: number;         // wie oft der Link geöffnet wurde
+};
+
+export async function readSurpriseLog(): Promise<SurpriseEntry[]> {
+  try {
+    const res = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(SURPRISE_LOG_PATH)}`);
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => null);
+    return Array.isArray(data?.entries) ? (data.entries as SurpriseEntry[]) : [];
+  } catch { return []; }
+}
+
+export async function writeSurpriseLog(entries: SurpriseEntry[]): Promise<void> {
+  await ensureBucket();
+  const response = await supabaseFetch(`/storage/v1/object/${BUCKET}/${encodeStoragePath(SURPRISE_LOG_PATH)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-upsert": "true", "cache-control": "no-cache, max-age=0" },
+    body: JSON.stringify({ entries: entries.slice(0, 1000), savedAt: new Date().toISOString() }),
+  });
+  if (!response.ok) throw new Error(`Surprise-Log konnte nicht gespeichert werden (${response.status}).`);
+}

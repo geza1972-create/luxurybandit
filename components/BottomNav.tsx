@@ -1,6 +1,6 @@
 "use client";
 
-import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid, Crown, UserPlus, Film, Layers, CloudSun, Palmtree, Heart, Cake } from "lucide-react";
+import { Bookmark, Home, MessageCircle, User, X, Image as ImageIcon, Settings, LogOut, Sparkles, Play, Shirt, Eye, Search, Shield, Menu, LayoutGrid, Crown, UserPlus, Film, Layers, CloudSun, Palmtree, Heart, Cake, Gift } from "lucide-react";
 import { isAdminEmail } from "@/lib/is-admin-email";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -363,6 +363,14 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   className="flex w-full items-center gap-3 px-5 py-3 text-left text-white/60 active:bg-white/[0.06] transition">
                   <Cake className="h-4 w-4 shrink-0 text-violet-400" />
                   <span className="text-[13px] font-bold">Birthdays — manage</span>
+                </button>
+              )}
+              {/* Surprise him — sie schickt ihm ein privates Video (3,99 €). */}
+              {isStaff && (
+                <button type="button" onClick={() => navigate("/themes/surprise?admin=1")}
+                  className="flex w-full items-center gap-3 px-5 py-3 text-left text-white/60 active:bg-white/[0.06] transition">
+                  <Gift className="h-4 w-4 shrink-0 text-rose-400" />
+                  <span className="text-[13px] font-bold">Surprise him — manage</span>
                 </button>
               )}
               {/* „Das was noch kommt": weitere Themen (Luxury Looks …) leben im
