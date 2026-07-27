@@ -19,10 +19,14 @@ export const metadata = {
 export default async function ChatThemePage() {
   // Beispiele oben als Slider: echte Ergebnisse aus derselben Anzieh-Pipeline, die der
   // Kunde benutzt. Fehlen sie im Storage, erscheint der Slider einfach nicht.
-  const examples = (await Promise.all([
+  const photos = (await Promise.all([
     getSignedUrl("try-this-look/uploads/chat-example-1.jpg").catch(() => ""),
     getSignedUrl("try-this-look/uploads/chat-example-2.jpg").catch(() => ""),
   ])).filter(Boolean) as string[];
+  // Dazu VORHANDENE Clips aus dem Bestand (kein neuer Render) — ohne Dessous-Try-ons.
+  const base = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3007";
+  const clips: { id: string; video: string; poster: string }[] = await fetch(`${base}/api/showcase-clips?limit=6`, { cache: "no-store" })
+    .then(r => r.json()).then(d => (Array.isArray(d?.items) ? d.items : [])).catch(() => []);
 
   return (
     <main className="lb-bg min-h-screen text-white">
@@ -41,10 +45,17 @@ export default async function ChatThemePage() {
           character, and she says so herself every so often.
         </Fine>
 
-        {examples.length > 0 && (
+        {(photos.length > 0 || clips.length > 0) && (
           <div className="-mx-4 mt-5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2">
-            {examples.map((url, i) => (
-              <div key={i} className="w-[62%] max-w-[240px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10">
+            {clips.map(c => (
+              <div key={c.id} className="w-[62%] max-w-[240px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10">
+                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                <video src={c.video} poster={c.poster || undefined} muted loop playsInline autoPlay preload="metadata"
+                  className="aspect-[3/4] w-full object-cover" />
+              </div>
+            ))}
+            {photos.map((url, i) => (
+              <div key={`p${i}`} className="w-[62%] max-w-[240px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={url} alt="" className="aspect-[3/4] w-full object-cover object-top" />
               </div>
