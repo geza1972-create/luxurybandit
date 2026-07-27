@@ -73,9 +73,12 @@ export default function KissFunnel() {
     ]).then(([m, c]) => {
       const all: Model[] = (Array.isArray(m.models) ? m.models : []).filter((x: Model) => !!x.photoUrl);
       const wanted: string[] = Array.isArray(c.modelIds) ? c.modelIds : [];
-      const list = wanted.length ? wanted.map(id => all.find(x => x.id === id)).filter(Boolean) as Model[] : all;
+      let list = wanted.length ? wanted.map(id => all.find(x => x.id === id)).filter(Boolean) as Model[] : all;
+      // Bella steht IMMER als Erste (Owner-Vorgabe) — sie ist das Gesicht des Portals.
+      const bellaIdx = list.findIndex(x => x.id === "curator-1783683672619-td4cy" || /^bella\b/i.test(x.name));
+      if (bellaIdx > 0) list = [list[bellaIdx], ...list.slice(0, bellaIdx), ...list.slice(bellaIdx + 1)];
       setModels(list);
-      // Coverflow: die vorderste Karte IST die Auswahl → mit dem ersten Model starten.
+      // Coverflow: die vorderste Karte IST die Auswahl → mit dem ersten Model (Bella) starten.
       if (list.length) setPicked(p => p ?? list[0]);
     });
     try {

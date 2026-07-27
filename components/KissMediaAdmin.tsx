@@ -74,11 +74,18 @@ export default function KissMediaAdmin() {
     } finally { setBusy(""); }
   };
 
+  // Löschen: Fehler NIE verschlucken — sonst wirkt der Klick wirkungslos ("kann nicht löschen").
   const removeExample = async (path: string) => {
-    setBusy(path);
+    setBusy(path); setMsg("");
     try {
       const r = await fetch("/api/kiss-config", { method: "POST", headers: authH(), body: JSON.stringify({ removeExample: path }) });
-      if (r.ok) setExamples(e => e.filter(x => x.path !== path));
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setMsg(`❌ Löschen fehlgeschlagen (${r.status}): ${d?.error ?? "unbekannter Fehler"}`); return; }
+      setExamples(e => e.filter(x => x.path !== path));
+      await load(pin);            // Serverstand nachziehen (sicher, dass es wirklich weg ist)
+      setMsg("🗑 Beispiel-Video gelöscht.");
+    } catch (err) {
+      setMsg(`❌ Netzwerkfehler: ${err instanceof Error ? err.message : "unbekannt"}`);
     } finally { setBusy(""); }
   };
 
@@ -114,10 +121,12 @@ export default function KissMediaAdmin() {
         {examples.map(e => (
           <div key={e.path} className="relative overflow-hidden rounded-xl border border-black/10">
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-            <video src={e.url} muted playsInline preload="metadata" className="aspect-[3/4] w-full object-cover" />
+            <video src={e.url} muted playsInline preload="metadata" className="pointer-events-none aspect-[3/4] w-full object-cover" />
+            {/* Größerer Tap-Bereich + z-10, damit der Klick nie im Video landet. */}
             <button type="button" onClick={() => void removeExample(e.path)} disabled={busy === e.path}
-              className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-black/60 text-white active:scale-95">
-              {busy === e.path ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+              aria-label="Beispiel-Video löschen"
+              className="absolute right-1 top-1 z-10 grid h-9 w-9 place-items-center rounded-full bg-red-600 text-white shadow-lg active:scale-95 disabled:opacity-60">
+              {busy === e.path ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             </button>
           </div>
         ))}
