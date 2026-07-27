@@ -8,6 +8,7 @@ import CookieConsent from "@/components/CookieConsent";
 import PremiumSync from "@/components/PremiumSync";
 import AuthRefresh from "@/components/AuthRefresh";
 import VisitTracker from "@/components/VisitTracker";
+import ScrollTop from "@/components/ScrollTop";
 
 export const metadata: Metadata = {
   metadataBase: new URL((process.env.NEXT_PUBLIC_SITE_URL ?? "https://luxurybandit.com").replace(/\/$/, "")),
@@ -60,6 +61,10 @@ export default function RootLayout({
         {/* Mirror every public page under /admin/… when signed in as admin. */}
         <Suspense fallback={null}>
           <AdminUrlMirror />
+        </Suspense>
+        {/* Jede neue Seite beginnt oben — sonst oeffnet ein Thema mitten im Text. */}
+        <Suspense fallback={null}>
+          <ScrollTop />
         </Suspense>
         {/* Keeps the login alive by refreshing the access token before it expires. */}
         <AuthRefresh />
