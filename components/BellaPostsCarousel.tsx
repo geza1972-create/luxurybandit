@@ -179,7 +179,7 @@ export default function BellaPostsCarousel({ posts, name }: { posts: BellaPost[]
         <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex items-center justify-center gap-1.5">
           {posts.map((dot, j) => (
             <button key={dot.id} type="button" onClick={() => goTo(j)} aria-label={`Beitrag ${j + 1}`}
-              className={`pointer-events-auto h-1.5 rounded-full shadow-[0_1px_4px_rgba(0,0,0,0.8)] transition-all ${j === active ? "w-5 bg-[#c9a23f]" : "w-1.5 bg-white/60"}`} />
+              className={`pointer-events-auto h-1.5 rounded-full shadow-[0_1px_4px_rgba(0,0,0,0.8)] transition-all ${j === active ? "w-5 bg-[#f6cf51]" : "w-1.5 bg-white/60"}`} />
           ))}
         </div>
       )}

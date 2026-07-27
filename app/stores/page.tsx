@@ -3067,7 +3067,7 @@ function StoresPage() {
                               <span className="block truncate text-[11px] font-black text-black/70">{g.name}</span>
                               {/* Try on — führt in den Funnel (Model wählen → Video). */}
                               <button type="button" onClick={() => router.push(`/try/${g.id}?garment=${encodeURIComponent(img)}&pick=1`)}
-                                className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-full bg-[#c9a23f] px-3 py-1.5 text-[11px] font-black text-black active:scale-95 transition">
+                                className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-full bg-[#f6cf51] px-3 py-1.5 text-[11px] font-black text-black active:scale-95 transition">
                                 <Play className="h-3 w-3" fill="currentColor" /> Try on
                               </button>
                               {g.buyUrl && (

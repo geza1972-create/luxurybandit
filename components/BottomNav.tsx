@@ -402,7 +402,7 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
               {!isCurator && (
                 <button type="button" onClick={() => navigate(TRYON_FUNNEL)}
                   className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
-                  <Play className="h-5 w-5 shrink-0 text-[#c9a23f]" fill="currentColor" />
+                  <Play className="h-5 w-5 shrink-0 text-[#f6cf51]" fill="currentColor" />
                   <span className="text-sm font-black text-white">Try on</span>
                 </button>
               )}

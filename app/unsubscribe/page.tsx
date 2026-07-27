@@ -55,12 +55,12 @@ export default function UnsubscribePage() {
               <input
                 value={email} onChange={e => { setEmail(e.target.value); setError(""); }}
                 type="email" inputMode="email" autoComplete="email" placeholder="Your email address"
-                className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]"
+                className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#f6cf51]"
               />
               <input
                 value={phone} onChange={e => { setPhone(e.target.value); setError(""); }}
                 type="tel" inputMode="tel" autoComplete="tel" placeholder="Your phone number"
-                className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]"
+                className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#f6cf51]"
               />
               <button type="submit" disabled={busy}
                 className="lb-gold flex h-12 w-full items-center justify-center rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-60">

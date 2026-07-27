@@ -69,14 +69,14 @@ export function buildHtml(c: Copy, link: string, unsub: string, hero: string, ci
   const wx = city ? c.wxCity.replace("{city}", esc(city)) : c.wx;
   const row = (icon: string, text: string) =>
     `<tr><td style="padding:3px 0;font-size:14px;color:#e8e2d6;font-family:Arial,Helvetica,sans-serif">`
-    + `<span style="color:#c9a23f">${icon}</span>&nbsp;&nbsp;${text}</td></tr>`;
+    + `<span style="color:#f6cf51">${icon}</span>&nbsp;&nbsp;${text}</td></tr>`;
   return `<div style="background:#0d0b0a;margin:0;padding:22px 0;font-family:Arial,Helvetica,sans-serif">`
     // Vorschautext in der Inbox-Zeile (unsichtbar in der Mail selbst)
     + `<div style="display:none;max-height:0;overflow:hidden;opacity:0">${esc(c.preheader)}</div>`
     + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0b0a"><tr><td align="center">`
     + `<table role="presentation" width="520" cellpadding="0" cellspacing="0" border="0" style="width:520px;max-width:94%;background:#16120f;border-radius:18px;overflow:hidden">`
     // Marke
-    + `<tr><td style="padding:20px 24px 0;font-size:11px;font-weight:bold;letter-spacing:3px;color:#c9a23f">LUXURYBANDIT</td></tr>`
+    + `<tr><td style="padding:20px 24px 0;font-size:11px;font-weight:bold;letter-spacing:3px;color:#f6cf51">LUXURYBANDIT</td></tr>`
     // Anrede + Aufmacher (kurz, damit der Teaser gleich folgt)
     + `<tr><td style="padding:16px 24px 0">`
     + `<p style="margin:0 0 4px;font-size:15px;color:#b9b1a4">${esc(c.greet)}</p>`
@@ -94,7 +94,7 @@ export function buildHtml(c: Copy, link: string, unsub: string, hero: string, ci
     // Gold-Button direkt unter dem Teaser (Tabelle, damit Outlook Rundung/Farbe rendert)
     + `<tr><td align="center" style="padding:16px 24px 4px">`
     + `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>`
-    + `<td align="center" bgcolor="#c9a23f" style="border-radius:999px">`
+    + `<td align="center" bgcolor="#f6cf51" style="border-radius:999px">`
     + `<a href="${link}" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:bold;color:#0d0b0a;text-decoration:none;border-radius:999px">${c.cta} →</a>`
     + `</td></tr></table></td></tr>`
     // Text + die drei Punkte

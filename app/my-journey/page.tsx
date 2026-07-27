@@ -25,15 +25,15 @@ export default function MyJourneyPage() {
     <main className="min-h-screen bg-[#0d0b0a] text-white">
       <LandingHeader />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Your Journey</p>
-        <h1 className="mt-2 text-[30px] font-black leading-[1.05]">Your feed with <span className="text-[#c9a23f]">Bella</span> 🌴</h1>
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">Your Journey</p>
+        <h1 className="mt-2 text-[30px] font-black leading-[1.05]">Your feed with <span className="text-[#f6cf51]">Bella</span> 🌴</h1>
 
         {state === "loading" && <p className="mt-8 text-center text-white/80">Loading…</p>}
 
         {state === "guest" && (
-          <div className="mt-8 rounded-2xl border border-[#c9a23f]/40 bg-[#c9a23f]/[0.06] p-6 text-center">
+          <div className="mt-8 rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] p-6 text-center">
             <p className="text-[15px] font-bold text-white">Please log in to see your feed.</p>
-            <Link href="/login" className="mt-4 inline-flex rounded-xl bg-[#c9a23f] px-6 py-3 text-[15px] font-black text-black active:scale-95 transition">Log in →</Link>
+            <Link href="/login" className="mt-4 inline-flex rounded-xl bg-[#f6cf51] px-6 py-3 text-[15px] font-black text-black active:scale-95 transition">Log in →</Link>
           </div>
         )}
 

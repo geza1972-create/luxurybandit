@@ -33,8 +33,8 @@ export default function BellaBooking({ firstName = "Bella" }: { firstName?: stri
   };
 
   return (
-    <div id="buchung" className="mt-6 rounded-3xl border border-[#c9a23f]/40 bg-[#c9a23f]/[0.06] p-5">
-      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#c9a23f]">The Package</p>
+    <div id="buchung" className="mt-6 rounded-3xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] p-5">
+      <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#f6cf51]">The Package</p>
       <div className="mt-2 space-y-1.5 text-[15px] font-bold">
         <p>🎬 <span className="text-white">3 videos</span> — every day</p>
         <p>📸 <span className="text-white">3 stories</span> — every day</p>
@@ -46,8 +46,8 @@ export default function BellaBooking({ firstName = "Bella" }: { firstName?: stri
       </div>
 
       {done ? (
-        <div className="mt-4 rounded-xl border border-[#c9a23f]/40 bg-black/30 p-4 text-center">
-          <p className="text-[15px] font-black text-[#c9a23f]">{done === "in" ? "Welcome aboard! 🌴" : "Almost done ✉️"}</p>
+        <div className="mt-4 rounded-xl border border-[#f6cf51]/40 bg-black/30 p-4 text-center">
+          <p className="text-[15px] font-black text-[#f6cf51]">{done === "in" ? "Welcome aboard! 🌴" : "Almost done ✉️"}</p>
           <p className="mt-1.5 text-[13px] font-medium leading-snug text-white/85">
             {done === "in"
               ? `Your account is ready. We'll set up your journey with ${firstName} and get in touch with your first content.`
@@ -58,17 +58,17 @@ export default function BellaBooking({ firstName = "Bella" }: { firstName?: stri
         <div className="mt-4 space-y-2">
           <p className="text-[12px] font-bold text-white/85">Booking = creating your account. After that we take care of your journey.</p>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name"
-            className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 text-sm font-bold text-white outline-none placeholder:text-white/50 focus:border-[#c9a23f]" />
+            className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 text-sm font-bold text-white outline-none placeholder:text-white/50 focus:border-[#f6cf51]" />
           <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoComplete="email" placeholder="Your email"
-            className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 text-sm font-bold text-white outline-none placeholder:text-white/50 focus:border-[#c9a23f]" />
+            className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 text-sm font-bold text-white outline-none placeholder:text-white/50 focus:border-[#f6cf51]" />
           <input value={pw} onChange={(e) => setPw(e.target.value)} type="password" autoComplete="new-password" placeholder="Password (min. 6 characters)"
-            className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 text-sm font-bold text-white outline-none placeholder:text-white/50 focus:border-[#c9a23f]" />
+            className="h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-3 text-sm font-bold text-white outline-none placeholder:text-white/50 focus:border-[#f6cf51]" />
           {err && <p className="text-[12px] font-bold text-red-400">{err}</p>}
           <button type="button" onClick={() => void register()} disabled={busy}
-            className="mt-1 w-full rounded-xl bg-[#c9a23f] py-3.5 text-[15px] font-black text-black active:scale-[0.98] transition disabled:opacity-40">
+            className="mt-1 w-full rounded-xl bg-[#f6cf51] py-3.5 text-[15px] font-black text-black active:scale-[0.98] transition disabled:opacity-40">
             {busy ? "Creating account…" : "Create account & book for $49 →"}
           </button>
-          <p className="text-center text-[11px] font-medium text-white/75">Already have an account? <a href="/login" className="font-bold text-[#c9a23f]">Log in</a></p>
+          <p className="text-center text-[11px] font-medium text-white/75">Already have an account? <a href="/login" className="font-bold text-[#f6cf51]">Log in</a></p>
         </div>
       )}
     </div>

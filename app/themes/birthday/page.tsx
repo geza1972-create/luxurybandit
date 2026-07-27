@@ -43,9 +43,9 @@ export default async function BirthdayThemePage({ searchParams }: {
 
         {showCustomer ? (
           <div className={showAdmin ? "mt-4" : ""}>
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">LuxuryBandit · Birthdays</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">LuxuryBandit · Birthdays</p>
             <h1 className="mt-2 text-[34px] font-black leading-[1.05]">
-              She says <span className="text-[#c9a23f]">happy birthday</span> 🎂
+              She says <span className="text-[#f6cf51]">happy birthday</span> 🎂
             </h1>
             <p className="mt-3 text-[15px] font-medium leading-snug text-white/80">
               Type the name of whoever is celebrating — {modelName} wishes them a happy birthday by

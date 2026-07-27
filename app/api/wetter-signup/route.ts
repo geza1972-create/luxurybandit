@@ -9,7 +9,7 @@ const BELLA_ID = "curator-1783683672619-td4cy";
 
 // Bestätigungs-Mail pro Sprache (Double-Opt-in).
 function confirmEmail(lang: string, name: string, model: string, link: string): { subject: string; html: string } {
-  const btn = `<a href="${link}" style="display:inline-block;background:#c9a23f;color:#000;font-weight:800;text-decoration:none;padding:14px 26px;border-radius:12px;font-family:Arial,sans-serif">`;
+  const btn = `<a href="${link}" style="display:inline-block;background:#f6cf51;color:#000;font-weight:800;text-decoration:none;padding:14px 26px;border-radius:12px;font-family:Arial,sans-serif">`;
   if (lang === "de") return {
     subject: `Bestätige deine Anmeldung bei ${model}`,
     html: `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111">Hallo ${name},<br><br>bitte bestätige deine E-Mail, damit ${model} dich jeden Morgen wecken darf:<br><br>${btn}✅ E-Mail bestätigen</a><br><br>Wenn du das nicht warst, ignoriere diese Mail einfach.</div>`,

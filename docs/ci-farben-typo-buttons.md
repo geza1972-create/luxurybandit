@@ -1,0 +1,65 @@
+# CI — Farben, Typo, Buttons (verbindlich)
+
+Quelle der Wahrheit für jedes Stück UI. Wer hier abweicht, baut es falsch.
+Der Owner hat das mehrfach korrigiert — es wird **nicht** neu erfunden und **nicht** neu gefragt.
+
+## 1. Die CI-Farben
+
+Alles leitet sich vom Logo-Gradient ab, der in `app/globals.css` als `.lb-gold` steht:
+
+```
+linear-gradient(160deg, #fbe89a 0%, #f6cf51 30%, #e9ae2b 58%, #c9861a 100%)
+```
+
+| Rolle | Wert | Einsatz |
+|---|---|---|
+| **CI-Gelb (Akzent)** | `#f6cf51` | JEDE Akzentfarbe auf dunklem Grund: Kicker, hervorgehobenes Wort in der H1, Labels, Links, Rahmen, Icons, Häkchen, Chips |
+| CI-Gelb hell | `#fbe89a` | nur als Gradient-Anfang in `.lb-gold` |
+| CI-Gelb dunkel | `#e9ae2b` / `#c9861a` | nur als Gradient-Ende in `.lb-gold`, Schatten |
+| Dunkler Grund | `#0d0b0a` (Bar), `lb-bg` | Seitenhintergrund, TopNav |
+| Text auf dunkel | `#fff`, `white/80`, `white/55` | Fließtext, Sekundärtext, Hinweise |
+| Hell / Formulare | Schwarz · Weiß · Grau | siehe §4 |
+
+**Verboten:**
+- `#c9a23f` — mattes Braungold, **keine CI-Farbe**. Am 2026-07-27 repo-weit auf `#f6cf51` gezogen (91 Stellen). Nicht wieder einführen.
+- Tailwinds `amber-*` als Akzent auf dunklen Kundenflächen (`text-amber-400`, `bg-amber-400/10`, `border-amber-300`) — dafür `#f6cf51` mit Opacity-Suffix nehmen: `text-[#f6cf51]`, `border-[#f6cf51]/40`, `bg-[#f6cf51]/10`.
+  (`amber-*` in HELLEN Admin-Boxen — `bg-amber-50`, `text-amber-700` — bleibt erlaubt, das ist eine Hinweisbox, kein Akzent.)
+
+## 2. Buttons
+
+| Button | Klasse | wann |
+|---|---|---|
+| Primär auf dunkel | `.lb-gold` (globals.css) | die EINE Hauptaktion pro Screen: CTA, Abo, Generieren, Senden |
+| Sekundär auf dunkel | `.lb-black3d` oder `border border-white/20 text-white/85` | „Mehr erfahren", Garderobe, Nebenwege |
+| Aktiver Chip / Tab | `bg-[#f6cf51] text-black` | ausgewählter Filter, aktive Sprache |
+| Inaktiver Chip | `bg-white/10 text-white/80` | |
+
+Form: `rounded-full`, `h-11`/`h-12`, `font-black`, `active:scale-95 transition`.
+`.lb-gold` nie flach nachbauen (`bg-[#f6cf51]` als Button = falsch, der Gradient ist die CI).
+
+## 3. Typo
+
+- Eine Familie (System-Sans), Gewichte nur `font-bold` / `font-black`. Kein Serif, kein Light.
+- Kicker über der H1: `text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]`
+- H1: `text-[34px] font-black leading-[1.05]`, ein Wort davon in `text-[#f6cf51]`
+- H2: `text-[22px] font-black leading-tight`
+- Fließtext: `text-[15px] font-medium leading-snug text-white/80`
+- Kleingedrucktes / Hinweise: `text-[12px]–[13px] font-bold text-white/55`
+- Labels über Schritten: `text-[12px] font-black uppercase tracking-wide text-white/50`
+- Emoji sind Deko, nie Bedeutungsträger; in Buttons **kein** Emoji, dort Icons (`lucide-react`, `h-4 w-4`).
+
+## 4. Hell vs. dunkel — die eine Regel
+
+- **Dunkle Kundenfläche** (Startseite, Themen, Funnels, Wetter, Feed): dunkler Grund, weißer Text, Akzent `#f6cf51`, Hauptbutton `.lb-gold`.
+- **Helle Box / Formular / Admin-Tool**: Schwarz · Weiß · Grau, `bg-white` + dunkler Text, **kein** Gelb/Gold. Siehe `docs/manage-landing-ci.md` §3.
+- `.lb-theme` kippt `text-white` nach dunkel → in hellen Tools `bg-white` als Wurzel setzen, für weißen Text auf Bildern `lb-onmedia`.
+
+## 5. Checkliste vor jedem Commit an UI
+
+1. Kein `#c9a23f`, kein `amber-*` als Akzent auf dunkler Fläche.
+2. Genau ein `.lb-gold`-Button pro Screen.
+3. Kicker/H1/Fließtext in den Größen aus §3.
+4. Icons statt Emoji in Buttons.
+5. Helle Box = B/W/Grau.
+
+Verwandte Memories: `ci-colors-typo-buttons`, `dark-surface-gold-design-tokens`, `fashion-aesthetic-bw-no-gold`, `form-ci-standards`.

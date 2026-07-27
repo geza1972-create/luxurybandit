@@ -218,7 +218,7 @@ function YouInVideoInner() {
             {!rawPhoto ? (
               <div className="mx-auto mt-6 max-w-xs">
                 <button type="button" onClick={() => fileRef.current?.click()}
-                  className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed border-[#c9a23f]/50 bg-[#c9a23f]/[0.06] active:scale-[0.98] transition">
+                  className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed border-[#f6cf51]/50 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
                   <span className="flex flex-col items-center gap-2 text-[#e7c877]">
                     <Upload className="h-8 w-8" />
                     <span className="text-[13px] font-black">{L("Alege o poză", "Choose a photo")}</span>
@@ -229,7 +229,7 @@ function YouInVideoInner() {
               <>
                 {/* Crop frame with a dashed face-contour guide */}
                 <div ref={cropBoxRef}
-                  className="relative mx-auto mt-5 aspect-[3/4] w-full max-w-[280px] touch-none select-none overflow-hidden rounded-3xl border border-[#c9a23f]/40 bg-black">
+                  className="relative mx-auto mt-5 aspect-[3/4] w-full max-w-[280px] touch-none select-none overflow-hidden rounded-3xl border border-[#f6cf51]/40 bg-black">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img ref={imgRef} src={rawPhoto} alt="" draggable={false}
                     onPointerDown={onDragStart} onPointerMove={onDragMove} onPointerUp={onDragEnd} onPointerCancel={onDragEnd}
@@ -291,7 +291,7 @@ function YouInVideoInner() {
           <div className="pt-2 text-center">
             <h1 className="text-[22px] font-black leading-tight">{L("Videoul tău e gata! 💛", "Your video is ready! 💛")}</h1>
             <p className="mx-auto mt-2 max-w-xs text-[13px] font-bold text-white/75">{L("Deblochează-l și descarcă-l în calitate maximă.", "Unlock it and download it in full quality.")}</p>
-            <div className="relative mx-auto mt-5 aspect-[9/16] w-full max-w-[240px] overflow-hidden rounded-3xl border border-[#c9a23f]/40">
+            <div className="relative mx-auto mt-5 aspect-[9/16] w-full max-w-[240px] overflow-hidden rounded-3xl border border-[#f6cf51]/40">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={picked.thumbUrl || picked.imageUrl} alt="" className="h-full w-full scale-110 object-cover object-top blur-xl" />
               <span className="absolute inset-0 grid place-items-center bg-black/40">
@@ -316,7 +316,7 @@ function YouInVideoInner() {
         {step === "unlocked" && picked && (
           <div className="pt-2 text-center">
             <h1 className="text-[22px] font-black leading-tight">{L("Gata! Bucură-te 💛", "Done! Enjoy 💛")}</h1>
-            <div className="relative mx-auto mt-5 aspect-[9/16] w-full max-w-[260px] overflow-hidden rounded-3xl border border-[#c9a23f]/40 bg-black">
+            <div className="relative mx-auto mt-5 aspect-[9/16] w-full max-w-[260px] overflow-hidden rounded-3xl border border-[#f6cf51]/40 bg-black">
               <video src={picked.videoUrl} poster={picked.imageUrl} controls autoPlay loop playsInline
                 className="h-full w-full object-cover" />
             </div>
@@ -325,7 +325,7 @@ function YouInVideoInner() {
               <Download className="h-5 w-5" /> {L("Descarcă videoul", "Download video")}
             </a>
             <button type="button" onClick={() => { setPicked(null); setPhoto(""); setStep("pick"); }}
-              className="mx-auto mt-3 flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
+              className="mx-auto mt-3 flex h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full border border-[#f6cf51]/40 bg-[#f6cf51]/10 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
               {L("Fă încă unul", "Make another")}
             </button>
           </div>

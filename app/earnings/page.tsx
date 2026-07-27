@@ -41,7 +41,7 @@ export default function EarningsPage() {
         </p>
 
         {/* Big number */}
-        <div className="mx-auto mt-7 max-w-sm rounded-3xl border border-[#c9a23f]/40 bg-gradient-to-b from-[#c9a23f]/[0.12] to-transparent p-6 text-center">
+        <div className="mx-auto mt-7 max-w-sm rounded-3xl border border-[#f6cf51]/40 bg-gradient-to-b from-[#f6cf51]/[0.12] to-transparent p-6 text-center">
           <p className="text-[12px] font-black uppercase tracking-wider text-[#e7c877]">Your cut per subscriber</p>
           <p className="mt-1 text-5xl font-black">50%</p>
           <p className="mt-1 text-[13px] font-bold text-white/85">of every fan&apos;s subscription — every month, automatically</p>
@@ -51,7 +51,7 @@ export default function EarningsPage() {
         <div className="mt-9 space-y-3">
           {steps.map((s, i) => (
             <div key={i} className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#c9a23f]/15 text-[#e7c877]">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#f6cf51]/15 text-[#e7c877]">
                 <s.icon className="h-5 w-5" />
               </span>
               <div>

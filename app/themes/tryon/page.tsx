@@ -35,9 +35,9 @@ export default async function TryOnThemePage({ searchParams }: {
         {showCustomer ? (
           <div className={showAdmin ? "mt-4" : ""}>
             {/* Hero */}
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">LuxuryBandit · Try-On</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">LuxuryBandit · Try-On</p>
             <h1 className="mt-2 text-[34px] font-black leading-[1.05]">
-              See any look on your <span className="text-[#c9a23f]">dream model</span> ✨
+              See any look on your <span className="text-[#f6cf51]">dream model</span> ✨
             </h1>
             <p className="mt-3 text-[15px] font-medium leading-snug text-white/80">
               Pick a look, pick a model — and watch her wear it in a video. Turnaround, walk, every angle.

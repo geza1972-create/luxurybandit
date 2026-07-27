@@ -42,7 +42,7 @@ function Orns({ items, oneShot }: { items: Orn[]; oneShot?: boolean }) {
   return (
     <>
       {items.map((o, i) => (
-        <svg key={i} viewBox="0 0 24 24" fill="none" stroke="#c9a23f" strokeWidth="1" strokeLinejoin="round"
+        <svg key={i} viewBox="0 0 24 24" fill="none" stroke="#f6cf51" strokeWidth="1" strokeLinejoin="round"
           style={{
             position: "absolute", left: `${o.left}%`, top: 0, width: o.size, height: o.size, opacity: 0,
             animation: `lb-rise ${o.dur}s ${o.delay}s ${oneShot ? "ease-out 1 forwards" : "linear infinite"}`,
@@ -493,12 +493,12 @@ function MaiIeftinInner() {
           <div className="w-full max-w-md">
             <div className="mb-5 flex justify-center">
               <button type="button" onClick={() => void playDemo()}
-                className="inline-flex items-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 px-4 py-2 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
-                <span className="grid h-5 w-5 place-items-center rounded-full bg-[#c9a23f] text-black"><Play className="h-3 w-3 fill-current" /></span>
+                className="inline-flex items-center gap-2 rounded-full border border-[#f6cf51]/40 bg-[#f6cf51]/10 px-4 py-2 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
+                <span className="grid h-5 w-5 place-items-center rounded-full bg-[#f6cf51] text-black"><Play className="h-3 w-3 fill-current" /></span>
                 {DEMO[lang].btn}
               </button>
             </div>
-            <p className="mb-1.5 text-center text-[12px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">{t.motto}</p>
+            <p className="mb-1.5 text-center text-[12px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">{t.motto}</p>
             <h1 className="mb-8 text-center text-[32px] font-black leading-tight tracking-tight text-white/75">{t.title}</h1>
             {inputBox}
             <div className="mt-3 flex flex-wrap justify-center gap-2">
@@ -520,7 +520,7 @@ function MaiIeftinInner() {
                   {/* Reference still — a round avatar for a model, a portrait card for a look. */}
                   {m.refImg && (
                     m.refRound ? (
-                      <div className="w-20 aspect-[3/4] self-start overflow-hidden rounded-2xl bg-white/10 ring-2 ring-[#c9a23f]/50">
+                      <div className="w-20 aspect-[3/4] self-start overflow-hidden rounded-2xl bg-white/10 ring-2 ring-[#f6cf51]/50">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={m.refImg} alt="" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                       </div>
@@ -565,11 +565,11 @@ function MaiIeftinInner() {
                       look page where the video plays. This is the "Bella wears these" row. */}
                   {m.modelVideos && m.modelVideos.length > 0 && (
                     <>
-                      <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#c9a23f]">🎬 {m.modelName || (lang === "en" ? "She" : "Ea")} {t.wears}</p>
+                      <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#f6cf51]">🎬 {m.modelName || (lang === "en" ? "She" : "Ea")} {t.wears}</p>
                       <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
                         {m.modelVideos.map((p, idx) => (
                           <a key={idx} href={p.link} onClick={(e) => { e.preventDefault(); setOpenProduct(p); }}
-                            className="relative h-44 w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#c9a23f]/25 active:scale-95 transition">
+                            className="relative h-44 w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#f6cf51]/25 active:scale-95 transition">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                             <span className="absolute inset-0 grid place-items-center">
@@ -609,11 +609,11 @@ function MaiIeftinInner() {
                       opens /look/[id] where the video plays). People want to SEE the vibe. */}
                   {m.inspo && m.inspo.length > 0 && (
                     <>
-                      <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#c9a23f]">{lang === "en" ? "Inspiration · our videos" : "Inspirație · videourile noastre"}</p>
+                      <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#f6cf51]">{lang === "en" ? "Inspiration · our videos" : "Inspirație · videourile noastre"}</p>
                       <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
                         {m.inspo.map((p, idx) => (
                           <a key={idx} href={p.link} onClick={(e) => { e.preventDefault(); setOpenProduct(p); }}
-                            className="relative h-44 w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#c9a23f]/25 active:scale-95 transition">
+                            className="relative h-44 w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#f6cf51]/25 active:scale-95 transition">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={p.thumbnail} alt="" loading="lazy" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                             <span className="absolute inset-0 grid place-items-center">
@@ -706,18 +706,18 @@ function MaiIeftinInner() {
                 <div className="min-w-0 flex-1">
                   {openProduct.price && <p className="text-[22px] font-black text-white">{openProduct.price}</p>}
                   <p className="mt-1 text-[14px] font-semibold leading-snug text-white/80">{openProduct.title}</p>
-                  {openProduct.source && <p className="mt-1.5 text-[12px] font-bold text-[#c9a23f]">{openProduct.source}</p>}
+                  {openProduct.source && <p className="mt-1.5 text-[12px] font-bold text-[#f6cf51]">{openProduct.source}</p>}
                 </div>
               </div>
               {openProduct.link?.startsWith("/") ? (
                 /* Our own look/video → open it in-app (keep the customer in the funnel). */
                 <button type="button" onClick={() => { const l = openProduct.link!; setOpenProduct(null); router.push(l); }}
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#c9a23f] py-4 text-[15px] font-black text-black active:scale-[0.98] transition">
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#f6cf51] py-4 text-[15px] font-black text-black active:scale-[0.98] transition">
                   {lang === "en" ? "View look" : "Vezi look-ul"} <ArrowUpRight className="h-4 w-4" />
                 </button>
               ) : (
                 <a href={openProduct.link} target="_blank" rel="noopener noreferrer" onClick={() => setOpenProduct(null)}
-                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#c9a23f] py-4 text-[15px] font-black text-black active:scale-[0.98] transition">
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#f6cf51] py-4 text-[15px] font-black text-black active:scale-[0.98] transition">
                   {lang === "en" ? "View in shop" : "Vezi în magazin"} <ArrowUpRight className="h-4 w-4" />
                 </a>
               )}
@@ -744,7 +744,7 @@ function MaiIeftinInner() {
             <X className="h-5 w-5" />
           </button>
           <div className="mx-auto flex min-h-full w-full max-w-md flex-col items-center justify-center px-6 py-14 text-center">
-            <div className="mb-6 grid h-16 w-16 place-items-center rounded-2xl bg-[#c9a23f]/15 text-2xl font-black text-[#b8912f] ring-1 ring-[#c9a23f]/30">LB</div>
+            <div className="mb-6 grid h-16 w-16 place-items-center rounded-2xl bg-[#f6cf51]/15 text-2xl font-black text-[#b8912f] ring-1 ring-[#f6cf51]/30">LB</div>
             <h2 className="text-[26px] font-black leading-tight tracking-tight">
               {en ? "Log in to see your results" : "Autentifică-te ca să vezi rezultatele"}
             </h2>
@@ -762,7 +762,7 @@ function MaiIeftinInner() {
               </div>
             )}
             {gateSent ? (
-              <p className="mt-8 w-full rounded-2xl bg-[#c9a23f]/12 px-5 py-4 text-[15px] font-bold text-[#8a6d1f] ring-1 ring-[#c9a23f]/30">
+              <p className="mt-8 w-full rounded-2xl bg-[#f6cf51]/12 px-5 py-4 text-[15px] font-bold text-[#8a6d1f] ring-1 ring-[#f6cf51]/30">
                 {en ? "Check your email for your sign-in link ✨" : "Verifică-ți emailul pentru linkul de conectare ✨"}
               </p>
             ) : (
@@ -780,7 +780,7 @@ function MaiIeftinInner() {
                 <form onSubmit={gateSubmitEmail} className="mt-3 w-full">
                   <input type="email" required value={gateEmail} onChange={(e) => setGateEmail(e.target.value)}
                     placeholder={en ? "your@email.com" : "email@exemplu.com"}
-                    className="w-full rounded-full border border-neutral-200 bg-white px-5 py-4 text-center text-[15px] font-semibold text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-[#c9a23f]" />
+                    className="w-full rounded-full border border-neutral-200 bg-white px-5 py-4 text-center text-[15px] font-semibold text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-[#f6cf51]" />
                   <button type="submit"
                     className="mt-3 w-full rounded-full bg-[#1a160f] py-4 text-[15px] font-black text-white active:scale-[0.98] transition">
                     {en ? "Continue with email" : "Continuă cu email"}

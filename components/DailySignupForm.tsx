@@ -109,8 +109,8 @@ export default function DailySignupForm({ lang = "de", dark = false }: { lang?: 
 
   if (done) {
     return dark ? (
-      <div className="rounded-2xl border border-[#c9a23f]/40 bg-[#c9a23f]/10 p-6 text-center">
-        <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#c9a23f] text-black"><Check className="h-6 w-6" /></span>
+      <div className="rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/10 p-6 text-center">
+        <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#f6cf51] text-black"><Check className="h-6 w-6" /></span>
         <p className="mt-3 text-[18px] font-black text-white">{t.doneTitle}</p>
         <p className="mt-1 text-[14px] font-semibold text-white/70">{t.doneBody}</p>
       </div>
@@ -124,14 +124,14 @@ export default function DailySignupForm({ lang = "de", dark = false }: { lang?: 
   }
 
   const field = dark
-    ? "h-13 w-full rounded-xl border-[1.5px] border-white/15 bg-black/40 px-4 py-3 text-[15px] font-bold text-white outline-none focus:border-[#c9a23f] placeholder:text-white/35"
+    ? "h-13 w-full rounded-xl border-[1.5px] border-white/15 bg-black/40 px-4 py-3 text-[15px] font-bold text-white outline-none focus:border-[#f6cf51] placeholder:text-white/35"
     : "h-13 w-full rounded-xl border-[1.5px] border-slate-400 bg-white px-4 py-3 text-[15px] font-bold text-slate-900 outline-none focus:border-slate-700 placeholder:text-slate-400";
   const menu = dark ? "border-white/15 bg-[#181410]" : "border-slate-300 bg-white";
   const row = dark ? "text-white hover:bg-white/10" : "text-slate-900 hover:bg-slate-100";
 
   return (
     <div className={dark
-      ? "rounded-2xl border border-[#c9a23f]/25 bg-[#c9a23f]/[0.06] p-5"
+      ? "rounded-2xl border border-[#f6cf51]/25 bg-[#f6cf51]/[0.06] p-5"
       : "rounded-2xl border border-black/10 bg-white p-5 shadow-[0_4px_20px_rgba(15,23,42,0.06)]"}>
       <div className="grid gap-2.5">
         <input className={field} value={firstName} onChange={e => setFirstName(e.target.value)} placeholder={t.name} autoComplete="given-name" />
@@ -183,7 +183,7 @@ export default function DailySignupForm({ lang = "de", dark = false }: { lang?: 
       {error && <p className={`mt-2 text-[13px] font-bold ${dark ? "text-red-300" : "text-red-600"}`}>{error}</p>}
       <button type="button" onClick={() => void submit()} disabled={busy}
         className={dark
-          ? "mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#c9a23f] text-base font-black text-black transition active:scale-95 disabled:opacity-50"
+          ? "mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#f6cf51] text-base font-black text-black transition active:scale-95 disabled:opacity-50"
           : "mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-slate-800 text-base font-black text-white shadow-[0_3px_0_#0f172a,0_6px_14px_rgba(15,23,42,0.28)] transition active:translate-y-[3px] disabled:opacity-50"}>
         {busy ? <><Loader2 className="h-5 w-5 animate-spin" /> {t.busy}</> : t.cta}
       </button>

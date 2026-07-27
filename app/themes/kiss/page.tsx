@@ -39,9 +39,9 @@ export default async function KissThemePage({ searchParams }: {
         {showCustomer ? (
           <div className={showAdmin ? "mt-4" : ""}>
             {/* Hero */}
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">LuxuryBandit · Kiss</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">LuxuryBandit · Kiss</p>
             <h1 className="mt-2 text-[34px] font-black leading-[1.05]">
-              Kiss any <span className="text-[#c9a23f]">model</span> 💋
+              Kiss any <span className="text-[#f6cf51]">model</span> 💋
             </h1>
             <p className="mt-3 text-[15px] font-medium leading-snug text-white/80">
               Pick her, upload your photo — and watch the two of you share a tender kiss in a video. Your little movie moment.

@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
     <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#fff;border-radius:14px;overflow:hidden;">
       <tr><td style="background:#000;padding:22px 28px;text-align:center;">
-        <p style="margin:0;font-size:11px;font-weight:900;letter-spacing:.2em;color:#c9a23f;text-transform:uppercase;">Neue Reise-Buchung</p>
+        <p style="margin:0;font-size:11px;font-weight:900;letter-spacing:.2em;color:#f6cf51;text-transform:uppercase;">Neue Reise-Buchung</p>
         <p style="margin:6px 0 0;font-size:20px;font-weight:900;color:#fff;">Urlaub mit ${model} · ${program}</p>
       </td></tr>
       <tr><td style="padding:26px 28px;">
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
           <tr><td style="padding:6px 0;color:#999;font-weight:700;">Name</td><td style="padding:6px 0;text-align:right;font-weight:800;">${name}</td></tr>
           <tr><td style="padding:6px 0;color:#999;font-weight:700;">E-Mail</td><td style="padding:6px 0;text-align:right;font-weight:800;">${email}</td></tr>
           <tr><td style="padding:6px 0;color:#999;font-weight:700;">Paket</td><td style="padding:6px 0;text-align:right;font-weight:800;">${program} · 3 Videos + 3 Stories/Tag</td></tr>
-          <tr><td style="padding:6px 0;color:#999;font-weight:700;">Preis</td><td style="padding:6px 0;text-align:right;font-weight:900;color:#c9a23f;">$${price}/Tag</td></tr>
+          <tr><td style="padding:6px 0;color:#999;font-weight:700;">Preis</td><td style="padding:6px 0;text-align:right;font-weight:900;color:#f6cf51;">$${price}/Tag</td></tr>
         </table>
         <p style="margin:22px 0 0;font-size:13px;line-height:1.6;color:#555;">Der Kunde hat ein Konto angelegt. Reise manuell einrichten und die ersten Inhalte liefern.</p>
       </td></tr>

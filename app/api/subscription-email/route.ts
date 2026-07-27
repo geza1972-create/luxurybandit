@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
     <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#fff;border-radius:14px;overflow:hidden;">
       <tr><td style="background:#000;padding:26px 28px;text-align:center;">
-        <p style="margin:0;font-size:11px;font-weight:900;letter-spacing:.2em;color:#c9a23f;text-transform:uppercase;">LuxuryBandit</p>
+        <p style="margin:0;font-size:11px;font-weight:900;letter-spacing:.2em;color:#f6cf51;text-transform:uppercase;">LuxuryBandit</p>
         <p style="margin:8px 0 0;font-size:22px;font-weight:900;color:#fff;">Payment confirmed 💛</p>
       </td></tr>
       <tr><td style="padding:30px 28px;">
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
         </table>
 
         <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
-          <a href="${link}" style="display:inline-block;background:#c9a23f;color:#000;font-weight:900;font-size:15px;text-decoration:none;padding:14px 28px;border-radius:999px;">Open ${esc(modelName)}'s profile →</a>
+          <a href="${link}" style="display:inline-block;background:#f6cf51;color:#000;font-weight:900;font-size:15px;text-decoration:none;padding:14px 28px;border-radius:999px;">Open ${esc(modelName)}'s profile →</a>
         </td></tr></table>
         <p style="margin:22px 0 0;font-size:12px;line-height:1.5;color:#999;">Renews monthly. Manage or cancel your subscriptions anytime in your account. Want another model? Subscribe to her separately.</p>
       </td></tr>

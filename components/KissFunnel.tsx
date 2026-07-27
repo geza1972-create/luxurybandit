@@ -59,16 +59,28 @@ export type FunnelVariant = "kiss" | "idol";
 
 // Beide Themen teilen sich DIESEN Funnel — nur Prompt und Beschriftungen unterscheiden
 // sich. Kopieren wäre doppelte Wartung: jeder Fix müsste sonst zweimal gemacht werden.
-const VARIANTS: Record<FunnelVariant, { prompt: string; step1: string; step3: string; cta: string; ready: string; done: string }> = {
+const VARIANTS: Record<FunnelVariant, {
+  prompt: string; step1: string; step3: string; cta: string; ready: string; done: string;
+  pickHint: string; upTitle: string; upHint: string; upFirst: boolean; upPlaceholder?: string;
+}> = {
   kiss: {
     prompt: KISS_PROMPT,
     step1: "1 · Pick her", step3: "3 · The kiss",
     cta: "Generate the kiss video", ready: "Your kiss video is ready 💋", done: "kiss-video.mp4",
+    pickHint: "Swipe the models — your pick stands up front.",
+    upTitle: "Your model", upHint: "Kiss any superstar — just upload a screenshot.", upFirst: false,
   },
   idol: {
     prompt: IDOL_PROMPT,
     step1: "1 · Pick your idol", step3: "3 · The moment",
     cta: "Generate the video", ready: "Your video is ready ✨", done: "your-idol-video.mp4",
+    // Bei „Your Idol" ist das EIGENE Idol der Sinn der Sache — deshalb steht die Upload-Karte
+    // vorn und ist von Anfang an gewählt; unsere Models sind nur die Alternative daneben.
+    pickHint: "Any singer, actress, athlete or influencer — swipe to your own upload, or take one of ours.",
+    upTitle: "Your idol", upHint: "Any star you like — just upload one screenshot of her or him.", upFirst: true,
+    // Platzhalter-Gesicht auf der Upload-Karte (Aria, abgedunkelt): zeigt auf einen Blick,
+    // dass hier ein FOTO hineingehört — genau wie Peter beim eigenen Foto.
+    upPlaceholder: "/idol-placeholder.jpg",
   },
 };
 
@@ -77,7 +89,7 @@ export default function KissFunnel({ variant = "kiss" }: { variant?: FunnelVaria
   const [models, setModels] = useState<Model[]>([]);
   const [picked, setPicked] = useState<Model | null>(null);
   const [customModel, setCustomModel] = useState(""); // „Your Model": eigenes Model-Foto (Data-URL)
-  const [useCustom, setUseCustom] = useState(false);  // die „Your Model"-Karte steht vorn
+  const [useCustom, setUseCustom] = useState(VARIANTS[variant].upFirst); // „Your Model"-Karte vorn
   const [photo, setPhoto] = useState("");          // eigenes Foto (Data-URL)
   const [isStaff, setIsStaff] = useState(false);
   const [pin, setPin] = useState("");
@@ -87,6 +99,9 @@ export default function KissFunnel({ variant = "kiss" }: { variant?: FunnelVaria
   const [videoUrl, setVideoUrl] = useState("");    // ECHTES Video (erst nach Zahlung / Staff)
   const [genId, setGenId] = useState("");          // Kiss-Log-Eintrag dieser Generierung
   const [payBusy, setPayBusy] = useState(false);
+  // AKTIVE ZUSTIMMUNG (Owner-Vorgabe): niemand rendert ein Video aus fremden Fotos, ohne
+  // vorher ausdrücklich bestätigt zu haben, dass er das darf und die Verantwortung trägt.
+  const [consent, setConsent] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const modelFileRef = useRef<HTMLInputElement>(null); // Upload fürs eigene Model-Foto
   const runRef = useRef(0);
@@ -108,6 +123,7 @@ export default function KissFunnel({ variant = "kiss" }: { variant?: FunnelVaria
       if (bellaIdx > 0) list = [list[bellaIdx], ...list.slice(0, bellaIdx), ...list.slice(bellaIdx + 1)];
       setModels(list);
       // Coverflow: die vorderste Karte IST die Auswahl → mit dem ersten Model (Bella) starten.
+      // Bei „Your Idol" bleibt die Upload-Karte vorn, `picked` ist nur der Fallback dahinter.
       if (list.length) setPicked(p => p ?? list[0]);
     });
     try {
@@ -122,7 +138,7 @@ export default function KissFunnel({ variant = "kiss" }: { variant?: FunnelVaria
 
   // Die aktive Auswahl: entweder die „Your Model"-Karte (eigenes Foto) oder ein Katalog-Model.
   const selPhoto = useCustom ? customModel : (picked?.photoUrl ?? "");
-  const selName = useCustom ? "Your model" : (picked?.name ?? "");
+  const selName = useCustom ? V.upTitle : (picked?.name ?? "");
   const selId = useCustom ? "custom" : (picked?.id ?? "");
 
   // ECHTE Generierung (Pixverse) — läuft nur nach Zahlung oder für Staff.
@@ -224,14 +240,14 @@ export default function KissFunnel({ variant = "kiss" }: { variant?: FunnelVaria
           vorn, die Nachbarinnen kippen seitlich weg; Tipp auf eine Seitenkarte oder Swipe
           holt sie nach vorn (= Auswahl). */}
       <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{V.step1}</p>
-      <p className="mt-1 text-[13px] font-bold text-white/85">Swipe the models — your pick stands up front.</p>
+      <p className="mt-1 text-[13px] font-bold text-white/85">{V.pickHint}</p>
       {(() => {
         if (models.length === 0) return <div className="grid h-[46vw] max-h-[240px] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>;
         // „Your Model" lebt IM Karussell als Karte (3. Position, wie „Your photo" im Try-On):
         // eigenes Model-Foto hochladen — die Karte vorn = Auswahl.
-        const YOURMODEL: Model = { id: "__yourmodel", name: "Your model", photoUrl: "" };
+        const YOURMODEL: Model = { id: "__yourmodel", name: V.upTitle, photoUrl: "" };
         const cards = [...models];
-        const uploadIdx = Math.min(2, cards.length);
+        const uploadIdx = V.upFirst ? 0 : Math.min(2, cards.length);
         cards.splice(uploadIdx, 0, YOURMODEL);
         const active = useCustom ? uploadIdx : Math.max(0, cards.findIndex(m => m.id === picked?.id));
         // Nach-vorn-holen zentriert NUR (auch die „Your model"-Karte — Owner-Vorgabe);
@@ -261,10 +277,14 @@ export default function KissFunnel({ variant = "kiss" }: { variant?: FunnelVaria
                   <div className="relative aspect-[3/4] w-full">
                     {isUpload && !customModel ? (
                       // Solide Fläche (nicht transparent — Owner-Vorgabe): warmes Dunkelbraun.
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-[#241c11] px-3 text-center">
-                        <ImageUp className="h-9 w-9 text-amber-400" />
-                        <span className="text-[13px] font-black text-amber-300">Your model</span>
-                        <span className="text-[11px] font-bold leading-snug text-white/80">Kiss any superstar — just upload a screenshot.</span>
+                      <div className="relative flex h-full w-full flex-col items-center justify-center gap-2 bg-[#241c11] px-3 text-center">
+                        {V.upPlaceholder && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={V.upPlaceholder} alt="" className="absolute inset-0 h-full w-full object-cover object-top opacity-25 grayscale" />
+                        )}
+                        <ImageUp className="relative h-9 w-9 text-[#f6cf51]" />
+                        <span className="relative text-[13px] font-black text-[#f6cf51]">{V.upTitle}</span>
+                        <span className="relative text-[11px] font-bold leading-snug text-white/80">{V.upHint}</span>
                       </div>
                     ) : (<>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -273,7 +293,7 @@ export default function KissFunnel({ variant = "kiss" }: { variant?: FunnelVaria
                         <span className="absolute inset-x-3 bottom-8 rounded-full bg-black/60 py-1 text-center text-[10px] font-black text-white backdrop-blur">Tap to change photo</span>
                       )}
                     </>)}
-                    {isActive && (!isUpload || !!customModel) && <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-[#c9a23f] shadow"><Check className="h-4 w-4 text-black" /></span>}
+                    {isActive && (!isUpload || !!customModel) && <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-[#f6cf51] shadow"><Check className="h-4 w-4 text-black" /></span>}
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pb-2 pt-6">
                       <p className="lb-onmedia truncate text-[13px] font-black">{m.name}</p>
                     </div>
@@ -289,7 +309,7 @@ export default function KissFunnel({ variant = "kiss" }: { variant?: FunnelVaria
       {/* 2) Eigenes Foto */}
       <p className="mt-5 text-[12px] font-black uppercase tracking-wide text-white/50">2 · Your photo</p>
       <button type="button" onClick={() => fileRef.current?.click()}
-        className="relative mx-auto mt-2 flex aspect-square w-[46vw] max-w-[210px] flex-col items-center justify-center gap-2 overflow-hidden rounded-3xl border-2 border-dashed border-amber-400/40 bg-amber-400/[0.06] active:scale-[0.98] transition">
+        className="relative mx-auto mt-2 flex aspect-square w-[46vw] max-w-[210px] flex-col items-center justify-center gap-2 overflow-hidden rounded-3xl border-2 border-dashed border-[#f6cf51]/40 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
         {photo
           // eslint-disable-next-line @next/next/no-img-element
           ? <img src={photo} alt="" className="h-full w-full object-cover" />
@@ -298,8 +318,8 @@ export default function KissFunnel({ variant = "kiss" }: { variant?: FunnelVaria
                   MANN bzw. der Nutzer selbst hingehört — nicht noch ein Model. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={PLACEHOLDER_MAN} alt="" className="absolute inset-0 h-full w-full object-cover opacity-25 grayscale" />
-              <ImageUp className="relative h-8 w-8 text-amber-400" />
-              <span className="relative text-[13px] font-black text-amber-400">Upload your photo</span>
+              <ImageUp className="relative h-8 w-8 text-[#f6cf51]" />
+              <span className="relative text-[13px] font-black text-[#f6cf51]">Upload your photo</span>
             </>)}
       </button>
       {photo && (
@@ -311,7 +331,15 @@ export default function KissFunnel({ variant = "kiss" }: { variant?: FunnelVaria
 
       {/* 3) Generieren */}
       <p className="mt-5 text-[12px] font-black uppercase tracking-wide text-white/50">{V.step3}</p>
-      <button type="button" onClick={() => void generate()} disabled={!picked || !photo || busy}
+      <label className="mt-2 flex cursor-pointer items-start gap-2.5 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+        <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-[#f6cf51]" />
+        <span className="text-[12px] font-bold leading-snug text-white/70">
+          Yes, I want this video. I may use these photos, everyone shown is an adult, I keep it
+          private — and I take responsibility for it.
+        </span>
+      </label>
+      <button type="button" onClick={() => void generate()} disabled={!selPhoto || !photo || !consent || busy}
         className="lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-50">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "💋"} {busy ? "Rendering …" : V.cta}
       </button>
@@ -349,7 +377,7 @@ export default function KissFunnel({ variant = "kiss" }: { variant?: FunnelVaria
               <img src={selPhoto} alt="" className="aspect-[3/4] max-h-[60vh] w-auto blur-2xl scale-110 object-cover" />
               <div className="absolute inset-0 grid place-items-center bg-black/30">
                 <div className="px-6 text-center">
-                  <Lock className="mx-auto h-8 w-8 text-amber-400" />
+                  <Lock className="mx-auto h-8 w-8 text-[#f6cf51]" />
                   <p className="lb-onmedia mt-2 text-[15px] font-black">{V.ready}</p>
                   <button type="button" onClick={() => void unlock()} disabled={payBusy}
                     className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition disabled:opacity-60">

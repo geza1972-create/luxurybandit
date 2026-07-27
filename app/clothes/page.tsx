@@ -60,7 +60,7 @@ export default function HainePage() {
       <TopNav />
 
       <main className="mx-auto max-w-md px-4 pb-24 pt-2">
-        <p className="mb-1 mt-3 text-center text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Clothes</p>
+        <p className="mb-1 mt-3 text-center text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">Clothes</p>
         <p className="mb-5 text-center text-[13px] font-semibold text-white/85">Clothes & luxury pieces — our collection and Bellucci</p>
 
         {loading ? (
@@ -108,11 +108,11 @@ export default function HainePage() {
                 <div className="min-w-0 flex-1">
                   {openProduct.price && <p className="text-[22px] font-black text-white">{openProduct.price}</p>}
                   <p className="mt-1 text-[14px] font-semibold leading-snug text-white/80">{openProduct.title}</p>
-                  {openProduct.source && <p className="mt-1.5 text-[12px] font-bold text-[#c9a23f]">{openProduct.source}</p>}
+                  {openProduct.source && <p className="mt-1.5 text-[12px] font-bold text-[#f6cf51]">{openProduct.source}</p>}
                 </div>
               </div>
               <a href={openProduct.link} target="_blank" rel="noopener noreferrer" onClick={() => setOpenProduct(null)}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#c9a23f] py-4 text-[15px] font-black text-black active:scale-[0.98] transition">
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#f6cf51] py-4 text-[15px] font-black text-black active:scale-[0.98] transition">
                 Vezi în magazin <ArrowUpRight className="h-4 w-4" />
               </a>
               <button type="button" onClick={() => setOpenProduct(null)}

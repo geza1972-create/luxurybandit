@@ -33,9 +33,9 @@ export default async function UrlaubMitBellaPage({ searchParams }: {
         {showCustomer ? (
           <div className={showAdmin ? "mt-4" : ""}>
             {/* Hero */}
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">LuxuryBandit · Travel Program</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">LuxuryBandit · Travel Program</p>
             <h1 className="mt-2 text-[34px] font-black leading-[1.05]">
-              Go on holiday with <span className="text-[#c9a23f]">{first}</span> in Tenerife 🌴
+              Go on holiday with <span className="text-[#f6cf51]">{first}</span> in Tenerife 🌴
             </h1>
             <p className="mt-3 text-[15px] font-medium leading-snug text-white/80">
               Your own AI influencer travels for you — and every day you get fresh videos & stories from the island. Like you're right there.

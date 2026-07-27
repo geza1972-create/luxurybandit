@@ -1327,7 +1327,7 @@ export default function TryFunnelPage() {
                       </button>
                       {chosenModelId && (
                         <button type="button" onClick={() => router.push(wchatBack || `/chat/${chosenModelId}`)}
-                          className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
+                          className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-[#f6cf51]/40 bg-[#f6cf51]/10 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
                           <MessageCircle className="h-4 w-4" /> {L("Vorbește cu", "Chat with")} {chosenModelName ? chosenModelName.split(/\s+/)[0] : L("ea", "her")}
                         </button>
                       )}
@@ -1340,7 +1340,7 @@ export default function TryFunnelPage() {
                       </button>
                       {chosenModelId && (
                         <button type="button" onClick={() => router.push(wchatBack || `/chat/${chosenModelId}`)}
-                          className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-[#c9a23f]/40 bg-[#c9a23f]/10 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
+                          className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-[#f6cf51]/40 bg-[#f6cf51]/10 text-[13px] font-black text-[#e7c877] active:scale-95 transition">
                           <MessageCircle className="h-4 w-4" /> {L("Vorbește cu", "Chat with")} {chosenModelName ? chosenModelName.split(/\s+/)[0] : L("ea", "her")}
                         </button>
                       )}

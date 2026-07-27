@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f4f0;margin:0;padding:44px 20px;text-align:center;color:#111;">
   <div style="max-width:420px;margin:0 auto;background:#fff;border-radius:16px;padding:34px 28px;">
-    <p style="margin:0;font-weight:900;color:#c9a23f;letter-spacing:.2em;text-transform:uppercase;font-size:11px;">LuxuryBandit</p>
+    <p style="margin:0;font-weight:900;color:#f6cf51;letter-spacing:.2em;text-transform:uppercase;font-size:11px;">LuxuryBandit</p>
     <h1 style="font-size:20px;margin:14px 0 8px;">${ok ? "You're unsubscribed 💛" : "Link not valid"}</h1>
     <p style="color:#555;font-size:14px;line-height:1.6;margin:0;">${ok ? `${esc(email)} won't receive the newsletter anymore. You can re-subscribe anytime.` : "This unsubscribe link is invalid or expired."}</p>
   </div>
@@ -69,14 +69,14 @@ function newsletterHtml({ message, link, modelName, unsub }: { message: string; 
   const who = modelName ? esc(modelName) : "";
   const cta = link
     ? `<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
-         <a href="${esc(link)}" style="display:inline-block;background:#c9a23f;color:#000;font-weight:900;font-size:15px;text-decoration:none;padding:14px 28px;border-radius:999px;">${who ? `See ${who}'s new look →` : "See the new look →"}</a>
+         <a href="${esc(link)}" style="display:inline-block;background:#f6cf51;color:#000;font-weight:900;font-size:15px;text-decoration:none;padding:14px 28px;border-radius:999px;">${who ? `See ${who}'s new look →` : "See the new look →"}</a>
        </td></tr></table>` : "";
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><meta name="color-scheme" content="light" /></head>
 <body style="margin:0;padding:24px;background:#f5f4f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111;">
   <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
     <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#fff;border-radius:14px;overflow:hidden;">
       <tr><td style="background:#000;padding:26px 28px;text-align:center;">
-        <p style="margin:0;font-size:11px;font-weight:900;letter-spacing:.2em;color:#c9a23f;text-transform:uppercase;">LuxuryBandit</p>
+        <p style="margin:0;font-size:11px;font-weight:900;letter-spacing:.2em;color:#f6cf51;text-transform:uppercase;">LuxuryBandit</p>
         <p style="margin:8px 0 0;font-size:22px;font-weight:900;color:#fff;">${who ? `New Look from ${who} 💛` : "New Look 💛"}</p>
       </td></tr>
       <tr><td style="padding:30px 28px;">

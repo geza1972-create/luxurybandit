@@ -311,7 +311,7 @@ export default function MyGalleryPage() {
               <X className="h-5 w-5" />
             </button>
             <button type="button" onClick={(e) => { e.stopPropagation(); void download(open); }} disabled={downloading}
-              className="flex items-center gap-2 rounded-full bg-[#c9a23f] px-4 py-2 text-[13px] font-black text-black active:scale-95 disabled:opacity-50">
+              className="flex items-center gap-2 rounded-full bg-[#f6cf51] px-4 py-2 text-[13px] font-black text-black active:scale-95 disabled:opacity-50">
               {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Download
             </button>
           </div>

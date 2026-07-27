@@ -429,11 +429,11 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
       {/* ALLE Texte UNTER dem Video: Datum · TITEL = der Gruß (Vorgabe, {Name} personalisiert) ·
           Wetter · Beitragstext. KEIN separater Auto-Gruß mehr → „Guten Morgen" steht nur EINMAL. */}
       <div className="pt-4">
-        {dateLabel && <p className="mb-1 text-[11px] font-black uppercase tracking-[0.14em] text-amber-400">📅 {dateLabel}</p>}
+        {dateLabel && <p className="mb-1 text-[11px] font-black uppercase tracking-[0.14em] text-[#f6cf51]">📅 {dateLabel}</p>}
         {title.trim()
           ? <p className="text-[24px] font-black leading-tight text-white">{personalizeName(title, name)}</p>
           : name.trim()
-            ? <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-amber-400">{name}!</span></p>
+            ? <p className="text-[24px] font-black leading-tight text-white">{t.greetPre} <span className="text-[#f6cf51]">{name}!</span></p>
             : <p className="text-[24px] font-black leading-tight text-white">{t.greetPre.replace(/[,،]\s*$/, "")}!</p>}
         {city.trim() && (
           <p className="mt-1 text-[14px] font-semibold text-white/70">
@@ -456,7 +456,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             // KI-Erinnerung: bewusst KEINE Chat-Blase — sie soll erkennbar von der Plattform
             // kommen und nicht von „ihr", sonst wirkt der Hinweis wie Teil des Rollenspiels.
             if (m.role === "notice") return (
-              <div key={i} className="my-1 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-center text-[11px] font-bold leading-snug text-amber-200">
+              <div key={i} className="my-1 rounded-xl border border-[#f6cf51]/30 bg-[#f6cf51]/10 px-3 py-2 text-center text-[11px] font-bold leading-snug text-[#f6cf51]">
                 ⚠️ {m.content}
               </div>
             );
@@ -477,7 +477,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
                   <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
                     {videos.map(v => (
                       <button key={v.id} type="button" onClick={() => v.locked ? openLocked() : setPlaying(v.videoUrl)}
-                        className="group relative w-24 shrink-0 overflow-hidden rounded-xl border border-amber-300/40 bg-black/5 active:scale-95 transition">
+                        className="group relative w-24 shrink-0 overflow-hidden rounded-xl border border-[#f6cf51]/40 bg-black/5 active:scale-95 transition">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={v.posterUrl} alt="" className={`aspect-[3/4] w-full object-cover ${v.locked ? "scale-105 blur-[7px]" : ""}`} />
                         {v.locked ? (
@@ -543,7 +543,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {crossModels.map(m => (
                 <a key={m.href} href={m.href} className="group w-[96px] shrink-0 snap-start">
-                  <div className="relative overflow-hidden rounded-xl border border-amber-400/25">
+                  <div className="relative overflow-hidden rounded-xl border border-[#f6cf51]/25">
                     <img src={m.img} alt={m.name} className="aspect-[3/4] w-full object-cover" />
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-2 pb-1.5 pt-5">
                       <p className="truncate text-[12px] font-black text-white">{m.name}</p>
@@ -616,13 +616,13 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         return (
           <div className="mb-8 mt-3">
             <p className="px-0.5 text-[13px] font-black text-white">{p.h}</p>
-            <p className="mb-2 px-0.5 text-[11px] font-bold text-[#c9a23f]">{p.sub}</p>
+            <p className="mb-2 px-0.5 text-[11px] font-bold text-[#f6cf51]">{p.sub}</p>
             <div className="grid grid-cols-2 gap-2.5">
               {p.items.map(([emoji, title, sub], i) => {
                 const [media, isVideo] = MEDIA[i];
                 const alt2 = i === 0 ? tryonLingerie : "";
                 return (
-                  <a key={title} href={HREFS[i]} className="flex flex-col overflow-hidden rounded-2xl border border-amber-400/25 bg-amber-400/[0.06] active:scale-[0.98] transition">
+                  <a key={title} href={HREFS[i]} className="flex flex-col overflow-hidden rounded-2xl border border-[#f6cf51]/25 bg-[#f6cf51]/[0.06] active:scale-[0.98] transition">
                     <span className="relative block aspect-[3/4] w-full overflow-hidden bg-white/[0.04]">
                       {media
                         ? (isVideo

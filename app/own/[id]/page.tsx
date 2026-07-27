@@ -62,8 +62,8 @@ export default function OwnModelPage() {
     <main className="min-h-screen bg-[#0d0b0a] text-white">
       <LandingHeader />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">Sponsor an AI Influencer</p>
-        <h1 className="mt-2 text-[30px] font-black leading-[1.05]">Sponsor <span className="text-[#c9a23f]">{name}</span> 👑</h1>
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">Sponsor an AI Influencer</p>
+        <h1 className="mt-2 text-[30px] font-black leading-[1.05]">Sponsor <span className="text-[#f6cf51]">{name}</span> 👑</h1>
 
         <div className="mt-6 flex items-center gap-4">
           <span className="h-20 w-16 shrink-0 overflow-hidden rounded-2xl bg-white/10">
@@ -74,12 +74,12 @@ export default function OwnModelPage() {
           </span>
           <div>
             <p className="text-lg font-black">{name}</p>
-            {profile.growPriceLabel && <p className="text-sm font-bold text-[#c9a23f]">{profile.growPriceLabel}</p>}
+            {profile.growPriceLabel && <p className="text-sm font-bold text-[#f6cf51]">{profile.growPriceLabel}</p>}
           </div>
         </div>
 
-        <div className="mt-6 rounded-2xl border border-[#c9a23f]/30 bg-[#c9a23f]/[0.06] p-5">
-          <p className="text-[14px] font-bold uppercase tracking-wide text-[#c9a23f]">What sponsoring means</p>
+        <div className="mt-6 rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-5">
+          <p className="text-[14px] font-bold uppercase tracking-wide text-[#f6cf51]">What sponsoring means</p>
           <ul className="mt-3 space-y-2 text-[14px] font-semibold leading-relaxed text-white/75">
             <li>👑 She&apos;s exclusively yours — no one else can sponsor her</li>
             <li>📈 You sponsor her monthly Growth Score, which keeps rising</li>
@@ -93,13 +93,13 @@ export default function OwnModelPage() {
             {name} already has an owner right now.
           </p>
         ) : (
-          <div className="mt-6 rounded-2xl border border-[#c9a23f]/40 bg-black/30 p-5">
+          <div className="mt-6 rounded-2xl border border-[#f6cf51]/40 bg-black/30 p-5">
             <p className="text-[13px] font-bold text-white/85">Enter your email to proceed to payment{profile.growPriceLabel ? ` (${profile.growPriceLabel})` : ""}.</p>
             <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="Your email"
-              className="mt-3 h-12 w-full rounded-xl border border-white/15 bg-white/5 px-4 text-[15px] font-semibold text-white outline-none focus:border-[#c9a23f] placeholder:text-white/50" />
+              className="mt-3 h-12 w-full rounded-xl border border-white/15 bg-white/5 px-4 text-[15px] font-semibold text-white outline-none focus:border-[#f6cf51] placeholder:text-white/50" />
             {err && <p className="mt-2 text-[12px] font-bold text-red-400">{err}</p>}
             <button type="button" onClick={() => void submit()} disabled={busy || !email.trim()}
-              className="mt-4 flex h-13 min-h-[52px] w-full items-center justify-center rounded-full bg-[#c9a23f] px-6 text-base font-black text-black active:scale-95 transition disabled:opacity-50">
+              className="mt-4 flex h-13 min-h-[52px] w-full items-center justify-center rounded-full bg-[#f6cf51] px-6 text-base font-black text-black active:scale-95 transition disabled:opacity-50">
               {busy ? "…" : `Own ${name} — proceed to payment →`}
             </button>
             <p className="mt-3 text-center text-[12px] font-bold text-white/80">🔒 Secure checkout via Stripe</p>

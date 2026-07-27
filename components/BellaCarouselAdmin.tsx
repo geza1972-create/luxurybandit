@@ -497,7 +497,7 @@ export default function BellaCarouselAdmin({ heading = "🎴 Card Studio", scope
           <div className="mt-2">
             <div className="flex items-center gap-2">
               <button type="button" onClick={() => void notifyCustomer()} disabled={notifyBusy}
-                className="rounded-lg bg-[#c9a23f] px-3 py-2 text-[12px] font-black text-black active:scale-95 disabled:opacity-40">
+                className="rounded-lg bg-[#f6cf51] px-3 py-2 text-[12px] font-black text-black active:scale-95 disabled:opacity-40">
                 {notifyBusy ? "Sendet…" : "📧 „Dein Feed ist online“ senden"}
               </button>
               {notifyDone && <span className="text-[12px] font-bold text-amber-600">{notifyDone}</span>}
@@ -771,7 +771,7 @@ export default function BellaCarouselAdmin({ heading = "🎴 Card Studio", scope
         <div className="fixed inset-0 z-[95] flex flex-col bg-black/95" onClick={() => setLightbox(null)}>
           <div className="flex items-center justify-end gap-2 p-3" onClick={e => e.stopPropagation()}>
             <button type="button" onClick={() => void downloadMedia(lightbox.url, lightbox.kind)}
-              className="rounded-full bg-[#c9a23f] px-4 py-2 text-[13px] font-black text-black active:scale-95">⬇ Download</button>
+              className="rounded-full bg-[#f6cf51] px-4 py-2 text-[13px] font-black text-black active:scale-95">⬇ Download</button>
             <button type="button" onClick={() => setLightbox(null)} aria-label="Schließen"
               className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-lg font-black text-white active:scale-90">✕</button>
           </div>

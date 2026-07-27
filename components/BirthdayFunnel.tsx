@@ -133,7 +133,7 @@ export default function BirthdayFunnel({ modelPhoto, modelName = "Bella" }: { mo
       <p className="text-[12px] font-black uppercase tracking-wide text-white/50">1 · Who is it for?</p>
       <input value={name} onChange={e => setName(e.target.value)} maxLength={40}
         placeholder="Their first name — e.g. Maria"
-        className="mt-2 h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#c9a23f]" />
+        className="mt-2 h-12 w-full rounded-xl border border-white/15 bg-white/[0.04] px-4 text-[15px] font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#f6cf51]" />
       <p className="mt-1.5 text-[12px] font-bold text-white/50">
         {modelName} says it out loud: “Happy birthday to you, dear {name.trim() || "…"}!”
       </p>
@@ -174,7 +174,7 @@ export default function BirthdayFunnel({ modelPhoto, modelName = "Bella" }: { mo
               <img src={modelPhoto} alt="" className="aspect-[3/4] max-h-[60vh] w-auto scale-110 object-cover blur-2xl" />
               <div className="absolute inset-0 grid place-items-center bg-black/30">
                 <div className="px-6 text-center">
-                  <Lock className="mx-auto h-8 w-8 text-amber-400" />
+                  <Lock className="mx-auto h-8 w-8 text-[#f6cf51]" />
                   <p className="lb-onmedia mt-2 text-[15px] font-black">The birthday video for {name.trim()} is ready 🎂</p>
                   <button type="button" onClick={() => void unlock()} disabled={payBusy}
                     className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition disabled:opacity-60">
