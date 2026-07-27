@@ -139,7 +139,7 @@ const T: Record<string, Copy> = {
   },
 };
 
-export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", email = "", day = "", time = "", title = "", caption = "", firstMessage = "", dayContext = "", locked = false, paid = false, modelSlug = "", monthlyCents = 2400, crossModels = [], kissTeaser = "", kissTeaserIsVideo = false, tryonTeaser = "", tryonLingerie = "" }: {
+export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_LANG, modelId = DEFAULT_MODEL_ID, modelName = "Bella", subId = "", email = "", day = "", time = "", title = "", caption = "", firstMessage = "", dayContext = "", locked = false, paid = false, modelSlug = "", monthlyCents = 2400, crossModels = [], kissTeaser = "", kissTeaserIsVideo = false, tryonTeaser = "", tryonLingerie = "", idolTeaser = "", lingerieTeaser = "" }: {
   name: string; city: string; look: Look | null; lang?: string; modelId?: string; modelName?: string; subId?: string; email?: string; day?: string; time?: string;
   title?: string;         // „Titel" aus dem Beitrag — groß über dem Text
   caption?: string;       // „Text unter dem Bild" aus dem Beitrag
@@ -154,6 +154,8 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   kissTeaserIsVideo?: boolean;
   tryonTeaser?: string;         // Poster der Try-On-Karte („angezogen")
   tryonLingerie?: string;       // zweites Bild — die Karte blendet zwischen beiden hin und her
+  idolTeaser?: string;          // Beispiel-Video für „Dein Idol mit dir"
+  lingerieTeaser?: string;      // Beispiel-Video für die Lingerie-Karte
 }) {
   const L = (lang || DEFAULT_LANG).slice(0, 2).toLowerCase();
   const t = T[L] ?? T.en;
@@ -554,52 +556,95 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         );
       })()}
 
-      {/* Darunter: Werbung für die beiden Mitmach-Themen — Try-On und Kiss.
-          Übersetzt, weil die Abonnenten EU-weit sitzen. */}
+      {/* Darunter: ALLE Mitmach-Themen. Nichts davon ist gratis — es läuft übers Abo
+          (5 Videos im Monat für 24 €). Deshalb steht auf jeder Karte „Im Abo" statt eines
+          Gratis-Versprechens. Übersetzt, weil die Abonnenten EU-weit sitzen. */}
       {(() => {
-        const P: Record<string, { h: string; tT: string; tS: string; kT: string; kS: string; cta: string }> = {
-          ro: { h: "Descoperă ceva nou ✨", tT: "Probează o ținută", tS: "Alege un look și un model — îl vezi într-un video.", kT: "Sărută orice model", kS: "Sau vedeta ta preferată — încarcă o poză.", cta: "Încearcă" },
-          de: { h: "Entdecke Neues ✨", tT: "Outfit anprobieren", tS: "Look und Model wählen — du siehst es im Video.", kT: "Küsse jedes Model", kS: "Oder deinen Superstar — lade einfach ein Foto hoch.", cta: "Los" },
-          en: { h: "Discover something new ✨", tT: "Try on a look", tS: "Pick a look and a model — see it in a video.", kT: "Kiss any model", kS: "Or your favourite superstar — just upload a photo.", cta: "Try" },
-          es: { h: "Descubre algo nuevo ✨", tT: "Prueba un look", tS: "Elige un look y una modelo — lo ves en un vídeo.", kT: "Besa a cualquier modelo", kS: "O a tu estrella favorita — sube una foto.", cta: "Probar" },
-          fr: { h: "Découvre du nouveau ✨", tT: "Essaie une tenue", tS: "Choisis un look et un modèle — tu le vois en vidéo.", kT: "Embrasse un modèle", kS: "Ou ta star préférée — envoie simplement une photo.", cta: "Essayer" },
-          pt: { h: "Descobre algo novo ✨", tT: "Experimenta um visual", tS: "Escolhe um visual e uma modelo — vês num vídeo.", kT: "Beija qualquer modelo", kS: "Ou a tua estrela favorita — envia uma foto.", cta: "Testar" },
-          pl: { h: "Odkryj coś nowego ✨", tT: "Przymierz stylizację", tS: "Wybierz look i modelkę — zobaczysz to na wideo.", kT: "Pocałuj modelkę", kS: "Albo swoją gwiazdę — wystarczy zdjęcie.", cta: "Wypróbuj" },
-          it: { h: "Scopri qualcosa di nuovo ✨", tT: "Prova un look", tS: "Scegli un look e una modella — lo vedi in un video.", kT: "Bacia una modella", kS: "O la tua star preferita — carica una foto.", cta: "Prova" },
+        const P: Record<string, { h: string; sub: string; inAbo: string; items: [string, string, string][] }> = {
+          ro: { h: "Descoperă ceva nou \u2728", sub: "5 videoclipuri pe lună, 24 €.", inAbo: "În abonament", items: [
+            ["\u2728", "Probează o ținută", "Alege un look și un model — îl vezi într-un video."],
+            ["\uD83D\uDC8B", "Sărută orice model", "Sau vedeta ta preferată — încarcă o poză."],
+            ["\u2B50", "Idolul tău cu tine", "Voi doi împreună, într-un singur video."],
+            ["\uD83D\uDD25", "Lenjerie", "O vezi în lenjerie — orice look, în video."],
+          ] },
+          de: { h: "Entdecke Neues \u2728", sub: "5 Videos im Monat, 24 €.", inAbo: "Im Abo", items: [
+            ["\u2728", "Outfit anprobieren", "Look und Model wählen — du siehst es im Video."],
+            ["\uD83D\uDC8B", "Küsse jedes Model", "Oder deinen Superstar — lade einfach ein Foto hoch."],
+            ["\u2B50", "Dein Idol mit dir", "Ihr beide zusammen, in einem Video."],
+            ["\uD83D\uDD25", "Lingerie", "Sieh sie in Lingerie — jeder Look, im Video."],
+          ] },
+          en: { h: "Discover something new \u2728", sub: "5 videos a month, €24.", inAbo: "In your plan", items: [
+            ["\u2728", "Try on a look", "Pick a look and a model — see it in a video."],
+            ["\uD83D\uDC8B", "Kiss any model", "Or your favourite superstar — just upload a photo."],
+            ["\u2B50", "Your idol with you", "The two of you together, in one video."],
+            ["\uD83D\uDD25", "Lingerie", "See her in lingerie — any look, in a video."],
+          ] },
+          es: { h: "Descubre algo nuevo \u2728", sub: "5 vídeos al mes, 24 €.", inAbo: "En tu plan", items: [
+            ["\u2728", "Prueba un look", "Elige un look y una modelo — lo ves en un vídeo."],
+            ["\uD83D\uDC8B", "Besa a cualquier modelo", "O a tu estrella favorita — sube una foto."],
+            ["\u2B50", "Tu ídolo contigo", "Los dos juntos, en un vídeo."],
+            ["\uD83D\uDD25", "Lencería", "Verla en lencería — cualquier look, en vídeo."],
+          ] },
+          fr: { h: "Découvre du nouveau \u2728", sub: "5 vidéos par mois, 24 €.", inAbo: "Dans ton abo", items: [
+            ["\u2728", "Essaie une tenue", "Choisis un look et un modèle — tu le vois en vidéo."],
+            ["\uD83D\uDC8B", "Embrasse un modèle", "Ou ta star préférée — envoie une photo."],
+            ["\u2B50", "Ton idole avec toi", "Vous deux ensemble, en vidéo."],
+            ["\uD83D\uDD25", "Lingerie", "La voir en lingerie — n'importe quel look, en vidéo."],
+          ] },
+          pt: { h: "Descobre algo novo \u2728", sub: "5 vídeos por mês, 24 €.", inAbo: "Na tua subscrição", items: [
+            ["\u2728", "Experimenta um visual", "Escolhe um visual e uma modelo — vês num vídeo."],
+            ["\uD83D\uDC8B", "Beija qualquer modelo", "Ou a tua estrela favorita — envia uma foto."],
+            ["\u2B50", "O teu ídolo contigo", "Vocês os dois juntos, num vídeo."],
+            ["\uD83D\uDD25", "Lingerie", "Vê-la em lingerie — qualquer visual, em vídeo."],
+          ] },
+          pl: { h: "Odkryj coś nowego \u2728", sub: "5 filmów miesięcznie, 24 €.", inAbo: "W abonamencie", items: [
+            ["\u2728", "Przymierz stylizację", "Wybierz look i modelkę — zobaczysz to na wideo."],
+            ["\uD83D\uDC8B", "Pocałuj modelkę", "Albo swoją gwiazdę — wystarczy zdjęcie."],
+            ["\u2B50", "Twój idol z Tobą", "Wy dwoje razem, na jednym wideo."],
+            ["\uD83D\uDD25", "Bielizna", "Zobacz ją w bieliźnie — każdy look, na wideo."],
+          ] },
+          it: { h: "Scopri qualcosa di nuovo \u2728", sub: "5 video al mese, 24 €.", inAbo: "Nel tuo abbonamento", items: [
+            ["\u2728", "Prova un look", "Scegli un look e una modella — lo vedi in un video."],
+            ["\uD83D\uDC8B", "Bacia una modella", "O la tua star preferita — carica una foto."],
+            ["\u2B50", "Il tuo idolo con te", "Voi due insieme, in un video."],
+            ["\uD83D\uDD25", "Lingerie", "Vederla in lingerie — qualsiasi look, in video."],
+          ] },
         };
         const p = P[L] ?? P.en;
-        // Poster oben (Bild ODER Video), Text darunter. Ohne Poster bleibt das Emoji als Platzhalter.
-        const card = (href: string, emoji: string, title: string, sub: string, media: string, isVideo: boolean, alt2 = "") => (
-          <a href={href} className="flex flex-col overflow-hidden rounded-2xl border border-amber-400/25 bg-amber-400/[0.06] active:scale-[0.98] transition">
-            <span className="relative block aspect-[3/4] w-full overflow-hidden bg-white/[0.04]">
-              {media
-                ? (isVideo
-                  // eslint-disable-next-line jsx-a11y/media-has-caption
-                  ? <video src={media} muted loop playsInline autoPlay preload="metadata" className="h-full w-full object-cover object-top" />
-                  : (<>
-                      {/* Unten das zweite Motiv, darüber das erste — die Animation blendet
-                          das obere weg und wieder ein, also wechseln sich beide ab. */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {alt2 && <img src={alt2} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={media} alt="" className={"absolute inset-0 h-full w-full object-cover object-top " + (alt2 ? "lb-swap-top" : "")} />
-                    </>))
-                : <span className="grid h-full w-full place-items-center text-[26px]">{emoji}</span>}
-              <span className="absolute left-1.5 top-1.5 text-[16px] drop-shadow">{emoji}</span>
-            </span>
-            <span className="flex flex-1 flex-col p-3">
-              <span className="text-[14px] font-black leading-tight text-white">{title}</span>
-              <span className="mt-1 flex-1 text-[11.5px] font-bold leading-snug text-white/60">{sub}</span>
-              <span className="lb-gold mt-2.5 w-fit rounded-full px-3 py-1 text-[11px] font-black">{p.cta} →</span>
-            </span>
-          </a>
-        );
+        const HREFS = [TRYON_FUNNEL, "/themes/kiss", "/your-idol", TRYON_FUNNEL];
+        const MEDIA: [string, boolean][] = [[tryonTeaser, false], [kissTeaser, kissTeaserIsVideo], [idolTeaser, true], [lingerieTeaser || tryonLingerie, !!lingerieTeaser]];
         return (
           <div className="mb-8 mt-3">
-            <p className="mb-2 px-0.5 text-[13px] font-black text-white">{p.h}</p>
+            <p className="px-0.5 text-[13px] font-black text-white">{p.h}</p>
+            <p className="mb-2 px-0.5 text-[11px] font-bold text-[#c9a23f]">{p.sub}</p>
             <div className="grid grid-cols-2 gap-2.5">
-              {card(TRYON_FUNNEL, "✨", p.tT, p.tS, tryonTeaser, false, tryonLingerie)}
-              {card("/themes/kiss", "💋", p.kT, p.kS, kissTeaser, kissTeaserIsVideo)}
+              {p.items.map(([emoji, title, sub], i) => {
+                const [media, isVideo] = MEDIA[i];
+                const alt2 = i === 0 ? tryonLingerie : "";
+                return (
+                  <a key={title} href={HREFS[i]} className="flex flex-col overflow-hidden rounded-2xl border border-amber-400/25 bg-amber-400/[0.06] active:scale-[0.98] transition">
+                    <span className="relative block aspect-[3/4] w-full overflow-hidden bg-white/[0.04]">
+                      {media
+                        ? (isVideo
+                          // eslint-disable-next-line jsx-a11y/media-has-caption
+                          ? <video src={media} muted loop playsInline autoPlay preload="metadata" className="h-full w-full object-cover object-top" />
+                          : (<>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              {alt2 && <img src={alt2} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />}
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={media} alt="" className={"absolute inset-0 h-full w-full object-cover object-top " + (alt2 ? "lb-swap-top" : "")} />
+                            </>))
+                        : <span className="grid h-full w-full place-items-center text-[26px]">{emoji}</span>}
+                      <span className="absolute left-1.5 top-1.5 text-[16px] drop-shadow">{emoji}</span>
+                    </span>
+                    <span className="flex flex-1 flex-col p-3">
+                      <span className="text-[14px] font-black leading-tight text-white">{title}</span>
+                      <span className="mt-1 flex-1 text-[11.5px] font-bold leading-snug text-white/60">{sub}</span>
+                      <span className="lb-gold mt-2.5 w-fit rounded-full px-3 py-1 text-[11px] font-black">{p.inAbo} →</span>
+                    </span>
+                  </a>
+                );
+              })}
             </div>
           </div>
         );

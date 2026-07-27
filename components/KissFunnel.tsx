@@ -29,6 +29,12 @@ const PLACEHOLDER_MAN = "/kiss-placeholder.jpg";
 export const KISS_PROMPT =
   "@person and @Bild2 stand close together in a warm, softly lit evening setting with gentle glowing lights behind them. They look at each other and smile, lean in slowly, and share a brief, tender kiss. Then they step back a little and smile at each other, happy. Keep @person and @Bild2 faces and appearance exactly the same throughout. Fixed camera, no zoom, no camera movement. Fluid natural motion, photorealistic, high-end look. No text or logos.";
 
+// „Your Idol with you": die beiden zusammen auf einer schönen Party — kein Kuss, sondern
+// ein gemeinsamer Moment. Wieder NEUTRALE Wortwahl (Pixverse flaggt Intim-/Haut-Wörter),
+// feste Kamera, Gesichter bleiben exakt gleich.
+export const IDOL_PROMPT =
+  "@person and @Bild2 are together at an elegant evening party, warm golden lights and a festive atmosphere around them. They stand side by side, smiling and laughing, raising their glasses and enjoying the moment together. Keep @person and @Bild2 faces and appearance exactly the same throughout. Fixed camera, no zoom, no camera movement. Fluid natural motion, photorealistic, high-end look. No text or logos.";
+
 // Eigenes Foto klein rechnen (Data-URL) — wie im Try-On-Funnel.
 async function fileToDataUrl(file: File, max = 1000, quality = 0.85): Promise<string> {
   const dataUrl = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file); });
@@ -49,7 +55,25 @@ const RENDER_STEPS: [number, string][] = [
 ];
 const RENDER_MS = 17000; // Gesamtdauer der Show (~17 s)
 
-export default function KissFunnel() {
+export type FunnelVariant = "kiss" | "idol";
+
+// Beide Themen teilen sich DIESEN Funnel — nur Prompt und Beschriftungen unterscheiden
+// sich. Kopieren wäre doppelte Wartung: jeder Fix müsste sonst zweimal gemacht werden.
+const VARIANTS: Record<FunnelVariant, { prompt: string; step1: string; step3: string; cta: string; ready: string; done: string }> = {
+  kiss: {
+    prompt: KISS_PROMPT,
+    step1: "1 · Pick her", step3: "3 · The kiss",
+    cta: "Generate the kiss video", ready: "Your kiss video is ready 💋", done: "kiss-video.mp4",
+  },
+  idol: {
+    prompt: IDOL_PROMPT,
+    step1: "1 · Pick your idol", step3: "3 · The moment",
+    cta: "Generate the video", ready: "Your video is ready ✨", done: "your-idol-video.mp4",
+  },
+};
+
+export default function KissFunnel({ variant = "kiss" }: { variant?: FunnelVariant }) {
+  const V = VARIANTS[variant];
   const [models, setModels] = useState<Model[]>([]);
   const [picked, setPicked] = useState<Model | null>(null);
   const [customModel, setCustomModel] = useState(""); // „Your Model": eigenes Model-Foto (Data-URL)
@@ -110,7 +134,7 @@ export default function KissFunnel() {
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-        body: JSON.stringify({ lookId: KISS_LOOK_ID, person: selPhoto, garment: photo, prompt: KISS_PROMPT }),
+        body: JSON.stringify({ lookId: KISS_LOOK_ID, person: selPhoto, garment: photo, prompt: V.prompt }),
       }).then(r => r.json());
       if (!start?.videoId) { setStatus(start?.error || "Could not start."); setBusy(false); return; }
       for (let i = 0; i < 72; i++) {
@@ -199,7 +223,7 @@ export default function KissFunnel() {
       {/* 1) Model wählen — das 3D-Coverflow aus dem Try-On-Funnel: die Gewählte steht groß
           vorn, die Nachbarinnen kippen seitlich weg; Tipp auf eine Seitenkarte oder Swipe
           holt sie nach vorn (= Auswahl). */}
-      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">1 · Pick her</p>
+      <p className="text-[12px] font-black uppercase tracking-wide text-white/50">{V.step1}</p>
       <p className="mt-1 text-[13px] font-bold text-white/85">Swipe the models — your pick stands up front.</p>
       {(() => {
         if (models.length === 0) return <div className="grid h-[46vw] max-h-[240px] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>;
@@ -286,10 +310,10 @@ export default function KissFunnel() {
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => void onFile(e.target.files?.[0])} />
 
       {/* 3) Generieren */}
-      <p className="mt-5 text-[12px] font-black uppercase tracking-wide text-white/50">3 · The kiss</p>
+      <p className="mt-5 text-[12px] font-black uppercase tracking-wide text-white/50">{V.step3}</p>
       <button type="button" onClick={() => void generate()} disabled={!picked || !photo || busy}
         className="lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-50">
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "💋"} {busy ? "Rendering …" : "Generate the kiss video"}
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "💋"} {busy ? "Rendering …" : V.cta}
       </button>
       {status && <p className="mt-2 text-center text-[12px] font-bold text-white/60">{status}</p>}
 
@@ -326,7 +350,7 @@ export default function KissFunnel() {
               <div className="absolute inset-0 grid place-items-center bg-black/30">
                 <div className="px-6 text-center">
                   <Lock className="mx-auto h-8 w-8 text-amber-400" />
-                  <p className="lb-onmedia mt-2 text-[15px] font-black">Your kiss video is ready 💋</p>
+                  <p className="lb-onmedia mt-2 text-[15px] font-black">{V.ready}</p>
                   <button type="button" onClick={() => void unlock()} disabled={payBusy}
                     className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition disabled:opacity-60">
                     {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} {isStaff ? "Reveal (Admin — free)" : "Unlock your video — $3.99"}
@@ -345,7 +369,7 @@ export default function KissFunnel() {
               {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
               <video src={videoUrl} controls autoPlay loop playsInline className="aspect-[3/4] max-h-[60vh] w-auto" />
             </div>
-            <a href={videoUrl} download="kiss-video.mp4" target="_blank" rel="noreferrer"
+            <a href={videoUrl} download={V.done} target="_blank" rel="noreferrer"
               className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition">
               ⬇ Download your video
             </a>

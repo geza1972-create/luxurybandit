@@ -73,12 +73,14 @@ export default async function ThemesCatalog() {
   } catch { /**/ }
 
   // Vom Owner gelieferte Theme-Videos, fest im Storage abgelegt.
-  let birthdayVideo = "", cityVideo = "", luxuryVideo = "";
+  let birthdayVideo = "", cityVideo = "", luxuryVideo = "", idolVideo = "", lingerieVideo = "";
   try {
-    [birthdayVideo, cityVideo, luxuryVideo] = await Promise.all([
+    [birthdayVideo, cityVideo, luxuryVideo, idolVideo, lingerieVideo] = await Promise.all([
       getSignedUrl("try-this-look/videos/birthday-bella-cake.mp4").catch(() => ""),
       getSignedUrl("try-this-look/videos/city-secrets.mp4").catch(() => ""),
       getSignedUrl("try-this-look/videos/luxury-looks.mp4").catch(() => ""),
+      getSignedUrl("try-this-look/videos/your-idol-with-you.mp4").catch(() => ""),
+      getSignedUrl("try-this-look/videos/lingerie-looks.mp4").catch(() => ""),
     ]);
   } catch { /**/ }
 
@@ -97,13 +99,13 @@ export default async function ThemesCatalog() {
     // Direkt in den Funnel: /themes/tryon wäre nur eine Zwischenseite mit noch einem Button.
     // Die Landing bleibt für die Admin-Werkzeuge erreichbar (Menü → „Try-On — manage").
     { icon: Shirt, title: "Try-On", tagline: "Pick a look, pick a model — watch her wear it in a video.", href: TRYON, cover: tryonDressed || ph(6), cover2: tryonLingerie || undefined, chips: "♥ Look · Model · Video" },
-    { icon: Star, title: "Your Idol", tagline: "Upload her photo — she becomes your AI model.", href: "/your-idol", cover: ph(7), chips: "♥ Upload · Chat · Video" },
+    { icon: Star, title: "Your Idol with you", tagline: "Pick your idol, add your photo — the two of you in one video.", href: "/your-idol", cover: ph(7), video: idolVideo || undefined, chips: "♥ Your idol · Your photo · Video" },
     { icon: Heart, title: "Kiss any Model", tagline: "Your photo + her — a tender kiss in one video.", href: "/themes/kiss", cover: kissCover || ph(8), video: kissVideo || undefined, chips: "♥ Pick her · Your photo · Kiss" },
     { icon: Cake, title: "Birthdays", tagline: "Auto birthday wishes — for you & your friends.", cover: ph(4), video: birthdayVideo || undefined },
     { icon: Sparkles, title: "Luxury Looks", tagline: "A fresh luxury outfit every day — see it on her, in a video.", href: TRYON, cover: ph(0), video: luxuryVideo || undefined, chips: "♥ Look · Model · Video" },
     // Lingerie-Karte zeigt Bella in Lingerie und führt DIREKT in den Try-on-Funnel
     // (dort wählt er Look + Model) — kein „coming soon" mehr.
-    { icon: Flame, title: "Lingerie Looks", tagline: "See her in lingerie — any look, in a video.", href: TRYON, cover: tryonLingerie || ph(1), chips: "♥ Lingerie · Model · Video" },
+    { icon: Flame, title: "Lingerie Looks", tagline: "See her in lingerie — any look, in a video.", href: TRYON, cover: tryonLingerie || ph(1), video: lingerieVideo || undefined, chips: "♥ Lingerie · Model · Video" },
     { icon: MapPin, title: "City Secrets", tagline: "Learn a city every day — hidden gems & stories.", cover: ph(2), video: cityVideo || undefined },
   ];
 

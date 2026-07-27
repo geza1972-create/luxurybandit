@@ -1,60 +1,70 @@
-import Link from "next/link";
 import TopNav from "@/components/TopNav";
-import BellaCarouselAdmin from "@/components/BellaCarouselAdmin";
-import WetterSubscribers from "@/components/WetterSubscribers";
+import KissFunnel from "@/components/KissFunnel";
+import KissModelsAdmin from "@/components/KissModelsAdmin";
+import KissUsersAdmin from "@/components/KissUsersAdmin";
+import KissMediaAdmin from "@/components/KissMediaAdmin";
 import ManageViewToggle from "@/components/ManageViewToggle";
+import { getSignedUrl } from "@/lib/try-this-look-store";
 
-// „Your Idol as an AI-Model" — Landing im Wetter-/Urlaub-Muster: oben die Kundenansicht
-// (Hero + CTA in den Idol-Funnel, ?idol=1 = direkt Foto hochladen statt Model wählen),
-// darunter NUR mit ?admin=1 die Admin-Werkzeuge (eigenes Card-Tool scope="idol" + Abonnenten).
+// THEMA „Your Idol with you" — baugleich zur Kiss-Landing (gleicher Funnel, andere
+// Beschriftung + anderer Prompt: die beiden zusammen auf einer Party statt Kuss).
+// Der Funnel wird NICHT kopiert, sondern über `variant` wiederverwendet — sonst müsste
+// jeder spätere Fix zweimal gemacht werden.
 
 export const dynamic = "force-dynamic";
 
-// Der Idol-Einstieg: Try-On-Funnel im Idol-Modus (Upload-Screen statt Model-Grid).
-const IDOL_FUNNEL = "/try/look-1784191032626-70e3608b?idol=1";
-
 export const metadata = {
-  title: "Your Idol as an AI-Model — upload, chat, dress, animate | LuxuryBandit",
-  description: "Upload your idol's photo — she becomes your AI model: chat with her, dress her, animate her into a video.",
+  title: "Your Idol with you — one video, the two of you | LuxuryBandit",
+  description: "Pick your idol, upload your photo — and see the two of you together in a video.",
 };
 
 export default async function YourIdolPage({ searchParams }: {
   searchParams?: Promise<Record<string, string | undefined>>;
 }) {
   const sp = (await searchParams) ?? {};
-  const showAdmin = String(sp.admin ?? "") === "1";   // Admin-Werkzeuge NUR mit ?admin=1
+  const showAdmin = String(sp.admin ?? "") === "1";
   const view = sp.view === "kunde" ? "kunde" : "admin";
   const showCustomer = !showAdmin || view === "kunde";
 
+  // Beispiel-Video (vom Owner geliefert) — zeigt sofort, was hier herauskommt.
+  const example = await getSignedUrl("try-this-look/videos/your-idol-with-you.mp4").catch(() => "");
+
   return (
     <main className="lb-bg min-h-screen text-white">
-      <TopNav />
+      <TopNav subtitle="Your Idol" />
       <div className="mx-auto w-full max-w-[440px] px-4 pb-24 pt-8">
         {showAdmin && <ManageViewToggle view={view} />}
 
         {showCustomer ? (
           <div className={showAdmin ? "mt-4" : ""}>
-            {/* Hero */}
             <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#c9a23f]">LuxuryBandit · Your Idol</p>
             <h1 className="mt-2 text-[34px] font-black leading-[1.05]">
-              Your idol as an <span className="text-[#c9a23f]">AI-Model</span> 💫
+              Your idol <span className="text-[#c9a23f]">with you</span> ✨
             </h1>
             <p className="mt-3 text-[15px] font-medium leading-snug text-white/80">
-              Upload her photo — she becomes your AI model. Chat with her, dress her in any look, and animate her into a video: walking, smiling, full of life.
+              Pick your idol — or upload her photo — add a photo of yourself, and see the two of you
+              together at a party, side by side.
             </p>
-            {/* CTA → der Idol-Funnel (Upload-Screen) */}
-            <Link href={IDOL_FUNNEL}
-              className="lb-gold mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition">
-              📸 Upload her photo — free
-            </Link>
-            <p className="mt-2 text-center text-[12px] font-semibold text-white/50">Your first video is free. She stays private to you.</p>
+
+            {/* Gleicher Funnel wie Kiss, nur andere Variante */}
+            <KissFunnel variant="idol" />
+
+            {example && (
+              <div className="mt-12">
+                <p className="text-[12px] font-black uppercase tracking-wide text-white/50">See it in action</p>
+                <h2 className="mt-1 text-[22px] font-black leading-tight">The two of you ✨</h2>
+                <div className="mt-3 overflow-hidden rounded-2xl border border-white/10">
+                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                  <video src={example} muted loop playsInline autoPlay preload="metadata" className="aspect-[3/4] w-full object-cover" />
+                </div>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="mt-4 space-y-4">
-            <BellaCarouselAdmin heading="🎴 Idol-Card Tool" scope="idol" />
-            <div className="lb-theme">
-              <WetterSubscribers />
-            </div>
+          <div className="lb-theme mt-4 space-y-4">
+            <KissMediaAdmin />
+            <KissModelsAdmin />
+            <KissUsersAdmin />
           </div>
         )}
       </div>

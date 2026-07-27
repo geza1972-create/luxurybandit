@@ -135,7 +135,7 @@ export default async function WetterModelPage({ params, searchParams }: {
   // ohne Code ändern kannst: 1) ein Beitrag, den du als `normal` markierst · 2) sonst das
   // weiße Kleid vom 25.07. · 3) sonst ihr Profilfoto.
   const WHITE_DRESS = "try-this-look/uploads/1784915142061-c0ea5633-a652-40bb-8476-bebf69c64658.jpg";
-  let tryonDressed = "", tryonLingerie = "";
+  let tryonDressed = "", tryonLingerie = "", idolTeaser = "";
   try {
     const slides = (await readCardStudioSlides(modelId)).filter(isPublicBellaPost);
     const pick = (s: BellaSlide) => (s.kind === "video" ? s.posterPath : s.path) || "";
@@ -150,6 +150,9 @@ export default async function WetterModelPage({ params, searchParams }: {
     if (ling) tryonLingerie = (await getSignedUrl(pick(ling)).catch(() => "")) || "";
   } catch { /**/ }
   tryonTeaser = tryonDressed || tryonLingerie;
+  // Beispiel-Video für „Dein Idol mit dir" (vom Owner geliefert).
+  idolTeaser = (await getSignedUrl("try-this-look/videos/your-idol-with-you.mp4").catch(() => "")) || "";
+  const lingerieTeaser = (await getSignedUrl("try-this-look/videos/lingerie-looks.mp4").catch(() => "")) || "";
 
   const crossModels = (await Promise.all(crossOrdered.map(async c => {
     const img = c.photoPath ? await getSignedUrl(c.photoPath).catch(() => "") : "";
@@ -275,7 +278,7 @@ export default async function WetterModelPage({ params, searchParams }: {
             <p className="mx-auto max-w-md px-4 pt-4 text-center text-[13px] font-black text-emerald-400">{CONFIRMED_TEXT[subLang] ?? CONFIRMED_TEXT.en}</p>
           )}
           <WetterSubscriberView name={subName} city={subCity || ipCity || FALLBACK_CITY[subLang] || "London"} lang={subLang} modelId={modelId} modelName={modelName} subId={subToken} email={subEmail}
-            locked={locked} paid={paid} modelSlug={model} monthlyCents={2400} crossModels={crossModels} kissTeaser={kissTeaser} kissTeaserIsVideo={kissTeaserIsVideo} tryonTeaser={tryonTeaser} tryonLingerie={tryonLingerie}
+            locked={locked} paid={paid} modelSlug={model} monthlyCents={2400} crossModels={crossModels} kissTeaser={kissTeaser} kissTeaserIsVideo={kissTeaserIsVideo} tryonTeaser={tryonTeaser} tryonLingerie={tryonLingerie} idolTeaser={idolTeaser} lingerieTeaser={lingerieTeaser}
             day={dayLook?.day || ""} time={dayLook?.time || ""}
             title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.context || ""} dayContext={dayLook?.context || ""}
             look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />
