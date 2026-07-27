@@ -153,9 +153,9 @@ export default async function ThemesCatalog() {
   try {
     [birthdayVideo, surpriseVideo, luxuryVideo, idolVideo, lingerieVideo] = await Promise.all([
       getSignedUrl("try-this-look/videos/birthday-bella-cake.mp4").catch(() => ""),
-      // „Surprise him": auf der KARTE die zugeschnittene Fassung (startet beim ganzen
-      // Körper, ohne Nah-Ausschnitt) — das vollständige Video mit Ton steht auf der Landing.
-      getSignedUrl("try-this-look/videos/surprise-card.mp4").catch(() => ""),
+      // „Surprise him": bewusst der VOLLE Schwenk von unten nach oben (Owner-Entscheidung) —
+      // genau dieser Aufbau ist der Reiz der Karte, nicht der zugeschnittene Ausschnitt.
+      getSignedUrl("try-this-look/videos/surprise-example.mp4").catch(() => ""),
       getSignedUrl("try-this-look/videos/luxury-looks.mp4").catch(() => ""),
       getSignedUrl("try-this-look/videos/your-idol-with-you.mp4").catch(() => ""),
       getSignedUrl("try-this-look/videos/lingerie-looks.mp4").catch(() => ""),
