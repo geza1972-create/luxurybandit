@@ -5,8 +5,9 @@ import MyTopics from "@/components/MyTopics";
 // „Mein Konto" — die EINE Stelle, an der ein Kunde sieht, welche Themen er abonniert hat,
 // was sie kosten, wann wieder abgebucht wird, und wo er kündigen kann.
 //
-// Preisregel (Owner): JEDES Thema ist ein eigenes Abo zu 24 €/Monat. Wer drei Themen will,
-// zahlt dreimal 24 €. Deshalb ist das hier eine Liste, kein „Premium: ja/nein".
+// Preisregel (Owner 27.07.2026): 49 €/Monat, darin 25 Videos über ALLE Themen zusammen;
+// mit Aktionscode 19 € im ersten Monat. Chatten ist gratis. Mehrere Abos sind möglich,
+// deshalb ist das hier eine Liste, kein „Premium: ja/nein".
 
 export const dynamic = "force-dynamic";
 

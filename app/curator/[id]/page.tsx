@@ -15,7 +15,7 @@ import ModelCard from "@/components/ModelCard";
 import BookJourneyCTA from "@/components/BookJourneyCTA";
 
 // Bella = the ONE free-chat model (daily message + 50 free chats/day); every other model's chat
-// costs 24 €. Her profile is where "Chat free with Bella" points.
+// Chat ist gratis (Owner 27.07.2026); bezahlt werden Bilder/Videos. Ihr Profil ist das Ziel von „Chat free with Bella".
 const BELLA_ID = "curator-1783683672619-td4cy";
 // Curators who offer a bookable travel journey → show the "Book a Journey" CTA on their profile.
 const JOURNEY_CURATOR_IDS = new Set([BELLA_ID]); // Bella
@@ -1320,7 +1320,7 @@ export default function CuratorPublicPage() {
             {hideBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : profile.ownerHideName ? "🙈 Name hidden — only ID" : "Hide my sponsor name"}
           </button>
         )}
-        {/* Sponsor/Growth-Score-CTA entfernt (2026-07-26) — Monetarisierung läuft über Chat (24 €) + Try-on (3,99 €). */}
+        {/* Sponsor/Growth-Score-CTA entfernt (2026-07-26) — Monetarisierung läuft über das Themen-Abo (49 €/Monat, 25 Videos) + Einzelvideos (3,99 €). */}
         <div className="mt-2 flex items-center gap-3 text-[11px] font-bold text-white/80">
           {profile.genderFocus && <span className="rounded-full bg-white/10 px-2.5 py-1">{profile.genderFocus}</span>}
           {profile.instagram && (
