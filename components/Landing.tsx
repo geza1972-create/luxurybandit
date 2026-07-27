@@ -56,17 +56,17 @@ export function SectionTitle({ children, as = "h2", className = "" }: {
 
 /** Fließtext / Lead unter einer Headline. */
 export function Lead({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <p className={`mt-3 text-[16px] font-medium leading-relaxed text-white/75 ${className}`}>{children}</p>;
+  return <p className={`mt-3 text-[16px] font-medium leading-relaxed text-white/85 ${className}`}>{children}</p>;
 }
 
 /** Kleingedrucktes: Hinweise, Datenschutz, „nicht für Social Media". */
 export function Fine({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <p className={`mt-2 text-[13px] font-bold leading-snug text-white/55 ${className}`}>{children}</p>;
+  return <p className={`mt-2 text-[13px] font-bold leading-snug text-white/75 ${className}`}>{children}</p>;
 }
 
 /** Label über einem Schritt im Funnel: „2 · YOUR PHOTO". */
 export function StepLabel({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <p className={`text-[12px] font-black uppercase tracking-wide text-white/50 ${className}`}>{children}</p>;
+  return <p className={`text-[12px] font-black uppercase tracking-wide text-[#f6cf51] ${className}`}>{children}</p>;
 }
 
 /** Gelber Textlink im Fließtext. */

@@ -1977,6 +1977,7 @@ export type SurpriseEntry = {
   expiresAt: string;       // 7 Tage nach dem Versand
   toEmail: string;         // Empfänger (für Meldungen/Löschanfragen)
   fromName?: string;       // optional, wie sie sich nennt
+  message?: string;        // ihre Zeile an ihn (selbst getippt oder KI-Vorschlag)
   videoPath?: string;      // Pfad im Storage (wird beim Ansehen frisch signiert)
   videoUrl?: string;       // Fallback: langlebige signierte URL
   consentText?: string;    // exakter Wortlaut, dem sie zugestimmt hat (Nachweis)

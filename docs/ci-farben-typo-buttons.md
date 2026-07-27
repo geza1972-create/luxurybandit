@@ -80,6 +80,12 @@ Alle Landings sehen dadurch gleich aus, egal wer sie baut.
 | Schritt-Label im Funnel | `<StepLabel>` | `text-[12px] font-black uppercase tracking-wide text-white/50` |
 | Link im Text | `<YLink>` | gelb, fett, unterstrichen |
 
+Kontrast — Mindestwerte (Owner: „man sieht es tagsüber nicht"):
+- Fließtext `text-white/85`, Kleingedrucktes `text-white/75` — **nie dunkler**.
+- Schritt-Labels („1 · YOUR PHOTO") in CI-Gelb, nicht in grauem Weiß.
+- Formularfelder: Rahmen `border-white/30`, Fläche `bg-white/[0.08]`, Platzhalter `placeholder:text-white/60`.
+  `white/15`-Rahmen auf schwarzem Grund sind bei Sonnenlicht unsichtbar.
+
 Regeln:
 - **Headlines sind GELB-WEISS**: Zeilenanfang weiß, das Ende in CI-Gelb. Nie eine ganze Überschrift komplett gelb, nie eine komplett weiß.
 - Genau **eine** `<H1>` pro Landing; alles Weitere ist `<SectionTitle>`.

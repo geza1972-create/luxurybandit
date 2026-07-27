@@ -3,6 +3,7 @@ import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
 import SurpriseFunnel from "@/components/SurpriseFunnel";
 import SurpriseAdmin from "@/components/SurpriseAdmin";
 import ManageViewToggle from "@/components/ManageViewToggle";
+import { getSignedUrl } from "@/lib/try-this-look-store";
 
 // THEMA „Surprise him" (ehemals City Secrets) — SIE lädt ihr eigenes Foto hoch, zahlt
 // 3,99 € und schickt ihm ein privates Video. Gleiches Schema wie überall: Fake-Render →
@@ -24,6 +25,9 @@ export default async function SurpriseThemePage({ searchParams }: {
   const showAdmin = String(sp.admin ?? "") === "1";
   const view = sp.view === "kunde" ? "kunde" : "admin";
   const showCustomer = !showAdmin || view === "kunde";
+  // Beispielfoto (Gina in Rot) — liegt im Storage unter diesem festen Pfad. Fehlt es,
+  // zeigt die Upload-Karte einfach nur die Aufforderung.
+  const example = (await getSignedUrl("try-this-look/uploads/surprise-example.jpg").catch(() => "")) || "";
 
   return (
     <main className="lb-bg min-h-screen text-white">
@@ -43,7 +47,7 @@ export default async function SurpriseThemePage({ searchParams }: {
               You decide how much you show. 3.99 € per video, and the link disappears after 7 days.
             </Fine>
 
-            <SurpriseFunnel />
+            <SurpriseFunnel example={example} />
 
             <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
               <div>

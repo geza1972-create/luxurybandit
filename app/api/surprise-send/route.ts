@@ -32,8 +32,13 @@ function pathFromSignedUrl(url: string): string | undefined {
   return m ? decodeURIComponent(m[1]) : undefined;
 }
 
-function mail(link: string, reportUrl: string, fromName?: string) {
-  const who = fromName ? `${fromName.replace(/[<>]/g, "")}` : "Someone who knows you";
+/** Nutzertext NIE roh in HTML — sonst kann jemand über die „Nachricht" Markup einschleusen. */
+function esc(v: string) {
+  return v.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
+}
+
+function mail(link: string, reportUrl: string, fromName?: string, message?: string) {
+  const who = fromName ? esc(fromName) : "Someone who knows you";
   return `<!doctype html><html><body style="margin:0;background:#0d0b0a;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif">
   <div style="display:none;max-height:0;overflow:hidden">A private message is waiting for you.</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0d0b0a;padding:32px 16px">
@@ -41,6 +46,7 @@ function mail(link: string, reportUrl: string, fromName?: string) {
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#141110;border-radius:20px;overflow:hidden">
         <tr><td style="padding:24px 24px 0;font-size:11px;font-weight:bold;letter-spacing:3px;color:#f6cf51">LUXURYBANDIT</td></tr>
         <tr><td style="padding:12px 24px 0;font-size:24px;line-height:1.2;font-weight:800;color:#ffffff">${who} sent you something private.</td></tr>
+        ${message ? `<tr><td style="padding:14px 24px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-left:3px solid #f6cf51;padding:2px 0 2px 12px;font-size:16px;line-height:1.5;font-weight:600;color:#ffffff">${esc(message)}</td></tr></table></td></tr>` : ""}
         <tr><td style="padding:12px 24px 0;font-size:15px;line-height:1.6;color:rgba(255,255,255,0.75)">
           It is meant for your eyes only. Open it somewhere you are alone — the link works for ${DAYS} days, then it disappears.
         </td></tr>
@@ -68,7 +74,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
-    videoUrl?: string; to?: string; fromName?: string; consentText?: string; revoke?: string;
+    videoUrl?: string; to?: string; fromName?: string; message?: string; consentText?: string; revoke?: string;
   };
 
   // Melden / zurückziehen — bewusst OHNE Anmeldung: wer den Link hat, muss ihn abschalten
@@ -99,6 +105,7 @@ export async function POST(request: Request) {
     expiresAt: new Date(Date.now() + DAYS * 24 * 60 * 60 * 1000).toISOString(),
     toEmail: to,
     fromName: String(body.fromName ?? "").trim().slice(0, 40) || undefined,
+    message: String(body.message ?? "").trim().slice(0, 140) || undefined,
     videoPath: pathFromSignedUrl(videoUrl),
     videoUrl,
     consentText: String(body.consentText).slice(0, 400),
@@ -111,7 +118,7 @@ export async function POST(request: Request) {
   const sent = await sendEmail({
     to,
     subject: "Something private is waiting for you",
-    html: mail(link, reportUrl, entry.fromName),
+    html: mail(link, reportUrl, entry.fromName, entry.message),
   });
   if (!sent.ok) return NextResponse.json({ error: sent.error || "Email could not be sent." }, { status: 502 });
 

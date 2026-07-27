@@ -69,6 +69,11 @@ export default async function PrivateVideoPage({ params, searchParams }: {
             <p className="mt-3 text-[13px] font-bold leading-snug text-white/55">
               For your eyes only. The link disappears on {new Date(entry!.expiresAt).toLocaleDateString("en-GB")}.
             </p>
+            {entry!.message && (
+              <p className="mt-4 border-l-[3px] border-[#f6cf51] pl-3 text-[17px] font-semibold leading-snug text-white">
+                {entry!.message}
+              </p>
+            )}
             {src ? (
               <div className="mt-4 overflow-hidden rounded-3xl border border-white/10">
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
