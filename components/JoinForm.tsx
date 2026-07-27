@@ -16,13 +16,30 @@ import { Loader2, ChevronRight, Check } from "lucide-react";
  * Nachgebaut ist die Bedienlogik, nicht die Marke.
  */
 
-type Step = "intro" | "join" | "contact" | "sending";
+type Step = "intro" | "q1" | "q2" | "q3" | "contact" | "sending" | "bye";
+
+/**
+ * Die Fragen sind dem Sofortformular nachempfunden (eine Frage, große Auswahlzeilen,
+ * Fortschritt, Zurück-Pfeil) — mit einem Unterschied: Hier ENTSCHEIDEN die Antworten etwas.
+ * Frage 2 wählt das Thema, Frage 3 die Sprache, in der sie schreibt. Reine Filterfragen
+ * („Was hält dich ab?") lassen wir weg: Sie laden zum Zweifeln ein, genau vor der Kasse.
+ */
+const Q_TOPIC: [string, string, string][] = [
+  ["chat",    "Talking to her every day",     "Chat is free — she answers in your language"],
+  ["holiday", "Videos of the two of us",      "You and her: beach, dinner, a kiss — 25 moments"],
+  ["wetter",  "A message every morning",      "Her weather, a new look, a chat to start the day"],
+];
+const Q_LANG: [string, string][] = [
+  ["en", "English"], ["de", "Deutsch"], ["ro", "Română"], ["es", "Español"],
+];
 
 export default function JoinForm({ code = "", topic = "chat", presetEmail = "", presetName = "" }: {
   code?: string; topic?: string; presetEmail?: string; presetName?: string;
 }) {
   const [step, setStep] = useState<Step>("intro");
-  const [wantsIn, setWantsIn] = useState<"yes" | "later" | "">("");
+  const [wantsIn, setWantsIn] = useState<"yes" | "later" | "no" | "">("");
+  const [pickedTopic, setPickedTopic] = useState(topic);
+  const [lang, setLang] = useState("");
   // Vorausgefuellt, wenn der Link die Daten mitbringt (Mail an Leads) — spart die
   // zweite Eingabe derselben Adresse.
   const [name, setName] = useState(presetName);
@@ -33,9 +50,16 @@ export default function JoinForm({ code = "", topic = "chat", presetEmail = "", 
 
   const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
   const endpoint =
-    topic === "holiday" ? "/api/holiday-abo-checkout"
-    : topic === "wetter" ? "/api/wetter-abo-checkout"
+    pickedTopic === "holiday" ? "/api/holiday-abo-checkout"
+    : pickedTopic === "wetter" ? "/api/wetter-abo-checkout"
     : "/api/chat-abo-checkout";
+
+  // Die gewählte Sprache merken — dieselbe Kennung wie der Umschalter in der Kopfzeile,
+  // damit die Seite danach in seiner Sprache weiterläuft.
+  const rememberLang = (l: string) => {
+    setLang(l);
+    try { document.cookie = `lb_lang=${l}; path=/; max-age=31536000; samesite=lax`; } catch { /**/ }
+  };
 
   const submit = async () => {
     if (!emailOk || !consent || busy) return;
@@ -44,7 +68,7 @@ export default function JoinForm({ code = "", topic = "chat", presetEmail = "", 
     try {
       await fetch("/api/join-lead", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), code, topic }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), code, topic: pickedTopic, lang }),
       });
     } catch { /* der Kauf ist wichtiger als das Protokoll */ }
 
@@ -60,6 +84,28 @@ export default function JoinForm({ code = "", topic = "chat", presetEmail = "", 
       setStep("contact"); setBusy(false);
     }
   };
+
+  const Row = ({ on, title, hint, onClick }: { on: boolean; title: string; hint?: string; onClick: () => void }) => (
+    <button type="button" onClick={onClick}
+      className={`flex w-full items-center justify-between gap-3 rounded-lg border px-3.5 py-3 text-left transition ${on ? "border-[#1877F2] bg-[#1877F2]/[0.06]" : "border-black/20"}`}>
+      <span className="min-w-0">
+        <span className="block text-[15px] font-medium text-black">{title}</span>
+        {hint && <span className="mt-0.5 block text-[12px] leading-snug text-black/55">{hint}</span>}
+      </span>
+      <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border ${on ? "border-[#1877F2] bg-[#1877F2]" : "border-black/25"}`}>
+        {on && <Check className="h-3.5 w-3.5 text-white" />}
+      </span>
+    </button>
+  );
+
+  const STEPS: Step[] = ["q1", "q2", "q3", "contact"];
+  const idx = STEPS.indexOf(step);
+  const Head = ({ back }: { back: Step }) => (
+    <div className="flex items-center justify-between px-6 pt-4 text-[12px] font-medium text-black/45">
+      <button type="button" onClick={() => setStep(back)} className="rounded px-1 py-0.5 hover:text-black/70">‹ Back</button>
+      {idx >= 0 && <span>{idx + 1} of {STEPS.length}</span>}
+    </div>
+  );
 
   const card = "mx-auto w-full max-w-[420px] overflow-hidden rounded-2xl bg-white text-black shadow-[0_2px_16px_rgba(0,0,0,0.12)]";
   const blue = "flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#1877F2] text-[15px] font-bold text-white active:scale-[0.99] transition disabled:opacity-50";
@@ -84,42 +130,83 @@ export default function JoinForm({ code = "", topic = "chat", presetEmail = "", 
               Your weather where you are, a brand-new look, and you can chat with her any time —
               chatting is free.
             </p>
-            <button type="button" onClick={() => setStep("join")} className={`${blue} mt-6`}>
+            <button type="button" onClick={() => setStep("q1")} className={`${blue} mt-6`}>
               Continue <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         )}
 
-        {step === "join" && (
-          <div className="px-6 pb-6 pt-3">
-            <p className="text-[15px] font-bold leading-snug">
-              Early adopter price: <span className="text-[#1877F2]">19 € for your first month</span>,
-              then 49 € a month. 25 videos a month across all topics, chatting free. Would you join?
-            </p>
-            <div className="mt-4 grid gap-2">
-              {([["yes", "Yes, let's go"], ["later", "Tell me more first"]] as const).map(([v, label]) => (
-                <button key={v} type="button" onClick={() => setWantsIn(v)}
-                  className={`flex items-center justify-between rounded-lg border px-3.5 py-3 text-left text-[15px] font-medium transition ${wantsIn === v ? "border-[#1877F2] bg-[#1877F2]/[0.06]" : "border-black/20"}`}>
-                  {label}
-                  <span className={`grid h-5 w-5 place-items-center rounded-full border ${wantsIn === v ? "border-[#1877F2] bg-[#1877F2]" : "border-black/25"}`}>
-                    {wantsIn === v && <Check className="h-3.5 w-3.5 text-white" />}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <button type="button" onClick={() => setStep("contact")} disabled={!wantsIn} className={`${blue} mt-5`}>
-              Continue <ChevronRight className="h-4 w-4" />
-            </button>
-            {wantsIn === "later" && (
-              <p className="mt-3 text-[13px] leading-snug text-black/60">
-                Fair enough — leave your email on the next screen and you can look around first.
+        {step === "q1" && (
+          <>
+            <Head back="intro" />
+            <div className="px-6 pb-6 pt-2">
+              <p className="text-[15px] font-bold leading-snug">
+                Early adopter price: <span className="text-[#1877F2]">19 € for your first month</span>,
+                then 49 € a month. 25 videos a month across all topics, chatting free. Would you join?
               </p>
-            )}
+              <div className="mt-4 grid gap-2">
+                <Row on={wantsIn === "yes"} title="Yes, let's go" onClick={() => setWantsIn("yes")} />
+                <Row on={wantsIn === "later"} title="Maybe — show me first" onClick={() => setWantsIn("later")} />
+                <Row on={wantsIn === "no"} title="No, too expensive" onClick={() => setWantsIn("no")} />
+              </div>
+              <button type="button" disabled={!wantsIn} className={`${blue} mt-5`}
+                onClick={() => setStep(wantsIn === "no" ? "bye" : "q2")}>
+                Continue <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === "q2" && (
+          <>
+            <Head back="q1" />
+            <div className="px-6 pb-6 pt-2">
+              <p className="text-[15px] font-bold leading-snug">What do you want most?</p>
+              <p className="mt-1 text-[12px] text-black/55">This picks where you start — you can use all topics either way.</p>
+              <div className="mt-4 grid gap-2">
+                {Q_TOPIC.map(([id, title, hint]) => (
+                  <Row key={id} on={pickedTopic === id} title={title} hint={hint} onClick={() => setPickedTopic(id)} />
+                ))}
+              </div>
+              <button type="button" className={`${blue} mt-5`} onClick={() => setStep("q3")}>
+                Continue <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === "q3" && (
+          <>
+            <Head back="q2" />
+            <div className="px-6 pb-6 pt-2">
+              <p className="text-[15px] font-bold leading-snug">Which language should she write in?</p>
+              <p className="mt-1 text-[12px] text-black/55">She follows you anyway if you switch mid-conversation.</p>
+              <div className="mt-4 grid gap-2">
+                {Q_LANG.map(([id, label]) => (
+                  <Row key={id} on={lang === id} title={label} onClick={() => rememberLang(id)} />
+                ))}
+              </div>
+              <button type="button" disabled={!lang} className={`${blue} mt-5`} onClick={() => setStep("contact")}>
+                Continue <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === "bye" && (
+          <div className="px-6 pb-7 pt-3 text-center">
+            <p className="text-[17px] font-bold">Fair enough.</p>
+            <p className="mt-2 text-[15px] leading-relaxed text-black/70">
+              Chatting with her costs nothing — go and try it, and come back when you want the videos.
+            </p>
+            <a href="/themes/chat" className={`${blue} mt-5`}>Chat for free <ChevronRight className="h-4 w-4" /></a>
           </div>
         )}
 
         {(step === "contact" || step === "sending") && (
-          <div className="px-6 pb-6 pt-3">
+          <>
+            <Head back="q3" />
+          <div className="px-6 pb-6 pt-2">
             <p className="text-[15px] font-bold">Where should we set it up?</p>
             <label className="mt-4 block text-[13px] font-medium text-black/60">
               First name
@@ -155,6 +242,7 @@ export default function JoinForm({ code = "", topic = "chat", presetEmail = "", 
               Secure payment by Stripe · cancel any time
             </p>
           </div>
+          </>
         )}
       </div>
 
