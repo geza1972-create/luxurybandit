@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { trackMetaPixel } from "@/lib/meta-pixel";
 import { Loader2, ChevronRight, Check } from "lucide-react";
 
 /**
@@ -16,7 +17,7 @@ import { Loader2, ChevronRight, Check } from "lucide-react";
  * Nachgebaut ist die Bedienlogik, nicht die Marke.
  */
 
-type Step = "intro" | "q1" | "q2" | "q3" | "contact" | "sending" | "bye";
+type Step = "intro" | "q1" | "q2" | "q3" | "contact" | "sending" | "bye" | "done";
 
 /**
  * Die Fragen sind dem Sofortformular nachempfunden (eine Frage, große Auswahlzeilen,
@@ -33,10 +34,23 @@ const Q_LANG: [string, string][] = [
   ["en", "English"], ["de", "Deutsch"], ["ro", "Română"], ["es", "Español"],
 ];
 
-export default function JoinForm({ code = "", topic = "chat", presetEmail = "", presetName = "" }: {
-  code?: string; topic?: string; presetEmail?: string; presetName?: string;
+export default function JoinForm({ code = "", topic = "chat", presetEmail = "", presetName = "", paid = false }: {
+  code?: string; topic?: string; presetEmail?: string; presetName?: string; paid?: boolean;
 }) {
-  const [step, setStep] = useState<Step>("intro");
+  const [step, setStep] = useState<Step>(paid ? "done" : "intro");
+
+  // PIXEL — ohne diese Meldungen kann Meta nicht auf Käufe optimieren, und genau das ist
+  // der Sinn der Anzeige. ViewContent beim Öffnen, InitiateCheckout beim Absenden,
+  // Purchase auf der Rückkehr von Stripe (?paid=1).
+  useEffect(() => {
+    if (paid) {
+      const value = code ? 19 : 49;
+      trackMetaPixel("Purchase", { value, currency: "EUR", content_category: "topic-abo", content_name: topic });
+    } else {
+      trackMetaPixel("ViewContent", { content_category: "join", content_name: topic });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [wantsIn, setWantsIn] = useState<"yes" | "later" | "no" | "">("");
   const [pickedTopic, setPickedTopic] = useState(topic);
   const [lang, setLang] = useState("");
@@ -64,6 +78,7 @@ export default function JoinForm({ code = "", topic = "chat", presetEmail = "", 
   const submit = async () => {
     if (!emailOk || !consent || busy) return;
     setBusy(true); setError(""); setStep("sending");
+    trackMetaPixel("InitiateCheckout", { value: code ? 19 : 49, currency: "EUR", content_category: "topic-abo", content_name: pickedTopic });
     // Kontakt ZUERST sichern: wer im Stripe-Fenster abspringt, ist dann trotzdem erreichbar.
     try {
       await fetch("/api/join-lead", {
@@ -75,7 +90,7 @@ export default function JoinForm({ code = "", topic = "chat", presetEmail = "", 
     try {
       const d = await fetch(endpoint, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, email: email.trim(), returnTo: `/offer?code=${encodeURIComponent(code)}` }),
+        body: JSON.stringify({ code, email: email.trim(), returnTo: `/join?paid=1&code=${encodeURIComponent(code)}&topic=${encodeURIComponent(pickedTopic)}` }),
       }).then(r => r.json());
       if (!d?.url) { setError(d?.error || "Could not open the checkout. Please try again."); setStep("contact"); setBusy(false); return; }
       window.location.href = d.url;
@@ -191,6 +206,18 @@ export default function JoinForm({ code = "", topic = "chat", presetEmail = "", 
               </button>
             </div>
           </>
+        )}
+
+        {step === "done" && (
+          <div className="px-6 pb-7 pt-3 text-center">
+            <p className="text-[17px] font-bold">You&apos;re in 🎉</p>
+            <p className="mt-2 text-[15px] leading-relaxed text-black/70">
+              Your subscription is active: 25 videos a month across all topics, and chatting is free.
+              We sent everything to your email.
+            </p>
+            <a href="/themes" className={`${blue} mt-5`}>Start now <ChevronRight className="h-4 w-4" /></a>
+            <a href="/account" className="mt-3 block text-[13px] font-medium text-[#1877F2] underline">Manage your subscription</a>
+          </div>
         )}
 
         {step === "bye" && (

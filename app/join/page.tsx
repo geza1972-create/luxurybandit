@@ -20,10 +20,11 @@ export default async function JoinPage({ searchParams }: {
   const topic = String(sp.topic ?? "chat").trim().slice(0, 20);
   const email = String(sp.email ?? "").trim().slice(0, 160);
   const name = String(sp.name ?? sp.first ?? "").trim().slice(0, 60);
+  const paid = String(sp.paid ?? "") === "1";   // Rückkehr von Stripe
 
   return (
     <main className="lb-bg min-h-screen">
-      <JoinForm code={code} topic={topic} presetEmail={email} presetName={name} />
+      <JoinForm code={code} topic={topic} presetEmail={email} presetName={name} paid={paid} />
     </main>
   );
 }
