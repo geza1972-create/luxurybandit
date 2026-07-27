@@ -47,6 +47,8 @@ const RENDER_MS = 17000; // Gesamtdauer der Show (~17 s)
 export default function KissFunnel() {
   const [models, setModels] = useState<Model[]>([]);
   const [picked, setPicked] = useState<Model | null>(null);
+  const [customModel, setCustomModel] = useState(""); // „Your Model": eigenes Model-Foto (Data-URL)
+  const [useCustom, setUseCustom] = useState(false);  // die „Your Model"-Karte steht vorn
   const [photo, setPhoto] = useState("");          // eigenes Foto (Data-URL)
   const [isStaff, setIsStaff] = useState(false);
   const [pin, setPin] = useState("");
@@ -57,6 +59,7 @@ export default function KissFunnel() {
   const [genId, setGenId] = useState("");          // Kiss-Log-Eintrag dieser Generierung
   const [payBusy, setPayBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const modelFileRef = useRef<HTMLInputElement>(null); // Upload fürs eigene Model-Foto
   const runRef = useRef(0);
   const swipeRef = useRef(0);      // Coverflow: Pointer-X beim Swipe-Start
   const swipedRef = useRef(false); // ein Swipe war's → den nachlaufenden Klick schlucken
@@ -83,17 +86,23 @@ export default function KissFunnel() {
   }, []);
 
   const onFile = async (f?: File | null) => { if (f) try { setPhoto(await fileToDataUrl(f)); } catch { /**/ } };
+  const onModelFile = async (f?: File | null) => { if (f) try { setCustomModel(await fileToDataUrl(f)); setUseCustom(true); } catch { /**/ } };
+
+  // Die aktive Auswahl: entweder die „Your Model"-Karte (eigenes Foto) oder ein Katalog-Model.
+  const selPhoto = useCustom ? customModel : (picked?.photoUrl ?? "");
+  const selName = useCustom ? "Your model" : (picked?.name ?? "");
+  const selId = useCustom ? "custom" : (picked?.id ?? "");
 
   // ECHTE Generierung (Pixverse) — läuft nur nach Zahlung oder für Staff.
   const realGenerate = async (token: number): Promise<void> => {
-    if (!picked || !photo) return;
+    if (!selPhoto || !photo) return;
     setStatus("Rendering your kiss in full quality … (~1–3 min)");
     try {
       // Gleiche Pipeline wie Try-On: person = Model (@person), garment = dein Foto (@Bild2).
       const start = await fetch("/api/generate-tryon-video", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(pin ? { "x-try-look-admin-pin": pin } : {}) },
-        body: JSON.stringify({ lookId: KISS_LOOK_ID, person: picked.photoUrl, garment: photo, prompt: KISS_PROMPT }),
+        body: JSON.stringify({ lookId: KISS_LOOK_ID, person: selPhoto, garment: photo, prompt: KISS_PROMPT }),
       }).then(r => r.json());
       if (!start?.videoId) { setStatus(start?.error || "Could not start."); setBusy(false); return; }
       for (let i = 0; i < 72; i++) {
@@ -106,7 +115,7 @@ export default function KissFunnel() {
           // Video-URL im Log nachtragen (Staff: Eintrag jetzt erst anlegen).
           try {
             if (genId) await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ update: genId, videoUrl: p.videoUrl }) });
-            else await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelId: picked.id, modelName: picked.name, videoUrl: p.videoUrl }) });
+            else await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelId: selId, modelName: selName, videoUrl: p.videoUrl }) });
           } catch { /**/ }
           return;
         }
@@ -120,7 +129,7 @@ export default function KissFunnel() {
   // kein API-Call, keine Kosten) — auch für Staff, damit der Owner den Kunden-Flow sieht.
   // Das ECHTE Rendern passiert erst beim Freischalten (Kunde: nach Stripe; Staff: gratis).
   const generate = async () => {
-    if (!picked || !photo || busy) return;
+    if (!selPhoto || !photo || busy) return;
     setBusy(true); setTeaser(false); setVideoUrl(""); setGenId(""); setStatus("");
     const token = Date.now(); runRef.current = token;
 
@@ -137,7 +146,7 @@ export default function KissFunnel() {
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
       // Interesse fürs Admin-Tool loggen (noch ohne Video — das echte rendert nach dem Kauf).
       try {
-        const log = await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelId: picked.id, modelName: picked.name }) }).then(r => r.json());
+        const log = await fetch("/api/kiss-log", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ modelId: selId, modelName: selName }) }).then(r => r.json());
         if (log?.id && runRef.current === token) setGenId(log.id);
       } catch { /**/ }
     }, RENDER_MS);
@@ -186,28 +195,53 @@ export default function KissFunnel() {
       <p className="mt-1 text-[13px] font-bold text-white/85">Swipe the models — your pick stands up front.</p>
       {(() => {
         if (models.length === 0) return <div className="grid h-[46vw] max-h-[240px] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>;
-        const active = Math.max(0, models.findIndex(m => m.id === picked?.id));
+        // „Your Model" lebt IM Karussell als Karte (3. Position, wie „Your photo" im Try-On):
+        // eigenes Model-Foto hochladen — die Karte vorn = Auswahl.
+        const YOURMODEL: Model = { id: "__yourmodel", name: "Your model", photoUrl: "" };
+        const cards = [...models];
+        const uploadIdx = Math.min(2, cards.length);
+        cards.splice(uploadIdx, 0, YOURMODEL);
+        const active = useCustom ? uploadIdx : Math.max(0, cards.findIndex(m => m.id === picked?.id));
+        const setFront = (m: Model) => {
+          if (m.id === "__yourmodel") {
+            if (customModel) setUseCustom(true); else modelFileRef.current?.click();
+            return;
+          }
+          setUseCustom(false); setPicked(m);
+        };
         const slide = (dir: number) => {
-          const ni = Math.min(models.length - 1, Math.max(0, active + dir));
-          if (ni !== active) setPicked(models[ni]);
+          const ni = Math.min(cards.length - 1, Math.max(0, active + dir));
+          if (ni !== active) setFront(cards[ni]);
         };
         return (
           <div className="relative mx-auto mt-2 h-[72vw] max-h-[300px] select-none overflow-hidden touch-pan-y" style={{ perspective: "1100px" }}
             onPointerDown={(e) => { swipeRef.current = e.clientX; swipedRef.current = false; }}
             onPointerUp={(e) => { const dx = e.clientX - swipeRef.current; if (Math.abs(dx) > 30) { swipedRef.current = true; slide(dx < 0 ? 1 : -1); } }}>
-            {models.map((m, i) => {
+            {cards.map((m, i) => {
               const off = i - active;
               if (Math.abs(off) > 2) return null;
               const isActive = off === 0;
+              const isUpload = m.id === "__yourmodel";
               return (
                 <div key={m.id}
-                  onClick={() => { if (swipedRef.current) { swipedRef.current = false; return; } if (!isActive) setPicked(m); }}
+                  onClick={() => { if (swipedRef.current) { swipedRef.current = false; return; } if (isUpload) { if (!isActive) { setFront(m); return; } modelFileRef.current?.click(); return; } if (!isActive) setFront(m); }}
                   className="absolute left-1/2 top-1/2 w-[54%] max-w-[220px] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-2xl transition-all duration-300 ease-out"
                   style={{ transform: `translate(-50%,-50%) translateX(${off * 56}%) rotateY(${-off * 38}deg) scale(${isActive ? 1 : 0.82})`, zIndex: 20 - Math.abs(off), opacity: Math.abs(off) === 2 ? 0.45 : 1, cursor: "pointer" }}>
                   <div className="relative aspect-[3/4] w-full">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={m.photoUrl} alt={m.name} draggable={false} className="h-full w-full object-cover object-top" />
-                    {isActive && <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-[#c9a23f] shadow"><Check className="h-4 w-4 text-black" /></span>}
+                    {isUpload && !customModel ? (
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-amber-400/[0.06] px-3 text-center">
+                        <ImageUp className="h-9 w-9 text-amber-400" />
+                        <span className="text-[13px] font-black text-amber-300">Your model</span>
+                        <span className="text-[10px] font-bold text-white/75">Upload her photo</span>
+                      </div>
+                    ) : (<>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={isUpload ? customModel : m.photoUrl} alt={m.name} draggable={false} className="h-full w-full object-cover object-top" />
+                      {isUpload && isActive && (
+                        <span className="absolute inset-x-3 bottom-8 rounded-full bg-black/60 py-1 text-center text-[10px] font-black text-white backdrop-blur">Tap to change photo</span>
+                      )}
+                    </>)}
+                    {isActive && (!isUpload || !!customModel) && <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-[#c9a23f] shadow"><Check className="h-4 w-4 text-black" /></span>}
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pb-2 pt-6">
                       <p className="lb-onmedia truncate text-[13px] font-black">{m.name}</p>
                     </div>
@@ -218,6 +252,7 @@ export default function KissFunnel() {
           </div>
         );
       })()}
+      <input ref={modelFileRef} type="file" accept="image/*" className="hidden" onChange={e => void onModelFile(e.target.files?.[0])} />
 
       {/* 2) Eigenes Foto */}
       <p className="mt-5 text-[12px] font-black uppercase tracking-wide text-white/50">2 · Your photo</p>
@@ -246,11 +281,11 @@ export default function KissFunnel() {
       {/* Ergebnisbereich — der Screen springt hierher (Radar → Teaser → echtes Video). */}
       <div ref={resultRef}>
         {/* Radar-Scan (wie der Try-On-„Reveal"): Scanner-Balken + Sucher-Ecken über dem Model-Foto. */}
-        {busy && !videoUrl && picked && (
+        {busy && !videoUrl && !!selPhoto && (
           <div className="mx-auto mt-4 w-fit">
             <div className="relative overflow-hidden rounded-3xl border border-white/10">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={picked.photoUrl} alt="" className="aspect-[3/4] max-h-[60vh] w-auto object-cover object-top blur-[6px] brightness-75" />
+              <img src={selPhoto} alt="" className="aspect-[3/4] max-h-[60vh] w-auto object-cover object-top blur-[6px] brightness-75" />
               {/* Weißer Scanner-Balken, fährt runter und wieder hoch. */}
               <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-[2px] bg-white shadow-[0_0_18px_5px_rgba(255,255,255,0.7)]" />
               <div className="lb-scanline pointer-events-none absolute inset-x-0 z-10 h-14 -translate-y-1/2 bg-gradient-to-b from-transparent via-white/15 to-transparent" />
@@ -268,11 +303,11 @@ export default function KissFunnel() {
         )}
 
         {/* Fake-Teaser: „fertig", aber verpixelt (Model-Foto hinter starkem Blur) + Kauf-CTA */}
-        {teaser && !videoUrl && picked && (
+        {teaser && !videoUrl && !!selPhoto && (
           <div className="mx-auto mt-4 w-fit">
             <div className="relative overflow-hidden rounded-3xl border border-white/10">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={picked.photoUrl} alt="" className="aspect-[3/4] max-h-[60vh] w-auto blur-2xl scale-110 object-cover" />
+              <img src={selPhoto} alt="" className="aspect-[3/4] max-h-[60vh] w-auto blur-2xl scale-110 object-cover" />
               <div className="absolute inset-0 grid place-items-center bg-black/30">
                 <div className="px-6 text-center">
                   <Lock className="mx-auto h-8 w-8 text-amber-400" />
@@ -299,6 +334,10 @@ export default function KissFunnel() {
               className="lb-gold mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full text-[14px] font-black active:scale-95 transition">
               ⬇ Download your video
             </a>
+            {/* Privat-Hinweis (Owner-Vorgabe): nicht in sozialen Medien teilen. */}
+            <p className="mx-auto mt-2 max-w-[280px] text-center text-[11px] font-bold leading-snug text-white/55">
+              🔒 This video is private — for you only. Please don't share it on social media.
+            </p>
           </div>
         )}
       </div>
