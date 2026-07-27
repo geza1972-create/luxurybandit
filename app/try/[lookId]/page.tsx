@@ -1362,13 +1362,13 @@ export default function TryFunnelPage() {
       {step === 4 && (
         <div className="px-4 pb-28 pt-2">
           <h1 className="text-center text-[26px] font-black">Create your video</h1>
-          <p className="mt-1 text-center text-[13px] font-bold text-white/85">{(packCredits ?? 0) > 0 ? "Ready to go — this uses 1 video credit." : "One video: 3.99 € — no subscription needed."}</p>
+          <p className="mt-1 text-center text-[13px] font-bold text-white/85">{(packCredits ?? 0) > 0 ? "Ready to go — this uses 1 of your videos." : "One video: 3.99 € — no subscription needed."}</p>
 
           {(packCredits ?? 0) > 0 ? (
             /* Has credits → just generate. */
             <div className="mx-auto mt-6 max-w-sm rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] p-5 text-center">
-              <p className="text-3xl font-black text-white">{packCredits} <span className="text-base font-bold text-white/85">videos left</span></p>
-              <p className="mt-1 text-[12px] font-bold text-white/85">Generating this video uses 1 credit.</p>
+              <p className="text-3xl font-black text-white">{packCredits} <span className="text-base font-bold text-white/85">videos left this month</span></p>
+              <p className="mt-1 text-[12px] font-bold text-white/85">This uses 1 of your videos this month.</p>
             </div>
           ) : (
             /* Kein Guthaben → EINZELKAUF 3,99 €. Das alte Premium-Abo ($49, erster Monat $8)
@@ -1451,7 +1451,7 @@ export default function TryFunnelPage() {
                       <div className="flex flex-col items-center gap-3 px-6 text-center text-white/90">
                         <Sparkles className="h-8 w-8 animate-pulse" />
                         <span className="text-sm font-black">Starting your video…</span>
-                        <span className="text-[12px] font-bold text-white/80">Begins in {armSecs}s{adminPin ? "" : " — cancel now and you keep your credit"}.</span>
+                        <span className="text-[12px] font-bold text-white/80">Begins in {armSecs}s{adminPin ? "" : " — cancel now and it doesn't count"}.</span>
                         <button type="button" onClick={cancelGeneration}
                           className="mt-1 flex items-center gap-1.5 rounded-full bg-white/20 px-5 py-2.5 text-[13px] font-black text-white backdrop-blur active:scale-95 transition">
                           <X className="h-4 w-4" /> Cancel

@@ -440,7 +440,7 @@ export default function TryonPage() {
         body: JSON.stringify({ lookId: look.id, image: imageSmall, turnaround, prompt: videoPromptRef.current, ...(refSmall ?? {}) }),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.status === 402) { setVideoStatus("error"); setVideoNote("No credits left for a video — here's your photo."); return; }
+      if (res.status === 402) { setVideoStatus("error"); setVideoNote("No videos left this month — here's your photo."); return; }
       // Reference (lingerie) failures are almost always moderation: the portrait or
       // the product image is too revealing. Tell the user exactly what to fix.
       if (!res.ok || !data.videoId) {
@@ -680,11 +680,11 @@ export default function TryonPage() {
       if (isLingerie) {
         res = await fetch("/api/generate-fashn", { method: "POST", body: buildForm(), headers });
         payload = await res.json() as typeof payload;
-        if (res.status === 402) { setError(payload.error ?? "You're out of credits."); setStep("confirm"); return; }
+        if (res.status === 402) { setError(payload.error ?? "You have used all your videos this month."); setStep("confirm"); return; }
       } else {
         res = await fetch("/api/generate-openai-tryon", { method: "POST", body: buildForm(), headers });
         payload = await res.json() as typeof payload;
-        if (res.status === 402) { setError(payload.error ?? "You're out of credits."); setStep("confirm"); return; }
+        if (res.status === 402) { setError(payload.error ?? "You have used all your videos this month."); setStep("confirm"); return; }
         const wasSafetyBlock = !res.ok && /safety|sexual/i.test(payload.error ?? "");
         if (wasSafetyBlock) {
           // Rare: a "normal" look our classifier missed. Restart the bar + try FASHN.
@@ -693,7 +693,7 @@ export default function TryonPage() {
           setProgress(8);
           res = await fetch("/api/generate-fashn", { method: "POST", body: buildForm(), headers });
           payload = await res.json() as typeof payload;
-          if (res.status === 402) { setError(payload.error ?? "You're out of credits."); setStep("confirm"); return; }
+          if (res.status === 402) { setError(payload.error ?? "You have used all your videos this month."); setStep("confirm"); return; }
         }
       }
       // Kill-switch: try-on is paused. The account/email is already captured (the gate ran
@@ -1610,7 +1610,7 @@ export default function TryonPage() {
           <div className="rounded-2xl border border-black/10 bg-black/[0.02] p-4 flex flex-col gap-3">
             <div className="min-w-0">
               <p className="text-sm font-black">Share your look &amp; win ✨</p>
-              <p className="text-[12px] font-bold text-black/45">Post your {videoUrl ? "photo & video " : "photo "}to the community — the most-liked looks win credits.<span className="text-amber-600">*</span></p>
+              <p className="text-[12px] font-bold text-black/45">Post your {videoUrl ? "photo & video " : "photo "}to the community — the most-liked looks win extra videos.<span className="text-amber-600">*</span></p>
             </div>
             {showInFeed ? (
               <div className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 ${pendingReview ? "bg-amber-50" : "bg-amber-50"}`}>
@@ -1641,7 +1641,7 @@ export default function TryonPage() {
                 </p>
               </>
             )}
-            <p className="text-[11px] font-bold leading-snug text-black/35"><span className="text-amber-600">*</span> The more likes your look gets, the more credits you earn — spend them on more try-ons &amp; videos.</p>
+            <p className="text-[11px] font-bold leading-snug text-black/35"><span className="text-amber-600">*</span> The more likes your look gets, the more extra videos you earn.</p>
           </div>
           )}
 
