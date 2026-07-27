@@ -10,10 +10,14 @@ import { readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, 
 export const dynamic = "force-dynamic"; // Cover-Foto (signierte URL) frisch laden
 
 export const metadata = {
-  title: "Topics — a daily message from your influencer | LuxuryBandit",
-  description: "Pick a topic and get daily content from your favorite AI influencer: morning weather, luxury looks, lingerie, city secrets and more.",
+  title: "LuxuryBandit — AI influencers: chat with her, try any look, make videos",
+  description: "Pick a model, chat with her and create videos of her in any outfit — morning weather, try-on, lingerie, kiss videos, birthday greetings. €24/month incl. 5 videos.",
   alternates: { canonical: "/themes" },
-  openGraph: { title: "LuxuryBandit Topics", description: "Daily content from your favorite influencer — pick a topic." },
+  openGraph: {
+    title: "LuxuryBandit — AI influencers, videos & daily messages",
+    description: "Chat with her, see any look on her in a video, get a message every morning.",
+    type: "website",
+  },
 };
 
 type Theme = { icon: LucideIcon; title: string; tagline: string; href?: string; cover?: string; video?: string; poster?: string; chips?: string; cover2?: string };
@@ -123,6 +127,19 @@ export default async function ThemesCatalog() {
           <span className="font-black text-white"> Morning Weather, Holiday, Try-On &amp; Your Idol</span> are live; more are on the way.
         </p>
 
+        {/* Startseite → zu den Models. Zwei Wege, weil beides gefragt ist: die ganze
+            Galerie und der Chat-Einstieg. */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link href="/stores?view=models"
+            className="lb-gold flex h-11 items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition">
+            👑 Schau dir unsere wunderbaren Models an →
+          </Link>
+          <Link href="/wardrobe"
+            className="flex h-11 items-center justify-center rounded-full border border-white/20 px-5 text-[14px] font-black text-white/85 active:scale-95 transition">
+            Wardrobe
+          </Link>
+        </div>
+
         {/* Karten EXAKT im Stil der Models-Galerie: Bild oben (Badge + Pille), Text darunter, kein Rahmen. */}
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {THEMES.map((t) => {
@@ -169,6 +186,57 @@ export default async function ThemesCatalog() {
               : <div key={t.title} className={`${cls} opacity-90`}>{inner}</div>;
           })}
         </div>
+
+        {/* ── SEO / Erklärtext ──────────────────────────────────────────────────────
+            Echter, lesbarer Text für Suchmaschinen UND Menschen: was LuxuryBandit ist
+            und was die App kann. Bewusst als normale Überschriften + Absätze (kein
+            versteckter Keyword-Block) — Google straft verborgenen Text ab. */}
+        <section className="mt-14 border-t border-white/10 pt-8">
+          <h2 className="text-[20px] font-black leading-tight">What is LuxuryBandit?</h2>
+          <p className="mt-2 text-[14px] font-medium leading-relaxed text-white/70">
+            LuxuryBandit is an influencer marketplace with <strong className="text-white">AI influencers</strong>.
+            You pick a model, chat with her, and create videos of her in any outfit you like — all in
+            your browser, no app to install. Some of our influencers are AI-generated characters, some
+            are real models who joined the platform. Every chat is answered by an AI persona, and we
+            say so on every screen — see our <Link href="/ai-notice" className="underline">AI Notice</Link>.
+          </p>
+
+          <h2 className="mt-8 text-[20px] font-black leading-tight">What can you do with it?</h2>
+          <ul className="mt-2 space-y-2 text-[14px] font-medium leading-relaxed text-white/70">
+            <li><strong className="text-white">Morning Weather</strong> — every morning she sends you
+              a message: the weather where you are, a new look of hers, and a chat with her.</li>
+            <li><strong className="text-white">Try-On</strong> — pick an outfit and a model, and watch
+              her wear it in a video: she turns around, walks, every angle.</li>
+            <li><strong className="text-white">Lingerie &amp; Luxury Looks</strong> — the same, in her
+              most elegant and most intimate looks.</li>
+            <li><strong className="text-white">Kiss any Model</strong> — upload your photo and see the
+              two of you share a kiss in one video.</li>
+            <li><strong className="text-white">Your Idol with you</strong> — pick your idol (or upload
+              her photo) and see the two of you together at a party.</li>
+            <li><strong className="text-white">Birthday videos</strong> — type a name and she wishes
+              them a happy birthday out loud, by name. Then send it to them.</li>
+            <li><strong className="text-white">Holiday with Bella</strong> — she travels for you and
+              brings back fresh videos and stories every day.</li>
+          </ul>
+
+          <h2 className="mt-8 text-[20px] font-black leading-tight">How much does it cost?</h2>
+          <p className="mt-2 text-[14px] font-medium leading-relaxed text-white/70">
+            The daily message and the chat run on one subscription of <strong className="text-white">€24
+            per month</strong>, which includes <strong className="text-white">5 videos a month</strong>.
+            Birthday videos are a one-off <strong className="text-white">€3.99</strong> each. You can
+            cancel the daily message at any time — every email carries an unsubscribe link, and there is
+            an <Link href="/unsubscribe" className="underline">unsubscribe page</Link> too.
+          </p>
+
+          <h2 className="mt-8 text-[20px] font-black leading-tight">Good to know</h2>
+          <p className="mt-2 text-[14px] font-medium leading-relaxed text-white/70">
+            LuxuryBandit is for adults only — you confirm that you are 18 or older before you can chat.
+            The AI persona flirts and takes an interest in your day, but it never claims to have feelings
+            for you and never pretends to be a real person. Read the{" "}
+            <Link href="/terms" className="underline">Terms</Link> and the{" "}
+            <Link href="/privacy" className="underline">Privacy Policy</Link>.
+          </p>
+        </section>
 
         <p className="mt-8 text-[12px] font-semibold text-white/40">
           Want your own topic as an influencer? <Link href="/curators/apply" className="font-black text-amber-400 underline underline-offset-2">Become a model →</Link>
