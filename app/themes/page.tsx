@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import TopNav from "@/components/TopNav";
-import { CloudSun, Cake, Sparkles, Flame, MapPin, Lock, Palmtree, Shirt, Star, Heart, Users, Gift } from "lucide-react";
+import { CloudSun, Cake, Sparkles, Flame, MapPin, Lock, Palmtree, Shirt, Star, Heart, Users, Gift, MessageCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
 import { resolveLang } from "@/lib/lang-server";
@@ -176,6 +176,8 @@ export default async function ThemesCatalog() {
     // NEU (27.07.2026): nicht mehr „sie reist für dich", sondern ER macht die Videos selbst
     // — Foto hoch, Model wählen, einen von 25 Momenten antippen. Alte Bella-Reise lebt
     // weiter unter /urlaub-mit-bella (Landing + Card-Tool), ist aber nicht mehr verlinkt.
+    // Chat = das Thema mit den niedrigsten Kosten pro Kunde (Haiku), deshalb weit vorn.
+    { icon: MessageCircle, title: "Chat with an AI girl", tagline: "Talk to her every day — and dress her in new looks.", href: "/themes/chat", cover: ph(3), chips: "♥ Chat · Looks · Daily" },
     { icon: Palmtree, title: "Holiday with your dream girl", tagline: "You and her: pick the moment — beach, kiss, coffee, dancing.", href: "/themes/holiday", cover: ph(5), video: urlaubVideo || undefined, chips: "♥ Your photo · 25 moments · Video" },
     // Direkt in den Funnel: /themes/tryon wäre nur eine Zwischenseite mit noch einem Button.
     // Die Landing bleibt für die Admin-Werkzeuge erreichbar (Menü → „Try-On — manage").

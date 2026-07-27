@@ -367,6 +367,14 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-[13px] font-bold">Birthdays — manage</span>
                 </button>
               )}
+              {/* Chat with an AI girl — Chat + Anziehen (24 €/Monat, 5 Looks). */}
+              {isStaff && (
+                <button type="button" onClick={() => navigate("/themes/chat")}
+                  className="flex w-full items-center gap-3 px-5 py-3 text-left text-white/60 active:bg-white/[0.06] transition">
+                  <MessageCircle className="h-4 w-4 shrink-0 text-sky-400" />
+                  <span className="text-[13px] font-bold">Chat — open</span>
+                </button>
+              )}
               {/* Holiday with your dream girl — er macht die Videos selbst (25 Momente). */}
               {isStaff && (
                 <button type="button" onClick={() => navigate("/themes/holiday")}

@@ -37,6 +37,7 @@ export async function POST(request: Request) {
   let body: {
     action?: string;
     curatorId?: string;
+    modelNameHint?: string;   // Chat-Thema: selbst hochgeladene Frau ohne Kurator-Datensatz
     visitorId?: string;
     userName?: string;
     messages?: ChatMsg[];
@@ -155,7 +156,13 @@ export async function POST(request: Request) {
   // steer it. Fall back to any client-sent name for display only.
   const state = await readTryThisLookState();
   const curator = (state.curators ?? []).find(c => c.id === curatorId) as any;
-  const modelName = curator ? `${curator.firstName ?? ""} ${curator.lastName ?? ""}`.trim() || "the model" : "the model";
+  // Eigene hochgeladene Frau (Chat-Thema): es gibt keinen Kurator-Datensatz, also nimmt die
+  // Persona den Namen, den der Nutzer ihr gegeben hat. Nur Anzeige/Anrede — die Hausregeln
+  // unten gelten unverändert.
+  const nameHint = String((body as { modelNameHint?: string }).modelNameHint ?? "").trim().slice(0, 40);
+  const modelName = curator
+    ? `${curator.firstName ?? ""} ${curator.lastName ?? ""}`.trim() || "the model"
+    : (nameHint || "the model");
 
   if (curator && curator.chatEnabled === false) {
     return NextResponse.json({ reply: `Sorry, I can't chat right now 💕 Check back soon!`, disabled: true });
