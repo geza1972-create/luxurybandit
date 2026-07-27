@@ -95,7 +95,22 @@ const C: Record<string, PageCopy> = {
 // Alle Karten, die ins Anprobieren führen, zeigen auf denselben Funnel-Einstieg.
 const TRYON = "/try/look-1784191032626-70e3608b?pick=1";
 
-export default async function ThemesCatalog() {
+export default async function ThemesCatalog({ searchParams }: {
+  searchParams?: Promise<Record<string, string | undefined>>;
+}) {
+  // AKTIONSCODE aus der Anzeige: Die Übersicht ist das Ziel der Werbung — er soll erst
+  // sehen, was es gibt, und sich ein Thema aussuchen. Der Code muss deshalb von hier in
+  // JEDES Thema mitwandern, sonst ist er beim Bezahlen verloren.
+  const sp = (await searchParams) ?? {};
+  const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);
+  const src = String(sp.src ?? "").trim().slice(0, 40);
+  const withCode = (href: string) => {
+    if (!code && !src) return href;
+    const sep = href.includes("?") ? "&" : "?";
+    const q = [code ? `code=${encodeURIComponent(code)}` : "", src ? `src=${encodeURIComponent(src)}` : ""].filter(Boolean).join("&");
+    return `${href}${sep}${q}`;
+  };
+
   const L = await resolveLang();   // gewählte Sprache (Cookie) > Browsersprache
   const c = C[L] ?? C.en;
   // Cover fürs aktive „Wetter"-Thema: das WERBEVIDEO (ad-Slide) — genau das, was der
@@ -204,6 +219,15 @@ export default async function ThemesCatalog() {
         <H1>{c.h1a} <Y>{c.h1b}</Y></H1>
         <Lead className="max-w-xl">{c.intro}</Lead>
 
+        {/* Kommt er aus einer Anzeige mit Code, sagt die Seite es ihm sofort — der Code
+            wandert unten in jedes Thema mit. */}
+        {code && (
+          <p className="mt-4 rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/10 px-4 py-3 text-[14px] font-bold leading-snug text-[#f6cf51]">
+            Your code {code.toUpperCase()} is active: pick any topic below — chatting is free, and
+            your first month is 19 € instead of 49 €.
+          </p>
+        )}
+
         {/* Startseite → zu den Models. Zwei Wege, weil beides gefragt ist: die ganze
             Galerie und der Chat-Einstieg. */}
         <div className="mt-4 flex flex-wrap gap-2">
@@ -259,7 +283,7 @@ export default async function ThemesCatalog() {
             );
             const cls = "flex flex-col overflow-hidden rounded-2xl bg-white/[0.04] active:opacity-80 transition-opacity";
             return active
-              ? <Link key={t.title} href={t.href!} className={cls}>{inner}</Link>
+              ? <Link key={t.title} href={withCode(t.href!)} className={cls}>{inner}</Link>
               : <div key={t.title} className={`${cls} opacity-90`}>{inner}</div>;
           })}
         </div>
