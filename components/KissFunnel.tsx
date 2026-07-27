@@ -84,7 +84,7 @@ const VARIANTS: Record<FunnelVariant, {
   },
 };
 
-export default function KissFunnel({ variant = "kiss" }: { variant?: FunnelVariant }) {
+export default function KissFunnel({ variant = "kiss", code = "" }: { variant?: FunnelVariant; code?: string }) {
   const V = VARIANTS[variant];
   const [models, setModels] = useState<Model[]>([]);
   const [picked, setPicked] = useState<Model | null>(null);
@@ -212,7 +212,7 @@ export default function KissFunnel({ variant = "kiss" }: { variant?: FunnelVaria
     }
     setPayBusy(true); setStatus("");
     try {
-      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ genId, subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: window.location.pathname + window.location.search }) }).then(r => r.json());
+      const start = await fetch("/api/kiss-video-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, genId, subId: new URLSearchParams(window.location.search).get("s") || "", returnTo: window.location.pathname + window.location.search }) }).then(r => r.json());
       if (!start?.url || !start?.sessionId) { setStatus(start?.error || "Checkout could not start."); setPayBusy(false); return; }
       const popup = window.open(start.url, "_blank", "popup,width=480,height=780");
       if (!popup) { window.location.href = start.url; return; } // Popup blockiert → gleiche Seite

@@ -26,9 +26,7 @@ export async function POST(request: Request) {
 
   // ZWEI WEGE hierher:
   //  a) aus der Wetter-Seite: `subId` ist bekannt, die E-Mail steht im Datensatz
-  //  b) aus dem Anmeldeformular /join: es gibt noch keinen Abonnenten, nur die E-Mail
-  // Früher war `subId` Pflicht — damit scheiterte jede Anmeldung über /join mit dem
-  // Thema „Morgen-Nachricht" an einem 400er (gefunden 28.07.2026).
+  //  b) ohne Abonnenten-Datensatz (z. B. direkt von einer Themenseite): nur die E-Mail
   const sub = subId ? (await readWetterSubscribers(modelId)).find(s => s.id === subId) : undefined;
   const email = (sub?.email || String(body.email ?? "")).trim();
   if (!subId && !email) return NextResponse.json({ error: "subId oder E-Mail nötig." }, { status: 400 });
@@ -36,7 +34,7 @@ export async function POST(request: Request) {
   const origin = request.headers.get("origin")?.trim() || process.env.NEXT_PUBLIC_SITE_URL || "https://luxurybandit.com";
   const back = subId
     ? `${origin}/themes/wetter/${encodeURIComponent(modelSlug)}?s=${encodeURIComponent(subId)}`
-    : `${origin}${String(body.returnTo ?? "").startsWith("/") ? body.returnTo : "/join?paid=1"}`;
+    : `${origin}${String(body.returnTo ?? "").startsWith("/") ? body.returnTo : "/themes/wetter/bella"}`;
 
   try {
     const { id, url } = await createSubscriptionCheckout({

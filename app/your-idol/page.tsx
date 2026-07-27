@@ -25,6 +25,7 @@ export default async function YourIdolPage({ searchParams }: {
   searchParams?: Promise<Record<string, string | undefined>>;
 }) {
   const sp = (await searchParams) ?? {};
+  const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);   // Aktionscode aus der Anzeige
   const showAdmin = String(sp.admin ?? "") === "1";
   const view = sp.view === "kunde" ? "kunde" : "admin";
   const showCustomer = !showAdmin || view === "kunde";
@@ -58,7 +59,7 @@ export default async function YourIdolPage({ searchParams }: {
             <Fine>AI-generated, not a real recording — and it&apos;s for you, not for social media.</Fine>
 
             {/* Gleicher Funnel wie Kiss, nur andere Variante */}
-            <KissFunnel variant="idol" />
+            <KissFunnel variant="idol" code={code} />
 
             {example && (
               <div className="mt-12">

@@ -25,6 +25,7 @@ export default async function KissThemePage({ searchParams }: {
   searchParams?: Promise<Record<string, string | undefined>>;
 }) {
   const sp = (await searchParams) ?? {};
+  const code = String(sp.code ?? sp.promo ?? "").trim().slice(0, 40);   // Aktionscode aus der Anzeige
   const showAdmin = String(sp.admin ?? "") === "1";   // Admin-Werkzeuge NUR mit ?admin=1
   const view = sp.view === "kunde" ? "kunde" : "admin";
   const showCustomer = !showAdmin || view === "kunde";
@@ -50,7 +51,7 @@ export default async function KissThemePage({ searchParams }: {
             </Lead>
 
             {/* Der Kiss-Funnel (Coverflow + Foto + Fake-Render → Abo 24 €) */}
-            <KissFunnel />
+            <KissFunnel code={code} />
 
             {/* Beispiel-Videos (Admin lädt sie im Kiss-Medien-Tool hoch) */}
             {examples.length > 0 && (
