@@ -1,4 +1,5 @@
 import TopNav from "@/components/TopNav";
+import { Kicker, H1, Y, SectionTitle, Lead, Fine } from "@/components/Landing";
 import KissFunnel from "@/components/KissFunnel";
 import KissModelsAdmin from "@/components/KissModelsAdmin";
 import KissUsersAdmin from "@/components/KissUsersAdmin";
@@ -37,34 +38,29 @@ export default async function YourIdolPage({ searchParams }: {
 
         {showCustomer ? (
           <div className={showAdmin ? "mt-4" : ""}>
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">LuxuryBandit · Your Idol</p>
-            <h1 className="mt-2 text-[34px] font-black leading-[1.05]">
-              Your idol <span className="text-[#f6cf51]">with you</span> ✨
-            </h1>
+            <Kicker>LuxuryBandit · Your Idol</Kicker>
+            <H1>Your idol <Y>with you</Y> ✨</H1>
             {/* Klartext: es geht um JEDE Person, nicht nur um unsere Models. Der Nutzer soll
                 sofort begreifen, dass ein einzelner Screenshot reicht — und dass die Technik
                 dieselbe ist wie bei einem Deepfake (nur eben für ihn selbst, privat). */}
-            <p className="mt-3 text-[15px] font-medium leading-snug text-white/80">
+            <Lead>
               Take <span className="font-black text-white">any person you admire</span> — a superstar,
               a singer, an actress, an athlete, an influencer, or one of our models. One screenshot of
               her or him is enough.
-            </p>
-            <p className="mt-2 text-[15px] font-medium leading-snug text-white/80">
+            </Lead>
+            <Lead className="mt-2">
               Add a photo of yourself and the AI puts the two of you together at a party, side by
               side. It works like a <span className="font-black text-white">deepfake</span>: your two
               faces, one video that looks like it really happened.
-            </p>
-            <p className="mt-2 text-[13px] font-bold leading-snug text-white/55">
-              AI-generated, not a real recording — and it&apos;s for you, not for social media.
-            </p>
+            </Lead>
+            <Fine>AI-generated, not a real recording — and it&apos;s for you, not for social media.</Fine>
 
             {/* Gleicher Funnel wie Kiss, nur andere Variante */}
             <KissFunnel variant="idol" />
 
             {example && (
               <div className="mt-12">
-                <p className="text-[12px] font-black uppercase tracking-wide text-white/50">See it in action</p>
-                <h2 className="mt-1 text-[22px] font-black leading-tight">The two of you ✨</h2>
+                <SectionTitle>The two of you ✨</SectionTitle>
                 <div className="mt-3 overflow-hidden rounded-2xl border border-white/10">
                   {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                   <video src={example} muted loop playsInline autoPlay preload="metadata" className="aspect-[3/4] w-full object-cover" />

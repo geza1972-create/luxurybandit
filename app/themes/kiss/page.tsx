@@ -1,5 +1,6 @@
 import Link from "next/link";
 import TopNav from "@/components/TopNav";
+import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import KissFunnel from "@/components/KissFunnel";
 import KissModelsAdmin from "@/components/KissModelsAdmin";
 import KissUsersAdmin from "@/components/KissUsersAdmin";
@@ -39,13 +40,12 @@ export default async function KissThemePage({ searchParams }: {
         {showCustomer ? (
           <div className={showAdmin ? "mt-4" : ""}>
             {/* Hero */}
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">LuxuryBandit · Kiss</p>
-            <h1 className="mt-2 text-[34px] font-black leading-[1.05]">
-              Kiss any <span className="text-[#f6cf51]">model</span> 💋
-            </h1>
-            <p className="mt-3 text-[15px] font-medium leading-snug text-white/80">
-              Pick her, upload your photo — and watch the two of you share a tender kiss in a video. Your little movie moment.
-            </p>
+            <Kicker>LuxuryBandit · Kiss</Kicker>
+            <H1>Kiss any <Y>model</Y> 💋</H1>
+            <Lead>
+              Pick her, upload your photo — and watch the two of you share a tender kiss in a
+              video. Your little movie moment.
+            </Lead>
 
             {/* Der Kiss-Funnel (Coverflow + Foto + Fake-Render → Abo 24 €) */}
             <KissFunnel />
@@ -53,8 +53,7 @@ export default async function KissThemePage({ searchParams }: {
             {/* Beispiel-Videos (Admin lädt sie im Kiss-Medien-Tool hoch) */}
             {examples.length > 0 && (
               <div className="mt-12">
-                <p className="text-[12px] font-black uppercase tracking-wide text-white/50">See it in action</p>
-                <h2 className="mt-1 text-[22px] font-black leading-tight">Real kiss videos 💋</h2>
+                <SectionTitle>Real kiss videos 💋</SectionTitle>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   {examples.map((url, i) => (
                     <div key={i} className="overflow-hidden rounded-2xl border border-white/10">
@@ -68,8 +67,7 @@ export default async function KissThemePage({ searchParams }: {
 
             {/* Cross-Selling: die anderen Live-Themen */}
             <div className="mt-12">
-              <p className="text-[12px] font-black uppercase tracking-wide text-white/50">More with her</p>
-              <h2 className="mt-1 text-[22px] font-black leading-tight">You might also love</h2>
+              <SectionTitle>You might also love</SectionTitle>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <Link href="/themes/tryon" className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 active:scale-[0.98] transition">
                   <span className="text-[22px]">✨</span>

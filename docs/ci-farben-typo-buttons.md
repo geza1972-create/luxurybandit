@@ -63,3 +63,26 @@ Form: `rounded-full`, `h-11`/`h-12`, `font-black`, `active:scale-95 transition`.
 5. Helle Box = B/W/Grau.
 
 Verwandte Memories: `ci-colors-typo-buttons`, `dark-surface-gold-design-tokens`, `fashion-aesthetic-bw-no-gold`, `form-ci-standards`.
+
+## 6. Landingpage-CI (jede Landing, jeder Funnel — gleiche Typo)
+
+Nicht mehr per Hand tippen: die Typo kommt aus **`components/Landing.tsx`**.
+Alle Landings sehen dadurch gleich aus, egal wer sie baut.
+
+| Element | Komponente | Ergibt |
+|---|---|---|
+| Kicker über der H1 | `<Kicker>` | `text-[11px] font-black uppercase tracking-[0.2em]` in CI-Gelb |
+| Seiten-H1 (genau eine) | `<H1>` | `text-[34px] font-black leading-[1.05]`, weiß |
+| Hervorgehobenes Wort | `<Y>` | CI-Gelb `#f6cf51` |
+| Abschnittsüberschrift | `<SectionTitle>` | gelber Balken (`h-1 w-10`) + `text-[30px] font-black` weiß |
+| Fließtext / Lead | `<Lead>` | `text-[16px] font-medium leading-relaxed text-white/75` |
+| Kleingedrucktes | `<Fine>` | `text-[13px] font-bold text-white/55` |
+| Schritt-Label im Funnel | `<StepLabel>` | `text-[12px] font-black uppercase tracking-wide text-white/50` |
+| Link im Text | `<YLink>` | gelb, fett, unterstrichen |
+
+Regeln:
+- **Headlines sind weiß, Akzente gelb** — nie eine ganze Überschrift in Gelb.
+- Genau **eine** `<H1>` pro Landing; alles Weitere ist `<SectionTitle>`.
+- Kein `text-[22px]`/`text-[20px]` mehr für Abschnitte — das war der alte, zu kleine Stand.
+- Über einer `<SectionTitle>` kein zusätzliches Mini-Label („See it in action") — der gelbe Balken ist die Gliederung.
+- Umgesetzt auf: Startseite `/themes`, `/your-idol`, `/themes/kiss`, `/themes/birthday`, Try-On-Funnel `/try/[lookId]`.

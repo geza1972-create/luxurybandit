@@ -1,4 +1,5 @@
 import TopNav from "@/components/TopNav";
+import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import BirthdayFunnel from "@/components/BirthdayFunnel";
 import KissUsersAdmin from "@/components/KissUsersAdmin";
 import ManageViewToggle from "@/components/ManageViewToggle";
@@ -43,21 +44,18 @@ export default async function BirthdayThemePage({ searchParams }: {
 
         {showCustomer ? (
           <div className={showAdmin ? "mt-4" : ""}>
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6cf51]">LuxuryBandit · Birthdays</p>
-            <h1 className="mt-2 text-[34px] font-black leading-[1.05]">
-              She says <span className="text-[#f6cf51]">happy birthday</span> 🎂
-            </h1>
-            <p className="mt-3 text-[15px] font-medium leading-snug text-white/80">
+            <Kicker>LuxuryBandit · Birthdays</Kicker>
+            <H1>She says <Y>happy birthday</Y> 🎂</H1>
+            <Lead>
               Type the name of whoever is celebrating — {modelName} wishes them a happy birthday by
               name, in her own video. Then send it to them.
-            </p>
+            </Lead>
 
             <BirthdayFunnel modelPhoto={refPhoto} modelName={modelName} />
 
             {example && (
               <div className="mt-12">
-                <p className="text-[12px] font-black uppercase tracking-wide text-white/50">See it in action</p>
-                <h2 className="mt-1 text-[22px] font-black leading-tight">A birthday from her 🎂</h2>
+                <SectionTitle>A birthday from her 🎂</SectionTitle>
                 <div className="mt-3 overflow-hidden rounded-2xl border border-white/10">
                   {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                   <video src={example} muted loop playsInline autoPlay preload="metadata" className="aspect-[3/4] w-full object-cover" />

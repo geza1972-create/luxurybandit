@@ -932,11 +932,11 @@ export default function TryFunnelPage() {
       {step === 2 && (
         <div className="px-4 pb-64 pt-2">
           {/* Reserve two lines so a longer name (which wraps) doesn't shift the carousel down. */}
-          <h1 className="text-[22px] font-black leading-tight">{idol && !avatar ? L("Idolul tau ca AI-Model", "Your idol as an AI-Model") : !avatar && chosenModelName && !((pickModel || chooseModel) && !pickedModel) ? L(`Vezi-o pe ${chosenModelName.split(/\s+/)[0]} în cele mai tari ținute 🔥`, `Watch ${chosenModelName.split(/\s+/)[0]} in her hottest looks 🔥`) : L("Cine s-o poarte?", "Who should wear it?")}</h1>
+          <h1 className="text-[30px] font-black leading-[1.06]">{idol && !avatar ? L("Idolul tau ca AI-Model", "Your idol as an AI-Model") : !avatar && chosenModelName && !((pickModel || chooseModel) && !pickedModel) ? L(`Vezi-o pe ${chosenModelName.split(/\s+/)[0]} în cele mai tari ținute 🔥`, `Watch ${chosenModelName.split(/\s+/)[0]} in her hottest looks 🔥`) : L("Cine s-o poarte?", "Who should wear it?")}</h1>
           {idol && !avatar ? (
             // „Your Idol as an AI-Model": kein Model-Grid — direkt das Idol-Foto hochladen.
             <>
-              <p className="mt-2 text-[14px] font-bold text-white/85">{L("Incarca poza idolului tau — devine AI-modelul tau: vorbesti cu ea, o imbraci, o animezi intr-un clip.", "Upload your idol's photo — she becomes your AI model: chat with her, dress her, animate her into a video.")}</p>
+              <p className="mt-3 text-[16px] font-medium leading-relaxed text-white/75">{L("Incarca poza idolului tau — devine AI-modelul tau: vorbesti cu ea, o imbraci, o animezi intr-un clip.", "Upload your idol's photo — she becomes your AI model: chat with her, dress her, animate her into a video.")}</p>
               <button type="button" onClick={() => fileRef.current?.click()}
                 className="mx-auto mt-6 flex aspect-[9/16] w-[62vw] max-w-[260px] flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-amber-400/40 bg-amber-400/[0.06] active:scale-[0.98] transition">
                 <ImageUp className="h-10 w-10 text-amber-400" />
@@ -947,11 +947,11 @@ export default function TryFunnelPage() {
             <>
               {/* Der Text der früheren Try-On-Landing steht jetzt HIER über der Model-Auswahl —
                   so entfällt die Zwischenseite, ohne dass die Erklärung verloren geht. */}
-              <p className="mt-2 text-[15px] font-medium leading-snug text-white/80">
+              <p className="mt-3 text-[16px] font-medium leading-relaxed text-white/75">
                 {L("Alege un look și un model — și o vezi purtându-l într-un video. Se întoarce, merge, din toate unghiurile.",
                    "Pick a look, pick a model — and watch her wear it in a video. Turnaround, walk, every angle.")}
               </p>
-              <p className="mt-2 text-[13px] font-bold text-white/85">Pick a model to wear this piece.</p>
+              <p className="mt-2 text-[13px] font-bold leading-snug text-white/55">{L("Alege un model care s-o poarte.", "Pick a model to wear this piece.")}</p>
               <div className="mt-4 grid grid-cols-3 gap-2">
                 {(() => {
                   // Every generation costs 1 credit (new users get free welcome credits;

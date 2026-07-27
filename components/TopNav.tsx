@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Search, Send, Instagram, ChevronLeft } from "lucide-react";
+import LangSwitch from "@/components/LangSwitch";
 
 /**
  * The ONE shared top bar for every page. Left: LB logo + wordmark → home. Right:
@@ -71,6 +72,7 @@ export default function TopNav({
 
         {/* Right: the 3 CI icons (or a page override). No menu button — menu is in the bottom nav. */}
         <div className="flex shrink-0 items-center gap-2">
+          <LangSwitch />
           {actions ?? (
             <>
               <button type="button" onClick={() => router.push("/stores?view=grid")} className={iconBtn} aria-label="Search">

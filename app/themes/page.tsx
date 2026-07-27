@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { Kicker, H1, Y, SectionTitle, Lead } from "@/components/Landing";
 import TopNav from "@/components/TopNav";
 import { CloudSun, Cake, Sparkles, Flame, MapPin, Lock, Palmtree, Shirt, Star, Heart, Users } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
-import { headers } from "next/headers";
+import { resolveLang } from "@/lib/lang-server";
 import { readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, readTryThisLookState, readKissConfig } from "@/lib/try-this-look-store";
 
 // Katalog aller „Themen" als bildstarke Galerie (wie die Reel-/Models-Galerie).
@@ -25,15 +26,6 @@ type Theme = { icon: LucideIcon; title: string; tagline: string; href?: string; 
 
 // Startseite = mehrsprachig nach BROWSERSPRACHE (kein Umschalter nötig, kein Deutsch für
 // alle). Gleiche Sprachliste wie das Wetter-Thema, damit beides zusammenpasst.
-const LANGS = ["ro", "de", "en", "es", "fr", "pt", "pl", "it"] as const;
-function langFromAccept(accept: string): string {
-  for (const part of accept.toLowerCase().split(",")) {
-    const code = part.trim().split(";")[0].slice(0, 2);
-    if ((LANGS as readonly string[]).includes(code)) return code;
-  }
-  return "en";
-}
-
 type PageCopy = {
   kicker: string; h1a: string; h1b: string; intro: string;
   models: string; wardrobe: string;
@@ -95,7 +87,7 @@ const C: Record<string, PageCopy> = {
 const TRYON = "/try/look-1784191032626-70e3608b?pick=1";
 
 export default async function ThemesCatalog() {
-  const L = langFromAccept((await headers()).get("accept-language") || "");
+  const L = await resolveLang();   // gewählte Sprache (Cookie) > Browsersprache
   const c = C[L] ?? C.en;
   // Cover fürs aktive „Wetter"-Thema: das WERBEVIDEO (ad-Slide) — genau das, was der
   // Besucher auf /themes/wetter/bella sieht. Fallback: Bellas Foto.
@@ -264,16 +256,14 @@ export default async function ThemesCatalog() {
           {/* Gelb + Weiß, große Überschriften: Balken in CI-Gelb, Headline weiß, die
               Begriffe der Liste gelb — Fließtext bleibt weiß gedämpft (lesbar). */}
           <div>
-            <span className="block h-1 w-10 rounded-full bg-[#f6cf51]" />
-            <h2 className="mt-4 text-[30px] font-black leading-[1.06]">{c.whatH}</h2>
-            <p className="mt-3 text-[16px] font-medium leading-relaxed text-white/75">
+            <SectionTitle>{c.whatH}</SectionTitle>
+            <Lead>
               {c.whatP} <Link href="/ai-notice" className="font-black text-[#f6cf51] underline underline-offset-2">AI Notice</Link>.
-            </p>
+            </Lead>
           </div>
 
           <div>
-            <span className="block h-1 w-10 rounded-full bg-[#f6cf51]" />
-            <h2 className="mt-4 text-[30px] font-black leading-[1.06]">{c.canH}</h2>
+            <SectionTitle>{c.canH}</SectionTitle>
             <ul className="mt-4 space-y-3.5">
               {c.items.map(([t, d]) => (
                 <li key={t} className="flex gap-3 border-b border-white/[0.07] pb-3.5 last:border-0 last:pb-0">
@@ -288,20 +278,18 @@ export default async function ThemesCatalog() {
           </div>
 
           <div>
-            <span className="block h-1 w-10 rounded-full bg-[#f6cf51]" />
-            <h2 className="mt-4 text-[30px] font-black leading-[1.06]">{c.costH}</h2>
-            <p className="mt-3 text-[16px] font-medium leading-relaxed text-white/75">
+            <SectionTitle>{c.costH}</SectionTitle>
+            <Lead>
               {c.costP} <Link href="/unsubscribe" className="font-black text-[#f6cf51] underline underline-offset-2">Unsubscribe</Link>.
-            </p>
+            </Lead>
           </div>
 
           <div>
-            <span className="block h-1 w-10 rounded-full bg-[#f6cf51]" />
-            <h2 className="mt-4 text-[30px] font-black leading-[1.06]">{c.noteH}</h2>
-            <p className="mt-3 text-[16px] font-medium leading-relaxed text-white/75">
+            <SectionTitle>{c.noteH}</SectionTitle>
+            <Lead>
               {c.noteP} <Link href="/terms" className="font-black text-[#f6cf51] underline underline-offset-2">Terms</Link> ·{" "}
               <Link href="/privacy" className="font-black text-[#f6cf51] underline underline-offset-2">Privacy</Link>
-            </p>
+            </Lead>
           </div>
         </section>
 
