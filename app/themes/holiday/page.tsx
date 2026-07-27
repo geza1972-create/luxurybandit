@@ -18,7 +18,11 @@ export const metadata = {
 };
 
 export default async function HolidayThemePage() {
-  const example = (await getSignedUrl("try-this-look/videos/holiday-example.mp4").catch(() => "")) || "";
+  // Beispiele stehen UNTEN (Owner): erst machen lassen, dann zeigen, was rauskommt.
+  const examples = (await Promise.all([
+    getSignedUrl("try-this-look/videos/holiday-example.mp4").catch(() => ""),
+    getSignedUrl("try-this-look/videos/holiday-example-2.mp4").catch(() => ""),
+  ])).filter(Boolean) as string[];
 
   return (
     <main className="lb-bg min-h-screen text-white">
@@ -35,14 +39,22 @@ export default async function HolidayThemePage() {
           made is marked so you never get the same video twice.
         </Fine>
 
-        {example && (
-          <div className="mt-5 overflow-hidden rounded-2xl border border-white/10">
-            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-            <video src={example} controls loop playsInline preload="metadata" className="aspect-[3/4] w-full object-cover" />
+        <HolidayFunnel />
+
+        {examples.length > 0 && (
+          <div className="mt-14">
+            <SectionTitle>Two of the moments</SectionTitle>
+            <Lead>Made with our model and a stand-in — yours has your own face in it.</Lead>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {examples.map((url, i) => (
+                <div key={i} className="overflow-hidden rounded-2xl border border-white/10">
+                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                  <video src={url} muted loop playsInline autoPlay preload="metadata" className="aspect-[3/4] w-full object-cover" />
+                </div>
+              ))}
+            </div>
           </div>
         )}
-
-        <HolidayFunnel />
 
         <section className="mt-14 space-y-8 border-t border-white/10 pt-10">
           <div>
