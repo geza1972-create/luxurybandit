@@ -63,7 +63,7 @@ export default function TopNav({
             <span className="block whitespace-nowrap text-sm font-black uppercase leading-none tracking-widest text-white">LuxuryBandit</span>
             {/* Das MOTTO steht IMMER unter dem Wortmark (Owner-Regel) — ein Seitenname
                 kommt allenfalls dahinter, ersetzt es aber nie. */}
-            <span className="mt-0.5 block truncate text-[9px] font-black uppercase leading-tight tracking-[0.08em] text-[#f6cf51]/80 sm:text-[10px] sm:tracking-[0.14em]">
+            <span className="mt-0.5 block truncate text-[9px] font-black uppercase leading-tight tracking-[0.08em] text-[#f6cf51] sm:text-[10px] sm:tracking-[0.14em]">
               {MOTTO}
             </span>
           </span>
