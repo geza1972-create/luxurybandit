@@ -436,15 +436,21 @@ export default function TryFunnelPage() {
       const authed = isAuthed();
       const leadEmail = (() => { try { return !!localStorage.getItem("lb_lead_email"); } catch { return false; } })();
       const leadUsed = (() => { try { return !!localStorage.getItem("lb_lead_used"); } catch { return false; } })();
-      // Wetter-Abonnent (from=wetter + bekannte E-Mail) → immer frei; sonst 1 Gratis pro Lead.
-      const canFree = authed || !!adminPin || (leadEmail && (fromWetter || !leadUsed));
+      // Wer schon Abonnent ist (passwortlose Kennung aus dem Mail-Link, `lb_wetter_sub_*`),
+      // IST bekannt — der darf nicht nach einer E-Mail gefragt werden, die wir längst haben
+      // (Owner 28.07.2026: „oben steht seine E-Mail und unten soll er sich anmelden").
+      const wetterSub = (() => {
+        try { return Object.keys(localStorage).some(k => k.startsWith("lb_wetter_sub_")); } catch { return false; }
+      })();
+      // Wetter-Abonnent → immer frei; sonst 1 Gratis pro Lead.
+      const canFree = authed || !!adminPin || wetterSub || (leadEmail && (fromWetter || !leadUsed));
       if (!canFree) {
         setGateEmailOnly(!leadEmail); // no email yet → email-only gate; email spent → full account
         setAwaitingEmail(true); setGateOpen(true); return;
       }
       // This reveal uses the one free email-lead pass (if not a real account) → mark it spent.
       // Wetter-Abonnenten verbrauchen das Limit NICHT (sie sollen die Teaser-Looks alle sehen).
-      if (!authed && !adminPin && leadEmail && !fromWetter) { try { localStorage.setItem("lb_lead_used", "1"); } catch { /**/ } }
+      if (!authed && !adminPin && !wetterSub && leadEmail && !fromWetter) { try { localStorage.setItem("lb_lead_used", "1"); } catch { /**/ } }
       // Theatrical ~30s "unsharp → sharp" reveal of the REAL clip.
       logFunnelEvent("tryon_generated", { lookId, ...(chosenModelName ? { lookName: chosenModelName } : {}) }); // Insights "Generated a video"
       setAwaitingEmail(false);
