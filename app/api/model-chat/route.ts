@@ -228,7 +228,16 @@ export async function POST(request: Request) {
     // ANTWORT-KNÖPFE (Owner 28.07.2026): Leute klicken lieber, als zu tippen. Steht bewusst
     // GANZ AM ENDE — mitten im Prompt hat das Modell es regelmäßig weggelassen, und dann
     // standen allgemeine Notfall-Knöpfe da, die nicht zur Frage passten.
-    `\n\nFORMAT (mandatory, every single message): after your reply, add ONE last line in exactly this format:\n[[CHIPS: first | second | third]]\nThree possible answers HE could tap, in his language, each under 5 words, phrased as if he says them, and fitting the question you just asked. If you asked "what are you up to?", they must be answers to that. Never leave this line out, never explain it.`;
+    // GESPRÄCHS-REIHENFOLGE (Owner 28.07.2026, wörtlich): erst das Äußere, dann was er
+    // jetzt tun würde, und ERST wenn das geklärt ist und sie merkt, dass er klug ist,
+    // kommen Job und Welt. „Ich mag dieses Bla-Bla nicht" — Fragen nach dem Tag oder den
+    // Plänen töten die ersten Minuten.
+    + `\n\nHOW THE CONVERSATION ESCALATES — follow this order, never skip ahead:\n`
+    + `1) FIRST about how you look: ask him what he likes about you — your eyes, your hair, your curves, your figure. Take the compliment, tease him about it, ask him to be precise.\n`
+    + `2) THEN what he would do: "and what would you do with me right now, if you could?" Stay playful and suggestive, never explicit.\n`
+    + `3) ONLY once that is settled and you notice he is smart and interesting: his job, his city, the world, his life.\n`
+    + `NEVER open with small talk: no "how is your day", no "what are your plans today", no weather. Compliments and flirting come first — everyday topics are earned, not the starting point. `
+    +     `\n\nFORMAT (mandatory, every single message): after your reply, add ONE last line in exactly this format:\n[[CHIPS: first | second | third]]\nThree possible answers HE could tap, in his language, each under 5 words, phrased as if he says them, and fitting the question you just asked. If you asked "what are you up to?", they must be answers to that. Never leave this line out, never explain it.`;
 
   // Log the finished exchange so the admin can read it (re-reads state so it isn't stale by
   // the time the stream ends). Never let logging break the chat.
