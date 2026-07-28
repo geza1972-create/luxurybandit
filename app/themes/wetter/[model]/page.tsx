@@ -51,7 +51,15 @@ export async function generateMetadata(
     title: m.t,
     description: m.d,
     alternates: { canonical: `/themes/wetter/${model}` },
-    openGraph: { title: m.ot, description: m.od },
+    // BILD für die Vorschaukarte (WhatsApp/Facebook). Bewusst eine feste Datei in /public:
+    // signierte Storage-Adressen verfallen nach 24 h, dann bliebe die Karte bildlos.
+    // Motiv: Bella im weißen Kleid — dasselbe, das der Owner als Try-on-Teaser gewählt hat.
+    openGraph: {
+      title: m.ot,
+      description: m.od,
+      images: [{ url: "/wetter-og.jpg", width: 1200, height: 1600, alt: name }],
+    },
+    twitter: { card: "summary_large_image", title: m.ot, description: m.od, images: ["/wetter-og.jpg"] },
   };
 }
 
