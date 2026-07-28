@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Sparkles, ArrowLeft, ArrowRight, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2, Crown, Volume2, VolumeX, BadgeCheck, AlertTriangle } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, ArrowRight, Check, RefreshCw, Lock, Play, Trash2, ImageUp, X, MessageCircle, Maximize2, Crown, Volume2, VolumeX, BadgeCheck } from "lucide-react";
 import PremiumDialog from "@/components/PremiumDialog";
 import SubscribeDialog from "@/components/SubscribeDialog";
 import ModelChat from "@/components/ModelChat";
@@ -995,11 +995,15 @@ export default function TryFunnelPage() {
             if (!email) return null;
             const isVerified = !!sessEmail && sessVerified;
             return (
-              <button type="button" onClick={() => { if (!isVerified) onUnlock(); }} title={isVerified ? "Verified account" : "Not verified — tap to create a full account"}
-                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black ring-1 active:scale-95 transition ${isVerified ? "bg-amber-500/15 text-amber-300 ring-amber-400/25" : "bg-amber-400/15 text-amber-300 ring-amber-400/30"}`}>
-                {isVerified ? <BadgeCheck className="h-3.5 w-3.5 shrink-0" /> : <AlertTriangle className="h-3.5 w-3.5 shrink-0" />}
+              // Ruhiger Hinweis „wir kennen dich" — KEIN Warndreieck mehr und kein Klick zur
+              // Kasse (Owner 28.07.2026: „ich weiss nicht, was das Dreieck sein soll").
+              // Das Dreieck stand fuer „E-Mail nicht bestaetigt" — ein Rest aus der Zeit, in
+              // der wir ein Konto verlangt haben. Das tun wir nicht mehr.
+              <span title={isVerified ? "Signed in" : "We know this address"}
+                className="flex items-center gap-1 rounded-full bg-white/[0.06] px-2.5 py-1 text-[11px] font-black text-white/70 ring-1 ring-white/15">
+                {isVerified ? <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-[#f6cf51]" /> : null}
                 <span className="max-w-[110px] truncate">{email}</span>
-              </button>
+              </span>
             );
           })()}
           {/* Language switcher hidden — English is forced everywhere. Re-enable to bring RO back. */}
