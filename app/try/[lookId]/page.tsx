@@ -452,6 +452,39 @@ export default function TryFunnelPage() {
     }).catch(() => {});
   }, []);
 
+  // WAS ER BEKOMMT + WER WIR SIND. Bewusst konkret (Zahlen aus dem Produkt) und ohne
+  // Superlative, die wir nicht halten können — die Aussagen stammen vom Owner (28.07.2026).
+  const sellBlock = (
+    <div className="mx-auto mt-6 w-full max-w-sm space-y-4">
+      <div className="rounded-2xl border border-[#f6cf51]/30 bg-[#f6cf51]/[0.06] p-4">
+        <p className="text-[15px] font-black text-white">{L("Ce primești în abonament", "What you get")}</p>
+        <div className="mt-2.5 grid gap-2">
+          {[
+            L("25 de videoclipuri pe lună — în toate temele împreună", "25 videos a month — across every topic"),
+            L("Orice model în orice ținută: ea se întoarce, tu vezi fiecare parte", "Any model in any look — she turns, you see every side"),
+            L("Chat nelimitat, în limba ta — gratuit, oricând", "Unlimited chat in your language — free, any time"),
+            L("Sărut, idolul tău, vacanță: aceleași videoclipuri, alte teme", "Kiss, your idol, holiday — same videos, other topics"),
+            L("Le descarci și rămân ale tale", "Download them — they stay yours"),
+            L("Le găsești oricând în My Gallery", "Always there in My Gallery"),
+          ].map(line => (
+            <p key={line} className="flex items-start gap-2 text-[13px] font-bold leading-snug text-white/90">
+              <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#f6cf51]" /> {line}
+            </p>
+          ))}
+        </div>
+      </div>
+      <div className="rounded-2xl border border-white/12 bg-white/[0.04] p-4">
+        <p className="text-[13px] font-black text-[#f6cf51]">{L("De ce noi", "Why us")}</p>
+        <p className="mt-1.5 text-[13px] font-medium leading-relaxed text-white/80">
+          {L(
+            "Suntem un portal tânăr — nimeni altcineva nu oferă asta pe piață. În spate stau 15 ani de experiență în digital și cele mai bune tehnologii AI din lume. Luăm fiecare părere și fiecare reclamație în serios: vrem să creștem împreună cu tine și să rămâi mulțumit.",
+            "We are a young portal — nobody else offers this on the market. Behind it stand 15 years of experience in digital and the best AI technology in the world. We take every piece of feedback and every complaint seriously: we want to grow with you and keep you happy.",
+          )}
+        </p>
+      </div>
+    </div>
+  );
+
   // Die Beispiel-Reihe — auf JEDER Seite, auf der er ein Try-on starten kann.
   const examplesRow = examples.length > 0 ? (
     <div className="mx-auto mt-6 w-full max-w-sm">
@@ -1466,6 +1499,10 @@ export default function TryFunnelPage() {
                       {lookIsFree ? L("Vezi videoul", "Watch the video") : aboLabel()}
                     </button>
                     {!lookIsFree && <p className="mt-2 text-center text-[10px] font-medium leading-snug text-white/55">{renewNote(lang)}</p>}
+                    {/* WARUM ES SICH LOHNT — hier stand nur ein Knopf. Der Besucher sieht
+                        jetzt zuerst fertige Vorher/Nachher-Beispiele und danach, was drin ist
+                        und wer wir sind (Owner 28.07.2026). */}
+                    {!lookIsFree && <>{examplesRow}{sellBlock}</>}
                   </>
                 )}
               </div>
