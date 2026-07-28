@@ -427,18 +427,26 @@ export default function TryFunnelPage() {
       const seenMedia = new Set<string>();
       const seenModel = new Set<string>();
       const key = (u: string) => String(u).split("?")[0];
-      for (const l of (Array.isArray(d?.looks) ? d.looks : []) as { communityTryOns?: { id?: string; imageUrl?: string; videoUrl?: string; userPhotoUrl?: string; curatorId?: string; name?: string }[] }[]) {
+      const all: { id: string; before: string; after: string; videoUrl: string; who: string; at: string }[] = [];
+      for (const l of (Array.isArray(d?.looks) ? d.looks : []) as { communityTryOns?: { id?: string; imageUrl?: string; videoUrl?: string; userPhotoUrl?: string; curatorId?: string; name?: string; createdAt?: string }[] }[]) {
         for (const g of l.communityTryOns ?? []) {
           if (!g?.id || !(g.imageUrl || g.videoUrl)) continue;
-          const media = key(String(g.videoUrl || g.imageUrl));
-          const who = String(g.curatorId || g.name || "");
-          if (seenMedia.has(media) || (who && seenModel.has(who))) continue;
-          seenMedia.add(media); if (who) seenModel.add(who);
-          out.push({ id: String(g.id), before: String(g.userPhotoUrl || ""), after: String(g.imageUrl || ""), videoUrl: String(g.videoUrl || ""), who });
+          all.push({
+            id: String(g.id), before: String(g.userPhotoUrl || ""), after: String(g.imageUrl || ""),
+            videoUrl: String(g.videoUrl || ""), who: String(g.curatorId || g.name || ""), at: String(g.createdAt || ""),
+          });
         }
       }
-      // Die mit echtem Vorher/Nachher zuerst — die erklären den Trichter ohne ein Wort.
-      out.sort((a, b) => Number(!!b.before && !!b.after) - Number(!!a.before && !!a.after));
+      // Reihenfolge: echtes Vorher/Nachher zuerst, dann das NEUESTE — so landen die
+      // Beispiele, die der Owner gerade gebaut hat, ganz vorn (Owner 28.07.2026).
+      all.sort((a, b) =>
+        (Number(!!b.before && !!b.after) - Number(!!a.before && !!a.after)) || b.at.localeCompare(a.at));
+      for (const g of all) {
+        const media = key(g.videoUrl || g.after);
+        if (seenMedia.has(media) || (g.who && seenModel.has(g.who))) continue;
+        seenMedia.add(media); if (g.who) seenModel.add(g.who);
+        out.push({ id: g.id, before: g.before, after: g.after, videoUrl: g.videoUrl, who: g.who });
+      }
       setExamples(out.slice(0, 4));
     }).catch(() => {});
   }, []);
@@ -452,7 +460,15 @@ export default function TryFunnelPage() {
           <button key={ex.id} type="button" onClick={() => router.push(`/post/${ex.id}`)}
             className="relative w-[42%] shrink-0 overflow-hidden rounded-xl border border-white/15 active:scale-95 transition">
             <span className="relative block aspect-[3/4] w-full">
-              {ex.before && ex.after ? (<>
+              {ex.before && ex.videoUrl ? (<>
+                {/* VORHER = sein Foto, NACHHER = das VIDEO (Owner 28.07.2026): das Ergebnis
+                    bewegt sich, sonst sieht es aus wie zwei Fotos nebeneinander. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={ex.before} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />
+                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                <video src={ex.videoUrl} muted loop playsInline autoPlay preload="metadata"
+                  className="lb-swap-top absolute inset-0 h-full w-full object-cover object-top" />
+              </>) : ex.before && ex.after ? (<>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={ex.before} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />
                 {/* eslint-disable-next-line @next/next/no-img-element */}

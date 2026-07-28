@@ -122,7 +122,7 @@ function affiliateWrap(url: string | undefined, sid: string, stores: AffiliateSt
     .split("{sid}").join(encodeURIComponent(sid || "house"));
 }
 
-function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number], generationCount = 0, partnerStores: AffiliateStore[] = [], curators: CuratorProfile[] = [], tryOnImageUrl?: string, communityTryOns: { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; hidden?: boolean; pending?: boolean; curatorId?: string; curatorPhotoUrl?: string }[] = [], collections: { id: string; name: string }[] = [], themes: ThemeEntry[] = []) {
+function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["looks"][number], generationCount = 0, partnerStores: AffiliateStore[] = [], curators: CuratorProfile[] = [], tryOnImageUrl?: string, communityTryOns: { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; hidden?: boolean; pending?: boolean; curatorId?: string; curatorPhotoUrl?: string; createdAt?: string }[] = [], collections: { id: string; name: string }[] = [], themes: ThemeEntry[] = []) {
   const sid = String((look as any).curatorId ?? "house");
   const wrap = (u: string | undefined) => affiliateWrap(u, sid, partnerStores);
   // Attribute the look to the curator who published it (name, photo, profile link).
@@ -293,7 +293,7 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
   // Try-ons (consented, feed:true) shown as carousel slides AFTER the curator's
   // video + product image and BEFORE the dupes. Includes the curator's OWN try-ons
   // (with their video) and members'. Newest first (generations are newest-first).
-  const communityByLook = new Map<string, { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; isCurator?: boolean; hidden?: boolean; pending?: boolean; curatorId?: string; curatorPhotoUrl?: string }[]>();
+  const communityByLook = new Map<string, { id?: string; imageUrl: string; videoUrl?: string; userPhotoUrl?: string; name?: string; isCurator?: boolean; hidden?: boolean; pending?: boolean; curatorId?: string; curatorPhotoUrl?: string; createdAt?: string }[]>();
   // Model attribution per try-on: the feed post must show the TRY-ON's model (assign-
   // generation sets gen.curatorId), not the look's owner. Legacy try-ons often carry
   // only the model's NAME (customerName) — resolve those to a curator by name slug so
@@ -324,7 +324,7 @@ function publicState(state: Awaited<ReturnType<typeof readTryThisLookState>>, pr
     if (list.length >= 12) continue;
     const genCuratorId = String((g as any).curatorId ?? "").trim()
       || curatorIdByName.get(normalizeSlug((g as any).customerName ?? "")) || "";
-    list.push({ id: g.id, imageUrl: url, videoUrl: (g as any).videoUrl || undefined, userPhotoUrl: (g as any).userPhotoUrl || undefined, name: (g as any).customerName || undefined, isCurator, hidden: isAdminHidden, pending: isPending, curatorId: genCuratorId || undefined, curatorPhotoUrl: (genCuratorId && curatorPhotoById.get(genCuratorId)) || undefined });
+    list.push({ id: g.id, imageUrl: url, videoUrl: (g as any).videoUrl || undefined, userPhotoUrl: (g as any).userPhotoUrl || undefined, name: (g as any).customerName || undefined, isCurator, hidden: isAdminHidden, pending: isPending, curatorId: genCuratorId || undefined, curatorPhotoUrl: (genCuratorId && curatorPhotoById.get(genCuratorId)) || undefined, createdAt: (g as any).createdAt || undefined });
     communityByLook.set(g.lookId, list);
   }
   const slThemes = state.wardrobeVocab?.themes ?? [];
