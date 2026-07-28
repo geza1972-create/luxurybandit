@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, Mail, KeyRound, Check, CalendarClock, Ban } from "lucide-react";
-import { getStoredAuthSession, sendMagicLink, resetPassword, signOut } from "@/lib/supabase-auth-client";
+import { getStoredAuthSession, resetPassword, signOut } from "@/lib/supabase-auth-client";
 
 type Sub = {
   id: string; topic: string; kind: string; status: string;
@@ -58,8 +58,20 @@ export default function MyTopics() {
   const magic = async () => {
     if (!emailOk || busy) return;
     setBusy(true); setMsg("");
-    try { await sendMagicLink(email.trim()); setMsg("Check your inbox — we sent you a sign-in link."); }
-    catch { setMsg("Could not send the link. Please try again."); }
+    try {
+      // Über UNSER Postfach (lib/email-send), nicht über Supabase: dessen Versand ist
+      // gedeckelt und fiel am 28.07.2026 komplett aus — der Kunde stand vor einer toten
+      // Anmeldung, obwohl sein Konto existierte.
+      const lang = (document.cookie.match(/(?:^|; )lb_lang=([^;]*)/)?.[1] ?? "en").slice(0, 2);
+      const r = await fetch("/api/signin-link", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), lang, returnTo: "/account" }),
+      });
+      const d = await r.json().catch(() => ({}));
+      setMsg(d?.sent === false
+        ? "The link could not be delivered. Please write to us and we unlock it by hand."
+        : "Check your inbox — we sent you a sign-in link.");
+    } catch { setMsg("Could not send the link. Please try again."); }
     setBusy(false);
   };
 
