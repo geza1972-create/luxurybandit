@@ -19,7 +19,10 @@
 // Fest hinterlegt, damit ein Code auch dann gilt, wenn die Env in der Produktion fehlt —
 // genau daran ist der 19-EUR-Preis am 27.07.2026 live gescheitert. Env ergaenzt/ueberschreibt.
 const BUILTIN: Record<string, string> = {
-  BELLA: "AQUOArCz",        // Anzeige: 30 € einmalig → 19 € im ersten Monat (Preis inkl. MwSt.)
+  BELLA: "AQUOArCz",
+  // FOREVER50 — DAUERHAFT 50 % (24,50 € statt 49 €). Owner 28.07.2026: den verschenkt sie
+  // im Chat als Belohnung. Geprüft in Stripe: percent_off 50, duration "forever".
+  FOREVER50: "sRHDMAQE",        // Anzeige: 30 € einmalig → 19 € im ersten Monat (Preis inkl. MwSt.)
   // ADMIN-Codes zum DURCHTESTEN bis zur echten Zahlung (100 %, dauerhaft). Bewusst hier
   // und nicht in der Env, damit der Owner auch in der Produktion testen kann.
   ADMIN100: "hvJ8ZO7c",
