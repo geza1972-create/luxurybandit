@@ -580,12 +580,14 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
               )}
               {m.role === "assistant" && /\[\[SHOW_LINGERIE\]\]/i.test(m.content) && teaseVideos.length > 0 && (
                 <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {teaseVideos.map(v => (
+                  {/* NUR EINS (Owner 28.07.2026) — eine Reihe ist ein Katalog, eines nach
+                      dem anderen ist eine Show. */}
+                  {teaseVideos.slice(0, 1).map(v => (
                     // IM CHAT SIND ALLE FREI (Owner 28.07.2026) — auch die sonst gesperrten.
                     // Die Videos sind längst erzeugt; sie herzuzeigen kostet uns nichts und
                     // baut die Bindung auf. Bezahlt wird, was ER erzeugen will.
                     <button key={v.id} type="button" onClick={() => setPlaying(v.videoUrl)}
-                      className="relative w-24 shrink-0 overflow-hidden rounded-xl border border-[#f6cf51]/40 active:scale-95 transition">
+                      className="relative w-40 shrink-0 overflow-hidden rounded-xl border border-[#f6cf51]/40 active:scale-95 transition">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={v.posterUrl} alt="" className="aspect-[3/4] w-full object-cover" />
                     </button>
