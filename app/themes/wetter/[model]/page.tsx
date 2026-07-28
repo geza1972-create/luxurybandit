@@ -15,7 +15,7 @@ import { buildBellaCard } from "@/lib/bella-card";
 import { personalize } from "@/lib/personalize";
 import { translateMany } from "@/lib/translate";
 import { fetchForecastLine } from "@/lib/wetter-forecast";
-import { readTryThisLookState, readCardStudioSlides, readWetterSubscribers, readWetterClicks, readWetterPaid, readKissConfig, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
+import { readTryThisLookState, readCardStudioSlides, readWetterSubscribers, readWetterPaid, readKissConfig, getSignedUrl, isPublicBellaPost, sortBellaPosts, type BellaSlide } from "@/lib/try-this-look-store";
 
 // THEMA „Wetter am Morgen" — MODEL-AGNOSTISCH über /wetter/<model> (dieses Mal bella, kann jede sein).
 // Besucher = Karussell + RO-Signup (Lead). Abonnent (?name=&city=&lang=) = Gruß + Wetter + Look + Chat.
@@ -215,18 +215,17 @@ export default async function WetterModelPage({ params, searchParams }: {
   const askProfile = !!subToken && (askName || askBirthdate || askGender || askCity || askPhone);
   const recognized = !!subToken || !!subName;   // eingeloggter Abonnent?
 
-  // WEICHER PAYWALL: Öffnungen 1–7 gratis; ab der 8. sind Chat + Video gesperrt (Bild + Nachricht
-  // bleiben), bis das 24-€-Abo bezahlt ist. „Öffnung" = Klick-Zähler aus dem Klick-Tracking.
-  // Der Server sieht die VORHERIGEN Öffnungen (der aktuelle Klick wird clientseitig geloggt) →
-  // Schwelle >= 7 sperrt genau ab dem 8. Öffnen. `?wetterpaid=1` schaltet nach der Zahlung sofort frei.
-  const FREE_OPENS = 7;
-  let locked = false;
+  // KEINE SPERRE MEHR (Owner 28.07.2026: „es ist Werbung umsonst").
+  // Früher waren die Öffnungen 1–7 gratis und ab der 8. wurden Chat + Video gesperrt. Das
+  // widersprach dem, was überall sonst steht („Chatten ist und bleibt gratis"), und traf
+  // ausgerechnet die treuesten Leser. Das Senden kostet uns nichts — teuer sind Videos und
+  // Anzieh-Bilder, und die hängen ohnehin am Abo. Die Tagespost bleibt also dauerhaft offen.
+  // Der Klick-Zähler läuft weiter, aber nur noch als Statistik.
+  const locked = false;
   let paid = false;
   if (subToken) {
-    const [clicks, paidMap] = await Promise.all([readWetterClicks(modelId), readWetterPaid(modelId)]);
-    const opens = clicks[subToken]?.count ?? 0;
+    const paidMap = await readWetterPaid(modelId);
     paid = !!paidMap[subToken] || String(sp.wetterpaid ?? "") === "1";
-    locked = opens >= FREE_OPENS && !paid;
   }
   const showAdmin = String(sp.admin ?? "") === "1";   // Admin-Werkzeuge NUR mit ?admin=1 — nie in der Kundenansicht
   const justConfirmed = String(sp.confirmed ?? "") === "1";   // gerade E-Mail bestätigt
