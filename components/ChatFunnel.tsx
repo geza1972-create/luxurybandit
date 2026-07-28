@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Send, ImageUp, Check, Lock, Shirt, Download, Sparkles } from "lucide-react";
 import { openerFor } from "@/lib/chat-opener";
 import { renewNote } from "@/lib/pricing";
+import { tryonPrompt } from "@/lib/tryon-prompt";
 
 type Model = { id: string; name: string; photoUrl: string };
 type Look = { id: string; name?: string; imageUrl?: string };
@@ -288,7 +289,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
       fd.append("lookId", look.id);
       fd.append("mode", "fashion-model");
       fd.append("aspectRatio", "9:16");
-      fd.append("prompt", "Dress the person from the model photo in the garment shown in the reference image. Keep her face, hair and body exactly as they are. Natural light, photorealistic, full body in frame.");
+      fd.append("prompt", tryonPrompt({ garment: look.name || "", framing: "keep" }));
       const d = await fetch("/api/generate-fashn", {
         method: "POST", body: fd, ...(pin ? { headers: { "x-try-look-admin-pin": pin } } : {}),
       }).then(r => r.json());

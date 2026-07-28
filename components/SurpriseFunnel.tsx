@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Lock, Sparkles, ImageUp, RefreshCw, Check, Download } from "lucide-react";
+import { tryonPrompt } from "@/lib/tryon-prompt";
 
 type Look = { id: string; name?: string; imageUrl?: string };
 
@@ -119,7 +120,7 @@ export default function SurpriseFunnel({ example = "" }: { example?: string }) {
       fd.append("lookId", picked!.id);
       fd.append("mode", "fashion-model");
       fd.append("aspectRatio", "9:16");
-      fd.append("prompt", "Dress the person from the model photo in the garment shown in the reference image. Keep her face, hair and body exactly as they are. Natural light, photorealistic, full body in frame.");
+      fd.append("prompt", tryonPrompt({ garment: picked?.name || "", framing: "full" }));
       const dressed = await fetch("/api/generate-fashn", {
         method: "POST", body: fd, ...(pin ? { headers: { "x-try-look-admin-pin": pin } } : {}),
       }).then(r => r.json());
