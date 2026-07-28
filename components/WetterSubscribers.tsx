@@ -186,6 +186,23 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
     finally { setMailBusy(false); }
   };
 
+  // SMS an die AUSGEWÄHLTEN — ohne Meta, ohne Vorlagen (Owner 28.07.2026). Kostet echtes
+  // Geld pro Nachricht, deshalb genau wie beim Mail-Versand: erster Tipp schärft, zweiter sendet.
+  const [smsBusy, setSmsBusy] = useState(false);
+  const [smsMsg, setSmsMsg] = useState("");
+  const smsSend = async (payload: { ids?: string[]; all?: boolean }) => {
+    setSmsBusy(true); setSmsMsg("");
+    try {
+      const r = await fetch("/api/wetter-sms", { method: "POST", headers: headers(), body: JSON.stringify({ modelId, modelSlug, ...payload }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setSmsMsg(d?.error ?? "SMS-Versand fehlgeschlagen."); return; }
+      const failed = (d.results ?? []).filter((x: { ok: boolean }) => !x.ok);
+      setSmsMsg(`✅ ${d.sent}/${d.total} SMS gesendet${failed.length ? ` · ${failed.length} fehlgeschlagen (${failed[0]?.error ?? ""})` : ""}${d.note ? ` · ${d.note}` : ""}`);
+      if (payload.ids) setSelected(new Set());
+    } catch { setSmsMsg("SMS-Versand fehlgeschlagen."); }
+    finally { setSmsBusy(false); }
+  };
+
   // Meta-Lead-CSV importieren. Metas Export ist UTF-16 + TAB-getrennt (Excel-Variante);
   // Komma-CSV wird ebenfalls erkannt. Spalten: email, full_name, phone_number, city.
   // Der Server dedupliziert per E-Mail/Telefon — dieselbe Datei zweimal schadet nicht.
@@ -244,10 +261,15 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
         <span className="text-[12px] font-black text-white/60">{selected.size} ausgewählt</span>
       </div>
       {/* Zwei Kanäle für die AUSGEWÄHLTEN. E-Mail primär (geht wirklich raus), Bot zweitrangig. */}
-      <div className="mt-2 grid grid-cols-2 gap-2">
+      <div className="mt-2 grid grid-cols-3 gap-2">
         <button type="button" onClick={() => sendSelected("mail")} disabled={selected.size === 0 || mailBusy}
           className={`flex h-10 items-center justify-center gap-1.5 rounded-lg px-3 text-[12px] font-black active:scale-95 transition disabled:opacity-40 ${armSend === "mail" ? "bg-red-500 text-white" : "lb-onmedia bg-[#1a160f] text-white"}`}>
           {mailBusy ? "Sendet…" : armSend === "mail" ? `Wirklich an ${selected.size}?` : `📧 E-Mail an ${selected.size}`}
+        </button>
+        <button type="button" onClick={() => { if (selected.size === 0) return; if (armSend !== "sms") { setArmSend("sms"); setTimeout(() => setArmSend(a => (a === "sms" ? "" : a)), 4000); return; } setArmSend(""); void smsSend({ ids: [...selected] }); }}
+          disabled={selected.size === 0 || smsBusy}
+          className={`flex h-10 items-center justify-center gap-1.5 rounded-lg px-3 text-[12px] font-black active:scale-95 transition disabled:opacity-40 ${armSend === "sms" ? "bg-red-500 text-white" : "bg-[#f6cf51] text-black"}`}>
+          {smsBusy ? "Sendet…" : armSend === "sms" ? `Wirklich an ${selected.size}?` : `💬 SMS an ${selected.size}`}
         </button>
         <button type="button" onClick={() => sendSelected("bot")} disabled={selected.size === 0 || botBusy === "selected"}
           className={`flex h-10 items-center justify-center gap-1.5 rounded-lg px-3 text-[12px] font-black active:scale-95 transition disabled:opacity-40 ${armSend === "bot" ? "bg-red-500 text-white" : "bg-[#25D366] text-black"}`}>
@@ -262,6 +284,7 @@ export default function WetterSubscribers({ modelId = "curator-1783683672619-td4
         className="mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-lg border border-white/25 px-3 text-[12px] font-black text-white/85 active:scale-95 transition disabled:opacity-40">
         🧪 {mailBusy ? "Sendet…" : "Testmail an mich"}
       </button>
+      {smsMsg && <p className="mt-1 text-[12px] font-bold text-[#f6cf51]">{smsMsg}</p>}
       {mailMsg && <p className="mt-1.5 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{mailMsg}</p>}
       {botMsg && <p className="mt-1.5 rounded-lg bg-black/[0.05] px-3 py-2 text-[12px] font-bold text-black/70">{botMsg}</p>}
       {/* Schnell-Überblick: an wen NICHT mehr senden. */}
