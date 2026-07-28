@@ -193,7 +193,10 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
 
   // Gratis-Chat = 50 Nachrichten PRO TAG (client-seitig, resetet um Mitternacht). Zahler = unbegrenzt.
   // „Erst-mal"-Lösung; bei vielen Usern auf serverseitiges Limit umstellen.
-  const DAILY_CHAT_LIMIT = 50;
+  // 10 Gratis-Nachrichten pro Tag (Owner 28.07.2026, vorher 50). Fuenfzig schrieb praktisch
+  // niemand — die Sperre griff nie und der Chat war faktisch unbegrenzt gratis. Zehn reichen
+  // fuer eine echte Unterhaltung und lassen den Vielschreiber den Freischalt-Knopf sehen.
+  const DAILY_CHAT_LIMIT = 10;
   const chatDayKey = `lb_wetter_chatmsgs_${modelId}_${subId}`;
   const [chatCount, setChatCount] = useState(0);
   useEffect(() => {
@@ -350,7 +353,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     // dagegen ist erwachsen (flirtend). Abfrage vor der ERSTEN Nachricht, einmal pro Gerät;
     // nach der Bestätigung wird die Nachricht automatisch abgeschickt (onDone).
     if (!ageVerified()) { setNeedAge(true); return; }
-    // TAGESLIMIT ERREICHT (50 Gratis-Nachrichten): er darf schreiben, aber statt der KI antwortet
+    // TAGESLIMIT ERREICHT (10 Gratis-Nachrichten): er darf schreiben, aber statt der KI antwortet
     // Bella persönlich, dass die Credits verbraucht sind → Freischalt-Button. Kein API-Aufruf.
     if (chatBlocked) {
       setMessages(m => [...m, { role: "user" as const, content: text }, { role: "assistant" as const, content: creditsMsg }]);
@@ -358,7 +361,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
       setChatUnlock(true);
       return;
     }
-    bumpChat();   // eine der 50 Gratis-Nachrichten des Tages verbraucht
+    bumpChat();   // eine der 10 Gratis-Nachrichten des Tages verbraucht
     // Chat-Sitzung EINMAL zählen (nicht als Admin) → Wetter-Insights.
     try {
       const ck = `lb_wetter_chatted_${modelId}`;
