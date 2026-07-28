@@ -1,6 +1,8 @@
-import { WHATSAPP_CHANNEL } from "@/lib/social";
 // Vorlage der täglichen Wetter-E-Mail (Texte + HTML) — BEWUSST ohne Server-Importe,
 // damit sie pur bleibt und sich unabhängig rendern/prüfen lässt.
+
+// Kanal-Adresse hier gespiegelt (Quelle: lib/social.ts) — die Vorlage bleibt importfrei.
+const WHATSAPP_CHANNEL = "https://whatsapp.com/channel/0029VbD9Te45K3zR16YL1c2r";
 
 export type Copy = {
   subject: string; preheader: string; greet: string; lead: string; body: string;
