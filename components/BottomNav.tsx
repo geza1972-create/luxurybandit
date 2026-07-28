@@ -440,6 +440,13 @@ export default function BottomNav({ forceShow = false }: { forceShow?: boolean }
                   <span className="text-sm font-black text-white">Wardrobe</span>
                 </button>
               )}
+              {/* My Gallery — SEINE eigenen Videos (Chat/Try-on). Haengt am Geraet und, sobald
+                  angemeldet, am Konto; deshalb im Menue fuer JEDEN sichtbar (Owner 28.07.2026). */}
+              <button type="button" onClick={() => navigate("/my-gallery")}
+                className="flex items-center gap-3 px-5 py-3.5 text-left active:bg-white/[0.06] transition">
+                <Film className="h-5 w-5 shrink-0 text-[#f6cf51]" />
+                <span className="text-sm font-black text-white">My Gallery</span>
+              </button>
               {/* Models Wanted — recruiting CTA → the indexable recruiting landing (it explains the
                   deal, then CTAs into the free application form). Also gives that SEO page a real
                   internal link from every screen, so Google can discover and rank it. */}

@@ -312,6 +312,24 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
     setDressBusy(false);
   };
 
+
+  // Kopie fuer „My Gallery" — laeuft im Hintergrund; scheitert sie, bleibt das Video im
+  // Fenster trotzdem sichtbar.
+  const saveToGallery = async (videoUrl: string, lookId: string) => {
+    try {
+      let device = "";
+      try {
+        device = localStorage.getItem("lb_visitor") ?? "";
+        if (!device) { device = crypto.randomUUID?.() ?? String(Date.now()); localStorage.setItem("lb_visitor", device); }
+      } catch { /**/ }
+      const email = (() => { try { return JSON.parse(localStorage.getItem("lb_auth") ?? "{}")?.user?.email ?? ""; } catch { return ""; } })();
+      await fetch("/api/my-videos", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ videoUrl, lookId, curatorId: useCustom ? "" : (picked?.id ?? ""), lookName: herName ? `${herName}` : "", device, email, source: "chat" }),
+      });
+    } catch { /**/ }
+  };
+
   // Aus dem angezogenen Foto das Dreh-Video machen (mit Musik im Player darunter).
   const makeTurnVideo = async (dressedImage: string, lookId: string) => {
     setVidUrl(""); setVidBusy(true); setStatus(u.filming);
@@ -326,7 +344,13 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
         await new Promise(r => setTimeout(r, 5000));
         const p = await fetch(`/api/generate-tryon-video?videoId=${encodeURIComponent(start.videoId)}&curatorId=${encodeURIComponent(start.curatorId || "")}`)
           .then(r => r.json()).catch(() => null);
-        if (p?.status === "done" && p.videoUrl) { setVidUrl(String(p.videoUrl)); setStatus(""); setVidBusy(false); return; }
+        if (p?.status === "done" && p.videoUrl) {
+          setVidUrl(String(p.videoUrl)); setStatus(""); setVidBusy(false);
+          // In SEINE Galerie legen (Geraet + Konto): die Anbieter-Adresse verfaellt nach
+          // Stunden — ohne eigene Kopie waere das Video morgen weg (Owner 28.07.2026).
+          void saveToGallery(String(p.videoUrl), lookId);
+          return;
+        }
         if (p?.status === "failed") { setStatus(p.error || ""); setVidBusy(false); return; }
       }
       setStatus("");

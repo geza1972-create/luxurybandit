@@ -129,6 +129,22 @@ export default function MyGalleryPage() {
   // Admin (PIN) → ALLE generierten Videos. Eingeloggter User → NUR seine eigenen Try-ons.
   useEffect(() => {
     if (!ready) return;
+    // EIGENE VIDEOS (Chat/Try-on ohne Konto): haengen am Geraet — und zusaetzlich an der
+    // E-Mail, sobald er angemeldet ist (Owner 28.07.2026). Laeuft unabhaengig vom Admin-Weg.
+    const device = (() => { try { return localStorage.getItem("lb_visitor") ?? ""; } catch { return ""; } })();
+    const mail = getStoredAuthSession()?.user?.email ?? "";
+    if (device || mail) {
+      fetch(`/api/my-videos?device=${encodeURIComponent(device)}&email=${encodeURIComponent(mail)}`, { cache: "no-store" })
+        .then(r => r.json())
+        .then(d => {
+          const own: Item[] = (Array.isArray(d?.videos) ? d.videos : []).map((v: { id: string; videoUrl: string; posterUrl?: string; name?: string }) => ({
+            id: v.id, type: "video" as const, imageUrl: v.posterUrl || "", videoUrl: v.videoUrl, lookName: v.name || "",
+          }));
+          if (own.length) setItems(prev => [...own, ...prev.filter(x => !own.some(o => o.id === x.id))]);
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+    }
     if (!pin && !token) { setLoading(false); return; }
     const url = pin ? "/api/try-this-look?adminPosts=1" : "/api/try-this-look?mine=1";
     const headers: Record<string, string> = pin
