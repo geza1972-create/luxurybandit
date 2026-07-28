@@ -189,8 +189,8 @@ export default async function WetterModelPage({ params, searchParams }: {
   const crossModels = (await Promise.all(crossOrdered.map(async c => {
     const img = c.photoPath ? await getSignedUrl(c.photoPath).catch(() => "") : "";
     const name = String(c.modelName || c.firstName || "").split(" ")[0];
-    return (img && name) ? { name, img, href: `/curator/${c.id}` } : null;
-  }))).filter((x): x is { name: string; img: string; href: string } => !!x);
+    return (img && name) ? { id: c.id, name, img, href: `/curator/${c.id}` } : null;
+  }))).filter((x): x is { id: string; name: string; img: string; href: string } => !!x);
 
   // Kennung → Abonnenten-Datensatz (Login). Name/Stadt/Sprache kommen serverseitig aus
   // dem Datensatz, NICHT aus der URL — Telefon bleibt privat. `?name=` bleibt als Alt-Link.

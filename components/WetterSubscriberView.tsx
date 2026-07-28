@@ -159,7 +159,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   modelSlug?: string;     // für die Rückkehr-URL des Abo-Checkouts
   profileAsk?: React.ReactNode;   // „Woher soll das Wetter kommen?" — steht VOR der Werbung
   monthlyCents?: number;  // Abo-Preis (24 € = 2400) für den Freischalt-Button
-  crossModels?: { name: string; img: string; href: string }[];  // Cross-Sell-Slider zu bezahlten Models
+  crossModels?: { id?: string; name: string; img: string; href: string }[];  // Cross-Sell-Slider zu bezahlten Models
   kissTeaser?: string;          // Poster der Kiss-Karte (Bild oder Video)
   kissTeaserIsVideo?: boolean;
   tryonTeaser?: string;         // Poster der Try-On-Karte („angezogen")
@@ -178,6 +178,12 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     try { localStorage.setItem(`lb_wetter_sub_${modelId}`, subId); } catch { /**/ }
   }, [subId, modelId]);
 
+  // DUELL „sie oder ich?" (Owner 28.07.2026): eine kleine Show statt einer Frage. Sagt er
+  // die andere, übernimmt DIE den Chat — der Besucher bekommt, wen er will, und bleibt.
+  const rival = crossModels.find(m => m.id) ?? null;
+  const [activeId, setActiveId] = useState(modelId);
+  const [activeName, setActiveName] = useState(modelName);
+  const [duelAsked, setDuelAsked] = useState(false);
   const [hasTyped, setHasTyped] = useState(false);   // hat er je selbst getippt?
   const [tomorrow, setTomorrow] = useState(false);   // abends zeigen wir das Wetter für morgen
   const [weather, setWeather] = useState<{ temp: number; min: number; max: number; word: string; e: string; rainy: boolean; place: string } | null>(null);
@@ -400,7 +406,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     try {
       const res = await fetch("/api/model-chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ curatorId: modelId, visitorId: subId || (name || "sub").toLowerCase(), userName: name, messages: next, lang: L, dayContext }),
+        body: JSON.stringify({ curatorId: activeId, visitorId: subId || (name || "sub").toLowerCase(), userName: name, messages: next, lang: L, dayContext }),
       });
       const ct = res.headers.get("content-type") || "";
       if (ct.includes("application/json") || !res.body) {
@@ -417,7 +423,47 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         }
       }
     } catch { setMessages(m => [...m, { role: "assistant", content: "…" }]); }
-    finally { setSending(false); }
+    finally {
+      setSending(false);
+      // DIE SHOW: nach der zweiten Antwort stellt sie sich zur Wahl — zwei Bilder, zwei
+      // Knöpfe (Owner 28.07.2026: „lass es eine Show werden, Aria gegen Bella").
+      if (rival && !duelAsked && next.filter(m => m.role === "user").length >= 2) {
+        setDuelAsked(true);
+        const q = (({
+          de: `Mal ehrlich — wer gefällt dir besser? ${rival.name} oder ich? 😏`,
+          en: `Be honest — who do you like more? ${rival.name} or me? 😏`,
+          ro: `Sincer — cine îți place mai mult? ${rival.name} sau eu? 😏`,
+          es: `Sé sincero — ¿quién te gusta más? ¿${rival.name} o yo? 😏`,
+          fr: `Sois honnête — qui te plaît le plus ? ${rival.name} ou moi ? 😏`,
+          pt: `Sê sincero — de quem gostas mais? ${rival.name} ou eu? 😏`,
+          pl: `Szczerze — kto Ci się bardziej podoba? ${rival.name} czy ja? 😏`,
+          it: `Sii sincero — chi ti piace di più? ${rival.name} o io? 😏`,
+        } as Record<string, string>)[L]) ?? `Be honest — who do you like more? ${rival.name} or me? 😏`;
+        window.setTimeout(() => setMessages(m => [...m, {
+          role: "assistant" as const,
+          content: `${q}\n[[DUEL]]\n[[CHIPS: ${activeName} 💛 | ${rival.name}]]`,
+        }]), 900);
+      }
+    }
+  };
+
+  // Er hat die andere gewählt → SIE übernimmt den Chat. Kein Bruch, sondern der Gewinn:
+  // der Besucher bekommt, wen er will, und bleibt bei uns.
+  const switchToRival = () => {
+    if (!rival?.id) return;
+    setActiveId(rival.id);
+    setActiveName(rival.name);
+    const hello = (({
+      de: `Hehe, gute Wahl 😏 Hi, ich bin ${rival.name}. Ab hier schreibe ich dir — erzähl mir was von dir 💛`,
+      en: `Hehe, good choice 😏 Hi, I'm ${rival.name}. I'll take it from here — tell me something about you 💛`,
+      ro: `Hehe, bună alegere 😏 Salut, eu sunt ${rival.name}. De aici preiau eu — spune-mi ceva despre tine 💛`,
+      es: `Jeje, buena elección 😏 Hola, soy ${rival.name}. Sigo yo — cuéntame algo de ti 💛`,
+      fr: `Héhé, bon choix 😏 Salut, moi c'est ${rival.name}. Je prends la suite — parle-moi de toi 💛`,
+      pt: `Hehe, boa escolha 😏 Olá, sou a ${rival.name}. A partir daqui sou eu — conta-me algo sobre ti 💛`,
+      pl: `Hehe, dobry wybór 😏 Cześć, jestem ${rival.name}. Teraz ja przejmuję — opowiedz mi coś o sobie 💛`,
+      it: `Ehi, ottima scelta 😏 Ciao, sono ${rival.name}. Da qui continuo io — raccontami qualcosa di te 💛`,
+    } as Record<string, string>)[L]) ?? `Hehe, good choice 😏 Hi, I'm ${rival.name}. Tell me something about you 💛`;
+    setMessages(m => [...m, { role: "assistant" as const, content: hello }]);
   };
 
   // "2026-07-22" → "22.07.2026" (+ optional Uhrzeit) fürs Datum unter dem Video.
@@ -499,7 +545,9 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             );
             const offers = m.role === "assistant" && m.content.includes(LINGERIE_TAG);
             // Der Knopf-Tag der KI gehoert nicht in die Blase — er wird unten zu Knoepfen.
-            const text = (offers ? m.content.replace(LINGERIE_TAG, "") : m.content).replace(CHIPS_TAG_RE, "").trim();
+            const duel = /\[\[DUEL\]\]/.test(m.content);
+            const text = (offers ? m.content.replace(LINGERIE_TAG, "") : m.content)
+              .replace(CHIPS_TAG_RE, "").replace(/\[\[DUEL\]\]/g, "").trim();
             const seeLbl = (({ ro: "Vezi-mă 🔥", de: "Sieh mich 🔥", en: "See me 🔥", es: "Verme 🔥", fr: "Vois-moi 🔥", pt: "Vê-me 🔥", pl: "Zobacz 🔥", it: "Guardami 🔥" } as Record<string, string>)[L]) ?? "See me 🔥";
             const unlockLbl = (({ ro: "Abonează-te", de: "Abo", en: "Unlock", es: "Desbloquear", fr: "Débloquer", pt: "Desbloquear", pl: "Odblokuj", it: "Sblocca" } as Record<string, string>)[L]) ?? "Unlock";
             return (
@@ -509,6 +557,19 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
                     ? "lb-onmedia rounded-2xl rounded-tr-sm bg-[#1a160f] text-white"
                     : "rounded-2xl rounded-tl-sm bg-white/10 text-white/90"}`}>{text}</div>
                 </div>
+                {/* DIE SHOW: zwei Bilder nebeneinander — sie und die Rivalin. */}
+                {duel && rival && (
+                  <div className="flex gap-2">
+                    {[{ n: activeName, img: look?.posterUrl || look?.mediaUrl || "", me: true }, { n: rival.name, img: rival.img, me: false }].map(card => (
+                      <button key={card.n} type="button" onClick={() => { if (!card.me) switchToRival(); }}
+                        className="relative flex-1 overflow-hidden rounded-xl border border-[#f6cf51]/40 active:scale-95 transition">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={card.img} alt="" className="aspect-[3/4] w-full object-cover object-top" />
+                        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2 pb-1.5 pt-6 text-center text-[12px] font-black text-white">{card.n}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {/* „Willst du mich in diesen Looks sehen?" — Public = gratis (direkt abspielbar),
                     Private = 🔒 (→ Abo). Kuratiert über den Public/Private-Toggle in My Gallery. */}
                 {offers && videos.length > 0 && (
@@ -559,7 +620,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           return (
             <div className="flex flex-wrap gap-1.5 border-t border-black/10 px-3 pb-1 pt-2">
               {chips.map(c => (
-                <button key={c} type="button" onClick={() => void send(c)}
+                <button key={c} type="button" onClick={() => { if (rival && c.startsWith(rival.name)) { switchToRival(); return; } void send(c); }}
                   className="rounded-full border border-black/15 bg-white px-3 py-1.5 text-[12px] font-bold text-black active:scale-95 transition hover:border-black/40">
                   {c}
                 </button>
