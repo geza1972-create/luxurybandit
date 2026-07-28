@@ -13,8 +13,8 @@
  *  · Das Model-Foto bestimmt Gesicht, Haare, Körper und Bildausschnitt.
  */
 
-export function tryonPrompt(opts: { garment?: string; framing?: "full" | "keep" } = {}): string {
-  const { garment = "", framing = "keep" } = opts;
+export function tryonPrompt(opts: { garment?: string } = {}): string {
+  const { garment = "" } = opts;
   return [
     "Create a professional ecommerce fashion image using the attached clean garment reference as the exact clothing source.",
     "",
@@ -28,9 +28,11 @@ export function tryonPrompt(opts: { garment?: string; framing?: "full" | "keep" 
     "Do not change colors.",
     "Preserve prints, seams, logos, fabric types, hardware, placement, and proportions.",
     "Keep her face, hair, skin tone and body exactly as in the model reference.",
-    framing === "full"
-      ? "Show the complete model from head to toe in a full-body pose."
-      : "Keep the model crop and framing close to the uploaded model reference.",
+    // IMMER GANZ ZEIGEN (Owner 28.07.2026): das Ziel ist die Frau von Kopf bis Fuß, damit
+    // das Foto danach als Video gedreht werden kann. Nie den Ausschnitt des Model-Fotos
+    // übernehmen — ein Brustporträt lässt sich nicht drehen.
+    "Show the complete woman from head to toe, full figure inside the frame, standing.",
+    "Do not crop her legs or feet. Leave space around her so she can be turned in a video.",
     "Natural light, photorealistic. Apparel-focused, commercial fashion presentation.",
   ].join("\n");
 }

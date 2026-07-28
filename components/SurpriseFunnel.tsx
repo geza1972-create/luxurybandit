@@ -120,7 +120,7 @@ export default function SurpriseFunnel({ example = "" }: { example?: string }) {
       fd.append("lookId", picked!.id);
       fd.append("mode", "fashion-model");
       fd.append("aspectRatio", "9:16");
-      fd.append("prompt", tryonPrompt({ garment: picked?.name || "", framing: "full" }));
+      fd.append("prompt", tryonPrompt({ garment: picked?.name || "" }));
       const dressed = await fetch("/api/generate-fashn", {
         method: "POST", body: fd, ...(pin ? { headers: { "x-try-look-admin-pin": pin } } : {}),
       }).then(r => r.json());

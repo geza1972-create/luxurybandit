@@ -289,7 +289,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
       fd.append("lookId", look.id);
       fd.append("mode", "fashion-model");
       fd.append("aspectRatio", "9:16");
-      fd.append("prompt", tryonPrompt({ garment: look.name || "", framing: "keep" }));
+      fd.append("prompt", tryonPrompt({ garment: look.name || "" }));
       const d = await fetch("/api/generate-fashn", {
         method: "POST", body: fd, ...(pin ? { headers: { "x-try-look-admin-pin": pin } } : {}),
       }).then(r => r.json());
