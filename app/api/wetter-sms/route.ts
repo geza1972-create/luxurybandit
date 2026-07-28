@@ -16,15 +16,15 @@ const BELLA_ID = "curator-1783683672619-td4cy";
  * deshalb ein Satz + Link + Abmelde-Hinweis. Der Abmelde-Hinweis ist Pflicht bei Werbung.
  */
 
-const TEXT: Record<string, (name: string, link: string) => string> = {
-  en: (n, l) => `Good morning${n ? ` ${n}` : ""}! Your weather + a new look from Bella today: ${l} — first month 19 € instead of 49 €. Reply STOP to opt out.`,
-  de: (n, l) => `Guten Morgen${n ? ` ${n}` : ""}! Dein Wetter + ein neuer Look von Bella: ${l} — erster Monat 19 € statt 49 €. STOP zum Abmelden.`,
-  ro: (n, l) => `Bună dimineața${n ? ` ${n}` : ""}! Vremea ta + un look nou de la Bella: ${l} — prima lună 19 € în loc de 49 €. STOP pentru dezabonare.`,
-  es: (n, l) => `¡Buenos días${n ? ` ${n}` : ""}! Tu clima + un look nuevo de Bella: ${l} — primer mes 19 € en vez de 49 €. STOP para darte de baja.`,
-  fr: (n, l) => `Bonjour${n ? ` ${n}` : ""} ! Ta météo + un nouveau look de Bella : ${l} — 1er mois 19 € au lieu de 49 €. STOP pour te désabonner.`,
-  pt: (n, l) => `Bom dia${n ? ` ${n}` : ""}! O teu tempo + um novo visual da Bella: ${l} — 1.º mês 19 € em vez de 49 €. STOP para cancelar.`,
-  pl: (n, l) => `Dzień dobry${n ? ` ${n}` : ""}! Twoja pogoda + nowy look od Belli: ${l} — pierwszy miesiąc 19 € zamiast 49 €. STOP, aby zrezygnować.`,
-  it: (n, l) => `Buongiorno${n ? ` ${n}` : ""}! Il tuo meteo + un look nuovo di Bella: ${l} — primo mese 19 € invece di 49 €. STOP per disiscriverti.`,
+const TEXT: Record<string, (name: string, link: string, stop: string) => string> = {
+  en: (n, l, u) => `Good morning${n ? ` ${n}` : ""}! Your weather + a new look from Bella: ${l} — first month 19 € instead of 49 €. Stop: ${u}`,
+  de: (n, l, u) => `Guten Morgen${n ? ` ${n}` : ""}! Dein Wetter + ein neuer Look von Bella: ${l} — erster Monat 19 € statt 49 €. Abmelden: ${u}`,
+  ro: (n, l, u) => `Bună dimineața${n ? ` ${n}` : ""}! Vremea ta + un look nou de la Bella: ${l} — prima lună 19 € în loc de 49 €. Dezabonare: ${u}`,
+  es: (n, l, u) => `¡Buenos días${n ? ` ${n}` : ""}! Tu clima + un look nuevo de Bella: ${l} — primer mes 19 € en vez de 49 €. Baja: ${u}`,
+  fr: (n, l, u) => `Bonjour${n ? ` ${n}` : ""} ! Ta météo + un nouveau look de Bella : ${l} — 1er mois 19 € au lieu de 49 €. Stop : ${u}`,
+  pt: (n, l, u) => `Bom dia${n ? ` ${n}` : ""}! O teu tempo + um novo visual da Bella: ${l} — 1.º mês 19 € em vez de 49 €. Cancelar: ${u}`,
+  pl: (n, l, u) => `Dzień dobry${n ? ` ${n}` : ""}! Twoja pogoda + nowy look od Belli: ${l} — pierwszy miesiąc 19 € zamiast 49 €. Wypisz się: ${u}`,
+  it: (n, l, u) => `Buongiorno${n ? ` ${n}` : ""}! Il tuo meteo + un look nuovo di Bella: ${l} — primo mese 19 € invece di 49 €. Disiscriviti: ${u}`,
 };
 
 // POST { modelId?, modelSlug?, ids?: string[], all?: boolean }
@@ -47,7 +47,8 @@ export async function POST(request: Request) {
   for (const s of targets) {
     const lang = (s.lang || "en").slice(0, 2);
     const link = `${origin}/themes/wetter/${encodeURIComponent(modelSlug)}?s=${encodeURIComponent(s.id)}&src=sms`;
-    const text = (TEXT[lang] ?? TEXT.en)(String(s.name || "").split(" ")[0], link);
+    const stop = `${origin}/off/${encodeURIComponent(s.id)}?lang=${lang}`;
+    const text = (TEXT[lang] ?? TEXT.en)(String(s.name || "").split(" ")[0], link, stop);
     const r = await sendSms({ to: String(s.phone), body: text });
     results.push({ id: s.id, phone: String(s.phone), ok: r.ok, error: r.error });
   }
