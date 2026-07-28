@@ -503,11 +503,19 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
           })}
         </div>
       )}
+      {/* Ohne Abo führt dieser Knopf zur KASSE — dann muss er das auch draufschreiben.
+          Vorher hieß er „Zieh es ihr an" und sprang wortlos zu Stripe (Owner 28.07.2026). */}
       <button type="button" onClick={() => void dressHer()} disabled={!chosen || dressBusy}
-        className="lb-gold mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-50">
-        {dressBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shirt className="h-4 w-4" />}
-        {dressBusy ? "…" : looksLeft > 0 || !paid ? herName ? u.put.replace("{name}", herName) : u.putHer : u.more}
+        className="lb-gold mt-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-center text-[15px] font-black leading-tight active:scale-95 transition disabled:opacity-50">
+        {dressBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : (isStaff || paid) ? <Shirt className="h-4 w-4 shrink-0" /> : <Lock className="h-4 w-4 shrink-0" />}
+        {dressBusy ? "…"
+          : (isStaff || paid)
+            ? (looksLeft > 0 ? (herName ? u.put.replace("{name}", herName) : u.putHer) : u.more)
+            : "Unlock the hottest AI experience ever — €19"}
       </button>
+      {!isStaff && !paid && (
+        <p className="mt-2 text-center text-[11px] font-bold leading-snug text-white/70">{renewNote(lang)}</p>
+      )}
       {status && <p className="mt-2 text-center text-[13px] font-bold text-white/80">{status}</p>}
 
       {dressed && (
