@@ -551,7 +551,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             (Owner 28.07.2026). Kommen von der KI ([[CHIPS: …]]), sonst allgemeine. */}
         {!chatBlocked && !sending && messages.length > 0 && messages[messages.length - 1].role === "assistant" && (() => {
           const mm = messages[messages.length - 1].content.match(CHIPS_TAG_RE);
-          const chips = mm ? mm[1].split("|").map(x => x.trim()).filter(Boolean).slice(0, 3) : fallbackChips(L);
+          const chips = mm ? mm[1].split("|").map(x => x.trim()).filter(Boolean).slice(0, 3) : [];   // lieber keine als unpassende
           if (!chips.length) return null;
           return (
             <div className="flex flex-wrap gap-1.5 border-t border-black/10 px-3 pb-1 pt-2">

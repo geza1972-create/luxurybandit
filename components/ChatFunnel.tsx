@@ -185,6 +185,23 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
   const dayFull = !isStaff && today >= DAILY_MSGS;
   const looksLeft = Math.max(0, LOOKS_INCLUDED - usedLooks);
 
+  // KURATIERTE VIDEOS für den „ich zeige mich"-Moment ([[SHOW_LINGERIE]]). Ohne sie
+  // verspricht sie ein Bild und liefert nichts (Owner 28.07.2026). Gleiche Quelle wie im
+  // Wetter-Chat; Public = frei abspielbar, Private = 🔒 → Abo.
+  const [teaseVideos, setTeaseVideos] = useState<{ id: string; locked: boolean; posterUrl: string; videoUrl: string }[]>([]);
+  useEffect(() => {
+    const cid = useCustom ? "" : (picked?.id ?? "");
+    if (!cid) { setTeaseVideos([]); return; }
+    let ok = true;
+    fetch(`/api/try-this-look?modelVideos=${encodeURIComponent(cid)}&lingerie=1`)
+      .then(r => r.json())
+      .then(d => { if (ok && Array.isArray(d.videos)) setTeaseVideos(d.videos); })
+      .catch(() => {});
+    return () => { ok = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picked?.id, useCustom]);
+  const [playing, setPlaying] = useState("");
+
   // Geräte-Kennung: dieselbe wie in „My Gallery" — damit ihr Gedächtnis am Besucher hängt
   // und nicht an einem Tab (Owner 28.07.2026).
   const [deviceId, setDeviceId] = useState("");
@@ -495,10 +512,28 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
             m.role === "notice" ? (
               <p key={i} className="mx-auto my-1 max-w-[85%] rounded-xl bg-black/[0.06] px-3 py-2 text-center text-[11px] font-bold leading-snug text-black/60">{m.content}</p>
             ) : (
-              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div key={i} className="space-y-2">
+              <div className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[82%] whitespace-pre-wrap px-3 py-2 text-[13px] font-medium ${m.role === "user"
                   ? "rounded-2xl rounded-tr-sm bg-black text-white"
                   : "rounded-2xl rounded-tl-sm bg-white text-black ring-1 ring-black/10"}`}>{m.role === "assistant" ? stripChips(m.content) : m.content}</div>
+              </div>
+              {/* SIE ZEIGT SICH: die Nachricht mit dem Tag bekommt die Galerie darunter —
+                  sonst verspricht sie ein Bild und es kommt nichts (Owner 28.07.2026). */}
+              {m.role === "assistant" && /\[\[SHOW_LINGERIE\]\]/i.test(m.content) && teaseVideos.length > 0 && (
+                <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {teaseVideos.map(v => (
+                    <button key={v.id} type="button" onClick={() => v.locked ? void unlock(false) : setPlaying(v.videoUrl)}
+                      className="relative w-24 shrink-0 overflow-hidden rounded-xl border border-[#f6cf51]/40 active:scale-95 transition">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={v.posterUrl} alt="" className={`aspect-[3/4] w-full object-cover ${v.locked ? "scale-105 blur-[7px]" : ""}`} />
+                      {v.locked && (
+                        <span className="absolute inset-0 grid place-items-center bg-black/35 text-white"><Lock className="h-5 w-5" /></span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
               </div>
             )
           )}
@@ -510,7 +545,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
             const noUserYet = msgs.every(m => m.role !== "user");
             const chips = noUserYet
               ? openerFor(chatLang).chips
-              : (chipsOf(lastAssistant).length ? chipsOf(lastAssistant) : fallbackChips(chatLang));
+              : chipsOf(lastAssistant);   // keine Vorschläge von ihr → keine Knöpfe (unpassende sehen kaputt aus)
             if (!chips.length) return null;
             return (
               <div className="flex flex-wrap gap-1.5 pt-0.5">
@@ -523,6 +558,12 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
               </div>
             );
           })()}
+          {playing && (
+            <div className="fixed inset-0 z-50 grid place-items-center bg-black/90 p-4" onClick={() => setPlaying("")}>
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              <video src={playing} autoPlay loop playsInline controls className="max-h-[85vh] w-auto rounded-2xl" />
+            </div>
+          )}
           {sending && (
             <div className="flex justify-start">
               <div className="rounded-2xl rounded-tl-sm bg-white px-3.5 py-2.5 ring-1 ring-black/10">
