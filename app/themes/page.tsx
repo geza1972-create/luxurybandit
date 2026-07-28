@@ -264,8 +264,10 @@ export default async function ThemesCatalog({ searchParams }: {
             💬 {followWhatsApp(L)}
           </a>
           <Link href="/stores?view=models"
-            className="lb-gold flex h-11 items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition">
-            <Users className="h-4 w-4" /> {c.models}
+            className="lb-gold flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-2.5 text-center text-[14px] font-black leading-tight active:scale-95 transition">
+            {/* Der Pfeil haengt mit geschuetztem Leerzeichen am letzten Wort — sonst rutscht
+                er allein in die zweite Zeile (Owner 28.07.2026). */}
+            <Users className="h-4 w-4 shrink-0" /> <span className="text-balance">{c.models.replace(/\s*→\s*$/, "\u00A0→")}</span>
           </Link>
           <Link href="/wardrobe"
             className="flex h-11 items-center justify-center gap-2 rounded-full border border-white/20 px-5 text-[14px] font-black text-white/85 active:scale-95 transition">
