@@ -532,7 +532,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         <CornerOrnaments />
         <div className="relative flex items-center justify-center gap-2 border-b border-black/10 px-9 py-3">
           <span className="h-2 w-2 rounded-full bg-emerald-500" />
-          <p className="text-[13px] font-black text-white">{modelName} <span className="font-bold text-emerald-600">{t.online}</span></p>
+          <p className="text-[13px] font-black text-white">{activeName} <span className="font-bold text-emerald-600">{t.online}</span></p>
         </div>
         <div ref={scrollRef} className="relative max-h-[46vh] space-y-3 overflow-y-auto px-4 py-4">
           {messages.map((m, i) => {
@@ -633,7 +633,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         <div className="relative flex items-end gap-1.5 border-t border-black/10 px-3 py-3">
           <textarea value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }}
-            rows={1} placeholder={t.placeholder(modelName)}
+            rows={1} placeholder={t.placeholder(activeName)}
             className="max-h-28 min-h-[44px] flex-1 resize-none rounded-2xl border border-black/15 bg-white px-4 py-3 text-sm font-medium text-black outline-none focus:border-black placeholder:text-black/40" />
           <button type="button" onClick={() => void send()} disabled={sending || !input.trim()}
             className="lb-gold grid h-11 w-11 shrink-0 place-items-center rounded-full disabled:opacity-40 active:scale-90 transition">
