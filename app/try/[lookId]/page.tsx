@@ -413,6 +413,90 @@ export default function TryFunnelPage() {
     } catch { /**/ }
     return "";
   };
+  // GRATIS heißt: für DIESE Kombination liegt schon ein Video bereit (vorgeneriert).
+  // Wir fragen das VOR dem Tippen ab, sonst verspricht der GO-Knopf „Free" und der Besucher
+  // steht danach vor einer Sperre — genau die Falle, die uns am 28.07.2026 aufgefallen ist.
+  const [comboFree, setComboFree] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (avatar || idol || !chosenModelId) { setComboFree(false); return; }
+    setComboFree(null);
+    fetch(`/api/try-this-look?combo=${encodeURIComponent(`${chosenModelId}|${lookId}|${motion}`)}`)
+      .then(r => r.json())
+      .then(d => { if (alive) setComboFree(!!(d?.hit && d.videoUrl)); })
+      .catch(() => { if (alive) setComboFree(false); });
+    return () => { alive = false; };
+  }, [chosenModelId, lookId, motion, avatar, idol]);
+
+  // VIER FERTIGE BEISPIELE — immer sichtbar, auf jeder Try-on-Seite (Owner 28.07.2026).
+  // Vorher/Nachher wechselt im Takt (wie die Try-On-Kachel auf der Themen-Seite): das Foto,
+  // das jemand hochgeladen hat, und das Ergebnis. Dürfen von beliebigen Models sein.
+  // Ohne Vorher-Foto zeigen wir das Ergebnis-Video — Hauptsache, er sieht, was rauskommt.
+  const [examples, setExamples] = useState<{ id: string; before: string; after: string; videoUrl: string }[]>([]);
+  useEffect(() => {
+    fetch("/api/try-this-look", { cache: "no-store" }).then(r => r.json()).then(d => {
+      const out: { id: string; before: string; after: string; videoUrl: string }[] = [];
+      for (const l of (Array.isArray(d?.looks) ? d.looks : []) as { communityTryOns?: { id?: string; imageUrl?: string; videoUrl?: string; userPhotoUrl?: string }[] }[]) {
+        for (const g of l.communityTryOns ?? []) {
+          if (!g?.id || !(g.imageUrl || g.videoUrl)) continue;
+          out.push({ id: String(g.id), before: String(g.userPhotoUrl || ""), after: String(g.imageUrl || ""), videoUrl: String(g.videoUrl || "") });
+        }
+      }
+      // Die mit echtem Vorher/Nachher zuerst — die erklären den Trichter ohne ein Wort.
+      out.sort((a, b) => Number(!!b.before && !!b.after) - Number(!!a.before && !!a.after));
+      setExamples(out.slice(0, 4));
+    }).catch(() => {});
+  }, []);
+
+  // Die Beispiel-Reihe — auf JEDER Seite, auf der er ein Try-on starten kann.
+  const examplesRow = examples.length > 0 ? (
+    <div className="mx-auto mt-6 w-full max-w-sm">
+      <p className="text-[13px] font-black text-white">{L("Așa arată rezultatul:", "This is what you get:")}</p>
+      <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {examples.map(ex => (
+          <button key={ex.id} type="button" onClick={() => router.push(`/post/${ex.id}`)}
+            className="relative w-[42%] shrink-0 overflow-hidden rounded-xl border border-white/15 active:scale-95 transition">
+            <span className="relative block aspect-[3/4] w-full">
+              {ex.before && ex.after ? (<>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={ex.before} alt="" className="absolute inset-0 h-full w-full object-cover object-top" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={ex.after} alt="" className="lb-swap-top absolute inset-0 h-full w-full object-cover object-top" />
+              </>) : ex.videoUrl ? (
+                // eslint-disable-next-line jsx-a11y/media-has-caption
+                <video src={ex.videoUrl} muted loop playsInline autoPlay preload="metadata" className="h-full w-full object-cover object-top" />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={ex.after} alt="" className="h-full w-full object-cover object-top" />
+              )}
+            </span>
+            <span className="absolute left-1.5 top-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-black backdrop-blur">{L("Gratis", "Free")}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  ) : null;
+
+  // Kasse für das ABO — der Einzelkauf 3,99 € ist abgeschafft (Owner 28.07.2026). Der
+  // Aktionscode aus Anzeige/Mail (?code=) reist mit, damit der erste Monat 19 € kostet.
+  const [aboBusy, setAboBusy] = useState(false);
+  const startAbo = async () => {
+    if (aboBusy) return;
+    setAboBusy(true);
+    try {
+      const code = (searchParams?.get("code") ?? "").trim();
+      const d = await fetch("/api/chat-abo-checkout", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, returnTo: window.location.pathname + window.location.search }),
+      }).then(r => r.json()).catch(() => null);
+      if (d?.url) { window.location.href = d.url; return; }
+    } catch { /**/ }
+    setAboBusy(false);
+  };
+  const aboLabel = () => ((searchParams?.get("code") ?? "").trim()
+    ? L("Deblochează cea mai fierbinte experiență AI — 19 €", "Unlock the hottest AI experience ever — €19")
+    : L("Deblochează cea mai fierbinte experiență AI — 49 €/lună", "Unlock the hottest AI experience ever — €49/month"));
+
   // During the reveal the clip stays PAUSED (just the still sharpens); it starts playing
   // only once the reveal finishes.
   useEffect(() => {
@@ -1057,15 +1141,23 @@ export default function TryFunnelPage() {
                   className="underline decoration-white/20 underline-offset-4 active:opacity-70">{L("Schimbă modelul", "Change model")}</button>
               </div>
 
-              {/* GO — inline, right under the images (NOT sticky). */}
-              {chosenModelLocked && <p className="mt-4 text-center text-[12px] font-black text-[#f6cf51]">This model: 3,99 € per video</p>}
-              <button type="button" onClick={() => { logFunnelEvent("tryon_click", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) }); if (chosenModelLocked) { setLockedNudge(true); setShowPremium(true); return; } goStep3(); }}
-                className="lb-gold mx-auto mt-4 flex h-14 w-full max-w-sm items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                {chosenModelLocked
-                  ? <><Crown className="h-5 w-5" /> Unlock — 3,99 €</>
-                  : isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
-                  : <><Play className="h-5 w-5 fill-current" /> GO{/* „Gratis" NUR beim Katalog-Model: eigenes Foto (Idol/Your photo) ist der BEZAHLTE Weg — dort wäre das Label eine Falschaussage. */ !avatar && !idol && <span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">{L("Gratis", "Free")}</span>}</>}
+              {/* GO — inline, right under the images (NOT sticky).
+                  „Gratis" steht NUR dort, wo es stimmt: wenn für diese Kombination ein
+                  fertiges Video bereitliegt. Sonst verkaufen wir hier das Abo. */}
+              <button type="button"
+                onClick={() => {
+                  logFunnelEvent("tryon_click", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) });
+                  if (isModelSession || comboFree !== false) { goStep3(); return; }
+                  void startAbo();
+                }}
+                disabled={aboBusy}
+                className="lb-gold mx-auto mt-4 flex min-h-14 w-full max-w-sm items-center justify-center gap-2 rounded-full px-4 py-3 text-center text-base font-black leading-tight active:scale-95 transition-transform disabled:opacity-60">
+                {isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
+                  : comboFree === false ? <><Crown className="h-5 w-5 shrink-0" /> <span className="text-[15px]">{aboLabel()}</span></>
+                  : <><Play className="h-5 w-5 fill-current" /> GO{comboFree && <span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">{L("Gratis", "Free")}</span>}</>}
               </button>
+
+              {examplesRow}
             </>
           ) : (
             // Customer model picker: a 3D coverflow. The chosen model sits large in front;
@@ -1200,6 +1292,9 @@ export default function TryFunnelPage() {
               </div>
             </>
           )}
+          {/* Beispiele auch auf dem Model-Schritt — er soll auf JEDER Try-on-Seite sehen,
+              was am Ende herauskommt, bevor er tippt. */}
+          {!showConfirm && examplesRow}
           {/* Admin: the videos already generated for this model — right under the outfits. */}
           {!showConfirm && adminProduce && galleryVideos.length > 0 && (
             <div className="mt-5">
@@ -1348,11 +1443,9 @@ export default function TryFunnelPage() {
                     </div>
                   )
                 ) : (
-                  <button type="button" onClick={onUnlock}
-                    className="lb-gold flex min-h-14 w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-center text-[15px] font-black leading-tight active:scale-95 transition-transform">
-                    {lookIsFree
-                      ? L("Vezi videoul", "Watch the video")
-                      : L("Deblochează videoul — 3,99 €", "Unlock the video — 3.99 €")}
+                  <button type="button" onClick={() => { if (lookIsFree) { onUnlock(); return; } void startAbo(); }} disabled={aboBusy}
+                    className="lb-gold flex min-h-14 w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-center text-[15px] font-black leading-tight active:scale-95 transition-transform disabled:opacity-60">
+                    {lookIsFree ? L("Vezi videoul", "Watch the video") : aboLabel()}
                   </button>
                 )}
               </div>
@@ -1606,12 +1699,17 @@ export default function TryFunnelPage() {
                     <span>This model is Premium. Pick a free model (Gina) to generate now — or go Premium to unlock everyone.</span>
                   </div>
                 )}
-                <button type="button" onClick={() => { logFunnelEvent("tryon_click", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) }); if (chosenModelLocked) { setLockedNudge(true); setShowPremium(true); return; } goStep3(); }}
-                  className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                  {chosenModelLocked
-                    ? <><Crown className="h-5 w-5" /> Unlock — 3,99 €</>
-                    : isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
-                    : <><Play className="h-5 w-5 fill-current" /> GO{/* „Gratis" NUR beim Katalog-Model: eigenes Foto (Idol/Your photo) ist der BEZAHLTE Weg — dort wäre das Label eine Falschaussage. */ !avatar && !idol && <span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">{L("Gratis", "Free")}</span>}</>}
+                <button type="button"
+                  onClick={() => {
+                    logFunnelEvent("tryon_click", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) });
+                    if (isModelSession || comboFree !== false) { goStep3(); return; }
+                    void startAbo();
+                  }}
+                  disabled={aboBusy}
+                  className="lb-gold flex min-h-14 w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-center text-base font-black leading-tight active:scale-95 transition-transform disabled:opacity-60">
+                  {isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
+                    : comboFree === false ? <><Crown className="h-5 w-5 shrink-0" /> <span className="text-[15px]">{aboLabel()}</span></>
+                    : <><Play className="h-5 w-5 fill-current" /> GO{comboFree && <span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">{L("Gratis", "Free")}</span>}</>}
                 </button>
               </>
             )
