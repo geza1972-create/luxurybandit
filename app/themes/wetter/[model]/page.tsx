@@ -53,11 +53,13 @@ export async function generateMetadata(
     alternates: { canonical: `/themes/wetter/${model}` },
     // BILD für die Vorschaukarte (WhatsApp/Facebook). Bewusst eine feste Datei in /public:
     // signierte Storage-Adressen verfallen nach 24 h, dann bliebe die Karte bildlos.
-    // Motiv: Bella im weißen Kleid — dasselbe, das der Owner als Try-on-Teaser gewählt hat.
+    // Motiv: Bella im weißen Kleid — VERSCHWOMMEN, mit derselben Behandlung wie das
+    // Vorschaubild der Tagespost (600 px, Blur 24, JPEG 72): macht neugierig, ohne dass
+    // ein freizügiges Bild ungefragt in einem fremden Chat aufpoppt (Owner 28.07.2026).
     openGraph: {
       title: m.ot,
       description: m.od,
-      images: [{ url: "/wetter-og.jpg", width: 1200, height: 1600, alt: name }],
+      images: [{ url: "/wetter-og.jpg", width: 600, height: 800, alt: name }],
     },
     twitter: { card: "summary_large_image", title: m.ot, description: m.od, images: ["/wetter-og.jpg"] },
   };
