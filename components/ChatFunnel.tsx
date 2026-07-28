@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Send, ImageUp, Check, Lock, Shirt, Download, Sparkles } from "lucide-react";
 import { openerFor } from "@/lib/chat-opener";
+import { renewNote } from "@/lib/pricing";
 
 type Model = { id: string; name: string; photoUrl: string };
 type Look = { id: string; name?: string; imageUrl?: string };
@@ -451,6 +452,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
                 className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-black text-[13px] font-black text-white active:scale-95 transition disabled:opacity-40">
                 {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Unlock the hottest AI experience ever — €19
               </button>
+              <p className="mt-2 text-center text-[11px] font-bold leading-snug text-black/60">{renewNote(lang)}</p>
             </div>
           ) : (
             <>

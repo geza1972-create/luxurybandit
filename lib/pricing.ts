@@ -27,6 +27,25 @@ export const PRICE_LINE_DE = "49 €/Monat";
 export const PRICE_LINE_CODE_EN = "19 € first month, then 49 €/month";
 export const PRICE_LINE_CODE_DE = "19 € im ersten Monat, danach 49 €/Monat";
 
+/**
+ * Der Satz UNTER jedem Kaufknopf (Owner 28.07.2026): 19 € gelten für den ersten Monat,
+ * danach 49 € — und monatlich kündbar. Muss überall stehen, wo „— 19 €" auf dem Knopf
+ * steht, sonst ist der Preis versteckt.
+ */
+const RENEW_NOTE: Record<string, string> = {
+  en: "€19 for your first month, then €49/month — cancel any time.",
+  de: "19 € im ersten Monat, danach 49 €/Monat — monatlich kündbar.",
+  ro: "19 € prima lună, apoi 49 €/lună — poți renunța oricând.",
+  es: "19 € el primer mes, luego 49 €/mes — cancela cuando quieras.",
+  fr: "19 € le premier mois, puis 49 €/mois — résiliable à tout moment.",
+  pt: "19 € no primeiro mês, depois 49 €/mês — cancela quando quiseres.",
+  pl: "19 € za pierwszy miesiąc, potem 49 €/miesiąc — możesz zrezygnować w każdej chwili.",
+  it: "19 € il primo mese, poi 49 €/mese — disdici quando vuoi.",
+};
+export function renewNote(lang?: string): string {
+  return RENEW_NOTE[String(lang ?? "en").slice(0, 2)] ?? RENEW_NOTE.en;
+}
+
 /** Die Preis-ID des laufenden Themen-Abos (49 €). */
 export function topicPriceId(): string {
   // KEIN Rueckfall auf die alte 24-EUR-Preis-ID — die ist abgeschafft. Fehlt die Env,

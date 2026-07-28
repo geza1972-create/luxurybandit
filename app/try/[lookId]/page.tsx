@@ -10,6 +10,7 @@ import { FeedGate } from "@/components/FeedGate";
 import { getStoredAuthSession } from "@/lib/supabase-auth-client";
 import { logFunnelEvent } from "@/lib/track-funnel";
 import { trackMetaPixel } from "@/lib/meta-pixel";
+import { renewNote } from "@/lib/pricing";
 
 type Outfit = { id: string; name: string; imageUrl: string; lookId?: string };
 type Look = { id: string; name: string; imageUrl?: string; frontImageUrl?: string; videoPosterUrl?: string; modelPhotoUrl?: string; curatorName?: string; featured?: boolean };
@@ -1165,6 +1166,9 @@ export default function TryFunnelPage() {
                     : (adminProduce || (packCredits ?? 0) > 0) ? <><Play className="h-5 w-5 fill-current" /> GO</>
                     : <><Crown className="h-5 w-5 shrink-0" /> <span className="text-[15px]">{aboLabel()}</span></>}
               </button>
+              {(!isModelSession && !adminProduce && (packCredits ?? 0) === 0) && (
+                <p className="mx-auto mt-2 max-w-sm text-center text-[11px] font-bold leading-snug text-white/70">{renewNote(lang)}</p>
+              )}
 
               {examplesRow}
             </>
@@ -1452,10 +1456,13 @@ export default function TryFunnelPage() {
                     </div>
                   )
                 ) : (
-                  <button type="button" onClick={() => { if (lookIsFree) { onUnlock(); return; } void startAbo(); }} disabled={aboBusy}
-                    className="lb-gold flex min-h-14 w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-center text-[15px] font-black leading-tight active:scale-95 transition-transform disabled:opacity-60">
-                    {lookIsFree ? L("Vezi videoul", "Watch the video") : aboLabel()}
-                  </button>
+                  <>
+                    <button type="button" onClick={() => { if (lookIsFree) { onUnlock(); return; } void startAbo(); }} disabled={aboBusy}
+                      className="lb-gold flex min-h-14 w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-center text-[15px] font-black leading-tight active:scale-95 transition-transform disabled:opacity-60">
+                      {lookIsFree ? L("Vezi videoul", "Watch the video") : aboLabel()}
+                    </button>
+                    {!lookIsFree && <p className="mt-2 text-center text-[11px] font-bold leading-snug text-white/70">{renewNote(lang)}</p>}
+                  </>
                 )}
               </div>
             </>
@@ -1713,6 +1720,9 @@ export default function TryFunnelPage() {
                     : (adminProduce || (packCredits ?? 0) > 0) ? <><Play className="h-5 w-5 fill-current" /> GO</>
                     : <><Crown className="h-5 w-5 shrink-0" /> <span className="text-[15px]">{aboLabel()}</span></>}
                 </button>
+                {(!isModelSession && !adminProduce && (packCredits ?? 0) === 0) && (
+                  <p className="mx-auto mt-2 max-w-sm text-center text-[11px] font-bold leading-snug text-white/70">{renewNote(lang)}</p>
+                )}
               </>
             )
           )}
