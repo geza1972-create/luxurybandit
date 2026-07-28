@@ -319,8 +319,26 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
         });
         scrollFeed();
       }
-      // Kommt der Freundinnen-Tag, holen wir die naechste Runde Bilder.
-      if (/\[\[SHOW_FRIENDS\]\]/i.test(reply)) loadFriends();
+      // EIN Bild pro Nachricht — nicht die ganze Reihe, und nie zweimal dasselbe
+      // (Owner 28.07.2026). Wir heften das konkrete Bild an DIESE Nachricht und
+      // verbrauchen es aus dem Pool.
+      if (/\[\[SHOW_FRIENDS\]\]/i.test(reply)) {
+        const pic = friendPics[0]?.url ?? "";
+        if (pic) {
+          setFriendPics(list => list.slice(1));
+          setMsgs(m => {
+            const out = [...m];
+            for (let i = out.length - 1; i >= 0; i--) {
+              if (out[i].role === "assistant") {
+                out[i] = { role: "assistant", content: out[i].content.replace(/\[\[SHOW_FRIENDS\]\]/gi, `[[PIC:${pic}]]`) };
+                break;
+              }
+            }
+            return out;
+          });
+        }
+        if (friendPics.length <= 2) loadFriends();
+      }
       // Ehrlichkeits-Hinweis in festem Takt — nicht versteckt, im Verlauf sichtbar.
       setMsgs(m => {
         const count = m.filter(x => x.role === "user").length;
@@ -559,14 +577,6 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={(m.content.match(/\[\[PIC:([^\]]+)\]\]/i) ?? [])[1] ?? ""} alt=""
                   className="aspect-[3/4] w-40 rounded-xl border border-[#f6cf51]/40 object-cover" />
-              )}
-              {m.role === "assistant" && /\[\[SHOW_FRIENDS\]\]/i.test(m.content) && friendPics.length > 0 && (
-                <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {friendPics.map(f => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img key={f.id} src={f.url} alt="" className="aspect-[3/4] w-24 shrink-0 rounded-xl border border-[#f6cf51]/40 object-cover" />
-                  ))}
-                </div>
               )}
               {m.role === "assistant" && /\[\[SHOW_LINGERIE\]\]/i.test(m.content) && teaseVideos.length > 0 && (
                 <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
