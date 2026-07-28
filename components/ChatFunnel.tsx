@@ -41,48 +41,48 @@ const UI: Record<string, {
   s1: string; s1p: string; own: string; ownHint: string; nameHer: string;
   s2: string; s3: string; incl: string; left: string; put: string; putHer: string; more: string;
   free: string; today: string; anyLang: string; keep: string; keepP: string; unlock: string;
-  dayFull: string; dayFullP: string; sayHi: string; pickFirst: string; write: string; save: string; show: string;
+  dayFull: string; dayFullP: string; sayHi: string; pickFirst: string; write: string; save: string; show: string; dressing: string;
 }> = {
   en: { s1: "1 · Choose her", s1p: "Swipe our models — or upload a photo of the woman you have in mind.", own: "Your own", ownHint: "Upload one photo — she becomes your AI girl.", nameHer: "Give her a name",
         s2: "2 · Talk to her", s3: "3 · Dress her", incl: "25 videos & looks a month are included — across all topics.", left: "left this month (all topics together) — every extra one is 3.99 €.",
         put: "Put this on {name}", putHer: "Put this on her", more: "One more look — €3.99", free: "Chatting is free", today: "messages left today", anyLang: "Any language — she answers in yours.",
         keep: "Keep talking to", keepP: "Unlock the pictures and videos.", unlock: "Unlock", dayFull: "That's a lot of talking for one day 💛", dayFullP: "is back tomorrow — your subscription keeps running.",
-        sayHi: "Say hi to", pickFirst: "Pick her first, then start talking.", write: "Write to", save: "Save the photo", show: "Show it to her in the chat — she reacts to what she is wearing." },
+        sayHi: "Say hi to", pickFirst: "Pick her first, then start talking.", write: "Write to", save: "Save the photo", show: "Show it to her in the chat — she reacts to what she is wearing.", dressing: "Dressing her …" },
   de: { s1: "1 · Wähle sie", s1p: "Wisch durch unsere Models — oder lade ein Foto der Frau hoch, die du im Kopf hast.", own: "Deine eigene", ownHint: "Ein Foto hochladen — sie wird deine KI-Frau.", nameHer: "Gib ihr einen Namen",
         s2: "2 · Schreib mit ihr", s3: "3 · Zieh sie an", incl: "25 Videos & Looks im Monat sind enthalten — über alle Themen.", left: "übrig diesen Monat (alle Themen zusammen) — jedes weitere 3,99 €.",
         put: "Zieh es {name} an", putHer: "Zieh es ihr an", more: "Noch ein Look — 3,99 €", free: "Chatten ist gratis", today: "Nachrichten heute übrig", anyLang: "Jede Sprache — sie antwortet in deiner.",
         keep: "Weiter schreiben mit", keepP: "Schalte Bilder und Videos frei.", unlock: "Freischalten", dayFull: "Das war viel für einen Tag 💛", dayFullP: "ist morgen wieder da — dein Abo läuft weiter.",
-        sayHi: "Sag Hallo zu", pickFirst: "Wähle sie zuerst, dann kann es losgehen.", write: "Schreib an", save: "Foto speichern", show: "Zeig es ihr im Chat — sie reagiert darauf, was sie trägt." },
+        sayHi: "Sag Hallo zu", pickFirst: "Wähle sie zuerst, dann kann es losgehen.", write: "Schreib an", save: "Foto speichern", show: "Zeig es ihr im Chat — sie reagiert darauf, was sie trägt.", dressing: "Sie zieht sich um …" },
   ro: { s1: "1 · Alege-o", s1p: "Glisează prin modelele noastre — sau încarcă poza femeii la care te gândești.", own: "A ta", ownHint: "Încarcă o poză — devine fata ta AI.", nameHer: "Dă-i un nume",
         s2: "2 · Scrie-i", s3: "3 · Îmbrac-o", incl: "25 de videoclipuri și ținute pe lună sunt incluse — în toate temele.", left: "rămase luna aceasta (toate temele) — fiecare în plus 3,99 €.",
         put: "Îmbrac-o pe {name}", putHer: "Îmbrac-o", more: "Încă o ținută — 3,99 €", free: "Chatul este gratuit", today: "mesaje rămase azi", anyLang: "Orice limbă — îți răspunde în limba ta.",
         keep: "Continuă conversația cu", keepP: "Deblochează pozele și videoclipurile.", unlock: "Deblochează", dayFull: "A fost mult pentru o zi 💛", dayFullP: "revine mâine — abonamentul rămâne activ.",
-        sayHi: "Salut-o pe", pickFirst: "Alege-o mai întâi, apoi începe.", write: "Scrie-i lui", save: "Salvează poza", show: "Arată-i în chat — reacționează la ce poartă." },
+        sayHi: "Salut-o pe", pickFirst: "Alege-o mai întâi, apoi începe.", write: "Scrie-i lui", save: "Salvează poza", show: "Arată-i în chat — reacționează la ce poartă.", dressing: "Se îmbracă …" },
   es: { s1: "1 · Elígela", s1p: "Desliza por nuestras modelos — o sube una foto de la mujer que tienes en mente.", own: "La tuya", ownHint: "Sube una foto — será tu chica IA.", nameHer: "Ponle un nombre",
         s2: "2 · Habla con ella", s3: "3 · Vístela", incl: "25 vídeos y looks al mes están incluidos — en todos los temas.", left: "restantes este mes (todos los temas) — cada extra 3,99 €.",
         put: "Pónselo a {name}", putHer: "Pónselo a ella", more: "Otro look — 3,99 €", free: "Chatear es gratis", today: "mensajes restantes hoy", anyLang: "Cualquier idioma — responde en el tuyo.",
         keep: "Sigue hablando con", keepP: "Desbloquea las fotos y los vídeos.", unlock: "Desbloquear", dayFull: "Ha sido mucho por hoy 💛", dayFullP: "vuelve mañana — tu suscripción sigue activa.",
-        sayHi: "Saluda a", pickFirst: "Elígela primero y empieza.", write: "Escribe a", save: "Guardar la foto", show: "Enséñaselo en el chat — reacciona a lo que lleva puesto." },
+        sayHi: "Saluda a", pickFirst: "Elígela primero y empieza.", write: "Escribe a", save: "Guardar la foto", show: "Enséñaselo en el chat — reacciona a lo que lleva puesto.", dressing: "Se está vistiendo …" },
   fr: { s1: "1 · Choisis-la", s1p: "Fais défiler nos modèles — ou charge la photo de la femme que tu imagines.", own: "La tienne", ownHint: "Charge une photo — elle devient ta fille IA.", nameHer: "Donne-lui un prénom",
         s2: "2 · Parle avec elle", s3: "3 · Habille-la", incl: "25 vidéos et looks par mois sont inclus — sur tous les thèmes.", left: "restants ce mois-ci (tous thèmes) — chaque extra 3,99 €.",
         put: "Habille {name} avec ça", putHer: "Habille-la avec ça", more: "Encore un look — 3,99 €", free: "Le chat est gratuit", today: "messages restants aujourd'hui", anyLang: "Toutes les langues — elle répond dans la tienne.",
         keep: "Continue à parler avec", keepP: "Débloque les photos et les vidéos.", unlock: "Débloquer", dayFull: "Ça fait beaucoup pour aujourd'hui 💛", dayFullP: "revient demain — ton abonnement continue.",
-        sayHi: "Dis bonjour à", pickFirst: "Choisis-la d'abord, puis commence.", write: "Écris à", save: "Enregistrer la photo", show: "Montre-lui dans le chat — elle réagit à ce qu'elle porte." },
+        sayHi: "Dis bonjour à", pickFirst: "Choisis-la d'abord, puis commence.", write: "Écris à", save: "Enregistrer la photo", show: "Montre-lui dans le chat — elle réagit à ce qu'elle porte.", dressing: "Elle s'habille …" },
   pt: { s1: "1 · Escolhe-a", s1p: "Desliza pelas nossas modelos — ou carrega a foto da mulher em que pensas.", own: "A tua", ownHint: "Carrega uma foto — passa a ser a tua rapariga IA.", nameHer: "Dá-lhe um nome",
         s2: "2 · Fala com ela", s3: "3 · Veste-a", incl: "25 vídeos e looks por mês estão incluídos — em todos os temas.", left: "restantes este mês (todos os temas) — cada extra 3,99 €.",
         put: "Veste isto à {name}", putHer: "Veste-lho", more: "Mais um look — 3,99 €", free: "Conversar é grátis", today: "mensagens restantes hoje", anyLang: "Qualquer idioma — responde no teu.",
         keep: "Continua a falar com", keepP: "Desbloqueia as fotos e os vídeos.", unlock: "Desbloquear", dayFull: "Foi muito por hoje 💛", dayFullP: "volta amanhã — a tua subscrição continua.",
-        sayHi: "Diz olá a", pickFirst: "Escolhe-a primeiro e começa.", write: "Escreve a", save: "Guardar a foto", show: "Mostra-lhe no chat — ela reage ao que veste." },
+        sayHi: "Diz olá a", pickFirst: "Escolhe-a primeiro e começa.", write: "Escreve a", save: "Guardar a foto", show: "Mostra-lhe no chat — ela reage ao que veste.", dressing: "Está a vestir-se …" },
   pl: { s1: "1 · Wybierz ją", s1p: "Przesuwaj nasze modelki — albo wgraj zdjęcie kobiety, o której myślisz.", own: "Twoja własna", ownHint: "Wgraj jedno zdjęcie — zostanie Twoją dziewczyną AI.", nameHer: "Nadaj jej imię",
         s2: "2 · Napisz do niej", s3: "3 · Ubierz ją", incl: "25 filmów i stylizacji miesięcznie w cenie — we wszystkich tematach.", left: "pozostało w tym miesiącu (wszystkie tematy) — każda kolejna 3,99 €.",
         put: "Ubierz w to {name}", putHer: "Ubierz ją w to", more: "Jeszcze jedna stylizacja — 3,99 €", free: "Czat jest darmowy", today: "wiadomości dziś", anyLang: "Dowolny język — odpowie w Twoim.",
         keep: "Pisz dalej z", keepP: "Odblokuj zdjęcia i filmy.", unlock: "Odblokuj", dayFull: "Sporo jak na jeden dzień 💛", dayFullP: "wróci jutro — subskrypcja działa dalej.",
-        sayHi: "Przywitaj się z", pickFirst: "Najpierw ją wybierz, potem zacznij.", write: "Napisz do", save: "Zapisz zdjęcie", show: "Pokaż jej to na czacie — zareaguje na to, co ma na sobie." },
+        sayHi: "Przywitaj się z", pickFirst: "Najpierw ją wybierz, potem zacznij.", write: "Napisz do", save: "Zapisz zdjęcie", show: "Pokaż jej to na czacie — zareaguje na to, co ma na sobie.", dressing: "Właśnie się przebiera …" },
   it: { s1: "1 · Scegli lei", s1p: "Scorri le nostre modelle — o carica la foto della donna che hai in mente.", own: "La tua", ownHint: "Carica una foto — diventa la tua ragazza IA.", nameHer: "Dalle un nome",
         s2: "2 · Parla con lei", s3: "3 · Vestila", incl: "25 video e look al mese sono inclusi — in tutti i temi.", left: "rimasti questo mese (tutti i temi) — ogni extra 3,99 €.",
         put: "Vestila così: {name}", putHer: "Vestila così", more: "Un altro look — 3,99 €", free: "Chattare è gratis", today: "messaggi rimasti oggi", anyLang: "Qualsiasi lingua — risponde nella tua.",
         keep: "Continua a scrivere con", keepP: "Sblocca le foto e i video.", unlock: "Sblocca", dayFull: "È stato tanto per oggi 💛", dayFullP: "torna domani — l'abbonamento resta attivo.",
-        sayHi: "Saluta", pickFirst: "Prima scegli lei, poi inizia.", write: "Scrivi a", save: "Salva la foto", show: "Mostraglielo in chat — reagisce a ciò che indossa." },
+        sayHi: "Saluta", pickFirst: "Prima scegli lei, poi inizia.", write: "Scrivi a", save: "Salva la foto", show: "Mostraglielo in chat — reagisce a ciò che indossa.", dressing: "Si sta vestendo …" },
 };
 
 const CHAT_LANGS: [string, string][] = [
@@ -276,7 +276,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
     if (!herPhoto || !look?.imageUrl || dressBusy) return;
     if (!isStaff && !paid) { void unlock(false); return; }                 // ohne Abo geht gar nichts
     if (!isStaff && paid && looksLeft === 0 && !afterPay) { void unlock(true); return; }  // 6. Look kostet extra
-    setDressBusy(true); setStatus("Dressing her …"); setDressed("");
+    setDressBusy(true); setStatus(u.dressing); setDressed("");
     try {
       const toFile = async (src: string, name: string) => {
         const blob = await fetch(src).then(r => r.blob());
@@ -452,7 +452,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
                 className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-black text-[13px] font-black text-white active:scale-95 transition disabled:opacity-40">
                 {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Unlock the hottest AI experience ever — €19
               </button>
-              <p className="mt-2 text-center text-[11px] font-bold leading-snug text-black/60">{renewNote(lang)}</p>
+              <p className="mt-2 text-center text-[10px] font-medium leading-snug text-black/50">{renewNote(lang)}</p>
             </div>
           ) : (
             <>
@@ -503,20 +503,32 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
           })}
         </div>
       )}
+      {/* WÄHREND DES ANZIEHENS: ihr Foto unscharf mit Scanner-Balken darüber — ein Spinner
+          im Knopf sah aus, als sei die Seite hängengeblieben (Owner 28.07.2026). */}
+      {dressBusy && herPhoto && (
+        <div className="relative mx-auto mt-3 aspect-[3/4] w-full max-w-[240px] overflow-hidden rounded-2xl border border-[#f6cf51]/30">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={herPhoto} alt="" className="h-full w-full scale-105 object-cover object-top blur-[6px] brightness-75" />
+          <span className="lb-scanline absolute inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#f6cf51] to-transparent shadow-[0_0_12px_#f6cf51]" />
+          <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 pb-3 pt-8 text-center text-[12px] font-black text-white">
+            {status || "…"}
+          </span>
+        </div>
+      )}
       {/* Ohne Abo führt dieser Knopf zur KASSE — dann muss er das auch draufschreiben.
           Vorher hieß er „Zieh es ihr an" und sprang wortlos zu Stripe (Owner 28.07.2026). */}
       <button type="button" onClick={() => void dressHer()} disabled={!chosen || dressBusy}
         className="lb-gold lb-buy mt-2 flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-50">
         {dressBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : (isStaff || paid) ? <Shirt className="h-4 w-4 shrink-0" /> : <Lock className="h-4 w-4 shrink-0" />}
-        {dressBusy ? "…"
+        {dressBusy ? u.dressing
           : (isStaff || paid)
             ? (looksLeft > 0 ? (herName ? u.put.replace("{name}", herName) : u.putHer) : u.more)
             : "Unlock the hottest AI experience ever — €19"}
       </button>
       {!isStaff && !paid && (
-        <p className="mt-2 text-center text-[11px] font-bold leading-snug text-white/70">{renewNote(lang)}</p>
+        <p className="mt-2 text-center text-[10px] font-medium leading-snug text-white/55">{renewNote(lang)}</p>
       )}
-      {status && <p className="mt-2 text-center text-[13px] font-bold text-white/80">{status}</p>}
+      {status && !dressBusy && <p className="mt-2 text-center text-[13px] font-bold text-white/80">{status}</p>}
 
       {dressed && (
         <div className="mx-auto mt-4 w-fit">

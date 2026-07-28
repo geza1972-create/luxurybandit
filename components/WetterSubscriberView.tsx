@@ -7,6 +7,7 @@ import BellaPostsCarousel from "@/components/BellaPostsCarousel";
 import { wxKey, WX_WORDS, forecastLine } from "@/lib/wetter-forecast";
 import { startPremiumCheckout } from "@/lib/start-premium-checkout";
 import AgeGate, { ageVerified } from "@/components/AgeGate";
+import { renewNote } from "@/lib/pricing";
 
 // Was der ABONNENT auf /wetter/<model>?name=…&city=…&lang=… sieht:
 // persönlicher Gruß + Wetter aus seiner Stadt + Look vom Tag + Chat mit dem Model (im Abo unbegrenzt).
@@ -574,6 +575,8 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
                 className="lb-gold lb-buy mt-3 flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
                 {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : x.ctaCode}
               </button>
+              {/* Der laufende Preis — bewusst dünn und klein, er soll den Knopf nicht erschlagen. */}
+              <p className="mt-2 text-[10px] font-medium leading-snug text-white/55">{renewNote(L)}</p>
             </div>
           </div>
         );

@@ -1167,7 +1167,7 @@ export default function TryFunnelPage() {
                     : <><Crown className="h-5 w-5 shrink-0" /> <span className="text-[15px]">{aboLabel()}</span></>}
               </button>
               {(!isModelSession && !adminProduce && (packCredits ?? 0) === 0) && (
-                <p className="mx-auto mt-2 max-w-sm text-center text-[11px] font-bold leading-snug text-white/70">{renewNote(lang)}</p>
+                <p className="mx-auto mt-2 max-w-sm text-center text-[10px] font-medium leading-snug text-white/55">{renewNote(lang)}</p>
               )}
 
               {examplesRow}
@@ -1461,7 +1461,7 @@ export default function TryFunnelPage() {
                       className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition-transform disabled:opacity-60">
                       {lookIsFree ? L("Vezi videoul", "Watch the video") : aboLabel()}
                     </button>
-                    {!lookIsFree && <p className="mt-2 text-center text-[11px] font-bold leading-snug text-white/70">{renewNote(lang)}</p>}
+                    {!lookIsFree && <p className="mt-2 text-center text-[10px] font-medium leading-snug text-white/55">{renewNote(lang)}</p>}
                   </>
                 )}
               </div>
@@ -1721,7 +1721,7 @@ export default function TryFunnelPage() {
                     : <><Crown className="h-5 w-5 shrink-0" /> <span className="text-[15px]">{aboLabel()}</span></>}
                 </button>
                 {(!isModelSession && !adminProduce && (packCredits ?? 0) === 0) && (
-                  <p className="mx-auto mt-2 max-w-sm text-center text-[11px] font-bold leading-snug text-white/70">{renewNote(lang)}</p>
+                  <p className="mx-auto mt-2 max-w-sm text-center text-[10px] font-medium leading-snug text-white/55">{renewNote(lang)}</p>
                 )}
               </>
             )

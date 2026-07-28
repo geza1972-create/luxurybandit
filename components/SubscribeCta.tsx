@@ -61,7 +61,7 @@ export default function SubscribeCta({ code = "", lang = "en", topic = "chat" }:
         {t.ctaCode}
       </button>
       {error && <p className="mt-2 text-[13px] font-bold text-white/80">{error}</p>}
-      <p className="mt-2 text-[12px] font-bold text-white/70">{t.note}</p>
+      <p className="mt-2 text-[10px] font-medium leading-snug text-white/55">{t.note}</p>
     </div>
   );
 }

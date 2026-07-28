@@ -254,7 +254,7 @@ export default function ModelChatInline({
               className="lb-buy flex w-full items-center justify-center rounded-full bg-black font-black text-white disabled:opacity-40 active:scale-95 transition">
               {buying ? <Loader2 className="h-5 w-5 animate-spin" /> : `💛 ${UNLOCK[lang]}`}
             </button>
-            <p className="px-1 text-center text-[11px] font-bold leading-snug text-black/55">{renewNote(lang)}</p>
+            <p className="px-1 text-center text-[10px] font-medium leading-snug text-black/45">{renewNote(lang)}</p>
             {!bella && bellaHref && (
               <Link href={bellaHref}
                 className="flex h-11 w-full items-center justify-center rounded-full border border-black/20 bg-white text-[13px] font-black text-black active:scale-95 transition">
