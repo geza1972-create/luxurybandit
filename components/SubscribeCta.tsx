@@ -14,14 +14,14 @@ import { Loader2, Lock } from "lucide-react";
  */
 
 const T: Record<string, { h: string; p: string; cta: string; ctaCode: string; note: string }> = {
-  en: { h: "Get everything", p: "25 videos a month across all topics. Chatting is free, always.", cta: "Subscribe — €49/month", ctaCode: "Subscribe — €19 first month", note: "Cancel any time in your account." },
-  de: { h: "Alles freischalten", p: "25 Videos im Monat über alle Themen. Chatten ist und bleibt gratis.", cta: "Abo starten — 49 €/Monat", ctaCode: "Abo starten — 19 € erster Monat", note: "Jederzeit im Konto kündbar." },
-  ro: { h: "Deblochează tot", p: "25 de videoclipuri pe lună în toate temele. Chatul rămâne gratuit.", cta: "Abonează-te — 49 €/lună", ctaCode: "Abonează-te — 19 € prima lună", note: "Poți renunța oricând din contul tău." },
-  es: { h: "Desbloquéalo todo", p: "25 vídeos al mes en todos los temas. Chatear es gratis, siempre.", cta: "Suscríbete — 49 €/mes", ctaCode: "Suscríbete — 19 € el primer mes", note: "Cancela cuando quieras en tu cuenta." },
-  fr: { h: "Tout débloquer", p: "25 vidéos par mois sur tous les thèmes. Le chat reste gratuit.", cta: "S'abonner — 49 €/mois", ctaCode: "S'abonner — 19 € le premier mois", note: "Résiliable à tout moment dans ton compte." },
-  pt: { h: "Desbloqueia tudo", p: "25 vídeos por mês em todos os temas. Conversar é sempre grátis.", cta: "Subscrever — 49 €/mês", ctaCode: "Subscrever — 19 € no primeiro mês", note: "Cancela quando quiseres na tua conta." },
-  pl: { h: "Odblokuj wszystko", p: "25 filmów miesięcznie we wszystkich tematach. Czat jest zawsze darmowy.", cta: "Subskrybuj — 49 €/miesiąc", ctaCode: "Subskrybuj — 19 € pierwszy miesiąc", note: "Możesz zrezygnować w każdej chwili." },
-  it: { h: "Sblocca tutto", p: "25 video al mese in tutti i temi. Chattare è sempre gratis.", cta: "Abbonati — 49 €/mese", ctaCode: "Abbonati — 19 € il primo mese", note: "Disdici quando vuoi dal tuo account." },
+  en: { h: "Get everything", p: "25 videos a month across all topics. Chatting is free, always.", cta: "Unlock the hottest AI experience ever — €49/month", ctaCode: "Unlock the hottest AI experience ever — €19", note: "Cancel any time in your account." },
+  de: { h: "Alles freischalten", p: "25 Videos im Monat über alle Themen. Chatten ist und bleibt gratis.", cta: "Die heißeste KI-Erfahrung freischalten — 49 €/Monat", ctaCode: "Die heißeste KI-Erfahrung freischalten — 19 €", note: "Jederzeit im Konto kündbar." },
+  ro: { h: "Deblochează tot", p: "25 de videoclipuri pe lună în toate temele. Chatul rămâne gratuit.", cta: "Deblochează cea mai fierbinte experiență AI — 49 €/lună", ctaCode: "Deblochează cea mai fierbinte experiență AI — 19 €", note: "Poți renunța oricând din contul tău." },
+  es: { h: "Desbloquéalo todo", p: "25 vídeos al mes en todos los temas. Chatear es gratis, siempre.", cta: "Desbloquea la experiencia IA más ardiente — 49 €/mes", ctaCode: "Desbloquea la experiencia IA más ardiente — 19 €", note: "Cancela cuando quieras en tu cuenta." },
+  fr: { h: "Tout débloquer", p: "25 vidéos par mois sur tous les thèmes. Le chat reste gratuit.", cta: "Débloque l'expérience IA la plus chaude — 49 €/mois", ctaCode: "Débloque l'expérience IA la plus chaude — 19 €", note: "Résiliable à tout moment dans ton compte." },
+  pt: { h: "Desbloqueia tudo", p: "25 vídeos por mês em todos os temas. Conversar é sempre grátis.", cta: "Desbloqueia a experiência de IA mais quente — 49 €/mês", ctaCode: "Desbloqueia a experiência de IA mais quente — 19 €", note: "Cancela quando quiseres na tua conta." },
+  pl: { h: "Odblokuj wszystko", p: "25 filmów miesięcznie we wszystkich tematach. Czat jest zawsze darmowy.", cta: "Odblokuj najgorętsze doświadczenie AI — 49 €/miesiąc", ctaCode: "Odblokuj najgorętsze doświadczenie AI — 19 €", note: "Możesz zrezygnować w każdej chwili." },
+  it: { h: "Sblocca tutto", p: "25 video al mese in tutti i temi. Chattare è sempre gratis.", cta: "Sblocca l'esperienza AI più calda — 49 €/mese", ctaCode: "Sblocca l'esperienza AI più calda — 19 €", note: "Disdici quando vuoi dal tuo account." },
 };
 
 export default function SubscribeCta({ code = "", lang = "en", topic = "chat" }: {

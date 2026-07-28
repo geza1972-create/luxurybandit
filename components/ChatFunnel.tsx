@@ -449,7 +449,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
               <p className="mt-0.5 text-[12px] font-bold leading-snug text-black/60">49 € a month — every day, plus your 25 videos a month across all topics.</p>
               <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
                 className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-black text-[13px] font-black text-white active:scale-95 transition disabled:opacity-40">
-                {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Unlock — 49 €/month
+                {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Unlock the hottest AI experience ever — €49/month
               </button>
             </div>
           ) : (
