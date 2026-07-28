@@ -413,21 +413,6 @@ export default function TryFunnelPage() {
     } catch { /**/ }
     return "";
   };
-  // GRATIS heißt: für DIESE Kombination liegt schon ein Video bereit (vorgeneriert).
-  // Wir fragen das VOR dem Tippen ab, sonst verspricht der GO-Knopf „Free" und der Besucher
-  // steht danach vor einer Sperre — genau die Falle, die uns am 28.07.2026 aufgefallen ist.
-  const [comboFree, setComboFree] = useState<boolean | null>(null);
-  useEffect(() => {
-    let alive = true;
-    if (avatar || idol || !chosenModelId) { setComboFree(false); return; }
-    setComboFree(null);
-    fetch(`/api/try-this-look?combo=${encodeURIComponent(`${chosenModelId}|${lookId}|${motion}`)}`)
-      .then(r => r.json())
-      .then(d => { if (alive) setComboFree(!!(d?.hit && d.videoUrl)); })
-      .catch(() => { if (alive) setComboFree(false); });
-    return () => { alive = false; };
-  }, [chosenModelId, lookId, motion, avatar, idol]);
-
   // VIER FERTIGE BEISPIELE — immer sichtbar, auf jeder Try-on-Seite (Owner 28.07.2026).
   // Vorher/Nachher wechselt im Takt (wie die Try-On-Kachel auf der Themen-Seite): das Foto,
   // das jemand hochgeladen hat, und das Ergebnis. Dürfen von beliebigen Models sein.
@@ -1078,7 +1063,7 @@ export default function TryFunnelPage() {
             </>
           ) : avatar ? (
             <>
-              <p className="mt-2 text-[13px] font-bold text-white/85">{!avatar && chosenModelName ? `Tap “Start” to see ${chosenModelName.split(/\s+/)[0]} wear it — free. Or switch the look / use your own photo.` : (pickedModel ? "Great pick — or replace her with your own photo." : "The model from the video is ready. Keep her, or replace her with your own photo.")}</p>
+              <p className="mt-2 text-[13px] font-bold text-white/85">{!avatar && chosenModelName ? `Tap “Start” to see ${chosenModelName.split(/\s+/)[0]} wear it. Or switch the look / use your own photo.` : (pickedModel ? "Great pick — or replace her with your own photo." : "The model from the video is ready. Keep her, or replace her with your own photo.")}</p>
               <div className="mx-auto mt-3 w-fit overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04]">
                 {/* Height-constrained so 'Choose other model' + the outfit stay on screen. */}
                 <div className="relative aspect-[9/16] h-[38vh] max-w-[78vw]">
@@ -1102,7 +1087,7 @@ export default function TryFunnelPage() {
             // Outfit chosen → confirm view: the OUTFIT (left) + the chosen MODEL (right),
             // with Cancel to reopen the picker.
             <>
-              <p className="mt-1 text-[13px] font-bold text-white/85">{chosenModelLocked ? L("Acest model e Premium — deblocheaz-o sau alege un model gratuit mai jos.", "This model is Premium — unlock her, or pick a free model below.") : L("Ținuta e gata — apasă „GO” mai jos ca s-o vezi, gratuit.", "Your look is set — tap “GO” below to watch it, free.")}</p>
+              <p className="mt-1 text-[13px] font-bold text-white/85">{chosenModelLocked ? L("Acest model e Premium — deblocheaz-o sau alege un model gratuit mai jos.", "This model is Premium — unlock her, or pick a free model below.") : L("Ținuta e gata — apasă „GO” mai jos ca s-o vezi.", "Your look is set — tap “GO” below to watch it.")}</p>
               <div className="mx-auto mt-3 flex items-stretch justify-center gap-3">
                 <div className="w-[42%] max-w-[160px]">
                   <button type="button" onClick={() => { setZoomSrc(garmentParam || outfit?.imageUrl || look?.frontImageUrl || look?.imageUrl || ""); setZoomName(outfit?.name || ""); setOutfitZoom(true); }} className="block w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] active:scale-95 transition">
@@ -1117,9 +1102,6 @@ export default function TryFunnelPage() {
                   <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     {modelImg ? <img src={modelImg} alt="" className={`h-full w-full object-cover object-top ${chosenModelLocked ? "blur-[3px] opacity-70" : ""}`} /> : <div className="h-full w-full bg-white/5" />}
-                    {!chosenModelLocked && chosenModelObj?.featured && (
-                      <span className="absolute left-1.5 top-1.5 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-black text-white">Free</span>
-                    )}
                     {chosenModelLocked ? (
                       // Premium (non-free) model → show the same crown/PREMIUM lock as the carousel.
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/45 px-2 text-center">
@@ -1147,14 +1129,16 @@ export default function TryFunnelPage() {
               <button type="button"
                 onClick={() => {
                   logFunnelEvent("tryon_click", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) });
-                  if (isModelSession || comboFree !== false) { goStep3(); return; }
+                  // KEIN Gratis-Video mehr (Owner 28.07.2026): frei ansehen kann er die fertigen
+                    // Beispiele darunter. Wer Guthaben hat (Abo), generiert sofort.
+                    if (isModelSession || adminProduce || (packCredits ?? 0) > 0) { goStep3(); return; }
                   void startAbo();
                 }}
                 disabled={aboBusy}
                 className="lb-gold mx-auto mt-4 flex min-h-14 w-full max-w-sm items-center justify-center gap-2 rounded-full px-4 py-3 text-center text-base font-black leading-tight active:scale-95 transition-transform disabled:opacity-60">
                 {isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
-                  : comboFree === false ? <><Crown className="h-5 w-5 shrink-0" /> <span className="text-[15px]">{aboLabel()}</span></>
-                  : <><Play className="h-5 w-5 fill-current" /> GO{comboFree && <span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">{L("Gratis", "Free")}</span>}</>}
+                    : (adminProduce || (packCredits ?? 0) > 0) ? <><Play className="h-5 w-5 fill-current" /> GO</>
+                    : <><Crown className="h-5 w-5 shrink-0" /> <span className="text-[15px]">{aboLabel()}</span></>}
               </button>
 
               {examplesRow}
@@ -1170,7 +1154,7 @@ export default function TryFunnelPage() {
                 {L("Alege un look și un model — și o vezi purtându-l într-un video. Se întoarce, merge, din toate unghiurile.",
                    "Pick a look, pick a model — and watch her wear it in a video. Turnaround, walk, every angle.")}
               </p>
-              <p className="mt-2 text-[13px] font-bold text-white/85">Swipe the models — your pick stands up front. Tap “Start” to see her wear it, free.</p>
+              <p className="mt-2 text-[13px] font-bold text-white/85">Swipe the models — your pick stands up front. Below you see what the result looks like.</p>
               {(() => {
                 const om = [...gModels].sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
                 if (om.length === 0) return <div className="grid h-[46vh] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>;
@@ -1229,10 +1213,10 @@ export default function TryFunnelPage() {
                                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/45 px-4 text-center">
                                   <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-black shadow-lg"><Crown className="h-6 w-6" /></span>
                                   <span className="text-[13px] font-black uppercase tracking-wide text-amber-300">Premium</span>
-                                  {isActive && <span className="text-[11px] font-bold leading-snug text-white/85">Her video costs 3,99 € — tap to unlock.</span>}
+                                  {isActive && <span className="text-[11px] font-bold leading-snug text-white/85">{L("Deblocheaz-o cu abonamentul.", "Unlock her with the subscription.")}</span>}
                                 </div>
                               )
-                              : !m.realModel && <span className="absolute left-2 top-2 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-black text-white">Free</span>}
+                              : null}
                             {isActive && !m.realModel && chosenModelName && (
                               // Chat is available with every (free) AI model.
                               <button type="button" onClick={(e) => { e.stopPropagation(); chosenModelId && router.push(`/chat/${chosenModelId}`); }} title={`Chat with ${chosenModelName.split(/\s+/)[0]}`}
@@ -1679,37 +1663,30 @@ export default function TryFunnelPage() {
                 {motionPicker && <div className="mb-3 -mt-2">{motionPicker}</div>}
                 {/* Free-credit meter: 1 free video, 1 credit each. Not signed in → show the
                     offer, not a wrong "0 left" (anonymous has no balance yet). */}
-                {!adminProduce && !chosenModelLocked && (
+                {!adminProduce && !chosenModelLocked && (packCredits ?? 0) > 0 && (
                   <p className="mb-2 text-center text-[12px] font-black text-white/85">
-                    {!isAuthed()
-                      ? L("🎟️ 1 video gratuit, apoi Premium", "🎟️ 1 free video, then Premium")
-                      : packCredits == null
-                      ? ""
-                      : packCredits > 0
-                      ? `🎟️ ${packCredits} free video${packCredits === 1 ? "" : "s"} left`
-                      : "🎟️ Free video used — go Premium to keep creating"}
+                    {`🎟️ ${packCredits} video${packCredits === 1 ? "" : "s"} left this month`}
                   </p>
-                )}
-                {!adminProduce && chosenModelLocked && (
-                  <p className="mb-2 text-center text-[12px] font-black text-[#f6cf51]">This model: 3,99 € per video</p>
                 )}
                 {lockedNudge && chosenModelLocked && (
                   <div className="mb-2 flex items-center gap-2 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-3 py-2.5 text-[12px] font-black text-amber-200">
                     <Lock className="h-4 w-4 shrink-0 text-amber-400" />
-                    <span>This model is Premium. Pick a free model (Gina) to generate now — or go Premium to unlock everyone.</span>
+                    <span>{L("Modelul face parte din abonament — deblochează-l mai jos.", "This model is part of the subscription — unlock it below.")}</span>
                   </div>
                 )}
                 <button type="button"
                   onClick={() => {
                     logFunnelEvent("tryon_click", { lookId, ...(modelNameParam ? { lookName: modelNameParam } : {}) });
-                    if (isModelSession || comboFree !== false) { goStep3(); return; }
+                    // KEIN Gratis-Video mehr (Owner 28.07.2026): frei ansehen kann er die fertigen
+                    // Beispiele darunter. Wer Guthaben hat (Abo), generiert sofort.
+                    if (isModelSession || adminProduce || (packCredits ?? 0) > 0) { goStep3(); return; }
                     void startAbo();
                   }}
                   disabled={aboBusy}
                   className="lb-gold flex min-h-14 w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-center text-base font-black leading-tight active:scale-95 transition-transform disabled:opacity-60">
                   {isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
-                    : comboFree === false ? <><Crown className="h-5 w-5 shrink-0" /> <span className="text-[15px]">{aboLabel()}</span></>
-                    : <><Play className="h-5 w-5 fill-current" /> GO{comboFree && <span className="rounded-full bg-black/15 px-2 py-0.5 text-[12px] font-black">{L("Gratis", "Free")}</span>}</>}
+                    : (adminProduce || (packCredits ?? 0) > 0) ? <><Play className="h-5 w-5 fill-current" /> GO</>
+                    : <><Crown className="h-5 w-5 shrink-0" /> <span className="text-[15px]">{aboLabel()}</span></>}
                 </button>
               </>
             )
