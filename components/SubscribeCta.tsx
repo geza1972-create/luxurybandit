@@ -58,7 +58,7 @@ export default function SubscribeCta({ code = "", lang = "en", topic = "chat" }:
       <button type="button" onClick={() => void start()} disabled={busy}
         className="lb-gold mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-60">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-        {code ? t.ctaCode : t.cta}
+        {t.ctaCode}
       </button>
       {error && <p className="mt-2 text-[13px] font-bold text-white/80">{error}</p>}
       <p className="mt-2 text-[12px] font-bold text-white/70">{t.note}</p>

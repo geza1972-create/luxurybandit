@@ -35,10 +35,14 @@ export function topicPriceId(): string {
 }
 
 /**
- * Standard-Einstiegsgutschein — bewusst LEER, solange der Owner keinen setzt: der Rabatt
- * soll am Aktionscode hängen, nicht jedem geschenkt werden. Nur wenn hier doch ein
- * Gutschein steht, bekommt ihn auch, wer ohne Code kommt.
+ * Standard-Einstiegsgutschein — gilt JETZT FÜR ALLE (Owner 28.07.2026: „du sollst den
+ * Rabatt immer einbauen, auch für nicht members"). Vorher hing er am Aktionscode, wodurch
+ * jeder ohne Code 49 € sah — auch die Besucher aus den Anzeigen, wenn Meta den Parameter
+ * verschluckt hat. Der erste Monat kostet damit überall 19 €, danach 49 €.
+ * Abschaltbar über `STRIPE_FIRST_MONTH_COUPON=""`.
  */
 export function firstMonthCoupon(): string | undefined {
-  return process.env.STRIPE_FIRST_MONTH_COUPON?.trim() || undefined;
+  const env = process.env.STRIPE_FIRST_MONTH_COUPON;
+  if (typeof env === "string") return env.trim() || undefined;   // leer = Aktion beendet
+  return "AQUOArCz";   // 30 € einmalig → 19 € im ersten Monat
 }

@@ -417,14 +417,24 @@ export default function TryFunnelPage() {
   // Vorher/Nachher wechselt im Takt (wie die Try-On-Kachel auf der Themen-Seite): das Foto,
   // das jemand hochgeladen hat, und das Ergebnis. Dürfen von beliebigen Models sein.
   // Ohne Vorher-Foto zeigen wir das Ergebnis-Video — Hauptsache, er sieht, was rauskommt.
-  const [examples, setExamples] = useState<{ id: string; before: string; after: string; videoUrl: string }[]>([]);
+  const [examples, setExamples] = useState<{ id: string; before: string; after: string; videoUrl: string; who: string }[]>([]);
   useEffect(() => {
     fetch("/api/try-this-look", { cache: "no-store" }).then(r => r.json()).then(d => {
-      const out: { id: string; before: string; after: string; videoUrl: string }[] = [];
-      for (const l of (Array.isArray(d?.looks) ? d.looks : []) as { communityTryOns?: { id?: string; imageUrl?: string; videoUrl?: string; userPhotoUrl?: string }[] }[]) {
+      const out: { id: string; before: string; after: string; videoUrl: string; who: string }[] = [];
+      // Dasselbe Try-on hängt an mehreren Looks und dieselbe Frau hat mehrere — ohne
+      // Entdopplung stand Bella zweimal nebeneinander (Owner 28.07.2026). Wir filtern
+      // doppelte Bilder UND lassen pro Model nur EIN Beispiel zu.
+      const seenMedia = new Set<string>();
+      const seenModel = new Set<string>();
+      const key = (u: string) => String(u).split("?")[0];
+      for (const l of (Array.isArray(d?.looks) ? d.looks : []) as { communityTryOns?: { id?: string; imageUrl?: string; videoUrl?: string; userPhotoUrl?: string; curatorId?: string; name?: string }[] }[]) {
         for (const g of l.communityTryOns ?? []) {
           if (!g?.id || !(g.imageUrl || g.videoUrl)) continue;
-          out.push({ id: String(g.id), before: String(g.userPhotoUrl || ""), after: String(g.imageUrl || ""), videoUrl: String(g.videoUrl || "") });
+          const media = key(String(g.videoUrl || g.imageUrl));
+          const who = String(g.curatorId || g.name || "");
+          if (seenMedia.has(media) || (who && seenModel.has(who))) continue;
+          seenMedia.add(media); if (who) seenModel.add(who);
+          out.push({ id: String(g.id), before: String(g.userPhotoUrl || ""), after: String(g.imageUrl || ""), videoUrl: String(g.videoUrl || ""), who });
         }
       }
       // Die mit echtem Vorher/Nachher zuerst — die erklären den Trichter ohne ein Wort.
@@ -478,9 +488,8 @@ export default function TryFunnelPage() {
     } catch { /**/ }
     setAboBusy(false);
   };
-  const aboLabel = () => ((searchParams?.get("code") ?? "").trim()
-    ? L("Deblochează cea mai fierbinte experiență AI — 19 €", "Unlock the hottest AI experience ever — €19")
-    : L("Deblochează cea mai fierbinte experiență AI — 49 €/lună", "Unlock the hottest AI experience ever — €49/month"));
+  // Der Einstiegspreis gilt fuer ALLE (Owner 28.07.2026) — nicht nur mit Aktionscode.
+  const aboLabel = () => L("Deblochează cea mai fierbinte experiență AI — 19 €", "Unlock the hottest AI experience ever — €19");
 
   // During the reveal the clip stays PAUSED (just the still sharpens); it starts playing
   // only once the reveal finishes.

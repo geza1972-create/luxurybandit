@@ -572,7 +572,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
               <p className="mt-1 text-[13px] font-bold leading-snug text-white/85">{x.p}</p>
               <button type="button" onClick={() => void unlock()} disabled={unlocking}
                 className="lb-gold mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-60">
-                {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : (promo ? x.ctaCode : x.cta)}
+                {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : x.ctaCode}
               </button>
             </div>
           </div>

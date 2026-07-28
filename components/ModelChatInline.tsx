@@ -56,8 +56,8 @@ const KEEP: Record<Lang, string> = {
   it: "Adoro parlare con te 💛 Per 24 €/mese chattiamo senza limiti.",
 };
 const UNLOCK: Record<Lang, string> = {
-  de: "Die heißeste KI-Erfahrung freischalten — 49 €/Monat", en: "Unlock the hottest AI experience ever — €49/month", ro: "Deblochează cea mai fierbinte experiență AI — 49 €/lună", es: "Desbloquea la experiencia IA más ardiente — 49 €/mes",
-  fr: "Débloque l'expérience IA la plus chaude — 49 €/mois", pt: "Desbloqueia a experiência de IA mais quente — 49 €/mês", pl: "Odblokuj najgorętsze doświadczenie AI — 49 €/miesiąc", it: "Sblocca l'esperienza AI più calda — 49 €/mese",
+  de: "Die heißeste KI-Erfahrung freischalten — 19 €", en: "Unlock the hottest AI experience ever — €19", ro: "Deblochează cea mai fierbinte experiență AI — 19 €", es: "Desbloquea la experiencia IA más ardiente — 19 €",
+  fr: "Débloque l'expérience IA la plus chaude — 19 €", pt: "Desbloqueia a experiência de IA mais quente — 19 €", pl: "Odblokuj najgorętsze doświadczenie AI — 19 €", it: "Sblocca l'esperienza AI più calda — 19 €",
 };
 const BELLA_CTA: Record<Lang, string> = {
   de: "Gratis mit Bella chatten", en: "Chat free with Bella", ro: "Chat gratuit cu Bella", es: "Chatea gratis con Bella",
