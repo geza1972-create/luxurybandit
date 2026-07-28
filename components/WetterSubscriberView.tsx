@@ -183,6 +183,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   const rival = crossModels.find(m => m.id) ?? null;
   const [activeId, setActiveId] = useState(modelId);
   const [activeName, setActiveName] = useState(modelName);
+  const [activePhoto, setActivePhoto] = useState("");   // ihr Bild im Chat-Kopf
   const [duelAsked, setDuelAsked] = useState(false);
   const [hasTyped, setHasTyped] = useState(false);   // hat er je selbst getippt?
   const [tomorrow, setTomorrow] = useState(false);   // abends zeigen wir das Wetter für morgen
@@ -453,6 +454,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     if (!rival?.id) return;
     setActiveId(rival.id);
     setActiveName(rival.name);
+    setActivePhoto(rival.img);
     const hello = (({
       de: `Hehe, gute Wahl 😏 Hi, ich bin ${rival.name}. Ab hier schreibe ich dir — erzähl mir was von dir 💛`,
       en: `Hehe, good choice 😏 Hi, I'm ${rival.name}. I'll take it from here — tell me something about you 💛`,
@@ -532,7 +534,16 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         <CornerOrnaments />
         <div className="relative flex items-center justify-center gap-2 border-b border-black/10 px-9 py-3">
           <span className="h-2 w-2 rounded-full bg-emerald-500" />
-          <p className="text-[13px] font-black text-white">{activeName} <span className="font-bold text-emerald-600">{t.online}</span></p>
+          <span className="flex items-center gap-2">
+            {/* IHR BILD im Chat-Kopf — fehlte, und nach dem Wechsel sah man gar nicht, mit
+                wem man schreibt (Owner 28.07.2026). */}
+            {(activePhoto || look?.posterUrl || look?.mediaUrl) && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={activePhoto || look?.posterUrl || look?.mediaUrl || ""} alt=""
+                className="h-8 w-8 shrink-0 rounded-full object-cover object-top ring-1 ring-[#f6cf51]/50" />
+            )}
+            <p className="text-[13px] font-black text-white">{activeName} <span className="font-bold text-emerald-600">{t.online}</span></p>
+          </span>
         </div>
         <div ref={scrollRef} className="relative max-h-[46vh] space-y-3 overflow-y-auto px-4 py-4">
           {messages.map((m, i) => {
