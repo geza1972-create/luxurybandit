@@ -181,6 +181,10 @@ function serializeLook(look: Awaited<ReturnType<typeof readTryThisLookState>>["l
     curatorPhotoUrl: curator?.photoUrl || undefined,
     curatorMotto: curator?.motto || undefined,
     productType: (look as any).productType ?? "real",
+    // Gehört das Teil in DEINEN Kleiderschrank? Nur diese dürfen in die Anzieh-Slider der
+    // Funnels — der übrige Katalog sind Partner-/Affiliate-Produkte (Schuhe, Mäntel,
+    // Designerkleider), die du nie zum Anziehen freigegeben hast (Owner 28.07.2026).
+    wardrobe: (look as any).wardrobe === true,
     featured: (look as any).featured === true, // admin-picked → shown in the About "3 steps"
     brand: ((look as any).brand?.trim() || detectBrand(look.name, (look as any).productNote, (look as any).campaignName)) ?? undefined,
     // Lingerie/swim: explicit flag wins; otherwise detect from name + brand + notes.

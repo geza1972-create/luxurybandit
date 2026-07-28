@@ -135,8 +135,10 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
       if (bella > 0) all = [all[bella], ...all.slice(0, bella), ...all.slice(bella + 1)];
       setModels(all);
       const ok: Set<string> | null = Array.isArray(wg?.ids) ? new Set(wg.ids.map(String)) : null;
+      // NUR der Kleiderschrank (`wardrobe`): der restliche Katalog sind Partner-Produkte
+      // — Schuhe, Mäntel, Designerkleider —, die nie zum Anziehen freigegeben wurden.
       const ls: Look[] = (Array.isArray(st?.looks) ? st.looks : [])
-        .filter((l: { id: string; imageUrl?: string }) => !!l.imageUrl && (!ok || ok.has(l.id)))
+        .filter((l: { id: string; imageUrl?: string; wardrobe?: boolean }) => l.wardrobe === true && !!l.imageUrl && (!ok || ok.has(l.id)))
         .map((l: Look) => ({ id: l.id, name: l.name, imageUrl: l.imageUrl }));
       setLooks(ls);
     });

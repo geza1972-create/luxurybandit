@@ -80,8 +80,10 @@ export default function SurpriseFunnel({ example = "" }: { example?: string }) {
     ])
       .then(([d, wg]) => {
         const ok: Set<string> | null = Array.isArray(wg?.ids) ? new Set(wg.ids.map(String)) : null;
+        // NUR der Kleiderschrank (`wardrobe`): der restliche Katalog sind Partner-Produkte
+        // — Schuhe, Mäntel, Designerkleider —, die nie zum Anziehen freigegeben wurden.
         const all: (Look & { hot?: boolean })[] = (Array.isArray(d?.looks) ? d.looks : [])
-          .filter((l: { id: string; imageUrl?: string }) => !!l.imageUrl && (!ok || ok.has(l.id)))
+          .filter((l: { id: string; imageUrl?: string; wardrobe?: boolean }) => l.wardrobe === true && !!l.imageUrl && (!ok || ok.has(l.id)))
           .map((l: Look & { lingerie?: boolean; category?: string }) =>
             ({ id: l.id, name: l.name, imageUrl: l.imageUrl, hot: l.lingerie === true || l.category === "boudoir" }));
         // ALLE Teile aus dem Katalog (kein Deckel) — Dessous vorn, dann der Rest.
