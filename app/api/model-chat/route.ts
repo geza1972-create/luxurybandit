@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { readTryThisLookState, saveTryThisLookState, type ModelChatLog } from "@/lib/try-this-look-store";
 import { isAdminRequest } from "@/lib/admin-auth";
-import { dealReply, moreReply, withChips } from "@/lib/chat-deal";
+import { dealReply, moreReply, friendsReply, withChips } from "@/lib/chat-deal";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -272,12 +272,15 @@ export async function POST(request: Request) {
     const last = history[history.length - 1].content;
     const before = history.slice(0, -1);
     const more = moreReply(before, last, body.lang);
-    const deal = more ? null : dealReply(before, last, body.lang);
+    const friends = more ? null : friendsReply(before, last, body.lang);
+    const deal = more || friends ? null : dealReply(before, last, body.lang);
     const canned = more
       ? withChips(more, "more", body.lang)
-      : deal
-        ? withChips(deal, deal.includes("[[SHOW_LINGERIE]]") ? "show" : "deal", body.lang)
-        : null;
+      : friends
+        ? withChips(friends, "show", body.lang)
+        : deal
+          ? withChips(deal, deal.includes("[[SHOW_LINGERIE]]") ? "show" : "deal", body.lang)
+          : null;
     if (canned) {
       void logExchange(canned);
       // ALS REINER TEXT, nicht als JSON: die Chats lesen den Body als Stream und würden

@@ -104,7 +104,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
   const u = UI[lang] ?? UI.en;
   // Die KI haengt drei Antwortvorschlaege an ([[CHIPS: a | b | c]]). Wir schneiden sie aus
   // dem Text und zeigen sie als Knoepfe — getippt wird nur, wer will (Owner 28.07.2026).
-  const stripChips = (t: string) => t.replace(CHIPS_TAG_RE, "").replace(/\[\[SHOW_LINGERIE\]\]/gi, "").trim();
+  const stripChips = (t: string) => t.replace(CHIPS_TAG_RE, "").replace(/\[\[SHOW_LINGERIE\]\]/gi, "").replace(/\[\[SHOW_FRIENDS\]\]/gi, "").trim();
   const chipsOf = (t: string) => {
     const m = t.match(CHIPS_TAG_RE);
     return m ? m[1].split("|").map(x => x.trim()).filter(Boolean).slice(0, 3) : [];
@@ -200,6 +200,17 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
     return () => { ok = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [picked?.id, useCustom]);
+  // BILDER VON „FREUNDINNEN" — Nachschub für den Gratis-Chat, alles längst vorhanden
+  // (keine neue Generierung). Zweite Runde zeigt andere Bilder (Owner 28.07.2026).
+  const [friendPics, setFriendPics] = useState<{ id: string; url: string }[]>([]);
+  const friendPageRef = useRef(0);
+  const loadFriends = () => {
+    const cid = useCustom ? "" : (picked?.id ?? "");
+    fetch(`/api/tease-pool?exclude=${encodeURIComponent(cid)}&n=12&page=${friendPageRef.current++}`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d?.images) && d.images.length) setFriendPics(d.images); })
+      .catch(() => {});
+  };
   const [playing, setPlaying] = useState("");
 
   // Geräte-Kennung: dieselbe wie in „My Gallery" — damit ihr Gedächtnis am Besucher hängt
@@ -286,6 +297,8 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
         });
         scrollFeed();
       }
+      // Kommt der Freundinnen-Tag, holen wir die naechste Runde Bilder.
+      if (/\[\[SHOW_FRIENDS\]\]/i.test(reply)) loadFriends();
       // Ehrlichkeits-Hinweis in festem Takt — nicht versteckt, im Verlauf sichtbar.
       setMsgs(m => {
         const count = m.filter(x => x.role === "user").length;
@@ -520,6 +533,14 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
               </div>
               {/* SIE ZEIGT SICH: die Nachricht mit dem Tag bekommt die Galerie darunter —
                   sonst verspricht sie ein Bild und es kommt nichts (Owner 28.07.2026). */}
+              {m.role === "assistant" && /\[\[SHOW_FRIENDS\]\]/i.test(m.content) && friendPics.length > 0 && (
+                <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {friendPics.map(f => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={f.id} src={f.url} alt="" className="aspect-[3/4] w-24 shrink-0 rounded-xl border border-[#f6cf51]/40 object-cover" />
+                  ))}
+                </div>
+              )}
               {m.role === "assistant" && /\[\[SHOW_LINGERIE\]\]/i.test(m.content) && teaseVideos.length > 0 && (
                 <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {teaseVideos.map(v => (
