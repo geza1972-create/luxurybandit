@@ -555,14 +555,14 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           erst auf, wenn die Sperre griff. Wer vorher kaufen WOLLTE, konnte es gar nicht. */}
       {!paid && (() => {
         const S: Record<string, { h: string; p: string; cta: string; ctaCode: string }> = {
-          ro: { h: "Toate modelele, toate temele", p: "Orice model, orice ținută, orice temă: 25 de videoclipuri pe lună — chatul rămâne gratuit.", cta: "Deblochează cea mai fierbinte experiență AI — 49 €/lună", ctaCode: "Deblochează cea mai fierbinte experiență AI — 19 €" },
-          de: { h: "Alle Models, alle Themen", p: "Jedes Model, jeder Look, jedes Thema: 25 Videos im Monat — Chatten bleibt gratis.", cta: "Die heißeste KI-Erfahrung freischalten — 49 €/Monat", ctaCode: "Die heißeste KI-Erfahrung freischalten — 19 €" },
-          en: { h: "Every model, every topic", p: "Every model, every look, every topic: 25 videos a month — chatting stays free.", cta: "Unlock the hottest AI experience ever — €49/month", ctaCode: "Unlock the hottest AI experience ever — €19" },
-          es: { h: "Todas las modelos, todos los temas", p: "Cualquier modelo, cualquier look, cualquier tema: 25 vídeos al mes — chatear sigue gratis.", cta: "Desbloquea la experiencia IA más ardiente — 49 €/mes", ctaCode: "Desbloquea la experiencia IA más ardiente — 19 €" },
-          fr: { h: "Toutes les modèles, tous les thèmes", p: "N'importe quelle modèle, n'importe quelle tenue, n'importe quel thème : 25 vidéos par mois — le chat reste gratuit.", cta: "Débloque l'expérience IA la plus chaude — 49 €/mois", ctaCode: "Débloque l'expérience IA la plus chaude — 19 €" },
-          pt: { h: "Todas as modelos, todos os temas", p: "Qualquer modelo, qualquer look, qualquer tema: 25 vídeos por mês — conversar continua grátis.", cta: "Desbloqueia a experiência de IA mais quente — 49 €/mês", ctaCode: "Desbloqueia a experiência de IA mais quente — 19 €" },
-          pl: { h: "Wszystkie modelki, wszystkie tematy", p: "Dowolna modelka, dowolna stylizacja, dowolny temat: 25 filmów miesięcznie — czat pozostaje darmowy.", cta: "Odblokuj najgorętsze doświadczenie AI — 49 €/miesiąc", ctaCode: "Odblokuj najgorętsze doświadczenie AI — 19 €" },
-          it: { h: "Tutte le modelle, tutti i temi", p: "Qualsiasi modella, qualsiasi look, qualsiasi tema: 25 video al mese — chattare resta gratis.", cta: "Sblocca l'esperienza AI più calda — 49 €/mese", ctaCode: "Sblocca l'esperienza AI più calda — 19 €" },
+          ro: { h: "Toate modelele, toate temele", p: "Orice model, orice ținută, orice temă: 25 de videoclipuri pe lună — chatul rămâne gratuit.", cta: "Deblochează cea mai fierbinte experiență AI — 49 €/lună", ctaCode: "Deblochează cea mai fierbinte experiență AI — 19 €" },
+          de: { h: "Alle Models, alle Themen", p: "Jedes Model, jeder Look, jedes Thema: 25 Videos im Monat — Chatten bleibt gratis.", cta: "Die heißeste KI-Erfahrung freischalten — 49 €/Monat", ctaCode: "Die heißeste KI-Erfahrung freischalten — 19 €" },
+          en: { h: "Every model, every topic", p: "Every model, every look, every topic: 25 videos a month — chatting stays free.", cta: "Unlock the hottest AI experience ever — €49/month", ctaCode: "Unlock the hottest AI experience ever — €19" },
+          es: { h: "Todas las modelos, todos los temas", p: "Cualquier modelo, cualquier look, cualquier tema: 25 vídeos al mes — chatear sigue gratis.", cta: "Desbloquea la experiencia IA más ardiente — 49 €/mes", ctaCode: "Desbloquea la experiencia IA más ardiente — 19 €" },
+          fr: { h: "Toutes les modèles, tous les thèmes", p: "N'importe quelle modèle, n'importe quelle tenue, n'importe quel thème : 25 vidéos par mois — le chat reste gratuit.", cta: "Débloque l'expérience IA la plus chaude — 49 €/mois", ctaCode: "Débloque l'expérience IA la plus chaude — 19 €" },
+          pt: { h: "Todas as modelos, todos os temas", p: "Qualquer modelo, qualquer look, qualquer tema: 25 vídeos por mês — conversar continua grátis.", cta: "Desbloqueia a experiência de IA mais quente — 49 €/mês", ctaCode: "Desbloqueia a experiência de IA mais quente — 19 €" },
+          pl: { h: "Wszystkie modelki, wszystkie tematy", p: "Dowolna modelka, dowolna stylizacja, dowolny temat: 25 filmów miesięcznie — czat pozostaje darmowy.", cta: "Odblokuj najgorętsze doświadczenie AI — 49 €/miesiąc", ctaCode: "Odblokuj najgorętsze doświadczenie AI — 19 €" },
+          it: { h: "Tutte le modelle, tutti i temi", p: "Qualsiasi modella, qualsiasi look, qualsiasi tema: 25 video al mese — chattare resta gratis.", cta: "Sblocca l'esperienza AI più calda — 49 €/mese", ctaCode: "Sblocca l'esperienza AI più calda — 19 €" },
         };
         const x = S[L] ?? S.en;
         return (
@@ -571,7 +571,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
               <p className="text-[16px] font-black text-white">{x.h}</p>
               <p className="mt-1 text-[13px] font-bold leading-snug text-white/85">{x.p}</p>
               <button type="button" onClick={() => void unlock()} disabled={unlocking}
-                className="lb-gold mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-60">
+                className="lb-gold lb-buy mt-3 flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
                 {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : x.ctaCode}
               </button>
             </div>

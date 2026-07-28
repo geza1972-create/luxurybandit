@@ -506,7 +506,7 @@ export default function TryFunnelPage() {
     setAboBusy(false);
   };
   // Der Einstiegspreis gilt fuer ALLE (Owner 28.07.2026) — nicht nur mit Aktionscode.
-  const aboLabel = () => L("Deblochează cea mai fierbinte experiență AI — 19 €", "Unlock the hottest AI experience ever — €19");
+  const aboLabel = () => L("Deblochează cea mai fierbinte experiență AI — 19 €", "Unlock the hottest AI experience ever — €19");
 
   // During the reveal the clip stays PAUSED (just the still sharpens); it starts playing
   // only once the reveal finishes.
@@ -1161,7 +1161,7 @@ export default function TryFunnelPage() {
                   void startAbo();
                 }}
                 disabled={aboBusy}
-                className="lb-gold mx-auto mt-4 flex min-h-14 w-full max-w-sm items-center justify-center gap-2 rounded-full px-4 py-3 text-center text-base font-black leading-tight active:scale-95 transition-transform disabled:opacity-60">
+                className="lb-gold lb-buy mx-auto mt-4 flex w-full max-w-sm items-center justify-center gap-2 rounded-full font-black active:scale-95 transition-transform disabled:opacity-60">
                 {isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
                     : (adminProduce || (packCredits ?? 0) > 0) ? <><Play className="h-5 w-5 fill-current" /> GO</>
                     : <><Crown className="h-5 w-5 shrink-0" /> <span className="text-[15px]">{aboLabel()}</span></>}
@@ -1458,7 +1458,7 @@ export default function TryFunnelPage() {
                 ) : (
                   <>
                     <button type="button" onClick={() => { if (lookIsFree) { onUnlock(); return; } void startAbo(); }} disabled={aboBusy}
-                      className="lb-gold flex min-h-14 w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-center text-[15px] font-black leading-tight active:scale-95 transition-transform disabled:opacity-60">
+                      className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition-transform disabled:opacity-60">
                       {lookIsFree ? L("Vezi videoul", "Watch the video") : aboLabel()}
                     </button>
                     {!lookIsFree && <p className="mt-2 text-center text-[11px] font-bold leading-snug text-white/70">{renewNote(lang)}</p>}
@@ -1715,7 +1715,7 @@ export default function TryFunnelPage() {
                     void startAbo();
                   }}
                   disabled={aboBusy}
-                  className="lb-gold flex min-h-14 w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-center text-base font-black leading-tight active:scale-95 transition-transform disabled:opacity-60">
+                  className="lb-gold lb-buy flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition-transform disabled:opacity-60">
                   {isModelSession ? <><Sparkles className="h-5 w-5" /> Generate my photo</>
                     : (adminProduce || (packCredits ?? 0) > 0) ? <><Play className="h-5 w-5 fill-current" /> GO</>
                     : <><Crown className="h-5 w-5 shrink-0" /> <span className="text-[15px]">{aboLabel()}</span></>}

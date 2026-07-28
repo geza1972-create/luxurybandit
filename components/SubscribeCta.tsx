@@ -14,14 +14,14 @@ import { Loader2, Lock } from "lucide-react";
  */
 
 const T: Record<string, { h: string; p: string; cta: string; ctaCode: string; note: string }> = {
-  en: { h: "Get everything", p: "25 videos a month across all topics. Chatting is free, always.", cta: "Unlock the hottest AI experience ever — €49/month", ctaCode: "Unlock the hottest AI experience ever — €19", note: "€19 for your first month, then €49/month — cancel any time." },
-  de: { h: "Alles freischalten", p: "25 Videos im Monat über alle Themen. Chatten ist und bleibt gratis.", cta: "Die heißeste KI-Erfahrung freischalten — 49 €/Monat", ctaCode: "Die heißeste KI-Erfahrung freischalten — 19 €", note: "19 € im ersten Monat, danach 49 €/Monat — monatlich kündbar." },
-  ro: { h: "Deblochează tot", p: "25 de videoclipuri pe lună în toate temele. Chatul rămâne gratuit.", cta: "Deblochează cea mai fierbinte experiență AI — 49 €/lună", ctaCode: "Deblochează cea mai fierbinte experiență AI — 19 €", note: "19 € prima lună, apoi 49 €/lună — poți renunța oricând." },
-  es: { h: "Desbloquéalo todo", p: "25 vídeos al mes en todos los temas. Chatear es gratis, siempre.", cta: "Desbloquea la experiencia IA más ardiente — 49 €/mes", ctaCode: "Desbloquea la experiencia IA más ardiente — 19 €", note: "19 € el primer mes, luego 49 €/mes — cancela cuando quieras." },
-  fr: { h: "Tout débloquer", p: "25 vidéos par mois sur tous les thèmes. Le chat reste gratuit.", cta: "Débloque l'expérience IA la plus chaude — 49 €/mois", ctaCode: "Débloque l'expérience IA la plus chaude — 19 €", note: "19 € le premier mois, puis 49 €/mois — résiliable à tout moment." },
-  pt: { h: "Desbloqueia tudo", p: "25 vídeos por mês em todos os temas. Conversar é sempre grátis.", cta: "Desbloqueia a experiência de IA mais quente — 49 €/mês", ctaCode: "Desbloqueia a experiência de IA mais quente — 19 €", note: "19 € no primeiro mês, depois 49 €/mês — cancela quando quiseres." },
-  pl: { h: "Odblokuj wszystko", p: "25 filmów miesięcznie we wszystkich tematach. Czat jest zawsze darmowy.", cta: "Odblokuj najgorętsze doświadczenie AI — 49 €/miesiąc", ctaCode: "Odblokuj najgorętsze doświadczenie AI — 19 €", note: "19 € za pierwszy miesiąc, potem 49 €/miesiąc — możesz zrezygnować w każdej chwili." },
-  it: { h: "Sblocca tutto", p: "25 video al mese in tutti i temi. Chattare è sempre gratis.", cta: "Sblocca l'esperienza AI più calda — 49 €/mese", ctaCode: "Sblocca l'esperienza AI più calda — 19 €", note: "19 € il primo mese, poi 49 €/mese — disdici quando vuoi." },
+  en: { h: "Get everything", p: "25 videos a month across all topics. Chatting is free, always.", cta: "Unlock the hottest AI experience ever — €49/month", ctaCode: "Unlock the hottest AI experience ever — €19", note: "€19 for your first month, then €49/month — cancel any time." },
+  de: { h: "Alles freischalten", p: "25 Videos im Monat über alle Themen. Chatten ist und bleibt gratis.", cta: "Die heißeste KI-Erfahrung freischalten — 49 €/Monat", ctaCode: "Die heißeste KI-Erfahrung freischalten — 19 €", note: "19 € im ersten Monat, danach 49 €/Monat — monatlich kündbar." },
+  ro: { h: "Deblochează tot", p: "25 de videoclipuri pe lună în toate temele. Chatul rămâne gratuit.", cta: "Deblochează cea mai fierbinte experiență AI — 49 €/lună", ctaCode: "Deblochează cea mai fierbinte experiență AI — 19 €", note: "19 € prima lună, apoi 49 €/lună — poți renunța oricând." },
+  es: { h: "Desbloquéalo todo", p: "25 vídeos al mes en todos los temas. Chatear es gratis, siempre.", cta: "Desbloquea la experiencia IA más ardiente — 49 €/mes", ctaCode: "Desbloquea la experiencia IA más ardiente — 19 €", note: "19 € el primer mes, luego 49 €/mes — cancela cuando quieras." },
+  fr: { h: "Tout débloquer", p: "25 vidéos par mois sur tous les thèmes. Le chat reste gratuit.", cta: "Débloque l'expérience IA la plus chaude — 49 €/mois", ctaCode: "Débloque l'expérience IA la plus chaude — 19 €", note: "19 € le premier mois, puis 49 €/mois — résiliable à tout moment." },
+  pt: { h: "Desbloqueia tudo", p: "25 vídeos por mês em todos os temas. Conversar é sempre grátis.", cta: "Desbloqueia a experiência de IA mais quente — 49 €/mês", ctaCode: "Desbloqueia a experiência de IA mais quente — 19 €", note: "19 € no primeiro mês, depois 49 €/mês — cancela quando quiseres." },
+  pl: { h: "Odblokuj wszystko", p: "25 filmów miesięcznie we wszystkich tematach. Czat jest zawsze darmowy.", cta: "Odblokuj najgorętsze doświadczenie AI — 49 €/miesiąc", ctaCode: "Odblokuj najgorętsze doświadczenie AI — 19 €", note: "19 € za pierwszy miesiąc, potem 49 €/miesiąc — możesz zrezygnować w każdej chwili." },
+  it: { h: "Sblocca tutto", p: "25 video al mese in tutti i temi. Chattare è sempre gratis.", cta: "Sblocca l'esperienza AI più calda — 49 €/mese", ctaCode: "Sblocca l'esperienza AI più calda — 19 €", note: "19 € il primo mese, poi 49 €/mese — disdici quando vuoi." },
 };
 
 export default function SubscribeCta({ code = "", lang = "en", topic = "chat" }: {
@@ -56,7 +56,7 @@ export default function SubscribeCta({ code = "", lang = "en", topic = "chat" }:
       <p className="text-[17px] font-black text-white">{t.h}</p>
       <p className="mt-1 text-[14px] font-bold leading-snug text-white/85">{t.p}</p>
       <button type="button" onClick={() => void start()} disabled={busy}
-        className="lb-gold mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-60">
+        className="lb-gold lb-buy mt-3 flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-60">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
         {t.ctaCode}
       </button>

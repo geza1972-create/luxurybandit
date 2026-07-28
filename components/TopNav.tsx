@@ -70,9 +70,11 @@ export default function TopNav({
           </span>
         </button>
 
-        {/* Right: the 3 CI icons (or a page override). No menu button — menu is in the bottom nav. */}
+        {/* Right: the 3 CI icons (or a page override). No menu button — menu is in the bottom nav.
+            Die SPRACHWAHL steht NICHT mehr hier: sie hat auf schmalen Geräten das Wortmark
+            überlagert und das Motto abgeschnitten (Owner 28.07.2026) — sie sitzt jetzt in
+            einer eigenen Zeile unter dem Header. */}
         <div className="flex shrink-0 items-center gap-2">
-          <LangSwitch />
           {actions ?? (
             <>
               <button type="button" onClick={() => router.push("/stores?view=grid")} className={iconBtn} aria-label="Search">
@@ -87,6 +89,11 @@ export default function TopNav({
             </>
           )}
         </div>
+      </div>
+      {/* Eigene, ruhige Zeile für die Sprache — rechtsbündig, damit Logo und Motto
+          darüber ungestört bleiben. */}
+      <div className="mx-auto flex max-w-6xl justify-end px-4 pb-2">
+        <LangSwitch />
       </div>
     </header>
   );

@@ -57,8 +57,8 @@ const KEEP: Record<Lang, string> = {
   it: "Adoro parlare con te 💛 Per 24 €/mese chattiamo senza limiti.",
 };
 const UNLOCK: Record<Lang, string> = {
-  de: "Die heißeste KI-Erfahrung freischalten — 19 €", en: "Unlock the hottest AI experience ever — €19", ro: "Deblochează cea mai fierbinte experiență AI — 19 €", es: "Desbloquea la experiencia IA más ardiente — 19 €",
-  fr: "Débloque l'expérience IA la plus chaude — 19 €", pt: "Desbloqueia a experiência de IA mais quente — 19 €", pl: "Odblokuj najgorętsze doświadczenie AI — 19 €", it: "Sblocca l'esperienza AI più calda — 19 €",
+  de: "Die heißeste KI-Erfahrung freischalten — 19 €", en: "Unlock the hottest AI experience ever — €19", ro: "Deblochează cea mai fierbinte experiență AI — 19 €", es: "Desbloquea la experiencia IA más ardiente — 19 €",
+  fr: "Débloque l'expérience IA la plus chaude — 19 €", pt: "Desbloqueia a experiência de IA mais quente — 19 €", pl: "Odblokuj najgorętsze doświadczenie AI — 19 €", it: "Sblocca l'esperienza AI più calda — 19 €",
 };
 const BELLA_CTA: Record<Lang, string> = {
   de: "Gratis mit Bella chatten", en: "Chat free with Bella", ro: "Chat gratuit cu Bella", es: "Chatea gratis con Bella",
@@ -251,7 +251,7 @@ export default function ModelChatInline({
           <div className="space-y-2">
             {bella && <p className="px-1 text-center text-[12px] font-bold text-black/70">{KEEP[lang]}</p>}
             <button type="button" onClick={() => void buyAbo()} disabled={buying}
-              className="flex h-11 w-full items-center justify-center rounded-full bg-black text-[13px] font-black text-white disabled:opacity-40 active:scale-95 transition">
+              className="lb-buy flex w-full items-center justify-center rounded-full bg-black font-black text-white disabled:opacity-40 active:scale-95 transition">
               {buying ? <Loader2 className="h-5 w-5 animate-spin" /> : `💛 ${UNLOCK[lang]}`}
             </button>
             <p className="px-1 text-center text-[11px] font-bold leading-snug text-black/55">{renewNote(lang)}</p>

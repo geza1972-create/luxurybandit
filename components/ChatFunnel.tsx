@@ -450,7 +450,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
               <p className="mt-0.5 text-[12px] font-bold leading-snug text-black/60">49 € a month — every day, plus your 25 videos a month across all topics.</p>
               <button type="button" onClick={() => void unlock(false)} disabled={payBusy}
                 className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-black text-[13px] font-black text-white active:scale-95 transition disabled:opacity-40">
-                {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Unlock the hottest AI experience ever — €19
+                {payBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />} Unlock the hottest AI experience ever — €19
               </button>
               <p className="mt-2 text-center text-[11px] font-bold leading-snug text-black/60">{renewNote(lang)}</p>
             </div>
@@ -506,12 +506,12 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
       {/* Ohne Abo führt dieser Knopf zur KASSE — dann muss er das auch draufschreiben.
           Vorher hieß er „Zieh es ihr an" und sprang wortlos zu Stripe (Owner 28.07.2026). */}
       <button type="button" onClick={() => void dressHer()} disabled={!chosen || dressBusy}
-        className="lb-gold mt-2 flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-center text-[15px] font-black leading-tight active:scale-95 transition disabled:opacity-50">
+        className="lb-gold lb-buy mt-2 flex w-full items-center justify-center gap-2 rounded-full font-black active:scale-95 transition disabled:opacity-50">
         {dressBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : (isStaff || paid) ? <Shirt className="h-4 w-4 shrink-0" /> : <Lock className="h-4 w-4 shrink-0" />}
         {dressBusy ? "…"
           : (isStaff || paid)
             ? (looksLeft > 0 ? (herName ? u.put.replace("{name}", herName) : u.putHer) : u.more)
-            : "Unlock the hottest AI experience ever — €19"}
+            : "Unlock the hottest AI experience ever — €19"}
       </button>
       {!isStaff && !paid && (
         <p className="mt-2 text-center text-[11px] font-bold leading-snug text-white/70">{renewNote(lang)}</p>
