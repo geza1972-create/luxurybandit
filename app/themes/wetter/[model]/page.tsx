@@ -319,9 +319,14 @@ export default async function WetterModelPage({ params, searchParams }: {
                 <WetterGate modelId={modelId} modelName={modelName} lang={subLang} trialDays={trialDays} monthlyCents={monthlyCents} preview />
               </>
             ) : (
+              /* Dieselben Teaser/Models wie beim echten Kunden — sonst zeigt die Vorschau
+                 leere Kacheln mit Emoji, und man hält für kaputt, was live läuft. */
               <WetterSubscriberView name="Boy" city="Timișoara" lang={subLang} modelId={modelId} modelName={modelName} subId=""
                 day={dayLook?.day || ""} time={dayLook?.time || ""}
                 title={dayLook?.title || ""} caption={dayLook?.caption || ""} firstMessage={dayLook?.context || ""} dayContext={dayLook?.context || ""}
+                modelSlug={model} monthlyCents={monthlyCents} crossModels={crossModels}
+                kissTeaser={kissTeaser} kissTeaserIsVideo={kissTeaserIsVideo} tryonTeaser={tryonTeaser} tryonLingerie={tryonLingerie}
+                idolTeaser={idolTeaser} lingerieTeaser={lingerieTeaser}
                 look={dayLook ? { kind: dayLook.kind, mediaUrl: dayLook.mediaUrl, posterUrl: dayLook.posterUrl || undefined } : null} />
             )}
           </>
