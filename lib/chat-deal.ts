@@ -287,5 +287,41 @@ export function deriveChips(reply: string, lang?: string): string[] {
       .filter(x => x.length >= 3 && x.length <= 28 && !/\s{2}/.test(x));
     if (parts.length >= 2) return parts.slice(-3);
   }
-  return POLAR[String(lang ?? "en").slice(0, 2)] ?? POLAR.en;
+  // OFFENE FRAGEN: Ja/Nein wäre falsch („Was hast du heute vor?" → „Ja 🔥" sah kaputt aus,
+  // Owner 28.07.2026). Für die häufigsten Fragetypen liefern wir echte ANTWORTEN.
+  const L = String(lang ?? "en").slice(0, 2);
+  const ql = q.toLowerCase();
+  const intent = (re: RegExp) => re.test(ql);
+  if (intent(/plan|vorhast|vor heute|dein tag|deine pläne|ziua de azi|programm|planes|projets|planos|plany|programmi|up to today|doing today/)) {
+    return (OPEN_PLANS[L] ?? OPEN_PLANS.en);
+  }
+  if (intent(/ce faci|wie geht|how are you|cum ești|cum esti|qué tal|comment ça va|como estás|jak się masz|come stai|wie fühlst/)) {
+    return (OPEN_MOOD[L] ?? OPEN_MOOD.en);
+  }
+  if (!q) return [];                       // gar keine Frage → keine Knöpfe
+  return POLAR[L] ?? POLAR.en;
 }
+
+// Antworten auf „Was hast du heute vor?" — kurz, alltäglich, ohne Verkauf.
+const OPEN_PLANS: Record<string, string[]> = {
+  en: ["Working today", "Just relaxing", "No idea yet 😅"],
+  de: ["Arbeiten", "Einfach chillen", "Noch keine Ahnung 😅"],
+  ro: ["La muncă", "Mă relaxez", "Încă nu știu 😅"],
+  es: ["Trabajando", "Descansando", "Ni idea todavía 😅"],
+  fr: ["Je bosse", "Je me détends", "Aucune idée 😅"],
+  pt: ["A trabalhar", "A descansar", "Ainda não sei 😅"],
+  pl: ["Praca", "Odpoczywam", "Jeszcze nie wiem 😅"],
+  it: ["Lavoro", "Mi rilasso", "Ancora non lo so 😅"],
+};
+
+// Antworten auf „Wie geht es dir?"
+const OPEN_MOOD: Record<string, string[]> = {
+  en: ["Pretty good", "Tired honestly", "Better now 😏"],
+  de: ["Ganz gut", "Ehrlich gesagt müde", "Jetzt besser 😏"],
+  ro: ["Destul de bine", "Cam obosit", "Acum mai bine 😏"],
+  es: ["Bastante bien", "Cansado la verdad", "Ahora mejor 😏"],
+  fr: ["Plutôt bien", "Fatigué en vrai", "Mieux maintenant 😏"],
+  pt: ["Bastante bem", "Cansado, sinceramente", "Agora melhor 😏"],
+  pl: ["Całkiem dobrze", "Szczerze — zmęczony", "Teraz lepiej 😏"],
+  it: ["Abbastanza bene", "Stanco, sinceramente", "Ora meglio 😏"],
+};
