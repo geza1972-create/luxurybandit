@@ -104,7 +104,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
   const u = UI[lang] ?? UI.en;
   // Die KI haengt drei Antwortvorschlaege an ([[CHIPS: a | b | c]]). Wir schneiden sie aus
   // dem Text und zeigen sie als Knoepfe — getippt wird nur, wer will (Owner 28.07.2026).
-  const stripChips = (t: string) => t.replace(CHIPS_TAG_RE, "").replace(/\[\[SHOW_LINGERIE\]\]/gi, "").replace(/\[\[SHOW_FRIENDS\]\]/gi, "").trim();
+  const stripChips = (t: string) => t.replace(CHIPS_TAG_RE, "").replace(/\[\[SHOW_LINGERIE\]\]/gi, "").replace(/\[\[SHOW_FRIENDS\]\]/gi, "").replace(/\[\[PIC:[^\]]*\]\]/gi, "").trim();
   const chipsOf = (t: string) => {
     const m = t.match(CHIPS_TAG_RE);
     return m ? m[1].split("|").map(x => x.trim()).filter(Boolean).slice(0, 3) : [];
@@ -210,6 +210,27 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
       .then(r => r.json())
       .then(d => { if (Array.isArray(d?.images) && d.images.length) setFriendPics(d.images); })
       .catch(() => {});
+  };
+  // STRIPTEASE AUF BEFEHL (Owner 28.07.2026): Er tippt, der Radar läuft, ein neues Bild
+  // erscheint. Genau dieses Erlebnis macht süchtig — und es kostet uns nichts, weil die
+  // Bilder längst existieren (Pool). Erst wenn er SELBST etwas erzeugen will, wird bezahlt.
+  const [showBusy, setShowBusy] = useState(false);
+  const showNext = () => {
+    if (showBusy) return;
+    setShowBusy(true);
+    const pic = friendPics[0];
+    if (!pic) { loadFriends(); }
+    window.setTimeout(() => {
+      setFriendPics(list => list.slice(1));
+      const line = (({
+        de: "Bitte sehr 😌", en: "There you go 😌", ro: "Poftim 😌", es: "Aquí tienes 😌",
+        fr: "Tiens 😌", pt: "Aqui tens 😌", pl: "Proszę 😌", it: "Ecco 😌",
+      } as Record<string, string>)[lang]) ?? "There you go 😌";
+      setMsgs(m => [...m, { role: "assistant", content: `${line}\n[[PIC:${pic?.url ?? ""}]]` }]);
+      setShowBusy(false);
+      if (friendPics.length <= 2) loadFriends();
+      scrollFeed();
+    }, 2600);
   };
   const [playing, setPlaying] = useState("");
   const [hasTyped, setHasTyped] = useState(false);   // hat er je selbst getippt?
@@ -534,6 +555,11 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
               </div>
               {/* SIE ZEIGT SICH: die Nachricht mit dem Tag bekommt die Galerie darunter —
                   sonst verspricht sie ein Bild und es kommt nichts (Owner 28.07.2026). */}
+              {m.role === "assistant" && /\[\[PIC:([^\]]+)\]\]/i.test(m.content) && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={(m.content.match(/\[\[PIC:([^\]]+)\]\]/i) ?? [])[1] ?? ""} alt=""
+                  className="aspect-[3/4] w-40 rounded-xl border border-[#f6cf51]/40 object-cover" />
+              )}
               {m.role === "assistant" && /\[\[SHOW_FRIENDS\]\]/i.test(m.content) && friendPics.length > 0 && (
                 <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {friendPics.map(f => (
@@ -583,6 +609,13 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
               </div>
             );
           })()}
+          {showBusy && herPhoto && (
+            <div className="relative mx-auto aspect-[3/4] w-40 overflow-hidden rounded-xl border border-[#f6cf51]/40">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={herPhoto} alt="" className="h-full w-full scale-105 object-cover object-top blur-[6px] brightness-75" />
+              <span className="lb-scanline absolute inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#f6cf51] to-transparent shadow-[0_0_12px_#f6cf51]" />
+            </div>
+          )}
           {playing && (
             <div className="fixed inset-0 z-50 grid place-items-center bg-black/90 p-4" onClick={() => setPlaying("")}>
               {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
@@ -681,6 +714,17 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
             {status || "…"}
           </span>
         </div>
+      )}
+      {/* AUF BEFEHL ZEIGEN — gratis, unbegrenzt, mit Radar. Das ist der Suchtfaktor
+          (Owner 28.07.2026); bezahlt wird erst, was ER selbst erzeugen will. */}
+      {chosen && !dayFull && (
+        <button type="button" onClick={showNext} disabled={showBusy}
+          className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[#f6cf51]/40 bg-[#f6cf51]/10 text-[13px] font-black text-[#f6cf51] active:scale-95 transition disabled:opacity-60">
+          {showBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "🔥"}
+          {showBusy
+            ? ((({ de: "Sie zieht sich um …", en: "She's changing …", ro: "Se schimbă …", es: "Se está cambiando …", fr: "Elle se change …", pt: "Está a trocar …", pl: "Przebiera się …", it: "Si sta cambiando …" } as Record<string, string>)[lang]) ?? "She's changing …")
+            : ((({ de: "Zeig mir noch eins", en: "Show me another one", ro: "Mai arată-mi una", es: "Enséñame otra", fr: "Montre-m'en une autre", pt: "Mostra-me outra", pl: "Pokaż mi jeszcze jedno", it: "Mostrami un'altra" } as Record<string, string>)[lang]) ?? "Show me another one")}
+        </button>
       )}
       {/* Ohne Abo führt dieser Knopf zur KASSE — dann muss er das auch draufschreiben.
           Vorher hieß er „Zieh es ihr an" und sprang wortlos zu Stripe (Owner 28.07.2026). */}
