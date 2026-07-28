@@ -227,10 +227,23 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     } as Record<string, string>)[L]) ?? `I'm so sorry ${nm}you've used all your credits 😢 This software costs money — please help cover the server costs so we can keep chatting. 💛`;
   })();
   const [unlocking, setUnlocking] = useState(false);
+  // Aktionscode aus der Adresse (`?code=BELLA`) — so kommt der Preis aus der Anzeige
+  // (19 € erster Monat) mit, ohne dass der Kunde in Stripe etwas eintippen muss.
+  const [promo, setPromo] = useState("");
+  useEffect(() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      const c = (p.get("code") ?? "").trim().slice(0, 40);
+      if (c) setPromo(c);
+      // Aus dem Abo-Knopf der Mail (`abo=1`): zum Angebot scrollen. BEWUSST kein
+      // automatischer Sprung zur Kasse — eine Zahlseite öffnet sich nur auf Tippen.
+      if (p.get("abo") === "1") setTimeout(() => document.getElementById("abo")?.scrollIntoView({ behavior: "smooth", block: "center" }), 400);
+    } catch { /**/ }
+  }, []);
   const unlock = async () => {
     setUnlocking(true);
     try {
-      const r = await fetch("/api/wetter-abo-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subId, modelId, modelSlug }) });
+      const r = await fetch("/api/wetter-abo-checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subId, modelId, modelSlug, code: promo }) });
       const d = await r.json().catch(() => ({}));
       if (d?.url) { window.location.href = d.url; return; }
     } catch { /**/ }
@@ -541,25 +554,25 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
       {/* ABONNIEREN — die Seite hatte keinen einzigen Kaufknopf: der Freischalt-Knopf tauchte
           erst auf, wenn die Sperre griff. Wer vorher kaufen WOLLTE, konnte es gar nicht. */}
       {!paid && (() => {
-        const S: Record<string, { h: string; p: string; cta: string }> = {
-          ro: { h: `Vrei mai mult de la ${modelName}?`, p: "25 de videoclipuri pe lună în toate temele — chatul rămâne gratuit.", cta: "Abonează-te — 49 €/lună" },
-          de: { h: `Mehr von ${modelName}?`, p: "25 Videos im Monat über alle Themen — Chatten bleibt gratis.", cta: "Abo starten — 49 €/Monat" },
-          en: { h: `Want more from ${modelName}?`, p: "25 videos a month across all topics — chatting stays free.", cta: "Subscribe — €49/month" },
-          es: { h: `¿Quieres más de ${modelName}?`, p: "25 vídeos al mes en todos los temas — chatear sigue siendo gratis.", cta: "Suscríbete — 49 €/mes" },
-          fr: { h: `Envie de plus avec ${modelName} ?`, p: "25 vidéos par mois sur tous les thèmes — le chat reste gratuit.", cta: "S'abonner — 49 €/mois" },
-          pt: { h: `Queres mais da ${modelName}?`, p: "25 vídeos por mês em todos os temas — conversar continua grátis.", cta: "Subscrever — 49 €/mês" },
-          pl: { h: `Chcesz więcej od ${modelName}?`, p: "25 filmów miesięcznie we wszystkich tematach — czat pozostaje darmowy.", cta: "Subskrybuj — 49 €/miesiąc" },
-          it: { h: `Vuoi di più da ${modelName}?`, p: "25 video al mese in tutti i temi — chattare resta gratis.", cta: "Abbonati — 49 €/mese" },
+        const S: Record<string, { h: string; p: string; cta: string; ctaCode: string }> = {
+          ro: { h: `Vrei mai mult de la ${modelName}?`, p: "25 de videoclipuri pe lună în toate temele — chatul rămâne gratuit.", cta: "Abonează-te — 49 €/lună", ctaCode: "19 € prima lună, apoi 49 €" },
+          de: { h: `Mehr von ${modelName}?`, p: "25 Videos im Monat über alle Themen — Chatten bleibt gratis.", cta: "Abo starten — 49 €/Monat", ctaCode: "19 € erster Monat, danach 49 €" },
+          en: { h: `Want more from ${modelName}?`, p: "25 videos a month across all topics — chatting stays free.", cta: "Subscribe — €49/month", ctaCode: "€19 first month, then €49" },
+          es: { h: `¿Quieres más de ${modelName}?`, p: "25 vídeos al mes en todos los temas — chatear sigue siendo gratis.", cta: "Suscríbete — 49 €/mes", ctaCode: "19 € el primer mes, luego 49 €" },
+          fr: { h: `Envie de plus avec ${modelName} ?`, p: "25 vidéos par mois sur tous les thèmes — le chat reste gratuit.", cta: "S'abonner — 49 €/mois", ctaCode: "19 € le 1er mois, puis 49 €" },
+          pt: { h: `Queres mais da ${modelName}?`, p: "25 vídeos por mês em todos os temas — conversar continua grátis.", cta: "Subscrever — 49 €/mês", ctaCode: "19 € no 1.º mês, depois 49 €" },
+          pl: { h: `Chcesz więcej od ${modelName}?`, p: "25 filmów miesięcznie we wszystkich tematach — czat pozostaje darmowy.", cta: "Subskrybuj — 49 €/miesiąc", ctaCode: "19 € pierwszy miesiąc, potem 49 €" },
+          it: { h: `Vuoi di più da ${modelName}?`, p: "25 video al mese in tutti i temi — chattare resta gratis.", cta: "Abbonati — 49 €/mese", ctaCode: "19 € il primo mese, poi 49 €" },
         };
         const x = S[L] ?? S.en;
         return (
-          <div className="mx-auto mt-6 max-w-md px-4">
+          <div id="abo" className="mx-auto mt-6 max-w-md px-4 scroll-mt-24">
             <div className="rounded-2xl border border-[#f6cf51]/40 bg-[#f6cf51]/[0.08] p-4 text-center">
               <p className="text-[16px] font-black text-white">{x.h}</p>
               <p className="mt-1 text-[13px] font-bold leading-snug text-white/85">{x.p}</p>
-              <button type="button" onClick={() => void unlock()}
-                className="lb-gold mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition">
-                {x.cta}
+              <button type="button" onClick={() => void unlock()} disabled={unlocking}
+                className="lb-gold mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full text-[15px] font-black active:scale-95 transition disabled:opacity-60">
+                {unlocking ? <Loader2 className="h-4 w-4 animate-spin" /> : (promo ? x.ctaCode : x.cta)}
               </button>
             </div>
           </div>

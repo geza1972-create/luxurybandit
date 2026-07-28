@@ -5,6 +5,9 @@ export type Copy = {
   subject: string; preheader: string; greet: string; lead: string; body: string;
   wx: string; wxCity: string; look: string; chat: string;
   cta: string; bye: string; unsub: string; ai: string;
+  // Abo-Angebot in der Mail: dieselbe Zusage wie in der Anzeige (19 € erster Monat,
+  // danach 49 €) — der Code reist im Link mit, der Kunde muss nichts eintippen.
+  aboH: string; aboP: string; aboCta: string;
 };
 export function copy(lang: string, name: string): Copy {
   const n = name || "";
@@ -18,42 +21,50 @@ export function copy(lang: string, name: string): Copy {
       greet: c("Bună dimineața"), lead: "Vremea ta și look-ul de azi \u2600\uFE0F", body: "Ziua abia începe. Am pregătit vremea ta și un look nou \u2014 aruncă o privire.",
       wx: "Cum e vremea azi", wxCity: "Cum e vremea în {city}", look: "Look-ul de azi", chat: "Și un chat, dacă vrei",
       cta: "Vezi acum", bye: "O zi bună,", unsub: "Nu mai vrei aceste mesaje? Dezabonează-te",
-      ai: "Bella este o persoană virtuală (AI) creată de LuxuryBandit \u2014 nu o persoană reală." },
+      ai: "Bella este o persoană virtuală (AI) creată de LuxuryBandit \u2014 nu o persoană reală.",
+      aboH: "Toate funcțiile, deblocate", aboP: "25 de videoclipuri pe lună în toate temele. Chatul rămâne gratuit.", aboCta: "Începe cu 19 € prima lună" },
     de: { subject: c("Guten Morgen") + " \u2600\uFE0F", preheader: "Dein Wetter für heute und ein neuer Look.",
       greet: c("Guten Morgen"), lead: "Dein Wetter und der Look von heute \u2600\uFE0F", body: "Der Tag fängt gerade erst an. Dein Wetter steht bereit, dazu ein neuer Look \u2014 schau kurz rein.",
       wx: "Wie das Wetter heute wird", wxCity: "Wie das Wetter in {city} wird", look: "Der Look von heute", chat: "Und ein Chat, wenn du magst",
       cta: "Jetzt ansehen", bye: "Einen schönen Tag,", unsub: "Keine Nachrichten mehr? Hier abmelden",
-      ai: "Bella ist eine KI-Persona von LuxuryBandit \u2014 keine echte Person." },
+      ai: "Bella ist eine KI-Persona von LuxuryBandit \u2014 keine echte Person.",
+      aboH: "Alle Funktionen freischalten", aboP: "25 Videos im Monat über alle Themen. Chatten bleibt gratis.", aboCta: "Erster Monat 19 € starten" },
     en: { subject: c("Good morning") + " \u2600\uFE0F", preheader: "Your weather for today and a new look.",
       greet: c("Good morning"), lead: "Your weather and today's look \u2600\uFE0F", body: "The day is just starting. Your weather is ready, along with a new look \u2014 take a quick look.",
       wx: "How the weather looks today", wxCity: "How the weather looks in {city}", look: "Today's look", chat: "And a chat, if you like",
       cta: "See it now", bye: "Have a good day,", unsub: "Don't want these emails? Unsubscribe",
-      ai: "Bella is an AI persona created by LuxuryBandit \u2014 not a real person." },
+      ai: "Bella is an AI persona created by LuxuryBandit \u2014 not a real person.",
+      aboH: "Unlock everything", aboP: "25 videos a month across all topics. Chatting stays free.", aboCta: "Start — €19 first month" },
     es: { subject: c("Buenos días") + " \u2600\uFE0F", preheader: "Tu clima de hoy y un look nuevo.",
       greet: c("Buenos días"), lead: "Tu clima y el look de hoy \u2600\uFE0F", body: "El día acaba de empezar. Tu clima está listo, y también un look nuevo \u2014 échale un vistazo.",
       wx: "Qué tiempo hace hoy", wxCity: "Qué tiempo hace en {city}", look: "El look de hoy", chat: "Y un chat, si te apetece",
       cta: "Verlo ahora", bye: "Que tengas buen día,", unsub: "¿No quieres estos emails? Darse de baja",
-      ai: "Bella es una persona virtual (IA) creada por LuxuryBandit \u2014 no es una persona real." },
+      ai: "Bella es una persona virtual (IA) creada por LuxuryBandit \u2014 no es una persona real.",
+      aboH: "Desbloquea todo", aboP: "25 vídeos al mes en todos los temas. Chatear sigue gratis.", aboCta: "Empieza — 19 € el primer mes" },
     fr: { subject: c("Bonjour") + " \u2600\uFE0F", preheader: "Ta météo du jour et un nouveau look.",
       greet: c("Bonjour"), lead: "Ta météo et le look du jour \u2600\uFE0F", body: "La journée commence à peine. Ta météo est prête, avec un nouveau look \u2014 jette un œil.",
       wx: "Le temps qu'il fait aujourd'hui", wxCity: "Le temps qu'il fait à {city}", look: "Le look du jour", chat: "Et un chat, si tu veux",
       cta: "Voir maintenant", bye: "Bonne journée,", unsub: "Tu ne veux plus ces e-mails ? Se désabonner",
-      ai: "Bella est un personnage virtuel (IA) créé par LuxuryBandit \u2014 pas une personne réelle." },
+      ai: "Bella est un personnage virtuel (IA) créé par LuxuryBandit \u2014 pas une personne réelle.",
+      aboH: "Tout débloquer", aboP: "25 vidéos par mois sur tous les thèmes. Le chat reste gratuit.", aboCta: "Commencer — 19 € le 1er mois" },
     pt: { subject: c("Bom dia") + " \u2600\uFE0F", preheader: "O teu tempo de hoje e um novo visual.",
       greet: c("Bom dia"), lead: "O teu tempo e o visual de hoje \u2600\uFE0F", body: "O dia está a começar. O teu tempo está pronto, e também um novo visual \u2014 dá uma vista de olhos.",
       wx: "Como está o tempo hoje", wxCity: "Como está o tempo em {city}", look: "O visual de hoje", chat: "E uma conversa, se quiseres",
       cta: "Ver agora", bye: "Bom dia,", unsub: "Não queres estes emails? Cancelar subscrição",
-      ai: "A Bella é uma persona de IA criada pela LuxuryBandit \u2014 não é uma pessoa real." },
+      ai: "A Bella é uma persona de IA criada pela LuxuryBandit \u2014 não é uma pessoa real.",
+      aboH: "Desbloqueia tudo", aboP: "25 vídeos por mês em todos os temas. Conversar continua grátis.", aboCta: "Começar — 19 € no 1.º mês" },
     pl: { subject: c("Dzień dobry") + " \u2600\uFE0F", preheader: "Twoja pogoda na dziś i nowy look.",
       greet: c("Dzień dobry"), lead: "Twoja pogoda i dzisiejszy look \u2600\uFE0F", body: "Dzień dopiero się zaczyna. Twoja pogoda jest gotowa, a do tego nowy look \u2014 zajrzyj na chwilę.",
       wx: "Jaka dziś pogoda", wxCity: "Jaka pogoda w {city}", look: "Dzisiejszy look", chat: "I czat, jeśli chcesz",
       cta: "Zobacz teraz", bye: "Miłego dnia,", unsub: "Nie chcesz tych e-maili? Wypisz się",
-      ai: "Bella to persona AI stworzona przez LuxuryBandit \u2014 nie jest prawdziwą osobą." },
+      ai: "Bella to persona AI stworzona przez LuxuryBandit \u2014 nie jest prawdziwą osobą.",
+      aboH: "Odblokuj wszystko", aboP: "25 filmów miesięcznie we wszystkich tematach. Czat pozostaje darmowy.", aboCta: "Zacznij — 19 € pierwszy miesiąc" },
     it: { subject: c("Buongiorno") + " \u2600\uFE0F", preheader: "Il tuo meteo di oggi e un nuovo look.",
       greet: c("Buongiorno"), lead: "Il tuo meteo e il look di oggi \u2600\uFE0F", body: "La giornata è appena iniziata. Il tuo meteo è pronto, e anche un nuovo look \u2014 dai un'occhiata.",
       wx: "Che tempo fa oggi", wxCity: "Che tempo fa a {city}", look: "Il look di oggi", chat: "E una chat, se ti va",
       cta: "Guarda ora", bye: "Buona giornata,", unsub: "Non vuoi più queste email? Disiscriviti",
-      ai: "Bella è una persona virtuale (IA) creata da LuxuryBandit \u2014 non è una persona reale." },
+      ai: "Bella è una persona virtuale (IA) creata da LuxuryBandit \u2014 non è una persona reale.",
+      aboH: "Sblocca tutto", aboP: "25 video al mese in tutti i temi. Chattare resta gratis.", aboCta: "Inizia — 19 € il primo mese" },
   };
   return T[lang] ?? T.en;
 }
@@ -65,7 +76,7 @@ const esc = (s: string) => String(s ?? "").replace(/[&<>"]/g, m => ({ "&": "&amp
 
 // Dunkle Karte in der Marken-Optik (Schwarz + Gold), Tabellen-Layout + Inline-Styles,
 // damit es auch in Outlook/Gmail hält. `hero` = Poster des aktuellen Beitrags (optional).
-export function buildHtml(c: Copy, link: string, unsub: string, hero: string, city: string, modelName: string): string {
+export function buildHtml(c: Copy, link: string, unsub: string, hero: string, city: string, modelName: string, aboLink = ""): string {
   const wx = city ? c.wxCity.replace("{city}", esc(city)) : c.wx;
   const row = (icon: string, text: string) =>
     `<tr><td style="padding:3px 0;font-size:14px;color:#e8e2d6;font-family:Arial,Helvetica,sans-serif">`
@@ -102,6 +113,21 @@ export function buildHtml(c: Copy, link: string, unsub: string, hero: string, ci
     + `<p style="margin:0 0 14px;font-size:15px;line-height:1.55;color:#d8d2c6">${c.body}</p>`
     + `<table role="presentation" cellpadding="0" cellspacing="0" border="0">${row("☀", wx)}${row("✦", c.look)}${row("💬", c.chat)}</table>`
     + `</td></tr>`
+    // ABO-ANGEBOT — dieselbe Zusage wie in der Anzeige (19 € erster Monat, danach 49 €).
+    // Der Rabattcode hängt im Link, der Kunde muss nichts eintippen. Ohne aboLink fällt
+    // der Block weg, die Mail bleibt gültig.
+    + (aboLink
+      ? `<tr><td style="padding:18px 24px 0">`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#1f1a12;border:1px solid #4a3d1c;border-radius:14px">`
+        + `<tr><td style="padding:16px 18px" align="center">`
+        + `<p style="margin:0;font-size:16px;font-weight:bold;color:#f6cf51">${esc(c.aboH)}</p>`
+        + `<p style="margin:6px 0 12px;font-size:13px;line-height:1.5;color:#d8d2c6">${esc(c.aboP)}</p>`
+        + `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>`
+        + `<td align="center" bgcolor="#f6cf51" style="border-radius:999px">`
+        + `<a href="${aboLink}" style="display:inline-block;padding:12px 26px;font-size:14px;font-weight:bold;color:#0d0b0a;text-decoration:none;border-radius:999px">${esc(c.aboCta)}</a>`
+        + `</td></tr></table>`
+        + `</td></tr></table></td></tr>`
+      : "")
     + `<tr><td style="height:20px"></td></tr>`
     // Gruß
     + `<tr><td style="padding:0 24px 24px;font-size:14px;color:#b9b1a4">${esc(c.bye)}<br><span style="color:#ffffff;font-weight:bold">${esc(modelName)}</span> · LuxuryBandit</td></tr>`

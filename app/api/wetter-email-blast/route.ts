@@ -8,6 +8,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const BELLA_ID = "curator-1783683672619-td4cy";
+// Aktionscode aus der Anzeige („19 €/Monat statt 49") — reist im Abo-Link mit.
+const ABO_CODE = process.env.WETTER_EMAIL_ABO_CODE?.trim() || "BELLA";
 
 // Tägliche „Guten Morgen"-E-Mail (Bella-Wetter) — pro Sprache, mit persönlichem Link + Abmelden.
 // Bellas Ich-Stimme, Du-Form: dein Wetter + ein neuer Look + „danach im Chat".
@@ -73,7 +75,11 @@ export async function POST(request: Request) {
     const c = copy(lang, s.name || "");
     const link = `${origin}/themes/wetter/${encodeURIComponent(modelSlug)}?s=${encodeURIComponent(s.id)}&src=email`;
     const unsub = `${origin}/api/wetter-unsubscribe?model=${encodeURIComponent(modelId)}&s=${encodeURIComponent(s.id)}&lang=${encodeURIComponent(lang)}`;
-    const r = await sendEmail({ to: s.email as string, subject: c.subject, html: buildHtml(c, link, unsub, hero, s.city || "", modelName) }).catch(() => ({ ok: false, error: "send failed" as string }));
+    // Abo-Knopf in der Mail: derselbe Link + Aktionscode + `abo=1`. Die Seite öffnet damit
+    // die Kasse direkt zum Anzeigenpreis (19 € erster Monat) — sonst müsste der Kunde den
+    // Code in Stripe selbst eintippen und sähe 49 €.
+    const aboLink = `${link}&code=${encodeURIComponent(ABO_CODE)}&abo=1`;
+    const r = await sendEmail({ to: s.email as string, subject: c.subject, html: buildHtml(c, link, unsub, hero, s.city || "", modelName, aboLink) }).catch(() => ({ ok: false, error: "send failed" as string }));
     results.push({ id: s.id, email: s.email as string, ok: !!(r as { ok?: boolean }).ok, error: (r as { error?: string }).error });
   }
   return NextResponse.json({ sent: results.filter(r => r.ok).length, total: targets.length, results });
