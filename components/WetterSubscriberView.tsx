@@ -19,7 +19,13 @@ import { dayFullMessage, CHIPS_TAG_RE, fallbackChips } from "@/lib/chat-deal";
 // Bedingungs-Wörter pro Sprache; Zeitzone der Stadt mit abgefangen (spätere „Morgen"-Zustellung).
 
 const DEFAULT_MODEL_ID = "curator-1783683672619-td4cy"; // Bella = Fallback/erstes Model
-const DEFAULT_LANG = "en";   // Standard = EN, wenn keine Sprache übergeben
+const DEFAULT_LANG = "en";
+
+// „Morgen" vor der Vorhersage, wenn die Tagespost abends kommt.
+const TOMORROW_LBL: Record<string, string> = {
+  en: "Tomorrow", de: "Morgen", ro: "Mâine", es: "Mañana",
+  fr: "Demain", pt: "Amanhã", pl: "Jutro", it: "Domani",
+};   // Standard = EN, wenn keine Sprache übergeben
 
 // {Name} / {name} im Titel durch den echten Namen ersetzen (feste Vorgabe wird personalisiert).
 // Kein Name bekannt? Dann Platzhalter SAMT davorstehendem Komma entfernen und Satzzeichen
@@ -172,6 +178,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     try { localStorage.setItem(`lb_wetter_sub_${modelId}`, subId); } catch { /**/ }
   }, [subId, modelId]);
 
+  const [tomorrow, setTomorrow] = useState(false);   // abends zeigen wir das Wetter für morgen
   const [weather, setWeather] = useState<{ temp: number; min: number; max: number; word: string; e: string; rainy: boolean; place: string } | null>(null);
   const tzRef = useRef<string>("");   // Zeitzone der Stadt — fürs spätere „Morgen"-Timing pro Land.
 
@@ -278,16 +285,20 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
         if (!loc) loc = await geocode(CAPITAL[L] ?? "London");   // Stadt nicht gefunden → Hauptstadt der Sprache
         if (!loc) return;
         tzRef.current = String(loc.timezone || "");   // ← Zeitzone mit abgefangen (steht bereit für die DB).
-        const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=1`).then(r => r.json());
+        const w = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=2`).then(r => r.json());
         const c = w?.current, dy = w?.daily;
         if (ok && c) {
-          // Tages-VORHERSAGE: Tages-Wettercode + Hoch/Tief + Regenwahrscheinlichkeit (Fallback: aktuell).
-          const dayCode = Number(dy?.weather_code?.[0] ?? c.weather_code);
+          // ABENDS = das Wetter für MORGEN (Owner 28.07.2026): die Tagespost geht abends
+          // raus, weil morgens niemand Zeit zum Chatten hat. Ab 15 Uhr Ortszeit zeigen wir
+          // deshalb Tag 2 der Vorhersage, davor den heutigen Tag.
+          const t = new Date().getHours() >= 15 && Array.isArray(dy?.weather_code) && dy.weather_code.length > 1 ? 1 : 0;
+          const dayCode = Number(dy?.weather_code?.[t] ?? c.weather_code);
           const wk = wxKey(dayCode);
           const now = Math.round(Number(c.temperature_2m));
-          const max = Math.round(Number(dy?.temperature_2m_max?.[0] ?? c.temperature_2m));
-          const min = Math.round(Number(dy?.temperature_2m_min?.[0] ?? c.temperature_2m));
-          const rainy = Number(dy?.precipitation_probability_max?.[0] ?? 0) >= 40;
+          const max = Math.round(Number(dy?.temperature_2m_max?.[t] ?? c.temperature_2m));
+          const min = Math.round(Number(dy?.temperature_2m_min?.[t] ?? c.temperature_2m));
+          const rainy = Number(dy?.precipitation_probability_max?.[t] ?? 0) >= 40;
+          setTomorrow(t === 1);
           setWeather({ temp: now, min, max, word: wxWords[wk.key] ?? "", e: wk.e, rainy, place: String(loc.name || city) });
         }
       } catch { /**/ }
@@ -458,7 +469,11 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             : <p className="text-[24px] font-black leading-tight text-white">{t.greetPre.replace(/[,،]\s*$/, "")}!</p>}
         {city.trim() && (
           <p className="mt-1 text-[14px] font-semibold text-white/70">
-            {weather ? forecastLine(L, weather.place, weather.word, weather.e, weather.min, weather.max, weather.rainy) : t.wxLoading(city)}
+            {/* Abends sagen wir dazu, dass es das Wetter für MORGEN ist — sonst wirkt die
+                Vorhersage falsch (Owner 28.07.2026). */}
+            {weather
+              ? `${tomorrow ? `${TOMORROW_LBL[L] ?? TOMORROW_LBL.en}: ` : ""}${forecastLine(L, weather.place, weather.word, weather.e, weather.min, weather.max, weather.rainy)}`
+              : t.wxLoading(city)}
           </p>
         )}
         {caption.trim() && <p className="mt-2.5 whitespace-pre-wrap text-[15px] font-semibold leading-relaxed text-white/70">{caption}</p>}
