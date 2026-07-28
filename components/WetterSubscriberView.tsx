@@ -8,6 +8,7 @@ import { wxKey, WX_WORDS, forecastLine } from "@/lib/wetter-forecast";
 import { startPremiumCheckout } from "@/lib/start-premium-checkout";
 import AgeGate, { ageVerified } from "@/components/AgeGate";
 import { renewNote } from "@/lib/pricing";
+import { WHATSAPP_CHANNEL, followWhatsApp } from "@/lib/social";
 
 // Was der ABONNENT auf /wetter/<model>?name=…&city=…&lang=… sieht:
 // persönlicher Gruß + Wetter aus seiner Stadt + Look vom Tag + Chat mit dem Model (im Abo unbegrenzt).
@@ -578,6 +579,11 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
               {/* Der laufende Preis — bewusst dünn und klein, er soll den Knopf nicht erschlagen. */}
               <p className="mt-2 text-[10px] font-medium leading-snug text-white/55">{renewNote(L)}</p>
             </div>
+            {/* WhatsApp-Kanal: Einbahnstraße, niemand sieht fremde Nummern (Owner 28.07.2026). */}
+            <a href={WHATSAPP_CHANNEL} target="_blank" rel="noopener noreferrer"
+              className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full border border-[#25D366]/40 bg-[#25D366]/10 text-[13px] font-black text-[#25D366] active:scale-95 transition">
+              💬 {followWhatsApp(L)}
+            </a>
           </div>
         );
       })()}

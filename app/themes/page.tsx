@@ -7,6 +7,7 @@ import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
 import { resolveLang } from "@/lib/lang-server";
 import { trObject } from "@/lib/tr-object";
 import { readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, readTryThisLookState, readKissConfig } from "@/lib/try-this-look-store";
+import { WHATSAPP_CHANNEL, followWhatsApp } from "@/lib/social";
 
 // Katalog aller „Themen" als bildstarke Galerie (wie die Reel-/Models-Galerie).
 // Aktiv: Wetter am Morgen (/themes/wetter/<model>). Weitere sind vorbereitet (coming soon).
@@ -257,6 +258,11 @@ export default async function ThemesCatalog({ searchParams }: {
         {/* Startseite → zu den Models. Zwei Wege, weil beides gefragt ist: die ganze
             Galerie und der Chat-Einstieg. */}
         <div className="mt-4 flex flex-wrap gap-2">
+          {/* WhatsApp-Kanal — täglich neue Beiträge, ohne dass jemand seine Nummer hergibt. */}
+          <a href={WHATSAPP_CHANNEL} target="_blank" rel="noopener noreferrer"
+            className="flex h-11 items-center justify-center gap-2 rounded-full border border-[#25D366]/40 bg-[#25D366]/10 px-5 text-[14px] font-black text-[#25D366] active:scale-95 transition">
+            💬 {followWhatsApp(L)}
+          </a>
           <Link href="/stores?view=models"
             className="lb-gold flex h-11 items-center justify-center gap-2 rounded-full px-5 text-[14px] font-black active:scale-95 transition">
             <Users className="h-4 w-4" /> {c.models}
