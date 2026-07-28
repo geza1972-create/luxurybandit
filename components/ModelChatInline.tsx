@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import AgeGate, { ageVerified } from "@/components/AgeGate";
 import Link from "next/link";
 import { Loader2, Send } from "lucide-react";
+import { openerFor } from "@/lib/chat-opener";
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
@@ -19,16 +20,9 @@ type ChatMsg = { role: "user" | "assistant"; content: string };
 //  • Unlock = the SAME 24 €/month Wetter abo (/api/model-chat-abo-checkout, popup + poll).
 const LANGS = ["ro", "de", "en", "es", "fr", "pt", "pl", "it"] as const;
 type Lang = (typeof LANGS)[number];
-const GREET: Record<Lang, string> = {
-  ro: "Bună 💛 mă bucur că ești aici. Despre ce vrei să vorbim?",
-  de: "Hey du 💛 schön, dass du da bist. Worüber wollen wir reden?",
-  en: "Hey you 💛 I'm so happy you're here. What do you want to talk about?",
-  es: "Hola 💛 me alegra que estés aquí. ¿De qué quieres hablar?",
-  fr: "Coucou 💛 contente que tu sois là. De quoi veux-tu parler ?",
-  pt: "Oi 💛 fico feliz que você esteja aqui. Sobre o que quer falar?",
-  pl: "Hej 💛 cieszę się, że tu jesteś. O czym chcesz porozmawiać?",
-  it: "Ciao 💛 sono felice che tu sia qui. Di cosa vuoi parlare?",
-};
+// Sie eröffnet mit einer FRAGE und vier Knöpfen (lib/chat-opener) — vor einem leeren Feld
+// trauen sich die meisten nicht zu schreiben und springen ab.
+const GREET = (l: Lang) => openerFor(l).text;
 const PLACEHOLDER: Record<Lang, (n: string) => string> = {
   ro: n => `Scrie-i lui ${n}…`, de: n => `Nachricht an ${n}…`, en: n => `Message ${n}…`,
   es: n => `Mensaje para ${n}…`, fr: n => `Message à ${n}…`, pt: n => `Mensagem para ${n}…`,
@@ -90,14 +84,14 @@ export default function ModelChatInline({
   });
   const changeLang = (next: Lang) => {
     setLang(next);
-    setMessages(m => (m.length === 1 && m[0].role === "assistant") ? [{ role: "assistant", content: GREET[next] }] : m);
+    setMessages(m => (m.length === 1 && m[0].role === "assistant") ? [{ role: "assistant", content: GREET(next) }] : m);
   };
   const visitorId = (() => {
     if (typeof window === "undefined") return "anon";
     try { let v = localStorage.getItem("lb_visitor"); if (!v) { v = (crypto.randomUUID?.() ?? String(Date.now())); localStorage.setItem("lb_visitor", v); } return v; } catch { return "anon"; }
   })();
 
-  const [messages, setMessages] = useState<ChatMsg[]>([{ role: "assistant", content: GREET[lang] }]);
+  const [messages, setMessages] = useState<ChatMsg[]>([{ role: "assistant", content: GREET(lang) }]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [needAge, setNeedAge] = useState(false);   // 18+-Abfrage vor der ersten Chat-Nachricht
@@ -106,6 +100,7 @@ export default function ModelChatInline({
   const [unlocked, setUnlocked] = useState(false); // paid the 24 € abo → unlimited chat with HER
   const [buying, setBuying] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pendingRef = useRef("");   // angetippter Knopf, der hinter der 18+-Abfrage wartet
 
   // Pick up an existing/returned 24 € unlock for THIS model.
   useEffect(() => {
@@ -143,20 +138,23 @@ export default function ModelChatInline({
     } catch { setBuying(false); }
   };
 
-  const sendMessage = async () => {
-    const text = input.trim();
+  // `preset` = ein angetippter Knopf aus dem Einstieg; sonst das, was er getippt hat.
+  const sendMessage = async (preset?: string) => {
+    const text = (preset ?? input).trim();
     if (!text || sending || wall) return;
     // 18+ gilt fürs CHATTEN (nicht für Bilder) — einmal pro Gerät, danach automatisch weiter.
-    if (!ageVerified()) { setNeedAge(true); return; }
+    // Den Text merken, sonst geht der angetippte Knopf hinter der Abfrage verloren.
+    if (!ageVerified()) { pendingRef.current = text; setNeedAge(true); return; }
+    pendingRef.current = "";
     setError("");
     // Paid model, free visitor: exactly ONE reply, then the wall. No AI call (no cost).
     if (!paidAccess && !bella) {
       setMessages(m => [...m, { role: "user", content: text }, { role: "assistant", content: CANNED[lang] }]);
-      setInput("");
+      if (!preset) setInput("");
       return;
     }
     const next = [...messages, { role: "user" as const, content: text }];
-    setMessages(next); setInput(""); setSending(true);
+    setMessages(next); if (!preset) setInput(""); setSending(true);
     try {
       const res = await fetch("/api/model-chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -231,6 +229,18 @@ export default function ModelChatInline({
             </div>
           </div>
         )}
+        {/* Antwort-Knöpfe auf ihre Einstiegsfrage — nur, solange er noch nichts geschrieben
+            hat. Ein Tipp schickt den Knopftext als ganz normale Nachricht an sie. */}
+        {userTurns === 0 && !sending && !wall && (
+          <div className="flex flex-wrap gap-1.5 pt-0.5">
+            {openerFor(lang).chips.map(c => (
+              <button key={c} type="button" onClick={() => void sendMessage(c)}
+                className="rounded-full border border-black/15 bg-white px-3 py-1.5 text-[12px] font-bold text-black active:scale-95 transition hover:border-black/40">
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
         {error && <p className="text-center text-[12px] font-bold text-red-500">{error}</p>}
       </div>
 
@@ -267,7 +277,7 @@ export default function ModelChatInline({
         <p className="mt-1.5 text-center text-[10px] font-bold text-black/50">✨ {first}&apos;s AI — an AI persona, not the real person.</p>
       </div>
       {/* 18+ nur fürs Chatten; nach „Ja" wird die Nachricht direkt abgeschickt. */}
-      {needAge && <AgeGate lang={lang} onDone={() => { setNeedAge(false); void sendMessage(); }} />}
+      {needAge && <AgeGate lang={lang} onDone={() => { setNeedAge(false); void sendMessage(pendingRef.current || undefined); }} />}
     </div>
   );
 }

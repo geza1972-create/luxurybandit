@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Send, ImageUp, Check, Lock, Shirt, Download, Sparkles } from "lucide-react";
+import { openerFor } from "@/lib/chat-opener";
 
 type Model = { id: string; name: string; photoUrl: string };
 type Look = { id: string; name?: string; imageUrl?: string };
@@ -165,12 +166,23 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
   const dayFull = !isStaff && today >= DAILY_MSGS;
   const looksLeft = Math.max(0, LOOKS_INCLUDED - usedLooks);
 
+  // SIE fängt an — mit einer Frage und vier Knöpfen (lib/chat-opener). Vor einem leeren
+  // Eingabefeld traut sich kaum jemand, als Erster zu schreiben. Wechselt er die Sprache,
+  // bevor er geantwortet hat, wandert die Frage mit.
+  useEffect(() => {
+    if (!chosen) return;
+    setMsgs(m => (m.length === 0 || (m.length === 1 && m[0].role === "assistant"))
+      ? [{ role: "assistant", content: openerFor(chatLang).text }]
+      : m);
+  }, [chosen, chatLang]);
+
   const onModelFile = async (f?: File | null) => { if (f) try { setCustomPhoto(await fileToDataUrl(f)); setUseCustom(true); } catch { /**/ } };
 
   const scrollFeed = () => setTimeout(() => feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: "smooth" }), 80);
 
-  const send = async () => {
-    const text = draft.trim();
+  // `preset` = ein angetippter Antwort-Knopf aus ihrem Einstieg; sonst das Getippte.
+  const send = async (preset?: string) => {
+    const text = (preset ?? draft).trim();
     if (!text || sending || wall || dayFull) return;
     // Tagesstand mitzählen (pro Gerät und Kalendertag).
     try {
@@ -180,7 +192,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
       setToday(n);
     } catch { /**/ }
     const next: Msg[] = [...msgs, { role: "user", content: text }];
-    setMsgs(next); setDraft(""); setSending(true); scrollFeed();
+    setMsgs(next); if (!preset) setDraft(""); setSending(true); scrollFeed();
     try {
       const payload = {
         curatorId: useCustom ? "" : (picked?.id ?? ""),
@@ -394,6 +406,18 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
                   : "rounded-2xl rounded-tl-sm bg-white text-black ring-1 ring-black/10"}`}>{m.content}</div>
               </div>
             )
+          )}
+          {/* Antwort-Knöpfe auf ihre Einstiegsfrage — nur, solange er noch nichts geschrieben
+              hat. Ein Tipp schickt den Knopftext als ganz normale Nachricht an sie. */}
+          {chosen && !sending && !dayFull && msgs.every(m => m.role !== "user") && (
+            <div className="flex flex-wrap gap-1.5 pt-0.5">
+              {openerFor(chatLang).chips.map(c => (
+                <button key={c} type="button" onClick={() => void send(c)}
+                  className="rounded-full border border-black/15 bg-white px-3 py-1.5 text-[12px] font-bold text-black active:scale-95 transition hover:border-black/40">
+                  {c}
+                </button>
+              ))}
+            </div>
           )}
           {sending && (
             <div className="flex justify-start">

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import AgeGate, { ageVerified } from "@/components/AgeGate";
 import { useRouter } from "next/navigation";
 import { Loader2, X, Send, Lock, Sparkles, Smile, Gift } from "lucide-react";
+import { openerFor } from "@/lib/chat-opener";
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
@@ -224,8 +225,9 @@ export default function ModelChat({
     setUserName(n);
     setInput("");
     setStage("chat");
-    // Warm, free greeting — no API call for the intro.
-    setMessages([{ role: "assistant", content: t.greet(n) }]);
+    // Warm, free greeting — no API call for the intro. Danach ihre Einstiegsfrage mit den
+    // vier Knöpfen (lib/chat-opener): vor einem leeren Feld schreibt kaum jemand als Erster.
+    setMessages([{ role: "assistant", content: openerFor(lang).text }]);
   };
 
   const sendMessage = async (textArg?: string) => {
@@ -356,6 +358,19 @@ export default function ModelChat({
               </div>
             );
           })}
+
+          {/* Antwort-Knöpfe auf ihre Einstiegsfrage — nur, solange er noch nichts geschrieben
+              hat. Ein Tipp schickt den Knopftext als ganz normale Nachricht an sie. */}
+          {stage === "chat" && !sending && messages.every(m => m.role !== "user") && (
+            <div className="flex flex-wrap gap-1.5">
+              {openerFor(lang).chips.map(c => (
+                <button key={c} type="button" onClick={() => void sendMessage(c)}
+                  className="rounded-full border border-white/25 bg-white/[0.06] px-3 py-1.5 text-[12px] font-bold text-white active:scale-95 transition hover:border-[#f6cf51] hover:text-[#f6cf51]">
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
 
           {sending && !streaming && (
             <div className="flex justify-start">
