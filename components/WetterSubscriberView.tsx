@@ -9,6 +9,7 @@ import { startPremiumCheckout } from "@/lib/start-premium-checkout";
 import AgeGate, { ageVerified } from "@/components/AgeGate";
 import { renewNote } from "@/lib/pricing";
 import { WHATSAPP_CHANNEL, followWhatsApp } from "@/lib/social";
+import { dayFullMessage, CHIPS_TAG_RE, fallbackChips } from "@/lib/chat-deal";
 
 // Was der ABONNENT auf /wetter/<model>?name=…&city=…&lang=… sieht:
 // persönlicher Gruß + Wetter aus seiner Stadt + Look vom Tag + Chat mit dem Model (im Abo unbegrenzt).
@@ -216,21 +217,11 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     });
   };
   const chatBlocked = !paid && !!subId && chatCount >= DAILY_CHAT_LIMIT;
-  // Bellas persönliche „Credits verbraucht"-Antwort, wenn ein gesperrter Abonnent zu senden versucht.
-  const creditsMsg = ((): string => {
-    const n = name.trim() || "";
-    const nm = n ? `${n}, ` : "";
-    return (({
-      ro: `Îmi pare rău ${nm}ți-ai consumat toate creditele 😢 Mi-ar plăcea să vorbim mai departe — dar aplicația asta costă bani. Hai să continuăm: te rog, fii drăguț și acoperă costurile serverului. 💛`,
-      de: `Es tut mir leid ${nm}du hast alle Credits verbraucht 😢 Ich würde so gern mit dir weiterschreiben — aber diese Software kostet leider Geld. Lass uns weiterchatten, sei bitte so lieb und übernimm die Serverkosten. 💛`,
-      en: `I'm so sorry ${nm}you've used all your credits 😢 I'd love to keep chatting with you — but this software costs money. Let's keep going: please be sweet and cover the server costs. 💛`,
-      es: `Lo siento ${nm}has usado todos tus créditos 😢 Me encantaría seguir hablando contigo — pero este software cuesta dinero. Sigamos: por favor sé bueno y cubre los costes del servidor. 💛`,
-      fr: `Je suis désolée ${nm}tu as utilisé tous tes crédits 😢 J'adorerais continuer à te parler — mais ce logiciel coûte de l'argent. Continuons : sois gentil et prends en charge les frais de serveur. 💛`,
-      pt: `Desculpa ${nm}usaste todos os teus créditos 😢 Adorava continuar a falar contigo — mas este software custa dinheiro. Vamos continuar: por favor, sê querido e cobre os custos do servidor. 💛`,
-      pl: `Przepraszam ${nm}wykorzystałeś wszystkie kredyty 😢 Chętnie pisałabym z Tobą dalej — ale to oprogramowanie kosztuje. Kontynuujmy: bądź kochany i pokryj koszty serwera. 💛`,
-      it: `Mi dispiace ${nm}hai usato tutti i tuoi crediti 😢 Mi piacerebbe continuare a parlare con te — ma questo software costa. Continuiamo: per favore, sii gentile e copri i costi del server. 💛`,
-    } as Record<string, string>)[L]) ?? `I'm so sorry ${nm}you've used all your credits 😢 This software costs money — please help cover the server costs so we can keep chatting. 💛`;
-  })();
+  // TAGESLIMIT — sie vertröstet auf morgen UND macht ein Angebot: im Abo reden wir weiter,
+  // ich verrate dir mehr und stelle dir meine Freundinnen vor (Owner 28.07.2026, Wortlaut
+  // vom Owner). Der stärkste Verkaufsmoment im Chat; steht in lib/chat-deal, 8 Sprachen.
+  const creditsMsg = dayFullMessage(L, name.trim());
+
   const [unlocking, setUnlocking] = useState(false);
   // Aktionscode aus der Adresse (`?code=BELLA`) — so kommt der Preis aus der Anzeige
   // (19 € erster Monat) mit, ohne dass der Kunde in Stripe etwas eintippen muss.
@@ -356,8 +347,9 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     if (email) void startPremiumCheckout(email, ret).catch(() => {});
   };
 
-  const send = async () => {
-    const text = input.trim();
+  // `preset` = ein angetippter Antwort-Knopf; sonst das Getippte.
+  const send = async (preset?: string) => {
+    const text = (preset ?? input).trim();
     if (!text || sending) return;
     // 18+ NUR für den CHAT: die Bilder zeigen nicht mehr als ein Strandfoto — der Chat
     // dagegen ist erwachsen (flirtend). Abfrage vor der ERSTEN Nachricht, einmal pro Gerät;
@@ -490,7 +482,8 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
               </div>
             );
             const offers = m.role === "assistant" && m.content.includes(LINGERIE_TAG);
-            const text = offers ? m.content.replace(LINGERIE_TAG, "").trim() : m.content;
+            // Der Knopf-Tag der KI gehoert nicht in die Blase — er wird unten zu Knoepfen.
+            const text = (offers ? m.content.replace(LINGERIE_TAG, "") : m.content).replace(CHIPS_TAG_RE, "").trim();
             const seeLbl = (({ ro: "Vezi-mă 🔥", de: "Sieh mich 🔥", en: "See me 🔥", es: "Verme 🔥", fr: "Vois-moi 🔥", pt: "Vê-me 🔥", pl: "Zobacz 🔥", it: "Guardami 🔥" } as Record<string, string>)[L]) ?? "See me 🔥";
             const unlockLbl = (({ ro: "Abonează-te", de: "Abo", en: "Unlock", es: "Desbloquear", fr: "Débloquer", pt: "Desbloquear", pl: "Odblokuj", it: "Sblocca" } as Record<string, string>)[L]) ?? "Unlock";
             return (
@@ -539,6 +532,23 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             </div>
           )}
         </div>
+        {/* ANTWORT-KNÖPFE: drei Vorschläge zur letzten Nachricht — tippen muss nur, wer will
+            (Owner 28.07.2026). Kommen von der KI ([[CHIPS: …]]), sonst allgemeine. */}
+        {!chatBlocked && !sending && messages.length > 0 && messages[messages.length - 1].role === "assistant" && (() => {
+          const mm = messages[messages.length - 1].content.match(CHIPS_TAG_RE);
+          const chips = mm ? mm[1].split("|").map(x => x.trim()).filter(Boolean).slice(0, 3) : fallbackChips(L);
+          if (!chips.length) return null;
+          return (
+            <div className="flex flex-wrap gap-1.5 border-t border-black/10 px-3 pb-1 pt-2">
+              {chips.map(c => (
+                <button key={c} type="button" onClick={() => void send(c)}
+                  className="rounded-full border border-black/15 bg-white px-3 py-1.5 text-[12px] font-bold text-black active:scale-95 transition hover:border-black/40">
+                  {c}
+                </button>
+              ))}
+            </div>
+          );
+        })()}
         {/* Eingabe bleibt IMMER frei — auch gesperrt darf er schreiben. Beim Senden antwortet
             dann Bella persönlich („Credits verbraucht") und der Freischalt-Button erscheint. */}
         <div className="relative flex items-end gap-1.5 border-t border-black/10 px-3 py-3">

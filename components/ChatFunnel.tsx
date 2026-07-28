@@ -6,6 +6,7 @@ import { openerFor } from "@/lib/chat-opener";
 import { renewNote } from "@/lib/pricing";
 import { tryonPrompt } from "@/lib/tryon-prompt";
 import { chatLookVideoPrompt, pickHolidayScene } from "@/lib/chat-look-video";
+import { CHIPS_TAG_RE, fallbackChips } from "@/lib/chat-deal";
 
 type Model = { id: string; name: string; photoUrl: string };
 type Look = { id: string; name?: string; imageUrl?: string };
@@ -101,6 +102,13 @@ const fileToDataUrl = (f: File) => new Promise<string>((res, rej) => {
 
 export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; lang?: string }) {
   const u = UI[lang] ?? UI.en;
+  // Die KI haengt drei Antwortvorschlaege an ([[CHIPS: a | b | c]]). Wir schneiden sie aus
+  // dem Text und zeigen sie als Knoepfe — getippt wird nur, wer will (Owner 28.07.2026).
+  const stripChips = (t: string) => t.replace(CHIPS_TAG_RE, "").replace(/\[\[SHOW_LINGERIE\]\]/gi, "").trim();
+  const chipsOf = (t: string) => {
+    const m = t.match(CHIPS_TAG_RE);
+    return m ? m[1].split("|").map(x => x.trim()).filter(Boolean).slice(0, 3) : [];
+  };
   const [models, setModels] = useState<Model[]>([]);
   const [pickIdx, setPickIdx] = useState(0);
   const [useCustom, setUseCustom] = useState(false);
@@ -490,22 +498,31 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[82%] whitespace-pre-wrap px-3 py-2 text-[13px] font-medium ${m.role === "user"
                   ? "rounded-2xl rounded-tr-sm bg-black text-white"
-                  : "rounded-2xl rounded-tl-sm bg-white text-black ring-1 ring-black/10"}`}>{m.content}</div>
+                  : "rounded-2xl rounded-tl-sm bg-white text-black ring-1 ring-black/10"}`}>{m.role === "assistant" ? stripChips(m.content) : m.content}</div>
               </div>
             )
           )}
-          {/* Antwort-Knöpfe auf ihre Einstiegsfrage — nur, solange er noch nichts geschrieben
-              hat. Ein Tipp schickt den Knopftext als ganz normale Nachricht an sie. */}
-          {chosen && !sending && !dayFull && msgs.every(m => m.role !== "user") && (
-            <div className="flex flex-wrap gap-1.5 pt-0.5">
-              {openerFor(chatLang).chips.map(c => (
-                <button key={c} type="button" onClick={() => void send(c)}
-                  className="rounded-full border border-black/15 bg-white px-3 py-1.5 text-[12px] font-bold text-black active:scale-95 transition hover:border-black/40">
-                  {c}
-                </button>
-              ))}
-            </div>
-          )}
+          {/* ANTWORT-KNÖPFE — am Anfang ihre Einstiegsfrage, danach die drei Vorschläge, die
+              die KI an jede Nachricht hängt. Leute klicken lieber, als zu tippen; getippt
+              wird nur, wer mag (Owner 28.07.2026). */}
+          {chosen && !sending && !dayFull && (() => {
+            const lastAssistant = [...msgs].reverse().find(m => m.role === "assistant")?.content ?? "";
+            const noUserYet = msgs.every(m => m.role !== "user");
+            const chips = noUserYet
+              ? openerFor(chatLang).chips
+              : (chipsOf(lastAssistant).length ? chipsOf(lastAssistant) : fallbackChips(chatLang));
+            if (!chips.length) return null;
+            return (
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {chips.map(c => (
+                  <button key={c} type="button" onClick={() => void send(c)}
+                    className="rounded-full border border-black/15 bg-white px-3 py-1.5 text-[12px] font-bold text-black active:scale-95 transition hover:border-black/40">
+                    {c}
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
           {sending && (
             <div className="flex justify-start">
               <div className="rounded-2xl rounded-tl-sm bg-white px-3.5 py-2.5 ring-1 ring-black/10">
