@@ -26,11 +26,12 @@ type Msg = { role: "user" | "assistant" | "notice"; content: string };
  */
 
 // Chat ist GRATIS (Owner 27.07.2026) — bezahlt wird nur das Generieren.
-// Das Tageslimit bleibt als Bremse gegen Skripte, nicht als Kasse.
-// Tageslimit im Abo: großzügig gerechnet auf ZWEI STUNDEN Schreiben am Stück (Owner) —
-// bei ~30 s pro Runde sind das gut 200 Nachrichten. Ein normaler Nutzer merkt das nie;
-// es bremst nur Skripte, die sonst unbegrenzt auf unsere Kosten laufen würden.
-const DAILY_MSGS = 200;
+// Das Tageslimit war lange eine reine Skript-Bremse (200/Tag). Seit 28.07.2026 ist es
+// dieselbe Zahl wie auf der Wetter-Seite: 10 pro Tag. Danach sieht der Vielschreiber das
+// Angebot, statt unbegrenzt auf unsere Kosten zu schreiben.
+// 10 Gratis-Nachrichten pro Tag (Owner 28.07.2026, vorher 200). Gleiche Zahl wie auf der
+// Wetter-Seite: genug fuer eine echte Unterhaltung, und der Vielschreiber sieht das Angebot.
+const DAILY_MSGS = 10;
 const DAY_KEY = "lb_chat_day";
 const LOOKS_INCLUDED = 25;     // Videos/Generierungen pro Monat im Abo — themenuebergreifend
 const USED_LOOKS_KEY = "lb_chat_looks";
