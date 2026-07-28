@@ -6,7 +6,7 @@ import { openerFor } from "@/lib/chat-opener";
 import { renewNote } from "@/lib/pricing";
 import { tryonPrompt } from "@/lib/tryon-prompt";
 import { chatLookVideoPrompt, pickHolidayScene } from "@/lib/chat-look-video";
-import { CHIPS_TAG_RE, fallbackChips } from "@/lib/chat-deal";
+import { CHIPS_TAG_RE, deriveChips } from "@/lib/chat-deal";
 
 type Model = { id: string; name: string; photoUrl: string };
 type Look = { id: string; name?: string; imageUrl?: string };
@@ -212,6 +212,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
       .catch(() => {});
   };
   const [playing, setPlaying] = useState("");
+  const [hasTyped, setHasTyped] = useState(false);   // hat er je selbst getippt?
 
   // Geräte-Kennung: dieselbe wie in „My Gallery" — damit ihr Gedächtnis am Besucher hängt
   // und nicht an einem Tab (Owner 28.07.2026).
@@ -264,7 +265,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
       setToday(n);
     } catch { /**/ }
     const next: Msg[] = [...msgs, { role: "user", content: text }];
-    setMsgs(next); if (!preset) setDraft(""); setSending(true); scrollFeed();
+    setMsgs(next); if (!preset) { setDraft(""); setHasTyped(true); } setSending(true); scrollFeed();
     try {
       const payload = {
         curatorId: useCustom ? "" : (picked?.id ?? ""),
@@ -564,9 +565,12 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
           {chosen && !sending && !dayFull && (() => {
             const lastAssistant = [...msgs].reverse().find(m => m.role === "assistant")?.content ?? "";
             const noUserYet = msgs.every(m => m.role !== "user");
+            // Knöpfe bleiben, BIS er selbst tippt (Owner 28.07.2026). Vorschläge von ihr
+            // gewinnen; sonst leiten wir sie aus ihrer Frage ab.
             const chips = noUserYet
               ? openerFor(chatLang).chips
-              : chipsOf(lastAssistant);   // keine Vorschläge von ihr → keine Knöpfe (unpassende sehen kaputt aus)
+              : (chipsOf(lastAssistant).length ? chipsOf(lastAssistant)
+                 : hasTyped ? [] : deriveChips(lastAssistant, chatLang));
             if (!chips.length) return null;
             return (
               <div className="flex flex-wrap gap-1.5 pt-0.5">

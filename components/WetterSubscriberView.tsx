@@ -9,7 +9,7 @@ import { startPremiumCheckout } from "@/lib/start-premium-checkout";
 import AgeGate, { ageVerified } from "@/components/AgeGate";
 import { renewNote } from "@/lib/pricing";
 import { WHATSAPP_CHANNEL, followWhatsApp } from "@/lib/social";
-import { dayFullMessage, CHIPS_TAG_RE, fallbackChips } from "@/lib/chat-deal";
+import { dayFullMessage, CHIPS_TAG_RE, deriveChips } from "@/lib/chat-deal";
 
 // Was der ABONNENT auf /wetter/<model>?name=…&city=…&lang=… sieht:
 // persönlicher Gruß + Wetter aus seiner Stadt + Look vom Tag + Chat mit dem Model (im Abo unbegrenzt).
@@ -178,6 +178,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     try { localStorage.setItem(`lb_wetter_sub_${modelId}`, subId); } catch { /**/ }
   }, [subId, modelId]);
 
+  const [hasTyped, setHasTyped] = useState(false);   // hat er je selbst getippt?
   const [tomorrow, setTomorrow] = useState(false);   // abends zeigen wir das Wetter für morgen
   const [weather, setWeather] = useState<{ temp: number; min: number; max: number; word: string; e: string; rainy: boolean; place: string } | null>(null);
   const tzRef = useRef<string>("");   // Zeitzone der Stadt — fürs spätere „Morgen"-Timing pro Land.
@@ -551,7 +552,9 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
             (Owner 28.07.2026). Kommen von der KI ([[CHIPS: …]]), sonst allgemeine. */}
         {!chatBlocked && !sending && messages.length > 0 && messages[messages.length - 1].role === "assistant" && (() => {
           const mm = messages[messages.length - 1].content.match(CHIPS_TAG_RE);
-          const chips = mm ? mm[1].split("|").map(x => x.trim()).filter(Boolean).slice(0, 3) : [];   // lieber keine als unpassende
+          // Knöpfe bleiben, BIS er selbst tippt; sonst aus ihrer Frage abgeleitet.
+          const chips = mm ? mm[1].split("|").map(x => x.trim()).filter(Boolean).slice(0, 3)
+            : hasTyped ? [] : deriveChips(messages[messages.length - 1].content, L);
           if (!chips.length) return null;
           return (
             <div className="flex flex-wrap gap-1.5 border-t border-black/10 px-3 pb-1 pt-2">

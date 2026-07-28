@@ -247,3 +247,45 @@ function pickMore(lang?: string): string {
   };
   return map[String(lang ?? "en").slice(0, 2)] ?? map.en;
 }
+
+
+/**
+ * KNÖPFE, SOLANGE ER NOCH NICHT SELBST TIPPT (Owner 28.07.2026).
+ *
+ * Die KI hängt Vorschläge an ([[CHIPS: …]]) — vergisst es aber gelegentlich. Dann leiten
+ * wir sie aus IHRER Frage ab, statt allgemeine Floskeln zu zeigen („Frumos 😊" unter einer
+ * Frage nach dem Tag sah kaputt aus):
+ *   · zählt sie Möglichkeiten auf („glamourös, casual, provokant…?") → genau die werden Knöpfe
+ *   · fragt sie geschlossen („willst du…?") → Ja / Nein / „zeig mir mehr"
+ * Erst wenn beides nicht greift, kommen die allgemeinen.
+ */
+const POLAR: Record<string, string[]> = {
+  en: ["Yes 🔥", "Not really", "Show me more"],
+  de: ["Ja 🔥", "Eher nicht", "Zeig mir mehr"],
+  ro: ["Da 🔥", "Nu prea", "Arată-mi mai mult"],
+  es: ["Sí 🔥", "No mucho", "Enséñame más"],
+  fr: ["Oui 🔥", "Pas trop", "Montre-moi plus"],
+  pt: ["Sim 🔥", "Nem por isso", "Mostra-me mais"],
+  pl: ["Tak 🔥", "Nie bardzo", "Pokaż mi więcej"],
+  it: ["Sì 🔥", "Non molto", "Mostrami di più"],
+};
+
+export function deriveChips(reply: string, lang?: string): string[] {
+  const clean = reply.replace(CHIPS_TAG_RE, "").replace(/\[\[[A-Z_]+\]\]/g, "").trim();
+  // NUR den letzten Fragesatz betrachten — sonst klebt die halbe Nachricht an der ersten
+  // Auswahl und fällt als „zu lang" durch den Filter.
+  const sentences = clean.split(/(?<=[.?!])\s+/).filter(l => l.includes("?"));
+  const q = sentences[sentences.length - 1] ?? "";
+  if (q) {
+    // „…: a, b, c?" oder „a, b oder c?" → die Aufzählung wird zur Auswahl.
+    let inner = q.slice(q.lastIndexOf(":") + 1, q.lastIndexOf("?"));
+    // „Etwas glamouröses, casual, provokant" → das Füllwort vor der ersten Option kappen.
+    inner = inner.replace(/^[^,]*?\b(ceva|etwas|something|algo|quelque chose|algo de|coś|qualcosa)\b\s*/i, "");
+    const parts = inner
+      .split(/,| or | oder | sau | o | ou | lub | oppure /i)
+      .map(x => x.replace(/^[\s.…-]+|[\s.…-]+$/g, "").trim())
+      .filter(x => x.length >= 3 && x.length <= 28 && !/\s{2}/.test(x));
+    if (parts.length >= 2) return parts.slice(-3);
+  }
+  return POLAR[String(lang ?? "en").slice(0, 2)] ?? POLAR.en;
+}
