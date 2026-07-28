@@ -555,14 +555,14 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
           erst auf, wenn die Sperre griff. Wer vorher kaufen WOLLTE, konnte es gar nicht. */}
       {!paid && (() => {
         const S: Record<string, { h: string; p: string; cta: string; ctaCode: string }> = {
-          ro: { h: `Vrei mai mult de la ${modelName}?`, p: "25 de videoclipuri pe lună în toate temele — chatul rămâne gratuit.", cta: "Deblochează cea mai fierbinte experiență AI — 49 €/lună", ctaCode: "Deblochează cea mai fierbinte experiență AI — 19 €" },
-          de: { h: `Mehr von ${modelName}?`, p: "25 Videos im Monat über alle Themen — Chatten bleibt gratis.", cta: "Die heißeste KI-Erfahrung freischalten — 49 €/Monat", ctaCode: "Die heißeste KI-Erfahrung freischalten — 19 €" },
-          en: { h: `Want more from ${modelName}?`, p: "25 videos a month across all topics — chatting stays free.", cta: "Unlock the hottest AI experience ever — €49/month", ctaCode: "Unlock the hottest AI experience ever — €19" },
-          es: { h: `¿Quieres más de ${modelName}?`, p: "25 vídeos al mes en todos los temas — chatear sigue siendo gratis.", cta: "Desbloquea la experiencia IA más ardiente — 49 €/mes", ctaCode: "Desbloquea la experiencia IA más ardiente — 19 €" },
-          fr: { h: `Envie de plus avec ${modelName} ?`, p: "25 vidéos par mois sur tous les thèmes — le chat reste gratuit.", cta: "Débloque l'expérience IA la plus chaude — 49 €/mois", ctaCode: "Débloque l'expérience IA la plus chaude — 19 €" },
-          pt: { h: `Queres mais da ${modelName}?`, p: "25 vídeos por mês em todos os temas — conversar continua grátis.", cta: "Desbloqueia a experiência de IA mais quente — 49 €/mês", ctaCode: "Desbloqueia a experiência de IA mais quente — 19 €" },
-          pl: { h: `Chcesz więcej od ${modelName}?`, p: "25 filmów miesięcznie we wszystkich tematach — czat pozostaje darmowy.", cta: "Odblokuj najgorętsze doświadczenie AI — 49 €/miesiąc", ctaCode: "Odblokuj najgorętsze doświadczenie AI — 19 €" },
-          it: { h: `Vuoi di più da ${modelName}?`, p: "25 video al mese in tutti i temi — chattare resta gratis.", cta: "Sblocca l'esperienza AI più calda — 49 €/mese", ctaCode: "Sblocca l'esperienza AI più calda — 19 €" },
+          ro: { h: "Toate modelele, toate temele", p: "Orice model, orice ținută, orice temă: 25 de videoclipuri pe lună — chatul rămâne gratuit.", cta: "Deblochează cea mai fierbinte experiență AI — 49 €/lună", ctaCode: "Deblochează cea mai fierbinte experiență AI — 19 €" },
+          de: { h: "Alle Models, alle Themen", p: "Jedes Model, jeder Look, jedes Thema: 25 Videos im Monat — Chatten bleibt gratis.", cta: "Die heißeste KI-Erfahrung freischalten — 49 €/Monat", ctaCode: "Die heißeste KI-Erfahrung freischalten — 19 €" },
+          en: { h: "Every model, every topic", p: "Every model, every look, every topic: 25 videos a month — chatting stays free.", cta: "Unlock the hottest AI experience ever — €49/month", ctaCode: "Unlock the hottest AI experience ever — €19" },
+          es: { h: "Todas las modelos, todos los temas", p: "Cualquier modelo, cualquier look, cualquier tema: 25 vídeos al mes — chatear sigue gratis.", cta: "Desbloquea la experiencia IA más ardiente — 49 €/mes", ctaCode: "Desbloquea la experiencia IA más ardiente — 19 €" },
+          fr: { h: "Toutes les modèles, tous les thèmes", p: "N'importe quelle modèle, n'importe quelle tenue, n'importe quel thème : 25 vidéos par mois — le chat reste gratuit.", cta: "Débloque l'expérience IA la plus chaude — 49 €/mois", ctaCode: "Débloque l'expérience IA la plus chaude — 19 €" },
+          pt: { h: "Todas as modelos, todos os temas", p: "Qualquer modelo, qualquer look, qualquer tema: 25 vídeos por mês — conversar continua grátis.", cta: "Desbloqueia a experiência de IA mais quente — 49 €/mês", ctaCode: "Desbloqueia a experiência de IA mais quente — 19 €" },
+          pl: { h: "Wszystkie modelki, wszystkie tematy", p: "Dowolna modelka, dowolna stylizacja, dowolny temat: 25 filmów miesięcznie — czat pozostaje darmowy.", cta: "Odblokuj najgorętsze doświadczenie AI — 49 €/miesiąc", ctaCode: "Odblokuj najgorętsze doświadczenie AI — 19 €" },
+          it: { h: "Tutte le modelle, tutti i temi", p: "Qualsiasi modella, qualsiasi look, qualsiasi tema: 25 video al mese — chattare resta gratis.", cta: "Sblocca l'esperienza AI più calda — 49 €/mese", ctaCode: "Sblocca l'esperienza AI più calda — 19 €" },
         };
         const x = S[L] ?? S.en;
         return (
