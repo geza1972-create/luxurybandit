@@ -59,9 +59,12 @@ export async function generateMetadata(
     openGraph: {
       title: m.ot,
       description: m.od,
-      images: [{ url: "/wetter-og.jpg", width: 600, height: 800, alt: name }],
+      // Das BILD VON HEUTE (verschwommen) — /api/og-wetter zieht denselben Beitrag wie die
+      // Tagespost. Das Datum in der Adresse sorgt dafuer, dass WhatsApp die Karte taeglich
+      // neu holt statt die von gestern zu zeigen.
+      images: [{ url: `/api/og-wetter?model=${model}&d=${new Date().toISOString().slice(0, 10)}`, width: 600, height: 800, alt: name }],
     },
-    twitter: { card: "summary_large_image", title: m.ot, description: m.od, images: ["/wetter-og.jpg"] },
+    twitter: { card: "summary_large_image", title: m.ot, description: m.od, images: [`/api/og-wetter?model=${model}&d=${new Date().toISOString().slice(0, 10)}`] },
   };
 }
 
