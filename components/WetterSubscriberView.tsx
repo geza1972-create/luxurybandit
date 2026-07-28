@@ -315,10 +315,20 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
   // NICHT „raus" ist, sondern das Gespräch weiterläuft. Key pro Model + Abonnent.
   const chatKey = `lb_wetter_chat_${modelId}_${subId || name || "anon"}`;
   useEffect(() => {
+    // 1) Sofort aus dem Gerät (kein Flackern), 2) danach vom SERVER überschreiben —
+    // dort liegt der Verlauf am Abonnenten und folgt ihm auf jedes Gerät (Owner 28.07.2026).
     try {
       const raw = localStorage.getItem(chatKey);
       if (raw) { const saved = JSON.parse(raw) as Msg[]; if (Array.isArray(saved) && saved.length > 1) setMessages(saved); }
     } catch { /**/ }
+    if (!subId) return;
+    fetch(`/api/model-chat?curatorId=${encodeURIComponent(modelId)}&visitorId=${encodeURIComponent(subId)}`, { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => {
+        const server = (Array.isArray(d?.messages) ? d.messages : []) as Msg[];
+        if (server.length > 1) setMessages(server);
+      })
+      .catch(() => { /* dann eben nur das Gerät */ });
     // nur beim Mount wiederherstellen
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -386,7 +396,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
     try {
       const res = await fetch("/api/model-chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ curatorId: modelId, visitorId: (name || "sub").toLowerCase(), userName: name, messages: next, lang: L, dayContext }),
+        body: JSON.stringify({ curatorId: modelId, visitorId: subId || (name || "sub").toLowerCase(), userName: name, messages: next, lang: L, dayContext }),
       });
       const ct = res.headers.get("content-type") || "";
       if (ct.includes("application/json") || !res.body) {

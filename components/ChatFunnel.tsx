@@ -177,6 +177,31 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
   const dayFull = !isStaff && today >= DAILY_MSGS;
   const looksLeft = Math.max(0, LOOKS_INCLUDED - usedLooks);
 
+  // Geräte-Kennung: dieselbe wie in „My Gallery" — damit ihr Gedächtnis am Besucher hängt
+  // und nicht an einem Tab (Owner 28.07.2026).
+  const [deviceId, setDeviceId] = useState("");
+  useEffect(() => {
+    try {
+      let v = localStorage.getItem("lb_visitor") ?? "";
+      if (!v) { v = crypto.randomUUID?.() ?? String(Date.now()); localStorage.setItem("lb_visitor", v); }
+      setDeviceId(v);
+    } catch { /**/ }
+  }, []);
+
+  // IHR GEDÄCHTNIS: den Verlauf mit DIESER Frau vom Server holen, sobald beides bekannt ist.
+  useEffect(() => {
+    const cid = useCustom ? "" : (picked?.id ?? "");
+    if (!cid || !deviceId) return;
+    fetch(`/api/model-chat?curatorId=${encodeURIComponent(cid)}&visitorId=${encodeURIComponent(deviceId)}`, { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => {
+        const server = (Array.isArray(d?.messages) ? d.messages : []) as Msg[];
+        if (server.length > 1) { setMsgs(server); scrollFeed(); }
+      })
+      .catch(() => { /* dann fängt sie eben neu an */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picked?.id, useCustom, deviceId]);
+
   // SIE fängt an — mit einer Frage und vier Knöpfen (lib/chat-opener). Vor einem leeren
   // Eingabefeld traut sich kaum jemand, als Erster zu schreiben. Wechselt er die Sprache,
   // bevor er geantwortet hat, wandert die Frage mit.
@@ -209,7 +234,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
         curatorId: useCustom ? "" : (picked?.id ?? ""),
         modelNameHint: useCustom ? (customName.trim() || "she") : "",
         messages: next.filter(m => m.role !== "notice").map(m => ({ role: m.role, content: m.content })),
-        visitorId: "chat-theme",
+        visitorId: deviceId,
         lang: chatLang,
       };
       // Die Chat-Route STREAMT reinen Text (text/plain), sie gibt kein JSON zurück —

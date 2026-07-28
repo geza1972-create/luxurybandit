@@ -30,6 +30,25 @@ export async function GET(request: Request) {
     const messages = (state.directMessages ?? []).filter(m => m.toEmail === inboxEmail);
     return NextResponse.json({ messages });
   }
+  // ── SEIN VERLAUF (Gedächtnis über Geräte hinweg) ────────────────────────────────
+  // Der Verlauf lag bisher nur im Browser: Handywechsel = Neuanfang, und sie konnte sich
+  // auf nichts beziehen (Owner 28.07.2026). Geloggt wurde er längst — wir geben ihn jetzt
+  // auch zurück. Schlüssel ist dieselbe Kennung wie beim Schreiben: curatorId:visitorId.
+  const url = new URL(request.url);
+  const curatorId = url.searchParams.get("curatorId")?.trim() || "";
+  const visitorId = url.searchParams.get("visitorId")?.trim() || "";
+  if (curatorId && visitorId) {
+    const state = await readTryThisLookState();
+    const log = (state.modelChats ?? []).find(c => c.id === `${curatorId}:${visitorId}`);
+    const messages = (log?.messages ?? [])
+      .filter(m => m.role === "user" || m.role === "assistant")
+      .map(m => ({ role: m.role, content: String(m.content ?? "") }))
+      .slice(-40);
+    return NextResponse.json(
+      { messages, userName: log?.userName ?? "" },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
   return NextResponse.json({ error: "Not found." }, { status: 404 });
 }
 
