@@ -459,7 +459,7 @@ export default function ChatFunnel({ code = "", lang = "en" }: { code?: string; 
       {looks.length === 0 ? (
         <div className="grid h-24 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/50" /></div>
       ) : (
-        <div className="-mx-4 mt-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2">
+        <div className="-mx-4 mt-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {looks.map((l, i) => {
             const on = i === lookIdx;
             return (

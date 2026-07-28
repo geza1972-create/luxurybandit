@@ -475,7 +475,7 @@ export default function WetterSubscriberView({ name, city, look, lang = DEFAULT_
                 {/* „Willst du mich in diesen Looks sehen?" — Public = gratis (direkt abspielbar),
                     Private = 🔒 (→ Abo). Kuratiert über den Public/Private-Toggle in My Gallery. */}
                 {offers && videos.length > 0 && (
-                  <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+                  <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {videos.map(v => (
                       <button key={v.id} type="button" onClick={() => v.locked ? openLocked() : setPlaying(v.videoUrl)}
                         className="group relative w-24 shrink-0 overflow-hidden rounded-xl border border-[#f6cf51]/40 bg-black/5 active:scale-95 transition">

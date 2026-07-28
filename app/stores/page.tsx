@@ -3498,7 +3498,7 @@ function StoresPage() {
             {/* Admin feed toolbar */}
             {isAdmin && (
               <div className="border-b border-black/5 bg-white">
-                <div className="flex items-center gap-2 overflow-x-auto px-3 py-2 scrollbar-none">
+                <div className="flex items-center gap-2 overflow-x-auto px-3 py-2 scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {selectedLookIds.size > 0 && (
                     <>
                       <button type="button" disabled={feedBulkWorking} onClick={() => void bulkHideLooks()}

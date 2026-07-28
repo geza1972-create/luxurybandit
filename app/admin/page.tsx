@@ -2694,7 +2694,7 @@ export default function AdminPage() {
         )}
 
         {tab === "curators" && modelsView === "list" && (
-          <div className="mt-2 overflow-x-auto pb-16">
+          <div className="mt-2 overflow-x-auto pb-16 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {/* One shared file input — pickModelVideo() sets the target model, then opens it. */}
             <input ref={vidFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden"
               onChange={e => { const f = e.target.files?.[0]; if (f) void uploadModelVideo(f); e.target.value = ""; }} />
@@ -3255,7 +3255,7 @@ export default function AdminPage() {
                             <textarea defaultValue={p.description ?? ""} placeholder="Was ist drin? Angebotstext fürs Owner-Paket…" onBlur={e => void updateProgram(p.id, { description: e.target.value.trim() })}
                               className="mt-2 h-14 w-full rounded-md border border-black/15 px-2 py-1 text-[12px] text-ink outline-none focus:border-teal-500" />
                             {pool.length > 0 && (
-                              <div className="mt-2 flex gap-1 overflow-x-auto">
+                              <div className="mt-2 flex gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                                 {pool.slice(0, 14).map(l => (
                                   <img key={l.id} src={safeLookImage(l)} alt="" className="h-14 w-11 shrink-0 rounded-md object-cover" onError={e => { e.currentTarget.style.display = "none"; }} />
                                 ))}

@@ -54,7 +54,7 @@ export default async function HolidayThemePage({ searchParams }: {
 
         {/* Beispiele GANZ OBEN als Slider (Owner): wischen, sehen was rauskommt, dann machen. */}
         {examples.length > 0 && (
-          <div className="-mx-4 mt-5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2">
+          <div className="-mx-4 mt-5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {examples.map((url, i) => (
               <div key={i} className="w-[62%] max-w-[240px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10">
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}

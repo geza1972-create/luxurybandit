@@ -170,7 +170,7 @@ export default function AdminOutfitsPage() {
         {/* List */}
         <div className="lg:col-span-2">
           {shown.length > 0 ? (
-            <div className="overflow-x-auto rounded-2xl border border-black/10">
+            <div className="overflow-x-auto rounded-2xl border border-black/10 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <table className="w-full text-left text-[13px]">
                 <thead className="border-b border-black/10 bg-black/[0.04]">
                   <tr>

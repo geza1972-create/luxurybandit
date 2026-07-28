@@ -227,7 +227,7 @@ export default function SurpriseFunnel({ example = "" }: { example?: string }) {
       ) : (
         // GARDEROBE = EINFACHER SLIDER (Owner-Regel): eine Reihe, horizontal wischen,
         // Antippen wählt. Kein 3D-Coverflow — das ist die Kiss-Optik und gehört nicht hierher.
-        <div className="-mx-4 mt-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]{display:none}">
+        <div className="-mx-4 mt-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {looks.map((l, i) => {
             const on = i === pickIdx;
             return (

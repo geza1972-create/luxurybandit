@@ -70,7 +70,7 @@ export default async function ChatThemePage({ searchParams }: {
         <Fine>{t.fine}</Fine>
 
         {(photos.length > 0 || clips.length > 0) && (
-          <div className="-mx-4 mt-5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2">
+          <div className="-mx-4 mt-5 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {clips.map(c => (
               <div key={c.id} className="w-[62%] max-w-[240px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10">
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}

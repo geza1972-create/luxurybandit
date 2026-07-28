@@ -540,7 +540,7 @@ function MaiIeftinInner() {
                   </div>
                   {/* The model's own video looks — tap one to find it cheaper. */}
                   {m.modelLooks && m.modelLooks.length > 0 && (
-                    <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
+                    <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                       {m.modelLooks.map((l, idx) => (
                         <button key={idx} type="button" onClick={() => onModelLook(l.hint)}
                           className="h-36 w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#b8912f]/30 active:scale-95 transition">
@@ -566,7 +566,7 @@ function MaiIeftinInner() {
                   {m.modelVideos && m.modelVideos.length > 0 && (
                     <>
                       <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#f6cf51]">🎬 {m.modelName || (lang === "en" ? "She" : "Ea")} {t.wears}</p>
-                      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
+                      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         {m.modelVideos.map((p, idx) => (
                           <a key={idx} href={p.link} onClick={(e) => { e.preventDefault(); setOpenProduct(p); }}
                             className="relative h-44 w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#f6cf51]/25 active:scale-95 transition">
@@ -587,7 +587,7 @@ function MaiIeftinInner() {
                   {m.ownProducts && m.ownProducts.length > 0 && (
                     <>
                       <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#b8912f]">{t.ours}</p>
-                      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
+                      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         {m.ownProducts.map((p, idx) => (
                           <a key={idx} href={p.link} onClick={(e) => { e.preventDefault(); setOpenProduct(p); }}
                             className="w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#b8912f]/30 active:scale-95 transition">
@@ -610,7 +610,7 @@ function MaiIeftinInner() {
                   {m.inspo && m.inspo.length > 0 && (
                     <>
                       <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#f6cf51]">{lang === "en" ? "Inspiration · our videos" : "Inspirație · videourile noastre"}</p>
-                      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
+                      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         {m.inspo.map((p, idx) => (
                           <a key={idx} href={p.link} onClick={(e) => { e.preventDefault(); setOpenProduct(p); }}
                             className="relative h-44 w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-[#f6cf51]/25 active:scale-95 transition">
@@ -632,7 +632,7 @@ function MaiIeftinInner() {
                       <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-white/85">
                         {t.original}{m.brand ? ` · ${m.brand}` : ""} <span className="font-semibold normal-case tracking-normal text-white/50">— {t.inspo}</span>
                       </p>
-                      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
+                      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         {m.original.map((p, idx) => (
                           <button key={idx} type="button" onClick={() => openResult(p)}
                             className="w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] text-left ring-1 ring-white/20 active:scale-95 transition">
@@ -654,7 +654,7 @@ function MaiIeftinInner() {
                   {m.products && m.products.length > 0 && (
                     <>
                       <p className="px-1 pt-1 text-[11px] font-black uppercase tracking-wide text-[#b8912f]">{t.cheaper}</p>
-                      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
+                      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         {m.products.map((p, idx) => (
                           <button key={idx} type="button" onClick={() => openResult(p)}
                             className="w-28 shrink-0 overflow-hidden rounded-2xl bg-white/[0.06] text-left ring-1 ring-white/10 active:scale-95 transition">
