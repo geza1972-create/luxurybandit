@@ -26,14 +26,32 @@ export const dynamic = "force-dynamic";
 const slugify = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
 
 // SEO: sprechender Titel + Beschreibung + Canonical, damit Google die öffentliche Seite rankt.
-export async function generateMetadata({ params }: { params: Promise<{ model: string }> }) {
+// Vorschau-Text, den WhatsApp/Facebook unter dem Link zeigen. STAND FRÜHER NUR AUF
+// DEUTSCH — ein Rumäne bekam eine deutsche Karte unter seiner rumänischen Nachricht
+// (Owner 28.07.2026). Jetzt folgt sie `?lang=`; ohne Angabe gilt Englisch (Hausregel).
+const META: Record<string, (n: string) => { t: string; d: string; ot: string; od: string }> = {
+  en: n => ({ t: `Morning weather with ${n} — a message every morning`, d: `${n} wakes you up every morning: your weather, a new look and a chat with her. Free to join.`, ot: `Morning weather with ${n}`, od: `A message from ${n} every morning — weather, a new look, a chat.` }),
+  de: n => ({ t: `Wetter am Morgen mit ${n} — jeden Morgen eine Nachricht`, d: `${n} weckt dich jeden Morgen: dein Wetter, ein neuer Look und ein Chat mit ihr. Kostenlos anmelden.`, ot: `Wetter am Morgen mit ${n}`, od: `Jeden Morgen eine Nachricht von ${n} — Wetter, neuer Look, Chat.` }),
+  ro: n => ({ t: `Vremea de dimineață cu ${n} — un mesaj în fiecare dimineață`, d: `${n} te trezește în fiecare dimineață: vremea ta, un look nou și un chat cu ea. Înscriere gratuită.`, ot: `Vremea de dimineață cu ${n}`, od: `Un mesaj de la ${n} în fiecare dimineață — vremea, un look nou, un chat.` }),
+  es: n => ({ t: `El tiempo por la mañana con ${n} — un mensaje cada día`, d: `${n} te despierta cada mañana: tu clima, un look nuevo y un chat con ella. Gratis.`, ot: `El tiempo por la mañana con ${n}`, od: `Un mensaje de ${n} cada mañana — el tiempo, un look nuevo, un chat.` }),
+  fr: n => ({ t: `La météo du matin avec ${n} — un message chaque matin`, d: `${n} te réveille chaque matin : ta météo, un nouveau look et un chat avec elle. Gratuit.`, ot: `La météo du matin avec ${n}`, od: `Un message de ${n} chaque matin — la météo, un nouveau look, un chat.` }),
+  pt: n => ({ t: `O tempo de manhã com ${n} — uma mensagem todos os dias`, d: `${n} acorda-te todas as manhãs: o teu tempo, um novo visual e uma conversa com ela. Grátis.`, ot: `O tempo de manhã com ${n}`, od: `Uma mensagem da ${n} todas as manhãs — o tempo, um novo visual, uma conversa.` }),
+  pl: n => ({ t: `Poranna pogoda z ${n} — wiadomość każdego ranka`, d: `${n} budzi Cię każdego ranka: Twoja pogoda, nowy look i czat z nią. Za darmo.`, ot: `Poranna pogoda z ${n}`, od: `Wiadomość od ${n} każdego ranka — pogoda, nowy look, czat.` }),
+  it: n => ({ t: `Il meteo del mattino con ${n} — un messaggio ogni mattina`, d: `${n} ti sveglia ogni mattina: il tuo meteo, un look nuovo e una chat con lei. Gratis.`, ot: `Il meteo del mattino con ${n}`, od: `Un messaggio di ${n} ogni mattina — meteo, look nuovo, chat.` }),
+};
+
+export async function generateMetadata(
+  { params, searchParams }: { params: Promise<{ model: string }>; searchParams?: Promise<Record<string, string | undefined>> },
+) {
   const { model } = await params;
+  const sp = (await searchParams) ?? {};
   const name = model.charAt(0).toUpperCase() + model.slice(1);
+  const m = (META[String(sp.lang ?? "en").slice(0, 2)] ?? META.en)(name);
   return {
-    title: `Wetter am Morgen mit ${name} — jeden Morgen eine Nachricht`,
-    description: `${name} weckt dich jeden Morgen: dein Wetter, ein neuer Look und ein Chat mit ihr. Kostenlos anmelden.`,
+    title: m.t,
+    description: m.d,
     alternates: { canonical: `/themes/wetter/${model}` },
-    openGraph: { title: `Wetter am Morgen mit ${name}`, description: `Jeden Morgen eine Nachricht von ${name} — Wetter, neuer Look, Chat.` },
+    openGraph: { title: m.ot, description: m.od },
   };
 }
 
