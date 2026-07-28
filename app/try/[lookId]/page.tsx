@@ -506,16 +506,11 @@ export default function TryFunnelPage() {
   useEffect(() => { if (step === 3 && previewGenId && isAuthed()) void claimCachedTryOn(); }, [step, previewGenId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onUnlock = () => {
-    // Already signed in (guest session) OR admin previewing the flow → straight to plans.
-    // In the admin's "User view", still show the gate so they can test the guest experience.
-    // Free look → straight to generation (no paywall). Paid look → plans/pack step.
-    if (isAuthed() || (adminPin && !previewAsUser)) setStep(lookIsFree ? 5 : 4);
-    else {
-      // Remember we're mid-funnel so a Google-OAuth round-trip (full reload) resumes the
-      // reveal instead of dropping the visitor back at step 2.
-      try { sessionStorage.setItem("lb_tryon_resume", "1"); } catch { /**/ }
-      setGateOpen(true);
-    }
+    // KEINE Anmelde-Wand mehr (Owner 28.07.2026): Hier stand „Register or sign in to watch",
+    // obwohl der Besucher schon am Ende des Trichters war — an dieser Stelle verkaufen wir,
+    // wir fragen nicht nach einem Konto. Die E-Mail holen wir beim Bezahlen bei Stripe.
+    // Free look → direkt generieren. Bezahlter Look → Kasse.
+    setStep(lookIsFree ? 5 : 4);
   };
 
   // Extract a poster frame from the finished video (for the generation thumbnail).
@@ -1348,8 +1343,10 @@ export default function TryFunnelPage() {
                   )
                 ) : (
                   <button type="button" onClick={onUnlock}
-                    className="lb-gold flex h-14 w-full items-center justify-center gap-2 rounded-full text-base font-black active:scale-95 transition-transform">
-                    {(isAuthed() || (adminPin && !previewAsUser)) ? L("Continuă", "Continue") : L("Înregistrează-te ca să vezi", "Register or sign in to watch")}
+                    className="lb-gold flex min-h-14 w-full items-center justify-center gap-2 rounded-full px-4 py-3 text-center text-[15px] font-black leading-tight active:scale-95 transition-transform">
+                    {lookIsFree
+                      ? L("Vezi videoul", "Watch the video")
+                      : L("Deblochează videoul — 3,99 €", "Unlock the video — 3.99 €")}
                   </button>
                 )}
               </div>
