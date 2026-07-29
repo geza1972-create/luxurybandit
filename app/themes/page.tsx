@@ -7,7 +7,7 @@ import type { LucideIcon } from "lucide-react";
 import { buildBellaCard, BELLA_ID } from "@/lib/bella-card";
 import { resolveLang } from "@/lib/lang-server";
 import { trObject } from "@/lib/tr-object";
-import { readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, readTryThisLookState, readKissConfig } from "@/lib/try-this-look-store";
+import { readCardStudioSlides, getSignedUrl, isPublicBellaPost, sortBellaPosts, readTryThisLookState, readKissConfig, readThemeConfig } from "@/lib/try-this-look-store";
 import { WHATSAPP_CHANNEL, followWhatsApp } from "@/lib/social";
 
 // Katalog aller „Themen" als bildstarke Galerie (wie die Reel-/Models-Galerie).
@@ -198,12 +198,27 @@ export default async function ThemesCatalog({ searchParams }: {
     }
   } catch { /**/ }
 
+  // BELLA-THEMA: dasselbe Muster wie Kiss — das Cover kommt aus dem Medien-Werkzeug
+  // (/themes/bella?admin=1 → „1 · Cover"). Beim Anlegen der Karte am 29.07.2026 hatte ich
+  // das vergessen: sie zeigte stur Bellas Profilfoto, obwohl im Panel „erscheint im
+  // Themes-Katalog" steht. Ist kein Cover gesetzt, gilt das ERSTE Video der Galerie —
+  // damit die Karte auch dann das zeigt, was oben auf der Landingpage läuft.
+  let bellaCover = "", bellaVideo = "";
+  try {
+    const bc = await readThemeConfig("bella");
+    const p = bc.teaserPath || (bc.examplePaths ?? [])[0] || "";
+    if (p) {
+      const url = await getSignedUrl(p).catch(() => "");
+      if (url) { if (/\.(mp4|webm|mov)$/i.test(p)) bellaVideo = url; else bellaCover = url; }
+    }
+  } catch { /**/ }
+
   const THEMES: Theme[] = [
     // BELLA GANZ VORN (Owner 29.07.2026): Sie ist das Gesicht des Portals, und der beste
     // Reel der Kontogeschichte („Go on holiday with Bella in Tenerife") bewirbt genau dieses
     // Versprechen. Er zeigte bisher auf /urlaub-mit-bella, eine Seite mit abgeschaltetem
     // Angebot — jetzt auf /themes/bella mit dem lebenden Trichter.
-    { icon: Palmtree, title: "Tenerife with Bella", tagline: "Not her holiday — yours. Your photo, and she is in the video with you.", href: "/themes/bella", cover: wetterCover, video: urlaubVideo || undefined, chips: "♥ Bella · Your photo · Video" },
+    { icon: Palmtree, title: "Tenerife with Bella", tagline: "Not her holiday — yours. Your photo, and she is in the video with you.", href: "/themes/bella", cover: bellaCover || wetterCover, video: bellaVideo || urlaubVideo || undefined, chips: "♥ Bella · Your photo · Video" },
     { icon: CloudSun, title: "Morning Weather", tagline: "Your weather, a new look & a chat — every morning.", href: "/themes/wetter/bella", cover: wetterCover, video: wetterVideo, poster: wetterPoster },
     // NEU (27.07.2026): nicht mehr „sie reist für dich", sondern ER macht die Videos selbst
     // — Foto hoch, Model wählen, einen von 25 Momenten antippen. Alte Bella-Reise lebt
