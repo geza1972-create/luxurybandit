@@ -132,6 +132,16 @@ export default function ThemeMediaAdmin({
     } finally { setBusy(""); }
   };
 
+  // Cover leeren. Die Route deutet einen leeren `teaserPath` ausdrücklich als „entfernen".
+  const clearTeaser = async () => {
+    setBusy("clear"); setMsg("");
+    try {
+      const r = await fetch(api, { method: "POST", headers: authH(), body: JSON.stringify({ teaserPath: "" }) });
+      if (r.ok) { setMsg("🗑 Cover geleert."); await load(pin); }
+      else setMsg(`❌ Leeren fehlgeschlagen (${r.status}).`);
+    } finally { setBusy(""); }
+  };
+
   // Fehler NIE verschlucken — sonst wirkt der Klick wirkungslos („kann nicht löschen").
   const removeExample = async (path: string) => {
     setBusy(path); setMsg("");
@@ -173,14 +183,25 @@ export default function ThemeMediaAdmin({
           <p className="text-[12px] font-bold text-black/70">
             {teaserUrl ? "Tippen zum Ersetzen." : (teaserHint ?? "Bild oder Video hochladen — wird das Cover im Themes-Katalog.")}
           </p>
-          {/* Rettet einen Upload, der hier statt in der Galerie gelandet ist. */}
-          {teaserPath && !examples.some(e => e.path === teaserPath) && (
-            <button type="button" onClick={() => void teaserToExamples()} disabled={busy === "copy"}
-              className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-black/15 px-2.5 py-1 text-[11px] font-black text-black/70 active:scale-95 transition disabled:opacity-60">
-              {busy === "copy" ? <Loader2 className="h-3 w-3 animate-spin" /> : <CornerDownRight className="h-3 w-3" />}
-              Auch unten in die Galerie
-            </button>
-          )}
+          {/* Rettet einen Upload, der hier statt in der Galerie gelandet ist — und lässt ihn
+              danach auch wieder aus dem Cover entfernen. Beide Knöpfe, weil dasselbe Video
+              als Cover UND in der Galerie stehen darf, aber nicht muss. */}
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {teaserPath && !examples.some(e => e.path === teaserPath) && (
+              <button type="button" onClick={() => void teaserToExamples()} disabled={busy === "copy"}
+                className="inline-flex items-center gap-1.5 rounded-full border border-black/15 px-2.5 py-1 text-[11px] font-black text-black/70 active:scale-95 transition disabled:opacity-60">
+                {busy === "copy" ? <Loader2 className="h-3 w-3 animate-spin" /> : <CornerDownRight className="h-3 w-3" />}
+                Auch unten in die Galerie
+              </button>
+            )}
+            {teaserPath && (
+              <button type="button" onClick={() => void clearTeaser()} disabled={busy === "clear"}
+                className="inline-flex items-center gap-1.5 rounded-full border border-black/15 px-2.5 py-1 text-[11px] font-black text-black/70 active:scale-95 transition disabled:opacity-60">
+                {busy === "clear" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                Cover leeren
+              </button>
+            )}
+          </div>
         </div>
       </div>
       <input ref={teaserRef} type="file" accept="image/*,video/*" className="hidden"
@@ -199,8 +220,12 @@ export default function ThemeMediaAdmin({
           <div key={e.path} className="relative overflow-hidden rounded-xl border border-black/10">
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <video src={e.url} muted playsInline preload="metadata" className="pointer-events-none aspect-[3/4] w-full object-cover" />
-            {/* Platznummer — sonst sieht man nicht, was „Reihenfolge" hier bedeutet. */}
-            <span className="absolute left-1 top-1 z-10 grid h-6 w-6 place-items-center rounded-full bg-black/70 text-[11px] font-black text-white">{i + 1}</span>
+            {/* Platznummer — sonst sieht man nicht, was „Reihenfolge" hier bedeutet.
+                Farbe FEST als Style: der umgebende `lb-theme`-Kasten überschreibt sonst
+                `text-white` mit seinem dunklen Textton, und die Zahl stand schwarz auf
+                schwarz (gefunden 29.07.2026). */}
+            <span style={{ color: "#fff" }}
+              className="absolute left-1 top-1 z-10 grid h-6 w-6 place-items-center rounded-full bg-black/75 text-[11px] font-black">{i + 1}</span>
             {/* Großer Tap-Bereich + z-10, damit der Klick nie im Video landet. */}
             <button type="button" onClick={() => void removeExample(e.path)} disabled={busy === e.path}
               aria-label="Beispiel-Video löschen"
